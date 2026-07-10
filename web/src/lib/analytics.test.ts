@@ -10,6 +10,7 @@ interface InitCfg {
   disable_session_recording?: boolean;
   session_recording?: { maskAllInputs?: boolean; maskTextSelector?: string };
   sanitize_properties?: (p: Record<string, unknown>) => Record<string, unknown>;
+  before_send?: (e: unknown) => unknown;
 }
 
 // Mock posthog-js. init() invokes the `loaded` callback synchronously so the
@@ -32,6 +33,7 @@ vi.mock("posthog-js", () => ({ default: mockPosthog }));
 import {
   __resetAnalyticsForTests,
   configureAnalytics,
+  filterExceptionNoise,
   isValidEmail,
   recordOnboardingEmailCaptured,
   recordOnboardingEmailStarted,
@@ -192,15 +194,17 @@ describe("onboarding email (the single PII egress)", () => {
     expect(mockPosthog.capture).not.toHaveBeenCalled();
   });
 
-  it.each(["seed-user-15", "not-an-email", "no@domain", "@nope.com"])(
-    "ignores a non-email value (%s) — never attaches it or emits the event",
-    async (junk) => {
-      recordOnboardingEmailCaptured(junk);
-      await flush();
-      expect(mockPosthog.setPersonProperties).not.toHaveBeenCalled();
-      expect(mockPosthog.capture).not.toHaveBeenCalled();
-    },
-  );
+  it.each([
+    "seed-user-15",
+    "not-an-email",
+    "no@domain",
+    "@nope.com",
+  ])("ignores a non-email value (%s) — never attaches it or emits the event", async (junk) => {
+    recordOnboardingEmailCaptured(junk);
+    await flush();
+    expect(mockPosthog.setPersonProperties).not.toHaveBeenCalled();
+    expect(mockPosthog.capture).not.toHaveBeenCalled();
+  });
 });
 
 describe("live consent changes", () => {
@@ -241,5 +245,113 @@ describe("sanitize_properties", () => {
     const enriched = cfg?.sanitize_properties?.({ a: 1 }) ?? {};
     expect(enriched.theme).toBe("noir-gold");
     document.documentElement.removeAttribute("data-theme");
+  });
+});
+
+describe("filterExceptionNoise", () => {
+  // filterExceptionNoise is typed against posthog's CaptureResult; tests build
+  // minimal shapes, so route them through a small casting helper.
+  type Item = {
+    mechanism?: { handled?: boolean; synthetic?: boolean };
+    stacktrace?: { frames?: unknown[] };
+  };
+  const run = (event: unknown): unknown =>
+    filterExceptionNoise(event as Parameters<typeof filterExceptionNoise>[0]);
+  const exception = (...list: Item[]): unknown => ({
+    event: "$exception",
+    properties: { $exception_list: list },
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const evt = { event: "$pageview", properties: { $current_url: "/x" } };
+    expect(run(evt)).toBe(evt);
+  });
+
+  it("passes through when the exception list is missing or empty", () => {
+    const missing = { event: "$exception", properties: {} };
+    expect(run(missing)).toBe(missing);
+    const empty = exception();
+    expect(run(empty)).toBe(empty);
+  });
+
+  it("drops the reported injected-bus rejection (unhandled, synthetic, no frames)", () => {
+    // 'Error' captured as exception with message:
+    // 'No Listener: tabs:outgoing.message.ready' — a browser-extension bus
+    // rejection captured on our page. See PR description.
+    const evt = exception({ mechanism: { handled: false, synthetic: true } });
+    expect(run(evt)).toBeNull();
+  });
+
+  it("drops exceptions whose frames are all from a browser extension", () => {
+    const evt = exception({
+      mechanism: { handled: false, synthetic: false },
+      stacktrace: {
+        frames: [
+          { abs_path: "chrome-extension://abc/content.js", in_app: false },
+          { filename: "moz-extension://def/inject.js", in_app: false },
+        ],
+      },
+    });
+    expect(run(evt)).toBeNull();
+  });
+
+  it("keeps exceptions with at least one in-app frame", () => {
+    const evt = exception({
+      mechanism: { handled: false, synthetic: true },
+      stacktrace: {
+        frames: [
+          { abs_path: "chrome-extension://abc/content.js", in_app: false },
+          { filename: "http://127.0.0.1:7891/assets/app.js", in_app: true },
+        ],
+      },
+    });
+    expect(run(evt)).toBe(evt);
+  });
+
+  it("keeps frameful exceptions we cannot attribute to an extension", () => {
+    // No in-app flag but same-origin bundle frames (e.g. un-source-mapped) —
+    // we do not guess these away.
+    const evt = exception({
+      mechanism: { handled: false, synthetic: false },
+      stacktrace: {
+        frames: [{ filename: "http://127.0.0.1:7891/assets/app.js" }],
+      },
+    });
+    expect(run(evt)).toBe(evt);
+  });
+
+  it("keeps frameless exceptions that are handled or non-synthetic", () => {
+    expect(
+      run(exception({ mechanism: { handled: true, synthetic: true } })),
+    ).not.toBeNull();
+    expect(
+      run(exception({ mechanism: { handled: false, synthetic: false } })),
+    ).not.toBeNull();
+  });
+
+  it("keeps the event when any exception in the list is ours", () => {
+    const evt = exception(
+      { mechanism: { handled: false, synthetic: true } },
+      {
+        mechanism: { handled: false, synthetic: false },
+        stacktrace: { frames: [{ filename: "app.js", in_app: true }] },
+      },
+    );
+    expect(run(evt)).toBe(evt);
+  });
+
+  it("is wired into posthog init as before_send", async () => {
+    configureAnalytics({
+      configured: true,
+      posthog_key: "phc_runtime",
+      telemetry_enabled: true,
+      session_recording_enabled: false,
+    });
+    await vi.waitFor(() => expect(mockPosthog.init).toHaveBeenCalled());
+    const cfg = mockPosthog.init.mock.calls[0][1];
+    const dropped = cfg?.before_send?.(
+      exception({ mechanism: { handled: false, synthetic: true } }),
+    );
+    expect(dropped).toBeNull();
   });
 });

@@ -37,7 +37,7 @@
  * Every public function is best-effort and never throws into the caller.
  */
 
-import type { PostHog } from "posthog-js";
+import type { CaptureResult, PostHog } from "posthog-js";
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 
@@ -142,6 +142,79 @@ export function __resetAnalyticsForTests(): void {
   posthog = null;
 }
 
+/** Browser-extension content scripts run in our page and throw their own
+ * errors; their frames carry these URL schemes. */
+const EXTENSION_URL_RE = /^(chrome|moz|safari-web|safari)-extension:\/\//;
+
+/** Minimal shape of a posthog `$exception_list` entry we need to classify. */
+interface ExceptionListItem {
+  mechanism?: { handled?: boolean; synthetic?: boolean };
+  stacktrace?: { frames?: unknown[] };
+}
+
+function frameSource(frame: unknown): string {
+  if (typeof frame !== "object" || frame === null) return "";
+  const f = frame as { abs_path?: unknown; filename?: unknown };
+  const src = f.abs_path ?? f.filename;
+  return typeof src === "string" ? src : "";
+}
+
+function frameIsOurs(frame: unknown): boolean {
+  return (
+    typeof frame === "object" &&
+    frame !== null &&
+    (frame as { in_app?: unknown }).in_app === true
+  );
+}
+
+/**
+ * True when a single captured exception cannot be attributed to our own code
+ * and is therefore third-party noise (a browser extension or injected script
+ * throwing in our page). Kept deliberately conservative so real app errors are
+ * never silently dropped:
+ *
+ *   - Any in-app frame  -> ours, keep.
+ *   - Frames present, none in-app, all from an extension URL -> extension, drop.
+ *   - Frames present, none in-app, not all extension -> keep (could be our own
+ *     un-source-mapped bundle; we do not guess).
+ *   - No frames at all -> drop only when it is an UNHANDLED + SYNTHETIC
+ *     exception. That is posthog's signature for a non-Error value that reached
+ *     `window.onunhandledrejection` / `onerror` from outside our code (e.g. a
+ *     "Script error." or an injected message-bus rejection); our own throws are
+ *     real Errors and carry frames.
+ */
+function exceptionIsForeignNoise(item: ExceptionListItem): boolean {
+  const frames = item.stacktrace?.frames ?? [];
+  if (frames.some(frameIsOurs)) return false;
+  if (frames.length > 0) {
+    return frames.every((frame) => EXTENSION_URL_RE.test(frameSource(frame)));
+  }
+  const mech = item.mechanism ?? {};
+  return mech.handled === false && mech.synthetic === true;
+}
+
+/**
+ * Drop `$exception` events that are entirely third-party noise. posthog's
+ * exception autocapture (enabled from the project's error-tracking settings)
+ * globally hooks `onerror` / `onunhandledrejection`, so errors thrown by
+ * browser extensions and injected scripts running in our page are captured and
+ * charged to our project, polluting the error-tracking inbox. We only report
+ * exceptions we can attribute to our own code; if every exception in the list
+ * is foreign noise, the event is discarded. Returns the event unchanged
+ * otherwise.
+ */
+export function filterExceptionNoise(
+  event: CaptureResult | null,
+): CaptureResult | null {
+  if (!event || event.event !== "$exception") return event;
+  const list = event.properties?.["$exception_list"];
+  if (!Array.isArray(list) || list.length === 0) return event;
+  const allForeign = list.every((item) =>
+    exceptionIsForeignNoise((item ?? {}) as ExceptionListItem),
+  );
+  return allForeign ? null : event;
+}
+
 /**
  * Strip anything we never want to send and enrich with the active theme. Runs
  * on every captured event. Defense in depth: properties are constructed to be
@@ -193,6 +266,7 @@ function ensurePostHog(): Promise<PostHog | null> {
           recordCrossOriginIframes: false,
         },
         sanitize_properties: (properties) => sanitizeProperties(properties),
+        before_send: (event) => filterExceptionNoise(event),
         loaded: (ph2) => {
           if (effectiveConfig().recordingEnabled) ph2.startSessionRecording();
         },
