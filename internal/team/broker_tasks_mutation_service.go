@@ -311,35 +311,8 @@ func (b *Broker) checkTaskActionAuthLocked(action, actor, targetTaskID string) e
 	case "", "human", "you", "system", "broker", "nex":
 		return nil
 	}
-	// The App Builder is a built-in system worker even when the intentionally
-	// empty Operator roster has no registered members or lead. Keep it on the
-	// same owner-only transition surface as a managed specialist instead of
-	// letting the unregistered/no-lead compatibility fallthrough grant CEO-level
-	// scope mutations.
 	if isAppBuilderSlug(actorSlug) {
-		ownerAllowed := map[string]bool{
-			"submit_for_review": true,
-			"review":            true,
-			"complete":          true,
-			"resume":            true,
-			"release":           true,
-			"claim":             true,
-			"assign":            true,
-			"block":             true,
-			"cancel":            true,
-			"reopen":            true,
-		}
-		if ownerAllowed[a] && targetTaskID != "" {
-			if task := b.findTaskByIDLocked(strings.TrimSpace(targetTaskID)); task != nil &&
-				isAppBuilderSlug(task.Owner) {
-				return nil
-			}
-		}
-		return taskMutationError(
-			TaskMutationForbidden,
-			"App Builder can only update the status of an App Builder task it owns.",
-			nil,
-		)
+		return b.checkAppBuilderTaskActionAuthLocked(a, targetTaskID)
 	}
 
 	leadSlug := strings.ToLower(strings.TrimSpace(officeLeadSlugFrom(b.members)))
