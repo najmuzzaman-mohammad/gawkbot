@@ -137,6 +137,9 @@ button = Button("Create", @Run(create))`)
 			t.Fatalf("normalized APIs = %v, missing %q", caps.BridgeAPIs, api)
 		}
 	}
+	if !introspectHas(caps.OfficeWrites, "createTask") || introspectHas(caps.OfficeWrites, "wuphf_create_task") {
+		t.Fatalf("OfficeWrites were not normalized: %v", caps.OfficeWrites)
+	}
 	for _, pseudoComponent := range []string{"Query", "Mutation"} {
 		if introspectHas(caps.UIComponents, pseudoComponent) {
 			t.Fatalf("UI components include OpenUI pseudo-component %q: %v", pseudoComponent, caps.UIComponents)

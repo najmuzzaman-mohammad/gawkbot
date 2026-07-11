@@ -211,7 +211,15 @@ export function createOpenUIAppToolProvider(appId: string) {
   const dbBase = `/apps/${encodeURIComponent(appId)}/db`;
   let humanActorPromise: Promise<string> | undefined;
   const humanActor = () => {
-    humanActorPromise ??= getHumanMe().then(openUIHumanActor);
+    if (!humanActorPromise) {
+      const request = getHumanMe().then(openUIHumanActor);
+      let cached: Promise<string>;
+      cached = request.catch((error: unknown) => {
+        if (humanActorPromise === cached) humanActorPromise = undefined;
+        throw error;
+      });
+      humanActorPromise = cached;
+    }
     return humanActorPromise;
   };
   return {

@@ -49,6 +49,23 @@ it("uses the signed-in human identity for task visibility", async () => {
   });
 });
 
+it("retries signed-in human identity after a transient failure", async () => {
+  const getSpy = vi
+    .spyOn(client, "get")
+    .mockRejectedValueOnce(new Error("temporary network failure"))
+    .mockResolvedValueOnce({ human: { slug: "human" } })
+    .mockResolvedValueOnce({ tasks: [{ id: "OFFICE-2" }] });
+  const provider = createOpenUIAppToolProvider("app_1");
+
+  await expect(provider.wuphf_list_tasks()).rejects.toThrow(
+    "temporary network failure",
+  );
+  await expect(provider.wuphf_list_tasks()).resolves.toEqual([
+    { id: "OFFICE-2" },
+  ]);
+  expect(getSpy).toHaveBeenCalledTimes(3);
+});
+
 describe("readArrayEnvelope", () => {
   it("unwraps broker list responses and fails closed for malformed data", () => {
     const tasks = [{ id: "OFFICE-1" }];

@@ -71,7 +71,7 @@ func introspectAppOpenUI(source string) AppCapabilities {
 		}
 		apiSet[apiName] = true
 		if match[1] == "Mutation" {
-			writeSet[match[2]] = true
+			writeSet[apiName] = true
 		}
 	}
 	for _, match := range reOpenUIComponent.FindAllStringSubmatch(source, -1) {
