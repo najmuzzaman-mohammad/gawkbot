@@ -114,7 +114,7 @@ func TestBuildCodexOfficeConfigOverridesIncludesOfficeMCPEnv(t *testing.T) {
 	if !strings.Contains(joined, `mcp_servers.wuphf-office.args=["mcp-team"]`) {
 		t.Fatalf("expected WUPHF MCP args override, got %q", joined)
 	}
-	if !strings.Contains(joined, `mcp_servers.wuphf-office.env_vars=["WUPHF_AGENT_SLUG", "WUPHF_BROKER_TOKEN", "WUPHF_BROKER_BASE_URL", "WUPHF_NO_NEX", "WUPHF_ONE_ON_ONE", "WUPHF_ONE_ON_ONE_AGENT"]`) {
+	if !strings.Contains(joined, `mcp_servers.wuphf-office.env_vars=["WUPHF_AGENT_SLUG", "WUPHF_CHANNEL", "WUPHF_BROKER_TOKEN", "WUPHF_BROKER_BASE_URL", "WUPHF_NO_NEX", "WUPHF_ONE_ON_ONE", "WUPHF_ONE_ON_ONE_AGENT"]`) {
 		t.Fatalf("expected office env var forwarding, got %q", joined)
 	}
 	if strings.Contains(joined, broker.Token()) {
@@ -194,7 +194,7 @@ func TestRunHeadlessCodexTurnUsesHeadlessOfficeRuntime(t *testing.T) {
 	if !strings.Contains(joinedArgs, `mcp_servers.wuphf-office.command="/tmp/wuphf"`) {
 		t.Fatalf("expected office MCP override, got %#v", record.Args)
 	}
-	if !strings.Contains(joinedArgs, `mcp_servers.wuphf-office.env_vars=["WUPHF_AGENT_SLUG", "WUPHF_BROKER_TOKEN", "WUPHF_BROKER_BASE_URL", "ONE_SECRET", "ONE_IDENTITY", "ONE_IDENTITY_TYPE"]`) {
+	if !strings.Contains(joinedArgs, `mcp_servers.wuphf-office.env_vars=["WUPHF_AGENT_SLUG", "WUPHF_CHANNEL", "WUPHF_BROKER_TOKEN", "WUPHF_BROKER_BASE_URL", "ONE_SECRET", "ONE_IDENTITY", "ONE_IDENTITY_TYPE"]`) {
 		t.Fatalf("expected office env var forwarding, got %#v", record.Args)
 	}
 	if !strings.Contains(joinedArgs, `mcp_servers.nex.command="/usr/bin/nex-mcp"`) {

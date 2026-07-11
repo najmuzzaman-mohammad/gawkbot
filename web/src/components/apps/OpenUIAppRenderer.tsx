@@ -183,22 +183,35 @@ function boundedResult(value: unknown): unknown {
   return value;
 }
 
+export function readArrayEnvelope(value: unknown, key: string): unknown[] {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return [];
+  const candidate = (value as Readonly<Record<string, unknown>>)[key];
+  return Array.isArray(candidate) ? candidate : [];
+}
+
 export function createOpenUIAppToolProvider(appId: string) {
   const dbBase = `/apps/${encodeURIComponent(appId)}/db`;
   return {
     wuphf_list_tasks: async () =>
       boundedResult(
-        await get("/tasks", {
-          all_channels: true,
-          include_done: true,
-          viewer_slug: "human",
-        }),
+        readArrayEnvelope(
+          await get("/tasks", {
+            all_channels: true,
+            include_done: true,
+            viewer_slug: "human",
+          }),
+          "tasks",
+        ),
       ),
     wuphf_list_office_members: async () =>
-      boundedResult(await get("/office-members")),
-    wuphf_list_channels: async () => boundedResult(await get("/channels")),
-    wuphf_list_requests: async () => boundedResult(await get("/requests")),
-    wuphf_wiki_list: async () => boundedResult(await get("/wiki/catalog")),
+      boundedResult(readArrayEnvelope(await get("/office-members"), "members")),
+    wuphf_list_channels: async () =>
+      boundedResult(readArrayEnvelope(await get("/channels"), "channels")),
+    wuphf_list_requests: async () =>
+      boundedResult(readArrayEnvelope(await get("/requests"), "requests")),
+    wuphf_wiki_list: async () =>
+      boundedResult(readArrayEnvelope(await get("/wiki/catalog"), "articles")),
     wuphf_wiki_read: async (raw: Record<string, unknown>) => {
       const args = wikiReadArgs.parse(raw);
       return boundedResult({

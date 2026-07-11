@@ -4,7 +4,7 @@ import { del, get, post } from "./client";
 import type { Task, TaskResponse } from "./tasks";
 
 export const OPENUI_APP_LIBRARY_HASH =
-  "a399729367a23238169e75cda54ec4c76c43d6d5e7c1e44aa2fe98ad7f6413c2";
+  "06e4b7ef3e2e2ca65a3cbe9b966d502210270331b475c21ab99ad5e90d51489e";
 
 /**
  * CustomApp is the manifest for an agent-generated internal tool. Mirrors the

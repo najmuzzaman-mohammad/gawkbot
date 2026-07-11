@@ -41,7 +41,7 @@ const (
 	customAppRepresentationOpenUI = "openui"
 	customAppOpenUIVersion        = "0.5"
 	customAppOpenUILibrary        = "wuphf-app-v1"
-	customAppOpenUILibraryHash    = "a399729367a23238169e75cda54ec4c76c43d6d5e7c1e44aa2fe98ad7f6413c2"
+	customAppOpenUILibraryHash    = "06e4b7ef3e2e2ca65a3cbe9b966d502210270331b475c21ab99ad5e90d51489e"
 	customAppProviderVersion      = "1"
 	customAppMaxOpenUIBytes       = 256 * 1024
 	// Singlefile React bundles run larger than rich artifacts (the whole app +

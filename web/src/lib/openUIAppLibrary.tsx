@@ -21,6 +21,17 @@ function keyedValues<T>(items: T[], serialize: (value: T) => string) {
   });
 }
 
+function reactiveValue<T>(
+  value: { readonly value: T } | T | null | undefined,
+  fallback: T,
+): T {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object" && !Array.isArray(value) && "value" in value) {
+    return (value as { readonly value: T }).value ?? fallback;
+  }
+  return value as T;
+}
+
 const Heading = defineComponent({
   name: "Heading",
   description: "A heading with a semantic level from 1 to 3.",
@@ -32,7 +43,7 @@ const Heading = defineComponent({
     const Tag = `h${props.level ?? "2"}` as "h1" | "h2" | "h3";
     return (
       <Tag className={`openui-app-heading level-${props.level ?? "2"}`}>
-        {props.text.value}
+        {reactiveValue(props.text, "")}
       </Tag>
     );
   },
@@ -47,7 +58,7 @@ const Text = defineComponent({
   }),
   component: ({ props }) => (
     <p className={props.muted ? "openui-app-text muted" : "openui-app-text"}>
-      {props.text.value}
+      {reactiveValue(props.text, "")}
     </p>
   ),
 });
@@ -58,7 +69,7 @@ const Badge = defineComponent({
   props: z.object({ label: reactive(z.string()), tone: tone.optional() }),
   component: ({ props }) => (
     <span className={`openui-app-badge tone-${props.tone ?? "neutral"}`}>
-      {props.label.value}
+      {reactiveValue(props.label, "")}
     </span>
   ),
 });
@@ -75,8 +86,8 @@ const Metric = defineComponent({
   component: ({ props }) => (
     <div className={`openui-app-metric tone-${props.tone ?? "neutral"}`}>
       <span>{props.label}</span>
-      <strong>{props.value.value}</strong>
-      {props.detail ? <small>{props.detail.value}</small> : null}
+      <strong>{reactiveValue(props.value, "")}</strong>
+      {props.detail ? <small>{reactiveValue(props.detail, "")}</small> : null}
     </div>
   ),
 });
@@ -90,7 +101,7 @@ const Callout = defineComponent({
       className={`openui-app-callout tone-${props.tone ?? "info"}`}
       role={props.tone === "danger" ? "alert" : "status"}
     >
-      {props.body.value}
+      {reactiveValue(props.body, "")}
     </div>
   ),
 });
@@ -103,16 +114,18 @@ const List = defineComponent({
     items: reactive(z.array(z.string())),
     emptyText: z.string().optional(),
   }),
-  component: ({ props }) =>
-    props.items.value.length ? (
+  component: ({ props }) => {
+    const items = reactiveValue<string[]>(props.items, []);
+    return items.length ? (
       <ul className="openui-app-list">
-        {keyedValues(props.items.value, String).map(({ value, key }) => (
+        {keyedValues(items, String).map(({ value, key }) => (
           <li key={key}>{value}</li>
         ))}
       </ul>
     ) : (
       <p className="openui-app-empty">{props.emptyText ?? "No items yet."}</p>
-    ),
+    );
+  },
 });
 
 const Table = defineComponent({
@@ -127,19 +140,23 @@ const Table = defineComponent({
     ),
     emptyText: z.string().optional(),
   }),
-  component: ({ props }) => (
-    <div className="openui-app-table-wrap">
-      <table className="openui-app-table">
-        <thead>
-          <tr>
-            {props.columns.map((column) => (
-              <th key={column}>{column}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {keyedValues(props.rows.value, JSON.stringify).map(
-            ({ value: row, key }) => (
+  component: ({ props }) => {
+    const rows = reactiveValue<Array<Array<string | number | boolean | null>>>(
+      props.rows,
+      [],
+    );
+    return (
+      <div className="openui-app-table-wrap">
+        <table className="openui-app-table">
+          <thead>
+            <tr>
+              {props.columns.map((column) => (
+                <th key={column}>{column}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {keyedValues(rows, JSON.stringify).map(({ value: row, key }) => (
               <tr key={key}>
                 {keyedValues(props.columns, String).map(
                   ({ index, key: columnKey }) => (
@@ -147,15 +164,15 @@ const Table = defineComponent({
                   ),
                 )}
               </tr>
-            ),
-          )}
-        </tbody>
-      </table>
-      {props.rows.value.length === 0 ? (
-        <p className="openui-app-empty">{props.emptyText ?? "No results."}</p>
-      ) : null}
-    </div>
-  ),
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 ? (
+          <p className="openui-app-empty">{props.emptyText ?? "No results."}</p>
+        ) : null}
+      </div>
+    );
+  },
 });
 
 const DataTable = defineComponent({
@@ -167,33 +184,34 @@ const DataTable = defineComponent({
     rows: reactive(z.array(z.record(z.string(), z.unknown()))),
     emptyText: z.string().optional(),
   }),
-  component: ({ props }) => (
-    <div className="openui-app-table-wrap">
-      <table className="openui-app-table">
-        <thead>
-          <tr>
-            {props.columns.map((column) => (
-              <th key={column.key}>{column.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {keyedValues(props.rows.value, JSON.stringify).map(
-            ({ value: row, key }) => (
+  component: ({ props }) => {
+    const rows = reactiveValue<Array<Record<string, unknown>>>(props.rows, []);
+    return (
+      <div className="openui-app-table-wrap">
+        <table className="openui-app-table">
+          <thead>
+            <tr>
+              {props.columns.map((column) => (
+                <th key={column.key}>{column.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {keyedValues(rows, JSON.stringify).map(({ value: row, key }) => (
               <tr key={key}>
                 {props.columns.map((column) => (
                   <td key={column.key}>{String(row[column.key] ?? "")}</td>
                 ))}
               </tr>
-            ),
-          )}
-        </tbody>
-      </table>
-      {props.rows.value.length === 0 ? (
-        <p className="openui-app-empty">{props.emptyText ?? "No results."}</p>
-      ) : null}
-    </div>
-  ),
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 ? (
+          <p className="openui-app-empty">{props.emptyText ?? "No results."}</p>
+        ) : null}
+      </div>
+    );
+  },
 });
 
 const Progress = defineComponent({
@@ -201,7 +219,7 @@ const Progress = defineComponent({
   description: "A labeled progress indicator from 0 to 100.",
   props: z.object({ label: z.string(), value: reactive(z.number()) }),
   component: ({ props }) => {
-    const value = Math.max(0, Math.min(100, props.value.value));
+    const value = Math.max(0, Math.min(100, reactiveValue(props.value, 0)));
     return (
       <div className="openui-app-progress">
         <span>{props.label}</span>
@@ -285,7 +303,7 @@ const Button = defineComponent({
       <button
         className={`openui-app-button tone-${props.tone ?? "neutral"}`}
         type="button"
-        disabled={props.disabled?.value}
+        disabled={reactiveValue(props.disabled, false)}
         onClick={() =>
           void trigger(props.label, undefined, props.action as ActionPlan)
         }
@@ -522,8 +540,8 @@ export const openUIAppPromptOptions = {
     "Keep the app focused: at most 12 tools, 512 statements, and compact result views.",
   ],
   toolExamples: [
-    `root = App("Task desk", [Heading("Office tasks", "2"), DataTable([{"label":"Task","key":"title"},{"label":"Status","key":"status"},{"label":"Owner","key":"owner"}], tasks.tasks, "No tasks yet.")])
-tasks = Query("wuphf_list_tasks", {}, {"tasks":[]})`,
+    `root = App("Task desk", [Heading("Office tasks", "2"), DataTable([{"label":"Task","key":"title"},{"label":"Status","key":"status"},{"label":"Owner","key":"owner"}], tasks, "No tasks yet.")])
+tasks = Query("wuphf_list_tasks", {}, [])`,
     `root = App("Follow-up", [TextInput("title", "Task title", $title, "What needs doing?"), Button("Create task", @Run(createTask), "info")])
 $title = ""
 createTask = Mutation("wuphf_create_task", {"title":$title})`,

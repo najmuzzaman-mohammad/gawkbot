@@ -8,8 +8,8 @@ import (
 const (
 	Version         = "0.5"
 	Library         = "wuphf-app-v1"
-	LibraryHash     = "a399729367a23238169e75cda54ec4c76c43d6d5e7c1e44aa2fe98ad7f6413c2"
-	PromptHash      = "5ee6b3ae5a2246afb0fe2b621be1bff7b6b74135fcb0ea13421ea3ed38ca1e62"
+	LibraryHash     = "06e4b7ef3e2e2ca65a3cbe9b966d502210270331b475c21ab99ad5e90d51489e"
+	PromptHash      = "f9c61fa5caad8f40b6c385149a3ad3dcecab26385873b031e806191863b15059"
 	ProviderVersion = "1"
 )
 

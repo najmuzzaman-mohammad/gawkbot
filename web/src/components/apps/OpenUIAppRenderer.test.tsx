@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { validateOpenUIApp } from "./OpenUIAppRenderer";
+import { readArrayEnvelope, validateOpenUIApp } from "./OpenUIAppRenderer";
+
+describe("readArrayEnvelope", () => {
+  it("unwraps broker list responses and fails closed for malformed data", () => {
+    const tasks = [{ id: "OFFICE-1" }];
+    expect(readArrayEnvelope({ tasks }, "tasks")).toEqual(tasks);
+    expect(readArrayEnvelope({ tasks: null }, "tasks")).toEqual([]);
+    expect(readArrayEnvelope([], "tasks")).toEqual([]);
+    expect(readArrayEnvelope(null, "tasks")).toEqual([]);
+  });
+});
 
 describe("validateOpenUIApp", () => {
   it("accepts a static app from the executable library", () => {

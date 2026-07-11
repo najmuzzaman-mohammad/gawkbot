@@ -247,8 +247,8 @@ Always write the root = App(...) statement first so the UI shell appears immedia
 
 ## Examples
 
-root = App("Task desk", [Heading("Office tasks", "2"), DataTable([{"label":"Task","key":"title"},{"label":"Status","key":"status"},{"label":"Owner","key":"owner"}], tasks.tasks, "No tasks yet.")])
-tasks = Query("wuphf_list_tasks", {}, {"tasks":[]})
+root = App("Task desk", [Heading("Office tasks", "2"), DataTable([{"label":"Task","key":"title"},{"label":"Status","key":"status"},{"label":"Owner","key":"owner"}], tasks, "No tasks yet.")])
+tasks = Query("wuphf_list_tasks", {}, [])
 
 root = App("Follow-up", [TextInput("title", "Task title", $title, "What needs doing?"), Button("Create task", @Run(createTask), "info")])
 $title = ""

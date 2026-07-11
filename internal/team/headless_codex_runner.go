@@ -657,6 +657,7 @@ func (l *Launcher) buildCodexOfficeConfigOverrides(slug string) ([]string, error
 	}
 	wuphfEnvVars := []string{
 		"WUPHF_AGENT_SLUG",
+		"WUPHF_CHANNEL",
 		"WUPHF_BROKER_TOKEN",
 		"WUPHF_BROKER_BASE_URL",
 	}
