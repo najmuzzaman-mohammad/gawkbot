@@ -6,7 +6,7 @@ import {
 } from "../../api/richArtifacts";
 import { router } from "../../lib/router";
 import { ArticleAttribution } from "../wiki/ArticleAttribution";
-import RichArtifactEmbed from "./RichArtifactEmbed";
+import RichArtifactRenderer from "./RichArtifactRenderer";
 
 // ArticleView is the full-screen reader for a single HTML article (a rich
 // artifact). Linked from chat artifact cards. The article body is rendered
@@ -65,7 +65,7 @@ export function ArticleView({ articleId }: ArticleViewProps) {
     );
   }
 
-  const { artifact, html } = detail;
+  const { artifact } = detail;
   return (
     <article className="article-view-shell">
       <header className="article-view-head">
@@ -94,7 +94,7 @@ export function ArticleView({ articleId }: ArticleViewProps) {
         </div>
       </header>
       <div className="article-view-body">
-        <RichArtifactEmbed title={artifact.title} html={html} />
+        <RichArtifactRenderer detail={detail} surface="article" />
       </div>
     </article>
   );

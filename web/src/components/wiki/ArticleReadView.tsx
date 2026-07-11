@@ -19,7 +19,7 @@ import {
   buildRehypePlugins,
   buildRemarkPlugins,
 } from "../../lib/wikiMarkdownConfig";
-import RichArtifactEmbed from "../rich-artifacts/RichArtifactEmbed";
+import RichArtifactRenderer from "../rich-artifacts/RichArtifactRenderer";
 import ArticleHoverPreviews, {
   type HoverPreviewContent,
 } from "./ArticleHoverPreviews";
@@ -144,17 +144,14 @@ export default function ArticleReadView({
         />
       ) : null}
       {showPromoted && visualArtifact ? (
-        <RichArtifactEmbed
-          title={visualArtifact.artifact.title}
-          html={visualArtifact.html}
-        />
+        <RichArtifactRenderer detail={visualArtifact} surface="wiki-promoted" />
       ) : null}
       {keyedByOccurrence(inlineArtifacts, (detail) => detail.artifact.id).map(
         ({ key, value: detail }) => (
-          <RichArtifactEmbed
+          <RichArtifactRenderer
             key={key}
-            title={detail.artifact.title}
-            html={detail.html}
+            detail={detail}
+            surface="wiki-inline"
           />
         ),
       )}

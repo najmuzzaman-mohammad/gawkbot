@@ -63,15 +63,14 @@ func TestRichArtifactTutorialFixturesExerciseWikiFlow(t *testing.T) {
 				}
 			}
 
-			artifact, sanitizedHTML, err := newRichArtifact(RichArtifactCreateRequest{
+			artifact, sanitizedHTML, err := newLegacyRichArtifact(RichArtifactCreateRequest{
 				Slug:               scenario.ActorSlug,
 				Title:              scenario.Title,
 				Summary:            scenario.Summary,
-				HTML:               html,
 				SourceMarkdownPath: scenario.SourceMarkdownPath,
 				RelatedTaskID:      "tutorial-" + scenario.Slug,
 				RelatedReceiptIDs:  []string{"receipt-" + scenario.Slug},
-			}, now)
+			}, html, now)
 			if err != nil {
 				t.Fatalf("new rich artifact: %v", err)
 			}

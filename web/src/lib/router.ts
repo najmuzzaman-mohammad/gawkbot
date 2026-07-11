@@ -115,7 +115,7 @@ export const wikiArticleRoute = createRoute({
   path: "$",
 });
 
-// /articles/$articleId — full-screen HTML article viewer.
+// /articles/$articleId — full-screen generated artifact viewer.
 // Renders a rich artifact (ra_xxx) at full page size via the shadow-DOM
 // RichArtifactEmbed. Linked from chat artifact cards.
 export const articleRoute = createRoute({

@@ -1,5 +1,9 @@
 # Rich HTML Artifact Acceptance Criteria
 
+> Historical acceptance suite for legacy HTML reads. New creation uses the
+> inert, versioned OpenUI contract in `docs/specs/openui-artifacts-design.md`;
+> the scenarios below are intentionally retained as migration fixtures.
+
 These criteria turn the original HTML-first artifact vision into three tutorial
 examples that can be checked in a browser. The intent is not "HTML everywhere";
 it is "HTML where the user is trying to review, compare, tune, explain, or
