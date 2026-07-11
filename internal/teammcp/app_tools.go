@@ -73,6 +73,10 @@ type GetAppArgs struct {
 	AppID string `json:"app_id" jsonschema:"The app id (app_0123456789abcdef) from list_apps."`
 }
 
+type ValidateAppArgs struct {
+	OpenUILang string `json:"openui_lang" jsonschema:"The complete OpenUI Lang document to validate before publication."`
+}
+
 // ProposeAppArgs raises a non-blocking approval to build or improve an app.
 type ProposeAppArgs struct {
 	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
@@ -84,26 +88,30 @@ type ProposeAppArgs struct {
 	AppID       string `json:"app_id,omitempty" jsonschema:"Set ONLY when improving an EXISTING app you found via list_apps, instead of creating a duplicate."`
 }
 
-// RegisterAppArgs publishes the built single-file app. App Builder only.
+// RegisterAppArgs publishes an OpenUI Lang app. App Builder only. The legacy
+// fields remain process-internal during rollout and are not part of the MCP
+// schema exposed to agents.
 type RegisterAppArgs struct {
-	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
-	AppID       string `json:"app_id,omitempty" jsonschema:"Set to update an existing app in place; leave empty to create a new one."`
-	Name        string `json:"name" jsonschema:"The app's display name."`
-	Icon        string `json:"icon,omitempty" jsonschema:"Optional emoji icon."`
-	Summary     string `json:"summary,omitempty" jsonschema:"One-line summary shown in the sidebar."`
-	Description string `json:"description,omitempty" jsonschema:"What the app does — keep this current as it evolves."`
+	MySlug          string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	AppID           string `json:"app_id,omitempty" jsonschema:"Set to update an existing app in place; leave empty to create a new one."`
+	Name            string `json:"name" jsonschema:"The app's display name."`
+	Icon            string `json:"icon,omitempty" jsonschema:"Optional emoji icon."`
+	Summary         string `json:"summary,omitempty" jsonschema:"One-line summary shown in the sidebar."`
+	Description     string `json:"description,omitempty" jsonschema:"What the app does — keep this current as it evolves."`
+	OpenUILang      string `json:"openui_lang" jsonschema:"The complete OpenUI Lang v0.5 document. It must begin with root = App(...) and use only the supplied WUPHF App library and tools."`
+	ExpectedVersion int    `json:"expected_version" jsonschema:"The version returned by get_app, or 0 for the reserved build workspace. Publication fails rather than overwriting a newer edit."`
 	// PREFER html_path. The built single-file bundle is minified onto enormous
 	// single lines (100k+ chars) that an agent cannot reliably read back and
 	// re-emit as a JSON string — pass the path and let the broker read the file.
-	HTMLPath string `json:"html_path,omitempty" jsonschema:"PREFERRED. Absolute path to the built dist/index.html (the broker reads it). Use this instead of pasting the bundle — minified single-file output has 100k+ char lines you cannot reliably read and re-emit."`
-	HTML     string `json:"html,omitempty" jsonschema:"Fallback only. The COMPLETE self-contained index.html as a string. Prefer html_path — minified output is too large to paste reliably. All JS/CSS inlined (vite-plugin-singlefile); no external scripts/styles/fonts and no network fetches; read workspace data only through the injected WUPHF bridge (window.parent postMessage)."`
+	HTMLPath string `json:"-" jsonschema:"-"`
+	HTML     string `json:"-" jsonschema:"-"`
 	// PREFER source_path. Hand-assembling the files map is error-prone — agents
 	// drop files (e.g. App.tsx) and ship a source tree that won't build. Point at
 	// the dir that just passed the verify gate and the broker copies it whole.
-	SourcePath string `json:"source_path,omitempty" jsonschema:"PREFERRED. Absolute path to your source project root (the dir with package.json + src/, the one you just built). The broker copies the WHOLE tree (minus node_modules/dist/.vite/.git) so the persisted source is complete and the live preview + later edits work. Use this instead of hand-listing files."`
+	SourcePath string `json:"-" jsonschema:"-"`
 	// Files is the source project so future edits modify real files instead of
 	// regenerating from prose. Fallback for source_path.
-	Files map[string]string `json:"files,omitempty" jsonschema:"Fallback for source_path. The app's SOURCE project as a map of relative path -> file content (e.g. src/App.tsx, package.json, vite.config.ts). MUST include every file the app imports — a partial map ships a broken app. EXCLUDE node_modules and dist. Prefer source_path so nothing is dropped."`
+	Files map[string]string `json:"-" jsonschema:"-"`
 }
 
 // registerAppTools wires the Apps tools. Discovery + proposal are open to every
@@ -119,14 +127,30 @@ func registerAppTools(server *mcp.Server, slug string) {
 	), handleProposeApp)
 	if strings.EqualFold(strings.TrimSpace(slug), appBuilderSlug) {
 		mcp.AddTool(server, readOnlyTool(
+			"validate_app",
+			"Validate a complete OpenUI Lang app against the server publication policy. register_app repeats this validation, so validation can never be bypassed.",
+		), handleValidateApp)
+		mcp.AddTool(server, readOnlyTool(
 			"get_app",
-			"Read an existing app's manifest and current HTML so you can edit it. App Builder only.",
+			"Read an existing app's manifest, current OpenUI Lang, and derived capabilities before editing it. App Builder only.",
 		), handleGetApp)
 		mcp.AddTool(server, officeWriteTool(
 			"register_app",
-			"Publish a built app so it appears under Apps. Pass html_path (absolute path to the built dist/index.html) and source_path (absolute path to the project root) — the broker reads both from disk, so you never paste the minified bundle or hand-list files. Set app_id to update an existing app in place. App Builder only.",
+			"Validate and publish a complete OpenUI Lang app. Pass openui_lang, the exact reserved app_id, and expected_version from get_app. There is no React/Vite project or HTML bundle. App Builder only.",
 		), handleRegisterApp)
 	}
+}
+
+func handleValidateApp(ctx context.Context, _ *mcp.CallToolRequest, args ValidateAppArgs) (*mcp.CallToolResult, any, error) {
+	var result map[string]any
+	if err := brokerPostJSON(ctx, "/apps/validate", map[string]any{"openui": args.OpenUILang}, &result); err != nil {
+		return toolError(err), nil, nil
+	}
+	payload, err := json.Marshal(result)
+	if err != nil {
+		return toolError(err), nil, nil
+	}
+	return textResult(string(payload)), nil, nil
 }
 
 func handleListApps(ctx context.Context, _ *mcp.CallToolRequest, _ ListAppsArgs) (*mcp.CallToolResult, any, error) {
@@ -154,7 +178,7 @@ func handleGetApp(ctx context.Context, _ *mcp.CallToolRequest, args GetAppArgs) 
 	var result map[string]any
 	// ?source=1 so the App Builder gets the editable source project back, not
 	// just the built bundle — this is what makes an edit reliable.
-	if err := brokerGetJSON(ctx, "/apps/"+url.PathEscape(id)+"?source=1", &result); err != nil {
+	if err := brokerGetJSON(ctx, "/apps/"+url.PathEscape(id)+"?source=1&accept_representation=openui", &result); err != nil {
 		return toolError(err), nil, nil
 	}
 	payload, err := json.Marshal(result)
@@ -247,30 +271,46 @@ func handleRegisterApp(ctx context.Context, _ *mcp.CallToolRequest, args Registe
 	if name == "" {
 		return toolError(fmt.Errorf("name is required")), nil, nil
 	}
-	html, err := resolveRegisterAppHTML(args)
-	if err != nil {
-		return toolError(err), nil, nil
-	}
-	files, err := resolveRegisterAppFiles(args)
-	if err != nil {
-		return toolError(err), nil, nil
-	}
 	appID := strings.TrimSpace(args.AppID)
-	if appID != "" {
-		if err := validateCustomAppIDLocal(appID); err != nil {
-			return toolError(err), nil, nil
-		}
+	if appID == "" {
+		return toolError(fmt.Errorf("app_id is required; publish only to the reserved app in the task brief")), nil, nil
+	}
+	if err := validateCustomAppIDLocal(appID); err != nil {
+		return toolError(err), nil, nil
+	}
+	openui := strings.TrimSpace(args.OpenUILang)
+	if openui == "" {
+		return toolError(fmt.Errorf("openui_lang is required; generated Apps no longer accept HTML/Vite bundles")), nil, nil
+	}
+	// Bind publication to the App Builder task that owns this app. The app id is
+	// an identifier, not authority: a prompt-injected document must not be able
+	// to overwrite a different app merely by naming it.
+	var current struct {
+		App struct {
+			Version     int    `json:"version"`
+			EditChannel string `json:"editChannel"`
+		} `json:"app"`
+	}
+	if err := brokerGetJSON(ctx, "/apps/"+url.PathEscape(appID)+"?accept_representation=openui", &current); err != nil {
+		return toolError(err), nil, nil
+	}
+	channel := resolveConversationContext(ctx, slug, "", "").Channel
+	if strings.TrimSpace(current.App.EditChannel) == "" || current.App.EditChannel != channel {
+		return toolError(fmt.Errorf("app_id is not bound to this App Builder task")), nil, nil
+	}
+	if args.ExpectedVersion != current.App.Version {
+		return toolError(fmt.Errorf("version conflict: get_app returned v%d; refresh before publishing", current.App.Version)), nil, nil
 	}
 	var result map[string]any
 	if err := brokerPostJSON(ctx, "/apps", map[string]any{
-		"id":          appID,
-		"name":        name,
-		"icon":        strings.TrimSpace(args.Icon),
-		"summary":     strings.TrimSpace(args.Summary),
-		"description": strings.TrimSpace(args.Description),
-		"html":        html,
-		"files":       files,
-		"actor":       slug,
+		"id":               appID,
+		"name":             name,
+		"icon":             strings.TrimSpace(args.Icon),
+		"summary":          strings.TrimSpace(args.Summary),
+		"description":      strings.TrimSpace(args.Description),
+		"openui":           openui,
+		"expected_version": args.ExpectedVersion,
+		"actor":            slug,
 	}, &result); err != nil {
 		return toolError(err), nil, nil
 	}

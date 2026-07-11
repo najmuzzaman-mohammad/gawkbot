@@ -8,9 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   type AppBuildRequest,
-  type AppCapabilities,
   type CustomApp,
-  type CustomAppDetail,
   getApp,
   getAppCapabilities,
   listApps,
@@ -86,11 +84,9 @@ export function useOperatorApp(id: string | null) {
     queryFn: () => getApp(id ?? ""),
     enabled: isRealAppId(id),
     refetchInterval: (query) => {
-      const detail = query.state.data as CustomAppDetail | undefined;
+      const detail = query.state.data;
       if (!detail) return APPS_POLL_MS;
-      return appBuildState(detail.app) === "building" || !detail.html
-        ? APPS_POLL_MS
-        : false;
+      return appBuildState(detail.app) === "building" ? APPS_POLL_MS : false;
     },
   });
 }

@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  type CustomAppDetail,
   deleteApp,
   getApp,
   getAppVersion,
@@ -102,7 +103,7 @@ vi.mock("./AppEditPanel", () => ({
 const APP_ID = "app_0000000000000abc";
 const EDIT_CHANNEL = "task-office-7";
 
-function appDetail() {
+function appDetail(): CustomAppDetail {
   return {
     app: {
       id: APP_ID,
@@ -111,6 +112,7 @@ function appDetail() {
       icon: "🧩",
       summary: "Scores inbound leads",
       entry: "index.html",
+      representation: "html",
       version: 3,
       editChannel: EDIT_CHANNEL,
       createdBy: "app-builder",
@@ -231,6 +233,7 @@ describe("CustomAppView version history", () => {
       updatedBy: "app-builder",
       updatedAt: "2026-06-14T12:00:00Z",
       html: "V2_HTML",
+      representation: "html",
     });
     vi.mocked(rollbackApp).mockResolvedValue({
       ...appDetail().app,

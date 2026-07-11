@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bun run check:openui-artifact-prompt && tsc -b && vite build && touch dist/.gitkeep",
+    "build": "bun run check:openui-artifact-prompt && bun run check:openui-app-prompt && tsc -b && vite build && touch dist/.gitkeep",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src/",
@@ -18,7 +18,9 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "generate:openui-artifact-prompt": "bun run scripts/generate-openui-artifact-prompt.ts",
-    "check:openui-artifact-prompt": "bun run scripts/generate-openui-artifact-prompt.ts --check"
+    "check:openui-artifact-prompt": "bun run scripts/generate-openui-artifact-prompt.ts --check",
+    "generate:openui-app-prompt": "bun run scripts/generate-openui-app-prompt.ts",
+    "check:openui-app-prompt": "bun run scripts/generate-openui-app-prompt.ts --check"
   },
   "dependencies": {
     "@aarkue/tiptap-math-extension": "^1.4.0",

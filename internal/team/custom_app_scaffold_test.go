@@ -13,8 +13,8 @@ import (
 )
 
 // TestScaffoldCreatesBuildingDraft locks the instant-preview contract: Scaffold
-// materializes a real editable project (so the dev server can boot it in
-// seconds) and records a "building" draft BEFORE the agent writes any code.
+// reserves an OpenUI document (so the direct renderer can boot immediately)
+// and records a "building" draft BEFORE the agent publishes its version.
 func TestScaffoldCreatesBuildingDraft(t *testing.T) {
 	store := newCustomAppStore(t.TempDir())
 	now := time.Unix(1_700_000_000, 0).UTC()
@@ -35,27 +35,27 @@ func TestScaffoldCreatesBuildingDraft(t *testing.T) {
 	}
 
 	// The sealed entry is a valid placeholder so Get/sealed view never 404s.
-	gotApp, gotHTML, err := store.Get(id)
+	gotApp, gotOpenUI, err := store.Get(id)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if gotApp.Status != customAppStatusBuilding {
 		t.Fatalf("persisted status = %q", gotApp.Status)
 	}
-	if !strings.Contains(gotHTML, "being built") {
-		t.Fatalf("placeholder html missing: %q", gotHTML)
+	if gotApp.Representation != customAppRepresentationOpenUI || gotApp.Entry != customAppOpenUIEntry {
+		t.Fatalf("placeholder is not OpenUI: %#v", gotApp)
+	}
+	if !strings.Contains(gotOpenUI, "App Builder is generating") {
+		t.Fatalf("placeholder OpenUI missing: %q", gotOpenUI)
 	}
 
-	// The editable project landed so a dev server can boot it: project root
-	// files at src/, app code under src/src/.
+	// OpenUI generation has no source tree, dependency install, or dev server.
 	src, err := store.Source(id)
 	if err != nil {
 		t.Fatalf("Source: %v", err)
 	}
-	for _, want := range []string{"package.json", "vite.config.ts", "index.html", "src/App.tsx"} {
-		if _, ok := src[want]; !ok {
-			t.Fatalf("scaffold missing %q; have %v", want, keysOf(src))
-		}
+	if len(src) != 0 {
+		t.Fatalf("OpenUI scaffold unexpectedly has source: %v", keysOf(src))
 	}
 }
 
@@ -69,8 +69,8 @@ func TestScaffoldIsIdempotent(t *testing.T) {
 	if _, err := store.Scaffold(id, "Lead Scorer", "", "app-builder", now); err != nil {
 		t.Fatalf("Scaffold 1: %v", err)
 	}
-	// Simulate progress: drop a marker into the source tree.
-	marker := filepath.Join(store.appDir(id), customAppSourceDir, "src", "App.tsx")
+	// Simulate progress: drop a sidecar marker into the reserved directory.
+	marker := filepath.Join(store.appDir(id), "builder-progress")
 	if err := os.WriteFile(marker, []byte("// edited"), 0o600); err != nil {
 		t.Fatalf("write marker: %v", err)
 	}

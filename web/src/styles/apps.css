@@ -1084,3 +1084,218 @@
     display: none;
   }
 }
+/* OpenUI-generated Apps render in the trusted shell and use only theme tokens. */
+.openui-app-renderer {
+  min-height: 100%;
+  overflow: auto;
+  background: var(--bg);
+  color: var(--text);
+}
+.openui-app {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 32px;
+}
+.openui-app-header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.openui-app-header h1,
+.openui-app-heading,
+.openui-app-card h2 {
+  margin: 0;
+  color: var(--text);
+  letter-spacing: -0.025em;
+}
+.openui-app-header h1 {
+  font-size: 28px;
+}
+.openui-app-heading.level-2,
+.openui-app-card h2 {
+  font-size: 18px;
+}
+.openui-app-heading.level-3 {
+  font-size: 15px;
+}
+.openui-app-body,
+.openui-app-stack,
+.openui-app-card > div {
+  display: flex;
+  flex-direction: column;
+}
+.openui-app-body,
+.openui-app-stack.gap-m,
+.openui-app-card > div {
+  gap: 16px;
+}
+.openui-app-stack.gap-s {
+  gap: 8px;
+}
+.openui-app-stack.gap-l {
+  gap: 24px;
+}
+.openui-app-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+.openui-app-card h2 {
+  margin-bottom: 14px;
+}
+.openui-app-text {
+  margin: 0;
+  line-height: 1.55;
+}
+.openui-app-text.muted,
+.openui-app-empty {
+  color: var(--text-secondary);
+}
+.openui-app-badge {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+.openui-app-metric {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+.openui-app-metric span,
+.openui-app-metric small {
+  color: var(--text-secondary);
+}
+.openui-app-metric strong {
+  font-size: 26px;
+}
+.openui-app-callout {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.openui-app-callout.tone-danger {
+  border-left-color: var(--danger);
+}
+.openui-app-list {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 7px;
+}
+.openui-app-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.openui-app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.openui-app-table th,
+.openui-app-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.openui-app-table th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.openui-app-table-wrap > .openui-app-empty {
+  padding: 14px;
+  margin: 0;
+}
+.openui-app-progress {
+  display: grid;
+  grid-template-columns: minmax(100px, auto) 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.openui-app-progress > div {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+}
+.openui-app-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.openui-app-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.openui-app-field input,
+.openui-app-field select {
+  min-height: 38px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font: inherit;
+}
+.openui-app-field input:focus,
+.openui-app-field select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-color: var(--accent);
+}
+.openui-app-button {
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  background: var(--bg-card);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.openui-app-button:hover {
+  border-color: var(--accent);
+}
+.openui-app-button.tone-info,
+.openui-app-button.tone-success {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.openui-app-button.tone-danger {
+  color: var(--danger-contrast);
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.openui-app-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+@media (max-width: 720px) {
+  .openui-app {
+    padding: 20px 16px;
+  }
+  .openui-app-progress {
+    grid-template-columns: 1fr auto;
+  }
+  .openui-app-progress > div {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

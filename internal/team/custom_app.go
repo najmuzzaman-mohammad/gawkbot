@@ -1,24 +1,20 @@
 package team
 
 // custom_app.go owns the storage + validation for agent-generated internal
-// tools ("Apps"). An App is a small, self-contained single-file web app — the
-// built output of a real Vite/React/TS project (inlined via
-// vite-plugin-singlefile by the App Builder agent) — that lives under
-// <runtime-home>/.wuphf/apps/<id>/ and renders inside a sandboxed iframe.
+// tools ("Apps"). New Apps are OpenUI Lang documents rendered by the trusted
+// WUPHF shell. Legacy HTML apps remain readable in their sandboxed iframe.
 //
 // Why a dedicated store instead of the wiki git worker:
 //   - Apps are a distinct concern from the curated wiki; coupling them to the
 //     wiki write queue would entangle two unrelated serializers.
 //   - v1 versioning is a monotonic counter on the manifest, not git history.
 //
-// Security model: the rendered iframe is the real boundary (sandbox=
-// "allow-scripts" with no allow-same-origin, CSP connect-src 'none'). The
-// write-time validator below is defense-in-depth: it mirrors the proven
-// rich-artifact sandbox policy (no external script/style/base, no nested
-// browsing contexts, no inline event handlers, no off-origin URLs) but ALLOWS
-// <form> because a form is inert under the app sandbox and real tools need it.
+// Security model: OpenUI apps are validated against a pinned component/tool
+// contract and rendered by the trusted shell. Legacy HTML keeps the original
+// opaque-origin iframe boundary and CSP; its HTML validator remains below.
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -27,6 +23,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,7 +35,15 @@ import (
 )
 
 const (
-	customAppEntry = "index.html"
+	customAppEntry                = "index.html"
+	customAppOpenUIEntry          = "app.openui"
+	customAppRepresentationHTML   = "html"
+	customAppRepresentationOpenUI = "openui"
+	customAppOpenUIVersion        = "0.5"
+	customAppOpenUILibrary        = "wuphf-app-v1"
+	customAppOpenUILibraryHash    = "a399729367a23238169e75cda54ec4c76c43d6d5e7c1e44aa2fe98ad7f6413c2"
+	customAppProviderVersion      = "1"
+	customAppMaxOpenUIBytes       = 256 * 1024
 	// Singlefile React bundles run larger than rich artifacts (the whole app +
 	// inlined CSS lives in one document), so the ceiling is higher.
 	customAppMaxHTMLBytes = 4 * 1024 * 1024
@@ -73,8 +78,8 @@ var customAppPreservedSrcDirs = map[string]bool{
 	".vite":        true,
 }
 
-// CustomApp is the durable manifest for an agent-generated internal tool. The
-// built HTML bundle lives next to it on disk (Entry) so listings stay cheap.
+// CustomApp is the durable manifest for an agent-generated internal tool. Its
+// representation-specific body lives next to it at Entry so listings stay cheap.
 type CustomApp struct {
 	ID          string `json:"id"`
 	Slug        string `json:"slug"`
@@ -83,7 +88,14 @@ type CustomApp struct {
 	Summary     string `json:"summary,omitempty"`
 	Description string `json:"description,omitempty"`
 	Entry       string `json:"entry"`
-	Version     int    `json:"version"`
+	// Representation is omitted by manifests written before OpenUI Apps and is
+	// normalized to "html" at the storage boundary.
+	Representation    string `json:"representation,omitempty"`
+	OpenUIVersion     string `json:"openuiVersion,omitempty"`
+	OpenUILibrary     string `json:"openuiLibrary,omitempty"`
+	OpenUILibraryHash string `json:"openuiLibraryHash,omitempty"`
+	ProviderVersion   string `json:"providerVersion,omitempty"`
+	Version           int    `json:"version"`
 	// Status is "building" for a pre-scaffolded app awaiting its first publish,
 	// or "ready"/"" for a published app. Lets the sidebar hide drafts while the
 	// build task's live preview still resolves them.
@@ -106,13 +118,15 @@ type CustomApp struct {
 // CustomAppWriteRequest is the create/update payload. An empty ID creates a new
 // app; a populated ID updates the existing one in place (bumping Version).
 type CustomAppWriteRequest struct {
-	ID          string `json:"id,omitempty"`
-	Name        string `json:"name"`
-	Icon        string `json:"icon,omitempty"`
-	Summary     string `json:"summary,omitempty"`
-	Description string `json:"description,omitempty"`
-	HTML        string `json:"html"`
-	Actor       string `json:"actor,omitempty"`
+	ID              string `json:"id,omitempty"`
+	Name            string `json:"name"`
+	Icon            string `json:"icon,omitempty"`
+	Summary         string `json:"summary,omitempty"`
+	Description     string `json:"description,omitempty"`
+	HTML            string `json:"html,omitempty"`
+	OpenUI          string `json:"openui,omitempty"`
+	ExpectedVersion *int   `json:"expected_version,omitempty"`
+	Actor           string `json:"actor,omitempty"`
 	// Files is the app's source project (relative path -> content), persisted
 	// under src/ so a later edit modifies real files instead of regenerating
 	// from prose. Optional; nil leaves any existing source untouched. Build
@@ -121,6 +135,7 @@ type CustomAppWriteRequest struct {
 }
 
 var errCustomAppCaller = errors.New("app: caller error")
+var errCustomAppConflict = errors.New("app: version conflict")
 
 type customAppCallerError struct{ err error }
 
@@ -132,6 +147,12 @@ func newCustomAppCallerError(format string, args ...any) error {
 }
 
 func isCustomAppCallerError(err error) bool { return errors.Is(err, errCustomAppCaller) }
+
+func newCustomAppConflictError(format string, args ...any) error {
+	return fmt.Errorf("%w: %s", errCustomAppConflict, fmt.Sprintf(format, args...))
+}
+
+func isCustomAppConflictError(err error) bool { return errors.Is(err, errCustomAppConflict) }
 
 // CustomAppsRootDir returns <runtime-home>/.wuphf/apps, honouring
 // config.RuntimeHomeDir so dev runs stay isolated from prod (same discipline as
@@ -195,6 +216,39 @@ func customAppContentHash(htmlBody string) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func customAppRepresentation(app CustomApp) string {
+	if app.Representation == "" {
+		return customAppRepresentationHTML
+	}
+	return app.Representation
+}
+
+func customAppEntryForRepresentation(representation string) string {
+	if representation == customAppRepresentationOpenUI {
+		return customAppOpenUIEntry
+	}
+	return customAppEntry
+}
+
+func validateCustomAppManifest(app CustomApp) error {
+	switch customAppRepresentation(app) {
+	case customAppRepresentationHTML:
+		if app.Entry != customAppEntry {
+			return fmt.Errorf("app: corrupt html manifest entry")
+		}
+		if app.OpenUIVersion != "" || app.OpenUILibrary != "" || app.OpenUILibraryHash != "" || app.ProviderVersion != "" {
+			return fmt.Errorf("app: corrupt mixed representation manifest")
+		}
+	case customAppRepresentationOpenUI:
+		if app.Entry != customAppOpenUIEntry || app.OpenUIVersion != customAppOpenUIVersion || app.OpenUILibrary != customAppOpenUILibrary || app.OpenUILibraryHash != customAppOpenUILibraryHash || app.ProviderVersion != customAppProviderVersion {
+			return fmt.Errorf("app: unsupported or corrupt OpenUI contract")
+		}
+	default:
+		return fmt.Errorf("app: unknown representation %q", app.Representation)
+	}
+	return nil
+}
+
 func (s *customAppStore) appDir(id string) string {
 	return filepath.Join(s.root, id)
 }
@@ -236,7 +290,7 @@ func (s *customAppStore) List() ([]CustomApp, error) {
 	return out, nil
 }
 
-// Get returns the manifest plus the built HTML bundle for an app.
+// Get returns the validated manifest plus its representation-specific body.
 func (s *customAppStore) Get(id string) (CustomApp, string, error) {
 	if err := validateCustomAppID(id); err != nil {
 		return CustomApp{}, "", err
@@ -247,9 +301,12 @@ func (s *customAppStore) Get(id string) (CustomApp, string, error) {
 	if err != nil {
 		return CustomApp{}, "", err
 	}
-	body, err := os.ReadFile(filepath.Join(s.appDir(id), customAppEntry))
+	body, err := os.ReadFile(filepath.Join(s.appDir(id), app.Entry))
 	if err != nil {
 		return CustomApp{}, "", fmt.Errorf("app: read entry: %w", err)
+	}
+	if got := customAppContentHash(string(body)); app.ContentHash != "" && got != app.ContentHash {
+		return CustomApp{}, "", fmt.Errorf("app: corrupt entry hash for %s", id)
 	}
 	return app, string(body), nil
 }
@@ -259,12 +316,23 @@ func (s *customAppStore) readManifestLocked(id string) (CustomApp, error) {
 	if err != nil {
 		return CustomApp{}, fmt.Errorf("app: read manifest: %w", err)
 	}
+	if err := rejectDuplicateTopLevelJSONFields(raw); err != nil {
+		return CustomApp{}, fmt.Errorf("app: decode manifest: %w", err)
+	}
 	var app CustomApp
-	if err := json.Unmarshal(raw, &app); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&app); err != nil {
+		return CustomApp{}, fmt.Errorf("app: decode manifest: %w", err)
+	}
+	if err := ensureJSONEOF(decoder); err != nil {
 		return CustomApp{}, fmt.Errorf("app: decode manifest: %w", err)
 	}
 	if app.ID != id {
 		return CustomApp{}, fmt.Errorf("app: manifest id mismatch")
+	}
+	if err := validateCustomAppManifest(app); err != nil {
+		return CustomApp{}, err
 	}
 	return app, nil
 }
@@ -301,6 +369,31 @@ func (s *customAppStore) Save(req CustomAppWriteRequest, now time.Time) (CustomA
 		icon = customAppDefaultIcon
 	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
+	representation := customAppRepresentationHTML
+	if strings.TrimSpace(req.OpenUI) != "" {
+		representation = customAppRepresentationOpenUI
+	}
+	if representation == customAppRepresentationOpenUI && (strings.TrimSpace(req.HTML) != "" || len(req.Files) > 0) {
+		return CustomApp{}, newCustomAppCallerError("app: openui cannot be combined with html or source files")
+	}
+	if representation == customAppRepresentationHTML && strings.TrimSpace(req.HTML) == "" && len(req.Files) == 0 {
+		return CustomApp{}, newCustomAppCallerError("app: openui is required")
+	}
+	if representation == customAppRepresentationOpenUI {
+		if err := validateCustomAppOpenUI(req.OpenUI); err != nil {
+			return CustomApp{}, err
+		}
+	}
+
+	// Updates take the per-app gate before reading the current manifest. This
+	// makes expected_version a real compare-and-swap rather than an advisory
+	// check and prevents two publishers from selecting the same next version.
+	var pl *sync.Mutex
+	if id := strings.TrimSpace(req.ID); id != "" {
+		pl = s.publishLock(id)
+		pl.Lock()
+		defer pl.Unlock()
+	}
 
 	// Phase 1 (store lock): resolve the target manifest + ensure the dir. Held
 	// briefly — the multi-second build does NOT run under this lock, so listings
@@ -318,31 +411,42 @@ func (s *customAppStore) Save(req CustomAppWriteRequest, now time.Time) (CustomA
 	}
 	s.mu.Unlock()
 
-	// Serialize concurrent publishes of the SAME app so two builds don't race in
-	// one src/ dir. Different apps publish in parallel.
-	pl := s.publishLock(app.ID)
-	pl.Lock()
-	defer pl.Unlock()
+	// Creates do not have an id until the manifest is resolved. Their timestamped
+	// ids are unique, but take the gate before touching their directory anyway.
+	if pl == nil {
+		pl = s.publishLock(app.ID)
+		pl.Lock()
+		defer pl.Unlock()
+	}
 
 	// Phase 2 (no store lock): produce the html to publish. With source Files this
 	// stages the source, overwrites the protected host-contract files with
 	// canonical bytes, and builds server-side — restoring the prior source on a
 	// build failure so a deliberately-broken publish can't leave tampered source
 	// running in the live preview. Without Files it returns the submitted html.
-	htmlBody, err := s.resolvePublishHTML(dir, req)
-	if err != nil {
-		return CustomApp{}, err
+	body := req.OpenUI
+	if representation == customAppRepresentationHTML {
+		body, err = s.resolvePublishHTML(dir, req)
+		if err != nil {
+			return CustomApp{}, err
+		}
+		if err := validateCustomAppHTML(body); err != nil {
+			return CustomApp{}, err
+		}
 	}
-	if err := validateCustomAppHTML(htmlBody); err != nil {
-		return CustomApp{}, err
-	}
-	app.ContentHash = customAppContentHash(htmlBody)
+	app.ContentHash = customAppContentHash(body)
 
 	// Phase 3 (store lock): commit the published bytes + manifest + version
 	// snapshot atomically with respect to other store operations.
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := writeFileAtomic(filepath.Join(dir, customAppEntry), []byte(htmlBody), 0o600); err != nil {
+	// Stage the immutable version first. The manifest is the final commit point;
+	// a crash before it leaves at worst an orphan snapshot. Same-representation
+	// body writes are hash-checked by Get so a partial commit fails closed.
+	if err := s.snapshotVersionLocked(dir, app, body); err != nil {
+		return CustomApp{}, err
+	}
+	if err := writeFileAtomic(filepath.Join(dir, app.Entry), []byte(body), 0o600); err != nil {
 		return CustomApp{}, fmt.Errorf("app: write entry: %w", err)
 	}
 	manifestBytes, err := json.MarshalIndent(app, "", "  ")
@@ -353,18 +457,16 @@ func (s *customAppStore) Save(req CustomAppWriteRequest, now time.Time) (CustomA
 	if err := writeFileAtomic(filepath.Join(dir, customAppManifestFile), manifestBytes, 0o600); err != nil {
 		return CustomApp{}, fmt.Errorf("app: write manifest: %w", err)
 	}
-	// Retain this version's built bytes (append-only history) so a later edit
-	// can roll back to a known-good build. Without this the version counter is
-	// a false affordance — it promises an undo that cannot happen.
-	if err := s.snapshotVersionLocked(dir, app, htmlBody); err != nil {
-		return CustomApp{}, err
-	}
 	return app, nil
 }
 
 // resolveSaveManifestLocked builds the target manifest for a Save: an update
 // reads + bumps the existing one, a create mints a fresh one. Must hold s.mu.
 func (s *customAppStore) resolveSaveManifestLocked(req CustomAppWriteRequest, name, actor, icon, stamp string) (CustomApp, error) {
+	representation := customAppRepresentationHTML
+	if strings.TrimSpace(req.OpenUI) != "" {
+		representation = customAppRepresentationOpenUI
+	}
 	var app CustomApp
 	if id := strings.TrimSpace(req.ID); id != "" {
 		if err := validateCustomAppID(id); err != nil {
@@ -373,6 +475,9 @@ func (s *customAppStore) resolveSaveManifestLocked(req CustomAppWriteRequest, na
 		existing, err := s.readManifestLocked(id)
 		if err != nil {
 			return CustomApp{}, newCustomAppCallerError("app: %s not found", id)
+		}
+		if req.ExpectedVersion != nil && *req.ExpectedVersion != existing.Version {
+			return CustomApp{}, newCustomAppConflictError("app: expected v%d but current version is v%d", *req.ExpectedVersion, existing.Version)
 		}
 		app = existing
 		app.Name = name
@@ -390,21 +495,33 @@ func (s *customAppStore) resolveSaveManifestLocked(req CustomAppWriteRequest, na
 			slug = "app"
 		}
 		app = CustomApp{
-			ID:          customAppID(slug, name, stamp),
-			Slug:        slug,
-			Name:        name,
-			Icon:        icon,
-			Summary:     strings.TrimSpace(req.Summary),
-			Description: strings.TrimSpace(req.Description),
-			Entry:       customAppEntry,
-			Version:     1,
-			CreatedBy:   actor,
-			UpdatedBy:   actor,
-			CreatedAt:   stamp,
-			UpdatedAt:   stamp,
+			ID:             customAppID(slug, name, stamp),
+			Slug:           slug,
+			Name:           name,
+			Icon:           icon,
+			Summary:        strings.TrimSpace(req.Summary),
+			Description:    strings.TrimSpace(req.Description),
+			Entry:          customAppEntryForRepresentation(representation),
+			Representation: representation,
+			Version:        1,
+			CreatedBy:      actor,
+			UpdatedBy:      actor,
+			CreatedAt:      stamp,
+			UpdatedAt:      stamp,
 		}
 	}
-	app.Entry = customAppEntry
+	app.Representation = representation
+	app.Entry = customAppEntryForRepresentation(representation)
+	app.OpenUIVersion = ""
+	app.OpenUILibrary = ""
+	app.OpenUILibraryHash = ""
+	app.ProviderVersion = ""
+	if representation == customAppRepresentationOpenUI {
+		app.OpenUIVersion = customAppOpenUIVersion
+		app.OpenUILibrary = customAppOpenUILibrary
+		app.OpenUILibraryHash = customAppOpenUILibraryHash
+		app.ProviderVersion = customAppProviderVersion
+	}
 	// A register_app is always a real published build, so it clears the
 	// "building" draft status a pre-scaffolded app carries.
 	app.Status = customAppStatusReady
@@ -485,6 +602,10 @@ const scaffoldPlaceholderHTML = `<!doctype html><html lang="en"><head><meta char
 	`<title>Building…</title></head><body style="font:14px system-ui;padding:2rem;color:#555">` +
 	`<p>This app is being built. The live preview shows progress as it is created.</p>` +
 	`</body></html>`
+
+const scaffoldPlaceholderOpenUI = `root = App("Preparing your app", [
+  Callout("App Builder is generating this OpenUI app now.", "info")
+])`
 
 // SetEditChannel stamps the app's persistent edit-thread channel onto its
 // manifest, idempotently. It is the one mutation the broker performs on an app
@@ -620,27 +741,29 @@ func (s *customAppStore) Scaffold(id, name, icon, actor string, now time.Time) (
 	}
 
 	app := CustomApp{
-		ID:        id,
-		Slug:      slug,
-		Name:      name,
-		Icon:      icon,
-		Entry:     customAppEntry,
-		Version:   0,
-		Status:    customAppStatusBuilding,
-		CreatedBy: actor,
-		UpdatedBy: actor,
-		CreatedAt: stamp,
-		UpdatedAt: stamp,
+		ID:                id,
+		Slug:              slug,
+		Name:              name,
+		Icon:              icon,
+		Entry:             customAppOpenUIEntry,
+		Representation:    customAppRepresentationOpenUI,
+		OpenUIVersion:     customAppOpenUIVersion,
+		OpenUILibrary:     customAppOpenUILibrary,
+		OpenUILibraryHash: customAppOpenUILibraryHash,
+		ProviderVersion:   customAppProviderVersion,
+		Version:           0,
+		Status:            customAppStatusBuilding,
+		CreatedBy:         actor,
+		UpdatedBy:         actor,
+		CreatedAt:         stamp,
+		UpdatedAt:         stamp,
 	}
 	dir := s.appDir(app.ID)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return CustomApp{}, fmt.Errorf("app: mkdir: %w", err)
 	}
-	if err := writeFileAtomic(filepath.Join(dir, customAppEntry), []byte(scaffoldPlaceholderHTML), 0o600); err != nil {
+	if err := writeFileAtomic(filepath.Join(dir, customAppOpenUIEntry), []byte(scaffoldPlaceholderOpenUI), 0o600); err != nil {
 		return CustomApp{}, fmt.Errorf("app: write placeholder: %w", err)
-	}
-	if err := writeScaffoldSourceLocked(filepath.Join(dir, customAppSourceDir)); err != nil {
-		return CustomApp{}, err
 	}
 	manifestBytes, err := json.MarshalIndent(app, "", "  ")
 	if err != nil {
@@ -683,7 +806,7 @@ func writeScaffoldSourceLocked(srcRoot string) error {
 	})
 }
 
-func (s *customAppStore) snapshotVersionLocked(dir string, app CustomApp, htmlBody string) error {
+func (s *customAppStore) snapshotVersionLocked(dir string, app CustomApp, body string) error {
 	if app.Version < 1 {
 		return nil
 	}
@@ -691,13 +814,19 @@ func (s *customAppStore) snapshotVersionLocked(dir string, app CustomApp, htmlBo
 	if err := os.MkdirAll(vdir, 0o700); err != nil {
 		return fmt.Errorf("app: mkdir version: %w", err)
 	}
-	if err := writeFileAtomic(filepath.Join(vdir, customAppEntry), []byte(htmlBody), 0o600); err != nil {
+	if err := writeFileAtomic(filepath.Join(vdir, app.Entry), []byte(body), 0o600); err != nil {
 		return fmt.Errorf("app: write version snapshot: %w", err)
 	}
 	// Capture who/when beside the bytes so the history timeline can label each
 	// build. Versions snapshotted before this file existed degrade gracefully to
 	// a bare version number (readVersionMetaLocked returns ok=false).
-	meta := customAppVersionMeta{Version: app.Version, UpdatedAt: app.UpdatedAt, UpdatedBy: app.UpdatedBy}
+	meta := customAppVersionMeta{
+		Version: app.Version, UpdatedAt: app.UpdatedAt, UpdatedBy: app.UpdatedBy,
+		Representation: customAppRepresentation(app), Entry: app.Entry,
+		OpenUIVersion: app.OpenUIVersion, OpenUILibrary: app.OpenUILibrary,
+		OpenUILibraryHash: app.OpenUILibraryHash, ProviderVersion: app.ProviderVersion,
+		ContentHash: app.ContentHash,
+	}
 	metaBytes, err := json.Marshal(meta)
 	if err != nil {
 		return fmt.Errorf("app: marshal version meta: %w", err)
@@ -861,19 +990,49 @@ func (s *customAppStore) Source(id string) (map[string]string, error) {
 // time; builds snapshotted before that existed degrade to just the version
 // number. Current marks the app's live build.
 type CustomAppVersion struct {
-	Version   int    `json:"version"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	UpdatedBy string `json:"updatedBy,omitempty"`
-	Current   bool   `json:"current"`
+	Version           int    `json:"version"`
+	UpdatedAt         string `json:"updatedAt,omitempty"`
+	UpdatedBy         string `json:"updatedBy,omitempty"`
+	Current           bool   `json:"current"`
+	Representation    string `json:"representation,omitempty"`
+	Entry             string `json:"entry,omitempty"`
+	OpenUIVersion     string `json:"openuiVersion,omitempty"`
+	OpenUILibrary     string `json:"openuiLibrary,omitempty"`
+	OpenUILibraryHash string `json:"openuiLibraryHash,omitempty"`
+	ProviderVersion   string `json:"providerVersion,omitempty"`
+	ContentHash       string `json:"contentHash,omitempty"`
 }
 
 // customAppVersionMeta is the on-disk metadata stored beside each retained build
 // (versions/v<N>/meta.json). Current is intentionally NOT persisted — it is
 // derived against the manifest at read time so it can never go stale.
 type customAppVersionMeta struct {
-	Version   int    `json:"version"`
-	UpdatedAt string `json:"updatedAt"`
-	UpdatedBy string `json:"updatedBy"`
+	Version           int    `json:"version"`
+	UpdatedAt         string `json:"updatedAt"`
+	UpdatedBy         string `json:"updatedBy"`
+	Representation    string `json:"representation,omitempty"`
+	Entry             string `json:"entry,omitempty"`
+	OpenUIVersion     string `json:"openuiVersion,omitempty"`
+	OpenUILibrary     string `json:"openuiLibrary,omitempty"`
+	OpenUILibraryHash string `json:"openuiLibraryHash,omitempty"`
+	ProviderVersion   string `json:"providerVersion,omitempty"`
+	ContentHash       string `json:"contentHash,omitempty"`
+}
+
+func applyCustomAppVersionMeta(ver *CustomAppVersion, meta customAppVersionMeta) {
+	ver.UpdatedAt = meta.UpdatedAt
+	ver.UpdatedBy = meta.UpdatedBy
+	ver.Representation = meta.Representation
+	ver.Entry = meta.Entry
+	ver.OpenUIVersion = meta.OpenUIVersion
+	ver.OpenUILibrary = meta.OpenUILibrary
+	ver.OpenUILibraryHash = meta.OpenUILibraryHash
+	ver.ProviderVersion = meta.ProviderVersion
+	ver.ContentHash = meta.ContentHash
+	if ver.Representation == "" {
+		ver.Representation = customAppRepresentationHTML
+		ver.Entry = customAppEntry
+	}
 }
 
 // ListVersions returns the retained versions, newest first, each annotated with
@@ -910,8 +1069,10 @@ func (s *customAppStore) ListVersions(id string) ([]CustomAppVersion, error) {
 		}
 		ver := CustomAppVersion{Version: n, Current: n == current}
 		if meta, ok := s.readVersionMetaLocked(dir, n); ok {
-			ver.UpdatedAt = meta.UpdatedAt
-			ver.UpdatedBy = meta.UpdatedBy
+			applyCustomAppVersionMeta(&ver, meta)
+		} else {
+			ver.Representation = customAppRepresentationHTML
+			ver.Entry = customAppEntry
 		}
 		out = append(out, ver)
 	}
@@ -932,20 +1093,30 @@ func (s *customAppStore) GetVersion(id string, version int) (CustomAppVersion, s
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	versionsDir := filepath.Join(s.appDir(id), customAppVersionsDir)
-	body, err := os.ReadFile(filepath.Join(versionsDir, fmt.Sprintf("v%d", version), customAppEntry))
+	meta, ok := s.readVersionMetaLocked(versionsDir, version)
+	entry := customAppEntry
+	if ok && meta.Entry != "" {
+		entry = meta.Entry
+	}
+	body, err := os.ReadFile(filepath.Join(versionsDir, fmt.Sprintf("v%d", version), entry))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return CustomAppVersion{}, "", newCustomAppCallerError("app: version v%d not found", version)
 		}
 		return CustomAppVersion{}, "", fmt.Errorf("app: read version: %w", err)
 	}
+	if ok && meta.ContentHash != "" && customAppContentHash(string(body)) != meta.ContentHash {
+		return CustomAppVersion{}, "", fmt.Errorf("app: corrupt version v%d content hash", version)
+	}
 	ver := CustomAppVersion{Version: version}
 	if app, err := s.readManifestLocked(id); err == nil {
 		ver.Current = version == app.Version
 	}
-	if meta, ok := s.readVersionMetaLocked(versionsDir, version); ok {
-		ver.UpdatedAt = meta.UpdatedAt
-		ver.UpdatedBy = meta.UpdatedBy
+	if ok {
+		applyCustomAppVersionMeta(&ver, meta)
+	} else {
+		ver.Representation = customAppRepresentationHTML
+		ver.Entry = customAppEntry
 	}
 	return ver, string(body), nil
 }
@@ -960,6 +1131,24 @@ func (s *customAppStore) readVersionMetaLocked(versionsDir string, version int) 
 	var meta customAppVersionMeta
 	if err := json.Unmarshal(raw, &meta); err != nil {
 		return customAppVersionMeta{}, false
+	}
+	representation := meta.Representation
+	if representation == "" {
+		representation = customAppRepresentationHTML
+	}
+	if err := validateCustomAppManifest(CustomApp{
+		Entry:             meta.Entry,
+		Representation:    representation,
+		OpenUIVersion:     meta.OpenUIVersion,
+		OpenUILibrary:     meta.OpenUILibrary,
+		OpenUILibraryHash: meta.OpenUILibraryHash,
+		ProviderVersion:   meta.ProviderVersion,
+	}); err != nil {
+		// Legacy metadata did not record an entry; normalize only that exact shape.
+		if representation != customAppRepresentationHTML || meta.Entry != "" {
+			return customAppVersionMeta{}, false
+		}
+		meta.Entry = customAppEntry
 	}
 	return meta, true
 }
@@ -987,22 +1176,34 @@ func (s *customAppStore) Rollback(id string, version int, actor string, now time
 	// the bundle can be up to customAppMaxHTMLBytes, and holding s.mu across the
 	// read would block every concurrent List/Get/Source (Save uses the same
 	// lock-free-I/O discipline).
-	snap := filepath.Join(s.appDir(id), customAppVersionsDir, fmt.Sprintf("v%d", version), customAppEntry)
+	versionsDir := filepath.Join(s.appDir(id), customAppVersionsDir)
+	meta, ok := s.readVersionMetaLocked(versionsDir, version)
+	entry := customAppEntry
+	if ok && meta.Entry != "" {
+		entry = meta.Entry
+	}
+	snap := filepath.Join(versionsDir, fmt.Sprintf("v%d", version), entry)
 	s.mu.Unlock()
 	body, readErr := os.ReadFile(snap)
 	if readErr != nil {
 		return CustomApp{}, newCustomAppCallerError("app: version v%d not found", version)
 	}
 	// Save() re-locks and snapshots the restored bytes as a new version.
-	return s.Save(CustomAppWriteRequest{
-		ID:          id,
-		Name:        app.Name,
-		Icon:        app.Icon,
-		Summary:     app.Summary,
-		Description: app.Description,
-		HTML:        string(body),
-		Actor:       actor,
-	}, now)
+	req := CustomAppWriteRequest{
+		ID:              id,
+		Name:            app.Name,
+		Icon:            app.Icon,
+		Summary:         app.Summary,
+		Description:     app.Description,
+		Actor:           actor,
+		ExpectedVersion: &app.Version,
+	}
+	if ok && meta.Representation == customAppRepresentationOpenUI {
+		req.OpenUI = string(body)
+	} else {
+		req.HTML = string(body)
+	}
+	return s.Save(req, now)
 }
 
 // validateCustomAppHTML enforces the app sandbox policy at write time. It is
@@ -1022,6 +1223,88 @@ func validateCustomAppHTML(raw string) error {
 		blockedElement: customAppBlockedElementReason,
 		newErr:         newCustomAppCallerError,
 	})
+}
+
+var customAppOpenUIToolCallRE = regexp.MustCompile(`\b(Query|Mutation)\s*\(\s*"([a-z0-9_]+)"`)
+var customAppOpenUIRootRE = regexp.MustCompile(`(?m)^\s*root\s*=\s*App\s*\(`)
+var customAppOpenUIForbiddenActionRE = regexp.MustCompile(`(?i)@(?:OpenUrl|ToAssistant)\s*\(`)
+var customAppOpenUIURLRE = regexp.MustCompile(`(?i)https?://`)
+var customAppOpenUIStringRE = regexp.MustCompile(`"(?:\\.|[^"\\])*"`)
+var customAppOpenUICallRE = regexp.MustCompile(`\b(?:Query|Mutation)\s*\(`)
+var customAppOpenUIMutationStatementRE = regexp.MustCompile(`(?m)^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*Mutation\s*\(`)
+var customAppOpenUIFastRefreshRE = regexp.MustCompile(`(?m)Query\s*\([^\n]*,\s*(?:[0-9]|1[0-4])(?:\.\d+)?\s*\)`)
+
+var customAppOpenUIQueryTools = map[string]bool{
+	"wuphf_list_tasks":          true,
+	"wuphf_list_office_members": true,
+	"wuphf_list_channels":       true,
+	"wuphf_list_requests":       true,
+	"wuphf_wiki_list":           true,
+	"wuphf_wiki_read":           true,
+	"wuphf_list_integrations":   true,
+	"wuphf_app_db_query":        true,
+}
+
+var customAppOpenUIMutationTools = map[string]bool{
+	"wuphf_create_task":      true,
+	"wuphf_call_integration": true,
+	"wuphf_app_db_define":    true,
+	"wuphf_app_db_upsert":    true,
+	"wuphf_app_db_clear":     true,
+}
+
+// validateCustomAppOpenUI is the server-side publication gate. The browser
+// repeats full schema/parser validation before render; this gate independently
+// prevents mixed formats, dynamic tool selection, unreviewed host actions, and
+// documents large enough to exhaust the renderer.
+func validateCustomAppOpenUI(raw string) error {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return newCustomAppCallerError("app: openui is required")
+	}
+	if len([]byte(raw)) > customAppMaxOpenUIBytes {
+		return newCustomAppCallerError("app: openui exceeds %d bytes", customAppMaxOpenUIBytes)
+	}
+	if strings.ContainsRune(raw, '\x00') {
+		return newCustomAppCallerError("app: openui must not contain NUL bytes")
+	}
+	if !customAppOpenUIRootRE.MatchString(raw) {
+		return newCustomAppCallerError("app: openui must define root = App(...)")
+	}
+	if customAppOpenUIForbiddenActionRE.MatchString(raw) || customAppOpenUIURLRE.MatchString(raw) {
+		return newCustomAppCallerError("app: openui contains a forbidden host action or URL")
+	}
+	if len(strings.Split(raw, "\n")) > 512 {
+		return newCustomAppCallerError("app: openui exceeds the statement budget")
+	}
+	matches := customAppOpenUIToolCallRE.FindAllStringSubmatch(raw, -1)
+	active := customAppOpenUIStringRE.ReplaceAllString(raw, `""`)
+	callCount := len(customAppOpenUICallRE.FindAllString(active, -1))
+	if callCount != len(matches) {
+		return newCustomAppCallerError("app: every Query and Mutation must use a literal allowed tool name")
+	}
+	if callCount > 12 {
+		return newCustomAppCallerError("app: openui exceeds the active tool budget")
+	}
+	for _, match := range matches {
+		kind, name := match[1], match[2]
+		if kind == "Query" && !customAppOpenUIQueryTools[name] {
+			return newCustomAppCallerError("app: query tool %q is not allowed", name)
+		}
+		if kind == "Mutation" && !customAppOpenUIMutationTools[name] {
+			return newCustomAppCallerError("app: mutation tool %q is not allowed", name)
+		}
+	}
+	for _, match := range customAppOpenUIMutationStatementRE.FindAllStringSubmatch(raw, -1) {
+		run := regexp.MustCompile(`@Run\s*\(\s*` + regexp.QuoteMeta(match[1]) + `\s*\)`)
+		if !run.MatchString(raw) {
+			return newCustomAppCallerError("app: mutation %q must be bound to an explicit @Run action", match[1])
+		}
+	}
+	if customAppOpenUIFastRefreshRE.MatchString(raw) {
+		return newCustomAppCallerError("app: query refresh must be at least 15 seconds")
+	}
+	return nil
 }
 
 func customAppBlockedElementReason(tag string) (string, bool) {

@@ -55,6 +55,44 @@ var (
 	reMantineImport   = regexp.MustCompile(`import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*["']@mantine/core["']`)
 )
 
+var reOpenUIComponent = regexp.MustCompile(`(?m)(?:^|[=,\[]\s*)([A-Z][A-Za-z0-9_]*)\s*\(`)
+
+func introspectAppOpenUI(source string) AppCapabilities {
+	apiSet := map[string]bool{}
+	uiSet := map[string]bool{}
+	writeSet := map[string]bool{}
+	for _, match := range customAppOpenUIToolCallRE.FindAllStringSubmatch(source, -1) {
+		apiSet[match[2]] = true
+		if match[1] == "Mutation" {
+			writeSet[match[2]] = true
+		}
+	}
+	for _, match := range reOpenUIComponent.FindAllStringSubmatch(source, -1) {
+		uiSet[match[1]] = true
+	}
+	return AppCapabilities{
+		BridgeAPIs:   sortedSetKeys(apiSet),
+		UIComponents: sortedSetKeys(uiSet),
+		OfficeWrites: sortedSetKeys(writeSet),
+		SourceFiles:  []string{customAppOpenUIEntry},
+	}
+}
+
+func (s *customAppStore) Capabilities(id string) (CustomApp, AppCapabilities, error) {
+	app, body, err := s.Get(id)
+	if err != nil {
+		return CustomApp{}, AppCapabilities{}, err
+	}
+	if customAppRepresentation(app) == customAppRepresentationOpenUI {
+		return app, introspectAppOpenUI(body), nil
+	}
+	source, err := s.Source(id)
+	if err != nil {
+		return CustomApp{}, AppCapabilities{}, err
+	}
+	return app, introspectAppSource(source), nil
+}
+
 func compileBridgeAPIRegexps() map[string]*regexp.Regexp {
 	out := make(map[string]*regexp.Regexp, len(bridgeAPINames))
 	for _, name := range bridgeAPINames {
@@ -190,7 +228,7 @@ func sortedSetKeys(set map[string]bool) []string {
 // the App Builder reads before editing. Empty when there is no scannable source
 // (an html-only app), so callers can omit the section entirely.
 func renderAppCapabilities(c AppCapabilities) string {
-	if len(c.SourceFiles) == 0 {
+	if len(c.SourceFiles) == 0 && len(c.BridgeAPIs) == 0 && len(c.UIComponents) == 0 {
 		return ""
 	}
 	var b strings.Builder

@@ -21,7 +21,7 @@ import {
 import type { CustomApp, CustomAppDetail } from "../../api/apps";
 import { get } from "../../api/client";
 import { AppLivePreview } from "../../components/apps/AppLivePreview";
-import { CustomAppFrame } from "../../components/apps/CustomAppFrame";
+import { CustomAppRenderer } from "../../components/apps/CustomAppRenderer";
 import { AgentName } from "../agents/AgentName";
 import { AgentPurpose } from "../agents/AgentPurpose";
 import { AgentSessions } from "../agents/AgentSessions";
@@ -100,7 +100,7 @@ export function OperatorAppDetail({
   const app = detail?.app;
   const state = app ? appBuildState(app) : "building";
   const failed = state === "failed";
-  const ready = state === "ready" && !!detail?.html;
+  const ready = state === "ready" && !!detail;
 
   // The agent's persisted artifacts (routine outcomes) from the agent service,
   // collected below the live app on the UI tab. Refreshed each time the UI tab
@@ -508,11 +508,16 @@ function UiTab({
 }) {
   const detail = query.data;
   const app = detail?.app;
-  const ready = app && appBuildState(app) === "ready" && detail?.html;
+  const ready = app && appBuildState(app) === "ready" && detail;
   if (ready) {
     return (
       <div className="opr-app-frame">
-        <CustomAppFrame appId={app.id} title={app.name} html={detail.html} />
+        <CustomAppRenderer
+          app={app}
+          title={app.name}
+          html={"html" in detail ? detail.html : undefined}
+          openui={"openui" in detail ? detail.openui : undefined}
+        />
       </div>
     );
   }

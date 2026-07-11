@@ -13,15 +13,18 @@ package team
 //	DELETE /apps/{id}      -> { ok: true }              (remove an app)
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // appStore lazily constructs the custom-app store on first use so we avoid
@@ -44,8 +47,8 @@ func (b *Broker) handleApps(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"apps": apps})
 	case http.MethodPost:
 		var body CustomAppWriteRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		if status, err := decodeCustomAppJSONRequest(w, r, &body); err != nil {
+			writeJSON(w, status, map[string]string{"error": err.Error()})
 			return
 		}
 		// Resolve the writer the same way rich artifacts do: prefer the
@@ -81,11 +84,61 @@ func (b *Broker) handleApps(w http.ResponseWriter, r *http.Request) {
 		// blank cold boot when the human opens it.
 		mgr := b.appDevManager()
 		mgr.Stop(app.ID)
-		go func(id string) { _, _ = mgr.Ensure(id) }(app.ID)
+		if customAppRepresentation(app) == customAppRepresentationHTML {
+			go func(id string) { _, _ = mgr.Ensure(id) }(app.ID)
+		}
 		writeJSON(w, http.StatusOK, map[string]any{"app": app})
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func decodeCustomAppJSONRequest(w http.ResponseWriter, r *http.Request, dst *CustomAppWriteRequest) (int, error) {
+	limit := int64(customAppMaxHTMLBytes + 64*1024)
+	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
+	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			return http.StatusRequestEntityTooLarge, fmt.Errorf("app request exceeds %d bytes", limit)
+		}
+		return http.StatusBadRequest, fmt.Errorf("read app request: %w", err)
+	}
+	if !utf8.Valid(raw) {
+		return http.StatusBadRequest, errors.New("app request must be valid UTF-8")
+	}
+	if err := rejectDuplicateTopLevelJSONFields(raw); err != nil {
+		return http.StatusBadRequest, err
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		return http.StatusBadRequest, fmt.Errorf("invalid app json: %w", err)
+	}
+	if err := ensureJSONEOF(decoder); err != nil {
+		return http.StatusBadRequest, err
+	}
+	return 0, nil
+}
+
+func (b *Broker) handleAppsValidate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		OpenUI string `json:"openui"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, customAppMaxOpenUIBytes+1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		return
+	}
+	if err := validateCustomAppOpenUI(body.OpenUI); err != nil {
+		writeAppError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"valid": true, "contentHash": customAppContentHash(body.OpenUI)})
 }
 
 func (b *Broker) handleAppByID(w http.ResponseWriter, r *http.Request) {
@@ -288,6 +341,10 @@ func (b *Broker) appDevManager() *appDevManager {
 //	GET  /apps/{id}/dev/status  -> current status without (re)starting
 //	POST /apps/{id}/dev/stop    -> tear down (App Builder / human only)
 func (b *Broker) handleAppDev(w http.ResponseWriter, r *http.Request, id string, parts []string) {
+	if app, _, err := b.appStore().Get(id); err == nil && customAppRepresentation(app) == customAppRepresentationOpenUI {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "OpenUI apps render directly and do not use a dev server", "code": "openui_direct_preview"})
+		return
+	}
 	action := ""
 	if len(parts) > 2 {
 		action = parts[2]
@@ -333,20 +390,33 @@ func (b *Broker) handleAppRoot(w http.ResponseWriter, r *http.Request, id string
 			writeAppError(w, err)
 			return
 		}
-		out := map[string]any{"app": app, "html": htmlBody}
+		if customAppRepresentation(app) == customAppRepresentationOpenUI && r.URL.Query().Get("accept_representation") != customAppRepresentationOpenUI {
+			writeJSON(w, http.StatusUpgradeRequired, map[string]string{"error": "OpenUI app requires a compatible client", "code": "openui_client_required"})
+			return
+		}
+		out := map[string]any{"app": app}
+		if customAppRepresentation(app) == customAppRepresentationOpenUI {
+			out["openui"] = htmlBody
+		} else {
+			out["html"] = htmlBody
+		}
 		// ?source=1 includes the app's source project — only the App Builder
 		// needs it (to edit), so the FE view never asks for it. Alongside the raw
 		// source we attach a deterministic capability summary (data model, APIs,
 		// office writes, UI) so the agent edits from the app's REAL shape instead
 		// of guessing or inventing capabilities it lacks.
 		if r.URL.Query().Get("source") == "1" {
-			source, err := b.appStore().Source(id)
-			if err != nil {
-				writeAppError(w, err)
-				return
+			if customAppRepresentation(app) == customAppRepresentationOpenUI {
+				out["capabilities"] = introspectAppOpenUI(htmlBody)
+			} else {
+				source, err := b.appStore().Source(id)
+				if err != nil {
+					writeAppError(w, err)
+					return
+				}
+				out["source"] = source
+				out["capabilities"] = introspectAppSource(source)
 			}
-			out["source"] = source
-			out["capabilities"] = introspectAppSource(source)
 		}
 		writeJSON(w, http.StatusOK, out)
 	case http.MethodPatch:
@@ -399,18 +469,34 @@ func (b *Broker) handleAppVersion(w http.ResponseWriter, r *http.Request, id, ra
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid version"})
 		return
 	}
-	ver, htmlBody, err := b.appStore().GetVersion(id, n)
+	ver, body, err := b.appStore().GetVersion(id, n)
 	if err != nil {
 		writeAppError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"version":   ver.Version,
-		"updatedAt": ver.UpdatedAt,
-		"updatedBy": ver.UpdatedBy,
-		"current":   ver.Current,
-		"html":      htmlBody,
-	})
+	if ver.Representation == customAppRepresentationOpenUI && r.URL.Query().Get("accept_representation") != customAppRepresentationOpenUI {
+		writeJSON(w, http.StatusUpgradeRequired, map[string]string{"error": "OpenUI app requires a compatible client", "code": "openui_client_required"})
+		return
+	}
+	out := map[string]any{
+		"version":           ver.Version,
+		"updatedAt":         ver.UpdatedAt,
+		"updatedBy":         ver.UpdatedBy,
+		"current":           ver.Current,
+		"representation":    ver.Representation,
+		"entry":             ver.Entry,
+		"openuiVersion":     ver.OpenUIVersion,
+		"openuiLibrary":     ver.OpenUILibrary,
+		"openuiLibraryHash": ver.OpenUILibraryHash,
+		"providerVersion":   ver.ProviderVersion,
+		"contentHash":       ver.ContentHash,
+	}
+	if ver.Representation == customAppRepresentationOpenUI {
+		out["openui"] = body
+	} else {
+		out["html"] = body
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (b *Broker) handleAppRollback(w http.ResponseWriter, r *http.Request, id string) {
@@ -440,6 +526,8 @@ func (b *Broker) handleAppRollback(w http.ResponseWriter, r *http.Request, id st
 		writeAppError(w, err)
 		return
 	}
+	go b.precompileAppWorkflowAsync(app.ID)
+	b.appDevManager().Stop(app.ID)
 	writeJSON(w, http.StatusOK, map[string]any{"app": app})
 }
 
@@ -487,7 +575,7 @@ func (b *Broker) handleAppEditSession(w http.ResponseWriter, r *http.Request, id
 // yet. Idempotent: an already-bound app returns its channel without spawning a
 // task. Shared by the edit-session and improve handlers.
 func (b *Broker) ensureAppEditChannel(id string) (string, error) {
-	app, _, err := b.appStore().Get(id)
+	app, appBody, err := b.appStore().Get(id)
 	if err != nil {
 		return "", err
 	}
@@ -497,7 +585,9 @@ func (b *Broker) ensureAppEditChannel(id string) (string, error) {
 	// Ground the edit thread in the app's REAL shape (data model, APIs, writes,
 	// UI), derived from its source, so the agent never invents capabilities.
 	capsSummary := ""
-	if source, serr := b.appStore().Source(id); serr == nil {
+	if customAppRepresentation(app) == customAppRepresentationOpenUI {
+		capsSummary = renderAppCapabilities(introspectAppOpenUI(appBody))
+	} else if source, serr := b.appStore().Source(id); serr == nil {
 		capsSummary = renderAppCapabilities(introspectAppSource(source))
 	}
 	title, details := appEditSessionBrief(app, capsSummary)
@@ -596,9 +686,9 @@ func (b *Broker) handleAppImprove(w http.ResponseWriter, r *http.Request, id str
 func buildAppImprovePrompt(app CustomApp, change string) string {
 	return fmt.Sprintf(
 		"A human asked to change the app %q (`%s`). Their request:\n\n%s\n\n"+
-			"Apply it IN PLACE: call get_app(%q) to read the current source and "+
-			"capabilities, make the change, run the verify gate (`bun run verify`), "+
-			"then republish with register_app(app_id=%q). Narrate briefly as you go "+
+			"Apply it IN PLACE: call get_app(%q) to read the current OpenUI document, version, and "+
+			"capabilities, make the change, call validate_app, then republish with "+
+			"register_app(app_id=%q, expected_version=<current version>). Narrate briefly as you go "+
 			"and confirm what changed once it is live. Do NOT create a new app.",
 		app.Name, app.ID, change, app.ID, app.ID,
 	)
@@ -630,6 +720,8 @@ func (b *Broker) appWriterAllowed(r *http.Request, actor string) bool {
 
 func writeAppError(w http.ResponseWriter, err error) {
 	switch {
+	case isCustomAppConflictError(err):
+		writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error(), "code": "app_version_conflict"})
 	case isCustomAppCallerError(err):
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 	case errors.Is(err, os.ErrNotExist):
