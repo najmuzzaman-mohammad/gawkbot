@@ -350,6 +350,13 @@ func (s *customAppStore) readManifestLocked(id string) (CustomApp, error) {
 // When there are no source Files (an html-only registration, e.g. a built-in or
 // simple app), it falls back to the submitted html as before.
 func (s *customAppStore) Save(req CustomAppWriteRequest, now time.Time) (CustomApp, error) {
+	return s.save(req, now, false)
+}
+
+// save implements Save. Callers that already hold the app's publish lock use
+// publishLocked=true so compound manifest operations such as Rollback remain
+// serialized without recursively locking the same mutex.
+func (s *customAppStore) save(req CustomAppWriteRequest, now time.Time, publishLocked bool) (CustomApp, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		return CustomApp{}, newCustomAppCallerError("app: name is required")
@@ -377,7 +384,7 @@ func (s *customAppStore) Save(req CustomAppWriteRequest, now time.Time) (CustomA
 		return CustomApp{}, newCustomAppCallerError("app: openui cannot be combined with html or source files")
 	}
 	if representation == customAppRepresentationHTML && strings.TrimSpace(req.HTML) == "" && len(req.Files) == 0 {
-		return CustomApp{}, newCustomAppCallerError("app: openui is required")
+		return CustomApp{}, newCustomAppCallerError("app: html or source files are required")
 	}
 	if representation == customAppRepresentationOpenUI {
 		if err := validateCustomAppOpenUI(req.OpenUI); err != nil {
@@ -391,8 +398,10 @@ func (s *customAppStore) Save(req CustomAppWriteRequest, now time.Time) (CustomA
 	var pl *sync.Mutex
 	if id := strings.TrimSpace(req.ID); id != "" {
 		pl = s.publishLock(id)
-		pl.Lock()
-		defer pl.Unlock()
+		if !publishLocked {
+			pl.Lock()
+			defer pl.Unlock()
+		}
 	}
 
 	// Phase 1 (store lock): resolve the target manifest + ensure the dir. Held
@@ -476,7 +485,10 @@ func (s *customAppStore) resolveSaveManifestLocked(req CustomAppWriteRequest, na
 		if err != nil {
 			return CustomApp{}, newCustomAppCallerError("app: %s not found", id)
 		}
-		if req.ExpectedVersion != nil && *req.ExpectedVersion != existing.Version {
+		if req.ExpectedVersion == nil {
+			return CustomApp{}, newCustomAppConflictError("app: expected_version is required when updating %s", id)
+		}
+		if *req.ExpectedVersion != existing.Version {
 			return CustomApp{}, newCustomAppConflictError("app: expected v%d but current version is v%d", *req.ExpectedVersion, existing.Version)
 		}
 		app = existing
@@ -623,6 +635,9 @@ func (s *customAppStore) SetEditChannel(id, channel string) error {
 	if channel == "" {
 		return newCustomAppCallerError("app: edit channel is required")
 	}
+	pl := s.publishLock(id)
+	pl.Lock()
+	defer pl.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	app, err := s.readManifestLocked(id)
@@ -668,6 +683,9 @@ func (s *customAppStore) Rename(id, name, actor string, now time.Time) (CustomAp
 	if strings.ContainsRune(name, '\x00') {
 		return CustomApp{}, newCustomAppCallerError("app: name must not contain NUL bytes")
 	}
+	pl := s.publishLock(id)
+	pl.Lock()
+	defer pl.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	app, err := s.readManifestLocked(id)
@@ -733,6 +751,9 @@ func (s *customAppStore) Scaffold(id, name, icon, actor string, now time.Time) (
 	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
 
+	pl := s.publishLock(id)
+	pl.Lock()
+	defer pl.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -1162,6 +1183,9 @@ func (s *customAppStore) Rollback(id string, version int, actor string, now time
 	if version < 1 {
 		return CustomApp{}, newCustomAppCallerError("app: invalid version %d", version)
 	}
+	pl := s.publishLock(id)
+	pl.Lock()
+	defer pl.Unlock()
 	s.mu.Lock()
 	app, err := s.readManifestLocked(id)
 	if err != nil {
@@ -1172,23 +1196,16 @@ func (s *customAppStore) Rollback(id string, version int, actor string, now time
 		s.mu.Unlock()
 		return CustomApp{}, newCustomAppCallerError("app: v%d is already current", version)
 	}
-	// Compute the snapshot path under the lock, then read it WITHOUT the lock —
-	// the bundle can be up to customAppMaxHTMLBytes, and holding s.mu across the
-	// read would block every concurrent List/Get/Source (Save uses the same
-	// lock-free-I/O discipline).
-	versionsDir := filepath.Join(s.appDir(id), customAppVersionsDir)
-	meta, ok := s.readVersionMetaLocked(versionsDir, version)
-	entry := customAppEntry
-	if ok && meta.Entry != "" {
-		entry = meta.Entry
-	}
-	snap := filepath.Join(versionsDir, fmt.Sprintf("v%d", version), entry)
 	s.mu.Unlock()
-	body, readErr := os.ReadFile(snap)
+	// Reuse the version read path so rollback verifies the immutable snapshot's
+	// content hash before those bytes can be republished as a new version.
+	ver, body, readErr := s.GetVersion(id, version)
 	if readErr != nil {
-		return CustomApp{}, newCustomAppCallerError("app: version v%d not found", version)
+		return CustomApp{}, readErr
 	}
-	// Save() re-locks and snapshots the restored bytes as a new version.
+	// save snapshots the restored bytes as a new version while retaining the
+	// publish lock acquired above, so metadata cannot change between this read
+	// and the forward-version commit.
 	req := CustomAppWriteRequest{
 		ID:              id,
 		Name:            app.Name,
@@ -1198,12 +1215,12 @@ func (s *customAppStore) Rollback(id string, version int, actor string, now time
 		Actor:           actor,
 		ExpectedVersion: &app.Version,
 	}
-	if ok && meta.Representation == customAppRepresentationOpenUI {
-		req.OpenUI = string(body)
+	if ver.Representation == customAppRepresentationOpenUI {
+		req.OpenUI = body
 	} else {
-		req.HTML = string(body)
+		req.HTML = body
 	}
-	return s.Save(req, now)
+	return s.save(req, now, true)
 }
 
 // validateCustomAppHTML enforces the app sandbox policy at write time. It is
@@ -1267,6 +1284,9 @@ func validateCustomAppOpenUI(raw string) error {
 	}
 	if strings.ContainsRune(raw, '\x00') {
 		return newCustomAppCallerError("app: openui must not contain NUL bytes")
+	}
+	if err := validateCustomAppOpenUIStructure(raw); err != nil {
+		return err
 	}
 	if !customAppOpenUIRootRE.MatchString(raw) {
 		return newCustomAppCallerError("app: openui must define root = App(...)")

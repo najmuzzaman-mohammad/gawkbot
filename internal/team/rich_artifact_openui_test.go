@@ -2,6 +2,7 @@ package team
 
 import (
 	"bytes"
+	"context"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -45,6 +46,33 @@ func TestNewRichArtifactCreatesVersionedOpenUIArtifact(t *testing.T) {
 	}
 	if first.Title != "Launch review" || first.Summary != "Two blocking risks" {
 		t.Fatalf("metadata was not normalized: title=%q summary=%q", first.Title, first.Summary)
+	}
+}
+
+func TestCommitRichArtifactRetryMatchesAutoAssignedNotebookPath(t *testing.T) {
+	repo := newTestRepo(t)
+	if err := repo.Init(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	artifact, content, err := newRichArtifact(RichArtifactCreateRequest{
+		Slug: "pm", Title: "Launch review", OpenUILang: validOpenUIArtifact,
+	}, time.Unix(1, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, _, _, err := repo.CommitRichArtifact(context.Background(), "pm", artifact, content, "artifact: first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.SourceMarkdownPath == "" || first.AttachedToNotebookEntry == nil {
+		t.Fatalf("first commit did not assign notebook home: %+v", first)
+	}
+	retried, _, bytesWritten, err := repo.CommitRichArtifact(context.Background(), "pm", artifact, content, "artifact: retry")
+	if err != nil {
+		t.Fatalf("idempotent retry: %v", err)
+	}
+	if retried.ID != first.ID || bytesWritten != 0 {
+		t.Fatalf("retry = %+v bytes=%d, want existing %s with zero bytes", retried, bytesWritten, first.ID)
 	}
 }
 

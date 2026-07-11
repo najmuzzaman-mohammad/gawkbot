@@ -14,6 +14,7 @@ import {
 import { z } from "zod/v4";
 
 import { get, getText, post } from "../../api/client";
+import { getHumanMe, type HumanMe } from "../../api/platform";
 import { openUIAppLibrary } from "../../lib/openUIAppLibrary";
 import { confirm } from "../ui/ConfirmDialog";
 import { showNotice } from "../ui/Toast";
@@ -183,6 +184,22 @@ function boundedResult(value: unknown): unknown {
   return value;
 }
 
+export function openUIHumanActor(me: HumanMe): string {
+  const memberSlug = me.human.human_slug?.trim();
+  if (memberSlug) return `human:${memberSlug}`;
+  const slug = me.human.slug?.trim();
+  if (slug) return slug === "human" ? slug : `human:${slug}`;
+  throw new Error("Could not resolve the signed-in human identity.");
+}
+
+function formatMutationPayload(value: unknown): string {
+  const formatted = JSON.stringify(value, null, 2);
+  if (formatted === undefined) {
+    throw new Error("Mutation payload could not be displayed for review.");
+  }
+  return formatted;
+}
+
 export function readArrayEnvelope(value: unknown, key: string): unknown[] {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     return [];
@@ -192,18 +209,25 @@ export function readArrayEnvelope(value: unknown, key: string): unknown[] {
 
 export function createOpenUIAppToolProvider(appId: string) {
   const dbBase = `/apps/${encodeURIComponent(appId)}/db`;
+  let humanActorPromise: Promise<string> | undefined;
+  const humanActor = () => {
+    humanActorPromise ??= getHumanMe().then(openUIHumanActor);
+    return humanActorPromise;
+  };
   return {
-    wuphf_list_tasks: async () =>
-      boundedResult(
+    wuphf_list_tasks: async () => {
+      const viewerSlug = await humanActor();
+      return boundedResult(
         readArrayEnvelope(
           await get("/tasks", {
             all_channels: true,
             include_done: true,
-            viewer_slug: "human",
+            viewer_slug: viewerSlug,
           }),
           "tasks",
         ),
-      ),
+      );
+    },
     wuphf_list_office_members: async () =>
       boundedResult(readArrayEnvelope(await get("/office-members"), "members")),
     wuphf_list_channels: async () =>
@@ -229,6 +253,7 @@ export function createOpenUIAppToolProvider(appId: string) {
     },
     wuphf_create_task: async (raw: Record<string, unknown>) => {
       const args = createTaskArgs.parse(raw);
+      const actor = await humanActor();
       return confirmedMutation(
         "Create office task",
         `OpenUI app requests wuphf_create_task:\n\n${args.title}`,
@@ -239,7 +264,7 @@ export function createOpenUIAppToolProvider(appId: string) {
             channel: "general",
             title: args.title,
             details: args.details ?? "",
-            created_by: "human",
+            created_by: actor,
             task_type: "issue",
           });
           showNotice(`Created task: ${args.title}`, "success");
@@ -251,7 +276,7 @@ export function createOpenUIAppToolProvider(appId: string) {
       const args = integrationArgs.parse(raw);
       return confirmedMutation(
         "Run integration action",
-        `OpenUI app requests ${args.platform} / ${args.action}. Review the exact action before continuing.`,
+        `OpenUI app requests ${args.platform} / ${args.action}:\n\n${formatMutationPayload(args.params ?? {})}`,
         true,
         async () =>
           boundedResult(
@@ -263,7 +288,7 @@ export function createOpenUIAppToolProvider(appId: string) {
       const args = defineArgs.parse(raw);
       return confirmedMutation(
         "Change app data model",
-        `OpenUI app requests wuphf_app_db_define for table “${args.table}”.`,
+        `OpenUI app requests wuphf_app_db_define for table “${args.table}” with ${args.columns.length} column(s):\n\n${formatMutationPayload(args.columns)}`,
         false,
         async () =>
           boundedResult(await post(dbBase, { op: "define", ...args })),
@@ -273,7 +298,7 @@ export function createOpenUIAppToolProvider(appId: string) {
       const args = upsertArgs.parse(raw);
       return confirmedMutation(
         "Write app data",
-        `OpenUI app requests wuphf_app_db_upsert of ${args.rows.length} row(s) in “${args.table}”.`,
+        `OpenUI app requests wuphf_app_db_upsert of ${args.rows.length} row(s) in “${args.table}”:\n\n${formatMutationPayload(args.rows)}`,
         false,
         async () =>
           boundedResult(await post(dbBase, { op: "upsert", ...args })),
@@ -298,10 +323,14 @@ export function OpenUIAppRenderer(props: {
   openui: string;
 }) {
   return (
-    <OpenUIAppErrorBoundary key={`${props.appId}:${props.openui.length}`}>
+    <OpenUIAppErrorBoundary key={openUIRendererKey(props.appId, props.openui)}>
       <OpenUIAppRendererInner {...props} />
     </OpenUIAppErrorBoundary>
   );
+}
+
+export function openUIRendererKey(appId: string, source: string): string {
+  return `${appId}:${source}`;
 }
 
 function OpenUIAppRendererInner({

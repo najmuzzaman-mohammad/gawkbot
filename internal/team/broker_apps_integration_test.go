@@ -164,7 +164,7 @@ func TestAppVersionEndpointsNonDestructive(t *testing.T) {
 	if id == "" {
 		t.Fatalf("no app id in register response: %v", created)
 	}
-	v2Body, _ := json.Marshal(map[string]any{"id": id, "name": "Lead Scorer", "html": htmlB})
+	v2Body, _ := json.Marshal(map[string]any{"id": id, "name": "Lead Scorer", "html": htmlB, "expected_version": 1})
 	postAppsAsAgent(t, base+"/apps", b.Token(), appBuilderSlug, v2Body)
 
 	// List → two structured versions, newest first, v2 current.

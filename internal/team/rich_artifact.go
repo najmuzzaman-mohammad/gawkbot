@@ -481,6 +481,13 @@ func validateRichArtifactHTMLPolicy(html string) error {
 	return nil
 }
 
+var richArtifactOpenUIForbiddenTokenREs = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)\bQuery\s*\(`),
+	regexp.MustCompile(`(?i)\bMutation\s*\(`),
+	regexp.MustCompile(`(?i)@(OpenUrl|ToAssistant|Run|Set|Reset)\s*\(`),
+	regexp.MustCompile(`(?m)^\s*\$[A-Za-z_][A-Za-z0-9_]*\s*=`),
+}
+
 func validateRichArtifactOpenUIPolicy(content string) error {
 	if strings.TrimSpace(content) == "" {
 		return newRichArtifactCallerError("visual artifact: openui_lang is required")
@@ -514,13 +521,9 @@ func validateRichArtifactOpenUIPolicy(content string) error {
 		return newRichArtifactCallerError("visual artifact: openui_lang must begin with root = Stack(...)")
 	}
 	code := openUICodeOutsideStrings(content)
-	for _, forbidden := range []string{
-		`(?i)\bQuery\s*\(`, `(?i)\bMutation\s*\(`,
-		`(?i)@(OpenUrl|ToAssistant|Run|Set|Reset)\s*\(`,
-		`(?m)^\s*\$[A-Za-z_][A-Za-z0-9_]*\s*=`,
-	} {
-		if regexp.MustCompile(forbidden).FindStringIndex(code) != nil {
-			return newRichArtifactCallerError("visual artifact: openui_lang contains forbidden token %q", forbidden)
+	for _, forbidden := range richArtifactOpenUIForbiddenTokenREs {
+		if forbidden.FindStringIndex(code) != nil {
+			return newRichArtifactCallerError("visual artifact: openui_lang contains forbidden token %q", forbidden.String())
 		}
 	}
 	for _, scheme := range []string{"http://", "https://", "javascript:", "data:"} {
@@ -788,11 +791,19 @@ func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact Ric
 }
 
 func sameRichArtifactIdentity(existing, requested RichArtifact) bool {
+	requestedSourcePath := strings.TrimSpace(requested.SourceMarkdownPath)
+	if requestedSourcePath == "" && existing.AttachedToNotebookEntry != nil {
+		attached := existing.AttachedToNotebookEntry
+		derived := filepath.ToSlash(filepath.Join("agents", attached.OwnerSlug, "notebook", attached.EntrySlug+".md"))
+		if strings.TrimSpace(existing.SourceMarkdownPath) == derived {
+			requestedSourcePath = derived
+		}
+	}
 	return existing.ID == requested.ID &&
 		existing.CreatedBy == requested.CreatedBy &&
 		existing.Title == requested.Title &&
 		existing.Summary == requested.Summary &&
-		existing.SourceMarkdownPath == requested.SourceMarkdownPath &&
+		strings.TrimSpace(existing.SourceMarkdownPath) == requestedSourcePath &&
 		existing.RelatedTaskID == requested.RelatedTaskID &&
 		existing.RelatedMessageID == requested.RelatedMessageID &&
 		slices.Equal(existing.RelatedReceiptIDs, requested.RelatedReceiptIDs) &&

@@ -125,3 +125,24 @@ func TestIntrospectEmptyForHTMLOnly(t *testing.T) {
 		t.Fatal("render should be empty when there is no source")
 	}
 }
+
+func TestIntrospectAppOpenUINormalizesPlannerAPIsAndComponents(t *testing.T) {
+	caps := introspectAppOpenUI(`root = App("Tasks", [table, button])
+tasks = Query("wuphf_list_tasks", {}, [])
+create = Mutation("wuphf_create_task", {"title":"Follow up"})
+table = DataTable([], tasks)
+button = Button("Create", @Run(create))`)
+	for _, api := range []string{"getTasks", "createTask"} {
+		if !introspectHas(caps.BridgeAPIs, api) {
+			t.Fatalf("normalized APIs = %v, missing %q", caps.BridgeAPIs, api)
+		}
+	}
+	for _, pseudoComponent := range []string{"Query", "Mutation"} {
+		if introspectHas(caps.UIComponents, pseudoComponent) {
+			t.Fatalf("UI components include OpenUI pseudo-component %q: %v", pseudoComponent, caps.UIComponents)
+		}
+	}
+	if !introspectHas(caps.UIComponents, "App") || !introspectHas(caps.UIComponents, "DataTable") {
+		t.Fatalf("UI components = %v", caps.UIComponents)
+	}
+}

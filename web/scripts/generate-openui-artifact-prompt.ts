@@ -10,7 +10,12 @@ const outputPath = resolve(
   import.meta.dir,
   "../../internal/openuiartifact/system_prompt.txt",
 );
-const prompt = `${openUIArtifactLibrary.prompt(openUIArtifactPromptOptions)}\n`;
+const prompt = `${openUIArtifactLibrary
+  .prompt(openUIArtifactPromptOptions)
+  .replace(
+    "\n- Strings use double quotes with backslash escaping",
+    "\n8. Strings use double quotes with backslash escaping",
+  )}\n`;
 const librarySourcePath = resolve(
   import.meta.dir,
   "../src/lib/openUIArtifactLibrary.tsx",
@@ -82,8 +87,13 @@ if (process.argv.includes("--check")) {
   goContract = replaceGoHash(goContract, "PromptHash", promptHash);
   await writeFile(goContractPath, goContract, "utf8");
   const webContract = await readFile(webContractPath, "utf8");
+  const webHashPattern =
+    /(OPENUI_ARTIFACT_LIBRARY_HASH\s*=\s*\n?\s*")[a-f0-9]{64}(")/;
+  if (!webHashPattern.test(webContract)) {
+    throw new Error("missing OPENUI_ARTIFACT_LIBRARY_HASH hash constant");
+  }
   const updatedWebContract = webContract.replace(
-    /(OPENUI_ARTIFACT_LIBRARY_HASH\s*=\s*\n?\s*")[a-f0-9]{64}(")/,
+    webHashPattern,
     `$1${libraryHash}$2`,
   );
   await writeFile(webContractPath, updatedWebContract, "utf8");

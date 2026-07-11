@@ -62,12 +62,22 @@ func introspectAppOpenUI(source string) AppCapabilities {
 	uiSet := map[string]bool{}
 	writeSet := map[string]bool{}
 	for _, match := range customAppOpenUIToolCallRE.FindAllStringSubmatch(source, -1) {
-		apiSet[match[2]] = true
+		apiName := match[2]
+		switch apiName {
+		case "wuphf_list_tasks":
+			apiName = "getTasks"
+		case "wuphf_create_task":
+			apiName = "createTask"
+		}
+		apiSet[apiName] = true
 		if match[1] == "Mutation" {
 			writeSet[match[2]] = true
 		}
 	}
 	for _, match := range reOpenUIComponent.FindAllStringSubmatch(source, -1) {
+		if match[1] == "Query" || match[1] == "Mutation" {
+			continue
+		}
 		uiSet[match[1]] = true
 	}
 	return AppCapabilities{

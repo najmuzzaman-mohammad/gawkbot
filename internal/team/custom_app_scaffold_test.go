@@ -109,11 +109,13 @@ func TestPublishFlipsDraftToReadyAndPreservesNodeModules(t *testing.T) {
 		t.Fatalf("write node_modules: %v", err)
 	}
 
+	expectedVersion := 0
 	published, err := store.Save(CustomAppWriteRequest{
-		ID:    id,
-		Name:  "Lead Scorer",
-		HTML:  validAppHTML,
-		Actor: "app-builder",
+		ID:              id,
+		Name:            "Lead Scorer",
+		HTML:            validAppHTML,
+		Actor:           "app-builder",
+		ExpectedVersion: &expectedVersion,
 		Files: map[string]string{
 			"package.json":   "{}",
 			"src/App.tsx":    "export default function App(){return null}",

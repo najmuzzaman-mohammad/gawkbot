@@ -9,7 +9,7 @@ const (
 	Version     = "0.5"
 	Library     = "wuphf-static-review"
 	LibraryHash = "f1224a608682fd95303ede0e1227a1e17d87bd7d646630081bd42674ffe1ee85"
-	PromptHash  = "53ec2f5d8a27617ca1e91b13261bb782b1c02eb6c4049a30528b7fb5f890cd58"
+	PromptHash  = "ad90c14c640822b9c18aa9aa680983cffe3826644d022b7845fa9ec63b600fa9"
 )
 
 //go:embed system_prompt.txt

@@ -18,7 +18,7 @@ Generate a complete WUPHF internal app in OpenUI Lang v0.5. WUPHF renders it wit
 14. Logical: &&, ||, ! (prefix)
 15. Ternary: `condition ? valueIfTrue : valueIfFalse`
 16. Parentheses for grouping: `(a + b) * c`
-- Strings use double quotes with backslash escaping
+17. Strings use double quotes with backslash escaping
 
 ## Component Signatures
 
@@ -72,113 +72,47 @@ Builtins compose — output of one is input to the next:
 `@Count(@Filter(data.rows, "field", "==", "val"))` for KPIs/chart values, `@Round(@Avg(data.rows.score), 1)`, `@Each(data.rows, "item", Comp(item.field))` for per-item rendering.
 Array pluck: `data.rows.field` extracts a field from every row → use with @Sum, @Avg, charts, tables.
 
-IMPORTANT @Each rule: The loop variable (e.g. "item") is ONLY available inside the @Each template expression. Always inline the template — do NOT extract it to a separate statement.
-CORRECT: `Col("Actions", @Each(rows, "t", Button("Edit", Action([@Set($id, t.id)]))))`
-WRONG: `myBtn = Button("Edit", Action([@Set($id, t.id)]))` then `Col("Actions", @Each(rows, "t", myBtn))` — t is undefined in myBtn.
+IMPORTANT @Each rule: The loop variable (for example, "item") is available only inside the @Each template expression. Keep repeated-row templates inline.
+CORRECT: `Stack(@Each(rows, "t", Button("Edit", @Set($id, t.id))))`
+WRONG: define a separate Button statement that references `t` outside @Each.
 
 ## Query — Live Data Fetching
 
-Fetch data from available tools. Returns defaults instantly, swaps in real data when it arrives.
+Use `result = Query("tool_name", {args}, fallback, refreshSeconds?)`. Query identifiers are regular names, not $state. Arguments may reference $state and re-fetch when it changes. Use a refresh interval of at least 15 seconds.
 
-```
-metrics = Query("tool_name", {arg1: value, arg2: $binding}, {defaultField: 0, defaultData: []}, refreshInterval?)
-```
-
-- First arg: tool name (string)
-- Second arg: arguments object (may reference $bindings — re-fetches automatically on change)
-- Third arg: default data (rendered immediately before fetch resolves)
-- Fourth arg (optional): refresh interval in seconds (e.g. 30 for auto-refresh every 30s)
-- Use dot access on results: metrics.totalEvents, metrics.data.day (array pluck)
-- Query results must use regular identifiers: `metrics = Query(...)`, NOT `$metrics = Query(...)`
-- Manual refresh: `Button("Refresh", Action([@Run(query1), @Run(query2)]), "secondary")` — re-fetches the listed queries
-- Refresh all queries: create Action with @Run for each query
+Manual refresh uses a WUPHF Button action directly: `Button("Refresh", @Run(tasks), "info")`.
 
 ## Mutation — Write Operations
 
-Execute state-changing tool calls (create, update, delete). Unlike Query (auto-fetches on render), Mutation fires only on button click via Action.
+Use `result = Mutation("tool_name", {args})`. A Mutation runs only from an explicit action such as `Button("Create", @Run(createTask), "info")`. WUPHF displays the actual mutation payload in trusted host confirmation chrome before executing it.
 
-```
-result = Mutation("tool_name", {arg1: $binding, arg2: "value"})
-```
+## Interactive Inputs
 
-- First arg: tool name (string)
-- Second arg: arguments object (evaluated with current $binding values at click time)
-- result.status: "idle" | "loading" | "success" | "error"
-- result.data: tool response on success
-- result.error: error message on failure
-- Mutation results use regular identifiers: `result = Mutation(...)`, NOT `$result`
-- Show loading state: `result.status == "loading" ? TextContent("Saving...") : null`
+Bind WUPHF inputs directly to $state:
+`$title = ""`
+`titleInput = TextInput("title", "Task title", $title, "What needs doing?")`
+`$status = "open"`
+`statusInput = Select("status", "Status", $status, [{"label":"Open","value":"open"},{"label":"Done","value":"done"}])`
 
-## Interactive Filters
-
-To let the user filter data with a dropdown:
-1. Declare a $variable with a default: `$dateRange = "14"`
-2. Create a Select with name, items, and binding: `Select("dateRange", [SelectItem("7", "Last 7 days"), ...], null, null, $dateRange)`
-3. Wrap in FormControl for a label: `FormControl("Date Range", Select(...))`
-4. Pass $dateRange in Query args: `Query("tool", {dateRange: $dateRange}, {defaults})`
-5. When the user changes the Select, $dateRange updates and the Query automatically re-fetches
-
-FILTER WIRING RULE: If a $binding filter is visible in the UI, EVERY relevant Query MUST reference that $binding in its args. Never show a filter dropdown while hardcoding the query args.
-
-Rules for $variables:
-- $variables hold simple values (strings or numbers), NOT arrays or objects
-- $variables must be bound to a Select/Input component via the value argument (last positional arg) to be interactive
-- Queries must use regular identifiers (NOT $variables): `metrics = Query(...)` not `$metrics = Query(...)`
-- **Auto-declare**: You do NOT need to explicitly declare $variables. If you use `$foo` without declaring it, the parser auto-creates `$foo = null`. You can still declare explicitly to set a default: `$days = "14"`
-
-## Forms
-
-Simple form — no $bindings needed. Field values are managed internally by the Form via the name prop:
-```
-contactForm = Form("contact", submitBtn, [nameField, emailField])
-nameField = FormControl("Name", Input("name", "Your name", "text", {required: true}))
-emailField = FormControl("Email", Input("email", "your@email.com", "email", {required: true, email: true}))
-submitBtn = Button("Submit")
-```
-
-Use $bindings when you need to read field values elsewhere (in Action context, Query args, or conditionals). They are auto-declared:
-```
-$role = "engineer"
-contactForm = Form("contact", submitBtn, [nameField, emailField, roleField])
-nameField = FormControl("Name", Input("name", "Enter your name", "text", {required: true}, $name))
-emailField = FormControl("Email", Input("email", "Enter your email", "email", {required: true, email: true}, $email))
-roleField = FormControl("Role", Select("role", [SelectItem("engineer", "Engineer"), SelectItem("designer", "Designer"), SelectItem("pm", "PM")], null, {required: true}, $role))
-submitBtn = Button("Submit")
-```
-
-For form + mutation patterns (create, refresh, reset), see the Action section example above.
-
-IMPORTANT: Always add validation rules to form fields used with Mutations. Use OBJECT syntax: {required: true, email: true, minLength: 8}. The renderer shows error messages automatically and blocks submit when validation fails.
+Every visible filter must appear in each relevant Query argument object. $state holds simple values, not arrays or objects.
 
 ## Data Workflow
 
-When tools are available, follow this workflow:
-1. FIRST: Call the most relevant tool to inspect the real data shape before generating code
-2. Use Query() for READ operations (data that should stay live) — NEVER hardcode tool results as literal arrays or objects
-3. Use Mutation() for WRITE operations (create, update, delete) — triggered by button clicks via Action([@Run(mutationRef)])
-4. Use the real data from step 1 as condensed Query defaults (3-5 rows) so the UI renders immediately
-5. Use @-prefixed builtins (@Count, @Filter, @Sort, @Sum) on Query results for KPIs and aggregations — the runtime evaluates these live on every refresh
-6. Hardcoded arrays are ONLY for static display data (labels, options) where no tool exists
+1. Inspect the real tool result shape before generating the app.
+2. Use Query for live reads and Mutation for writes.
+3. Match each Query fallback to the tool's advertised return type.
+4. Derive metrics and rows from Query results with @Count, @Filter, @Sort, @Sum, and @Each.
+5. Keep @Each row variables inside the inline template.
+6. Use only WUPHF components listed above. Do not invent Form, FormControl, Input, SelectItem, Col, Action, or TextContent.
 
-WRONG — you called a tool and got data back, but you inlined the results:
-```
-openCount = 2
-item1 = SomeComp("first item title")
-item2 = SomeComp("second item title")
-list = Stack([item1, item2])
-chart = SomeChart(["A", "B"], [12, 8])
-```
-This is static — it shows stale data and won't update. Creating item1, item2, item3... manually is ALWAYS wrong when a tool exists.
-
-RIGHT — use Query() for live data, Mutation() for writes, @builtins to derive values:
-```
-data = Query("tool_name", {}, {rows: []})
-openCount = @Count(@Filter(data.rows, "field", "==", "value"))
-list = @Each(data.rows, "item", SomeComp(item.title, item.field))
-createResult = Mutation("create_tool", {title: $title})
-submitBtn = Button("Create", Action([@Run(createResult), @Run(data), @Reset($title)]))
-```
-Everything derives from the Query — when data refreshes, the entire dashboard updates automatically.
+Example:
+`root = App("Task desk", [titleInput, createButton, tasksTable])`
+`$title = ""`
+`titleInput = TextInput("title", "Task title", $title, "What needs doing?")`
+`tasks = Query("wuphf_list_tasks", {}, [])`
+`createTask = Mutation("wuphf_create_task", {"title":$title})`
+`createButton = Button("Create", @Run(createTask), "info")`
+`tasksTable = DataTable([{"label":"Task","key":"title"}], tasks, "No tasks yet.")`
 
 ## Available Tools
 

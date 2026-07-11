@@ -206,8 +206,12 @@ const richArtifactSchema = z.preprocess(
   ]),
 );
 
-const artifactEnvelopeSchema = z
-  .object({ artifact: richArtifactSchema })
+const artifactWriteEnvelopeSchema = z
+  .object({
+    artifact: richArtifactSchema,
+    commit_sha: z.string(),
+    bytes_written: z.number().int().nonnegative(),
+  })
   .strict();
 const artifactListEnvelopeSchema = z
   .object({
@@ -238,7 +242,7 @@ export async function createRichArtifact(
     related_receipt_ids: params.relatedReceiptIds ?? [],
     commit_message: params.commitMessage,
   });
-  return artifactEnvelopeSchema.parse(res).artifact;
+  return artifactWriteEnvelopeSchema.parse(res).artifact;
 }
 
 export async function fetchRichArtifacts(params: {
@@ -277,7 +281,7 @@ export async function promoteRichArtifact(
       commit_message: params.commitMessage,
     },
   );
-  return artifactEnvelopeSchema.parse(res).artifact;
+  return artifactWriteEnvelopeSchema.parse(res).artifact;
 }
 
 // ArtifactDestination describes where a clickable reference to an artifact

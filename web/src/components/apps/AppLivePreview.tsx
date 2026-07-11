@@ -54,7 +54,9 @@ export function AppLivePreview({
   onAppError,
 }: AppLivePreviewProps) {
   const appQuery = useQuery({
-    queryKey: ["app-live-openui", appId],
+    // Share CustomAppView's published-app cache instead of starting a second,
+    // uncoordinated getApp polling loop for the same app.
+    queryKey: ["app", appId],
     queryFn: () => getApp(appId),
     refetchInterval: 1500,
   });

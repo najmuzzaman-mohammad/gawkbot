@@ -49,9 +49,11 @@ afterEach(() => {
 
 describe("rich artifact API", () => {
   it("creates visual artifacts with backend snake_case fields", async () => {
-    const postSpy = vi
-      .spyOn(client, "post")
-      .mockResolvedValue({ artifact: ARTIFACT });
+    const postSpy = vi.spyOn(client, "post").mockResolvedValue({
+      artifact: ARTIFACT,
+      commit_sha: "abc123",
+      bytes_written: 321,
+    });
 
     const artifact = await createRichArtifact({
       slug: "pm",
@@ -131,9 +133,11 @@ describe("rich artifact API", () => {
       trustLevel: "promoted",
       promotedWikiPath: "team/drafts/visual-plan.md",
     };
-    const postSpy = vi
-      .spyOn(client, "post")
-      .mockResolvedValue({ artifact: promoted });
+    const postSpy = vi.spyOn(client, "post").mockResolvedValue({
+      artifact: promoted,
+      commit_sha: "def456",
+      bytes_written: 654,
+    });
 
     const result = await promoteRichArtifact(ARTIFACT.id, {
       targetWikiPath: "team/drafts/visual-plan.md",

@@ -1,11 +1,32 @@
 package team
 
 import (
+	"bytes"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestDecodeCustomAppValidateRequestIsStrictAndUTF8Safe(t *testing.T) {
+	for _, body := range [][]byte{
+		[]byte(`{"openui":"root = App(\"x\", [])","openui":"root = App(\"y\", [])"}`),
+		[]byte(`{"openui":"root = App(\"x\", [])","unknown":true}`),
+		[]byte(`{"openui":"root = App(\"x\", [])"} {}`),
+		append([]byte(`{"openui":"`), 0xff, '"', '}'),
+	} {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/apps/validate", bytes.NewReader(body))
+		var dst struct {
+			OpenUI string `json:"openui"`
+		}
+		if status, err := decodeCustomAppJSONBody(recorder, request, &dst, customAppMaxOpenUIBytes+1024); err == nil || status == 0 {
+			t.Fatalf("strict validate decode accepted %q: status=%d dst=%+v", body, status, dst)
+		}
+	}
+}
 
 func TestCustomAppOpenUILifecycle(t *testing.T) {
 	store := newCustomAppStore(t.TempDir())
@@ -73,6 +94,14 @@ create = Mutation("wuphf_create_task", {"title":"Follow up"})`
 		t.Fatalf("valid document rejected: %v", err)
 	}
 	invalid := []string{
+		`root = App(`,
+		`root = App("Bad", []]`,
+		`root = App("Bad", [Text("x")})`,
+		`root = App("Bad, [])`,
+		"root = App(\"Bad\\",
+		"```openui\nroot = App(\"Bad\", [])\n```",
+		"root = App(\"One\", [])\nroot = App(\"Two\", [])",
+		"root = App(\"Bad\", [])\njunk",
 		`root = App("Bad", [])
 data = Query(toolName, {}, [])`,
 		`root = App("Bad", [])
@@ -88,5 +117,58 @@ data = Query("wuphf_list_tasks", {}, [], 1)`,
 		if err := validateCustomAppOpenUI(source); err == nil {
 			t.Fatalf("invalid document accepted: %s", source)
 		}
+	}
+	validMultiline := `root = App("Tasks", [
+  Text("Delimiters inside strings: [ ] { } ( )"),
+  Card("Nested", [Text("Ready")]) // renderer content
+])
+# a whole-line comment
+tasks = Query("wuphf_list_tasks", {}, [])`
+	if err := validateCustomAppOpenUI(validMultiline); err != nil {
+		t.Fatalf("valid multiline document rejected: %v", err)
+	}
+}
+
+func TestCustomAppSaveRejectsIncompleteOpenUIBeforeWriting(t *testing.T) {
+	root := t.TempDir()
+	store := newCustomAppStore(root)
+	if _, err := store.Save(CustomAppWriteRequest{
+		Name: "Broken", OpenUI: `root = App(`,
+	}, time.Unix(1, 0)); !isCustomAppCallerError(err) {
+		t.Fatalf("incomplete OpenUI error = %v", err)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("incomplete OpenUI wrote store entries: %v", entries)
+	}
+}
+
+func TestCustomAppRollbackRejectsCorruptSnapshot(t *testing.T) {
+	store := newCustomAppStore(t.TempDir())
+	v1, err := store.Save(CustomAppWriteRequest{
+		Name: "Task desk", OpenUI: `root = App("Tasks", [])`,
+	}, time.Unix(1, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := v1.Version
+	if _, err := store.Save(CustomAppWriteRequest{
+		ID: v1.ID, Name: "Task desk", OpenUI: `root = App("Tasks v2", [])`, ExpectedVersion: &expected,
+	}, time.Unix(2, 0)); err != nil {
+		t.Fatal(err)
+	}
+	v1Path := filepath.Join(store.appDir(v1.ID), customAppVersionsDir, "v1", customAppOpenUIEntry)
+	if err := os.WriteFile(v1Path, []byte(`root = App("tampered", [])`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Rollback(v1.ID, 1, "human", time.Unix(3, 0)); err == nil || !strings.Contains(err.Error(), "content hash") {
+		t.Fatalf("corrupt rollback error = %v", err)
+	}
+	current, _, err := store.Get(v1.ID)
+	if err != nil || current.Version != 2 {
+		t.Fatalf("corrupt rollback changed current app: %+v %v", current, err)
 	}
 }

@@ -1,6 +1,53 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { readArrayEnvelope, validateOpenUIApp } from "./OpenUIAppRenderer";
+import * as client from "../../api/client";
+import {
+  createOpenUIAppToolProvider,
+  openUIHumanActor,
+  openUIRendererKey,
+  readArrayEnvelope,
+  validateOpenUIApp,
+} from "./OpenUIAppRenderer";
+
+afterEach(() => vi.restoreAllMocks());
+
+it("remounts the runtime for different same-length OpenUI sources", () => {
+  expect(openUIRendererKey("app_1", 'root = App("A", [])')).not.toBe(
+    openUIRendererKey("app_1", 'root = App("B", [])'),
+  );
+});
+
+describe("openUIHumanActor", () => {
+  it("uses the host identity and namespaces invited humans", () => {
+    expect(openUIHumanActor({ human: { slug: "human" } })).toBe("human");
+    expect(openUIHumanActor({ human: { human_slug: "mira" } })).toBe(
+      "human:mira",
+    );
+  });
+
+  it("fails closed when the session has no usable identity", () => {
+    expect(() => openUIHumanActor({ human: {} })).toThrow(
+      "Could not resolve the signed-in human identity",
+    );
+  });
+});
+
+it("uses the signed-in human identity for task visibility", async () => {
+  const getSpy = vi
+    .spyOn(client, "get")
+    .mockResolvedValueOnce({ human: { human_slug: "mira" } })
+    .mockResolvedValueOnce({ tasks: [{ id: "OFFICE-1" }] });
+  const provider = createOpenUIAppToolProvider("app_1");
+
+  await expect(provider.wuphf_list_tasks()).resolves.toEqual([
+    { id: "OFFICE-1" },
+  ]);
+  expect(getSpy).toHaveBeenNthCalledWith(2, "/tasks", {
+    all_channels: true,
+    include_done: true,
+    viewer_slug: "human:mira",
+  });
+});
 
 describe("readArrayEnvelope", () => {
   it("unwraps broker list responses and fails closed for malformed data", () => {

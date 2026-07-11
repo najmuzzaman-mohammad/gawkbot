@@ -95,6 +95,10 @@ func (b *Broker) handleApps(w http.ResponseWriter, r *http.Request) {
 
 func decodeCustomAppJSONRequest(w http.ResponseWriter, r *http.Request, dst *CustomAppWriteRequest) (int, error) {
 	limit := int64(customAppMaxHTMLBytes + 64*1024)
+	return decodeCustomAppJSONBody(w, r, dst, limit)
+}
+
+func decodeCustomAppJSONBody(w http.ResponseWriter, r *http.Request, dst any, limit int64) (int, error) {
 	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 	if err != nil {
 		var tooLarge *http.MaxBytesError
@@ -128,10 +132,8 @@ func (b *Broker) handleAppsValidate(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		OpenUI string `json:"openui"`
 	}
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, customAppMaxOpenUIBytes+1024))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+	if status, err := decodeCustomAppJSONBody(w, r, &body, customAppMaxOpenUIBytes+1024); err != nil {
+		writeJSON(w, status, map[string]string{"error": err.Error()})
 		return
 	}
 	if err := validateCustomAppOpenUI(body.OpenUI); err != nil {
@@ -385,7 +387,7 @@ func (b *Broker) handleAppDev(w http.ResponseWriter, r *http.Request, id string,
 func (b *Broker) handleAppRoot(w http.ResponseWriter, r *http.Request, id string) {
 	switch r.Method {
 	case http.MethodGet:
-		app, htmlBody, err := b.appStore().Get(id)
+		app, appBody, err := b.appStore().Get(id)
 		if err != nil {
 			writeAppError(w, err)
 			return
@@ -396,9 +398,9 @@ func (b *Broker) handleAppRoot(w http.ResponseWriter, r *http.Request, id string
 		}
 		out := map[string]any{"app": app}
 		if customAppRepresentation(app) == customAppRepresentationOpenUI {
-			out["openui"] = htmlBody
+			out["openui"] = appBody
 		} else {
-			out["html"] = htmlBody
+			out["html"] = appBody
 		}
 		// ?source=1 includes the app's source project — only the App Builder
 		// needs it (to edit), so the FE view never asks for it. Alongside the raw
@@ -407,7 +409,7 @@ func (b *Broker) handleAppRoot(w http.ResponseWriter, r *http.Request, id string
 		// of guessing or inventing capabilities it lacks.
 		if r.URL.Query().Get("source") == "1" {
 			if customAppRepresentation(app) == customAppRepresentationOpenUI {
-				out["capabilities"] = introspectAppOpenUI(htmlBody)
+				out["capabilities"] = introspectAppOpenUI(appBody)
 			} else {
 				source, err := b.appStore().Source(id)
 				if err != nil {

@@ -323,6 +323,7 @@ export function CustomAppView({ appId }: CustomAppViewProps) {
         isPreviewing={isPreviewing}
         previewHtml={versionPreview.data?.html}
         previewOpenUI={versionPreview.data?.openui}
+        previewRepresentation={versionPreview.data?.representation}
         previewLoading={versionPreview.isLoading}
         previewError={versionPreview.isError}
         previewUpdatedBy={versionPreview.data?.updatedBy}
@@ -492,6 +493,7 @@ interface AppViewBodyProps {
   isPreviewing: boolean;
   previewHtml?: string;
   previewOpenUI?: string;
+  previewRepresentation?: "html" | "openui";
   previewLoading: boolean;
   previewError?: boolean;
   previewUpdatedBy?: string;
@@ -522,6 +524,7 @@ function AppViewBody({
   isPreviewing,
   previewHtml,
   previewOpenUI,
+  previewRepresentation,
   previewLoading,
   previewError,
   previewUpdatedBy,
@@ -590,6 +593,7 @@ function AppViewBody({
           previewVersion={previewVersion}
           previewHtml={previewHtml}
           previewOpenUI={previewOpenUI}
+          previewRepresentation={previewRepresentation}
           previewLoading={previewLoading}
           previewError={previewError}
           selectMode={selectMode}
@@ -618,6 +622,7 @@ interface AppViewStageFrameProps {
   previewVersion: number | null;
   previewHtml?: string;
   previewOpenUI?: string;
+  previewRepresentation?: "html" | "openui";
   previewLoading: boolean;
   previewError?: boolean;
   selectMode: boolean;
@@ -641,6 +646,7 @@ function AppViewStageFrame({
   previewVersion,
   previewHtml,
   previewOpenUI,
+  previewRepresentation,
   previewLoading,
   previewError,
   selectMode,
@@ -668,10 +674,18 @@ function AppViewStageFrame({
         </div>
       );
     }
-    const previewApp: CustomApp =
-      previewOpenUI === undefined
-        ? { ...app, representation: "html", entry: "index.html" }
-        : { ...app, representation: "openui", entry: "app.openui" };
+    if (!previewRepresentation) {
+      return (
+        <div className="custom-app-view__preview-loading">
+          Couldn’t determine the representation for v{previewVersion}.
+        </div>
+      );
+    }
+    const previewApp: CustomApp = {
+      ...app,
+      representation: previewRepresentation,
+      entry: previewRepresentation === "openui" ? "app.openui" : "index.html",
+    };
     return (
       <CustomAppRenderer
         app={previewApp}
