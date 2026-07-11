@@ -41,6 +41,9 @@ import type { PostHog } from "posthog-js";
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 
+/** Stable app identity attached to every captured event. */
+const APP_NAME = "wuphf-web";
+
 /** Source tag attached to onboarding funnel events, for filtering in PostHog. */
 export const ONBOARDING_SOURCE = "onboarding-welcome";
 
@@ -143,9 +146,10 @@ export function __resetAnalyticsForTests(): void {
 }
 
 /**
- * Strip anything we never want to send and enrich with the active theme. Runs
- * on every captured event. Defense in depth: properties are constructed to be
- * content-free at the call site, but this guarantees it centrally.
+ * Strip anything we never want to send and enrich with app identity and the
+ * active theme. Runs on every captured event. Defense in depth: properties are
+ * constructed to be content-free at the call site, but this guarantees it
+ * centrally.
  */
 function sanitizeProperties(
   props: Record<string, unknown>,
@@ -157,6 +161,7 @@ function sanitizeProperties(
   }
   const version = import.meta.env.VITE_PUBLIC_APP_VERSION;
   if (typeof version === "string" && version) out.app_version = version;
+  out.app_name = APP_NAME;
   return out;
 }
 
