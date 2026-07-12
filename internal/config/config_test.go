@@ -293,6 +293,25 @@ func TestResolveMemoryBackendDefaultsToGBrainWhenReady(t *testing.T) {
 	})
 }
 
+func TestResolveMemoryBackendExplicitCommandMissingDoesNotFallBack(t *testing.T) {
+	// An explicit WUPHF_GBRAIN_COMMAND that no longer resolves (e.g. a reaped
+	// wrapper script) must not silently fall back to the PATH gbrain: the
+	// explicit command usually re-homes the brain, and the PATH binary points
+	// at the user-global one. Not installed → markdown default.
+	withTempConfig(t, func(_ string) {
+		t.Setenv("WUPHF_NO_NEX", "")
+		t.Setenv("WUPHF_MEMORY_BACKEND", "")
+		t.Setenv("WUPHF_OPENAI_API_KEY", "sk-test-openai")
+		t.Setenv("WUPHF_ANTHROPIC_API_KEY", "")
+		t.Setenv("ANTHROPIC_API_KEY", "")
+		fakeGBrainOnPath(t)
+		t.Setenv("WUPHF_GBRAIN_COMMAND", filepath.Join(t.TempDir(), "missing-wrapper.sh"))
+		if got := ResolveMemoryBackend(""); got != MemoryBackendMarkdown {
+			t.Fatalf("expected markdown when explicit gbrain command is missing, got %q", got)
+		}
+	})
+}
+
 func TestResolveMemoryBackendDefaultsToMarkdownWhenGBrainInstalledButNoEmbedder(t *testing.T) {
 	// Installed but with no embedding provider (no OpenAI key, no local ollama
 	// embedder) gbrain is not "ready": semantic search cannot run, and a

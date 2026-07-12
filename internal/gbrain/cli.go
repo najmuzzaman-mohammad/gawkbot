@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nex-crm/wuphf/internal/config"
@@ -31,11 +32,28 @@ type SearchResult struct {
 	Stale       bool    `json:"stale"`
 }
 
+// missingCommandWarn de-duplicates the unresolvable-WUPHF_GBRAIN_COMMAND
+// warning: BinaryPath is called on every gbrain invocation and the condition
+// is sticky for the process lifetime, so one stderr line is enough.
+var missingCommandWarn sync.Once
+
+// BinaryPath resolves the gbrain executable. An explicitly configured
+// WUPHF_GBRAIN_COMMAND is authoritative: if it does not resolve, gbrain is
+// treated as not installed rather than falling back to a PATH `gbrain`. The
+// explicit command usually exists to isolate the brain (wrapper scripts that
+// re-home gbrain); silently substituting the user-global binary points every
+// call at the user-global brain — and when another process holds that brain's
+// lock, each call becomes a hung connect instead of a fast, visible failure.
 func BinaryPath() string {
 	if candidate := strings.TrimSpace(os.Getenv("WUPHF_GBRAIN_COMMAND")); candidate != "" {
-		if path, err := exec.LookPath(candidate); err == nil {
-			return path
+		path, err := exec.LookPath(candidate)
+		if err != nil {
+			missingCommandWarn.Do(func() {
+				fmt.Fprintf(os.Stderr, "gbrain: WUPHF_GBRAIN_COMMAND=%q does not resolve to an executable (%v); gbrain disabled — fix or unset it\n", candidate, err)
+			})
+			return ""
 		}
+		return path
 	}
 	if path, err := exec.LookPath("gbrain"); err == nil {
 		return path

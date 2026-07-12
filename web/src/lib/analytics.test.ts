@@ -126,7 +126,7 @@ describe("configured via runtime injection", () => {
       session_recording_enabled: true,
     });
     await vi.waitFor(() => expect(mockPosthog.init).toHaveBeenCalled());
-    const cfg = mockPosthog.init.mock.calls[0][1];
+    const [, cfg] = mockPosthog.init.mock.calls[0];
     // PostHog default: typed text (inputs) is masked, on-screen text is not.
     expect(cfg?.session_recording?.maskAllInputs).toBe(true);
     expect(cfg?.session_recording?.maskTextSelector).toBeUndefined();
@@ -241,10 +241,47 @@ describe("sanitize_properties", () => {
       session_recording_enabled: false,
     });
     await vi.waitFor(() => expect(mockPosthog.init).toHaveBeenCalled());
-    const cfg = mockPosthog.init.mock.calls[0][1];
+    const [, cfg] = mockPosthog.init.mock.calls[0];
     const enriched = cfg?.sanitize_properties?.({ a: 1 }) ?? {};
     expect(enriched.theme).toBe("noir-gold");
+    expect(enriched.app_name).toBe("wuphf-web");
     document.documentElement.removeAttribute("data-theme");
+  });
+
+  it("keeps the authoritative app name when callers supply a different value", async () => {
+    configureAnalytics({
+      configured: true,
+      posthog_key: "phc_runtime",
+      telemetry_enabled: true,
+      session_recording_enabled: false,
+    });
+    await vi.waitFor(() => expect(mockPosthog.init).toHaveBeenCalled());
+    const [, cfg] = mockPosthog.init.mock.calls[0];
+    const enriched =
+      cfg?.sanitize_properties?.({ app_name: "another-app" }) ?? {};
+    expect(enriched.app_name).toBe("wuphf-web");
+  });
+
+  it("stamps autocaptured exception properties through the init hook", async () => {
+    configureAnalytics({
+      configured: true,
+      posthog_key: "phc_runtime",
+      telemetry_enabled: true,
+      session_recording_enabled: false,
+    });
+    await vi.waitFor(() => expect(mockPosthog.init).toHaveBeenCalled());
+    const [, cfg] = mockPosthog.init.mock.calls[0];
+    const enriched =
+      cfg?.sanitize_properties?.({
+        $exception_list: [
+          {
+            type: "Error",
+            value: "No Listener: tabs:outgoing.message.ready",
+          },
+        ],
+        $exception_level: "error",
+      }) ?? {};
+    expect(enriched.app_name).toBe("wuphf-web");
   });
 });
 

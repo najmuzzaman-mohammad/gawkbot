@@ -328,10 +328,14 @@ func gbrainBackendReady() bool {
 }
 
 func gbrainBinaryInstalled() bool {
+	// An explicit WUPHF_GBRAIN_COMMAND is authoritative (mirrors
+	// gbrain.BinaryPath): if it does not resolve, gbrain is not installed —
+	// no PATH fallback. The explicit command usually re-homes the brain, and
+	// substituting the user-global binary would point the implicit default at
+	// the wrong (possibly locked) brain.
 	if cmd := strings.TrimSpace(os.Getenv("WUPHF_GBRAIN_COMMAND")); cmd != "" {
-		if _, err := exec.LookPath(cmd); err == nil {
-			return true
-		}
+		_, err := exec.LookPath(cmd)
+		return err == nil
 	}
 	if _, err := exec.LookPath("gbrain"); err == nil {
 		return true
