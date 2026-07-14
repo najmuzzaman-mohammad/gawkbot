@@ -1,6 +1,9 @@
 package team
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Channel access control: the security boundary that gates message
 // publishing. canAccessChannelLocked is the policy decision; the
@@ -57,6 +60,28 @@ func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
 	// member (or is explicitly @-tagged); see notificationTargetsForMessage.
 	if slug == LibrarianSlug {
 		return true
+	}
+	// Fresh Operator workspaces intentionally start with an empty visible
+	// roster, but the built-in App Builder can still own generated-app tasks.
+	// Give that system role access only to the dedicated channel of a task it
+	// owns. The channel's TaskID and the task's Channel must agree so a stale or
+	// forged one-sided link fails closed.
+	if isAppBuilderSlug(slug) {
+		if ch := b.findChannelLocked(channel); ch != nil && strings.TrimSpace(ch.TaskID) != "" {
+			var linked *teamTask
+			for i := range b.tasks {
+				if b.tasks[i].ID != strings.TrimSpace(ch.TaskID) {
+					continue
+				}
+				if linked != nil {
+					return false
+				}
+				linked = &b.tasks[i]
+			}
+			return linked != nil && isAppBuilderSlug(linked.Owner) &&
+				normalizeChannelSlug(linked.Channel) == channel
+		}
+		return false
 	}
 	return b.channelHasMemberLocked(channel, slug)
 }

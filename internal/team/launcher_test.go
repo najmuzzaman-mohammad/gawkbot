@@ -1367,7 +1367,7 @@ func TestBuildPromptIncludesMarkdownWikiAndArtifactGuidance(t *testing.T) {
 		for _, want := range []string{
 			"visual_artifact_create",
 			"wuphf_wiki_lookup",
-			"self-contained HTML article",
+			"static OpenUI document",
 			"visual-artifact:ra_...",
 			"@librarian",
 		} {

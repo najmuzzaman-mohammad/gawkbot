@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && touch dist/.gitkeep",
+    "build": "bun run check:openui-artifact-prompt && bun run check:openui-app-prompt && tsc -b && vite build && touch dist/.gitkeep",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src/",
@@ -16,7 +16,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "generate:openui-artifact-prompt": "bun run scripts/generate-openui-artifact-prompt.ts",
+    "check:openui-artifact-prompt": "bun run scripts/generate-openui-artifact-prompt.ts --check",
+    "generate:openui-app-prompt": "bun run scripts/generate-openui-app-prompt.ts",
+    "check:openui-app-prompt": "bun run scripts/generate-openui-app-prompt.ts --check"
   },
   "dependencies": {
     "@aarkue/tiptap-math-extension": "^1.4.0",
@@ -38,6 +42,7 @@
     "@milkdown/react": "^7.20.0",
     "@milkdown/transformer": "^7.20.0",
     "@milkdown/utils": "^7.20.0",
+    "@openuidev/react-lang": "0.2.8",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "@simplewebauthn/browser": "^13",
@@ -117,6 +122,7 @@
     "turndown-plugin-gfm": "^1.0.2",
     "unified": "^11.0.5",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "zod": "4.3.6",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

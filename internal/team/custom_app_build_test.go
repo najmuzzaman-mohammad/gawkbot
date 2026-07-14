@@ -149,11 +149,13 @@ func TestPublishBuildFailureDoesNotPublish(t *testing.T) {
 
 	// A second publish whose build fails must error and leave the app at v1.
 	store.buildBundle = failBuildBundle
+	expectedVersion := app.Version
 	_, err = store.Save(CustomAppWriteRequest{
-		ID:    app.ID,
-		Name:  "Tool",
-		Actor: "app-builder",
-		Files: map[string]string{"package.json": "{}", "src/App.tsx": "const oops: never = oops", "src/main.tsx": testMantineMainTSX},
+		ID:              app.ID,
+		Name:            "Tool",
+		Actor:           "app-builder",
+		ExpectedVersion: &expectedVersion,
+		Files:           map[string]string{"package.json": "{}", "src/App.tsx": "const oops: never = oops", "src/main.tsx": testMantineMainTSX},
 	}, now.Add(time.Minute))
 	if err == nil {
 		t.Fatalf("expected build failure error, got nil")
@@ -184,6 +186,76 @@ func TestPublishBuildFailureDoesNotPublish(t *testing.T) {
 	}
 	if src["src/App.tsx"] != goodApp {
 		t.Fatalf("failed publish did not roll back source; src/App.tsx = %q", src["src/App.tsx"])
+	}
+}
+
+func TestPublishSerializesConcurrentManifestMutation(t *testing.T) {
+	store := newCustomAppStore(t.TempDir())
+	now := time.Unix(1_700_000_000, 0).UTC()
+	app, err := store.Save(CustomAppWriteRequest{
+		Name:  "Original name",
+		Actor: "app-builder",
+		HTML:  validAppHTML,
+	}, now)
+	if err != nil {
+		t.Fatalf("initial Save: %v", err)
+	}
+
+	buildEntered := make(chan struct{})
+	releaseBuild := make(chan struct{})
+	store.buildBundle = func(srcDir string) ([]byte, error) {
+		close(buildEntered)
+		<-releaseBuild
+		return stubBuildBundle(srcDir)
+	}
+	expectedVersion := app.Version
+	publishDone := make(chan error, 1)
+	go func() {
+		_, saveErr := store.Save(CustomAppWriteRequest{
+			ID:              app.ID,
+			Name:            app.Name,
+			Actor:           "app-builder",
+			ExpectedVersion: &expectedVersion,
+			Files: map[string]string{
+				"package.json": "{}",
+				"src/App.tsx":  "export default function App(){return null}",
+				"src/main.tsx": testMantineMainTSX,
+			},
+		}, now.Add(time.Minute))
+		publishDone <- saveErr
+	}()
+	<-buildEntered
+
+	renameStarted := make(chan struct{})
+	renameDone := make(chan error, 1)
+	go func() {
+		close(renameStarted)
+		_, renameErr := store.Rename(app.ID, "Renamed during build", "human", now.Add(2*time.Minute))
+		renameDone <- renameErr
+	}()
+	<-renameStarted
+	select {
+	case renameErr := <-renameDone:
+		t.Fatalf("Rename completed before the in-flight publish released its manifest lock: %v", renameErr)
+	case <-time.After(25 * time.Millisecond):
+	}
+
+	close(releaseBuild)
+	if saveErr := <-publishDone; saveErr != nil {
+		t.Fatalf("concurrent Save: %v", saveErr)
+	}
+	if renameErr := <-renameDone; renameErr != nil {
+		t.Fatalf("concurrent Rename: %v", renameErr)
+	}
+	got, _, err := store.Get(app.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Name != "Renamed during build" {
+		t.Fatalf("concurrent rename was lost; name = %q", got.Name)
+	}
+	if got.Version != 2 {
+		t.Fatalf("published version = %d, want 2", got.Version)
 	}
 }
 

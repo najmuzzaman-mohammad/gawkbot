@@ -147,7 +147,7 @@ export const ROUTE_PATHS = {
   wiki: "/wiki",
   wikiLookup: "/wiki/lookup",
   wikiArticle: "/wiki/$",
-  /** Full-screen HTML article viewer. id is an ra_... artifact id. */
+  /** Full-screen generated artifact viewer. id is an ra_... artifact id. */
   article: "/articles/$articleId",
   inbox: "/inbox",
   taskDecision: "/task/$taskId",

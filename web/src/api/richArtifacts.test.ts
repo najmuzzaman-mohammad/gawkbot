@@ -6,6 +6,10 @@ import {
   fetchRichArtifact,
   fetchRichArtifacts,
   fetchWikiVisualArtifact,
+  OPENUI_ARTIFACT_LIBRARY,
+  OPENUI_ARTIFACT_LIBRARY_HASH,
+  OPENUI_ARTIFACT_VERSION,
+  type OpenUIRichArtifact,
   promoteRichArtifact,
   type RichArtifact,
   resolveArtifactDestination,
@@ -27,21 +31,35 @@ const ARTIFACT: RichArtifact = {
   sanitizerVersion: "sandbox-v1",
 };
 
+const OPENUI_ARTIFACT: OpenUIRichArtifact = {
+  ...ARTIFACT,
+  kind: "notebook_openui",
+  representation: "openui",
+  contentPath: "wiki/visual-artifacts/ra_0123456789abcdef.openui",
+  openuiVersion: OPENUI_ARTIFACT_VERSION,
+  openuiLibrary: OPENUI_ARTIFACT_LIBRARY,
+  openuiLibraryHash: OPENUI_ARTIFACT_LIBRARY_HASH,
+  htmlPath: undefined,
+  sanitizerVersion: undefined,
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("rich artifact API", () => {
   it("creates visual artifacts with backend snake_case fields", async () => {
-    const postSpy = vi
-      .spyOn(client, "post")
-      .mockResolvedValue({ artifact: ARTIFACT });
+    const postSpy = vi.spyOn(client, "post").mockResolvedValue({
+      artifact: ARTIFACT,
+      commit_sha: "abc123",
+      bytes_written: 321,
+    });
 
     const artifact = await createRichArtifact({
       slug: "pm",
       title: "Visual plan",
       summary: "A richer plan.",
-      html: "<html></html>",
+      openuiLang: 'root = Stack([Text("Plan")])',
       sourceMarkdownPath: "agents/pm/notebook/plan.md",
       relatedReceiptIds: ["rcpt-1"],
     });
@@ -50,7 +68,7 @@ describe("rich artifact API", () => {
       slug: "pm",
       title: "Visual plan",
       summary: "A richer plan.",
-      html: "<html></html>",
+      openui_lang: 'root = Stack([Text("Plan")])',
       source_markdown_path: "agents/pm/notebook/plan.md",
       related_task_id: undefined,
       related_message_id: undefined,
@@ -76,14 +94,36 @@ describe("rich artifact API", () => {
   });
 
   it("fetches a visual artifact detail", async () => {
-    vi.spyOn(client, "get").mockResolvedValue({
+    const getSpy = vi.spyOn(client, "get").mockResolvedValue({
       artifact: ARTIFACT,
       html: "<h1>Visual</h1>",
     });
 
     const detail = await fetchRichArtifact(ARTIFACT.id);
 
-    expect(detail.html).toContain("Visual");
+    expect(detail).toMatchObject({ html: "<h1>Visual</h1>" });
+    expect(getSpy).toHaveBeenCalledWith(
+      "/visual-artifacts/ra_0123456789abcdef",
+      { accept_representation: "openui" },
+    );
+  });
+
+  it("decodes the OpenUI detail branch and rejects mixed bodies", async () => {
+    const getSpy = vi.spyOn(client, "get");
+    getSpy.mockResolvedValueOnce({
+      artifact: OPENUI_ARTIFACT,
+      openui: 'root = Stack([Text("Visual")])',
+    });
+    await expect(fetchRichArtifact(OPENUI_ARTIFACT.id)).resolves.toMatchObject({
+      artifact: { representation: "openui" },
+      openui: 'root = Stack([Text("Visual")])',
+    });
+
+    getSpy.mockResolvedValueOnce({
+      artifact: OPENUI_ARTIFACT,
+      html: "<h1>wrong branch</h1>",
+    });
+    await expect(fetchRichArtifact(OPENUI_ARTIFACT.id)).rejects.toThrow();
   });
 
   it("promotes visual artifacts into wiki articles", async () => {
@@ -93,9 +133,11 @@ describe("rich artifact API", () => {
       trustLevel: "promoted",
       promotedWikiPath: "team/drafts/visual-plan.md",
     };
-    const postSpy = vi
-      .spyOn(client, "post")
-      .mockResolvedValue({ artifact: promoted });
+    const postSpy = vi.spyOn(client, "post").mockResolvedValue({
+      artifact: promoted,
+      commit_sha: "def456",
+      bytes_written: 654,
+    });
 
     const result = await promoteRichArtifact(ARTIFACT.id, {
       targetWikiPath: "team/drafts/visual-plan.md",

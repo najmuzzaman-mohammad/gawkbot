@@ -1,0 +1,62 @@
+Generate a static WUPHF review artifact in OpenUI Lang v0.5. The output is persisted and rendered as an inert document.
+
+## Syntax Rules
+
+1. Each statement is on its own line: `identifier = Expression`
+2. `root` is the entry point — every program must define `root = Stack(...)`
+3. Expressions are: strings ("..."), numbers, booleans (true/false), null, arrays ([...]), objects ({...}), or component calls TypeName(arg1, arg2, ...)
+4. Use references for readability: define `name = ...` on one line, then use `name` later
+5. EVERY variable (except root) MUST be referenced by at least one other variable. Unreferenced variables are silently dropped and will NOT render. Always include defined variables in their parent's children/items array.
+6. Arguments are POSITIONAL (order matters, not names). Write `Stack([children], "row", "l")` NOT `Stack([children], direction: "row", gap: "l")` — colon syntax is NOT supported and silently breaks
+7. Optional arguments can be omitted from the end
+8. Strings use double quotes with backslash escaping
+
+## Component Signatures
+
+Arguments marked with ? are optional. Sub-components can be inline or referenced; prefer references for better streaming.
+
+### Document
+Stack(children: (Heading | Text | Badge | Metric | Callout | Code | Divider | List | Table | BarChart | Section)[], gap?: "s" | "m" | "l") — The required document root. Children render vertically in reading order.
+Section(title: string, children: (Heading | Text | Badge | Metric | Callout | Code | Divider | List | Table | BarChart)[]) — A titled document section containing static review components.
+Heading(text: string, level: "1" | "2" | "3") — A section heading. Level is 1, 2, or 3.
+Text(text: string, tone?: "default" | "muted" | "accent") — A paragraph of plain text. Markdown and HTML are not supported.
+Divider(label?: string) — A visual divider with an optional short label.
+
+### Evidence
+Metric(label: string, value: string, detail?: string, tone?: "neutral" | "info" | "success" | "warning" | "danger") — A labeled metric with an optional explanatory detail.
+Table(columns: string[], rows: string[][], caption?: string) — A compact static table. Every row should have the same number of cells as columns.
+BarChart(title: string, labels: string[], values: number[], unit?: string) — A static horizontal bar chart. Labels and values must have matching lengths and values must be non-negative.
+List(items: string[], ordered?: boolean) — A list of plain-text items.
+Code(code: string, language?: string) — A non-executable plain-text code or configuration block.
+
+### Emphasis
+Callout(title: string, body: string, tone?: "neutral" | "info" | "success" | "warning" | "danger") — A highlighted title and plain-text explanation.
+Badge(label: string, tone?: "neutral" | "info" | "success" | "warning" | "danger") — A short status label.
+
+## Hoisting & Streaming (CRITICAL)
+
+openui-lang supports hoisting: a reference can be used BEFORE it is defined. The parser resolves all references after the full input is parsed.
+
+During streaming, the output is re-parsed on every chunk. Undefined references are temporarily unresolved and appear once their definitions stream in. This creates a progressive top-down reveal — structure first, then data fills in.
+
+**Recommended statement order for optimal streaming:**
+1. `root = Stack(...)` — UI shell appears immediately
+2. Component definitions — fill in as they stream
+3. Data values — leaf content last
+
+Always write the root = Stack(...) statement first so the UI shell appears immediately, even before child data has streamed in.
+## Important Rules
+- When asked about data, generate realistic/plausible data
+- Choose components that best represent the content (tables for comparisons, charts for trends, forms for input, etc.)
+
+## Final Verification
+Before finishing, walk your output and verify:
+1. root = Stack(...) is the FIRST line (for optimal streaming).
+2. Every referenced name is defined. Every defined name (other than root) is reachable from root.
+
+- Output OpenUI Lang only, with one assignment per line and root first.
+- Always begin with root = Stack([...]).
+- Use only components in this library and positional arguments in their documented order.
+- Keep prose in plain strings. Never emit HTML, Markdown, URLs, images, forms, actions, state, Query, or Mutation.
+- Keep tables compact and make every row match the column count.
+- Keep arrays and charts concise; summarize large datasets instead of embedding them.

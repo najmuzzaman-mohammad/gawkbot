@@ -96,23 +96,22 @@ func TestMarkdownKnowledgeMemoryBlock_RoutesCanonicalKnowledgeThroughLibrarian(t
 	}
 }
 
-func TestMarkdownKnowledgeToolBlock_NudgesNaturalHTMLArtifactCreation(t *testing.T) {
+func TestMarkdownKnowledgeToolBlock_NudgesNaturalOpenUIArtifactCreation(t *testing.T) {
 	block := markdownKnowledgeToolBlock()
 	for _, want := range []string{
 		"complex specs",
 		"PR reviews",
-		"interactive tuning surfaces",
-		"self-contained HTML article",
-		"no network fetches",
+		"static OpenUI document",
+		"OpenUI document IS the deliverable",
 		"visual-artifact:ra_...",
 	} {
 		if !strings.Contains(block, want) {
-			t.Errorf("markdownKnowledgeToolBlock missing HTML artifact trigger %q", want)
+			t.Errorf("markdownKnowledgeToolBlock missing OpenUI artifact trigger %q", want)
 		}
 	}
 }
 
-func TestMarkdownKnowledgeToolBlock_HTMLArticleIsSingleTool(t *testing.T) {
+func TestMarkdownKnowledgeToolBlock_OpenUIArtifactIsSingleTool(t *testing.T) {
 	// Finding 2: markdownKnowledgeToolBlock used to instruct the deprecated
 	// "after notebook_write, create an HTML companion" pattern, which
 	// contradicted the visualArtifactForcingBlock single-tool flow (HTML
@@ -131,10 +130,10 @@ func TestMarkdownKnowledgeToolBlock_HTMLArticleIsSingleTool(t *testing.T) {
 	// article is the deliverable.
 	for _, want := range []string{
 		"leave source_path empty",
-		"HTML article IS the deliverable",
+		"OpenUI document IS the deliverable",
 	} {
 		if !strings.Contains(block, want) {
-			t.Errorf("markdownKnowledgeToolBlock missing single-tool HTML flow phrase %q", want)
+			t.Errorf("markdownKnowledgeToolBlock missing single-tool OpenUI flow phrase %q", want)
 		}
 	}
 }
@@ -228,7 +227,7 @@ func TestPromptBuilder_OneOnOneBranch(t *testing.T) {
 	}
 }
 
-func TestPromptBuilder_OneOnOneMarkdownMemoryMentionsHTMLArtifacts(t *testing.T) {
+func TestPromptBuilder_OneOnOneMarkdownMemoryMentionsOpenUIArtifacts(t *testing.T) {
 	pb := &promptBuilder{
 		isOneOnOne:     func() bool { return true },
 		isFocusMode:    func() bool { return false },
@@ -245,7 +244,7 @@ func TestPromptBuilder_OneOnOneMarkdownMemoryMentionsHTMLArtifacts(t *testing.T)
 	for _, want := range []string{
 		"Markdown wiki memory is active in this 1:1",
 		"visual_artifact_create",
-		"diagram, mockup, report, comparison grid, code explainer, PR review, or interactive tuning surface",
+		"diagram, report, comparison grid, code explainer, or PR review",
 		"visual-artifact:ra_...",
 	} {
 		if !strings.Contains(got, want) {
@@ -293,7 +292,7 @@ func TestPromptBuilder_OneOnOneNexEnabledMentionsContextGraph(t *testing.T) {
 	}
 }
 
-func TestPromptBuilder_MarkdownMemoryPromptsNaturalHTMLArtifactsDuringWork(t *testing.T) {
+func TestPromptBuilder_MarkdownMemoryPromptsNaturalOpenUIArtifactsDuringWork(t *testing.T) {
 	pb := &promptBuilder{
 		isOneOnOne:  func() bool { return false },
 		isFocusMode: func() bool { return false },
@@ -317,13 +316,13 @@ func TestPromptBuilder_MarkdownMemoryPromptsNaturalHTMLArtifactsDuringWork(t *te
 			"complex specs",
 			"implementation plans",
 			"comparison grids",
-			"interactive tuning surfaces",
-			"HTML visual artifact",
+			"static OpenUI document",
+			"OpenUI artifact",
 			"long markdown wall",
 			"visual-artifact:ra_...",
 		} {
 			if !strings.Contains(got, want) {
-				t.Fatalf("%s prompt missing natural HTML artifact guidance %q:\n%s", slug, want, got)
+				t.Fatalf("%s prompt missing natural OpenUI artifact guidance %q:\n%s", slug, want, got)
 			}
 		}
 	}
@@ -367,33 +366,28 @@ func TestPromptBuilder_VisualArtifactSelectivityRulePresentOnEverySurface(t *tes
 	}
 	wants := []string{
 		// Selectivity framing — header explicitly says "selectivity, not reflex".
-		"HTML ARTICLE RULE",
+		"OPENUI ARTIFACT RULE",
 		"selectivity, not reflex",
 		"It is NOT the default answer format",
 		"answer in plain text in the channel and STOP",
 		// Positive trigger: all three conditions must be true.
-		"USE an HTML article ONLY when ALL THREE",
+		"USE an OpenUI artifact ONLY when ALL THREE",
 		"comparing two-or-more things side by side",
 		"walking a multi-step process or timeline",
 		"mapping a 2D variable space",
 		"multi-section explainer with at least THREE distinct sections",
 		"Plain prose in chat would lose meaningful information density",
 		// Negative trigger: the decision tree's "DO NOT" branch.
-		"DO NOT use an HTML article when",
+		"DO NOT use an OpenUI artifact when",
 		"conversational, a status update, a short factual reply",
 		"one-liner question expecting a one-liner answer",
 		"mostly a list, a code snippet, a small table",
 		"urge to \"codify\" or \"document\"",
-		"Do not announce that you decided against an artifact",
-		// When HTML IS warranted: it must be a real artifact with real figures.
-		"WHEN HTML IS WARRANTED",
-		"pure-text \"article\" with no figures is NOT an artifact",
-		"genuine SVG figures",
-		"#1342FF",
-		"FIG_NNN labels",
-		"monospace captions",
+		// When OpenUI is warranted, it must follow the inert component contract.
+		"WHEN OPENUI IS WARRANTED",
+		"no HTML, Markdown, URLs, images, forms, actions, queries, mutations, or state",
 		// Atomic-turn rule still applies WHEN the rule fires.
-		"ATOMIC-TURN RULE (only when HTML IS warranted)",
+		"ATOMIC-TURN RULE (only when OpenUI is warranted)",
 		"SAME assistant response",
 		"Do NOT narrate the process between steps",
 		"visual_artifact_create",
@@ -423,7 +417,7 @@ func TestPromptBuilder_VisualArtifactSelectivityRulePresentOnEverySurface(t *tes
 	}
 }
 
-func TestPromptBuilder_HTMLArtifactFlowIsConsistentAcrossBlocks(t *testing.T) {
+func TestPromptBuilder_OpenUIArtifactFlowIsConsistentAcrossBlocks(t *testing.T) {
 	// Finding 2: the full prompt must NOT simultaneously instruct the
 	// deprecated "notebook_write then HTML companion" pattern (from
 	// markdownKnowledgeToolBlock) and the single-tool "HTML article with
@@ -461,8 +455,8 @@ func TestPromptBuilder_HTMLArtifactFlowIsConsistentAcrossBlocks(t *testing.T) {
 			got := mkBuilder(tc.oneOnOne).Build(tc.slug)
 			// The single-tool flow is the canonical instruction and must be
 			// present.
-			if !strings.Contains(got, "Leave source_path empty; the HTML is the article, not a companion to a markdown file.") {
-				t.Fatalf("%s prompt missing single-tool HTML flow (empty source_path)", tc.name)
+			if !strings.Contains(got, "Leave source_path empty; the OpenUI document is the article, not a companion to a markdown file.") {
+				t.Fatalf("%s prompt missing single-tool OpenUI flow (empty source_path)", tc.name)
 			}
 			// The deprecated companion-after-notebook_write instruction must be
 			// gone everywhere — no block may still chain the HTML artifact
@@ -888,7 +882,7 @@ func TestPromptBuilder_DeterministicOrderingFromMembers(t *testing.T) {
 }
 
 // TestVisualArtifactForcingBlock_CoversIssueSpecs locks in the rule that a
-// non-trivial Issue spec must ship with an HTML artifact reference inside
+// non-trivial Issue spec must ship with an OpenUI artifact reference inside
 // the `details` field. The FE's IssueDescription renders that artifact
 // inline above the markdown body via the same RichArtifactEmbed pipeline
 // wiki articles use — without this prompt language, agents fall back to
@@ -900,7 +894,7 @@ func TestVisualArtifactForcingBlock_CoversIssueSpecs(t *testing.T) {
 		"ISSUE SPECS ALSO QUALIFY",
 		"team_task action=create",
 		"`visual-artifact:ra_<id>` on its own line inside the `details` field",
-		"RichArtifactEmbed",
+		"article body lives in the artifact",
 		"Skip the artifact for trivial Issues",
 	} {
 		if !strings.Contains(got, want) {

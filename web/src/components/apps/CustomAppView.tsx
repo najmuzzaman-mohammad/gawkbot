@@ -27,7 +27,8 @@ import { showNotice } from "../ui/Toast";
 import { AppEditPanel } from "./AppEditPanel";
 import { AppLivePreview } from "./AppLivePreview";
 import { AppVersionTimeline } from "./AppVersionTimeline";
-import { type AppSelectPayload, CustomAppFrame } from "./CustomAppFrame";
+import type { AppSelectPayload } from "./CustomAppFrame";
+import { CustomAppRenderer } from "./CustomAppRenderer";
 
 interface CustomAppViewProps {
   appId: string;
@@ -126,7 +127,7 @@ export function CustomAppView({ appId }: CustomAppViewProps) {
     mutationFn: () => openAppEditSession(appId),
     onSuccess: (channel) => {
       queryClient.setQueryData<CustomAppDetail>(["app", appId], (prev) =>
-        prev ? { ...prev, app: { ...prev.app, editChannel: channel } } : prev,
+        withEditChannel(prev, channel),
       );
       setEditOpen(true);
     },
@@ -276,7 +277,9 @@ export function CustomAppView({ appId }: CustomAppViewProps) {
     );
   }
 
-  const { app, html } = data;
+  const { app } = data;
+  const html = "html" in data ? data.html : undefined;
+  const openui = "openui" in data ? data.openui : undefined;
   // Every app is editable: Edit is always offered. An app with no bound thread
   // (registered html-only, or minted before the edit-channel field existed)
   // mints one lazily on the first click (ensureEditSession). `canEdit` only
@@ -306,6 +309,7 @@ export function CustomAppView({ appId }: CustomAppViewProps) {
         appId={appId}
         app={app}
         html={html}
+        openui={openui}
         editOpen={editOpen && canEdit}
         onCloseEdit={() => {
           setEditOpen(false);
@@ -318,6 +322,8 @@ export function CustomAppView({ appId }: CustomAppViewProps) {
         previewVersion={previewVersion}
         isPreviewing={isPreviewing}
         previewHtml={versionPreview.data?.html}
+        previewOpenUI={versionPreview.data?.openui}
+        previewRepresentation={versionPreview.data?.representation}
         previewLoading={versionPreview.isLoading}
         previewError={versionPreview.isError}
         previewUpdatedBy={versionPreview.data?.updatedBy}
@@ -334,6 +340,29 @@ export function CustomAppView({ appId }: CustomAppViewProps) {
       />
     </div>
   );
+}
+
+function withEditChannel(
+  detail: CustomAppDetail | undefined,
+  channel: string,
+): CustomAppDetail | undefined {
+  if (!detail) return detail;
+  if (
+    detail.app.representation === "openui" &&
+    typeof detail.openui === "string"
+  ) {
+    return {
+      app: { ...detail.app, editChannel: channel },
+      openui: detail.openui,
+    };
+  }
+  if (typeof detail.html === "string") {
+    return {
+      app: { ...detail.app, editChannel: channel },
+      html: detail.html,
+    };
+  }
+  return detail;
 }
 
 interface AppViewHeaderProps {
@@ -452,7 +481,8 @@ function AppViewHeader({
 interface AppViewBodyProps {
   appId: string;
   app: CustomApp;
-  html: string;
+  html?: string;
+  openui?: string;
   editOpen: boolean;
   onCloseEdit: () => void;
   historyOpen: boolean;
@@ -462,6 +492,8 @@ interface AppViewBodyProps {
   previewVersion: number | null;
   isPreviewing: boolean;
   previewHtml?: string;
+  previewOpenUI?: string;
+  previewRepresentation?: "html" | "openui";
   previewLoading: boolean;
   previewError?: boolean;
   previewUpdatedBy?: string;
@@ -481,6 +513,7 @@ function AppViewBody({
   appId,
   app,
   html,
+  openui,
   editOpen,
   onCloseEdit,
   historyOpen,
@@ -490,6 +523,8 @@ function AppViewBody({
   previewVersion,
   isPreviewing,
   previewHtml,
+  previewOpenUI,
+  previewRepresentation,
   previewLoading,
   previewError,
   previewUpdatedBy,
@@ -552,10 +587,13 @@ function AppViewBody({
           appId={appId}
           app={app}
           html={html}
+          openui={openui}
           editOpen={editOpen}
           isPreviewing={isPreviewing}
           previewVersion={previewVersion}
           previewHtml={previewHtml}
+          previewOpenUI={previewOpenUI}
+          previewRepresentation={previewRepresentation}
           previewLoading={previewLoading}
           previewError={previewError}
           selectMode={selectMode}
@@ -577,11 +615,14 @@ function AppViewBody({
 interface AppViewStageFrameProps {
   appId: string;
   app: CustomApp;
-  html: string;
+  html?: string;
+  openui?: string;
   editOpen: boolean;
   isPreviewing: boolean;
   previewVersion: number | null;
   previewHtml?: string;
+  previewOpenUI?: string;
+  previewRepresentation?: "html" | "openui";
   previewLoading: boolean;
   previewError?: boolean;
   selectMode: boolean;
@@ -599,10 +640,13 @@ function AppViewStageFrame({
   appId,
   app,
   html,
+  openui,
   editOpen,
   isPreviewing,
   previewVersion,
   previewHtml,
+  previewOpenUI,
+  previewRepresentation,
   previewLoading,
   previewError,
   selectMode,
@@ -617,7 +661,10 @@ function AppViewStageFrame({
         </div>
       );
     }
-    if (previewError || previewHtml === undefined) {
+    if (
+      previewError ||
+      (previewHtml === undefined && previewOpenUI === undefined)
+    ) {
       // Don't sit on "Loading…" forever when the fetch failed — tell the user and
       // point them back. "Back to current" in the PreviewBanner stays available.
       return (
@@ -627,10 +674,23 @@ function AppViewStageFrame({
         </div>
       );
     }
+    if (!previewRepresentation) {
+      return (
+        <div className="custom-app-view__preview-loading">
+          Couldn’t determine the representation for v{previewVersion}.
+        </div>
+      );
+    }
+    const previewApp: CustomApp = {
+      ...app,
+      representation: previewRepresentation,
+      entry: previewRepresentation === "openui" ? "app.openui" : "index.html",
+    };
     return (
-      <CustomAppFrame
-        appId={appId}
+      <CustomAppRenderer
+        app={previewApp}
         html={previewHtml}
+        openui={previewOpenUI}
         title={`${app.name} (v${previewVersion})`}
       />
     );
@@ -648,7 +708,9 @@ function AppViewStageFrame({
       />
     );
   }
-  return <CustomAppFrame appId={appId} html={html} title={app.name} />;
+  return (
+    <CustomAppRenderer app={app} html={html} openui={openui} title={app.name} />
+  );
 }
 
 interface PreviewBannerProps {

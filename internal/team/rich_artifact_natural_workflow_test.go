@@ -49,20 +49,20 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 		},
 		{
 			Name:        "visual_artifact_create",
-			Description: "Produce a self-contained HTML article for complex specs, PR reviews, diagrams, reports, and interactive tuning surfaces. The HTML article IS the deliverable; leave source_path empty and do not also call notebook_write for the same content.",
+			Description: "Produce a static OpenUI artifact for complex specs, PR reviews, diagrams, reports, and review surfaces.",
 			Execute: func(params map[string]any, _ context.Context, _ func(string)) (string, error) {
 				calls = append(calls, "visual_artifact_create")
 				if got := fmt.Sprint(params["source_path"]); got != sourcePath {
 					return "", fmt.Errorf("source_path=%q, want %q", got, sourcePath)
 				}
-				html := fmt.Sprint(params["html"])
-				for _, want := range []string{"<!doctype html>", "<script>", "Launch Risk Dial"} {
-					if !strings.Contains(html, want) {
-						return "", fmt.Errorf("html missing %q", want)
+				openui := fmt.Sprint(params["openui_lang"])
+				for _, want := range []string{"root = Stack(", "Heading(", "Launch Risk Dial"} {
+					if !strings.Contains(openui, want) {
+						return "", fmt.Errorf("openui_lang missing %q", want)
 					}
 				}
-				if strings.Contains(html, "https://") || strings.Contains(html, "http://") {
-					return "", fmt.Errorf("html must be self-contained, got external URL")
+				if strings.Contains(openui, "https://") || strings.Contains(openui, "http://") {
+					return "", fmt.Errorf("openui_lang must be static, got external URL")
 				}
 				return `{"artifact":{"id":"` + artifactID + `","source_markdown_path":"` + sourcePath + `"}}`, nil
 			},
@@ -95,9 +95,8 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 					}
 					for _, want := range []string{
 						"visual_artifact_create",
-						"self-contained HTML article",
-						"interactive tuning surfaces",
-						"HTML visual artifact",
+						"static OpenUI document",
+						"OpenUI artifact",
 						"long markdown wall",
 					} {
 						if !strings.Contains(msgs[0].Content, want) {
@@ -126,9 +125,9 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 					ToolParams: map[string]any{
 						"source_path": sourcePath,
 						"title":       "Launch Risk Dial",
-						"html":        "<!doctype html><html><body><h1>Launch Risk Dial</h1><input type=\"range\"><script>document.body.dataset.ready='1'</script></body></html>",
+						"openui_lang": "root = Stack([title, risk])\ntitle = Heading(\"Launch Risk Dial\", \"1\")\nrisk = Metric(\"Launch risk\", \"Medium\", \"Two blockers remain\", \"warning\")",
 					},
-					ToolInput: `{"source_path":"` + sourcePath + `","title":"Launch Risk Dial","html":"<!doctype html>..."}`,
+					ToolInput: `{"source_path":"` + sourcePath + `","title":"Launch Risk Dial","openui_lang":"root = Stack(...)"}`,
 				}},
 			},
 			{
@@ -174,7 +173,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 	if !strings.Contains(broadcast, "visual-artifact:"+artifactID) {
 		t.Fatalf("broadcast lost artifact marker: %q", broadcast)
 	}
-	if !toolListIncludes(stream.turns[0].recordedTools, "visual_artifact_create", "interactive tuning surfaces") {
+	if !toolListIncludes(stream.turns[0].recordedTools, "visual_artifact_create", "review surfaces") {
 		t.Fatalf("model did not receive visual_artifact_create tool guidance: %+v", stream.turns[0].recordedTools)
 	}
 }

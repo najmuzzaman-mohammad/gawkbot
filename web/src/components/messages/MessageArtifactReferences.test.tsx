@@ -8,7 +8,7 @@ import * as richApi from "../../api/richArtifacts";
 import MessageArtifactReferences from "./MessageArtifactReferences";
 
 function makeDetail(
-  overrides: Partial<richApi.RichArtifact> = {},
+  overrides: Partial<richApi.HTMLRichArtifact> = {},
 ): richApi.RichArtifactDetail {
   return {
     artifact: {

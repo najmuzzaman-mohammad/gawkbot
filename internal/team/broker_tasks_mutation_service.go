@@ -311,6 +311,9 @@ func (b *Broker) checkTaskActionAuthLocked(action, actor, targetTaskID string) e
 	case "", "human", "you", "system", "broker", "nex":
 		return nil
 	}
+	if isAppBuilderSlug(actorSlug) {
+		return b.checkAppBuilderTaskActionAuthLocked(a, targetTaskID)
+	}
 
 	leadSlug := strings.ToLower(strings.TrimSpace(officeLeadSlugFrom(b.members)))
 	// Pre-onboarding / test fixtures have no members → no lead. In

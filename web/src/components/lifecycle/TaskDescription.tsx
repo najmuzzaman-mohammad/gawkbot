@@ -8,7 +8,7 @@ import {
 } from "../../lib/messageMarkdown";
 import { keyedByOccurrence } from "../../lib/reactKeys";
 import { stripStandaloneRichArtifactReferenceLines } from "../../lib/richArtifactReferences";
-import RichArtifactEmbed from "../rich-artifacts/RichArtifactEmbed";
+import RichArtifactRenderer from "../rich-artifacts/RichArtifactRenderer";
 
 // ── Linear-style description ──────────────────────────────────────────
 
@@ -20,7 +20,7 @@ interface TaskDescriptionProps {
 /**
  * TaskDescription renders the task's description body. When the agent has
  * dropped a `visual-artifact:<id>` marker into the description (the same
- * way wiki articles and notebook entries reference rich HTML companions),
+ * way wiki articles and notebook entries reference generated UI companions),
  * the marker is stripped from the markdown body and the underlying
  * RichArtifactEmbed renders inline ABOVE the remaining prose, in
  * document order.
@@ -68,11 +68,7 @@ export function TaskDescription({
       >
         {keyedByOccurrence(inlineArtifacts, (detail) => detail.artifact.id).map(
           ({ key, value: detail }) => (
-            <RichArtifactEmbed
-              key={key}
-              title={detail.artifact.title}
-              html={detail.html}
-            />
+            <RichArtifactRenderer key={key} detail={detail} surface="issue" />
           ),
         )}
         {hasMarkdown ? (

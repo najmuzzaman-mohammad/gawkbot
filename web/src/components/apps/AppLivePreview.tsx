@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { ensureAppDev } from "../../api/apps";
+import { ensureAppDev, getApp } from "../../api/apps";
 import {
   type AppErrorPayload,
   type AppSelectPayload,
   CustomAppFrame,
 } from "./CustomAppFrame";
+import { OpenUIAppRenderer } from "./OpenUIAppRenderer";
 
 const DEV_POLL_MS = 1500;
 
@@ -52,15 +53,49 @@ export function AppLivePreview({
   onSelect,
   onAppError,
 }: AppLivePreviewProps) {
+  const appQuery = useQuery({
+    // Share CustomAppView's published-app cache instead of starting a second,
+    // uncoordinated getApp polling loop for the same app.
+    queryKey: ["app", appId],
+    queryFn: () => getApp(appId),
+    refetchInterval: 1500,
+  });
+  const isHTML = appQuery.data?.app.representation !== "openui";
   const { data, isError, error } = useQuery({
     queryKey: ["app-dev", appId],
     queryFn: () => ensureAppDev(appId),
+    enabled: appQuery.isSuccess && isHTML,
     // Poll while booting; stop once the server is ready or has errored.
     refetchInterval: (query) => {
       const s = query.state.data;
       return s?.ready || s?.error ? false : DEV_POLL_MS;
     },
   });
+
+  if (
+    appQuery.data?.app.representation === "openui" &&
+    "openui" in appQuery.data &&
+    typeof appQuery.data.openui === "string"
+  ) {
+    return (
+      <OpenUIAppRenderer
+        appId={appId}
+        title={title}
+        openui={appQuery.data.openui}
+      />
+    );
+  }
+
+  if (appQuery.isError) {
+    return (
+      <div className="app-build-preview__state" role="alert">
+        <p className="app-build-preview__state-title">Preview unavailable</p>
+        <p className="app-build-preview__state-detail">
+          Could not load the OpenUI app.
+        </p>
+      </div>
+    );
+  }
 
   if (isError) {
     return (

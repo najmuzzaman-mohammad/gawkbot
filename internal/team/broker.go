@@ -726,6 +726,7 @@ func (b *Broker) StartOnPort(port int) error {
 	// "ai" as an app id). These replace the bespoke per-feature Gmail endpoint —
 	// see broker_apps_integrations.go for the widened-surface security notes.
 	mux.HandleFunc("/apps/integrations/call", b.requireAuth(b.handleAppsIntegrationsCall))
+	mux.HandleFunc("/apps/validate", b.requireAuth(b.handleAppsValidate))
 	mux.HandleFunc("/apps/integrations/catalog", b.requireAuth(b.handleAppsIntegrationsCatalog))
 	mux.HandleFunc("/apps/ai", b.requireAuth(b.handleAppsAI))
 	// Preserved visual artifacts (HTML briefs / PDFs) from the previous

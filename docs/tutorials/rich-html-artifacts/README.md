@@ -1,6 +1,10 @@
 # Rich HTML Artifact Tutorial Scenarios
 
-These fixtures model the first WUPHF workflows where agent output should be HTML first:
+> Legacy compatibility fixtures. New visual artifacts are generated as
+> versioned OpenUI Lang and stored as `.openui`; these HTML files remain to
+> verify that pre-OpenUI workspaces still render and promote correctly.
+
+These fixtures model the original WUPHF HTML-first workflows:
 
 1. Notebook exploration: an agent creates a dense, interactive HTML artifact next to its working notes.
 2. Wiki promotion: the artifact is promoted into a durable wiki article with provenance.
@@ -40,4 +44,8 @@ bash scripts/test-go.sh ./internal/team
 bash scripts/test-web.sh web/src/lib/richArtifactTutorialFixtures.test.ts web/src/lib/richArtifactReferences.test.ts
 ```
 
-The Go test creates and promotes every HTML artifact through the wiki repo API. The web test parses the same chat fixtures through the chat artifact reference parser.
+The Go test creates and promotes every legacy HTML artifact through the wiki
+repo API. The web test parses the same chat fixtures through the chat artifact
+reference parser. New OpenUI coverage lives in
+`internal/team/rich_artifact_openui_test.go` and
+`web/src/components/rich-artifacts/RichArtifactRenderer.test.tsx`.

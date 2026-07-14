@@ -11,7 +11,8 @@ for **<task>**" link, in place. No separate Artifacts surface.
 ## Why
 
 Artifacts are work outcomes, and in WUPHF those outcomes already live in the
-wiki: HTML visual artifacts (`wiki/visual-artifacts/*.html`) and markdown
+wiki: OpenUI visual artifacts (`wiki/visual-artifacts/*.openui`), legacy HTML
+visual artifacts (`wiki/visual-artifacts/*.html`), and markdown
 deliverables (`team/**.md`). What was missing was provenance — opening an
 article told you nothing about the task that produced it. This adds that link,
 naturally, where the article already renders. (Earlier drafts of this branch

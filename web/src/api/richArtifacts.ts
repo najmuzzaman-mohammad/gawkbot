@@ -1,6 +1,16 @@
+import { z } from "zod/v4";
+
 import { get, post } from "./client";
 
-export type RichArtifactKind = "notebook_html" | "wiki_visual";
+export const OPENUI_ARTIFACT_VERSION = "0.5";
+export const OPENUI_ARTIFACT_LIBRARY = "wuphf-static-review";
+export const OPENUI_ARTIFACT_LIBRARY_HASH =
+  "f1224a608682fd95303ede0e1227a1e17d87bd7d646630081bd42674ffe1ee85";
+
+export type RichArtifactKind =
+  | "notebook_html"
+  | "notebook_openui"
+  | "wiki_visual";
 export type RichArtifactTrustLevel = "draft" | "reviewed" | "promoted";
 
 // ArtifactPromotion is the canonical "where does this artifact live now?"
@@ -22,14 +32,12 @@ export type ArtifactPromotion =
     }
   | { status: "promoted_to_wiki"; wiki_path: string };
 
-export interface RichArtifact {
+interface RichArtifactBase {
   id: string;
   kind: RichArtifactKind;
   title: string;
   summary: string;
   trustLevel: RichArtifactTrustLevel;
-  representation: "html";
-  htmlPath: string;
   sourceMarkdownPath?: string;
   promotedWikiPath?: string;
   relatedTaskId?: string;
@@ -39,7 +47,6 @@ export interface RichArtifact {
   createdAt: string;
   updatedAt: string;
   contentHash: string;
-  sanitizerVersion: string;
   // promotion is the new canonical promotion-state field. It is optional
   // for backward compatibility with older broker responses that have not
   // been re-emitted yet; consumers should fall back to deriving a
@@ -58,16 +65,49 @@ export interface RichArtifact {
   } | null;
 }
 
-export interface RichArtifactDetail {
-  artifact: RichArtifact;
-  html: string;
+export interface HTMLRichArtifact extends RichArtifactBase {
+  representation: "html";
+  htmlPath: string;
+  contentPath?: never;
+  sanitizerVersion: string;
+  openuiVersion?: never;
+  openuiLibrary?: never;
+  openuiLibraryHash?: never;
 }
+
+export interface OpenUIRichArtifact extends RichArtifactBase {
+  representation: "openui";
+  contentPath: string;
+  htmlPath?: never;
+  sanitizerVersion?: never;
+  openuiVersion: typeof OPENUI_ARTIFACT_VERSION;
+  openuiLibrary: typeof OPENUI_ARTIFACT_LIBRARY;
+  openuiLibraryHash: typeof OPENUI_ARTIFACT_LIBRARY_HASH;
+}
+
+export type RichArtifact = HTMLRichArtifact | OpenUIRichArtifact;
+
+export interface HTMLRichArtifactDetail {
+  artifact: HTMLRichArtifact;
+  html: string;
+  openui?: never;
+}
+
+export interface OpenUIRichArtifactDetail {
+  artifact: OpenUIRichArtifact;
+  openui: string;
+  html?: never;
+}
+
+export type RichArtifactDetail =
+  | HTMLRichArtifactDetail
+  | OpenUIRichArtifactDetail;
 
 export interface CreateRichArtifactParams {
   slug: string;
   title: string;
   summary?: string;
-  html: string;
+  openuiLang: string;
   sourceMarkdownPath?: string;
   relatedTaskId?: string;
   relatedMessageId?: string;
@@ -82,21 +122,127 @@ export interface PromoteRichArtifactParams {
   commitMessage?: string;
 }
 
+const promotionSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("draft") }).strict(),
+  z
+    .object({
+      status: z.literal("promoted_to_notebook"),
+      owner_slug: z.string(),
+      entry_slug: z.string(),
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("promoted_to_wiki"),
+      wiki_path: z.string(),
+    })
+    .strict(),
+]);
+
+const artifactBaseSchema = z
+  .object({
+    id: z.string(),
+    kind: z.enum(["notebook_html", "notebook_openui", "wiki_visual"]),
+    title: z.string(),
+    summary: z.string(),
+    trustLevel: z.enum(["draft", "reviewed", "promoted"]),
+    sourceMarkdownPath: z.string().optional(),
+    promotedWikiPath: z.string().optional(),
+    relatedTaskId: z.string().optional(),
+    relatedMessageId: z.string().optional(),
+    relatedReceiptIds: z.array(z.string()).optional(),
+    createdBy: z.string(),
+    owner_slug: z.string().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    contentHash: z.string(),
+    promotion: promotionSchema.optional(),
+    attached_to_notebook_entry: z
+      .object({ owner_slug: z.string(), entry_slug: z.string() })
+      .strict()
+      .nullable()
+      .optional(),
+  })
+  .strict();
+
+const htmlArtifactSchema = artifactBaseSchema
+  .extend({
+    representation: z.literal("html"),
+    htmlPath: z.string(),
+    contentPath: z.never().optional(),
+    sanitizerVersion: z.string(),
+    openuiVersion: z.never().optional(),
+    openuiLibrary: z.never().optional(),
+    openuiLibraryHash: z.never().optional(),
+  })
+  .strict();
+
+const openUIArtifactSchema = artifactBaseSchema
+  .extend({
+    representation: z.literal("openui"),
+    contentPath: z.string(),
+    htmlPath: z.never().optional(),
+    sanitizerVersion: z.never().optional(),
+    openuiVersion: z.literal(OPENUI_ARTIFACT_VERSION),
+    openuiLibrary: z.literal(OPENUI_ARTIFACT_LIBRARY),
+    openuiLibraryHash: z.literal(OPENUI_ARTIFACT_LIBRARY_HASH),
+  })
+  .strict();
+
+const richArtifactSchema = z.preprocess(
+  (value) => {
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      !("representation" in value)
+    ) {
+      return { ...value, representation: "html" };
+    }
+    return value;
+  },
+  z.discriminatedUnion("representation", [
+    htmlArtifactSchema,
+    openUIArtifactSchema,
+  ]),
+);
+
+const artifactWriteEnvelopeSchema = z
+  .object({
+    artifact: richArtifactSchema,
+    commit_sha: z.string(),
+    bytes_written: z.number().int().nonnegative(),
+  })
+  .strict();
+const artifactListEnvelopeSchema = z
+  .object({
+    artifacts: z.array(richArtifactSchema),
+  })
+  .strict();
+const richArtifactDetailSchema = z.union([
+  z.object({ artifact: htmlArtifactSchema, html: z.string() }).strict(),
+  z
+    .object({
+      artifact: openUIArtifactSchema,
+      openui: z.string().max(64 * 1024),
+    })
+    .strict(),
+]);
+
 export async function createRichArtifact(
   params: CreateRichArtifactParams,
 ): Promise<RichArtifact> {
-  const res = await post<{ artifact: RichArtifact }>("/visual-artifacts", {
+  const res = await post<unknown>("/visual-artifacts", {
     slug: params.slug,
     title: params.title,
     summary: params.summary ?? "",
-    html: params.html,
+    openui_lang: params.openuiLang,
     source_markdown_path: params.sourceMarkdownPath,
     related_task_id: params.relatedTaskId,
     related_message_id: params.relatedMessageId,
     related_receipt_ids: params.relatedReceiptIds ?? [],
     commit_message: params.commitMessage,
   });
-  return res.artifact;
+  return artifactWriteEnvelopeSchema.parse(res).artifact;
 }
 
 export async function fetchRichArtifacts(params: {
@@ -108,26 +254,25 @@ export async function fetchRichArtifacts(params: {
   if (params.sourceMarkdownPath) {
     query.source_path = params.sourceMarkdownPath;
   }
-  const res = await get<{ artifacts: RichArtifact[] }>(
-    "/visual-artifacts",
-    query,
-  );
-  return Array.isArray(res.artifacts) ? res.artifacts : [];
+  const res = await get<unknown>("/visual-artifacts", query);
+  return artifactListEnvelopeSchema.parse(res).artifacts;
 }
 
 export async function fetchRichArtifact(
   id: string,
 ): Promise<RichArtifactDetail> {
-  return await get<RichArtifactDetail>(
+  const response = await get<unknown>(
     `/visual-artifacts/${encodeURIComponent(id)}`,
+    { accept_representation: "openui" },
   );
+  return richArtifactDetailSchema.parse(response);
 }
 
 export async function promoteRichArtifact(
   id: string,
   params: PromoteRichArtifactParams,
 ): Promise<RichArtifact> {
-  const res = await post<{ artifact: RichArtifact }>(
+  const res = await post<unknown>(
     `/visual-artifacts/${encodeURIComponent(id)}/promote`,
     {
       target_wiki_path: params.targetWikiPath,
@@ -136,7 +281,7 @@ export async function promoteRichArtifact(
       commit_message: params.commitMessage,
     },
   );
-  return res.artifact;
+  return artifactWriteEnvelopeSchema.parse(res).artifact;
 }
 
 // ArtifactDestination describes where a clickable reference to an artifact
@@ -169,7 +314,7 @@ export function resolveArtifactDestination(
     "id" | "promotion" | "promotedWikiPath" | "attached_to_notebook_entry"
   >,
 ): ArtifactDestination {
-  const promotion = artifact.promotion;
+  const { promotion } = artifact;
   if (promotion?.status === "promoted_to_wiki" && promotion.wiki_path) {
     return {
       to: "/wiki/$",
@@ -200,7 +345,11 @@ export async function fetchWikiVisualArtifact(
   path: string,
 ): Promise<RichArtifactDetail | null> {
   try {
-    return await get<RichArtifactDetail>("/wiki/visual", { path });
+    const response = await get<unknown>("/wiki/visual", {
+      path,
+      accept_representation: "openui",
+    });
+    return richArtifactDetailSchema.parse(response);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     if (/404|not found/i.test(message)) {

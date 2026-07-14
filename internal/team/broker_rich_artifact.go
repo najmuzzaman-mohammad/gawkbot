@@ -1,12 +1,19 @@
 package team
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
+
+const richArtifactRequestMetadataAllowance = 16 * 1024
 
 // handleVisualArtifacts owns the collection route:
 //
@@ -58,8 +65,16 @@ func (b *Broker) handleVisualArtifacts(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"artifacts": artifacts})
 	case http.MethodPost:
 		var body RichArtifactCreateRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		if status, err := decodeRichArtifactCreateRequest(w, r, &body); err != nil {
+			writeJSON(w, status, map[string]string{"error": err.Error()})
+			return
+		}
+		if body.LegacyHTML != nil && os.Getenv("WUPHF_ALLOW_LEGACY_HTML_ARTIFACT_WRITES") != "1" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "html artifact writes are disabled; submit openui_lang"})
+			return
+		}
+		if body.LegacyHTML == nil && os.Getenv("WUPHF_DISABLE_OPENUI_ARTIFACT_CREATION") == "1" {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "OpenUI artifact creation is temporarily disabled"})
 			return
 		}
 		slug, status, err := richArtifactAuthenticatedSlug(r, body.Slug, "slug")
@@ -68,12 +83,12 @@ func (b *Broker) handleVisualArtifacts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		body.Slug = slug
-		artifact, html, err := newRichArtifact(body, time.Now())
+		artifact, content, err := newRichArtifact(body, time.Now())
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		stored, sha, n, err := worker.CreateRichArtifact(r.Context(), artifact, html, body.CommitMessage)
+		stored, sha, n, err := worker.CreateRichArtifact(r.Context(), artifact, content, body.CommitMessage)
 		if err != nil {
 			writeRichArtifactError(w, err)
 			return
@@ -116,12 +131,12 @@ func (b *Broker) handleVisualArtifactSubpath(w http.ResponseWriter, r *http.Requ
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		artifact, html, err := worker.RichArtifact(id)
+		artifact, content, err := worker.RichArtifact(id)
 		if err != nil {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+			writeRichArtifactReadError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"artifact": artifact, "html": html})
+		writeRichArtifactDetail(w, r, artifact, content)
 		return
 	}
 	if len(parts) == 2 && parts[1] == "promote" {
@@ -130,8 +145,8 @@ func (b *Broker) handleVisualArtifactSubpath(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		var body RichArtifactPromoteRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		if status, err := decodeRichArtifactJSONRequest(w, r, &body, richArtifactMaxPromotionBytes); err != nil {
+			writeJSON(w, status, map[string]string{"error": err.Error()})
 			return
 		}
 		actorSlug, status, err := richArtifactAuthenticatedSlug(r, body.ActorSlug, "actor_slug")
@@ -141,6 +156,17 @@ func (b *Broker) handleVisualArtifactSubpath(w http.ResponseWriter, r *http.Requ
 		}
 		if actorSlug == "" {
 			actorSlug = "human"
+		}
+		if actor, ok := requestActorFromContext(r.Context()); !ok || actor.Kind != requestActorKindHuman {
+			artifact, _, readErr := worker.RichArtifact(id)
+			if readErr != nil {
+				writeRichArtifactReadError(w, readErr)
+				return
+			}
+			if artifact.CreatedBy != actorSlug {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "only the artifact owner or a human reviewer may promote it"})
+				return
+			}
 		}
 		artifact, sha, n, err := worker.PromoteRichArtifact(
 			r.Context(),
@@ -216,12 +242,157 @@ func (b *Broker) handleWikiVisualArtifact(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "visual artifact not found"})
 		return
 	}
-	artifact, html, err := worker.RichArtifact(artifacts[0].ID)
+	artifact, content, err := worker.RichArtifact(artifacts[0].ID)
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+		writeRichArtifactReadError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"artifact": artifact, "html": html})
+	writeRichArtifactDetail(w, r, artifact, content)
+}
+
+func decodeRichArtifactCreateRequest(w http.ResponseWriter, r *http.Request, dst *RichArtifactCreateRequest) (int, error) {
+	limit := int64(richArtifactMaxOpenUIBytes + richArtifactRequestMetadataAllowance)
+	if os.Getenv("WUPHF_ALLOW_LEGACY_HTML_ARTIFACT_WRITES") == "1" {
+		limit = int64(richArtifactMaxHTMLBytes + richArtifactRequestMetadataAllowance)
+	}
+	return decodeRichArtifactJSONRequest(w, r, dst, limit)
+}
+
+func decodeRichArtifactJSONRequest(w http.ResponseWriter, r *http.Request, dst any, limit int64) (int, error) {
+	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
+	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			return http.StatusRequestEntityTooLarge, fmt.Errorf("visual artifact request exceeds %d bytes", limit)
+		}
+		return http.StatusBadRequest, fmt.Errorf("read visual artifact request: %w", err)
+	}
+	if !utf8.Valid(raw) {
+		return http.StatusBadRequest, errors.New("visual artifact request must be valid UTF-8")
+	}
+	if err := rejectDuplicateTopLevelJSONFields(raw); err != nil {
+		return http.StatusBadRequest, err
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		return http.StatusBadRequest, fmt.Errorf("invalid visual artifact json: %w", err)
+	}
+	if err := ensureJSONEOF(decoder); err != nil {
+		return http.StatusBadRequest, err
+	}
+	return 0, nil
+}
+
+func rejectDuplicateTopLevelJSONFields(raw []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	token, err := decoder.Token()
+	if err != nil {
+		return fmt.Errorf("invalid visual artifact json: %w", err)
+	}
+	delim, ok := token.(json.Delim)
+	if !ok || delim != '{' {
+		return errors.New("visual artifact request must be one JSON object")
+	}
+	if err := rejectDuplicateJSONObjectFields(decoder); err != nil {
+		return err
+	}
+	return ensureJSONEOF(decoder)
+}
+
+func rejectDuplicateJSONObjectFields(decoder *json.Decoder) error {
+	seen := map[string]struct{}{}
+	for decoder.More() {
+		fieldToken, err := decoder.Token()
+		if err != nil {
+			return fmt.Errorf("invalid visual artifact json: %w", err)
+		}
+		field, ok := fieldToken.(string)
+		if !ok {
+			return errors.New("visual artifact request contains a non-string field name")
+		}
+		canonicalField := strings.ToLower(field)
+		if _, exists := seen[canonicalField]; exists {
+			return fmt.Errorf("visual artifact request contains duplicate field %q", field)
+		}
+		seen[canonicalField] = struct{}{}
+		if err := consumeStrictJSONValue(decoder); err != nil {
+			return fmt.Errorf("invalid visual artifact field %q: %w", field, err)
+		}
+	}
+	closing, err := decoder.Token()
+	if err != nil {
+		return fmt.Errorf("invalid visual artifact json: %w", err)
+	}
+	if closing != json.Delim('}') {
+		return errors.New("invalid visual artifact object terminator")
+	}
+	return nil
+}
+
+func consumeStrictJSONValue(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	delim, ok := token.(json.Delim)
+	if !ok {
+		return nil
+	}
+	switch delim {
+	case '{':
+		return rejectDuplicateJSONObjectFields(decoder)
+	case '[':
+		for decoder.More() {
+			if err := consumeStrictJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		closing, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		if closing != json.Delim(']') {
+			return errors.New("invalid visual artifact array terminator")
+		}
+		return nil
+	default:
+		return fmt.Errorf("unexpected JSON delimiter %q", delim)
+	}
+}
+
+func ensureJSONEOF(decoder *json.Decoder) error {
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return errors.New("visual artifact request must contain exactly one JSON value")
+		}
+		return fmt.Errorf("invalid trailing visual artifact json: %w", err)
+	}
+	return nil
+}
+
+func writeRichArtifactDetail(w http.ResponseWriter, r *http.Request, artifact RichArtifact, content string) {
+	if artifact.Representation == richArtifactRepresentationOpenUI {
+		if r.URL.Query().Get("accept_representation") == richArtifactRepresentationOpenUI {
+			writeJSON(w, http.StatusOK, map[string]any{"artifact": artifact, "openui": content})
+			return
+		}
+		writeJSON(w, http.StatusUpgradeRequired, map[string]string{
+			"error": "this artifact requires an OpenUI-capable WUPHF client",
+			"code":  "openui_client_upgrade_required",
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"artifact": artifact, "html": content})
+}
+
+func writeRichArtifactReadError(w http.ResponseWriter, err error) {
+	if errors.Is(err, errRichArtifactNotFound) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "visual artifact not found", "code": "artifact_not_found"})
+		return
+	}
+	writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error(), "code": "artifact_corrupt"})
 }
 
 func writeRichArtifactError(w http.ResponseWriter, err error) {

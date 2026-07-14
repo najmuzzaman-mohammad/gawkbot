@@ -56,12 +56,14 @@ func TestCustomAppStoreCreateGetListUpdateDelete(t *testing.T) {
 	}
 
 	// Update in place keeps the id and bumps the version.
+	expectedVersion := created.Version
 	updated, err := store.Save(CustomAppWriteRequest{
-		ID:          created.ID,
-		Name:        "Standup Digest",
-		Description: "Now also shows blocked tasks.",
-		HTML:        validAppHTML,
-		Actor:       "app-builder",
+		ID:              created.ID,
+		Name:            "Standup Digest",
+		Description:     "Now also shows blocked tasks.",
+		HTML:            validAppHTML,
+		Actor:           "app-builder",
+		ExpectedVersion: &expectedVersion,
 	}, now.Add(time.Minute))
 	if err != nil {
 		t.Fatalf("Save update: %v", err)
@@ -96,6 +98,20 @@ func TestCustomAppStoreUpdateMissingIsCallerError(t *testing.T) {
 	}, time.Now())
 	if err == nil || !isCustomAppCallerError(err) {
 		t.Fatalf("update of missing app: got %v, want caller error", err)
+	}
+}
+
+func TestCustomAppStoreUpdateRequiresExpectedVersion(t *testing.T) {
+	store := newCustomAppStore(t.TempDir())
+	created, err := store.Save(CustomAppWriteRequest{Name: "Tool", HTML: validAppHTML}, time.Unix(1, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.Save(CustomAppWriteRequest{
+		ID: created.ID, Name: created.Name, HTML: validAppHTML,
+	}, time.Unix(2, 0))
+	if !isCustomAppConflictError(err) || !strings.Contains(err.Error(), "expected_version is required") {
+		t.Fatalf("missing expected_version error = %v", err)
 	}
 }
 
@@ -150,8 +166,9 @@ func TestCustomAppVersionRetentionAndRollback(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 	id := a.ID
+	expectedVersion := a.Version
 
-	b2, err := store.Save(CustomAppWriteRequest{ID: id, Name: "Tool", HTML: htmlB, Actor: "app-builder"}, now.Add(time.Minute))
+	b2, err := store.Save(CustomAppWriteRequest{ID: id, Name: "Tool", HTML: htmlB, Actor: "app-builder", ExpectedVersion: &expectedVersion}, now.Add(time.Minute))
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
@@ -215,7 +232,8 @@ func TestCustomAppGetVersionNonDestructive(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 	id := a.ID
-	if _, err := store.Save(CustomAppWriteRequest{ID: id, Name: "Tool", HTML: htmlB, Actor: "pam"}, now.Add(time.Minute)); err != nil {
+	expectedVersion := a.Version
+	if _, err := store.Save(CustomAppWriteRequest{ID: id, Name: "Tool", HTML: htmlB, Actor: "pam", ExpectedVersion: &expectedVersion}, now.Add(time.Minute)); err != nil {
 		t.Fatalf("update: %v", err)
 	}
 
@@ -277,9 +295,11 @@ func TestCustomAppSourcePersistence(t *testing.T) {
 	}
 	// Update replaces the app's own source set wholesale (deletes propagate); the
 	// host-owned protected files persist across the replace.
+	expectedVersion := a.Version
 	if _, err := store.Save(CustomAppWriteRequest{
 		ID: a.ID, Name: "Tool", HTML: validAppHTML, Actor: "app-builder",
-		Files: map[string]string{"src/App.tsx": "v2", "src/main.tsx": testMantineMainTSX},
+		ExpectedVersion: &expectedVersion,
+		Files:           map[string]string{"src/App.tsx": "v2", "src/main.tsx": testMantineMainTSX},
 	}, now.Add(time.Minute)); err != nil {
 		t.Fatalf("update: %v", err)
 	}

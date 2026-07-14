@@ -189,17 +189,11 @@ func (b *Broker) getOperatorAppWorkflowConnections(w http.ResponseWriter, r *htt
 // capabilities, binds it once, and freezes it. This is where the determinism is
 // minted: after this returns, every run executes the same saved definition.
 func (b *Broker) compileOperatorAppWorkflow(w http.ResponseWriter, r *http.Request, appID string) {
-	app, _, err := b.appStore().Get(appID)
+	app, caps, err := b.appStore().Capabilities(appID)
 	if err != nil {
 		writeAppError(w, err)
 		return
 	}
-	source, err := b.appStore().Source(appID)
-	if err != nil {
-		writeAppError(w, err)
-		return
-	}
-	caps := introspectAppSource(source)
 	if len(planFromAppCapabilities(app, caps).Steps) <= 1 {
 		// Nothing the app reads or writes, so there is no automation to compile.
 		http.Error(w, "this app does not read or write anything yet, so it has no workflow to compile", http.StatusBadRequest)
@@ -372,15 +366,10 @@ func (b *Broker) operatorWorkflowProviderOrNil() action.Provider {
 // (logged and dropped by the async wrapper) on no-provider / nothing-to-automate
 // / offline model, and the on-demand compile path stays as the fallback.
 func (b *Broker) compileAndFreezeAppWorkflow(ctx context.Context, appID string) error {
-	app, _, err := b.appStore().Get(appID)
+	app, caps, err := b.appStore().Capabilities(appID)
 	if err != nil {
 		return err
 	}
-	source, err := b.appStore().Source(appID)
-	if err != nil {
-		return err
-	}
-	caps := introspectAppSource(source)
 	if len(planFromAppCapabilities(app, caps).Steps) <= 1 {
 		return nil // nothing the app reads or writes — no automation to compile
 	}

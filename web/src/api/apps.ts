@@ -1,5 +1,10 @@
+import { z } from "zod/v4";
+
 import { del, get, post } from "./client";
 import type { Task, TaskResponse } from "./tasks";
+
+export const OPENUI_APP_LIBRARY_HASH =
+  "06e4b7ef3e2e2ca65a3cbe9b966d502210270331b475c21ab99ad5e90d51489e";
 
 /**
  * CustomApp is the manifest for an agent-generated internal tool. Mirrors the
@@ -13,6 +18,11 @@ export interface CustomApp {
   summary?: string;
   description?: string;
   entry: string;
+  representation?: "html" | "openui";
+  openuiVersion?: "0.5";
+  openuiLibrary?: "wuphf-app-v1";
+  openuiLibraryHash?: string;
+  providerVersion?: "1";
   version: number;
   /**
    * "building" = a pre-scaffolded app awaiting its first published build
@@ -34,9 +44,111 @@ export interface CustomApp {
   contentHash: string;
 }
 
-export interface CustomAppDetail {
-  app: CustomApp;
-  html: string;
+export type CustomAppDetail =
+  | {
+      app: CustomApp & { representation: "html"; entry: "index.html" };
+      html: string;
+      openui?: never;
+    }
+  | {
+      app: CustomApp & {
+        representation: "openui";
+        entry: "app.openui";
+        openuiVersion: "0.5";
+        openuiLibrary: "wuphf-app-v1";
+        openuiLibraryHash: string;
+        providerVersion: "1";
+      };
+      openui: string;
+      html?: never;
+    };
+
+const appBaseSchema = z
+  .object({
+    id: z.string(),
+    slug: z.string(),
+    name: z.string(),
+    icon: z.string(),
+    summary: z.string().optional(),
+    description: z.string().optional(),
+    entry: z.string(),
+    representation: z.enum(["html", "openui"]).optional(),
+    openuiVersion: z.literal("0.5").optional(),
+    openuiLibrary: z.literal("wuphf-app-v1").optional(),
+    openuiLibraryHash: z.string().optional(),
+    providerVersion: z.literal("1").optional(),
+    version: z.number().int().nonnegative(),
+    status: z.enum(["building", "ready"]).optional(),
+    editChannel: z.string().optional(),
+    createdBy: z.string(),
+    updatedBy: z.string().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    contentHash: z.string(),
+  })
+  .strict();
+
+function normalizeApp(raw: unknown): CustomApp {
+  const app = appBaseSchema.parse(raw);
+  const normalized = { ...app, representation: app.representation ?? "html" };
+  if (normalized.representation === "openui") {
+    if (
+      normalized.entry !== "app.openui" ||
+      normalized.openuiVersion !== "0.5" ||
+      normalized.openuiLibrary !== "wuphf-app-v1" ||
+      normalized.openuiLibraryHash !== OPENUI_APP_LIBRARY_HASH ||
+      normalized.providerVersion !== "1"
+    ) {
+      throw new Error("Invalid OpenUI app manifest");
+    }
+  } else if (
+    normalized.entry !== "index.html" ||
+    normalized.openuiVersion !== undefined ||
+    normalized.openuiLibrary !== undefined ||
+    normalized.openuiLibraryHash !== undefined ||
+    normalized.providerVersion !== undefined
+  ) {
+    throw new Error("Invalid HTML app manifest");
+  }
+  return normalized;
+}
+
+function parseAppDetail(raw: unknown): CustomAppDetail {
+  const envelope = z
+    .object({
+      app: z.unknown(),
+      html: z.string().optional(),
+      openui: z.string().optional(),
+    })
+    .strict()
+    .parse(raw);
+  const app = normalizeApp(envelope.app);
+  if (app.representation === "openui") {
+    if (
+      app.entry !== "app.openui" ||
+      app.openuiVersion !== "0.5" ||
+      app.openuiLibrary !== "wuphf-app-v1" ||
+      app.providerVersion !== "1" ||
+      app.openuiLibraryHash !== OPENUI_APP_LIBRARY_HASH ||
+      envelope.openui === undefined ||
+      envelope.html !== undefined
+    )
+      throw new Error("Invalid OpenUI app contract");
+    return {
+      app: app as Extract<CustomAppDetail, { openui: string }>["app"],
+      openui: envelope.openui,
+    };
+  }
+  if (
+    app.entry !== "index.html" ||
+    envelope.html === undefined ||
+    envelope.openui !== undefined
+  )
+    throw new Error("Invalid HTML app contract");
+  return {
+    app: { ...app, representation: "html", entry: "index.html" },
+    html: envelope.html,
+  };
 }
 
 /**
@@ -66,12 +178,19 @@ export interface AppCapabilities {
 }
 
 export async function listApps(): Promise<CustomApp[]> {
-  const res = await get<{ apps: CustomApp[] }>("/apps");
-  return res.apps ?? [];
+  const res = z
+    .object({ apps: z.array(z.unknown()).optional() })
+    .strict()
+    .parse(await get<unknown>("/apps"));
+  return (res.apps ?? []).map(normalizeApp);
 }
 
 export async function getApp(id: string): Promise<CustomAppDetail> {
-  return get<CustomAppDetail>(`/apps/${encodeURIComponent(id)}`);
+  return parseAppDetail(
+    await get<unknown>(
+      `/apps/${encodeURIComponent(id)}?accept_representation=openui`,
+    ),
+  );
 }
 
 /**
@@ -114,7 +233,9 @@ export async function listAppVersions(id: string): Promise<CustomAppVersion[]> {
 }
 
 export interface AppVersionDetail extends CustomAppVersion {
-  html: string;
+  representation: "html" | "openui";
+  html?: string;
+  openui?: string;
 }
 
 /**
@@ -127,9 +248,36 @@ export async function getAppVersion(
   id: string,
   version: number,
 ): Promise<AppVersionDetail> {
-  return get<AppVersionDetail>(
-    `/apps/${encodeURIComponent(id)}/versions/${version}`,
-  );
+  const raw = z
+    .object({
+      version: z.number().int().positive(),
+      updatedBy: z.string().optional(),
+      updatedAt: z.string().optional(),
+      current: z.boolean(),
+      representation: z.enum(["html", "openui"]).optional(),
+      entry: z.string().optional(),
+      openuiVersion: z.literal("0.5").optional(),
+      openuiLibrary: z.literal("wuphf-app-v1").optional(),
+      openuiLibraryHash: z.string().optional(),
+      providerVersion: z.literal("1").optional(),
+      contentHash: z.string().optional(),
+      html: z.string().optional(),
+      openui: z.string().optional(),
+    })
+    .strict()
+    .parse(
+      await get<unknown>(
+        `/apps/${encodeURIComponent(id)}/versions/${version}?accept_representation=openui`,
+      ),
+    );
+  const representation = raw.representation ?? "html";
+  if (
+    representation === "openui"
+      ? raw.openui === undefined || raw.html !== undefined
+      : raw.html === undefined || raw.openui !== undefined
+  )
+    throw new Error("Invalid app version contract");
+  return { ...raw, representation };
 }
 
 /**

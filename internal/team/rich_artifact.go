@@ -7,22 +7,38 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
+
+	"github.com/nex-crm/wuphf/internal/openuiartifact"
 )
 
 const (
-	richArtifactKindNotebookHTML = "notebook_html"
-	richArtifactKindWikiVisual   = "wiki_visual"
-	richArtifactRepresentation   = "html"
-	richArtifactTrustDraft       = "draft"
-	richArtifactTrustPromoted    = "promoted"
-	richArtifactSanitizerVersion = "sandbox-v2"
-	richArtifactRoot             = "wiki/visual-artifacts"
-	richArtifactMaxHTMLBytes     = 1024 * 1024
+	richArtifactKindNotebookHTML     = "notebook_html"
+	richArtifactKindNotebookOpenUI   = "notebook_openui"
+	richArtifactKindWikiVisual       = "wiki_visual"
+	richArtifactRepresentationHTML   = "html"
+	richArtifactRepresentationOpenUI = "openui"
+	richArtifactTrustDraft           = "draft"
+	richArtifactTrustPromoted        = "promoted"
+	richArtifactSanitizerVersion     = "sandbox-v2"
+	richArtifactRoot                 = "wiki/visual-artifacts"
+	richArtifactMaxHTMLBytes         = 1024 * 1024
+	richArtifactMaxOpenUIBytes       = 64 * 1024
+	richArtifactMaxOpenUIStatements  = 256
+	richArtifactMaxOpenUILineBytes   = 4096
+	richArtifactMaxMetadataBytes     = 64 * 1024
+	richArtifactMaxListEntries       = 1000
+	richArtifactMaxPromotionBytes    = 128 * 1024
+	richArtifactMaxTitleBytes        = 200
+	richArtifactMaxSummaryBytes      = 2000
 )
 
 // Promotion status values surfaced to the frontend. The contract is:
@@ -62,7 +78,10 @@ type AttachedNotebookEntry struct {
 	EntrySlug string `json:"entry_slug"`
 }
 
-var errRichArtifactCaller = errors.New("visual artifact: caller error")
+var (
+	errRichArtifactCaller   = errors.New("visual artifact: caller error")
+	errRichArtifactNotFound = errors.New("visual artifact: not found")
+)
 
 type richArtifactCallerError struct {
 	err error
@@ -87,17 +106,20 @@ func markRichArtifactCallerError(err error) error {
 	return richArtifactCallerError{err: err}
 }
 
-// RichArtifact is the durable metadata for a visual agent artifact. The HTML
-// body is stored separately at HTMLPath so metadata can be listed without
-// shipping the full rendered document to every client.
+// RichArtifact is the durable metadata for a visual agent artifact. New
+// OpenUI bodies use ContentPath; HTMLPath remains only for legacy artifacts.
 type RichArtifact struct {
 	ID                 string   `json:"id"`
 	Kind               string   `json:"kind"`
 	Title              string   `json:"title"`
 	Summary            string   `json:"summary"`
 	TrustLevel         string   `json:"trustLevel"`
-	Representation     string   `json:"representation"`
-	HTMLPath           string   `json:"htmlPath"`
+	Representation     string   `json:"representation,omitempty"`
+	HTMLPath           string   `json:"htmlPath,omitempty"`
+	ContentPath        string   `json:"contentPath,omitempty"`
+	OpenUIVersion      string   `json:"openuiVersion,omitempty"`
+	OpenUILibrary      string   `json:"openuiLibrary,omitempty"`
+	OpenUILibraryHash  string   `json:"openuiLibraryHash,omitempty"`
 	SourceMarkdownPath string   `json:"sourceMarkdownPath,omitempty"`
 	PromotedWikiPath   string   `json:"promotedWikiPath,omitempty"`
 	RelatedTaskID      string   `json:"relatedTaskId,omitempty"`
@@ -112,7 +134,7 @@ type RichArtifact struct {
 	CreatedAt        string `json:"createdAt"`
 	UpdatedAt        string `json:"updatedAt"`
 	ContentHash      string `json:"contentHash"`
-	SanitizerVersion string `json:"sanitizerVersion"`
+	SanitizerVersion string `json:"sanitizerVersion,omitempty"`
 	// Promotion is the canonical surface for the UI's "where does this
 	// artifact live now?" decision. Older artifacts written before this
 	// field existed may omit it on disk; readers MUST fall back to
@@ -210,7 +232,8 @@ type RichArtifactCreateRequest struct {
 	Slug               string   `json:"slug"`
 	Title              string   `json:"title"`
 	Summary            string   `json:"summary"`
-	HTML               string   `json:"html"`
+	OpenUILang         string   `json:"openui_lang"`
+	LegacyHTML         *string  `json:"html,omitempty"`
 	SourceMarkdownPath string   `json:"source_markdown_path"`
 	RelatedTaskID      string   `json:"related_task_id"`
 	RelatedMessageID   string   `json:"related_message_id"`
@@ -229,26 +252,35 @@ type RichArtifactPromoteRequest struct {
 type wikiRichArtifactWork struct {
 	Artifact RichArtifact
 	ID       string
-	HTML     string
+	Content  string
 	Markdown string
 	Now      time.Time
 }
 
 func newRichArtifact(req RichArtifactCreateRequest, now time.Time) (RichArtifact, string, error) {
+	if req.LegacyHTML != nil {
+		if strings.TrimSpace(req.OpenUILang) != "" {
+			return RichArtifact{}, "", newRichArtifactCallerError("visual artifact: provide openui_lang only; html cannot be combined with it")
+		}
+		return newLegacyRichArtifact(req, *req.LegacyHTML, now)
+	}
 	slug := strings.TrimSpace(req.Slug)
 	if err := validateNotebookSlug(slug); err != nil {
 		return RichArtifact{}, "", markRichArtifactCallerError(err)
 	}
-	title := strings.TrimSpace(req.Title)
+	title := normalizeRichArtifactMetadata(req.Title)
 	if title == "" {
 		return RichArtifact{}, "", newRichArtifactCallerError("visual artifact: title is required")
 	}
-	if strings.ContainsRune(title, '\x00') {
-		return RichArtifact{}, "", newRichArtifactCallerError("visual artifact: title must not contain NUL bytes")
+	if len([]byte(title)) > richArtifactMaxTitleBytes {
+		return RichArtifact{}, "", newRichArtifactCallerError("visual artifact: title exceeds %d bytes", richArtifactMaxTitleBytes)
 	}
-	summary := strings.TrimSpace(req.Summary)
-	html := req.HTML
-	if err := validateRichArtifactHTMLPolicy(html); err != nil {
+	summary := normalizeRichArtifactMetadata(req.Summary)
+	if len([]byte(summary)) > richArtifactMaxSummaryBytes {
+		return RichArtifact{}, "", newRichArtifactCallerError("visual artifact: summary exceeds %d bytes", richArtifactMaxSummaryBytes)
+	}
+	content := req.OpenUILang
+	if err := validateRichArtifactOpenUIPolicy(content); err != nil {
 		return RichArtifact{}, "", err
 	}
 	sourcePath := strings.TrimSpace(req.SourceMarkdownPath)
@@ -259,16 +291,19 @@ func newRichArtifact(req RichArtifactCreateRequest, now time.Time) (RichArtifact
 	}
 	relatedReceiptIDs := cleanRichArtifactStringList(req.RelatedReceiptIDs)
 	createdAt := now.UTC().Format(time.RFC3339Nano)
-	contentHash := richArtifactContentHash(html)
-	id := richArtifactID(slug, title, createdAt, html, summary, sourcePath, strings.TrimSpace(req.RelatedTaskID), strings.TrimSpace(req.RelatedMessageID), relatedReceiptIDs)
+	contentHash := richArtifactContentHash(content)
+	id := richArtifactOpenUIID(slug, title, content, summary, sourcePath, strings.TrimSpace(req.RelatedTaskID), strings.TrimSpace(req.RelatedMessageID), relatedReceiptIDs)
 	artifact := RichArtifact{
 		ID:                 id,
-		Kind:               richArtifactKindNotebookHTML,
+		Kind:               richArtifactKindNotebookOpenUI,
 		Title:              title,
 		Summary:            summary,
 		TrustLevel:         richArtifactTrustDraft,
-		Representation:     richArtifactRepresentation,
-		HTMLPath:           richArtifactHTMLPath(id),
+		Representation:     richArtifactRepresentationOpenUI,
+		ContentPath:        richArtifactOpenUIPath(id),
+		OpenUIVersion:      openuiartifact.Version,
+		OpenUILibrary:      openuiartifact.Library,
+		OpenUILibraryHash:  openuiartifact.LibraryHash,
 		SourceMarkdownPath: sourcePath,
 		RelatedTaskID:      strings.TrimSpace(req.RelatedTaskID),
 		RelatedMessageID:   strings.TrimSpace(req.RelatedMessageID),
@@ -276,11 +311,10 @@ func newRichArtifact(req RichArtifactCreateRequest, now time.Time) (RichArtifact
 		CreatedBy:          slug,
 		// OwnerSlug mirrors CreatedBy under the FE wire-contract name so the
 		// list/get responses carry it without a per-request derivation.
-		OwnerSlug:        slug,
-		CreatedAt:        createdAt,
-		UpdatedAt:        createdAt,
-		ContentHash:      contentHash,
-		SanitizerVersion: richArtifactSanitizerVersion,
+		OwnerSlug:   slug,
+		CreatedAt:   createdAt,
+		UpdatedAt:   createdAt,
+		ContentHash: contentHash,
 	}
 	// New artifacts start as drafts unless they are immediately attached to
 	// a notebook entry via SourceMarkdownPath. The promote tool flips this to
@@ -294,7 +328,63 @@ func newRichArtifact(req RichArtifactCreateRequest, now time.Time) (RichArtifact
 	} else {
 		artifact.Promotion = &ArtifactPromotion{Status: ArtifactPromotionStatusDraft}
 	}
+	return artifact, content, nil
+}
+
+func newLegacyRichArtifact(req RichArtifactCreateRequest, html string, now time.Time) (RichArtifact, string, error) {
+	slug := strings.TrimSpace(req.Slug)
+	if err := validateNotebookSlug(slug); err != nil {
+		return RichArtifact{}, "", markRichArtifactCallerError(err)
+	}
+	title := normalizeRichArtifactMetadata(req.Title)
+	if title == "" {
+		return RichArtifact{}, "", newRichArtifactCallerError("visual artifact: title is required")
+	}
+	summary := normalizeRichArtifactMetadata(req.Summary)
+	if len([]byte(title)) > richArtifactMaxTitleBytes || len([]byte(summary)) > richArtifactMaxSummaryBytes {
+		return RichArtifact{}, "", newRichArtifactCallerError("visual artifact: metadata exceeds size limit")
+	}
+	if err := validateRichArtifactHTMLPolicy(html); err != nil {
+		return RichArtifact{}, "", err
+	}
+	sourcePath := strings.TrimSpace(req.SourceMarkdownPath)
+	if sourcePath != "" {
+		if err := validateNotebookWritePath(slug, sourcePath); err != nil {
+			return RichArtifact{}, "", markRichArtifactCallerError(err)
+		}
+	}
+	relatedReceiptIDs := cleanRichArtifactStringList(req.RelatedReceiptIDs)
+	createdAt := now.UTC().Format(time.RFC3339Nano)
+	id := richArtifactID(slug, title, createdAt, html, summary, sourcePath, strings.TrimSpace(req.RelatedTaskID), strings.TrimSpace(req.RelatedMessageID), relatedReceiptIDs)
+	artifact := RichArtifact{
+		ID:                 id,
+		Kind:               richArtifactKindNotebookHTML,
+		Title:              title,
+		Summary:            summary,
+		TrustLevel:         richArtifactTrustDraft,
+		Representation:     richArtifactRepresentationHTML,
+		HTMLPath:           richArtifactHTMLPath(id),
+		SourceMarkdownPath: sourcePath,
+		RelatedTaskID:      strings.TrimSpace(req.RelatedTaskID),
+		RelatedMessageID:   strings.TrimSpace(req.RelatedMessageID),
+		RelatedReceiptIDs:  relatedReceiptIDs,
+		CreatedBy:          slug,
+		OwnerSlug:          slug,
+		CreatedAt:          createdAt,
+		UpdatedAt:          createdAt,
+		ContentHash:        richArtifactContentHash(html),
+		SanitizerVersion:   richArtifactSanitizerVersion,
+	}
+	if owner, entry, ok := notebookOwnerAndEntryFromPath(sourcePath); ok {
+		artifact.Promotion = &ArtifactPromotion{Status: ArtifactPromotionStatusPromotedToNotebook, OwnerSlug: owner, EntrySlug: entry}
+	} else {
+		artifact.Promotion = &ArtifactPromotion{Status: ArtifactPromotionStatusDraft}
+	}
 	return artifact, html, nil
+}
+
+func normalizeRichArtifactMetadata(value string) string {
+	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
 }
 
 func richArtifactID(slug, title, createdAt, html, summary, sourcePath, relatedTaskID, relatedMessageID string, relatedReceiptIDs []string) string {
@@ -312,6 +402,35 @@ func richArtifactID(slug, title, createdAt, html, summary, sourcePath, relatedTa
 	return "ra_" + hex.EncodeToString(sum[:])[:16]
 }
 
+func richArtifactOpenUIID(slug, title, content, summary, sourcePath, relatedTaskID, relatedMessageID string, relatedReceiptIDs []string) string {
+	preimage, err := json.Marshal(struct {
+		Domain            string   `json:"domain"`
+		Slug              string   `json:"slug"`
+		Title             string   `json:"title"`
+		Content           string   `json:"content"`
+		Summary           string   `json:"summary"`
+		SourcePath        string   `json:"source_path"`
+		RelatedTaskID     string   `json:"related_task_id"`
+		RelatedMessageID  string   `json:"related_message_id"`
+		RelatedReceiptIDs []string `json:"related_receipt_ids"`
+	}{
+		Domain:            "openui-v2",
+		Slug:              slug,
+		Title:             title,
+		Content:           content,
+		Summary:           summary,
+		SourcePath:        sourcePath,
+		RelatedTaskID:     relatedTaskID,
+		RelatedMessageID:  relatedMessageID,
+		RelatedReceiptIDs: relatedReceiptIDs,
+	})
+	if err != nil {
+		panic("marshal deterministic OpenUI artifact identity: " + err.Error())
+	}
+	sum := sha256.Sum256(preimage)
+	return "ra_" + hex.EncodeToString(sum[:])[:16]
+}
+
 func richArtifactContentHash(html string) string {
 	sum := sha256.Sum256([]byte(html))
 	return hex.EncodeToString(sum[:])
@@ -323,6 +442,10 @@ func richArtifactMetaPath(id string) string {
 
 func richArtifactHTMLPath(id string) string {
 	return filepath.ToSlash(filepath.Join(richArtifactRoot, id+".html"))
+}
+
+func richArtifactOpenUIPath(id string) string {
+	return filepath.ToSlash(filepath.Join(richArtifactRoot, id+".openui"))
 }
 
 func validateRichArtifactID(id string) error {
@@ -356,6 +479,116 @@ func validateRichArtifactHTMLPolicy(html string) error {
 		return err
 	}
 	return nil
+}
+
+var richArtifactOpenUIForbiddenTokenREs = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)\bQuery\s*\(`),
+	regexp.MustCompile(`(?i)\bMutation\s*\(`),
+	regexp.MustCompile(`(?i)@(OpenUrl|ToAssistant|Run|Set|Reset)\s*\(`),
+	regexp.MustCompile(`(?m)^\s*\$[A-Za-z_][A-Za-z0-9_]*\s*=`),
+}
+
+func validateRichArtifactOpenUIPolicy(content string) error {
+	if strings.TrimSpace(content) == "" {
+		return newRichArtifactCallerError("visual artifact: openui_lang is required")
+	}
+	if len([]byte(content)) > richArtifactMaxOpenUIBytes {
+		return newRichArtifactCallerError("visual artifact: openui_lang exceeds %d bytes", richArtifactMaxOpenUIBytes)
+	}
+	if strings.ContainsRune(content, '\x00') {
+		return newRichArtifactCallerError("visual artifact: openui_lang must not contain NUL bytes")
+	}
+	lines := strings.Split(content, "\n")
+	statements := 0
+	rootSeen := false
+	for _, rawLine := range lines {
+		if len([]byte(rawLine)) > richArtifactMaxOpenUILineBytes {
+			return newRichArtifactCallerError("visual artifact: openui_lang line exceeds %d bytes", richArtifactMaxOpenUILineBytes)
+		}
+		line := strings.TrimSpace(rawLine)
+		if line == "" {
+			continue
+		}
+		statements++
+		if statements == 1 {
+			rootSeen = strings.HasPrefix(line, "root = Stack(")
+		}
+	}
+	if statements > richArtifactMaxOpenUIStatements {
+		return newRichArtifactCallerError("visual artifact: openui_lang exceeds %d statements", richArtifactMaxOpenUIStatements)
+	}
+	if !rootSeen {
+		return newRichArtifactCallerError("visual artifact: openui_lang must begin with root = Stack(...)")
+	}
+	code := openUICodeOutsideStrings(content)
+	for _, forbidden := range richArtifactOpenUIForbiddenTokenREs {
+		if forbidden.FindStringIndex(code) != nil {
+			return newRichArtifactCallerError("visual artifact: openui_lang contains forbidden token %q", forbidden.String())
+		}
+	}
+	for _, scheme := range []string{"http://", "https://", "javascript:", "data:"} {
+		if strings.Contains(strings.ToLower(content), scheme) {
+			return newRichArtifactCallerError("visual artifact: openui_lang contains forbidden URL scheme %q", scheme)
+		}
+	}
+	return nil
+}
+
+// openUICodeOutsideStrings preserves code positions while blanking quoted
+// string contents, so active syntax checks cannot be bypassed with whitespace
+// and do not reject harmless words displayed as text.
+func openUICodeOutsideStrings(content string) string {
+	var out strings.Builder
+	out.Grow(len(content))
+	inString := false
+	escaped := false
+	for _, ch := range content {
+		if inString {
+			if escaped {
+				escaped = false
+				out.WriteRune(' ')
+				continue
+			}
+			if ch == '\\' {
+				escaped = true
+				out.WriteRune(' ')
+				continue
+			}
+			if ch == '"' {
+				inString = false
+				out.WriteRune(ch)
+			} else if ch == '\n' {
+				out.WriteRune(ch)
+			} else {
+				out.WriteRune(' ')
+			}
+			continue
+		}
+		if ch == '"' {
+			inString = true
+		}
+		out.WriteRune(ch)
+	}
+	return out.String()
+}
+
+func richArtifactBodyPath(artifact RichArtifact) (string, error) {
+	representation := strings.TrimSpace(artifact.Representation)
+	if representation == "" || representation == richArtifactRepresentationHTML {
+		want := richArtifactHTMLPath(artifact.ID)
+		if artifact.HTMLPath != want || artifact.ContentPath != "" {
+			return "", newRichArtifactCallerError("visual artifact: legacy html path must be %q", want)
+		}
+		return want, nil
+	}
+	if representation == richArtifactRepresentationOpenUI {
+		want := richArtifactOpenUIPath(artifact.ID)
+		if artifact.ContentPath != want || artifact.HTMLPath != "" {
+			return "", newRichArtifactCallerError("visual artifact: OpenUI contentPath must be %q", want)
+		}
+		return want, nil
+	}
+	return "", newRichArtifactCallerError("visual artifact: unsupported representation %q", artifact.Representation)
 }
 
 func validateRichArtifactSandboxPolicy(raw string) error {
@@ -437,12 +670,52 @@ func cleanRichArtifactStringList(in []string) []string {
 	return out
 }
 
-func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact RichArtifact, html, message string) (RichArtifact, string, int, error) {
+func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact RichArtifact, content, message string) (RichArtifact, string, int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if strings.TrimSpace(slug) == "" {
 		return RichArtifact{}, "", 0, newRichArtifactCallerError("visual artifact: author slug is required")
+	}
+	if err := validateRichArtifactForWrite(artifact, content); err != nil {
+		return RichArtifact{}, "", 0, err
+	}
+	metaPath := richArtifactMetaPath(artifact.ID)
+	if _, err := os.Stat(filepath.Join(r.root, metaPath)); err == nil {
+		existing, existingContent, readErr := r.readRichArtifactLocked(artifact.ID)
+		if readErr != nil {
+			return RichArtifact{}, "", 0, readErr
+		}
+		if !sameRichArtifactIdentity(existing, artifact) || existingContent != content {
+			return RichArtifact{}, "", 0, newRichArtifactCallerError("visual artifact: deterministic id collision for %s", artifact.ID)
+		}
+		bodyPath, pathErr := richArtifactBodyPath(existing)
+		if pathErr != nil {
+			return RichArtifact{}, "", 0, pathErr
+		}
+		for _, committedPath := range []string{metaPath, bodyPath} {
+			if out, verifyErr := r.runGitLocked(ctx, slug, "cat-file", "-e", "HEAD:"+committedPath); verifyErr != nil {
+				return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: previous creation is incomplete; %s is not committed: %w: %s", committedPath, verifyErr, out)
+			}
+		}
+		head, headErr := r.currentHeadLocked(ctx)
+		return existing, head, 0, headErr
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: inspect metadata: %w", err)
+	}
+	registryDir := filepath.Join(r.root, richArtifactRoot)
+	if entries, readErr := os.ReadDir(registryDir); readErr == nil {
+		count := 0
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+				count++
+			}
+		}
+		if count >= richArtifactMaxListEntries {
+			return RichArtifact{}, "", 0, newRichArtifactCallerError("visual artifact: registry quota of %d artifacts reached", richArtifactMaxListEntries)
+		}
+	} else if !errors.Is(readErr, os.ErrNotExist) {
+		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: inspect registry quota: %w", readErr)
 	}
 	// Derive (and create) the canonical notebook home BEFORE marshalling the
 	// metadata so the persisted JSON carries attached_to_notebook_entry from
@@ -465,12 +738,12 @@ func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact Ric
 		artifact.SourceMarkdownPath = notebookPath
 	}
 
-	if err := validateRichArtifactForWrite(artifact, html); err != nil {
+	if err := validateRichArtifactForWrite(artifact, content); err != nil {
 		return RichArtifact{}, "", 0, err
 	}
-	metaPath := richArtifactMetaPath(artifact.ID)
-	if artifact.HTMLPath != richArtifactHTMLPath(artifact.ID) {
-		return RichArtifact{}, "", 0, newRichArtifactCallerError("visual artifact: htmlPath must be %q", richArtifactHTMLPath(artifact.ID))
+	bodyPath, err := richArtifactBodyPath(artifact)
+	if err != nil {
+		return RichArtifact{}, "", 0, err
 	}
 	metaBytes, err := json.MarshalIndent(artifact, "", "  ")
 	if err != nil {
@@ -480,13 +753,13 @@ func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact Ric
 	if err := os.MkdirAll(filepath.Join(r.root, richArtifactRoot), 0o700); err != nil {
 		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: mkdir: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(r.root, artifact.HTMLPath), []byte(html), 0o600); err != nil {
-		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: write html: %w", err)
+	if err := os.WriteFile(filepath.Join(r.root, bodyPath), []byte(content), 0o600); err != nil {
+		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: write content: %w", err)
 	}
 	if err := os.WriteFile(filepath.Join(r.root, metaPath), metaBytes, 0o600); err != nil {
 		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: write metadata: %w", err)
 	}
-	addArgs := []string{"add", "--", artifact.HTMLPath, metaPath}
+	addArgs := []string{"add", "--", bodyPath, metaPath}
 	if notebookPath != "" {
 		fullNotebook := filepath.Join(r.root, filepath.FromSlash(notebookPath))
 		if err := os.MkdirAll(filepath.Dir(fullNotebook), 0o700); err != nil {
@@ -504,7 +777,7 @@ func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact Ric
 		return RichArtifact{}, "", 0, err
 	} else if empty {
 		head, err := r.currentHeadLocked(ctx)
-		return artifact, head, len(html) + len(metaBytes), err
+		return artifact, head, len(content) + len(metaBytes), err
 	}
 	commitMsg := strings.TrimSpace(message)
 	if commitMsg == "" {
@@ -514,7 +787,28 @@ func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact Ric
 		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: git commit: %w: %s", err, out)
 	}
 	sha, err := r.currentHeadLocked(ctx)
-	return artifact, sha, len(html) + len(metaBytes), err
+	return artifact, sha, len(content) + len(metaBytes), err
+}
+
+func sameRichArtifactIdentity(existing, requested RichArtifact) bool {
+	requestedSourcePath := strings.TrimSpace(requested.SourceMarkdownPath)
+	if requestedSourcePath == "" && existing.AttachedToNotebookEntry != nil {
+		attached := existing.AttachedToNotebookEntry
+		derived := filepath.ToSlash(filepath.Join("agents", attached.OwnerSlug, "notebook", attached.EntrySlug+".md"))
+		if strings.TrimSpace(existing.SourceMarkdownPath) == derived {
+			requestedSourcePath = derived
+		}
+	}
+	return existing.ID == requested.ID &&
+		existing.CreatedBy == requested.CreatedBy &&
+		existing.Title == requested.Title &&
+		existing.Summary == requested.Summary &&
+		strings.TrimSpace(existing.SourceMarkdownPath) == requestedSourcePath &&
+		existing.RelatedTaskID == requested.RelatedTaskID &&
+		existing.RelatedMessageID == requested.RelatedMessageID &&
+		slices.Equal(existing.RelatedReceiptIDs, requested.RelatedReceiptIDs) &&
+		existing.Representation == requested.Representation &&
+		existing.ContentHash == requested.ContentHash
 }
 
 // ensureRichArtifactNotebookHomeLocked decides the canonical notebook home
@@ -652,11 +946,11 @@ func slugifyNotebookEntry(title string) string {
 	return out
 }
 
-func validateRichArtifactForWrite(artifact RichArtifact, html string) error {
+func validateRichArtifactMetadata(artifact RichArtifact) error {
 	if err := validateRichArtifactID(artifact.ID); err != nil {
 		return err
 	}
-	if artifact.Kind != richArtifactKindNotebookHTML && artifact.Kind != richArtifactKindWikiVisual {
+	if artifact.Kind != richArtifactKindNotebookHTML && artifact.Kind != richArtifactKindNotebookOpenUI && artifact.Kind != richArtifactKindWikiVisual {
 		return newRichArtifactCallerError("visual artifact: unsupported kind %q", artifact.Kind)
 	}
 	if strings.TrimSpace(artifact.Title) == "" {
@@ -664,9 +958,6 @@ func validateRichArtifactForWrite(artifact RichArtifact, html string) error {
 	}
 	if strings.ContainsRune(artifact.Title, '\x00') {
 		return newRichArtifactCallerError("visual artifact: title must not contain NUL bytes")
-	}
-	if artifact.Representation != richArtifactRepresentation {
-		return newRichArtifactCallerError("visual artifact: unsupported representation %q", artifact.Representation)
 	}
 	if artifact.TrustLevel != richArtifactTrustDraft && artifact.TrustLevel != richArtifactTrustPromoted {
 		return newRichArtifactCallerError("visual artifact: unsupported trust level %q", artifact.TrustLevel)
@@ -677,13 +968,71 @@ func validateRichArtifactForWrite(artifact RichArtifact, html string) error {
 	if artifact.CreatedAt == "" || artifact.UpdatedAt == "" {
 		return newRichArtifactCallerError("visual artifact: timestamps are required")
 	}
-	if artifact.ContentHash != richArtifactContentHash(html) {
+	if artifact.Promotion != nil {
+		switch artifact.Promotion.Status {
+		case ArtifactPromotionStatusDraft:
+			if artifact.Promotion.OwnerSlug != "" || artifact.Promotion.EntrySlug != "" || artifact.Promotion.WikiPath != "" {
+				return newRichArtifactCallerError("visual artifact: draft promotion has unexpected fields")
+			}
+		case ArtifactPromotionStatusPromotedToNotebook:
+			if artifact.Promotion.OwnerSlug == "" || artifact.Promotion.EntrySlug == "" || artifact.Promotion.WikiPath != "" {
+				return newRichArtifactCallerError("visual artifact: invalid notebook promotion")
+			}
+		case ArtifactPromotionStatusPromotedToWiki:
+			if artifact.Promotion.WikiPath == "" || artifact.Promotion.OwnerSlug != "" || artifact.Promotion.EntrySlug != "" {
+				return newRichArtifactCallerError("visual artifact: invalid wiki promotion")
+			}
+		default:
+			return newRichArtifactCallerError("visual artifact: unsupported promotion status %q", artifact.Promotion.Status)
+		}
+	}
+	if _, err := richArtifactBodyPath(artifact); err != nil {
+		return err
+	}
+	representation := artifact.Representation
+	if representation == "" {
+		representation = richArtifactRepresentationHTML
+	}
+	switch representation {
+	case richArtifactRepresentationHTML:
+		if artifact.Kind == richArtifactKindNotebookOpenUI {
+			return newRichArtifactCallerError("visual artifact: OpenUI kind cannot use html representation")
+		}
+		if artifact.SanitizerVersion != richArtifactSanitizerVersion {
+			return newRichArtifactCallerError("visual artifact: unsupported sanitizer version %q", artifact.SanitizerVersion)
+		}
+		if artifact.OpenUIVersion != "" || artifact.OpenUILibrary != "" || artifact.OpenUILibraryHash != "" {
+			return newRichArtifactCallerError("visual artifact: html metadata must not contain OpenUI contract fields")
+		}
+	case richArtifactRepresentationOpenUI:
+		if artifact.Kind == richArtifactKindNotebookHTML {
+			return newRichArtifactCallerError("visual artifact: html kind cannot use OpenUI representation")
+		}
+		if artifact.SanitizerVersion != "" {
+			return newRichArtifactCallerError("visual artifact: OpenUI metadata must not contain sanitizerVersion")
+		}
+		if artifact.OpenUIVersion != openuiartifact.Version || artifact.OpenUILibrary != openuiartifact.Library || artifact.OpenUILibraryHash != openuiartifact.LibraryHash {
+			return newRichArtifactCallerError("visual artifact: unsupported OpenUI contract")
+		}
+	}
+	return nil
+}
+
+func validateRichArtifactForWrite(artifact RichArtifact, content string) error {
+	if err := validateRichArtifactMetadata(artifact); err != nil {
+		return err
+	}
+	if artifact.ContentHash != richArtifactContentHash(content) {
 		return newRichArtifactCallerError("visual artifact: content hash mismatch")
 	}
-	if artifact.SanitizerVersion != richArtifactSanitizerVersion {
-		return newRichArtifactCallerError("visual artifact: unsupported sanitizer version %q", artifact.SanitizerVersion)
+	representation := artifact.Representation
+	if representation == "" {
+		representation = richArtifactRepresentationHTML
 	}
-	return validateRichArtifactHTML(html)
+	if representation == richArtifactRepresentationOpenUI {
+		return validateRichArtifactOpenUIPolicy(content)
+	}
+	return validateRichArtifactHTML(content)
 }
 
 func (r *Repo) PromoteRichArtifact(ctx context.Context, actorSlug, id, targetPath, markdown, mode, message string, now time.Time) (RichArtifact, string, int, error) {
@@ -817,7 +1166,10 @@ func markdownWithRichArtifactProvenance(markdown string, artifact RichArtifact) 
 		b.WriteString("`\n")
 	}
 	b.WriteString("- Visual view: `")
-	b.WriteString(artifact.HTMLPath)
+	bodyPath, err := richArtifactBodyPath(artifact)
+	if err == nil {
+		b.WriteString(bodyPath)
+	}
 	b.WriteString("`\n")
 	return b.String()
 }
@@ -832,28 +1184,39 @@ func (r *Repo) readRichArtifactLocked(id string) (RichArtifact, string, error) {
 	if err := validateRichArtifactID(id); err != nil {
 		return RichArtifact{}, "", err
 	}
-	metaBytes, err := os.ReadFile(filepath.Join(r.root, richArtifactMetaPath(id)))
+	metaBytes, err := readRichArtifactFileBounded(filepath.Join(r.root, richArtifactMetaPath(id)), richArtifactMaxMetadataBytes)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return RichArtifact{}, "", fmt.Errorf("%w: %s", errRichArtifactNotFound, id)
+		}
 		return RichArtifact{}, "", fmt.Errorf("visual artifact: read metadata: %w", err)
 	}
 	var artifact RichArtifact
-	if err := json.Unmarshal(metaBytes, &artifact); err != nil {
+	if err := decodeStrictRichArtifactMetadata(metaBytes, &artifact); err != nil {
 		return RichArtifact{}, "", fmt.Errorf("visual artifact: decode metadata: %w", err)
 	}
 	if artifact.ID != id {
 		return RichArtifact{}, "", fmt.Errorf("visual artifact: metadata id mismatch")
 	}
-	if artifact.HTMLPath != richArtifactHTMLPath(id) {
-		return RichArtifact{}, "", fmt.Errorf("visual artifact: htmlPath must be %q", richArtifactHTMLPath(id))
-	}
-	html, err := os.ReadFile(filepath.Join(r.root, artifact.HTMLPath))
+	bodyPath, err := richArtifactBodyPath(artifact)
 	if err != nil {
-		return RichArtifact{}, "", fmt.Errorf("visual artifact: read html: %w", err)
-	}
-	if err := validateRichArtifactForWrite(artifact, string(html)); err != nil {
 		return RichArtifact{}, "", err
 	}
-	return artifact.WithDerivedPromotion(), string(html), nil
+	maxBodyBytes := int64(richArtifactMaxHTMLBytes)
+	if artifact.Representation == richArtifactRepresentationOpenUI {
+		maxBodyBytes = richArtifactMaxOpenUIBytes
+	}
+	content, err := readRichArtifactFileBounded(filepath.Join(r.root, bodyPath), maxBodyBytes)
+	if err != nil {
+		return RichArtifact{}, "", fmt.Errorf("visual artifact: read content: %w", err)
+	}
+	if !utf8.Valid(content) {
+		return RichArtifact{}, "", errors.New("visual artifact: content must be valid UTF-8")
+	}
+	if err := validateRichArtifactForWrite(artifact, string(content)); err != nil {
+		return RichArtifact{}, "", err
+	}
+	return artifact.WithDerivedPromotion(), string(content), nil
 }
 
 func (r *Repo) ListRichArtifacts(filter RichArtifactFilter) ([]RichArtifact, error) {
@@ -873,18 +1236,25 @@ func (r *Repo) ListRichArtifacts(filter RichArtifactFilter) ([]RichArtifact, err
 			continue
 		}
 		metaPaths = append(metaPaths, filepath.Join(dir, entry.Name()))
+		if len(metaPaths) > richArtifactMaxListEntries {
+			r.mu.Unlock()
+			return nil, fmt.Errorf("visual artifact: registry exceeds %d entries", richArtifactMaxListEntries)
+		}
 	}
 	r.mu.Unlock()
 
 	out := make([]RichArtifact, 0, len(metaPaths))
 	for _, metaPath := range metaPaths {
-		raw, err := os.ReadFile(metaPath)
+		raw, err := readRichArtifactFileBounded(metaPath, richArtifactMaxMetadataBytes)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("visual artifact: read metadata %s: %w", filepath.Base(metaPath), err)
 		}
 		var artifact RichArtifact
-		if err := json.Unmarshal(raw, &artifact); err != nil {
-			continue
+		if err := decodeStrictRichArtifactMetadata(raw, &artifact); err != nil {
+			return nil, fmt.Errorf("visual artifact: decode metadata %s: %w", filepath.Base(metaPath), err)
+		}
+		if err := validateRichArtifactMetadata(artifact); err != nil {
+			return nil, fmt.Errorf("visual artifact: corrupt metadata %s: %w", filepath.Base(metaPath), err)
 		}
 		if !richArtifactMatchesFilter(artifact, filter) {
 			continue
@@ -898,6 +1268,46 @@ func (r *Repo) ListRichArtifacts(filter RichArtifactFilter) ([]RichArtifact, err
 		return out[i].UpdatedAt > out[j].UpdatedAt
 	})
 	return out, nil
+}
+
+func readRichArtifactFileBounded(path string, maxBytes int64) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	raw, err := io.ReadAll(io.LimitReader(f, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(raw)) > maxBytes {
+		return nil, fmt.Errorf("file exceeds %d bytes", maxBytes)
+	}
+	return raw, nil
+}
+
+func decodeStrictRichArtifactMetadata(raw []byte, artifact *RichArtifact) error {
+	if !utf8.Valid(raw) {
+		return errors.New("metadata must be valid UTF-8")
+	}
+	if err := rejectDuplicateTopLevelJSONFields(raw); err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(raw)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(artifact); err != nil {
+		return err
+	}
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return errors.New("metadata contains multiple JSON values")
+		}
+		return err
+	}
+	return nil
 }
 
 func richArtifactMatchesFilter(artifact RichArtifact, filter RichArtifactFilter) bool {
@@ -929,7 +1339,7 @@ func (r *Repo) currentHeadLocked(ctx context.Context) (string, error) {
 	return strings.TrimSpace(headSha), nil
 }
 
-func (w *WikiWorker) CreateRichArtifact(ctx context.Context, artifact RichArtifact, html, commitMsg string) (RichArtifact, string, int, error) {
+func (w *WikiWorker) CreateRichArtifact(ctx context.Context, artifact RichArtifact, content, commitMsg string) (RichArtifact, string, int, error) {
 	if w == nil || w.repo == nil || !w.running.Load() {
 		return RichArtifact{}, "", 0, ErrWorkerStopped
 	}
@@ -941,7 +1351,7 @@ func (w *WikiWorker) CreateRichArtifact(ctx context.Context, artifact RichArtifa
 		IsRichArtifact: true,
 		RichArtifact: wikiRichArtifactWork{
 			Artifact: artifact,
-			HTML:     html,
+			Content:  content,
 		},
 		CommitMsg: commitMsg,
 		ReplyCh:   make(chan wikiWriteResult, 1),
@@ -1014,7 +1424,7 @@ func (w *WikiWorker) processRichArtifactRequest(ctx context.Context, req wikiWri
 		return RichArtifact{}, "", 0, fmt.Errorf("visual artifact: request cancelled before write: %w", err)
 	}
 	if req.IsRichArtifact {
-		return w.repo.CommitRichArtifact(ctx, req.Slug, req.RichArtifact.Artifact, req.RichArtifact.HTML, req.CommitMsg)
+		return w.repo.CommitRichArtifact(ctx, req.Slug, req.RichArtifact.Artifact, req.RichArtifact.Content, req.CommitMsg)
 	}
 	return w.repo.PromoteRichArtifact(ctx, req.Slug, req.RichArtifact.ID, req.Path, req.RichArtifact.Markdown, req.Mode, req.CommitMsg, req.RichArtifact.Now)
 }

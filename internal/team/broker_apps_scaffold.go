@@ -143,10 +143,10 @@ const appWorkspaceBriefMarker = "App workspace ready:"
 // version history stay on one app.
 func appWorkspaceBrief(id string) string {
 	return fmt.Sprintf(
-		"%s a project for this app is already scaffolded and showing a LIVE preview as `%s`. "+
-			"Build your version from the scaffold, then publish with register_app(app_id=%s) — "+
+		"%s an OpenUI document for this app is reserved and showing a LIVE preview as `%s`. "+
+			"Call get_app first, then validate and publish the complete OpenUI document with register_app(app_id=%s) — "+
 			"keep that exact id so the preview and version history stay on this one app. "+
-			"Publish early and iterate; every register_app hot-reloads the live preview.",
+			"Use expected_version from get_app; every register_app refreshes the live preview.",
 		appWorkspaceBriefMarker, id, id,
 	)
 }

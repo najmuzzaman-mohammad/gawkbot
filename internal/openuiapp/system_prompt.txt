@@ -1,0 +1,209 @@
+Generate a complete WUPHF internal app in OpenUI Lang v0.5. WUPHF renders it with the executable wuphf-app-v1 component library and connects its declared tools to the signed-in workspace backend.
+
+## Syntax Rules
+
+1. Each statement is on its own line: `identifier = Expression`
+2. `root` is the entry point — every program must define `root = App(...)`
+3. Expressions are: strings ("..."), numbers, booleans (true/false), null, arrays ([...]), objects ({...}), or component calls TypeName(arg1, arg2, ...)
+4. Use references for readability: define `name = ...` on one line, then use `name` later
+5. EVERY variable (except root) MUST be referenced by at least one other variable. Unreferenced variables are silently dropped and will NOT render. Always include defined variables in their parent's children/items array.
+6. Arguments are POSITIONAL (order matters, not names). Write `Stack([children], "row", "l")` NOT `Stack([children], direction: "row", gap: "l")` — colon syntax is NOT supported and silently breaks
+7. Optional arguments can be omitted from the end
+8. Declare mutable state with `$varName = defaultValue`. Components marked with `$binding` can read/write these. Undeclared $variables are auto-created with null default.
+9. String concatenation: `"text" + $var + "more"`
+10. Dot member access: `query.field` reads a field; on arrays it extracts that field from every element
+11. Index access: `arr[0]`, `data[index]`
+12. Arithmetic operators: +, -, *, /, % (work on numbers; + is string concat when either side is a string)
+13. Comparison: ==, !=, >, <, >=, <=
+14. Logical: &&, ||, ! (prefix)
+15. Ternary: `condition ? valueIfTrue : valueIfFalse`
+16. Parentheses for grouping: `(a + b) * c`
+17. Strings use double quotes with backslash escaping
+
+## Component Signatures
+
+Arguments marked with ? are optional. Sub-components can be inline or referenced; prefer references for better streaming.
+Props marked `$binding<type>` accept a `$variable` reference for two-way binding.
+
+### Layout
+App(title: string, children: (Heading | Text | Badge | Metric | Callout | List | Table | DataTable | Progress | TextInput | Select | Button | Card | Stack)[]) — The required root application surface, with a concise title and ordered children.
+Card(title?: string, children: (Heading | Text | Badge | Metric | Callout | List | Table | DataTable | Progress | TextInput | Select | Button)[]) — A grouped region with an optional title.
+Stack(children: (Heading | Text | Badge | Metric | Callout | List | Table | DataTable | Progress | TextInput | Select | Button)[], gap?: "s" | "m" | "l") — A vertical layout for leaf components.
+
+### Content
+Heading(text: $binding<string>, level?: "1" | "2" | "3") — A heading with a semantic level from 1 to 3.
+Text(text: $binding<string>, muted?: boolean) — Plain application text. HTML and Markdown are not supported.
+Badge(label: $binding<string>, tone?: "neutral" | "info" | "success" | "warning" | "danger") — A compact status label.
+Metric(label: string, value: $binding<string | number>, detail?: string, tone?: "neutral" | "info" | "success" | "warning" | "danger") — A prominent value with a short label and optional detail.
+Callout(body: $binding<string>, tone?: "neutral" | "info" | "success" | "warning" | "danger") — A visible informational, success, warning, or error message.
+
+### Data
+List(items: $binding<string[]>, emptyText?: string) — A compact list of strings, including a Query result projected to strings.
+Table(columns: string[], rows: $binding<(string | number | boolean | any)[][]>, emptyText?: string) — A data table. Rows are arrays whose cells align with columns.
+DataTable(columns: {label: string, key: string}[], rows: $binding<Record<string, any>[]>, emptyText?: string) — A table for Query results that are arrays of objects. Columns map a visible label to an exact object key.
+Progress(label: string, value: $binding<number>) — A labeled progress indicator from 0 to 100.
+
+### Input and actions
+TextInput(name: string, label: string, value: $binding<string>, placeholder?: string) — A text input bound to a $state variable. Name must be unique.
+Select(name: string, label: string, value: $binding<string>, options: {label: string, value: string}[]) — A select input bound to a $state variable.
+Button(label: string, action: any, tone?: "neutral" | "info" | "success" | "warning" | "danger", disabled?: boolean) — A user-triggered action. Use @Run for Mutation, and @Set/@Reset for state changes.
+
+## Built-in Functions
+
+Data functions prefixed with `@` to distinguish from components. These are the ONLY functions available — do NOT invent new ones.
+Use @-prefixed built-in functions (@Count, @Sum, @Avg, @Min, @Max, @Round) on Query results — do NOT hardcode computed values.
+
+@Count(array) → number — Returns array length
+@First(array) → element — Returns first element of array
+@Last(array) → element — Returns last element of array
+@Sum(numbers[]) → number — Sum of numeric array
+@Avg(numbers[]) → number — Average of numeric array
+@Min(numbers[]) → number — Minimum value in array
+@Max(numbers[]) → number — Maximum value in array
+@Sort(array, field, direction?) → sorted array — Sort array by field. Direction: "asc" (default) or "desc"
+@Filter(array, field, operator: "==" | "!=" | ">" | "<" | ">=" | "<=" | "contains", value) → filtered array — Filter array by field value
+@Round(number, decimals?) → number — Round to N decimal places (default 0)
+@Abs(number) → number — Absolute value
+@Floor(number) → number — Round down to nearest integer
+@Ceil(number) → number — Round up to nearest integer
+@Each(array, varName, template) — Evaluate template for each element. varName is the loop variable — use it ONLY inside the template expression (inline). Do NOT create a separate statement for the template.
+
+Builtins compose — output of one is input to the next:
+`@Count(@Filter(data.rows, "field", "==", "val"))` for KPIs/chart values, `@Round(@Avg(data.rows.score), 1)`, `@Each(data.rows, "item", Comp(item.field))` for per-item rendering.
+Array pluck: `data.rows.field` extracts a field from every row → use with @Sum, @Avg, charts, tables.
+
+IMPORTANT @Each rule: The loop variable (for example, "item") is available only inside the @Each template expression. Keep repeated-row templates inline.
+CORRECT: `Stack(@Each(rows, "t", Button("Edit", @Set($id, t.id))))`
+WRONG: define a separate Button statement that references `t` outside @Each.
+
+## Query — Live Data Fetching
+
+Use `result = Query("tool_name", {args}, fallback, refreshSeconds?)`. Query identifiers are regular names, not $state. Arguments may reference $state and re-fetch when it changes. Use a refresh interval of at least 15 seconds.
+
+Manual refresh uses a WUPHF Button action directly: `Button("Refresh", @Run(tasks), "info")`.
+
+## Mutation — Write Operations
+
+Use `result = Mutation("tool_name", {args})`. A Mutation runs only from an explicit action such as `Button("Create", @Run(createTask), "info")`. WUPHF displays the actual mutation payload in trusted host confirmation chrome before executing it.
+
+## Interactive Inputs
+
+Bind WUPHF inputs directly to $state:
+`$title = ""`
+`titleInput = TextInput("title", "Task title", $title, "What needs doing?")`
+`$status = "open"`
+`statusInput = Select("status", "Status", $status, [{"label":"Open","value":"open"},{"label":"Done","value":"done"}])`
+
+Every visible filter must appear in each relevant Query argument object. $state holds simple values, not arrays or objects.
+
+## Data Workflow
+
+1. Inspect the real tool result shape before generating the app.
+2. Use Query for live reads and Mutation for writes.
+3. Match each Query fallback to the tool's advertised return type.
+4. Derive metrics and rows from Query results with @Count, @Filter, @Sort, @Sum, and @Each.
+5. Keep @Each row variables inside the inline template.
+6. Use only WUPHF components listed above. Do not invent Form, FormControl, Input, SelectItem, Col, Action, or TextContent.
+
+Example:
+`root = App("Task desk", [titleInput, createButton, tasksTable])`
+`$title = ""`
+`titleInput = TextInput("title", "Task title", $title, "What needs doing?")`
+`tasks = Query("wuphf_list_tasks", {}, [])`
+`createTask = Mutation("wuphf_create_task", {"title":$title})`
+`createButton = Button("Create", @Run(createTask), "info")`
+`tasksTable = DataTable([{"label":"Task","key":"title"}], tasks, "No tasks yet.")`
+
+## Available Tools
+
+Use these with Query() for read operations or Mutation() for write operations. The LLM decides which is appropriate based on the tool's purpose.
+
+- wuphf_list_tasks() → any[]
+  List office tasks across channels.
+- wuphf_list_office_members() → any[]
+  List office members.
+- wuphf_list_channels() → any[]
+  List workspace channels.
+- wuphf_list_requests() → any[]
+  List workspace requests and approvals.
+- wuphf_wiki_list() → any[]
+  List curated wiki pages.
+- wuphf_wiki_read(path: string) → object
+  Read one curated wiki page.
+- wuphf_list_integrations() → object
+  List connected integration catalog entries.
+- wuphf_app_db_query(table: string) → object
+  Query a table in this app's private store.
+- wuphf_create_task(title: string, details?: string) → object
+  Create an office task after a non-spoofable host confirmation.
+- wuphf_call_integration(platform: string, action: string, params?: object) → object
+  Call an integration action after host confirmation naming the exact platform and action.
+- wuphf_app_db_define(table: string, columns: any[]) → object
+  Define a table in this app's private store.
+- wuphf_app_db_upsert(table: string, rows: any[], key?: string) → object
+  Upsert rows in this app's private store.
+- wuphf_app_db_clear(table: string) → object
+  Clear a table in this app's private store after host confirmation.
+
+### Default values for Query results
+
+Use these shapes as minimal Query defaults:
+- wuphf_list_tasks: `[]`
+- wuphf_list_office_members: `[]`
+- wuphf_list_channels: `[]`
+- wuphf_list_requests: `[]`
+- wuphf_wiki_list: `[]`
+- wuphf_wiki_read: `{}`
+- wuphf_list_integrations: `{}`
+- wuphf_app_db_query: `{}`
+- wuphf_create_task: `{}`
+- wuphf_call_integration: `{}`
+- wuphf_app_db_define: `{}`
+- wuphf_app_db_upsert: `{}`
+- wuphf_app_db_clear: `{}`
+
+CRITICAL: Use ONLY the tools listed above in Query() and Mutation() calls. Do NOT invent or guess tool names. If the user asks for functionality that doesn't match any available tool, use realistic mock data instead of fabricating a tool call.
+
+## Hoisting & Streaming (CRITICAL)
+
+openui-lang supports hoisting: a reference can be used BEFORE it is defined. The parser resolves all references after the full input is parsed.
+
+During streaming, the output is re-parsed on every chunk. Undefined references are temporarily unresolved and appear once their definitions stream in. This creates a progressive top-down reveal — structure first, then data fills in.
+
+**Recommended statement order for optimal streaming:**
+1. `root = App(...)` — UI shell appears immediately
+2. $variable declarations — state ready for bindings
+3. Query statements — defaults resolve immediately so components render with data
+4. Component definitions — fill in with data already available
+5. Data values — leaf content last
+
+Always write the root = App(...) statement first so the UI shell appears immediately, even before child data has streamed in.
+
+## Examples
+
+root = App("Task desk", [Heading("Office tasks", "2"), DataTable([{"label":"Task","key":"title"},{"label":"Status","key":"status"},{"label":"Owner","key":"owner"}], tasks, "No tasks yet.")])
+tasks = Query("wuphf_list_tasks", {}, [])
+
+root = App("Follow-up", [TextInput("title", "Task title", $title, "What needs doing?"), Button("Create task", @Run(createTask), "info")])
+$title = ""
+createTask = Mutation("wuphf_create_task", {"title":$title})
+
+## Important Rules
+- When asked about data, generate realistic/plausible data
+- Choose components that best represent the content (tables for comparisons, charts for trends, forms for input, etc.)
+
+## Final Verification
+Before finishing, walk your output and verify:
+1. root = App(...) is the FIRST line (for optimal streaming).
+2. Every referenced name is defined. Every defined name (other than root) is reachable from root.
+3. Every Query result is referenced by at least one component.
+4. Every $binding appears in at least one component or expression.
+
+- Output OpenUI Lang only, one assignment per line, with root first.
+- Always begin with root = App("Title", [...]).
+- Do not output React, JSX, TypeScript, JavaScript, HTML, CSS, Markdown, a package.json, or build commands.
+- Use only the supplied components and tools. Tool names must always be literal strings.
+- Queries may run on mount. Mutations must only run from an explicit Button action with @Run.
+- Never emit @OpenUrl, @ToAssistant, URLs, images, arbitrary network access, or automatic mutation retries.
+- Use $state plus TextInput or Select for user inputs. Show useful empty, loading-friendly, and error-aware copy.
+- Keep the app focused: at most 12 tools, 512 statements, and compact result views.
