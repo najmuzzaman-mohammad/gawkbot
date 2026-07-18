@@ -50,7 +50,7 @@ jobs:
       - name: Get latest tag
         id: latest
         run: |
-          TAG=$(git tag --sort=-v:refname | grep '^v' | head -1)
+          TAG=$(git tag --sort=-v:refname --list 'v*' | awk 'NR==1')
           echo "tag=${TAG:-v0.0.0}" >> "$GITHUB_OUTPUT"
 
       - name: Bump version
