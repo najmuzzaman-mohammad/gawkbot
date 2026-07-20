@@ -41,6 +41,7 @@ import { AgentInstructionsSection } from "./AgentInstructionsSection";
 
 const PROVIDER_LABELS: Record<LLMRuntimeKind, string> = {
   "claude-code": "Claude Code",
+  atlascloud: "Atlas Cloud",
   codex: "Codex",
   opencode: "Opencode",
   "mlx-lm": "MLX-LM",

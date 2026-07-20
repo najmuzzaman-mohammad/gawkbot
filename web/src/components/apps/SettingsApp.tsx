@@ -275,6 +275,12 @@ interface LocalProviderMeta {
 // team rather than to back a WUPHF-created agent's turns.
 const LOCAL_PROVIDERS: LocalProviderMeta[] = [
   {
+    kind: "atlascloud",
+    label: "Atlas Cloud",
+    blurb:
+      "Hosted OpenAI-compatible runtime. Set ATLASCLOUD_API_KEY and use the default Atlas Cloud endpoint or your configured base URL.",
+  },
+  {
     kind: "mlx-lm",
     label: "MLX-LM",
     blurb:
