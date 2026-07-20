@@ -57,6 +57,7 @@ func (b *Broker) handleVisualArtifacts(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"artifacts": artifacts})
 	case http.MethodPost:
+		r.Body = http.MaxBytesReader(w, r.Body, 512*1024)
 		var body RichArtifactCreateRequest
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -129,6 +130,7 @@ func (b *Broker) handleVisualArtifactSubpath(w http.ResponseWriter, r *http.Requ
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		r.Body = http.MaxBytesReader(w, r.Body, 512*1024)
 		var body RichArtifactPromoteRequest
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
