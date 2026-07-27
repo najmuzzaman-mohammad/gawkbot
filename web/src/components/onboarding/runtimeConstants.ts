@@ -48,11 +48,6 @@ export type ApiKeyFieldDef = (typeof API_KEY_FIELDS)[number];
 // OpenClaw" or "import OpenClaw agents into the team." The Integrations app
 // (Settings → Integrations) is now the single place gateways are configured.
 export const LOCAL_PROVIDER_LABELS = [
-  {
-    kind: "atlascloud" as const,
-    label: "Atlas Cloud",
-    blurb: "Hosted OpenAI-compatible models",
-  },
   { kind: "mlx-lm" as const, label: "MLX-LM", blurb: "macOS / Apple Silicon" },
   { kind: "ollama" as const, label: "Ollama", blurb: "macOS / Linux" },
   { kind: "exo" as const, label: "Exo", blurb: "Multi-device pool" },

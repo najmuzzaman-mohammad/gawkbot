@@ -33,6 +33,7 @@ import {
   isCatalogModel,
   modelOptionsForKind,
 } from "../../lib/modelCatalog";
+import { DEFAULT_LLM_KINDS } from "../../lib/providerBinding";
 import { router } from "../../lib/router";
 import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
@@ -527,14 +528,8 @@ function RuntimeSection({
     staleTime: 30_000,
   });
   const localStatuses: LocalProviderStatus[] = localStatusQuery.data ?? [];
-  const llmKinds: LLMRuntimeKind[] = (configQuery.data?.llm_provider_kinds ?? [
-    "claude-code",
-    "codex",
-    "opencode",
-    "mlx-lm",
-    "ollama",
-    "exo",
-  ]) as LLMRuntimeKind[];
+  const llmKinds: LLMRuntimeKind[] = (configQuery.data?.llm_provider_kinds ??
+    DEFAULT_LLM_KINDS) as LLMRuntimeKind[];
   const globalDefault = configQuery.data?.llm_provider ?? "claude-code";
 
   const binding = bindingFromMember(agent.provider);
