@@ -285,7 +285,10 @@ describe("AppToolsChat calls tools (slice 5)", () => {
     // It called the agent, and did not fall back to any mock execution.
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    expect(body.tool.name).toBe("weeklyPipelineSummary");
+    // By-reference contract: the browser sends (agent, name) + args, never code.
+    expect(body.name).toBe("weeklyPipelineSummary");
+    expect(body.code).toBeUndefined();
+    expect(body.tool).toBeUndefined();
     expect(body.approved).toBe(false);
   });
 

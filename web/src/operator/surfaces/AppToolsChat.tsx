@@ -266,7 +266,10 @@ export function AppToolsChat({
     setWorking(`Running “${tool.title}”…`);
     scrollDown();
     try {
-      const outcome = await callToolViaAgent(tool, args, false);
+      // Reference the tool by (agent, name): the agent id must match the one it
+      // was persisted under via /tools/build (agentId ?? appName). Code is never
+      // sent from the browser.
+      const outcome = await callToolViaAgent(agentId ?? appName, tool.name, args, false);
       if (outcome.status === "needs_approval" && outcome.gate) {
         // Paused at the send-gate: show the call, then the approval card. The
         // pending call lives in React state until Approve / Not now.
@@ -293,7 +296,7 @@ export function AppToolsChat({
     try {
       // Clear the pending approval only on a successful outcome: a failure
       // keeps the card actionable instead of losing the approval context.
-      const outcome = await callToolViaAgent(p.tool, p.args, true);
+      const outcome = await callToolViaAgent(agentId ?? appName, p.tool.name, p.args, true);
       if (outcome.status !== "error") setPending(null);
       finishCall(p.tool, p.args, outcome);
     } catch {

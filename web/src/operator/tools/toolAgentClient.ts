@@ -130,11 +130,16 @@ export interface ToolCallOutcome {
 }
 
 /**
- * The app's chat calls a saved tool via the agent. `approved` carries the
- * human's answer to the approval card (gated capabilities default-deny).
+ * The app's chat calls a saved tool via the agent. The tool is referenced by
+ * (agent, name); its CODE is resolved server-side from the agent's store and is
+ * never sent from the browser — sending code was an unauthenticated-RCE path
+ * (see agent/src/wire.ts ToolCallRequest). `agent` must be the same id the tool
+ * was persisted under via /tools/build. `approved` carries the human's answer to
+ * the approval card (gated capabilities default-deny).
  */
 export async function callToolViaAgent(
-  tool: Tool,
+  agent: string,
+  name: string,
   args: Record<string, string>,
   approved = false,
 ): Promise<ToolCallOutcome> {
@@ -144,14 +149,8 @@ export async function callToolViaAgent(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         schema_version: SCHEMA_VERSION,
-        // FE Tool stores the code as `script`; the wire field is `code`.
-        tool: {
-          name: tool.name,
-          title: tool.title,
-          purpose: tool.purpose,
-          inputs: tool.inputs,
-          code: tool.script,
-        },
+        agent,
+        name,
         args,
         approved,
       }),
