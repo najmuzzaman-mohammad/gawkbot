@@ -1,14 +1,18 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { currentRunSignal } from "./runContext.js";
 import { createServer } from "./service.js";
+import { AgentStore } from "./store.js";
 import { type CapabilityTree, runTool } from "./toolRuntime.js";
 import type { Tool, ToolCallResult, WorkflowSpec } from "./wire.js";
 
 // Tool fixtures are inlined (not imported from tools.ts) so this file has no
 // coupling to the authoring module while it is edited in parallel.
 
-function makeTool(code: string, inputs: Tool["inputs"] = []): Tool {
-	return { name: "t", title: "T", purpose: "p", inputs, code };
+function makeTool(code: string, inputs: Tool["inputs"] = [], name = "t"): Tool {
+	return { name, title: "T", purpose: "p", inputs, code };
 }
 
 const READ_TOOL = makeTool(
@@ -19,6 +23,8 @@ const READ_TOOL = makeTool(
 		"  return nex.ai.summarize(moved, { style: 'exec recap' });",
 		"}",
 	].join("\n"),
+	[],
+	"read_tool",
 );
 
 const GATED_TOOL = makeTool(
@@ -30,6 +36,7 @@ const GATED_TOOL = makeTool(
 		"}",
 	].join("\n"),
 	[{ name: "lead", type: "string" }],
+	"gated_tool",
 );
 
 test("a read tool (crm.deals + summarize) runs ok with actions recorded", async () => {
@@ -212,10 +219,18 @@ async function* fakeBuild() {
 	};
 }
 
+// The tool CODE is resolved from the per-agent store by (agent, name); the
+// request body carries only a reference + args, never code (that path was
+// unauthenticated RCE — see wire.ts ToolCallRequest). Seed the store so the
+// service can look the fixtures up.
+const APP = "app1";
 let server: ReturnType<typeof createServer>;
 let base: string;
 beforeAll(() => {
-	server = createServer({ port: 0, buildStream: fakeBuild });
+	const store = new AgentStore(mkdtempSync(join(tmpdir(), "wuphf-toolcall-")));
+	store.upsertTool(APP, READ_TOOL);
+	store.upsertTool(APP, GATED_TOOL);
+	server = createServer({ port: 0, buildStream: fakeBuild, store });
 	base = server.url.toString().replace(/\/$/, "");
 });
 afterAll(() => server.stop(true));
@@ -229,7 +244,7 @@ function post(body: unknown): Promise<Response> {
 }
 
 test("POST /tools/call runs a read tool ok", async () => {
-	const res = await post({ schema_version: 1, tool: READ_TOOL, args: {} });
+	const res = await post({ schema_version: 1, agent: APP, name: "read_tool", args: {} });
 	expect(res.status).toBe(200);
 	const data = (await res.json()) as ToolCallResult;
 	expect(data.status).toBe("ok");
@@ -237,20 +252,31 @@ test("POST /tools/call runs a read tool ok", async () => {
 });
 
 test("POST /tools/call halts needs_approval, then completes with approved: true", async () => {
-	const r1 = (await (await post({ schema_version: 1, tool: GATED_TOOL, args: { lead: "Acme" } })).json()) as ToolCallResult;
+	const r1 = (await (await post({ schema_version: 1, agent: APP, name: "gated_tool", args: { lead: "Acme" } })).json()) as ToolCallResult;
 	expect(r1.status).toBe("needs_approval");
 	expect(r1.gate?.capability).toBe("crm.assign");
 	const r2 = (await (
-		await post({ schema_version: 1, tool: GATED_TOOL, args: { lead: "Acme" }, approved: true })
+		await post({ schema_version: 1, agent: APP, name: "gated_tool", args: { lead: "Acme" }, approved: true })
 	).json()) as ToolCallResult;
 	expect(r2.status).toBe("ok");
 });
 
-test("POST /tools/call 400s on a missing/malformed tool", async () => {
-	for (const bad of [{}, { tool: null }, { tool: { name: "x" } }, { tool: { code: "y" } }]) {
+test("POST /tools/call never runs code from the request body (RCE regression)", async () => {
+	// A body-supplied `code`/`tool` is ignored entirely: the endpoint resolves the
+	// implementation from the store by (agent, name). An unknown name is a 404, so
+	// there is no path to execute attacker-controlled code.
+	const evil = "function pwn(){ return ([]).constructor.constructor('return process')().env.SECRET; }";
+	const res = await post({ schema_version: 1, agent: APP, name: "pwn", code: evil, tool: { name: "pwn", code: evil } });
+	expect(res.status).toBe(404);
+});
+
+test("POST /tools/call 400s on a missing agent/name and 404s on an unknown tool", async () => {
+	for (const bad of [{}, { agent: APP }, { name: "read_tool" }, { agent: "", name: "read_tool" }, { agent: APP, name: "" }]) {
 		const res = await post(bad);
 		expect(res.status).toBe(400);
 	}
+	const unknown = await post({ agent: APP, name: "does_not_exist" });
+	expect(unknown.status).toBe(404);
 	const notJson = await fetch(`${base}/tools/call`, {
 		method: "POST",
 		headers: { "content-type": "application/json" },
@@ -259,21 +285,7 @@ test("POST /tools/call 400s on a missing/malformed tool", async () => {
 	expect(notJson.status).toBe(400);
 });
 
-test("POST /tools/call 400s on malformed inputs and treats absent inputs as [] (regression: CodeRabbit)", async () => {
-	// inputs: null (or non-{ name: string } entries) used to 500 inside runTool.
-	const { inputs: _drop, ...noInputs } = READ_TOOL;
-	for (const badInputs of [null, "lead", 7, [null], [{ title: "no name" }], [{ name: 42 }]]) {
-		const res = await post({ schema_version: 1, tool: { ...noInputs, inputs: badInputs } });
-		expect(res.status).toBe(400);
-		expect(((await res.json()) as { error?: string }).error).toContain("inputs");
-	}
-	// Absent inputs normalize to [] and the call runs.
-	const ok = await post({ schema_version: 1, tool: noInputs });
-	expect(ok.status).toBe(200);
-	expect(((await ok.json()) as ToolCallResult).status).toBe("ok");
-});
-
 test("POST /tools/call rejects a schema_version mismatch", async () => {
-	const res = await post({ schema_version: 99, tool: READ_TOOL });
+	const res = await post({ schema_version: 99, agent: APP, name: "read_tool" });
 	expect(res.status).toBe(400);
 });

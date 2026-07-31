@@ -130,6 +130,12 @@ export class AgentStore {
 		return this.load(agent).tools;
 	}
 
+	/** The agent's persisted tool with this name, or null. Execution paths MUST
+	 * resolve code through here — never run code supplied in a request body. */
+	getTool(agent: string, name: string): StoredTool | null {
+		return this.load(agent).tools.find((t) => t.name === name) ?? null;
+	}
+
 	/** Persist an authored tool. A same-named tool is replaced with version+1. */
 	upsertTool(agent: string, tool: Tool): StoredTool {
 		const data = this.load(agent);

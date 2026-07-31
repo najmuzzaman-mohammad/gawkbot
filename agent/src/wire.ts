@@ -94,11 +94,15 @@ export interface ToolBuildResult {
 	narration: string; // the agent's reflect-back line
 }
 
-// The app's chat CALLS a saved tool (POST /tools/call). approved=true is the
-// human's answer to the approval card — gated capabilities default-deny (CQ1).
+// The app's chat CALLS a saved tool (POST /tools/call). The tool is referenced
+// by (agent, name); its CODE is resolved server-side from the per-agent store
+// and is never accepted from the request body (that path was unauthenticated
+// RCE). approved=true is the human's answer to the approval card — gated
+// capabilities default-deny (CQ1).
 export interface ToolCallRequest {
 	schema_version?: number;
-	tool: Tool;
+	agent: string; // whose persisted tool to run
+	name: string; // the tool's name within that agent
 	args?: Record<string, string>;
 	approved?: boolean;
 }
