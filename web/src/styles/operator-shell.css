@@ -4828,3 +4828,17 @@
     animation: none;
   }
 }
+
+/* Scripted-preview banner on the mock call — the fake REC light needs an
+   honest label or the preview reads as a live recording. */
+.opr-call-preview-banner {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--t-yellow);
+  border: 1px dashed color-mix(in srgb, var(--t-yellow) 45%, transparent);
+  border-radius: var(--t-r-sm);
+  padding: 6px 10px;
+  margin-bottom: var(--space-2);
+  width: fit-content;
+}

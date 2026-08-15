@@ -184,9 +184,17 @@ export function CallModal({ onClose, onBuild, tool }: CallModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="opr-call-stage">
+          {/* This surface is the SCRIPTED preview (no Realtime key configured).
+              Without an explicit label the fake REC light + fabricated "you"
+              lines read as a live recording — QA'd users believed the mic was
+              on. Say what it is, and where the real call lives. */}
+          <div className="opr-call-preview-banner">
+            Scripted preview — nothing is recorded. Add a voice key in Settings
+            for the real call.
+          </div>
           <div className="opr-call-rec">
             <span className="opr-led" />
-            rec · screen share
+            preview · example call
           </div>
           <div className="opr-call-screenshare">{screenLabel}</div>
           <div className="opr-call-wave" aria-hidden={true}>
