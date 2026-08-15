@@ -42,10 +42,11 @@ test.describe("wuphf web UI smoke (operator)", () => {
       timeout: 10_000,
     });
 
-    // Settings via the sidebar nav — the surface with the real Voice /
-    // Usage / Runtime groups.
+    // Settings via the sidebar nav — the surface with the real Voice and
+    // Usage groups (the dead read-only Runtime group was removed in the
+    // 2026-08-15 every-pixel pass).
     await page.getByRole("button", { name: "Settings" }).first().click();
-    await expect(page.getByText("Default runtime")).toBeVisible({
+    await expect(page.getByText("What your agents have spent")).toBeVisible({
       timeout: 10_000,
     });
 
