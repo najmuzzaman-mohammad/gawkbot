@@ -89,8 +89,10 @@
     --yellow: #f2f2f3;          /* primary accent: paper white */
     --yellow-dark: #6b6b70;     /* the hard pixel shadow under it */
     --yellow-glow: rgba(242,242,243,0.10);
-    --green: #d6d6d8;           /* status / cursor / copied */
-    --blue: #b8b8bc;
+    /* Black and white carry the page; these two only ever mean something —
+       lime for live/copied/cursor, steel for links and code identifiers. */
+    --green: #D4DB18;
+    --blue: #8FB3D1;
     --text: #ececee;
     --text-muted: #8d8d93;
     --bg2: var(--surface);
@@ -1898,8 +1900,8 @@
   });
 
   // ── SPRITE CANVASES ───────────────────────────────────────────────────
-  var bodyColors = ['#4F4F4F', '#727272', '#474747'];
-  var accentColors = ['#F3F3F3', '#BDBDBD', '#737373'];
+  var bodyColors = ['#2D4A7A', '#4A7A2D', '#7A2D4A'];
+  var accentColors = ['#D4DB18', '#8FB3D1', '#E8A838'];
 
   function drawSprite(canvasId, colorBody, colorAccent, frame) {
     var canvas = document.getElementById(canvasId);
@@ -1917,12 +1919,12 @@
 
     for (var x = 3; x <= 8; x++)
       for (var y = 0; y <= 4; y++)
-        px(x, y + bob, '#A5A5A5');
+        px(x, y + bob, '#D4956A');
 
-    for (var hx = 3; hx <= 8; hx++) px(hx, bob, '#313131');
-    px(3, 1 + bob, '#313131'); px(8, 1 + bob, '#313131');
+    for (var hx = 3; hx <= 8; hx++) px(hx, bob, '#3A2810');
+    px(3, 1 + bob, '#3A2810'); px(8, 1 + bob, '#3A2810');
 
-    px(4, 2 + bob, '#1B1B1B'); px(7, 2 + bob, '#1B1B1B');
+    px(4, 2 + bob, '#1A1610'); px(7, 2 + bob, '#1A1610');
 
     for (var bx = 2; bx <= 9; bx++)
       for (var by = 6; by <= 11; by++)
@@ -1936,7 +1938,7 @@
     var rOff = frame === 3 ? -1 : 0;
     for (var ly = 12; ly <= 17; ly++) px(3, ly + lOff, colorBody);
     for (var ry = 12; ry <= 17; ry++) px(8, ry + rOff, colorBody);
-    px(3, 17 + lOff, '#2B2B2B'); px(8, 17 + rOff, '#2B2B2B');
+    px(3, 17 + lOff, '#2A2418'); px(8, 17 + rOff, '#2A2418');
   }
 
   var spriteFrame = 0;
@@ -2019,11 +2021,11 @@
     }
 
     var TILE_COLORS = {
-      0: { top: '#3A3A3A', left: '#2F2F2F', right: '#333333' },
-      1: { top: '#3E3E3E', left: '#303030', right: '#353535' },
-      2: { top: '#313131', left: '#252525', right: '#2B2B2B' },
-      3: { top: '#383838', left: '#2B2B2B', right: '#323232' },
-      4: { top: '#333333', left: '#282828', right: '#2D2D2D' }
+      0: { top: '#3A3228', left: '#2F281F', right: '#342B22' },
+      1: { top: '#3F362B', left: '#302820', right: '#372D24' },
+      2: { top: '#302A20', left: '#241F18', right: '#2A241B' },
+      3: { top: '#3A3028', left: '#2C241E', right: '#332A22' },
+      4: { top: '#332C22', left: '#282118', right: '#2D261D' }
     };
 
     // ── RESIZE ──────────────────────────────────────────
@@ -2146,52 +2148,52 @@
     // ── CHARACTERS ──────────────────────────────────────
     var CHARS = [
       { id:'pam',    name:'PAM',    x:5.5, y:5.5, homeX:5.5, homeY:5.5,
-        hair:'#8D8D8D', skin:'#A5A5A5', shirt:'#7A7A7A', pants:'#515151',
+        hair:'#C87A40', skin:'#D4956A', shirt:'#4A7A9B', pants:'#3A4A6A',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:12000, arriveState:'IDLE_DESK', arriveWait:12000,
         destX:5.5, destY:5.5, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'jim',    name:'JIM',    x:5.0, y:3.0, homeX:5.0, homeY:3.0,
-        hair:'#414141', skin:'#A5A5A5', shirt:'#777777', pants:'#404040',
+        hair:'#4A3820', skin:'#D4956A', shirt:'#5A7A4A', pants:'#2A3A5A',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:6000, arriveState:'IDLE_DESK', arriveWait:6000,
         destX:5.0, destY:3.0, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'dwight', name:'DWIGHT', x:3.0, y:3.0, homeX:3.0, homeY:3.0,
-        hair:'#313131', skin:'#A5A5A5', shirt:'#646464', pants:'#3F3F3F',
+        hair:'#3A2810', skin:'#D4956A', shirt:'#5C6030', pants:'#3A3A20',
         faceRight:false, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:4000, arriveState:'IDLE_DESK', arriveWait:4000,
         destX:3.0, destY:3.0, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'michael',name:'MICHAEL',x:10.5, y:1.0, homeX:10.5, homeY:1.0,
-        hair:'#313131', skin:'#A5A5A5', shirt:'#4F4F4F', pants:'#555555',
+        hair:'#3A2810', skin:'#D4956A', shirt:'#2D4A7A', pants:'#3A4E7A',
         faceRight:false, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:8000, arriveState:'IDLE_DESK', arriveWait:8000,
         destX:10.5, destY:1.0, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'ceo',    name:'CEO',    x:8.0, y:4.0, homeX:8.0, homeY:4.0,
-        hair:'#1B1B1B', skin:'#C0C0C0', shirt:'#4F4F4F', pants:'#2F2F2F',
+        hair:'#1A1610', skin:'#D4B896', shirt:'#2D4A7A', pants:'#1A2A4A',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:5000, arriveState:'IDLE_DESK', arriveWait:5000,
-        destX:8.0, destY:4.0, isAgent:true, agentColor:'#F3F3F3', label:'CEO',
+        destX:8.0, destY:4.0, isAgent:true, agentColor:'#F2F2F3', label:'CEO',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'eng',    name:'ENG',    x:10.0, y:3.0, homeX:10.0, homeY:3.0,
-        hair:'#262626', skin:'#B1B1B1', shirt:'#404040', pants:'#272727',
+        hair:'#2A1A40', skin:'#C4A882', shirt:'#4A2D7A', pants:'#2A1A4A',
         faceRight:false, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:7000, arriveState:'IDLE_DESK', arriveWait:7000,
-        destX:10.0, destY:3.0, isAgent:true, agentColor:'#F3F3F3', label:'ENG',
+        destX:10.0, destY:3.0, isAgent:true, agentColor:'#F2F2F3', label:'ENG',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'cmo',    name:'CMO',    x:3.0, y:5.0, homeX:3.0, homeY:5.0,
-        hair:'#2E2E2E', skin:'#B3B3B3', shirt:'#5A5A5A', pants:'#2B2B2B',
+        hair:'#4A2010', skin:'#D4A870', shirt:'#7A4A2D', pants:'#3A2010',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:5500, arriveState:'IDLE_DESK', arriveWait:5500,
-        destX:3.0, destY:5.0, isAgent:true, agentColor:'#F3F3F3', label:'CMO',
+        destX:3.0, destY:5.0, isAgent:true, agentColor:'#F2F2F3', label:'CMO',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 }
     ];
@@ -2542,7 +2544,7 @@
       // (agent backplate removed — label above character carries identity)
 
       var sk = ch.skin, hr = ch.hair, sh = ch.shirt, pt = ch.pants;
-      var shoe = '#272727', eye = '#141414', mth = shadeHex(sk, -30);
+      var shoe = '#2A2010', eye = '#1A0E08', mth = shadeHex(sk, -30);
       var hrHL = shadeHex(hr, 32), shHL = shadeHex(sh, 22), shDK = shadeHex(sh, -20);
 
       // px: absolute row (no bob)
@@ -2591,7 +2593,7 @@
         px(1, 10, hrHL); px(10, 10, hrHL);
       } else if (ch.id === 'dwight') {
         // glasses: dark horizontal bar at eye level
-        hpx(3, 4, '#686868'); hpx(8, 4, '#686868');
+        hpx(3, 4, '#6A6040'); hpx(8, 4, '#6A6040');
       } else if (ch.id === 'michael') {
         // wider hair at crown
         hpx(2, 0, hr); hpx(9, 0, hr);
@@ -2658,7 +2660,7 @@
         var badgeY = nameY - badgeH + 4;
         ctx.fillStyle = ch.agentColor;
         ctx.fillRect(cx - badgeW / 2, badgeY, badgeW, badgeH);
-        ctx.fillStyle = '#0E0E0E';
+        ctx.fillStyle = '#0b0b0c';
         ctx.font = '6px "Press Start 2P", monospace';
         ctx.fillText(ch.label, cx, badgeY + badgeH - 2);
       } else {
@@ -2692,26 +2694,26 @@
       var bx3 = pos.x - bw / 2;
       var by3 = headTop - bh - 10;
 
-      ctx.fillStyle = '#EEEEEE';
+      ctx.fillStyle = '#ECECEE';
       ctx.fillRect(bx3, by3, bw, bh);
-      ctx.fillStyle = '#737373';
-      ctx.strokeStyle = '#737373';
+      ctx.fillStyle = '#8A8A90';
+      ctx.strokeStyle = '#8A8A90';
       ctx.lineWidth = 2;
       ctx.strokeRect(bx3, by3, bw, bh);
 
       // tail
-      ctx.fillStyle = '#EEEEEE';
+      ctx.fillStyle = '#ECECEE';
       ctx.beginPath();
       ctx.moveTo(pos.x - 4, by3 + bh);
       ctx.lineTo(pos.x + 4, by3 + bh);
       ctx.lineTo(pos.x, by3 + bh + 8);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#737373';
+      ctx.strokeStyle = '#8A8A90';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.fillStyle = '#0E0E0E';
+      ctx.fillStyle = '#0b0b0c';
       ctx.textAlign = 'center';
       ctx.fillText(b.text, pos.x, by3 + bh - 7);
 
@@ -2725,7 +2727,7 @@
       var wallH = 48;
 
       // ── BACK WALLS ──────────────────────────────────
-      ctx.fillStyle = '#222222';
+      ctx.fillStyle = '#201C14';
       for (var gx2 = 0; gx2 < 12; gx2++) {
         var p0 = iso(gx2, 0);
         var p1 = iso(gx2 + 1, 0);
@@ -2737,7 +2739,7 @@
         ctx.closePath();
         ctx.fill();
       }
-      ctx.fillStyle = '#191919';
+      ctx.fillStyle = '#18140E';
       for (var gy2 = 0; gy2 < 8; gy2++) {
         var lp0 = iso(0, gy2);
         var lp1 = iso(0, gy2 + 1);
@@ -2795,9 +2797,9 @@
       // ── MICHAEL'S OFFICE WALL AWARDS ─────────────────
       // Plaques on the interior face of the gx=9 glass wall
       var awards = [
-        { gy: 0.55, lines: ['DUNDIE', 'AWARD'], color: '#F3F3F3' },
-        { gy: 1.55, lines: ["WORLD'S", 'BEST BOSS'], color: '#F3F3F3' },
-        { gy: 2.45, lines: ['FAIR', 'CODE'], color: '#F3F3F3' }
+        { gy: 0.55, lines: ['DUNDIE', 'AWARD'], color: '#F2F2F3' },
+        { gy: 1.55, lines: ["WORLD'S", 'BEST BOSS'], color: '#F2F2F3' },
+        { gy: 2.45, lines: ['FAIR', 'CODE'], color: '#F2F2F3' }
       ];
       ctx.save();
       ctx.font = '5px "Press Start 2P", monospace';
@@ -2807,7 +2809,7 @@
         var aw = 30, ah = 18;
         var ax = ap.x - aw / 2;
         var ay = ap.y - wallH + 8;
-        ctx.fillStyle = '#0E0E0E';
+        ctx.fillStyle = '#0b0b0c';
         ctx.fillRect(ax, ay, aw, ah);
         ctx.strokeStyle = a.color;
         ctx.lineWidth = 1.5;
@@ -2821,45 +2823,45 @@
       // ── FURNITURE ────────────────────────────────────
 
       // Conference table
-      drawBox(ctx, 0.6, 0.7, 1.8, 0.8, 12, '#646464', '#464646', '#2D2D2D');
+      drawBox(ctx, 0.6, 0.7, 1.8, 0.8, 12, '#7A5A18', '#5A3C08', '#3A2404');
       // Conf chairs
-      drawBox(ctx, 0.5, 0.5, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
-      drawBox(ctx, 2.1, 0.5, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
-      drawBox(ctx, 0.5, 1.4, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
-      drawBox(ctx, 2.1, 1.4, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
+      drawBox(ctx, 0.5, 0.5, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
+      drawBox(ctx, 2.1, 0.5, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
+      drawBox(ctx, 0.5, 1.4, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
+      drawBox(ctx, 2.1, 1.4, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
 
       // Bullpen desks
       var desks = [[3,2.8],[5,2.8],[3,4.3],[5,4.3],[8,2.8],[10,2.8]];
       desks.forEach(function(d) {
-        drawBox(ctx, d[0], d[1], 0.9, 0.6, 10, '#646464', '#464646', '#2D2D2D');
+        drawBox(ctx, d[0], d[1], 0.9, 0.6, 10, '#7A5A18', '#5A3C08', '#3A2404');
         // monitor
         var mp = iso(d[0] + 0.35, d[1] + 0.1);
-        ctx.fillStyle = '#0E0E0E';
+        ctx.fillStyle = '#0b0b0c';
         ctx.fillRect(mp.x - 9, mp.y - 26, 18, 16);
-        ctx.fillStyle = 'rgba(242,242,243,0.22)';
+        ctx.fillStyle = 'rgba(242,242,243,0.24)';
         ctx.fillRect(mp.x - 7, mp.y - 24, 14, 12);
       });
 
       // Michael's fancy desk
-      drawBox(ctx, 9.8, 0.6, 1.2, 0.7, 12, '#969696', '#6D6D6D', '#6D6D6D');
+      drawBox(ctx, 9.8, 0.6, 1.2, 0.7, 12, '#5A9AC8', '#3F6C8C', '#3F6C8C');
 
       // Reception desk
-      drawBox(ctx, 4.8, 5.2, 1.0, 0.6, 12, '#555555', '#3B3B3B', '#3B3B3B');
-      drawBox(ctx, 5.8, 5.0, 0.8, 0.6, 12, '#555555', '#3B3B3B', '#3B3B3B');
+      drawBox(ctx, 4.8, 5.2, 1.0, 0.6, 12, '#6A4A14', '#4A3208', '#4A3208');
+      drawBox(ctx, 5.8, 5.0, 0.8, 0.6, 12, '#6A4A14', '#4A3208', '#4A3208');
 
       // Whiteboard
-      drawBox(ctx, 0.05, 4.2, 0.08, 0.8, 20, '#EEEEEE', '#F3F3F3', '#737373');
+      drawBox(ctx, 0.05, 4.2, 0.08, 0.8, 20, '#ECECEE', '#F2F2F3', '#8A8A90');
       var wb = iso(0.1, 4.5);
-      ctx.fillStyle = '#D9D9D9';
+      ctx.fillStyle = '#D4DB18';
       ctx.fillRect(wb.x, wb.y - 30, 3, 2);
       ctx.fillRect(wb.x + 1, wb.y - 26, 2, 2);
-      ctx.fillStyle = '#F3F3F3';
+      ctx.fillStyle = '#F2F2F3';
       ctx.fillRect(wb.x + 2, wb.y - 22, 4, 2);
 
       // Water cooler
-      drawBox(ctx, 7.3, 6.3, 0.3, 0.3, 16, '#969696', '#6D6D6D', '#6D6D6D');
+      drawBox(ctx, 7.3, 6.3, 0.3, 0.3, 16, '#5A9AC8', '#3F6C8C', '#3F6C8C');
       var wcTop = iso(7.45, 6.45);
-      ctx.fillStyle = '#F3F3F3';
+      ctx.fillStyle = '#F2F2F3';
       ctx.fillRect(wcTop.x - 3, wcTop.y - 20, 6, 6);
 
       // ── ROOM LABELS ──────────────────────────────────
@@ -2868,16 +2870,16 @@
       ctx.textAlign = 'center';
 
       var confLabel = iso(1.5, 2.6);
-      ctx.fillStyle = 'rgba(242,242,243,0.72)';
+      ctx.fillStyle = 'rgba(242,242,243,0.62)';
       ctx.fillText('CONF ROOM', confLabel.x, confLabel.y);
 
       var mLabel = iso(10.5, 2.6);
-      ctx.fillStyle = 'rgba(242,242,243,0.72)';
+      ctx.fillStyle = 'rgba(242,242,243,0.62)';
       ctx.fillText("MICHAEL'S", mLabel.x, mLabel.y);
       ctx.fillText('OFFICE', mLabel.x, mLabel.y + 10);
 
       var recLabel = iso(5.5, 6.4);
-      ctx.fillStyle = 'rgba(242,242,243,0.72)';
+      ctx.fillStyle = 'rgba(242,242,243,0.62)';
       ctx.fillText('RECEPTION', recLabel.x, recLabel.y);
 
       ctx.restore();
