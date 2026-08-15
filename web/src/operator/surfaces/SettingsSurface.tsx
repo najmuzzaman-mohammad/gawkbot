@@ -1,10 +1,10 @@
 // Settings — kept deliberately small, and HONEST: every control on this
-// surface is real. Voice persists to the broker config. Runtime is read-only
-// status (set during onboarding). The earlier mock groups — a digest toggle,
-// a "Deliver to #revops · maya@company.com" input, an approvals toggle, and a
-// dead Delete-workspace button — presented non-functional controls as real
-// (the approvals toggle misrepresented a safety property in both directions)
-// and were removed in the 2026-08 QA pass.
+// surface is real. Voice persists to the broker config. The earlier mock
+// groups — a digest toggle, a delivery input, an approvals toggle, a dead
+// Delete-workspace button, a no-op "Let wuphf host voice" toggle, and a
+// read-only Runtime group promising a roadmap — presented non-functional
+// controls as real and were removed in the 2026-08 QA passes. The engine
+// identity now rides as one line under Usage instead of a dead group.
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,8 +21,6 @@ function formatTokens(n: number): string {
 }
 
 export function SettingsSurface() {
-  const [nexHosted, setNexHosted] = useState(false);
-
   // The Voice group persists to the broker config so the real call can mint
   // ephemeral Realtime tokens from the key. The key itself is write-only: we
   // never read it back, only whether one is set.
@@ -58,6 +56,20 @@ export function SettingsSurface() {
       qc.invalidateQueries({ queryKey: ["operator-config"] });
     },
   });
+  // Humanized engine identity (one line, not a settings group): raw provider
+  // slugs stay out of the UI.
+  const RUNTIME_LABELS: Record<string, string> = {
+    "claude-code": "Claude",
+    claude: "Claude",
+    anthropic: "Claude",
+    openai: "OpenAI",
+    codex: "OpenAI Codex",
+    ollama: "a local open-weight model (Ollama)",
+  };
+  const rawProvider = snapshot.data?.llm_provider ?? "";
+  const runtimeLabel = rawProvider
+    ? (RUNTIME_LABELS[rawProvider] ?? rawProvider)
+    : null;
   const saveError = save.isError
     ? save.error instanceof Error
       ? save.error.message
@@ -69,7 +81,7 @@ export function SettingsSurface() {
       <SurfaceHeader
         eyebrow="Settings"
         title="Settings"
-        lede="Voice, notifications, and approvals. Everything else your AI handles."
+        lede="Voice, usage, and your workspace. Everything else your AI handles."
       />
 
       <div className="opr-settings">
@@ -87,8 +99,8 @@ export function SettingsSurface() {
               </div>
               <div className="opr-set-help">
                 Powers the real screen-share call where you build tools by
-                talking. Your key is stored on your broker and never sent to the
-                browser. With no key, the call is the guided preview.
+                talking. Your key stays in your workspace and is never sent to
+                the browser. With no key, the call is a scripted example.
               </div>
             </div>
             <input
@@ -98,7 +110,6 @@ export function SettingsSurface() {
               placeholder={keySet ? "•••• stored — paste to replace" : "sk-..."}
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
-              disabled={nexHosted}
             />
           </div>
           <div className="opr-set-row">
@@ -115,16 +126,13 @@ export function SettingsSurface() {
               placeholder={config.data?.realtime_model || "gpt-realtime-2"}
               value={modelInput}
               onChange={(e) => setModelInput(e.target.value)}
-              disabled={nexHosted}
             />
           </div>
           <div className="opr-set-row" style={{ justifyContent: "flex-end" }}>
             <button
               type="button"
               className="opr-btn opr-btn-primary opr-btn-sm"
-              disabled={
-                save.isPending || nexHosted || !(keyInput || modelInput)
-              }
+              disabled={save.isPending || !(keyInput || modelInput)}
               onClick={() =>
                 save.mutate({
                   ...(keyInput ? { openai_api_key: keyInput } : {}),
@@ -140,22 +148,6 @@ export function SettingsSurface() {
               <div className="opr-set-help opr-danger">{saveError}</div>
             </div>
           ) : null}
-          <div className="opr-set-row">
-            <div>
-              <div className="opr-set-label">Let wuphf host voice for me</div>
-              <div className="opr-set-help">
-                Metered through wuphf cloud. With no key and this off, the call
-                is the guided preview. You can still build everything from chat.
-              </div>
-            </div>
-            <button
-              type="button"
-              aria-pressed={nexHosted}
-              aria-label="Let wuphf host voice for me"
-              className={`opr-toggle${nexHosted ? " is-on" : ""}`}
-              onClick={() => setNexHosted((v) => !v)}
-            />
-          </div>
         </div>
 
         <div className="opr-set-group">
@@ -176,23 +168,16 @@ export function SettingsSurface() {
                 : "no spend recorded yet"}
             </span>
           </div>
-        </div>
-
-        <div className="opr-set-group">
-          <Eyebrow>Runtime</Eyebrow>
-          <div className="opr-set-row">
-            <div>
-              <div className="opr-set-label">Default runtime</div>
-              <div className="opr-set-help">
-                The engine new agents run on, picked during setup. Per-agent
-                runtime switching lands here next; until then this is
-                read-only.
+          {runtimeLabel ? (
+            <div className="opr-set-row">
+              <div>
+                <div className="opr-set-label">Engine</div>
+                <div className="opr-set-help">
+                  Your agents run on {runtimeLabel}, picked during setup.
+                </div>
               </div>
             </div>
-            <span className="opr-pill opr-pill-muted">
-              {snapshot.data?.llm_provider || "not set"}
-            </span>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>

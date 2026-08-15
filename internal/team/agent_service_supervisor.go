@@ -23,6 +23,7 @@ package team
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -31,6 +32,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/nex-crm/wuphf/internal/brokeraddr"
 )
 
 // agentServiceSpawnBackoff is the restart delay after the child exits. Kept
@@ -76,6 +79,16 @@ func (b *Broker) startAgentServiceSupervisor(ctx context.Context) {
 			cmd := exec.CommandContext(ctx, bunPath, "run", "src/service.ts")
 			cmd.Dir = dir
 			cmd.Env = append(os.Environ(), "PORT="+agentServicePort())
+			// Hand the child our own API address + bearer so its capability
+			// layer (integrations, browser runs) executes through THIS broker
+			// instead of simulating. Pre-set env wins — an operator pointing
+			// the sidecar at another broker keeps that.
+			if os.Getenv("WUPHF_BROKER_URL") == "" {
+				cmd.Env = append(cmd.Env, fmt.Sprintf("WUPHF_BROKER_URL=http://127.0.0.1:%d", brokeraddr.ResolvePort()))
+			}
+			if os.Getenv("WUPHF_BROKER_TOKEN") == "" && b.Token() != "" {
+				cmd.Env = append(cmd.Env, "WUPHF_BROKER_TOKEN="+b.Token())
+			}
 			// The child logs into the runtime home so `wuphf log`-style
 			// debugging finds it next to the broker's own logs.
 			if f, err := agentServiceLogFile(); err == nil {

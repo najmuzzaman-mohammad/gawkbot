@@ -105,7 +105,7 @@ test("timeout: a never-resolving capability -> error", async () => {
 	const r = await runTool(t, { input: "x" }, { capabilities, timeoutMs: 20 });
 	expect(r.status).toBe("error");
 	if (r.status !== "error") throw new Error("unreachable");
-	expect(r.detail).toContain("timed out after 20ms");
+	expect(r.detail).toContain("took too long");
 });
 
 test("HARD KILL: a synchronous infinite loop dies at the deadline (worker isolate)", async () => {
@@ -117,7 +117,7 @@ test("HARD KILL: a synchronous infinite loop dies at the deadline (worker isolat
 	const elapsed = Date.now() - started;
 	expect(r.status).toBe("error");
 	if (r.status !== "error") throw new Error("unreachable");
-	expect(r.detail).toContain("timed out after 150ms");
+	expect(r.detail).toContain("took too long");
 	expect(elapsed).toBeLessThan(2000); // returned promptly — the loop was killed, not raced
 });
 

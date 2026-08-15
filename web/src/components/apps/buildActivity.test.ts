@@ -46,9 +46,16 @@ describe("humanizeToolEvent", () => {
       verb: "Writing",
       target: "App.tsx",
     });
+    // Raw shell commands never reach the operator — bash rows classify.
     expect(humanizeToolEvent("Bash", '{"command":"bun run build"}')).toEqual({
-      verb: "Running",
-      target: "bun run build",
+      verb: "Building",
+      target: "",
+    });
+    expect(
+      humanizeToolEvent("Bash", '{"command":"bun install && bunx tsc"}'),
+    ).toEqual({
+      verb: "Installing dependencies",
+      target: "",
     });
     expect(humanizeToolEvent("Read", '{"file_path":"AI_RULES.md"}')).toEqual({
       verb: "Reading",
@@ -66,10 +73,10 @@ describe("humanizeToolEvent", () => {
     });
   });
 
-  it("title-cases an unknown tool and surfaces its first string arg", () => {
+  it("keeps unknown internal tools generic — no raw names or args", () => {
     expect(humanizeToolEvent("custom_thing", '{"x":"hello"}')).toEqual({
-      verb: "Custom Thing",
-      target: "hello",
+      verb: "Working",
+      target: "",
     });
   });
 });
@@ -131,8 +138,8 @@ describe("reduceBuildActivity", () => {
     ]);
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({
-      verb: "Team Status",
-      target: "task-office-71",
+      verb: "Working",
+      target: "",
       status: "interrupted",
     });
   });
@@ -225,8 +232,8 @@ describe("reduceBuildActivity", () => {
     ]);
     expect(items.map((i) => i.status)).toEqual(["done", "done", "running"]);
     expect(items[2]).toMatchObject({
-      verb: "Running",
-      target: "bun run build",
+      verb: "Building",
+      target: "",
     });
   });
 

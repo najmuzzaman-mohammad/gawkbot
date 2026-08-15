@@ -177,12 +177,12 @@ let server: ReturnType<typeof createServer>;
 let base: string;
 let prevToolAuthorModel: string | undefined;
 beforeAll(() => {
-	// With TOOL_AUTHOR_MODEL unset, /tools/build answers deterministically (no
-	// model attempted, no authoring timeout) — these requests must be fast. Clear
-	// it explicitly so a dev shell that exports it cannot make this suite hit a
-	// live model; restore the shell's value in afterAll.
+	// TOOL_AUTHOR_MODEL=0 forces the deterministic stub (serviceAuthor.ts): with
+	// authoring auto-detected per host, an unset env on a dev machine with the
+	// claude CLI would make this suite hit a live model. Pin it off; restore the
+	// shell's value in afterAll.
 	prevToolAuthorModel = process.env.TOOL_AUTHOR_MODEL;
-	delete process.env.TOOL_AUTHOR_MODEL;
+	process.env.TOOL_AUTHOR_MODEL = "0";
 	server = createServer({ port: 0 });
 	base = server.url.toString().replace(/\/$/, "");
 });

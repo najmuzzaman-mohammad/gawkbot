@@ -111,21 +111,47 @@ function matchTool(text: string, tools: Tool[]): Tool | null {
 
 // Light conversational arg extraction: for each declared input take a quoted
 // string if present, else the last capitalized word, else the raw remainder.
-function extractArgs(text: string, tool: Tool): Record<string, string> {
+/** Pull EXPLICIT argument values out of the message: `name: value` pairs
+ * first, then quoted strings positionally. Inputs with no explicit value are
+ * reported as missing — running a tool on leftover command text produced
+ * garbage args and raw crashes (2026-08-15 QA: allTasks: "the score a task
+ * hygiene risk"). The chat asks for missing inputs instead. */
+function extractArgs(
+  text: string,
+  tool: Tool,
+): { args: Record<string, string>; missing: string[] } {
   const args: Record<string, string> = {};
+  const named = new Map(
+    [...text.matchAll(/([A-Za-z][\w]*)\s*[:=]\s*("[^"]+"|“[^”]+”|'[^']+'|\S+)/g)].map(
+      (m) => [m[1].toLowerCase(), m[2].replace(/^["“']|["”']$/g, "")],
+    ),
+  );
   const quoted = [...text.matchAll(/["“”']([^"“”']+)["“”']/g)].map((m) => m[1]);
-  const caps = [...text.matchAll(/\b([A-Z][A-Za-z0-9]+)\b/g)].map((m) => m[1]);
-  const remainder = text.replace(/^\s*(run|call|use)\b\s*/i, "").trim();
   let qi = 0;
+  const missing: string[] = [];
   for (const input of tool.inputs) {
-    if (qi < quoted.length) {
+    const byName = named.get(input.name.toLowerCase());
+    if (byName !== undefined) {
+      args[input.name] = byName;
+    } else if (qi < quoted.length) {
       args[input.name] = quoted[qi];
       qi += 1;
     } else {
-      args[input.name] = caps.at(-1) ?? remainder;
+      missing.push(input.name);
     }
   }
-  return args;
+  return { args, missing };
+}
+
+/** Frame a failed run for the operator: plain sentence first; a raw JS error
+ * (TypeError etc.) rides after it, truncated, as diagnostic detail. */
+function frameRunError(detail: string | undefined): string {
+  if (!detail) return "Something went wrong — nothing was sent.";
+  const technical = /is not a function|is not defined|undefined is not|TypeError|ReferenceError|SyntaxError|Cannot read/.test(
+    detail,
+  );
+  if (!technical) return detail;
+  return `The tool hit a bug while running — nothing was sent. Ask me to rebuild it if this keeps happening. (${detail.slice(0, 140)})`;
 }
 
 export function AppToolsChat({
@@ -155,6 +181,12 @@ export function AppToolsChat({
   const [draft, setDraft] = useState("");
   const [working, setWorking] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingApproval | null>(null);
+  // A run that is waiting for input values: the next message answers it.
+  const [awaitingArgs, setAwaitingArgs] = useState<{
+    tool: Tool;
+    args: Record<string, string>;
+    missing: string[];
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const seededRef = useRef(false);
 
@@ -261,6 +293,15 @@ export function AppToolsChat({
     scrollDown();
   }
 
+  /** Interrogatives and status questions — not teachable workflows. */
+  function looksLikeQuestion(text: string): boolean {
+    const t = text.trim().toLowerCase();
+    if (t.endsWith("?")) return true;
+    return /^(what|why|when|where|who|how|did|do|does|is|are|can you tell|tell me)\b/.test(
+      t,
+    );
+  }
+
   async function send(text?: string) {
     const body = (text ?? draft).trim();
     if (!body || working || pending) return;
@@ -270,10 +311,73 @@ export function AppToolsChat({
       { kind: "text", id: nextId(), from: "you", body },
     ]);
     onTurn?.("you", body);
+    // Answering a "what should I run it with?" prompt: this message carries
+    // the values for the inputs we asked for.
+    if (awaitingArgs) {
+      const { tool, args, missing } = awaitingArgs;
+      setAwaitingArgs(null);
+      const named = new Map(
+        [...body.matchAll(/([A-Za-z][\w]*)\s*[:=]\s*("[^"]+"|\S+)/g)].map(
+          (m) => [m[1].toLowerCase(), m[2].replace(/^"|"$/g, "")],
+        ),
+      );
+      const filled = { ...args };
+      const still: string[] = [];
+      for (const name of missing) {
+        const v = named.get(name.toLowerCase());
+        if (v !== undefined) filled[name] = v;
+        else still.push(name);
+      }
+      // One free-text answer fills a single remaining input directly.
+      if (still.length === 1 && named.size === 0) {
+        filled[still[0]] = body;
+        still.length = 0;
+      }
+      if (still.length > 0) {
+        const reply = `I still need ${still.map((n) => `\`${n}\``).join(" and ")} — send ${still.length === 1 ? "it" : "them"} like \`${still[0]}: value\`.`;
+        setAwaitingArgs({ tool, args: filled, missing: still });
+        setItems((prev) => [
+          ...prev,
+          { kind: "text", id: nextId(), from: "nex", body: reply },
+        ]);
+        onTurn?.("nex", reply);
+        scrollDown();
+        return;
+      }
+      await invokeTool(tool, filled);
+      return;
+    }
     // Invoking an existing tool? The chat CALLS it (there is no Run button).
     const invoked = matchTool(body, tools);
     if (invoked) {
-      await invokeTool(invoked, extractArgs(body, invoked));
+      const { args, missing } = extractArgs(body, invoked);
+      if (missing.length > 0) {
+        // Never run on guessed args — ask for what the tool needs.
+        const reply = `To run “${invoked.title}” I need ${missing.map((n) => `\`${n}\``).join(" and ")}. Send ${missing.length === 1 ? "it" : "them"} like \`${missing[0]}: value\`.`;
+        setAwaitingArgs({ tool: invoked, args, missing });
+        setItems((prev) => [
+          ...prev,
+          { kind: "text", id: nextId(), from: "nex", body: reply },
+        ]);
+        onTurn?.("nex", reply);
+        scrollDown();
+        return;
+      }
+      await invokeTool(invoked, args);
+      return;
+    }
+    // A question is not a workflow: this chat teaches and runs tools, and
+    // coercing "what did you do today?" into create_tool minted a nonsense
+    // tool (2026-08-15 audit). Say what this chat can do instead.
+    if (looksLikeQuestion(body)) {
+      const reply =
+        'This chat is where you teach me tools and run them. Describe a workflow ("score each new lead and route hot ones") and I\'ll build it as a tool, or say "run <tool name>" to use one.';
+      setItems((prev) => [
+        ...prev,
+        { kind: "text", id: nextId(), from: "nex", body: reply },
+      ]);
+      onTurn?.("nex", reply);
+      scrollDown();
       return;
     }
     setWorking("Nex is calling create_tool…");
@@ -283,14 +387,53 @@ export function AppToolsChat({
       // render that call and drop the tool into the shared Tools state. The
       // `app` field carries the REAL agent id when the provider has one, so the
       // service persists the tool per-agent.
-      const { tool, offline } = await buildToolFromChat(
+      const { tool, offline, authoredBy, narration } = await buildToolFromChat(
         body,
         agentId ?? appName,
       );
+      if (offline) {
+        // The agent service was unreachable. Never mint the local mock into
+        // the Tools list as if the teach succeeded — the fabricated
+        // "Score & route a lead" success was the worst finding of the
+        // 2026-08-15 use-it-for-real QA pass. Say what happened instead.
+        const reply =
+          "I could not reach the tool-building service, so nothing was built. It usually starts with the workspace — give it a moment and try again.";
+        setItems((prev) => [
+          ...prev,
+          { kind: "text", id: nextId(), from: "nex", body: reply },
+        ]);
+        onTurn?.("nex", reply);
+        return;
+      }
+      if (!tool) {
+        // The service answered but declined (no tool) — surface its reason
+        // instead of pretending the service was down.
+        const reply =
+          narration ||
+          "I could not turn that into a tool. Describe the workflow step by step and I'll try again.";
+        setItems((prev) => [
+          ...prev,
+          { kind: "text", id: nextId(), from: "nex", body: reply },
+        ]);
+        onTurn?.("nex", reply);
+        return;
+      }
+      if (authoredBy === "stub") {
+        // The service answered, but with its canned template — no model is
+        // connected on that machine. A template pretending to be the
+        // operator's workflow is worse than nothing (2026-08-15 QA pass), so
+        // say what's missing instead of minting it into Tools.
+        const reply =
+          "I can't author tools on this computer yet — there's no AI model connected for me to write them with. Connect Claude Code, an Anthropic API key, or Ollama, then teach me again.";
+        setItems((prev) => [
+          ...prev,
+          { kind: "text", id: nextId(), from: "nex", body: reply },
+        ]);
+        onTurn?.("nex", reply);
+        return;
+      }
       addTool(tool);
-      const reply = `Done — I built “${tool.title}”. It's in your Tools now, and I'll call it when you need it.${
-        offline ? " (built offline — start the agent to use the live one.)" : ""
-      }`;
+      const reply = `Done — I built “${tool.title}”. It's in your Tools now, and I'll call it when you need it.`;
       setItems((prev) => [
         ...prev,
         { kind: "call", id: nextId(), tool },
@@ -353,7 +496,7 @@ export function AppToolsChat({
                     ? item.outcome.result
                     : item.outcome.status === "needs_approval"
                       ? "Paused — this needs your approval."
-                      : (item.outcome.detail ?? "Something went wrong.")}
+                      : frameRunError(item.outcome.detail)}
                 </div>
                 {item.outcome.actions.length > 0 ? (
                   <div className="opr-toolcall-actions">

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CustomApp } from "../../api/apps";
-import { assembleDemoCapture, capturePromptSeed } from "./demoCapture";
+import { capturePromptSeed, demoCaptureFromDraft } from "./demoCapture";
 import {
   APP_ID_PREFIX,
   appBuildState,
@@ -115,7 +115,20 @@ describe("deriveAppName", () => {
     // A bare "crm" mention means the workflow USES a CRM, not that it cleans
     // one — the name must follow the actual work (lead scoring + routing).
     const seed = capturePromptSeed(
-      assembleDemoCapture({ mode: "build", transcript: [] }),
+      demoCaptureFromDraft(
+        {
+          goal: "When a demo request comes in, score the lead and route hot ones to an AE.",
+          summary: "Lead routing",
+          apiCalls: [
+            {
+              method: "post",
+              endpoint: "/crm/v3/objects/companies/search",
+              integration: "HubSpot",
+            },
+          ],
+        },
+        { mode: "build", transcript: [] },
+      ),
     );
     expect(seed).toContain("/crm/v3/objects/companies/search");
     expect(deriveAppName(seed)).not.toBe("CRM Hygiene Agent");
@@ -152,9 +165,9 @@ describe("deriveAppName", () => {
   it("routes role-keyword descriptions through the role table, not the clause cut", () => {
     // "dashboard" is a reporting keyword — the role table wins before any
     // clause parsing ("Dashboard Of Our Agent" must never appear).
-    expect(deriveAppName("A dashboard of our open tasks with their status")).toBe(
-      "Reporting Agent",
-    );
+    expect(
+      deriveAppName("A dashboard of our open tasks with their status"),
+    ).toBe("Reporting Agent");
     // "escalation" is a support keyword, so the role table names it even
     // though the clause cut alone would give "Escalation Queue Agent".
     expect(deriveAppName("an escalation queue for our support team")).toBe(

@@ -47,11 +47,56 @@ export const SCHEDULE_PRESETS: ReadonlyArray<{ label: string; expr: string }> =
     { label: "Every hour", expr: "hourly" },
   ];
 
-/** Render a schedule for humans: preset exprs map back to their label; an
- * unknown expr (hand-written cron, seeded label) renders as-is. */
+const CRON_DAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+/** Render a schedule for humans. Preset exprs map back to their label; common
+ * cron shapes and shorthands translate ("0 9 * * 1" -> "Every Monday 9:00",
+ * "4h" -> "Every 4 hours"); anything else falls back to "a custom schedule" —
+ * a raw cron expression is developer material, never operator copy. */
 export function humanSchedule(schedule: string): string {
-  const preset = SCHEDULE_PRESETS.find((p) => p.expr === schedule);
-  return preset ? preset.label : schedule;
+  const expr = schedule.trim();
+  const preset = SCHEDULE_PRESETS.find((p) => p.expr === expr);
+  if (preset) return preset.label;
+
+  const lower = expr.toLowerCase();
+  if (lower === "hourly") return "Every hour";
+  if (lower === "daily") return "Every day";
+  if (lower === "weekly") return "Every week";
+  const short = lower.match(/^(\d+)([mh])$/);
+  if (short) {
+    const n = Number(short[1]);
+    const unit = short[2] === "m" ? "minute" : "hour";
+    return n === 1 ? `Every ${unit}` : `Every ${n} ${unit}s`;
+  }
+
+  // Common 5-field cron shapes.
+  const parts = expr.split(/\s+/);
+  if (parts.length === 5) {
+    const [min, hour, dom, , dow] = parts;
+    const everyMin = min.match(/^\*\/(\d+)$/);
+    if (everyMin && hour === "*") return `Every ${everyMin[1]} minutes`;
+    if (/^\d+$/.test(min) && /^\d+$/.test(hour) && dom === "*") {
+      const time = `${hour}:${min.padStart(2, "0")}`;
+      if (dow === "*") return `Every day ${time}`;
+      if (dow === "1-5") return `Weekdays ${time}`;
+      if (/^\d$/.test(dow)) {
+        const day = CRON_DAYS[Number(dow)];
+        if (day) return `Every ${day} ${time}`;
+      }
+    }
+  }
+
+  // Already-human labels (contain letters, no cron glyphs) pass through.
+  if (/[a-z]/i.test(expr) && !/[*/]/.test(expr)) return expr;
+  return "a custom schedule";
 }
 
 /** Humanize a timestamp: an ISO/RFC3339 string becomes a short local
@@ -108,73 +153,4 @@ export function newSession(
   kind: ChatSessionMeta["kind"],
 ): ChatSessionMeta {
   return { id: nextId("sess"), title, kind, at: "just now" };
-}
-
-/** Seeded routines so the tab shows the shape (mirrors the ICP examples). */
-export function seedRoutines(): Routine[] {
-  return [
-    {
-      id: "rt_recap",
-      name: "Monday pipeline recap",
-      prompt:
-        "Summarize last week's pipeline movement into a glanceable recap and save it as a doc.",
-      schedule: "Every Monday 9:00",
-      enabled: true,
-      version: 3,
-      lastRun: "Monday 9:02",
-      sessionId: "sess_recap",
-    },
-    {
-      id: "rt_route",
-      name: "Route new leads",
-      prompt:
-        "Score every new inbound lead and route hot ones to the right AE.",
-      schedule: "Every 30 minutes",
-      enabled: true,
-      version: 5,
-      lastRun: "12 minutes ago",
-      sessionId: "sess_route",
-    },
-    {
-      id: "rt_chase",
-      name: "Chase stalled deals",
-      prompt:
-        "Find deals with no touch in 7 days and draft a follow-up for each.",
-      schedule: "Weekdays 8:00",
-      enabled: false,
-      version: 1,
-      lastRun: "Jun 24",
-      sessionId: "sess_chase",
-    },
-  ];
-}
-
-/** Seeded sessions: one per seeded routine + the operator's manual chat. */
-export function seedSessions(): ChatSessionMeta[] {
-  return [
-    {
-      id: "sess_manual",
-      title: "Chat with your agent",
-      kind: "manual",
-      at: "now",
-    },
-    {
-      id: "sess_recap",
-      title: "Monday pipeline recap",
-      kind: "routine",
-      at: "Monday 9:02",
-    },
-    {
-      id: "sess_route",
-      title: "Route new leads",
-      kind: "routine",
-      at: "12 min ago",
-    },
-    {
-      id: "sess_chase",
-      title: "Chase stalled deals",
-      kind: "routine",
-      at: "Jun 24",
-    },
-  ];
 }

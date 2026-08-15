@@ -86,23 +86,30 @@ describe("AgentSessions", () => {
     vi.unstubAllGlobals();
   });
 
-  it("keeps the seeded sessions for a mock agent (no agent id)", () => {
+  it("starts with only the local draft chat — no fabricated history", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    const { getByText } = render(<AgentSessions agentName="Pipeline Agent" />);
+    const { getByText, queryByText } = render(
+      <AgentSessions agentName="Pipeline Agent" />,
+    );
     expect(getByText("Chat with your agent")).toBeTruthy();
-    expect(getByText("Monday pipeline recap")).toBeTruthy();
+    // 2026-08-15 audit regression: the seeded fake sessions must never render.
+    expect(queryByText("Monday pipeline recap")).toBeNull();
+    expect(queryByText("Route new leads")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("falls back to the seeded sessions when the service is unreachable", async () => {
+  it("keeps the draft chat usable and says why when the service is unreachable", async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error("agent down"));
     vi.stubGlobal("fetch", fetchMock);
-    const { getByText } = render(
+    const { getByText, findByText } = render(
       <AgentSessions agentName="Pipeline Agent" agentId="app_x" />,
     );
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(getByText("Chat with your agent")).toBeTruthy();
+    expect(
+      await findByText(/Past sessions are unavailable right now/),
+    ).toBeTruthy();
   });
 
   it("hydrates sessions + the persisted transcript from the service", async () => {

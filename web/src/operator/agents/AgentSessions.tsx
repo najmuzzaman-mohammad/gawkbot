@@ -11,11 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { CalendarClock, MessageSquareText, Plus } from "lucide-react";
 
 import { isRealAppId } from "../apps/useOperatorApps";
-import {
-  type ChatSessionMeta,
-  newSession,
-  seedSessions,
-} from "../routines/routines";
+import { type ChatSessionMeta, newSession } from "../routines/routines";
 import { AppToolsChat } from "../surfaces/AppToolsChat";
 import {
   tryCreateSession,
@@ -39,14 +35,15 @@ interface AgentSessionsProps {
 
 type Transcript = { from: "you" | "nex"; body: string }[];
 
-// A mock transcript for a routine session: the scheduled prompt going in and the
-// agent's outcome — the shape a real run persists (and the offline fallback).
+// Honest fallback when a routine session's persisted transcript could not be
+// fetched: say so — never fabricate a "Ran the routine…" outcome (2026-08-15
+// audit).
 function routineTranscript(title: string): Transcript {
   return [
     { from: "you", body: `(scheduled) ${title}` },
     {
       from: "nex",
-      body: "Ran the routine with this agent's tools — the outcome is saved under Artifacts.",
+      body: "This run's transcript could not be loaded right now. Reopen it in a moment.",
     },
   ];
 }
@@ -71,9 +68,14 @@ export function AgentSessions({
   requestedSessionId,
   seed,
 }: AgentSessionsProps) {
-  const [sessions, setSessions] = useState<ChatSessionMeta[]>(() =>
-    seedSessions(),
-  );
+  // Real agents START EMPTY: one local draft chat, no fabricated history
+  // (2026-08-15 audit: seeded "Monday pipeline recap · Monday 9:02" chips
+  // rendered as real history, forever when the service was unreachable).
+  const [sessions, setSessions] = useState<ChatSessionMeta[]>(() => [
+    newSession("Chat with your agent", "manual"),
+  ]);
+  // The service could not be reached — the strip says so instead of faking.
+  const [unavailable, setUnavailable] = useState(false);
   const [activeId, setActiveId] = useState<string>(sessions[0]?.id ?? "");
   // Mount a session's pane on first visit, then keep it alive.
   const [mounted, setMounted] = useState<string[]>([activeId]);
@@ -96,6 +98,11 @@ export function AgentSessions({
   // memoizes that one-time create so both turns of the first exchange land in
   // the same real session.
   const draftManualIdRef = useRef<string | null>(null);
+  if (draftManualIdRef.current === null && sessions[0]?.kind === "manual") {
+    // The initial local chat IS a draft — it persists to the service only on
+    // the first sent message.
+    draftManualIdRef.current = sessions[0].id;
+  }
   const draftServiceRef = useRef<Map<string, Promise<string | null>>>(
     new Map(),
   );
@@ -104,7 +111,13 @@ export function AgentSessions({
     if (!realId) return;
     let cancelled = false;
     void tryListSessions(realId).then(async (remote) => {
-      if (cancelled || !remote) return; // unreachable — keep the seeded state
+      if (cancelled) return;
+      if (!remote) {
+        // Unreachable — keep the local draft chat usable and say why.
+        setUnavailable(true);
+        return;
+      }
+      setUnavailable(false);
       const picked = pickedRef.current;
       // Default to a MANUAL session, never a routine's run transcript — manual
       // chatting/teaching in a routine session would pollute its run history.
@@ -260,6 +273,13 @@ export function AgentSessions({
           New chat
         </button>
       </div>
+      {unavailable ? (
+        <p className="opr-scoped-note">
+          Past sessions are unavailable right now — the agent service could not
+          be reached. You can still chat here; it will sync once the workspace
+          reconnects.
+        </p>
+      ) : null}
 
       <div className="opr-session-panes">
         {sessions

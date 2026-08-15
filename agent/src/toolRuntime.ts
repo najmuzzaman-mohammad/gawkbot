@@ -195,7 +195,7 @@ export async function runTool(tool: Tool, args: Record<string, string> = {}, opt
 
 	const fnName = /(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(tool.code)?.[1];
 	if (!fnName) {
-		return { status: "error", detail: "tool code must declare a named function", actions: ctx.actions };
+		return { status: "error", detail: "this tool has a problem in how it was built — ask Nex to rebuild it", actions: ctx.actions };
 	}
 
 	const caps = hostCaps(opts.capabilities ?? buildCapabilities(), ctx);
@@ -231,7 +231,7 @@ export async function runTool(tool: Tool, args: Record<string, string> = {}, opt
 		};
 		// The HARD KILL: a sync infinite loop in tool code dies here, at the
 		// deadline — worker.terminate() stops the thread, not just the waiting.
-		const timer = setTimeout(() => finish({ status: "error", detail: `tool timed out after ${timeoutMs}ms`, actions: ctx.actions }), timeoutMs);
+		const timer = setTimeout(() => finish({ status: "error", detail: "this took too long, so the run was stopped — try again, or ask for something smaller", actions: ctx.actions }), timeoutMs);
 
 		worker.onmessage = (ev: MessageEvent) => {
 			const msg = ev.data as WorkerMsg;
@@ -259,7 +259,7 @@ export async function runTool(tool: Tool, args: Record<string, string> = {}, opt
 			}
 		};
 		worker.onerror = (ev: ErrorEvent) => {
-			finish({ status: "error", detail: ev.message || "tool worker crashed", actions: ctx.actions });
+			finish({ status: "error", detail: ev.message || "the run stopped unexpectedly — nothing was sent; try again", actions: ctx.actions });
 		};
 
 		worker.postMessage({

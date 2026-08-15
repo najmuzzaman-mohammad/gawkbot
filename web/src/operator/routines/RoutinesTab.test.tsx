@@ -4,36 +4,45 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { RoutinesTab } from "./RoutinesTab";
 
 describe("RoutinesTab", () => {
-  it("lists routines as scheduled prompts with per-routine lifecycle", () => {
-    const { getByText, getAllByText } = render(
+  /** Adds a routine through the form (the only source now — no seeds). */
+  function addRoutine(utils: ReturnType<typeof render>, prompt: string): void {
+    fireEvent.change(utils.getByLabelText("Routine prompt"), {
+      target: { value: prompt },
+    });
+    fireEvent.click(utils.getByText("Add routine"));
+  }
+
+  it("starts empty with an honest empty note — no fabricated seeds", () => {
+    const { getByText, queryByText } = render(
       <RoutinesTab agentName="Pipeline Agent" />,
     );
-    expect(getByText("Monday pipeline recap")).toBeTruthy();
-    expect(getAllByText("Every Monday 9:00").length).toBeGreaterThan(0);
-    // Disable / Publish belong to EACH routine, not the agent.
-    expect(getAllByText("Publish new version").length).toBe(3);
-    expect(getByText("paused")).toBeTruthy(); // the seeded disabled routine
+    expect(getByText(/No routines yet/)).toBeTruthy();
+    // 2026-08-15 audit regression: the fabricated seeds must never render.
+    expect(queryByText("Monday pipeline recap")).toBeNull();
+    expect(queryByText("Route new leads")).toBeNull();
   });
 
   it("disables one routine without touching the others", () => {
-    const { getAllByText } = render(<RoutinesTab agentName="Pipeline Agent" />);
-    const disables = getAllByText("Disable");
-    expect(disables.length).toBe(2); // two enabled seeds
+    const utils = render(<RoutinesTab agentName="Pipeline Agent" />);
+    addRoutine(utils, "Recap the pipeline every Monday");
+    addRoutine(utils, "Chase stalled deals");
+    const disables = utils.getAllByText("Disable");
+    expect(disables.length).toBe(2);
     fireEvent.click(disables[0]);
-    expect(getAllByText("Disable").length).toBe(1);
-    expect(getAllByText("Enable").length).toBe(2);
+    expect(utils.getAllByText("Disable").length).toBe(1);
+    expect(utils.getAllByText("Enable").length).toBe(1);
   });
 
   it("editing a prompt marks a draft; Publish freezes it as the next version", () => {
-    const { getAllByLabelText, getAllByText, getByText } = render(
-      <RoutinesTab agentName="Pipeline Agent" />,
-    );
-    const prompt = getAllByLabelText(/Prompt for/)[0] as HTMLTextAreaElement;
+    const utils = render(<RoutinesTab agentName="Pipeline Agent" />);
+    addRoutine(utils, "Recap the pipeline every Monday");
+    const prompt = utils.getAllByLabelText(
+      /Prompt for/,
+    )[0] as HTMLTextAreaElement;
     fireEvent.change(prompt, { target: { value: "New sharper prompt" } });
-    expect(getByText(/v3 · draft/)).toBeTruthy();
-    const publish = getAllByText("Publish new version")[0];
-    fireEvent.click(publish);
-    expect(getByText(/v4$/)).toBeTruthy();
+    expect(utils.getByText(/v1 · draft/)).toBeTruthy();
+    fireEvent.click(utils.getAllByText("Publish new version")[0]);
+    expect(utils.getByText(/v2$/)).toBeTruthy();
   });
 
   it("adds a new routine from a prompt + schedule", () => {
@@ -52,20 +61,21 @@ describe("RoutinesTab", () => {
 
   it("opens the routine's chat session", () => {
     const onOpenSession = vi.fn();
-    const { getAllByText } = render(
+    const utils = render(
       <RoutinesTab agentName="Pipeline Agent" onOpenSession={onOpenSession} />,
     );
-    fireEvent.click(getAllByText("Open its chat")[0]);
+    addRoutine(utils, "Recap the pipeline every Monday");
+    fireEvent.click(utils.getAllByText("Open its chat")[0]);
     expect(onOpenSession).toHaveBeenCalledWith(
-      "sess_recap",
-      "Monday pipeline recap",
+      expect.stringMatching(/^sess/),
+      "Recap the pipeline every Monday",
     );
   });
 });
 
 // With a REAL agent id a routine IS a broker scheduler job (via /api): cron,
 // enable/disable, revisions (versioning), and run history live there. When the
-// broker is unreachable the tab keeps the seeds.
+// broker is unreachable the tab says so — it never fabricates rows.
 describe("RoutinesTab (live broker scheduler)", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -128,7 +138,6 @@ describe("RoutinesTab (live broker scheduler)", () => {
       <RoutinesTab agentName="Pipeline Agent" agentId="app_x" />,
     );
     expect(await findByText("Live recap")).toBeTruthy();
-    // The seeds were replaced by the broker's answer.
     expect(queryByText("Monday pipeline recap")).toBeNull();
     expect(fetchMock.mock.calls[0][0]).toBe("/api/scheduler");
     // Version comes from the revision history; cron renders as its label
@@ -137,15 +146,16 @@ describe("RoutinesTab (live broker scheduler)", () => {
     expect(getAllByText("Every Monday 9:00").length).toBeGreaterThan(1);
   });
 
-  it("falls back to the seeds when the broker is unreachable", async () => {
+  it("says routines are unavailable when the broker is unreachable", async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error("broker down"));
     vi.stubGlobal("fetch", fetchMock);
-    const { getByText } = render(
+    const { findByText, queryByText } = render(
       <RoutinesTab agentName="Pipeline Agent" agentId="app_x" />,
     );
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    // Seeded state still renders — the offline path never breaks.
-    expect(getByText("Monday pipeline recap")).toBeTruthy();
+    // Honest note, no fabricated rows.
+    expect(await findByText(/Routines are unavailable right now/)).toBeTruthy();
+    expect(queryByText("Monday pipeline recap")).toBeNull();
   });
 
   it("Disable PATCHes the scheduler job and renders the broker's answer", async () => {
@@ -198,7 +208,7 @@ describe("RoutinesTab (live broker scheduler)", () => {
     );
     await findByText("Live recap"); // hydration replaced the seeds
     fireEvent.click(getByText("Run now"));
-    expect(await findByText("queued — runs within a tick")).toBeTruthy();
+    expect(await findByText("queued — starting in a moment")).toBeTruthy();
     const runCall = fetchMock.mock.calls.find(([url]) =>
       String(url).endsWith("/run"),
     );

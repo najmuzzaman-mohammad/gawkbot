@@ -122,7 +122,7 @@ function simRun(input: unknown): string {
 		subject = preview(input);
 	}
 	const on = subject ? ` of "${subject}"` : "";
-	return `Simulated run${on}: no model or integrations are connected on this host, so nothing actually ran — set TOOL_RUNTIME_MODEL=1 or connect the broker (WUPHF_BROKER_URL/WUPHF_BROKER_TOKEN) to run it for real.`;
+	return `Simulated run${on}: nothing actually ran — this computer has no AI model or integrations connected yet. Connect them in Settings to make runs real.`;
 }
 
 /** The all-simulated runtime: deterministic, no network, no model. */
@@ -241,7 +241,7 @@ interface BrokerCallResponse {
 function realIntegrations(cfg: CapabilityConfig): CapabilityTree {
 	const call: CapabilityFn = async (platform: unknown, action: unknown, params?: unknown) => {
 		if (!cfg.brokerUrl || !cfg.brokerToken) {
-			throw new Error("integrations are not connected on this host (set WUPHF_BROKER_URL and WUPHF_BROKER_TOKEN)");
+			throw new Error("your integrations are not connected yet, so this step could not run — connect them from the agent's Integrations tab and try again");
 		}
 		const fetchFn = cfg.fetch ?? fetch;
 		// Run signal + timeout in one signal: a settled tool run aborts the fetch.
@@ -284,7 +284,7 @@ function realIntegrations(cfg: CapabilityConfig): CapabilityTree {
 function realBrowser(cfg: CapabilityConfig): CapabilityFn {
 	return async (goal: unknown) => {
 		if (!cfg.brokerUrl || !cfg.brokerToken) {
-			throw new Error("browser execution is not configured on this host (set WUPHF_BROKER_URL and WUPHF_BROKER_TOKEN)");
+			throw new Error("browser runs are not set up on this workspace yet, so this step could not run");
 		}
 		const fetchFn = cfg.fetch ?? fetch;
 		// Run signal + timeout in one signal, held open across the SSE STREAM (the
@@ -368,7 +368,7 @@ export function buildCapabilities(cfg: CapabilityConfig = {}): CapabilityTree {
 	} else {
 		tree.integrations = {
 			call: async () => {
-				throw new Error("integrations are not connected on this host (set WUPHF_BROKER_URL and WUPHF_BROKER_TOKEN)");
+				throw new Error("your integrations are not connected yet, so this step could not run — connect them from the agent's Integrations tab and try again");
 			},
 		};
 	}

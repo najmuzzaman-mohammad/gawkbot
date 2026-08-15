@@ -13,7 +13,6 @@ import "../styles/operator-shell.css";
 import { getConfig } from "../api/client";
 import { useAgentNames } from "./agents/agentNames";
 import { capturePromptSeed, type DemoCapture } from "./apps/demoCapture";
-import { consumeFirstWorkflowSeed } from "./firstWorkflowSeed";
 import {
   appBuildState,
   isRealAppId,
@@ -23,6 +22,7 @@ import { useRealtimeConfig } from "./apps/useRealtimeConfig";
 import { ApprovalPrompt } from "./components/ApprovalPrompt";
 import { CallModal } from "./components/CallModal";
 import { RealCallModal } from "./components/RealCallModal";
+import { consumeFirstWorkflowSeed } from "./firstWorkflowSeed";
 import { getTool } from "./mock/data";
 import {
   OperatorSidebar,
@@ -205,7 +205,6 @@ export function OperatorApp() {
     return (
       <InternalToolsSurface
         onOpen={openTool}
-        onStartCall={() => openCall({ mode: "build" })}
         onBuild={() => setAppBuilding(true)}
       />
     );
@@ -255,33 +254,59 @@ export function OperatorApp() {
         ? (() => {
             // Real call when a Realtime key was configured at call start; mock
             // otherwise. `callIsReal` is pinned when the call opens so a later
-            // config refetch can't swap the component and drop a live call. Both
-            // share the same props and the same capture → build-engine handoff.
-            const CallSurface = callIsReal ? RealCallModal : CallModal;
+            // config refetch can't swap the component and drop a live call.
+            // ONLY the real call hands a capture to the build engine — the
+            // scripted example ends into the plain build chat with an empty
+            // composer (2026-08-15 audit: a fabricated capture was building
+            // real agents for a demo that never happened).
+            const toolProp =
+              call.mode === "modify"
+                ? { id: call.toolId, name: call.toolName }
+                : undefined;
+            if (callIsReal) {
+              return (
+                <RealCallModal
+                  tool={toolProp}
+                  onClose={() => setCall(null)}
+                  onBuild={(capture) => {
+                    // The call captured everything; hand it to the AI, which
+                    // starts working at once. A modify call reopens the tool
+                    // with its chat already reworking the demonstrated change;
+                    // a build call opens the REAL agent build (the app-builder
+                    // engine), which also sets up the captured tools.
+                    const seed = capturePromptSeed(capture);
+                    resetSubState();
+                    setCall(null);
+                    if (capture.mode === "modify" && capture.toolId) {
+                      setDemoSeed(seed);
+                      setSelectedId(capture.toolId);
+                      setSurface("tools");
+                      setDetailNonce((n) => n + 1);
+                    } else {
+                      setDemoBuild(capture);
+                      setAppBuilding(true);
+                      setSurface("tools");
+                    }
+                  }}
+                />
+              );
+            }
             return (
-              <CallSurface
-                tool={
-                  call.mode === "modify"
-                    ? { id: call.toolId, name: call.toolName }
-                    : undefined
-                }
+              <CallModal
+                tool={toolProp}
                 onClose={() => setCall(null)}
-                onBuild={(capture) => {
-                  // The call captured everything; hand it to the AI, which starts
-                  // working at once. A modify call reopens the tool with its chat
-                  // already reworking the demonstrated change; a build call opens
-                  // the REAL agent build (the app-builder engine), which also sets
-                  // up the captured routine and tools on the new agent.
-                  const seed = capturePromptSeed(capture);
+                onDescribe={() => {
+                  // Watchable example over — the operator does it for real, in
+                  // their own words. No seed, no fabricated capture.
                   resetSubState();
+                  const modifyTool =
+                    call.mode === "modify" ? call.toolId : null;
                   setCall(null);
-                  if (capture.mode === "modify" && capture.toolId) {
-                    setDemoSeed(seed);
-                    setSelectedId(capture.toolId);
+                  if (modifyTool) {
+                    setSelectedId(modifyTool);
                     setSurface("tools");
                     setDetailNonce((n) => n + 1);
                   } else {
-                    setDemoBuild(capture);
                     setAppBuilding(true);
                     setSurface("tools");
                   }

@@ -22,6 +22,9 @@ interface HarnessTool {
 interface ToolBuildResult {
   tool: HarnessTool | null;
   narration: string;
+  /** How the agent authored it: a real model, or the deterministic stub the
+   * service falls back to when no model is available on that machine. */
+  authored_by?: "model" | "stub";
 }
 
 let seq = 0;
@@ -45,16 +48,22 @@ function toFeTool(h: HarnessTool, createdFrom: string): Tool {
 }
 
 export interface BuiltTool {
-  tool: Tool;
+  /** null = the service answered but declined; narration says why. */
+  tool: Tool | null;
   narration: string;
   /** True when the harness was unreachable and we fell back to the local mock. */
   offline: boolean;
+  /** "stub" when the service answered with its canned template because no
+   * model is connected — callers must NOT present that as a built tool. */
+  authoredBy: "model" | "stub";
 }
 
 /**
- * Ask the harness chat agent to build a tool for a described workflow. Falls back
- * to the local deterministic mock when the harness is unreachable, so the FE keeps
- * working offline (the mock and the harness stub share the same shapes).
+ * Ask the harness chat agent to build a tool for a described workflow. A
+ * reachable service that returns no tool is a DECLINE (tool: null, narration
+ * explains) — distinct from the offline fallback, whose mock tool exists only
+ * so the caller has a shape; callers must never present offline or
+ * stub-authored results as built.
  */
 export async function buildToolFromChat(
   message: string,
@@ -66,20 +75,27 @@ export async function buildToolFromChat(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ schema_version: SCHEMA_VERSION, message, app }),
       // A hung agent service must not wedge the chat: time out into the
-      // offline fallback below.
-      signal: AbortSignal.timeout(30_000),
+      // offline fallback below. Real model authoring runs up to 45s on the
+      // service side — this must outlast it.
+      signal: AbortSignal.timeout(60_000),
     });
     if (!res.ok) throw new Error(`harness ${res.status}`);
     const data = (await res.json()) as ToolBuildResult;
-    if (!data.tool) throw new Error("harness returned no tool");
     return {
-      tool: toFeTool(data.tool, message),
+      tool: data.tool ? toFeTool(data.tool, message) : null,
       narration: data.narration,
       offline: false,
+      // Older services omit the field; they only ever stub-authored.
+      authoredBy: data.authored_by ?? "stub",
     };
   } catch {
     const tool = authorToolFromDescription(message);
-    return { tool, narration: `Built ${tool.title}.`, offline: true };
+    return {
+      tool,
+      narration: `Built ${tool.title}.`,
+      offline: true,
+      authoredBy: "stub",
+    };
   }
 }
 
@@ -140,7 +156,8 @@ export async function callToolViaAgent(
   } catch {
     return {
       status: "error",
-      detail: "agent offline — start the agent service",
+      detail:
+        "Nex could not be reached to run this, so nothing happened. Give it a moment and try again.",
       actions: [],
     };
   }

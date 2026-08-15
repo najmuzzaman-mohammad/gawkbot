@@ -299,25 +299,36 @@ export function KnowledgeSurface({ appId }: KnowledgeSurfaceProps) {
 
   return (
     <div className="opr-surface-wide">
-      <div
-        className="opr-surface-head"
-        style={{ marginBottom: "var(--space-4)" }}
-      >
-        <div>
+      {appId ? (
+        // Per-agent tab: the agent's own header is already above — a compact
+        // intro, not a second page-scale hero, and per-agent truth (the data
+        // here is fetched by appId, not a shared brain).
+        <div className="opr-data-intro">
           <Eyebrow>Knowledge</Eyebrow>
-          <h1 className="opr-surface-title">What your AI knows</h1>
-          <p className="opr-surface-lede">
-            The shared brain behind every agent. Each fact is cited back to where
-            it came from, so you can trust what your agents act on. Hover a
-            citation to see the source, and ask why it was chosen.
+          <p className="opr-scoped-note">
+            What this agent knows, each fact cited to its source. Hover a
+            citation to see where it came from.
           </p>
         </div>
-        {appId ? null : (
+      ) : (
+        <div
+          className="opr-surface-head"
+          style={{ marginBottom: "var(--space-4)" }}
+        >
+          <div>
+            <Eyebrow>Knowledge</Eyebrow>
+            <h1 className="opr-surface-title">What your AI knows</h1>
+            <p className="opr-surface-lede">
+              Everything your agents have learned, each fact cited back to where
+              it came from, so you can trust what they act on. Hover a citation
+              to see the source, and ask why it was chosen.
+            </p>
+          </div>
           <button type="button" className="opr-btn opr-btn-sm">
             New page
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {working || stillWorking ? (
         <div className="opr-app-building" role="status">

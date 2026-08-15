@@ -238,6 +238,16 @@ render from the DB**:
 
 1. **Define your tables** — the entities the app manages and their typed columns,
    INCLUDING the computed fields, not just the raw source fields.
+   **One row per RECORD — never one aggregate row holding JSON-encoded
+   arrays.** If your model is "the findings of the last audit", the table is
+   `findings` with one row per finding (kind, record id, title, status,
+   found_at), plus at most a tiny meta/summary table for scalars. A single
+   `latest` row with columns like `no_owner: "[{...},{...}]"` is the
+   load-bearing anti-pattern: the Data tab and CSV export become unreadable,
+   `db.upsert` can no longer dedupe re-runs per record, and downstream tools
+   cannot query individual findings. Stringified JSON in a cell is a smell —
+   if you are about to `JSON.stringify` into a column, you almost always want
+   another table.
 2. **On first load, derive once and persist** — fetch the real source
    (`getEmails` / `getTasks` / `callIntegration`), compute your model, and write it
    with `db.defineTable` + `db.upsert`. Pass a stable `key` column so a re-run

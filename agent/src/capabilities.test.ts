@@ -26,7 +26,7 @@ const MODEL = { id: "test-model" } as unknown as NonNullable<CapabilityConfig["a
 test("unconfigured host: integrations.call throws an explanatory error", async () => {
 	const tree = buildCapabilities({});
 	await expect(Promise.resolve(cap(tree, "integrations.call")("gmail", "GMAIL_FETCH_EMAILS"))).rejects.toThrow(
-		/not connected on this host/,
+		/not connected yet/,
 	);
 });
 
@@ -75,7 +75,7 @@ test("simulated nex.run with a blank input is honest, not 'Ran on  (simulated).'
 	expect(out).not.toContain("Ran on  (simulated)."); // the double-space bug
 	expect(out).not.toMatch(/on\s{2,}/); // no empty interpolation anywhere
 	expect(out.toLowerCase()).toContain("simulated");
-	expect(out).toContain("no model"); // honest about why
+	expect(out).toContain("no AI model"); // honest about why
 });
 
 test("simulated nex.run names the input it would have acted on", async () => {

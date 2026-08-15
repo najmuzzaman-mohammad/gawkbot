@@ -10,10 +10,47 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { resolveToolAuthoring } from "./serviceAuthor.js";
 import { createServer } from "./service.js";
 import { PiSessions } from "./sessions.js";
 import { AgentStore } from "./store.js";
+import { authorTool, type ToolAuthorOptions } from "./tools.js";
 import type { SessionMessage, SessionMeta, StoredArtifact, StoredTool, WorkflowSpec } from "./wire.js";
+
+// Deterministic MODEL-path authoring: echoes the stub author's tool through the
+// real authorToolWithModel flow, so builds land authored_by="model" and the
+// endpoint's persist path (version bumps, quarantine recovery) stays testable
+// now that stub-authored tools are never persisted.
+const fakeComplete = (async (_model: unknown, ctx: { messages: { content: unknown }[] }) => {
+	const msg = typeof ctx.messages[0]?.content === "string" ? (ctx.messages[0].content as string) : "";
+	const zero = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+	return {
+		role: "assistant" as const,
+		content: [{ type: "text" as const, text: JSON.stringify(authorTool(msg)) }],
+		api: "openai-completions",
+		provider: "fake",
+		model: "fake",
+		usage: { ...zero, totalTokens: 0, cost: { ...zero, total: 0 } },
+		stopReason: "stop" as const,
+		timestamp: Date.now(),
+	};
+}) as ToolAuthorOptions["complete"];
+const fakeAuthoring: typeof resolveToolAuthoring = () => ({
+	via: "api_key",
+	model: {
+		id: "fake",
+		name: "fake",
+		api: "openai-completions",
+		provider: "fake",
+		baseUrl: "",
+		reasoning: false,
+		input: ["text"],
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		contextWindow: 1,
+		maxTokens: 1,
+	},
+	complete: fakeComplete,
+});
 
 async function* fakeBuild() {
 	yield {
@@ -26,15 +63,28 @@ let tmp: string;
 let dataDir: string;
 let server: ReturnType<typeof createServer>;
 let base: string;
+let prevToolAuthorModel: string | undefined;
 beforeAll(() => {
+	// Pin authoring to the deterministic stub: per-host auto-detect
+	// (serviceAuthor.ts) would hit a live model on machines with the claude CLI.
+	prevToolAuthorModel = process.env.TOOL_AUTHOR_MODEL;
+	process.env.TOOL_AUTHOR_MODEL = "0";
 	tmp = mkdtempSync(join(tmpdir(), "wuphf-agent-svc-"));
 	dataDir = join(tmp, "data");
-	server = createServer({ port: 0, buildStream: fakeBuild, store: new AgentStore(dataDir), sessions: new PiSessions(dataDir) });
+	server = createServer({
+		port: 0,
+		buildStream: fakeBuild,
+		store: new AgentStore(dataDir),
+		sessions: new PiSessions(dataDir),
+		authoring: fakeAuthoring,
+	});
 	base = server.url.toString().replace(/\/$/, "");
 });
 afterAll(() => {
 	server.stop(true);
 	rmSync(tmp, { recursive: true, force: true });
+	if (prevToolAuthorModel === undefined) delete process.env.TOOL_AUTHOR_MODEL;
+	else process.env.TOOL_AUTHOR_MODEL = prevToolAuthorModel;
 });
 
 function post(path: string, body: unknown, method = "POST"): Promise<Response> {
@@ -85,7 +135,7 @@ test("POST /routines/run (a broker fire) lands transcript + artifact and reports
 	expect(session.session.kind).toBe("routine");
 	expect(session.messages.map((m) => m.from)).toEqual(["you", "nex"]);
 	expect(session.messages[0].body).toBe("(scheduled) Summarize last week's pipeline movement");
-	// The stub-authored tool was persisted, and the run artifact saved.
+	// The authored tool was persisted, and the run artifact saved.
 	const tools = (await (await fetch(`${base}/tools?agent=runner`)).json()) as { tools: StoredTool[] };
 	expect(tools.tools.map((t) => t.name)).toEqual(["weeklyPipelineSummary"]);
 	const arts = (await (await fetch(`${base}/artifacts?agent=runner`)).json()) as { artifacts: StoredArtifact[] };

@@ -276,9 +276,11 @@ export async function startRealtimeCall(
   } catch (err) {
     stopStream(screenStream);
     stopStream(micStream);
+    // Raw broker/token errors are developer material — log them, and keep
+    // the operator-facing sentence clean.
+    console.error("realtime: session start failed:", errMessage(err));
     throw new Error(
-      "Could not start a realtime session. Add your OpenAI Realtime key in Settings. " +
-        errMessage(err),
+      "The voice call could not start. Check your OpenAI Realtime key in Settings and try again.",
     );
   }
 
@@ -362,7 +364,11 @@ export async function startRealtimeCall(
       },
     });
     if (!sdpResp.ok) {
-      throw new Error(`Realtime handshake failed (${sdpResp.status}).`);
+      // Status code stays in the console; the operator gets plain language.
+      console.error(`realtime: SDP handshake failed (${sdpResp.status})`);
+      throw new Error(
+        "The voice call could not connect. Check your key in Settings and try again.",
+      );
     }
     await pc.setRemoteDescription({
       type: "answer",

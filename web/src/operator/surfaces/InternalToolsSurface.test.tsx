@@ -31,13 +31,7 @@ function app(over: Partial<CustomApp>): CustomApp {
 }
 
 function renderSurface() {
-  return render(
-    <InternalToolsSurface
-      onOpen={() => {}}
-      onStartCall={() => {}}
-      onBuild={() => {}}
-    />,
-  );
+  return render(<InternalToolsSurface onOpen={() => {}} onBuild={() => {}} />);
 }
 
 describe("InternalToolsSurface", () => {

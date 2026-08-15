@@ -127,9 +127,10 @@ describe("OperatorAppDetail", () => {
       <OperatorAppDetail appId="app_abc" onBack={() => {}} />,
     );
     fireEvent.click(getByRole("tab", { name: "Routines" }));
-    // A routine is a scheduled prompt with its own lifecycle controls.
-    expect(getByText("Monday pipeline recap")).toBeTruthy();
-    expect(getAllByText("Publish new version").length).toBeGreaterThan(0);
+    // Routines start EMPTY (no fabricated seeds) — the tab shows the honest
+    // empty state plus the create form.
+    expect(getByText(/No routines yet/)).toBeTruthy();
+    expect(getAllByText("Add routine").length).toBeGreaterThan(0);
   });
 
   it("shows the Ask AI header button and floating bubble for a ready app", () => {

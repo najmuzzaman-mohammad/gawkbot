@@ -22,6 +22,7 @@ import { runRoutine } from "./routineRunner.js";
 import { PiSessions } from "./sessions.js";
 import { AgentStore, defaultDataDir, sanitizeAgentId } from "./store.js";
 import { runTool } from "./toolRuntime.js";
+import { resolveToolAuthoring } from "./serviceAuthor.js";
 import { buildTool } from "./tools.js";
 import { type BuildRequest, type RunRequest, SCHEMA_VERSION, type ToolBuildRequest, type ToolCallRequest, type WorkflowSpec } from "./wire.js";
 
@@ -36,6 +37,8 @@ export interface ServerOptions {
 	store?: AgentStore;
 	// Override the pi-backed session layer (tests point it at a tmp dir).
 	sessions?: PiSessions;
+	// Override authoring resolution in tests (deterministic fake model author).
+	authoring?: typeof resolveToolAuthoring;
 }
 
 function json(data: unknown, status = 200): Response {
@@ -96,6 +99,7 @@ export function createServer(opts: ServerOptions = {}) {
 	// Scheduling lives in the BROKER's scheduler registry (cron, revisions, run
 	// history) — it calls POST /routines/run on each fire. No interval here.
 	const sessions = opts.sessions ?? new PiSessions(defaultDataDir());
+	const resolveAuthoring = opts.authoring ?? resolveToolAuthoring;
 
 	return Bun.serve({
 		port: opts.port ?? Number(process.env.PORT ?? 8820),
@@ -152,14 +156,24 @@ export function createServer(opts: ServerOptions = {}) {
 					return json({ error: "invalid tool build request: message (string) required" }, 400);
 				}
 				if (schemaMismatch(body.schema_version)) return json({ error: "schema_version mismatch" }, 400);
-				// Model authoring is opt-in (TOOL_AUTHOR_MODEL=1): with no model configured
-				// the endpoint must answer deterministically FAST, not eat a model timeout.
+				// Authoring resolves per-host (serviceAuthor.ts): subscription CLI,
+				// API key, or Ollama when available; TOOL_AUTHOR_MODEL=0 forces the
+				// deterministic stub (tests), =1 keeps the Ollama-harness override.
+				// With nothing available the endpoint still answers FAST via the stub.
 				const app = typeof body.app === "string" ? body.app.trim() : "";
 				if (app && !validAgentId(app)) return json({ error: "invalid tool build request: unusable app id" }, 400);
-				const outcome = await buildTool(body.message, { tryModel: process.env.TOOL_AUTHOR_MODEL === "1", signal: req.signal });
+				const authoring = resolveAuthoring();
+				const outcome = await buildTool(body.message, { ...(authoring ?? {}), tryModel: authoring != null, signal: req.signal });
+				console.log(`tools/build authored_by=${outcome.authored_by} via=${authoring?.via ?? "none"} app=${app || "-"}`);
 				// `app` set -> PERSIST the authored tool under that agent (re-authoring a
 				// same-named tool bumps version); the response tool carries `version`.
-				if (app && outcome.tool) return json({ ...outcome, tool: store.upsertTool(app, outcome.tool) });
+				// Stub-authored tools are NEVER persisted: a canned template landing in
+				// the operator's Tools list as if it were their workflow was the worst
+				// finding of the 2026-08-15 QA pass. The stub still rides the response
+				// (labeled) so harness callers keep a deterministic shape.
+				if (app && outcome.tool && outcome.authored_by === "model") {
+					return json({ ...outcome, tool: store.upsertTool(app, outcome.tool) });
+				}
 				return json(outcome);
 			}
 
@@ -245,10 +259,17 @@ export function createServer(opts: ServerOptions = {}) {
 				// runRoutine executes with approved: false (SEND-GATE, default deny):
 				// a gated routine records needs_approval into its transcript — it
 				// never auto-sends. Run status history lands in the broker's ring.
+				// Routines author through the same per-host resolution as /tools/build,
+				// so a machine with a real model authors real tools on routine fires too.
+				const routineAuthoring = resolveAuthoring();
 				const result = await runRoutine(
 					agent,
 					{ slug: body.slug.trim(), name: body.name.trim(), prompt: body.prompt },
-					{ store, sessions },
+					{
+						store,
+						sessions,
+						author: (p) => buildTool(p, { ...(routineAuthoring ?? {}), tryModel: routineAuthoring != null }),
+					},
 				);
 				return json({ status: result.status, digest: result.outcome, session_id: result.session.id });
 			}

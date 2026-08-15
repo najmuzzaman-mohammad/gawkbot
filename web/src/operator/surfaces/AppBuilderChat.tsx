@@ -28,6 +28,7 @@ import {
 } from "../builder/describedIntegrations";
 import { IntegrationConnectRows } from "../components/IntegrationConnectRows";
 import { Eyebrow } from "../components/primitives";
+import { humanSchedule } from "../routines/routines";
 import { buildToolFromChat } from "../tools/toolAgentClient";
 
 const BUILD_POLL_MS = 3000;
@@ -431,7 +432,9 @@ export function AppBuilderChat({
         prompt: routine.prompt,
         schedule: routine.schedule,
       });
-      (created ? done : failed).push(`“${routine.name}” (${routine.schedule})`);
+      (created ? done : failed).push(
+        `“${routine.name}” (${humanSchedule(routine.schedule)})`,
+      );
     }
     for (const tool of tools) {
       try {
@@ -444,7 +447,8 @@ export function AppBuilderChat({
         // persisted) and a NAME MISMATCH (the service authored/returned a
         // different tool than the one requested). Both report as failed, never
         // "In place".
-        const isRequested = built.tool?.name === tool.name;
+        const isRequested =
+          built.tool?.name === tool.name && built.authoredBy === "model";
         (built.offline || !isRequested ? failed : done).push(tool.name);
       } catch {
         failed.push(tool.name);

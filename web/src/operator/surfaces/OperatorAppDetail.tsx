@@ -151,17 +151,26 @@ export function OperatorAppDetail({
   // Guided reveal: when the app finishes building, walk through the tabs once so
   // the operator sees the workflow, data, and knowledge get hooked up.
   const walkedRef = useRef(false);
+  const walkTimersRef = useRef<number[]>([]);
   useEffect(() => {
     if (!(buildWalk && ready) || walkedRef.current) return;
     walkedRef.current = true;
-    const timers = [
+    walkTimersRef.current = [
       window.setTimeout(() => setTab("workflow"), 900),
       window.setTimeout(() => setTab("data"), 3200),
       window.setTimeout(() => setTab("knowledge"), 5500),
       window.setTimeout(() => setTab("ui"), 8000),
     ];
-    return () => timers.forEach((t) => window.clearTimeout(t));
+    return () => walkTimersRef.current.forEach((t) => window.clearTimeout(t));
   }, [buildWalk, ready]);
+
+  // A manual tab click cancels the walk (the documented contract) — the tour
+  // must never yank the operator off a tab they chose.
+  function selectTab(next: AppTab) {
+    walkTimersRef.current.forEach((t) => window.clearTimeout(t));
+    walkTimersRef.current = [];
+    setTab(next);
+  }
 
   function removeAndBack() {
     if (!app) return;
@@ -262,7 +271,7 @@ export function OperatorAppDetail({
 
           <AgentPurpose summary={app?.summary} />
 
-          <Tabs tabs={TABS} active={tab} onSelect={setTab} />
+          <Tabs tabs={TABS} active={tab} onSelect={selectTab} />
 
           <div
             role="tabpanel"
@@ -485,47 +494,12 @@ function TabBody({
   }
 }
 
-// The broker's app-scoped integration catalog: the workspace's CONNECTED
-// platforms this app (and the agent behind it) can call. Mirrors
-// appIntegrationCatalogResponse in internal/team/broker_apps_integrations.go.
-// These are the workspace's connected integrations the agent CAN use — not
-// integrations "used by this tool" — so the tab is framed honestly below. A
-// fetch failure degrades to the previous empty state.
-interface AppIntegrationCatalogItem {
-  platform: string;
-  name: string;
-  logo_url?: string;
-  read_actions: string[];
-}
-
+// The agent's Integrations tab IS the workspace catalog: connected platforms
+// (which this agent can call) plus the connectable rest. The catalog's own
+// "Connected" section is the single source — no duplicate chip strip
+// (2026-08-15 audit).
 function AppIntegrationsTab() {
-  const [connectedNames, setConnectedNames] = useState<string[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    get<{ connected?: AppIntegrationCatalogItem[] }>(
-      "/apps/integrations/catalog",
-    )
-      .then((data) => {
-        if (cancelled) return;
-        const names = (data.connected ?? [])
-          .map((c) => (c.name || c.platform || "").trim())
-          .filter((n) => n.length > 0);
-        setConnectedNames(names);
-      })
-      .catch(() => {
-        // Broker unreachable — keep the empty state.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  return (
-    <ToolIntegrations
-      usedNames={connectedNames}
-      usedHeading="Connected for your workspace"
-      usedEmptyNote="No integrations connected yet. Connect from your catalog below and this agent can use them."
-    />
-  );
+  return <ToolIntegrations />;
 }
 
 function UiTab({

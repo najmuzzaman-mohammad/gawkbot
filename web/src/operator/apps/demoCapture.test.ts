@@ -1,12 +1,28 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  assembleDemoCapture,
-  captureCounts,
   capturePromptSeed,
   type DemoCaptureLine,
   demoCaptureFromDraft,
 } from "./demoCapture";
+
+// A realistic real-call draft (what the realtime model reports back) — the only
+// capture source now that the scripted example no longer fabricates one.
+const BUILD_DRAFT = {
+  goal: "When a demo request comes in, look up the company and route hot leads to an AE.",
+  summary: "Drafted a lead-routing agent",
+  screens: [{ label: "HubSpot — Inbound demo requests" }],
+  selectors: [{ label: "Lead row", role: "button", selector: ".lead-row" }],
+  apiCalls: [
+    {
+      method: "get",
+      endpoint: "/crm/v3/objects/companies",
+      integration: "HubSpot",
+    },
+    { method: "post", endpoint: "/api/chat.postMessage", integration: "Slack" },
+  ],
+  entities: [{ kind: "channel", value: "#ae-handoffs" }],
+};
 
 const BUILD_TRANSCRIPT: DemoCaptureLine[] = [
   { who: "ai", text: "Walk me through it." },
@@ -20,45 +36,9 @@ const MODIFY_TRANSCRIPT: DemoCaptureLine[] = [
   { who: "ai", text: "Got it. I've drafted the change. Want to see it?" },
 ];
 
-describe("assembleDemoCapture", () => {
-  it("captures rich screen, selector, API, and entity context for a build", () => {
-    const capture = assembleDemoCapture({
-      mode: "build",
-      transcript: BUILD_TRANSCRIPT,
-    });
-
-    expect(capture.mode).toBe("build");
-    expect(capture.toolId).toBeUndefined();
-    // Every kind of context the screen share is meant to gather is present.
-    const counts = captureCounts(capture);
-    expect(counts.screens).toBeGreaterThan(0);
-    expect(counts.selectors).toBeGreaterThan(0);
-    expect(counts.apiCalls).toBeGreaterThan(0);
-    expect(counts.entities).toBeGreaterThan(0);
-    // Selectors carry concrete metadata the AI can drive.
-    expect(capture.selectors.every((s) => s.selector.length > 0)).toBe(true);
-    // The summary is the AI's final reflect-back.
-    expect(capture.summary).toMatch(/drafted a tool/i);
-  });
-
-  it("scopes a modify capture to the demonstrated tool and branch", () => {
-    const capture = assembleDemoCapture({
-      mode: "modify",
-      tool: { id: "inbound-routing", name: "Inbound routing" },
-      transcript: MODIFY_TRANSCRIPT,
-    });
-
-    expect(capture.mode).toBe("modify");
-    expect(capture.toolId).toBe("inbound-routing");
-    expect(capture.toolName).toBe("Inbound routing");
-    expect(capture.goal).toMatch(/below 40|under 40/i);
-    expect(capture.entities.some((e) => e.kind === "threshold")).toBe(true);
-  });
-});
-
 describe("capturePromptSeed", () => {
   it("leads with the goal and appends the captured apps + APIs", () => {
-    const capture = assembleDemoCapture({
+    const capture = demoCaptureFromDraft(BUILD_DRAFT, {
       mode: "build",
       transcript: BUILD_TRANSCRIPT,
     });
@@ -75,11 +55,18 @@ describe("capturePromptSeed", () => {
   });
 
   it("carries the goal, key details, and transcript even with no API calls", () => {
-    const capture = assembleDemoCapture({
-      mode: "modify",
-      tool: { id: "inbound-routing", name: "Inbound routing" },
-      transcript: MODIFY_TRANSCRIPT,
-    });
+    const capture = demoCaptureFromDraft(
+      {
+        goal: "Archive anything under 40 instead of nurturing it.",
+        summary: "Drafted the change",
+        entities: [{ kind: "threshold", value: "scores under 40" }],
+      },
+      {
+        mode: "modify",
+        tool: { id: "inbound-routing", name: "Inbound routing" },
+        transcript: MODIFY_TRANSCRIPT,
+      },
+    );
     const seed = capturePromptSeed(capture);
     expect(seed.startsWith(capture.goal)).toBe(true);
     // The modify scenario has no sniffed API calls but still has entities + the
@@ -91,7 +78,10 @@ describe("capturePromptSeed", () => {
 
   it("includes the real page structure cua read (the ground-truth section)", () => {
     const capture = {
-      ...assembleDemoCapture({ mode: "build", transcript: BUILD_TRANSCRIPT }),
+      ...demoCaptureFromDraft(BUILD_DRAFT, {
+        mode: "build",
+        transcript: BUILD_TRANSCRIPT,
+      }),
       observed: [
         {
           app: "Google Chrome",

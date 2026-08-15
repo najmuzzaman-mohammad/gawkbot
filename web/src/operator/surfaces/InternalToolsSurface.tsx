@@ -2,7 +2,7 @@
 // backend): a live hero app, then the rest, building, and failed. Selecting an
 // app opens OperatorAppDetail. An empty state invites the first build.
 
-import { ArrowRight, PhoneCall, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, Trash2 } from "lucide-react";
 
 import type { CustomApp } from "../../api/apps";
 import { PixelAvatar } from "../../components/ui/PixelAvatar";
@@ -18,13 +18,11 @@ const HIRE_LINEUP = ["pam", "eng", "gtm"] as const;
 
 interface InternalToolsSurfaceProps {
   onOpen: (toolId: string) => void;
-  onStartCall: () => void;
   onBuild: () => void;
 }
 
 export function InternalToolsSurface({
   onOpen,
-  onStartCall,
   onBuild,
 }: InternalToolsSurfaceProps) {
   const appsQuery = useOperatorApps();
@@ -42,22 +40,6 @@ export function InternalToolsSurface({
         eyebrow="Agents"
         title="Your agents"
         lede="One agent per manual workflow, running it end to end. Build one by describing the job in chat, or by demoing it once on a call."
-        actions={
-          <div className="opr-header-actions">
-            <button
-              type="button"
-              className="opr-btn opr-btn-primary"
-              onClick={onBuild}
-            >
-              <Plus size={14} strokeWidth={1.9} aria-hidden={true} />
-              Build an agent
-            </button>
-            <button type="button" className="opr-btn" onClick={onStartCall}>
-              <PhoneCall size={14} strokeWidth={1.9} aria-hidden={true} />
-              Demo a workflow to Nex
-            </button>
-          </div>
-        }
       />
 
       {hero ? (

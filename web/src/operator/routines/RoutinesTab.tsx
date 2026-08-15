@@ -42,7 +42,6 @@ import {
   type Routine,
   routineSessionKey,
   SCHEDULE_PRESETS,
-  seedRoutines,
 } from "./routines";
 
 // A run's status maps to a colored dot: succeeded → green, failed → red,
@@ -95,9 +94,16 @@ export function RoutinesTab({
   agentId,
   onOpenSession,
 }: RoutinesTabProps) {
-  const [routines, setRoutines] = useState<Routine[]>(() => seedRoutines());
+  // Real agents START EMPTY — no seeded routines (2026-08-15 audit: fabricated
+  // "Route new leads · v5 · last ran 12 minutes ago" rows rendered for real
+  // agents, forever when the service was unreachable).
+  const [routines, setRoutines] = useState<Routine[]>([]);
   // True once the agent service answered a list — from then on writes go to it.
   const [live, setLive] = useState(false);
+  // The service could not be reached — say so instead of faking state.
+  const [unavailable, setUnavailable] = useState(false);
+  // Transient write-failure notice (per action, cleared on the next success).
+  const [notice, setNotice] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [schedule, setSchedule] = useState(SCHEDULE_PRESETS[0].expr);
@@ -117,8 +123,14 @@ export function RoutinesTab({
     if (!realId) return;
     let cancelled = false;
     void tryListRoutines(realId).then((remote) => {
-      if (cancelled || !remote) return; // unreachable — keep the seeded state
+      if (cancelled) return;
+      if (!remote) {
+        // Unreachable — keep the honest empty state and say why.
+        setUnavailable(true);
+        return;
+      }
       setLive(true);
+      setUnavailable(false);
       setRoutines(remote.map(fromWire));
     });
     return () => {
@@ -149,13 +161,24 @@ export function RoutinesTab({
   }
 
   function toggleEnabled(r: Routine) {
-    const local = () => patch(r.id, (x) => ({ ...x, enabled: !x.enabled }));
     if (!(live && realId)) {
-      local();
+      patch(r.id, (x) => ({ ...x, enabled: !x.enabled }));
       return;
     }
+    // A failed broker write must NOT flip the switch locally — the scheduler
+    // state is unchanged, so pretending otherwise is a lie the operator only
+    // discovers when the routine fires (or doesn't).
     void tryPatchRoutine(r.id, { agent: realId, enabled: !r.enabled }).then(
-      (updated) => (updated ? patch(r.id, () => fromWire(updated)) : local()),
+      (updated) => {
+        if (updated) {
+          setNotice(null);
+          patch(r.id, () => fromWire(updated));
+        } else {
+          setNotice(
+            `Could not ${r.enabled ? "pause" : "enable"} “${r.name}” — the workspace may be offline. It is still ${r.enabled ? "running" : "paused"}.`,
+          );
+        }
+      },
     );
   }
 
@@ -163,21 +186,25 @@ export function RoutinesTab({
   // revision per content PATCH, so only Publish sends the edit (one revision,
   // one change note, vN+1). No blur-persistence.
   function publish(r: Routine) {
-    const local = () =>
-      patch(r.id, (x) => ({ ...x, version: x.version + 1, draft: false }));
     if (!(live && realId)) {
-      local();
+      patch(r.id, (x) => ({ ...x, version: x.version + 1, draft: false }));
       return;
     }
+    // A failed publish keeps the draft flag — no fake version bump.
     void tryPatchRoutine(r.id, {
       agent: realId,
       prompt: r.prompt,
       changeNote: "Published from the Routines tab",
-    }).then((updated) =>
-      updated
-        ? patch(r.id, () => ({ ...fromWire(updated), draft: false }))
-        : local(),
-    );
+    }).then((updated) => {
+      if (updated) {
+        setNotice(null);
+        patch(r.id, () => ({ ...fromWire(updated), draft: false }));
+      } else {
+        setNotice(
+          `Could not publish “${r.name}” — the workspace may be offline. Your edit is still here; try again.`,
+        );
+      }
+    });
   }
 
   // Run now — queues a fire at the broker; the watchdog runs the prompt
@@ -191,11 +218,18 @@ export function RoutinesTab({
       if (live && realId) {
         const queued = await tryRunRoutineNow(r.id);
         if (queued) {
+          setNotice(null);
           setRanJustNowId(r.id);
-          return;
+        } else {
+          // The queue call failed: nothing will run — do not fabricate
+          // "ran just now".
+          setNotice(
+            `Could not queue “${r.name}” — the workspace may be offline. Try again.`,
+          );
         }
+        return;
       }
-      // Offline / mock agent: record the run locally so the row reflects it.
+      // Mock agent: record the run locally so the row reflects it.
       patch(r.id, (x) => ({ ...x, lastRun: "just now" }));
       setRanJustNowId(r.id);
     } finally {
@@ -218,10 +252,15 @@ export function RoutinesTab({
         prompt: p,
         schedule,
       }).then((created) => {
-        setRoutines((prev) => [
-          ...prev,
-          created ? fromWire(created) : newRoutine(n, p, schedule),
-        ]);
+        if (created) {
+          setNotice(null);
+          setRoutines((prev) => [...prev, fromWire(created)]);
+        } else {
+          // Nothing was scheduled — an unscheduled local row would be a lie.
+          setNotice(
+            `Could not create “${n}” — the workspace may be offline. Try again.`,
+          );
+        }
       });
       clear();
       return;
@@ -240,6 +279,23 @@ export function RoutinesTab({
           publish each routine on its own.
         </p>
       </div>
+
+      {notice ? (
+        <div className="opr-routine-notice" role="alert">
+          {notice}
+        </div>
+      ) : null}
+      {unavailable ? (
+        <p className="opr-scoped-note">
+          Routines are unavailable right now — the agent service could not be
+          reached. They will appear once the workspace reconnects.
+        </p>
+      ) : routines.length === 0 ? (
+        <p className="opr-scoped-note">
+          No routines yet. Create the first one below — a good starter is a
+          Monday morning recap of the week ahead.
+        </p>
+      ) : null}
 
       <div className="opr-routine-list">
         {routines.map((r) => (
@@ -260,7 +316,7 @@ export function RoutinesTab({
               <span className="opr-routine-lastrun">
                 {ranJustNowId === r.id
                   ? live
-                    ? "queued — runs within a tick"
+                    ? "queued — starting in a moment"
                     : "ran just now"
                   : r.enabled
                     ? r.lastRun

@@ -91,6 +91,14 @@ func (b *Broker) ServeWebUI(port int) error {
 	mux.Handle("/api/broker/restart", webUIRebindGuard(http.HandlerFunc(b.handleWebBrokerRestart)))
 	mux.Handle("/api/", webUIRebindGuard(b.webUIProxyHandler(brokerURL, "/api")))
 	mux.Handle("/onboarding/", webUIRebindGuard(b.webUIProxyHandler(brokerURL, "")))
+	// The pi agent service (tool authoring, routine chat sessions). The broker
+	// already supervises the service (agent_service_supervisor.go); this proxy
+	// completes the loop for the SHIPPED bundle. Until now only the vite dev
+	// server proxied /agent, so in production the teach-a-tool flow 404'd and
+	// silently fell back to a fabricated mock tool (2026-08-15 QA). Same
+	// rebind guard as the API proxy; no bearer is attached — the service is
+	// loopback-only and unauthenticated, exactly as under the dev proxy.
+	mux.Handle("/agent/", webUIRebindGuard(b.agentServiceProxyHandler()))
 	// Token endpoint — no auth needed, but we require a same-origin loopback request.
 	// Otherwise this endpoint leaks the broker bearer to any browser page that
 	// can reach the web UI port via DNS rebinding.
@@ -344,4 +352,69 @@ func responseHeadersToSkip(header http.Header) map[string]struct{} {
 		}
 	}
 	return skip
+}
+
+// agentServiceProxyHandler forwards /agent/* to the pi agent service the
+// broker supervises (agent_service_supervisor.go — WUPHF_AGENT_URL override,
+// default 127.0.0.1:8820), stripping the /agent prefix exactly as the vite
+// dev proxy does. No bearer is attached: the service is loopback-only and
+// its own contract is unauthenticated (the rebind guard on the mux entry is
+// the browser-origin gate). Long-lived streaming responses are allowed.
+func (b *Broker) agentServiceProxyHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetPath := strings.TrimPrefix(r.URL.Path, "/agent")
+		if targetPath == "" {
+			targetPath = "/"
+		}
+		target := operatorAgentBaseURL() + targetPath
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
+		}
+		proxyReq, err := http.NewRequestWithContext(r.Context(), r.Method, target, r.Body)
+		if err != nil {
+			http.Error(w, "proxy error", http.StatusBadGateway)
+			return
+		}
+		proxyReq.Header.Set("Content-Type", r.Header.Get("Content-Type"))
+		if accept := r.Header.Get("Accept"); accept != "" {
+			proxyReq.Header.Set("Accept", accept)
+		}
+		client := http.DefaultClient
+		if r.Header.Get("Accept") == "text/event-stream" {
+			client = &http.Client{Timeout: 0}
+		}
+		resp, err := client.Do(proxyReq)
+		if err != nil {
+			http.Error(w, "agent service unreachable", http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+		skipHeaders := responseHeadersToSkip(resp.Header)
+		for k, v := range resp.Header {
+			if _, skip := skipHeaders[strings.ToLower(k)]; skip {
+				continue
+			}
+			for _, vv := range v {
+				w.Header().Add(k, vv)
+			}
+		}
+		w.WriteHeader(resp.StatusCode)
+		if resp.Header.Get("Content-Type") == "text/event-stream" {
+			flusher, canFlush := w.(http.Flusher)
+			buf := make([]byte, 4096)
+			for {
+				n, readErr := resp.Body.Read(buf)
+				if n > 0 {
+					w.Write(buf[:n]) //nolint:errcheck
+					if canFlush {
+						flusher.Flush()
+					}
+				}
+				if readErr != nil {
+					return
+				}
+			}
+		}
+		_, _ = io.Copy(w, resp.Body)
+	})
 }

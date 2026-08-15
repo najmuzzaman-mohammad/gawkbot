@@ -4931,4 +4931,73 @@
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--t-ink);
+/* Data tab: legible values. */
+.opr-data-none {
+  color: var(--t-faint);
+  font-style: italic;
+}
+.opr-data-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t-accent-3);
+  border: 1px solid color-mix(in srgb, var(--t-accent-2) 45%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.opr-data-row {
+  cursor: pointer;
+}
+.opr-data-row:hover td {
+  background: var(--t-tint-accent);
+}
+.opr-data-row.is-open td {
+  background: var(--t-tint-2);
+}
+.opr-data-detail-row td {
+  background: var(--t-figure-bg);
+  padding: 12px 14px;
+}
+.opr-data-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+.opr-data-kv-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.opr-data-kv-row dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t-dim);
+  padding-top: 2px;
+}
+.opr-data-kv-row dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.opr-data-nested {
+  margin-top: 2px;
+}
+.opr-data-nested th {
+  font-size: 10.5px;
+}
+.opr-data-export {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+}
+.opr-data-block-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.opr-data-full-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

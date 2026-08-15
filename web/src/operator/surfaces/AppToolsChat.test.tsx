@@ -1,6 +1,25 @@
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+/** A model-authored /tools/build answer — the only way a taught tool may land
+ * in the Tools tab (stub/offline answers must refuse honestly instead). */
+function builtTool(name: string, title: string) {
+  return {
+    ok: true,
+    json: async () => ({
+      tool: {
+        name,
+        title,
+        purpose: `${title} for the pipeline`,
+        inputs: [],
+        code: `function ${name}() { return "ok"; }`,
+      },
+      narration: `Built ${title}.`,
+      authored_by: "model",
+    }),
+  };
+}
+
 import { authorToolFromDescription } from "../tools/mockTools";
 import { ToolsProvider } from "../tools/toolsContext";
 import { AppToolsChat } from "./AppToolsChat";
@@ -29,7 +48,19 @@ function renderApp() {
 }
 
 describe("AppToolsChat + Tools tab (slice 2)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("teaching a workflow calls create_tool and the tool lands in the tab", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          builtTool("draftFollowup", "Draft a follow-up email"),
+        ),
+    );
     const { getByLabelText, getByText, findByText, queryByText } = renderApp();
 
     // Seeded tools are already listed; the new one is not there yet.
@@ -54,7 +85,67 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
     );
   });
 
+  // 2026-08-15 QA regression: a teach that the service could not really author
+  // must never mint a tool — not from the offline mock, not from the service's
+  // canned stub. The chat says what happened instead.
+  it("refuses honestly when the service is unreachable (no mock tool)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("agent down")));
+    const { getByLabelText, findByText, queryByText } = renderApp();
+    const input = getByLabelText(
+      "Describe a task for Nex to build a tool for",
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { value: "Draft a follow-up email for a stalled deal" },
+    });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(
+      await findByText(/could not reach the tool-building service/i),
+    ).toBeTruthy();
+    expect(queryByText("Draft a follow-up email")).toBeNull();
+  });
+
+  it("refuses honestly when the service stub-authored (no canned tool)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          tool: {
+            name: "draftBoardUpdate",
+            title: "Draft a board update",
+            purpose: "canned",
+            inputs: [],
+            code: "function draftBoardUpdate() {}",
+          },
+          narration: "Built Draft a board update.",
+          authored_by: "stub",
+        }),
+      }),
+    );
+    const { getByLabelText, findByText, queryByText } = renderApp();
+    const input = getByLabelText(
+      "Describe a task for Nex to build a tool for",
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { value: "score each workspace task for hygiene risk" },
+    });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(await findByText(/no AI model connected/i)).toBeTruthy();
+    // The canned stub tool must NOT land in the Tools tab.
+    expect(queryByText("Draft a board update")).toBeNull();
+  });
+
   it("re-teaching the same workflow updates the tool in place (no duplicate)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          builtTool("scoreAndRouteLead", "Score & route a lead"),
+        ),
+    );
     const { getByLabelText, findAllByText } = renderApp();
     const input = getByLabelText(
       "Describe a task for Nex to build a tool for",
@@ -180,8 +271,10 @@ describe("AppToolsChat calls tools (slice 5)", () => {
           actions: [],
         }),
       )
-      // …2nd message teaches; the build call fails over to the offline mock.
-      .mockRejectedValueOnce(new Error("agent offline"));
+      // …2nd message teaches via the service (model-authored).
+      .mockResolvedValueOnce(
+        builtTool("weeklyPipelineSummary", "Weekly pipeline summary"),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const { getByLabelText, findByText } = renderApp();
@@ -207,6 +300,40 @@ describe("AppToolsChat calls tools (slice 5)", () => {
 
     // Re-teaching replaced the tool by name but kept its run history.
     expect(await findByText(/Last run/)).toBeTruthy();
+  });
+
+  // 2026-08-15 QA regression: a run with no explicit input values must ASK,
+  // never invoke on leftover command text (garbage args crashed real tools).
+  it("asks for missing inputs, then runs with the answered value", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        status: "ok",
+        result: "drafted the follow-up",
+        actions: [],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getByLabelText, findByText, findAllByText } = renderApp();
+    const input = getByLabelText(
+      "Describe a task for Nex to build a tool for",
+    ) as HTMLInputElement;
+    // scoreAndRouteLead takes a `lead` input; "run ..." gives no explicit value.
+    fireEvent.change(input, {
+      target: { value: "run score and route a lead" },
+    });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(await findByText(/I need `lead`/)).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // The next message answers; a single missing input takes the whole text.
+    fireEvent.change(input, { target: { value: "Globex renewal" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect((await findAllByText("drafted the follow-up")).length).toBeGreaterThan(0);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.args).toEqual({ lead: "Globex renewal" });
   });
 
   it('"Not now" skips the gated call without re-calling the agent', async () => {

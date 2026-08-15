@@ -28,7 +28,10 @@ interface ToolIntegrationsProps {
   /** Integration names shown as scoped chips above the full catalog. For a tool
    * these are the integrations its workflow steps reference; for an agent app
    * they are the workspace's connected integrations the agent can use. */
-  usedNames: string[];
+  /** Per-tool chip strip ("Used by this tool"). Omit on surfaces where the
+   * catalog's own Connected section already shows the same set — rendering
+   * both was a duplicate (2026-08-15 audit). */
+  usedNames?: string[];
   /** Heading over the scoped chips. Defaults to the tool framing; the agent-app
    * path passes an honest workspace-connected framing instead (the chips are
    * NOT "used by this tool" — they are what the agent CAN use). */
@@ -96,20 +99,22 @@ export function ToolIntegrations({
 
   return (
     <div className="opr-tool-scoped">
-      {usedNames.length > 0 ? (
-        <>
-          <Eyebrow>{usedHeading}</Eyebrow>
-          <ul className="opr-scoped-chips">
-            {usedNames.map((name) => (
-              <li key={name} className="opr-scoped-chip">
-                {name}
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p className="opr-scoped-note">{usedEmptyNote}</p>
-      )}
+      {usedNames ? (
+        usedNames.length > 0 ? (
+          <>
+            <Eyebrow>{usedHeading}</Eyebrow>
+            <ul className="opr-scoped-chips">
+              {usedNames.map((name) => (
+                <li key={name} className="opr-scoped-chip">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="opr-scoped-note">{usedEmptyNote}</p>
+        )
+      ) : null}
       <p className="opr-scoped-note">
         Connected once for your workspace and reused across tools. Search and
         connect from your full catalog below.

@@ -8,6 +8,7 @@
 // reconstruction, no re-fetch of the source — what the app persisted is what
 // shows here, so the two never drift.
 
+import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { get } from "../../api/client";
@@ -127,15 +128,204 @@ export function AppDataTab({ appId }: AppDataTabProps) {
   );
 }
 
-function cellValue(v: unknown): string {
-  if (v == null) return "—";
-  if (Array.isArray(v)) return v.map((x) => String(x)).join(", ");
-  if (typeof v === "object") return JSON.stringify(v);
-  const s = String(v);
-  return s.length > 80 ? `${s.slice(0, 80)}…` : s;
+// ── Making stored values LEGIBLE ────────────────────────────────────────────
+//
+// Apps persist real shapes: JSON-encoded arrays of findings, ISO timestamps,
+// long strings. Rendering those as flat truncated text made the tab useless —
+// the 2026-08-15 QA verdict was "the data there does not seem usable". The
+// rules here turn storage back into information without inventing anything:
+//   - JSON-in-string cells parse and render structurally (arrays of objects
+//     become nested mini-tables on expand; empty arrays read "none").
+//   - Dates humanize ("Aug 15, 9:59 AM"), full ISO on hover.
+//   - Every row expands to a full detail view, so truncation never hides data.
+//   - Each table exports as CSV or JSON — the operator owns this data.
+
+type Parsed =
+  | { kind: "empty" }
+  | { kind: "scalar"; text: string }
+  | { kind: "date"; text: string; full: string }
+  | { kind: "list"; items: unknown[] }
+  | { kind: "record"; value: Record<string, unknown> };
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+function humanizeDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function parseValue(v: unknown, colType: string): Parsed {
+  if (v == null || v === "") return { kind: "empty" };
+  if (typeof v === "string") {
+    const t = v.trim();
+    if (
+      (colType === "date" || ISO_DATE_RE.test(t)) &&
+      !Number.isNaN(Date.parse(t))
+    ) {
+      return { kind: "date", text: humanizeDate(t), full: t };
+    }
+    if (t.startsWith("[") || t.startsWith("{")) {
+      try {
+        return parseValue(JSON.parse(t), colType);
+      } catch {
+        // Not JSON after all — fall through to scalar.
+      }
+    }
+    return { kind: "scalar", text: t };
+  }
+  if (Array.isArray(v)) {
+    return v.length === 0 ? { kind: "empty" } : { kind: "list", items: v };
+  }
+  if (typeof v === "object") {
+    return { kind: "record", value: v as Record<string, unknown> };
+  }
+  return { kind: "scalar", text: String(v) };
+}
+
+/** Short inline summary for a cell; the row expansion carries the detail. */
+function CellSummary({ parsed }: { parsed: Parsed }) {
+  switch (parsed.kind) {
+    case "empty":
+      return <span className="opr-data-none">none</span>;
+    case "date":
+      return <span title={parsed.full}>{parsed.text}</span>;
+    case "list": {
+      const scalars = parsed.items.every((x) => typeof x !== "object");
+      if (scalars) {
+        const joined = parsed.items.map((x) => String(x)).join(", ");
+        return (
+          <span title={joined}>
+            {joined.length > 60 ? `${joined.slice(0, 60)}…` : joined}
+          </span>
+        );
+      }
+      return (
+        <span className="opr-data-chip">
+          {parsed.items.length} {parsed.items.length === 1 ? "item" : "items"}
+        </span>
+      );
+    }
+    case "record":
+      return <span className="opr-data-chip">details</span>;
+    default:
+      return (
+        <span title={parsed.text.length > 60 ? parsed.text : undefined}>
+          {parsed.text.length > 60
+            ? `${parsed.text.slice(0, 60)}…`
+            : parsed.text}
+        </span>
+      );
+  }
+}
+
+/** Full-width structural rendering used inside a row's expansion. */
+function ValueDetail({ parsed }: { parsed: Parsed }) {
+  switch (parsed.kind) {
+    case "empty":
+      return <span className="opr-data-none">none</span>;
+    case "date":
+      return (
+        <span>
+          {parsed.text} <span className="opr-data-none">({parsed.full})</span>
+        </span>
+      );
+    case "list": {
+      const objects = parsed.items.filter(
+        (x): x is Record<string, unknown> =>
+          !!x && typeof x === "object" && !Array.isArray(x),
+      );
+      if (objects.length === parsed.items.length && objects.length > 0) {
+        // Array of records → a readable nested table over the union of keys.
+        const keys: string[] = [];
+        for (const o of objects) {
+          for (const k of Object.keys(o)) if (!keys.includes(k)) keys.push(k);
+        }
+        return (
+          <table className="opr-data-table opr-data-nested">
+            <thead>
+              <tr>
+                {keys.map((k) => (
+                  <th key={k}>
+                    <span className="opr-data-col-name">{k}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {objects.map((o, i) => (
+                <tr key={`${String(o[keys[0]] ?? "")}-${i}`}>
+                  {keys.map((k) => (
+                    <td key={k}>
+                      <CellSummary parsed={parseValue(o[k], "string")} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      }
+      return <span>{parsed.items.map((x) => String(x)).join(", ")}</span>;
+    }
+    case "record":
+      return (
+        <dl className="opr-data-kv">
+          {Object.entries(parsed.value).map(([k, v]) => (
+            <div className="opr-data-kv-row" key={k}>
+              <dt>{k}</dt>
+              <dd>
+                <ValueDetail parsed={parseValue(v, "string")} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      );
+    default:
+      return <span className="opr-data-full-text">{parsed.text}</span>;
+  }
+}
+
+// ── Export: the operator owns this data ─────────────────────────────────────
+
+function downloadBlob(filename: string, mime: string, content: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(v: unknown): string {
+  const s = v == null ? "" : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportTable(table: ModelTable, format: "csv" | "json") {
+  if (format === "json") {
+    downloadBlob(
+      `${table.name}.json`,
+      "application/json",
+      JSON.stringify(table.rows, null, 2),
+    );
+    return;
+  }
+  const cols = table.columns.map((c) => c.name);
+  const lines = [
+    cols.map(csvEscape).join(","),
+    ...table.rows.map((r) => cols.map((c) => csvEscape(r[c])).join(",")),
+  ];
+  downloadBlob(`${table.name}.csv`, "text/csv", lines.join("\n"));
 }
 
 function ModelTableView({ table }: { table: ModelTable }) {
+  const [openRow, setOpenRow] = useState<number | null>(null);
   return (
     <div className="opr-data-block">
       <div className="opr-data-block-head">
@@ -143,6 +333,24 @@ function ModelTableView({ table }: { table: ModelTable }) {
         <span className="opr-data-block-sub">
           {table.rows.length} {table.rows.length === 1 ? "row" : "rows"}
         </span>
+        {table.rows.length > 0 ? (
+          <span className="opr-data-export">
+            <button
+              type="button"
+              className="opr-btn opr-btn-sm"
+              onClick={() => exportTable(table, "csv")}
+            >
+              CSV
+            </button>
+            <button
+              type="button"
+              className="opr-btn opr-btn-sm"
+              onClick={() => exportTable(table, "json")}
+            >
+              JSON
+            </button>
+          </span>
+        ) : null}
       </div>
       {table.rows.length === 0 ? (
         <div className="opr-data-empty">
@@ -162,13 +370,41 @@ function ModelTableView({ table }: { table: ModelTable }) {
             </tr>
           </thead>
           <tbody>
-            {table.rows.map((row, i) => (
-              <tr key={`${cellValue(row[table.columns[0]?.name ?? ""])}-${i}`}>
-                {table.columns.map((c) => (
-                  <td key={c.name}>{cellValue(row[c.name])}</td>
-                ))}
-              </tr>
-            ))}
+            {table.rows.map((row, i) => {
+              const open = openRow === i;
+              return (
+                <Fragment key={`row-${i}`}>
+                  <tr
+                    className={`opr-data-row${open ? " is-open" : ""}`}
+                    onClick={() => setOpenRow(open ? null : i)}
+                  >
+                    {table.columns.map((c) => (
+                      <td key={c.name}>
+                        <CellSummary parsed={parseValue(row[c.name], c.type)} />
+                      </td>
+                    ))}
+                  </tr>
+                  {open ? (
+                    <tr className="opr-data-detail-row">
+                      <td colSpan={table.columns.length}>
+                        <dl className="opr-data-kv">
+                          {table.columns.map((c) => (
+                            <div className="opr-data-kv-row" key={c.name}>
+                              <dt>{c.name}</dt>
+                              <dd>
+                                <ValueDetail
+                                  parsed={parseValue(row[c.name], c.type)}
+                                />
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       )}

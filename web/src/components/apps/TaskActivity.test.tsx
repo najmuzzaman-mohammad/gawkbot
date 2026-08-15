@@ -46,8 +46,9 @@ describe("TaskActivity", () => {
     expect(screen.getByText("Writing")).toBeInTheDocument();
     expect(screen.getByText("App.tsx")).toBeInTheDocument();
     expect(screen.getByText("✓")).toBeInTheDocument();
-    expect(screen.getByText("Running")).toBeInTheDocument();
-    expect(screen.getByText("bun run build")).toBeInTheDocument();
+    // Raw shell commands never render — bash rows classify to a verb.
+    expect(screen.getByText("Building")).toBeInTheDocument();
+    expect(screen.queryByText("bun run build")).not.toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
     // It is labelled "Task activity" (generalized from "Build activity").
     expect(

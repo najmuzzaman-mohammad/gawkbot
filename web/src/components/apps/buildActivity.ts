@@ -100,14 +100,13 @@ export function humanizeToolEvent(
     case "read":
       return { verb: "Reading", target: lastSegment(path) };
     case "bash":
-      return { verb: "Running", target: truncate(str("command"), 56) };
+      // Never quote the raw shell command at the operator — classify it.
+      return { verb: bashVerb(str("command")), target: "" };
     case "glob":
-      return {
-        verb: "Finding",
-        target: truncate(str("pattern") || str("glob"), 48),
-      };
     case "grep":
-      return { verb: "Searching", target: truncate(str("pattern"), 48) };
+      // Raw regex/glob patterns are developer material; the operator just
+      // needs to know the agent is looking around.
+      return { verb: "Searching", target: "the project" };
     case "todowrite":
       return { verb: "Planning", target: "" };
     case "webfetch":
@@ -120,17 +119,29 @@ export function humanizeToolEvent(
       return { verb: "Checking", target: "existing apps" };
     case "propose_app":
       return { verb: "Proposing", target: str("name") || "an app" };
-    default: {
-      // Title-case the raw tool name; surface the first useful string arg.
-      const verb = name
-        ? name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-        : "Tool";
-      const firstStr = Object.values(args).find(
-        (v) => typeof v === "string" && v.length > 0,
-      );
-      return { verb, target: truncate(asString(firstStr), 48) };
-    }
+    default:
+      // Unknown internal tools stay generic — raw names and args are
+      // developer material, not operator narration.
+      return { verb: "Working", target: "" };
   }
+}
+
+/** Classify a shell command into an operator-facing verb (no raw command). */
+function bashVerb(command: string): string {
+  const c = command.trim().toLowerCase();
+  if (
+    /(^|\s|&&\s*)(bun|npm|pnpm|yarn|pip|go get|cargo|brew)\s+(install|add|i\b)/.test(
+      c,
+    )
+  ) {
+    return "Installing dependencies";
+  }
+  if (/tsc|typecheck|lint|biome|vet|prettier/.test(c))
+    return "Checking the code";
+  if (/(^|\s)(test|vitest|jest|pytest|go test)\b/.test(c))
+    return "Running tests";
+  if (/(^|\s)(build|vite build|make)\b/.test(c)) return "Building";
+  return "Running a setup step";
 }
 
 /** Condense a tool_result payload into a short one-line note. */
