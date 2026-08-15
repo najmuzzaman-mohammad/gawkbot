@@ -602,6 +602,10 @@ func (b *Broker) Start() error {
 	// Same ctx/stopCh lifecycle as runActivityWatchdog; disabled when the
 	// interval env resolves to 0.
 	b.startChatDigestLoop(ctx)
+	// The operator agent service (routine fires, tool authoring) is the
+	// broker's child now — spawn/supervise it unless externally managed.
+	// See agent_service_supervisor.go and the 2026-08-14 QA findings.
+	b.startAgentServiceSupervisor(ctx)
 	if err := b.StartOnPort(brokeraddr.ResolvePort()); err != nil {
 		cancel()
 		if b.lifecycleCancel != nil {

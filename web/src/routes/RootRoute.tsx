@@ -190,6 +190,19 @@ const SkillDetailRoute = lazy(() =>
 // Shell / onboarding / broker gates so the shape is always viewable regardless of
 // backend state. The clean-start product (web/src/operator) — talks to the pi-mono
 // agent service over HTTP/SSE, not the broker. See operator-harness-clean-start.md.
+// Retired office deep link → normalize to the operator hash once on mount.
+// Rendering OperatorApp immediately (alongside this) keeps the swap flicker-free.
+function LegacyOfficeRedirect() {
+  useEffect(() => {
+    if (!window.location.hash.startsWith("#/operator")) {
+      window.location.replace(
+        `${window.location.pathname}${window.location.search}#/operator`,
+      );
+    }
+  }, []);
+  return null;
+}
+
 const OperatorApp = lazy(() =>
   import("../operator/OperatorApp").then((m) => ({ default: m.OperatorApp })),
 );
@@ -821,11 +834,11 @@ export default function RootRoute() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
   const isOperatorRoute = hashPath.startsWith("/operator");
-  // Operator is the index (the product front door). The home route ("" / "/")
-  // lands in the operator surface after boot + onboarding, instead of the legacy
-  // office chat shell. The office shell still owns its own deep routes
-  // (#/c/:channel, #/agents, …) for anyone who navigates there directly, but it
-  // is no longer what a fresh `npx wuphf` opens to.
+  // Operator is the product, full stop (founder decision, 2026-08-14): the
+  // legacy office shell's deep routes (#/c/:channel, #/tasks, #/wiki, …) no
+  // longer mount. Any onboarded navigation outside /operator normalizes to
+  // the operator surface below, so a stale bookmark or old deep link cannot
+  // strand the user in the parallel office IA.
   const isHomeRoute = hashPath === "" || hashPath === "/";
 
   // Manual SPA pageviews (autocapture is off). We subscribe to the router
@@ -1096,6 +1109,18 @@ export default function RootRoute() {
       </Suspense>
     );
   } else {
+    // Legacy office deep route — retired. Normalize the hash so the address
+    // bar tells the truth, and mount the operator instead of the old Shell.
+    body = (
+      <Suspense fallback={<LazyPanelFallback />}>
+        <LegacyOfficeRedirect />
+        <OperatorApp />
+      </Suspense>
+    );
+  }
+  // The retired branch below is kept structurally (dead) so the office Shell
+  // code path can be deleted in one dedicated cleanup PR rather than here.
+  if (false as boolean) {
     body = (
       <Shell>
         <RoutedBody />

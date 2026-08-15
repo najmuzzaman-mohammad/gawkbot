@@ -12,6 +12,11 @@ import { ArrowRight, Check, Send, X } from "lucide-react";
 import { type CustomApp, listApps, submitAppEdit } from "../../api/apps";
 import { AppActivity } from "../../components/apps/AppActivity";
 import { tryCreateRoutine } from "../agents/agentStateClient";
+import {
+  type DescribedIntegration,
+  describedIntegrations,
+  missingIntegrations,
+} from "../builder/describedIntegrations";
 import { capturePromptSeed, type DemoCapture } from "../apps/demoCapture";
 import {
   appBuildState,
@@ -134,6 +139,14 @@ export function AppBuilderChat({
   // The described workflow of the in-flight NEW build — consumed once by the
   // completion hook to create the agent's starter routine.
   const starterRoutineRef = useRef<string | null>(null);
+  // Pre-build integration gate (ask, never silently re-scope): set when the
+  // described workflow names external systems that are not connected. Holds
+  // the send until the operator picks a path.
+  const [pendingGate, setPendingGate] = useState<{
+    description: string;
+    display?: string;
+    missing: DescribedIntegration[];
+  } | null>(null);
   // App ids we have OBSERVED in a "building" state during this in-flight build.
   // A new build only completes on a building -> terminal transition: without
   // this, resolveNewAppId can latch onto a stale already-ready app and declare
@@ -376,10 +389,24 @@ export function AppBuilderChat({
 
   async function send(
     text?: string,
-    opts?: { display?: string },
+    opts?: { display?: string; skipIntegrationGate?: boolean },
   ): Promise<void> {
     const description = (text ?? draft).trim();
     if (!description || phase === "building") return;
+    // Ask before building: when a NEW build's description names external
+    // systems that are not connected, hold the send and put the choice to the
+    // operator instead of letting the builder silently re-scope the job onto
+    // whatever data it can reach.
+    if (!opts?.skipIntegrationGate && !(editApp?.id ?? newAppId) && !demo) {
+      const refs = describedIntegrations(description);
+      const missing = await missingIntegrations(refs);
+      if (missing.length > 0) {
+        setDraft("");
+        setPendingGate({ description, display: opts?.display, missing });
+        return;
+      }
+    }
+    setPendingGate(null);
     // What the transcript shows as the operator's message. A demo-call start
     // shows the narrated goal, not the full multi-line capture it builds from.
     const display = opts?.display?.trim() || description;
@@ -486,6 +513,60 @@ export function AppBuilderChat({
               </div>
             </div>
           ))}
+
+          {pendingGate ? (
+            <div className="opr-edit-msgwrap">
+              <div className="opr-msg opr-msg-ai opr-gate-card">
+                <div>
+                  This workflow mentions{" "}
+                  {pendingGate.missing.map((m) => m.label).join(" and ")} — not
+                  connected yet. I can build against your live workspace data
+                  now and wire {pendingGate.missing.length === 1 ? "it" : "them"}{" "}
+                  in when you connect, or hold on while you connect first.
+                </div>
+                <div className="opr-gate-actions">
+                  <button
+                    type="button"
+                    className="opr-btn opr-btn-primary opr-btn-sm"
+                    onClick={() => {
+                      const gate = pendingGate;
+                      setPendingGate(null);
+                      const names = gate.missing
+                        .map((m) => m.label)
+                        .join(", ");
+                      void send(
+                        `${gate.description}\n\nNote: ${names} ${
+                          gate.missing.length === 1 ? "is" : "are"
+                        } not connected in this workspace yet. Ground the workflow in live workspace data for now, say so plainly in the app, and structure it so the integration can be wired in once connected.`,
+                        {
+                          display: gate.display ?? gate.description,
+                          skipIntegrationGate: true,
+                        },
+                      );
+                    }}
+                  >
+                    Build with workspace data
+                  </button>
+                  <button
+                    type="button"
+                    className="opr-btn opr-btn-sm"
+                    onClick={() => {
+                      const gate = pendingGate;
+                      setPendingGate(null);
+                      // Put the described workflow back in the composer so
+                      // nothing typed is lost while they go connect.
+                      setDraft(gate.description);
+                      say(
+                        "Holding off. Connect it from any agent's Integrations tab (connections are shared across the office) — your description is still in the composer for when you are back.",
+                      );
+                    }}
+                  >
+                    I will connect it first
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {phase === "building" ? (
             <div className="opr-build-activity">

@@ -4842,3 +4842,23 @@
   margin-bottom: var(--space-2);
   width: fit-content;
 }
+
+/* Usage readout in Settings — mono because it is data. */
+.opr-usage-readout {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--t-dim);
+  white-space: nowrap;
+}
+
+/* Pre-build integration gate — an AI turn with two real choices. */
+.opr-gate-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.opr-gate-actions {
+  display: flex;
+  gap: var(--space-1-5);
+  flex-wrap: wrap;
+}

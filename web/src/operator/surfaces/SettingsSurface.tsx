@@ -10,7 +10,15 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { type ConfigStatus, get, getConfig, post } from "../../api/client";
+import { getUsage } from "../../api/platform";
 import { Eyebrow, SurfaceHeader } from "../components/primitives";
+
+/** 4.6M / 227k style token formatting for the usage readout. */
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(n);
+}
 
 export function SettingsSurface() {
   const [nexHosted, setNexHosted] = useState(false);
@@ -24,6 +32,15 @@ export function SettingsSurface() {
     queryFn: () => get<ConfigStatus>("/config"),
   });
   const keySet = Boolean(config.data?.openai_key_set);
+  // Live usage — the cost readout the retired office shell used to own. The
+  // operator is the only front door now, so what the agents spend must be
+  // visible here.
+  const usage = useQuery({
+    queryKey: ["operator-usage"],
+    queryFn: () => getUsage().catch(() => null),
+    refetchInterval: 30_000,
+    retry: false,
+  });
   // Full config snapshot for the read-only Runtime readout.
   const snapshot = useQuery({
     queryKey: ["operator-config-snapshot"],
@@ -138,6 +155,26 @@ export function SettingsSurface() {
               className={`opr-toggle${nexHosted ? " is-on" : ""}`}
               onClick={() => setNexHosted((v) => !v)}
             />
+          </div>
+        </div>
+
+        <div className="opr-set-group">
+          <Eyebrow>Usage</Eyebrow>
+          <div className="opr-set-row">
+            <div>
+              <div className="opr-set-label">What your agents have spent</div>
+              <div className="opr-set-help">
+                All-time inference on this workspace, on your account. Builds
+                and routine runs both land here.
+              </div>
+            </div>
+            <span className="opr-usage-readout">
+              {usage.data?.total
+                ? `$${usage.data.total.cost_usd.toFixed(2)} · ${formatTokens(
+                    usage.data.total.total_tokens,
+                  )} tokens · ${usage.data.total.requests} runs`
+                : "no spend recorded yet"}
+            </span>
           </div>
         </div>
 
