@@ -5,13 +5,15 @@
 
 import { useState } from "react";
 import {
+  Bot,
   ChevronDown,
   type LucideIcon,
   PhoneCall,
   Plus,
   Settings,
-  Workflow,
 } from "lucide-react";
+
+import { PixelAvatar } from "../components/ui/PixelAvatar";
 
 export type OperatorSurface = "tools" | "settings";
 
@@ -19,7 +21,9 @@ export type OperatorSurface = "tools" | "settings";
 export interface SidebarAgent {
   id: string;
   name: string;
-  glyph: string;
+  /** Emoji the app carries, if any. Kept for callers; the rail draws the
+   *  agent's pixel portrait instead so every agent has a face. */
+  glyph?: string;
   building?: boolean;
 }
 
@@ -30,7 +34,7 @@ interface NavDef {
 }
 
 const NAV: readonly NavDef[] = [
-  { id: "tools", label: "Agents", icon: Workflow },
+  { id: "tools", label: "Agents", icon: Bot },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -66,9 +70,7 @@ export function OperatorSidebar({
         }`}
         onClick={() => onOpenAgent?.(a.id)}
       >
-        <span className="opr-agent-rail-glyph" aria-hidden={true}>
-          {a.glyph}
-        </span>
+        <PixelAvatar slug={a.id} size={18} className="opr-agent-rail-avatar" />
         <span className="opr-agent-rail-name">{a.name}</span>
         {a.building ? (
           <span className="opr-led opr-led-draft" title="Building" />
@@ -158,11 +160,13 @@ export function OperatorSidebar({
         onClick={onStartCall}
       >
         <PhoneCall size={14} strokeWidth={1.9} aria-hidden={true} />
-        Demo workflow to Nex
+        Demo a workflow to Nex
       </button>
 
       <div className="opr-user">
-        <div className="opr-user-avatar">M</div>
+        <span className="opr-user-avatar opr-portrait-frame">
+          <PixelAvatar slug="human" size={20} />
+        </span>
         <div>
           <div className="opr-user-name">Maya</div>
           <div className="opr-user-role">RevOps · your workspace</div>

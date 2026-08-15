@@ -47,8 +47,10 @@ describe("InternalToolsSurface", () => {
   it("renders the empty state with a build CTA when there are no apps", () => {
     useOperatorApps.mockReturnValue({ data: [], isLoading: false });
     const { getByText, getByRole } = renderSurface();
-    expect(getByText("No agents yet")).toBeTruthy();
-    expect(getByRole("button", { name: /build your first agent/i })).toBeTruthy();
+    expect(getByText("Nobody works here yet")).toBeTruthy();
+    expect(
+      getByRole("button", { name: /build your first agent/i }),
+    ).toBeTruthy();
   });
 
   it("renders a ready app as the hero without crashing", () => {

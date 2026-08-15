@@ -346,9 +346,12 @@
 /* ───────────────────────────── Eyebrow + headers */
 
 .opr-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  /* Pixel face, same as the brand mark and the marketing site. Small caps at
+     9px keeps it a label, not a costume. */
+  font-family: var(--font-pixel, var(--font-mono));
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--t-faint);
 }
@@ -2174,8 +2177,10 @@
   margin-bottom: var(--space-1);
 }
 .opr-empty-title {
-  font-weight: 700;
-  font-size: 13.5px;
+  font-family: var(--font-pixel, var(--font-mono));
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.04em;
   color: var(--t-ink);
 }
 .opr-empty-hint {
@@ -4745,4 +4750,81 @@
 }
 .opr-session-panes > div {
   height: 100%;
+}
+
+/* ── Agent portraits ──────────────────────────────────────────────────────
+   Every agent has a face. The portraits are the same pixel sprite sheet the
+   rest of the app uses (components/ui/PixelAvatar), framed in the shell's
+   existing tile so the technical layout is untouched — the personality sits
+   inside the frame, not on top of it. */
+.opr-portrait-frame {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 0;
+  background: var(--t-figure-bg);
+}
+.opr-portrait-frame canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.opr-agent-rail-avatar {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: block;
+  image-rendering: pixelated;
+  opacity: 0.85;
+}
+.opr-agent-rail-item:hover .opr-agent-rail-avatar,
+.opr-agent-rail-item.is-active .opr-agent-rail-avatar {
+  opacity: 1;
+}
+
+/* Empty roster: three unfilled desks, with faces. */
+.opr-empty-hire {
+  padding-block: var(--space-5);
+}
+.opr-hire-lineup {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+  margin-bottom: var(--space-2);
+}
+.opr-hire-portrait {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--t-line-2);
+  border-radius: var(--t-r-sm);
+  background: var(--t-figure-bg);
+  /* Staggered idle bob — steps(), never a smooth ease, so it reads as sprite
+     animation rather than CSS motion. */
+  animation: opr-hire-bob 1.6s steps(2, end) infinite;
+}
+.opr-hire-portrait:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.opr-hire-portrait:nth-child(3) {
+  animation-delay: 0.8s;
+}
+.opr-hire-portrait canvas {
+  display: block;
+  image-rendering: pixelated;
+  opacity: 0.55;
+}
+@keyframes opr-hire-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .opr-hire-portrait {
+    animation: none;
+  }
 }

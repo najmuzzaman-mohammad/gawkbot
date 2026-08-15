@@ -5,12 +5,16 @@
 import { ArrowRight, PhoneCall, Plus, Trash2 } from "lucide-react";
 
 import type { CustomApp } from "../../api/apps";
+import { PixelAvatar } from "../../components/ui/PixelAvatar";
 import {
   appBuildState,
   useDeleteApp,
   useOperatorApps,
 } from "../apps/useOperatorApps";
 import { Eyebrow, SurfaceHeader, sigil } from "../components/primitives";
+
+/** Three faces for the empty roster: the desks you have not filled yet. */
+const HIRE_LINEUP = ["pam", "eng", "gtm"] as const;
 
 interface InternalToolsSurfaceProps {
   onOpen: (toolId: string) => void;
@@ -37,7 +41,7 @@ export function InternalToolsSurface({
       <SurfaceHeader
         eyebrow="Agents"
         title="Your agents"
-        lede="Each agent runs one workflow end to end — built by describing it in chat, or talked through on a call."
+        lede="One agent per manual workflow, running it end to end. Build one by describing the job in chat, or by demoing it once on a call."
         actions={
           <div className="opr-header-actions">
             <button
@@ -50,7 +54,7 @@ export function InternalToolsSurface({
             </button>
             <button type="button" className="opr-btn" onClick={onStartCall}>
               <PhoneCall size={14} strokeWidth={1.9} aria-hidden={true} />
-              Demo workflow to Nex
+              Demo a workflow to Nex
             </button>
           </div>
         }
@@ -59,16 +63,21 @@ export function InternalToolsSurface({
       {hero ? (
         <HeroAppCard app={hero} onOpen={() => onOpen(hero.id)} />
       ) : appsQuery.isLoading ? (
-        <p className="opr-scoped-note">Loading your agents…</p>
+        <p className="opr-scoped-note">Checking who is in today…</p>
       ) : apps.length > 0 ? null : (
-        <div className="opr-empty">
-          <span className="opr-empty-glyph" aria-hidden={true}>
-            ◧
-          </span>
-          <div className="opr-empty-title">No agents yet</div>
+        <div className="opr-empty opr-empty-hire">
+          <div className="opr-hire-lineup" aria-hidden={true}>
+            {HIRE_LINEUP.map((slug) => (
+              <span key={slug} className="opr-hire-portrait">
+                <PixelAvatar slug={slug} size={44} />
+              </span>
+            ))}
+          </div>
+          <div className="opr-empty-title">Nobody works here yet</div>
           <div className="opr-empty-hint">
-            Describe the workflow you need run and your AI builds the agent
-            for it. It appears here the moment it is ready.
+            Describe a manual workflow — the one you do every Monday at 9:00 —
+            and your AI builds the agent that runs it. It shows up here the
+            moment it is ready, and it does not need a chair.
           </div>
           <div className="opr-empty-actions">
             <button
@@ -115,8 +124,19 @@ export function InternalToolsSurface({
   );
 }
 
-function appGlyph(app: CustomApp): string {
-  return app.icon?.trim() ? app.icon : sigil(app.name);
+/** Every agent gets a face. The portrait is derived from the app id, so it is
+ *  stable across renames and unique per agent; the emoji an app carries (if
+ *  any) rides along as the tile's title text. */
+function AgentPortrait({ app, size = 28 }: { app: CustomApp; size?: number }) {
+  return (
+    <span
+      className="opr-tool-emoji opr-portrait-frame"
+      title={app.icon?.trim() ? app.icon : sigil(app.name)}
+      aria-hidden={true}
+    >
+      <PixelAvatar slug={app.id} size={size} />
+    </span>
+  );
 }
 
 function HeroAppCard({ app, onOpen }: { app: CustomApp; onOpen: () => void }) {
@@ -135,9 +155,7 @@ function HeroAppCard({ app, onOpen }: { app: CustomApp; onOpen: () => void }) {
       style={{ cursor: "pointer", marginBottom: "var(--space-2)" }}
     >
       <div className="opr-detail-head" style={{ marginBottom: 0 }}>
-        <span className="opr-tool-emoji" aria-hidden={true}>
-          {appGlyph(app)}
-        </span>
+        <AgentPortrait app={app} size={34} />
         <div className="opr-detail-titles">
           <div className="opr-tool-name">{app.name}</div>
           {app.summary ? (
@@ -174,9 +192,7 @@ function AppRow({ app, onOpen }: { app: CustomApp; onOpen: () => void }) {
         }
       }}
     >
-      <span className="opr-tool-emoji" aria-hidden={true}>
-        {appGlyph(app)}
-      </span>
+      <AgentPortrait app={app} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="opr-tool-name" style={{ fontSize: "var(--text-md)" }}>
           {app.name}
@@ -206,14 +222,14 @@ function BuildingRow({ app, onOpen }: { app: CustomApp; onOpen: () => void }) {
         }
       }}
     >
-      <span className="opr-tool-emoji" aria-hidden={true}>
-        {appGlyph(app)}
-      </span>
+      <AgentPortrait app={app} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="opr-tool-name" style={{ fontSize: "var(--text-md)" }}>
           {app.name}
         </div>
-        <p className="opr-tool-summary">Building… open to watch it live</p>
+        <p className="opr-tool-summary">
+          Assembling its screen, routines, and tools — open to watch it happen
+        </p>
       </div>
       <span className="opr-pill opr-pill-muted">
         <span className="opr-led opr-led-draft" />
@@ -234,15 +250,13 @@ function FailedRow({
 }) {
   return (
     <div className="opr-tool-row opr-tool-row-failed">
-      <span className="opr-tool-emoji" aria-hidden={true}>
-        {appGlyph(app)}
-      </span>
+      <AgentPortrait app={app} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="opr-tool-name" style={{ fontSize: "var(--text-md)" }}>
           {app.name}
         </div>
         <p className="opr-tool-summary">
-          Build failed — it stalled before publishing.
+          Build failed — it stalled before publishing. Nothing was sent.
         </p>
       </div>
       <span className="opr-pill opr-pill-bad">

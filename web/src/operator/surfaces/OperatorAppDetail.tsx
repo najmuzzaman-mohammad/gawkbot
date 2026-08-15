@@ -22,6 +22,7 @@ import type { CustomApp, CustomAppDetail } from "../../api/apps";
 import { get } from "../../api/client";
 import { AppLivePreview } from "../../components/apps/AppLivePreview";
 import { CustomAppFrame } from "../../components/apps/CustomAppFrame";
+import { PixelAvatar } from "../../components/ui/PixelAvatar";
 import { AgentName } from "../agents/AgentName";
 import { AgentPurpose } from "../agents/AgentPurpose";
 import { AgentSessions } from "../agents/AgentSessions";
@@ -171,8 +172,12 @@ export function OperatorAppDetail({
           </button>
 
           <div className="opr-detail-head">
-            <span className="opr-tool-emoji" aria-hidden={true}>
-              {app?.icon || "🧩"}
+            <span
+              className="opr-tool-emoji opr-portrait-frame"
+              title={app?.icon || undefined}
+              aria-hidden={true}
+            >
+              <PixelAvatar slug={appId} size={34} />
             </span>
             <div className="opr-detail-titles">
               <div className="opr-detail-name">
@@ -272,6 +277,7 @@ export function OperatorAppDetail({
             {tab !== "ui" ? (
               <TabBody
                 tab={tab}
+                appId={appId}
                 query={query}
                 onOpenRoutineSession={(sessionId) => {
                   setRequestedSession(sessionId);
@@ -404,10 +410,12 @@ function AskAiDock({
 
 function TabBody({
   tab,
+  appId,
   query,
   onOpenRoutineSession,
 }: {
   tab: AppTab;
+  appId: string;
   query: UseQueryResult<CustomAppDetail>;
   onOpenRoutineSession?: (sessionId: string) => void;
 }) {
@@ -429,6 +437,7 @@ function TabBody({
       ) : (
         <EmptyState
           glyph="▦"
+          portraitSlug={appId}
           title="No data yet"
           hint="The data this agent reads and writes appears here once it has finished building."
         />
@@ -443,6 +452,7 @@ function TabBody({
       ) : (
         <EmptyState
           glyph="📖"
+          portraitSlug={appId}
           title="No knowledge yet"
           hint="Your AI writes cited pages about this agent once it has finished building."
         />
