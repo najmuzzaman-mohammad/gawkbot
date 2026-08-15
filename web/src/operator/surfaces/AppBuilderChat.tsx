@@ -10,13 +10,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, Send, X } from "lucide-react";
 
 import { type CustomApp, listApps, submitAppEdit } from "../../api/apps";
+import type { AgentRequest } from "../../api/client";
 import { AppActivity } from "../../components/apps/AppActivity";
+import { ConnectIntegrationCard } from "../../components/messages/ConnectIntegrationCard";
 import { tryCreateRoutine } from "../agents/agentStateClient";
-import {
-  type DescribedIntegration,
-  describedIntegrations,
-  missingIntegrations,
-} from "../builder/describedIntegrations";
 import { capturePromptSeed, type DemoCapture } from "../apps/demoCapture";
 import {
   appBuildState,
@@ -24,6 +21,13 @@ import {
   resolveNewAppId,
   useBuildApp,
 } from "../apps/useOperatorApps";
+import {
+  type DescribedIntegration,
+  describedIntegrations,
+  type GateConnectTarget,
+  missingIntegrations,
+  resolveGateTargets,
+} from "../builder/describedIntegrations";
 import { Eyebrow } from "../components/primitives";
 import { buildToolFromChat } from "../tools/toolAgentClient";
 
@@ -90,6 +94,29 @@ interface AppBuilderChatProps {
   initialPrompt?: string;
 }
 
+// A synthetic `connect` request so ConnectIntegrationCard can drive the real
+// connect flow (Composio sign-in gate + OAuth + status polling) for one gate
+// row. Local id — the card never answers a real broker request here.
+function gateConnectRequest(target: GateConnectTarget): AgentRequest {
+  return {
+    id: `build-gate-connect-${target.provider}-${target.platform}`,
+    from: "",
+    question: "",
+    title: `Connect ${target.label}`,
+    platform: target.platform,
+    kind: "connect",
+  };
+}
+
+/** Labels of gate refs the catalog offered NO connect row for. */
+function gateUnconnectable(gate: {
+  missing: DescribedIntegration[];
+  targets: GateConnectTarget[];
+}): string[] {
+  const connectable = new Set(gate.targets.map((t) => t.refIndex));
+  return gate.missing.filter((_, i) => !connectable.has(i)).map((m) => m.label);
+}
+
 export function AppBuilderChat({
   onClose,
   onFinish,
@@ -146,6 +173,9 @@ export function AppBuilderChat({
     description: string;
     display?: string;
     missing: DescribedIntegration[];
+    /** Catalog-resolved connect rows (logo + name + Connect). Empty → the
+     *  gate falls back to its two-button text form. */
+    targets: GateConnectTarget[];
   } | null>(null);
   // App ids we have OBSERVED in a "building" state during this in-flight build.
   // A new build only completes on a building -> terminal transition: without
@@ -185,6 +215,7 @@ export function AppBuilderChat({
     return () => window.clearInterval(tick);
   }, [phase, queryClient]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: say/setupDemoExtras are instance functions; completion re-evaluates on poll data and phase
   useEffect(() => {
     if (phase !== "building") return;
     const apps = appsQuery.data ?? [];
@@ -252,7 +283,7 @@ export function AppBuilderChat({
     // build, which creates its own captured routine) gets a starter routine —
     // the described workflow on a weekly schedule. Told, not asked: the chat
     // reports it with a one-line veto path (pause on the Routines tab).
-    if (!failed && !refineId && !demo && starterRoutineRef.current) {
+    if (!(failed || refineId || demo) && starterRoutineRef.current) {
       const routinePrompt = starterRoutineRef.current;
       starterRoutineRef.current = null;
       void (async () => {
@@ -281,7 +312,7 @@ export function AppBuilderChat({
             : `“${appName}” is ready. Tell me any change to refine it, or open it.`,
       },
     ]);
-  }, [appsQuery.data, phase, appName, onBuildingApp]);
+  }, [appsQuery.data, phase, appName, onBuildingApp, demo]);
 
   const lastMsgId = messages[messages.length - 1]?.id;
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on each new message
@@ -307,6 +338,65 @@ export function AppBuilderChat({
     demoStartedRef.current = true;
     void send(capturePromptSeed(demo), { display: demo.goal });
   }, []);
+
+  // While the gate is open, watch for the referenced integrations landing —
+  // the moment every described system is connected (via the rows below, or
+  // anywhere else in the product) the build proceeds with the ORIGINAL
+  // description. The operator already pressed Send; connecting was the only
+  // thing in the way.
+  const gateRefs = pendingGate?.missing ?? null;
+  const gateTargets = pendingGate?.targets ?? null;
+  // Mirror the gate in a ref so the interval can read-and-consume it without
+  // side effects inside a state updater (StrictMode double-invokes updaters —
+  // a send() in there could fire two builds).
+  const pendingGateRef = useRef(pendingGate);
+  pendingGateRef.current = pendingGate;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: send/say are instance functions; the poll re-arms only when the gate changes
+  useEffect(() => {
+    if (!(gateRefs && gateTargets) || gateTargets.length === 0) return;
+    // Only refs with an offerable connect row can ever flip to connected in
+    // this card. Refs the catalog could not resolve (no row) must not hold
+    // the build hostage — they ride along as an honest note instead.
+    const connectable = new Set(gateTargets.map((t) => t.refIndex));
+    let cancelled = false;
+    let proceeding = false;
+    const tick = window.setInterval(() => {
+      void missingIntegrations(gateRefs).then((still) => {
+        if (cancelled || proceeding) return;
+        const stillLabels = new Set(still.map((m) => m.label));
+        const blocked = gateRefs.some(
+          (ref, i) => connectable.has(i) && stillLabels.has(ref.label),
+        );
+        if (blocked) return;
+        const gate = pendingGateRef.current;
+        if (!gate) return;
+        proceeding = true;
+        setPendingGate(null);
+        const leftover = gate.missing.filter((m) => stillLabels.has(m.label));
+        say(
+          leftover.length > 0
+            ? "Connected — building it now (the rest rides along as a note)."
+            : "All connected — building it now.",
+        );
+        const description =
+          leftover.length > 0
+            ? `${gate.description}\n\nNote: ${leftover
+                .map((m) => m.label)
+                .join(", ")} ${
+                leftover.length === 1 ? "is" : "are"
+              } not connected in this workspace yet. Ground that part in live workspace data for now, say so plainly in the app, and structure it so the integration can be wired in once connected.`
+            : gate.description;
+        void send(description, {
+          display: gate.display ?? gate.description,
+          skipIntegrationGate: true,
+        });
+      });
+    }, 4_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(tick);
+    };
+  }, [gateRefs, gateTargets]);
 
   // The onboarding first-workflow handoff starts the build the same way: the
   // user already pressed "Start your first workflow", so the text is sent as
@@ -397,12 +487,18 @@ export function AppBuilderChat({
     // systems that are not connected, hold the send and put the choice to the
     // operator instead of letting the builder silently re-scope the job onto
     // whatever data it can reach.
-    if (!opts?.skipIntegrationGate && !(editApp?.id ?? newAppId) && !demo) {
+    if (!(opts?.skipIntegrationGate || (editApp?.id ?? newAppId) || demo)) {
       const refs = describedIntegrations(description);
       const missing = await missingIntegrations(refs);
       if (missing.length > 0) {
+        const targets = await resolveGateTargets(missing);
         setDraft("");
-        setPendingGate({ description, display: opts?.display, missing });
+        setPendingGate({
+          description,
+          display: opts?.display,
+          missing,
+          targets: targets.filter((t) => !t.connected),
+        });
         return;
       }
     }
@@ -518,22 +614,67 @@ export function AppBuilderChat({
             <div className="opr-edit-msgwrap">
               <div className="opr-msg opr-msg-ai opr-gate-card">
                 <div>
-                  This workflow mentions{" "}
-                  {pendingGate.missing.map((m) => m.label).join(" and ")} — not
-                  connected yet. I can build against your live workspace data
-                  now and wire {pendingGate.missing.length === 1 ? "it" : "them"}{" "}
-                  in when you connect, or hold on while you connect first.
+                  {pendingGate.targets.length > 0 ? (
+                    <>
+                      This workflow needs{" "}
+                      {pendingGate.missing.map((m) => m.label).join(" and ")} —
+                      not connected yet. Connect below and I will build the
+                      moment everything is live — or build against your
+                      workspace data now.
+                      {pendingGate.missing.some((m) => m.generic) ? (
+                        <> For the CRM, any one of the options works.</>
+                      ) : null}
+                      {gateUnconnectable(pendingGate).length > 0 ? (
+                        <>
+                          {" "}
+                          ({gateUnconnectable(pendingGate).join(", ")}{" "}
+                          {gateUnconnectable(pendingGate).length === 1
+                            ? "has"
+                            : "have"}{" "}
+                          no one-click connect yet — it rides along as an honest
+                          note either way.)
+                        </>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      This workflow mentions{" "}
+                      {pendingGate.missing.map((m) => m.label).join(" and ")} —
+                      not connected yet. I can build against your live workspace
+                      data now and wire{" "}
+                      {pendingGate.missing.length === 1 ? "it" : "them"} in when
+                      you connect, or hold on while you connect first.
+                    </>
+                  )}
                 </div>
+                {pendingGate.targets.length > 0 ? (
+                  <ul className="opr-gate-connect-list">
+                    {pendingGate.targets.map((t) => (
+                      <li
+                        key={`${t.provider}:${t.platform}`}
+                        className="opr-gate-connect-row"
+                      >
+                        <ConnectIntegrationCard
+                          request={gateConnectRequest(t)}
+                          submitting={false}
+                          logoUrl={t.logoUrl}
+                          onSkip={() => {}}
+                          onDismiss={() => {}}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <div className="opr-gate-actions">
                   <button
                     type="button"
-                    className="opr-btn opr-btn-primary opr-btn-sm"
+                    className={`opr-btn opr-btn-sm${
+                      pendingGate.targets.length > 0 ? "" : " opr-btn-primary"
+                    }`}
                     onClick={() => {
                       const gate = pendingGate;
                       setPendingGate(null);
-                      const names = gate.missing
-                        .map((m) => m.label)
-                        .join(", ");
+                      const names = gate.missing.map((m) => m.label).join(", ");
                       void send(
                         `${gate.description}\n\nNote: ${names} ${
                           gate.missing.length === 1 ? "is" : "are"
@@ -547,22 +688,24 @@ export function AppBuilderChat({
                   >
                     Build with workspace data
                   </button>
-                  <button
-                    type="button"
-                    className="opr-btn opr-btn-sm"
-                    onClick={() => {
-                      const gate = pendingGate;
-                      setPendingGate(null);
-                      // Put the described workflow back in the composer so
-                      // nothing typed is lost while they go connect.
-                      setDraft(gate.description);
-                      say(
-                        "Holding off. Connect it from any agent's Integrations tab (connections are shared across the office) — your description is still in the composer for when you are back.",
-                      );
-                    }}
-                  >
-                    I will connect it first
-                  </button>
+                  {pendingGate.targets.length === 0 ? (
+                    <button
+                      type="button"
+                      className="opr-btn opr-btn-sm"
+                      onClick={() => {
+                        const gate = pendingGate;
+                        setPendingGate(null);
+                        // Put the described workflow back in the composer so
+                        // nothing typed is lost while they go connect.
+                        setDraft(gate.description);
+                        say(
+                          "Holding off. Connect it from any agent's Integrations tab (connections are shared across the office) — your description is still in the composer for when you are back.",
+                        );
+                      }}
+                    >
+                      I will connect it first
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>

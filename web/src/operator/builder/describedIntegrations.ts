@@ -7,7 +7,10 @@
 // deliberate keyword map over the operator's own words — deterministic and
 // testable; no model call before the build even starts.
 
-import { listIntegrations } from "../../api/integrations";
+import {
+  type IntegrationCatalogItem,
+  listIntegrations,
+} from "../../api/integrations";
 
 /** One external system the description names. `generic` marks category words
  *  ("our CRM") that name a family rather than a product. */
@@ -113,4 +116,92 @@ export async function missingIntegrations(
   } catch {
     return [];
   }
+}
+
+/** One concrete, catalog-resolved thing the gate can offer to connect. A
+ *  product ref maps to itself; a generic ref ("a CRM") expands to its family
+ *  products, any one of which satisfies the ref. */
+export interface GateConnectTarget {
+  /** Display label ("HubSpot"). */
+  label: string;
+  /** Canonical catalog platform slug the connect flow needs. */
+  platform: string;
+  provider: string;
+  /** The catalog's brand logo, when it has one. */
+  logoUrl?: string;
+  connected: boolean;
+  /** Which described ref this target satisfies (index into the refs array). */
+  refIndex: number;
+  /** True when the ref is a family word — the UI says "any one works". */
+  generic: boolean;
+}
+
+/** Family-word refs expand to these product labels for the connect rows. */
+const FAMILY_PRODUCTS: Record<string, string[]> = {
+  "a CRM (HubSpot, Salesforce, Pipedrive…)": [
+    "HubSpot",
+    "Salesforce",
+    "Pipedrive",
+  ],
+};
+
+function bestCatalogMatch(
+  label: string,
+  items: IntegrationCatalogItem[],
+): IntegrationCatalogItem | null {
+  if (items.length === 0) return null;
+  const needle = label.trim().toLowerCase();
+  return (
+    items.find(
+      (i) =>
+        i.name.trim().toLowerCase() === needle ||
+        i.platform.trim().toLowerCase() === needle,
+    ) ?? items[0]
+  );
+}
+
+/**
+ * Resolve the gate's connect rows against the live catalog: canonical
+ * platform slug, provider, brand logo, and current connected state per
+ * offerable product. Unresolvable labels are dropped (the workspace-data
+ * path still covers them); any API failure yields [] so the gate can fall
+ * back to its two-button form rather than block.
+ */
+export async function resolveGateTargets(
+  refs: DescribedIntegration[],
+): Promise<GateConnectTarget[]> {
+  const out: GateConnectTarget[] = [];
+  await Promise.all(
+    refs.map(async (ref, refIndex) => {
+      const labels = ref.generic
+        ? (FAMILY_PRODUCTS[ref.label] ?? ref.platforms)
+        : [ref.label];
+      await Promise.all(
+        labels.map(async (label) => {
+          try {
+            const res = await listIntegrations({ search: label, limit: 5 });
+            const match = bestCatalogMatch(label, res.items ?? []);
+            if (!match) return;
+            out.push({
+              label: match.name || label,
+              platform: match.platform,
+              provider: match.provider || "composio",
+              logoUrl: match.logo_url,
+              connected:
+                match.state === "connected" ||
+                (match.connections?.length ?? 0) > 0,
+              refIndex,
+              generic: Boolean(ref.generic),
+            });
+          } catch {
+            // Dropped — see above.
+          }
+        }),
+      );
+    }),
+  );
+  // Stable order: by ref, then label, so rows don't jump between resolves.
+  return out.sort(
+    (a, b) => a.refIndex - b.refIndex || a.label.localeCompare(b.label),
+  );
 }

@@ -4862,3 +4862,48 @@
   gap: var(--space-1-5);
   flex-wrap: wrap;
 }
+
+/* Gate v2: per-integration connect rows inside the build gate. The embedded
+   ConnectIntegrationCard is the full product connect card; in the gate it
+   reads as a row, so compact its chrome without forking the component. */
+.opr-gate-connect-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+.opr-gate-connect-row .eac {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--t-figure-bg);
+  border: 1px solid var(--t-line);
+  border-radius: var(--t-r-sm);
+}
+.opr-gate-connect-row .eac-head {
+  margin: 0;
+  align-items: center;
+}
+.opr-gate-connect-row .eac-eyebrow,
+.opr-gate-connect-row .eac-connect-sub,
+.opr-gate-connect-row .eac-connect-question {
+  display: none;
+}
+.opr-gate-connect-row .eac-headline {
+  font-size: 13.5px;
+  margin: 0;
+}
+.opr-gate-connect-row .eac-logo-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Inside the gate the card's Skip/Dismiss are noise — the gate's own
+   "Build with workspace data" is the one escape hatch. */
+.opr-gate-connect-row .eac-reject,
+.opr-gate-connect-row .eac-dismiss {
+  display: none;
+}

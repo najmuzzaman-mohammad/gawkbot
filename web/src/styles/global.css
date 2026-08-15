@@ -1048,6 +1048,14 @@ body {
   border: 1px solid var(--border);
   box-shadow: 0 1px 2px var(--overlay-soft);
 }
+
+/* Catalog brand logo inside the connect card's logo tile. */
+.eac-logo-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
 .eac-headings {
   display: flex;
   flex-direction: column;

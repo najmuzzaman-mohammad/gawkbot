@@ -39,6 +39,14 @@ interface ConnectIntegrationCardProps {
   onSkip: () => void;
   /** Cancel the request entirely. */
   onDismiss: () => void;
+  /**
+   * The catalog's brand logo URL, when the caller resolved one. Rendered
+   * ahead of the curated brand SVG / generic glyph — same precedence the
+   * integrations surfaces use.
+   */
+  logoUrl?: string;
+  /** Notify the host when the connection lands (build gate auto-proceed). */
+  onConnected?: () => void;
 }
 
 function platformName(request: AgentRequest): string {
@@ -55,7 +63,10 @@ export function ConnectIntegrationCard({
   submitting,
   onSkip,
   onDismiss,
+  logoUrl,
+  onConnected,
 }: ConnectIntegrationCardProps) {
+  const [logoFailed, setLogoFailed] = useState(false);
   const queryClient = useQueryClient();
   const platform = (request.platform ?? "").trim();
   const name = platformName(request);
@@ -96,7 +107,8 @@ export function ConnectIntegrationCard({
     showNotice(`${name} connected.`, "success");
     void queryClient.invalidateQueries({ queryKey: ["requests"] });
     void queryClient.invalidateQueries({ queryKey: ["requests-badge"] });
-  }, [status, name, queryClient]);
+    onConnected?.();
+  }, [status, name, queryClient, onConnected]);
 
   const connectMutation = useMutation({
     mutationFn: () => startIntegrationConnection("composio", platform),
@@ -221,12 +233,22 @@ export function ConnectIntegrationCard({
     (Boolean(pending) && status !== "failed" && status !== "connected");
   const failed = status === "failed";
   const brandLogo = platform ? <ToolkitBrandLogo platform={platform} /> : null;
+  const catalogLogo =
+    logoUrl && !logoFailed ? (
+      <img
+        className="eac-logo-img"
+        src={logoUrl}
+        alt=""
+        loading="lazy"
+        onError={() => setLogoFailed(true)}
+      />
+    ) : null;
 
   return (
     <div className="eac eac-connect">
       <header className="eac-head">
         <div className="eac-logo" aria-hidden="true">
-          {brandLogo ?? <GenericIntegrationLogo />}
+          {catalogLogo ?? brandLogo ?? <GenericIntegrationLogo />}
         </div>
         <div className="eac-headings">
           <span className="eac-eyebrow">Connect to continue</span>
