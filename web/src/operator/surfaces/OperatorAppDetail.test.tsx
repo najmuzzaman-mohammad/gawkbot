@@ -1,4 +1,6 @@
-import { fireEvent, render } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render as rtlRender } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { CustomAppDetail } from "../../api/apps";
@@ -6,6 +8,23 @@ import { OperatorAppDetail } from "./OperatorAppDetail";
 
 // Control the data hook so we can render the building vs ready states without a
 // network or React Query provider.
+// The detail component now uses React Query directly (deterministic build
+// refresh), so every render needs a provider. Inert client: queries that the
+// mocks don't intercept stay idle instead of hitting the network.
+function render(ui: ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, enabled: false } },
+  });
+  const wrap = (el: ReactElement) => (
+    <QueryClientProvider client={client}>{el}</QueryClientProvider>
+  );
+  const result = rtlRender(wrap(ui));
+  return {
+    ...result,
+    rerender: (el: ReactElement) => result.rerender(wrap(el)),
+  };
+}
+
 const useOperatorAppMock = vi.fn();
 vi.mock("../apps/useOperatorApps", () => ({
   useOperatorApp: (id: string) => useOperatorAppMock(id),
