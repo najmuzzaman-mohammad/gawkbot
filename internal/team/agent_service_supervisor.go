@@ -54,7 +54,7 @@ func (b *Broker) startAgentServiceSupervisor(ctx context.Context) {
 				return
 			default:
 			}
-			if agentServiceListening() {
+			if agentServiceListening(ctx) {
 				// Adopted (or our previous child is healthy). Re-check on a
 				// slow tick; cheap dial, no HTTP.
 				select {
@@ -112,8 +112,11 @@ func agentServicePort() string {
 }
 
 // agentServiceListening reports whether anything accepts TCP on the agent port.
-func agentServiceListening() bool {
-	conn, err := net.DialTimeout("tcp", "127.0.0.1:"+agentServicePort(), 500*time.Millisecond)
+func agentServiceListening(ctx context.Context) bool {
+	dialCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+	var d net.Dialer
+	conn, err := d.DialContext(dialCtx, "tcp", "127.0.0.1:"+agentServicePort())
 	if err != nil {
 		return false
 	}
@@ -154,9 +157,14 @@ func agentServiceLogFile() (*os.File, error) {
 
 // agentServiceHealthy is a stricter probe for callers that want HTTP health,
 // kept for future use by a status surface.
-func agentServiceHealthy() bool {
-	client := &http.Client{Timeout: 1 * time.Second}
-	resp, err := client.Get(operatorAgentBaseURL() + "/health")
+func agentServiceHealthy(ctx context.Context) bool {
+	reqCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, operatorAgentBaseURL()+"/health", nil)
+	if err != nil {
+		return false
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return false
 	}

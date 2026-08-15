@@ -52,11 +52,17 @@ const KEYWORD_MAP: ReadonlyArray<{ re: RegExp; hit: DescribedIntegration }> = [
   },
   {
     re: /\bgoogle sheets?\b|\bspreadsheet\b/i,
-    hit: { label: "Google Sheets", platforms: ["googlesheets", "google sheets"] },
+    hit: {
+      label: "Google Sheets",
+      platforms: ["googlesheets", "google sheets"],
+    },
   },
   {
     re: /\bgoogle calendar\b|\bcalendar invites?\b/i,
-    hit: { label: "Google Calendar", platforms: ["googlecalendar", "google calendar"] },
+    hit: {
+      label: "Google Calendar",
+      platforms: ["googlecalendar", "google calendar"],
+    },
   },
   // Category words LAST — only counted when no product from the family hit.
   {
@@ -96,7 +102,9 @@ export async function missingIntegrations(
     const res = await listIntegrations({ connected: "true", limit: 100 });
     const connected = new Set(
       (res.items ?? [])
-        .filter((i) => (i.connections?.length ?? 0) > 0 || i.state === "connected")
+        .filter(
+          (i) => (i.connections?.length ?? 0) > 0 || i.state === "connected",
+        )
         .flatMap((i) => [i.platform.toLowerCase(), i.name.toLowerCase()]),
     );
     return refs.filter(
