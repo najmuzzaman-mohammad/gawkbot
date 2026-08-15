@@ -2,7 +2,9 @@ module github.com/nex-crm/wuphf
 
 go 1.25.11
 
-toolchain go1.26.5
+// go1.26.6 carries the fixes for the 2026-08 stdlib vuln batch
+// (GO-2026-6089/6090/6091/…) that govulncheck gates CI on.
+toolchain go1.26.6
 
 require (
 	github.com/blevesearch/bleve/v2 v2.6.0
