@@ -107,6 +107,20 @@ func (b *Broker) onboardingCompleteFn(task string, skipTask bool, blueprintID st
 				log.Printf("onboarding: sync company name to registry: %v", err)
 			}
 		}
+		// Persist into config too: cfg.CompanyName is what GET /config and
+		// the office-channel payloads read, and until now onboarding never
+		// wrote it — every surface reading config saw an empty company name
+		// (the registry sync above also misses ad-hoc runtime homes that
+		// were never registered). Load-then-save so a transient read failure
+		// never clobbers the rest of the file.
+		if cfg, err := config.Load(); err != nil {
+			log.Printf("onboarding: load config for company name: %v", err)
+		} else if strings.TrimSpace(cfg.CompanyName) == "" {
+			cfg.CompanyName = companyName
+			if err := config.Save(cfg); err != nil {
+				log.Printf("onboarding: save company name to config: %v", err)
+			}
+		}
 		// Re-derive the Linear-style Issue ID prefix now that the workspace
 		// has a real company name (e.g. "Nex" → NEX-1). Any Issues minted
 		// before onboarding completed keep their OFFICE-N IDs; new ones

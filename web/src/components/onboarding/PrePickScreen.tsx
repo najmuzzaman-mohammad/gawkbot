@@ -316,6 +316,12 @@ function buildConfigPayload(
 function VerifyClipFigure() {
   return (
     <figure className="pre-pick-clip-figure">
+      {/* The clip is realistic enough that first-run users try to click its
+          Verify button (observed in QA). Chip it as an example so the eye
+          reads it as an illustration, not a second, live panel. */}
+      <span className="pre-pick-clip-chip" aria-hidden="true">
+        Example
+      </span>
       <picture>
         <source
           srcSet="/media/onboarding/provider-verify-still.png"

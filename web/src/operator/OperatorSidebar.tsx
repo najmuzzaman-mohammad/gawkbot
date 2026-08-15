@@ -46,6 +46,8 @@ interface OperatorSidebarProps {
   agents?: SidebarAgent[];
   activeAgentId?: string | null;
   onOpenAgent?: (id: string) => void;
+  /** The office name from config — the workspace identity block. */
+  officeName?: string;
 }
 
 export function OperatorSidebar({
@@ -56,6 +58,7 @@ export function OperatorSidebar({
   agents = [],
   activeAgentId,
   onOpenAgent,
+  officeName,
 }: OperatorSidebarProps) {
   // The rail is collapsible so a long roster doesn't crowd the nav.
   const [agentsOpen, setAgentsOpen] = useState(true);
@@ -168,8 +171,10 @@ export function OperatorSidebar({
           <PixelAvatar slug="human" size={20} />
         </span>
         <div>
-          <div className="opr-user-name">Maya</div>
-          <div className="opr-user-role">RevOps · your workspace</div>
+          <div className="opr-user-name">
+            {officeName?.trim() || "Your office"}
+          </div>
+          <div className="opr-user-role">your workspace</div>
         </div>
       </div>
     </aside>

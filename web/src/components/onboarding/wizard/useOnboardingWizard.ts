@@ -43,6 +43,7 @@ import {
   setAnalyticsConsent,
   track,
 } from "../../../lib/analytics";
+import { OPERATOR_FIRST_WORKFLOW_SEED_KEY } from "../../../operator/firstWorkflowSeed";
 import { HOME_COMPOSER_DRAFT_CHANNEL, useAppStore } from "../../../stores/app";
 import {
   ONBOARDING_FIRST_ISSUE_EXAMPLE,
@@ -216,13 +217,18 @@ export function useOnboardingWizard(
 
         // 2. Seed the empty office + flip onboarded=true. Blueprint "" plus an
         //    explicit empty agents list is the no-team seed: no packs, no CEO,
-        //    zero agents. The first workflow lands untagged in #general.
+        //    zero agents. The first workflow is deliberately NOT sent as an
+        //    office task: the operator surface is the front door, and a task
+        //    in #general would run invisibly there (the legacy pipeline spins
+        //    up a phantom CEO turn the operator never sees). Instead the text
+        //    rides to the operator as a build seed (step 3 below) so the
+        //    first thing the user watches is their agent being built.
         //    owner_name / owner_role are also sent on the complete body so a
         //    fresh broker persists them to config even if the answer writes
         //    above raced; the broker merges, it does not require them.
         const result = await completeOnboarding({
-          task: skipTask ? "" : firstIssue,
-          skip_task: skipTask,
+          task: "",
+          skip_task: true,
           blueprint: "",
           agents: [],
           owner_name: ownerName || undefined,
@@ -267,13 +273,21 @@ export function useOnboardingWizard(
         //     landing in the office. See maybeRecordOnboardingEmail.
         maybeRecordOnboardingEmail(email, answers.keepInTouch);
 
-        // 3. Seed the home composer so the office opens with the first issue
-        //    ready to send. Keyed to HOME_COMPOSER_DRAFT_CHANNEL, the sentinel
-        //    the home TaskComposer consumes on landing — the old code seeded the
-        //    CEO DM, which the post-restructure home composer never read, so the
-        //    issue was silently dropped. Skipped when the user chose to explore
-        //    first: no issue, so open clean.
+        // 3. Hand the first workflow to the operator surface. OperatorApp
+        //    consumes this key on mount and opens the build flow with the
+        //    text already sent, so the user lands on their agent being
+        //    assembled — the payoff the "Start your first workflow" CTA
+        //    promised. The legacy home composer is seeded too, so the text
+        //    is also waiting if they visit the office surfaces.
         if (!skipTask) {
+          try {
+            window.localStorage.setItem(
+              OPERATOR_FIRST_WORKFLOW_SEED_KEY,
+              firstIssue,
+            );
+          } catch {
+            // Private mode etc. — the office composer seed below still works.
+          }
           useAppStore
             .getState()
             .setPendingComposerDraft(HOME_COMPOSER_DRAFT_CHANNEL, firstIssue);

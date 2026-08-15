@@ -6,11 +6,14 @@
 // story we built earlier. See docs/specs/operator-mlp-plan.md.
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import "../styles/operator-shell.css";
 
+import { getConfig } from "../api/client";
 import { useAgentNames } from "./agents/agentNames";
 import { capturePromptSeed, type DemoCapture } from "./apps/demoCapture";
+import { consumeFirstWorkflowSeed } from "./firstWorkflowSeed";
 import {
   appBuildState,
   isRealAppId,
@@ -62,7 +65,15 @@ export function OperatorApp() {
   }
   // Two builders: the app builder (primary, real) and the legacy workflow
   // builder (kept for the workflow-tab path).
-  const [appBuilding, setAppBuilding] = useState(false);
+  // Onboarding's first-workflow handoff: consumed once at mount. When present,
+  // the shell opens straight into the build flow with the text already sent —
+  // the user lands on their first agent being assembled, which is what the
+  // "Start your first workflow" CTA promised.
+  const [firstWorkflow] = useState<string | null>(() =>
+    consumeFirstWorkflowSeed(),
+  );
+  const [appBuildingInit] = useState<boolean>(() => firstWorkflow !== null);
+  const [appBuilding, setAppBuilding] = useState(appBuildingInit);
   // Set → the build experience opens in EDIT mode scoped to this app (the
   // "Edit app" affordance on the detail). Cleared with the rest of the
   // sub-state on close/finish.
@@ -93,6 +104,15 @@ export function OperatorApp() {
   // actual inventory, and it is empty until they build something.
   const appsQuery = useOperatorApps();
   const nameOverrides = useAgentNames();
+  // Office identity for the sidebar footer. Resolves to null on any failure so
+  // an unreachable broker never breaks the shell (the sidebar falls back).
+  const configQuery = useQuery({
+    queryKey: ["operator-config"],
+    queryFn: () => getConfig().catch(() => null),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const officeName = configQuery.data?.company_name;
   const sidebarAgents: SidebarAgent[] = (appsQuery.data ?? []).map((a) => ({
     id: a.id,
     name: nameOverrides[a.id] ?? a.name,
@@ -201,6 +221,7 @@ export function OperatorApp() {
         agents={sidebarAgents}
         activeAgentId={selectedId}
         onOpenAgent={openTool}
+        officeName={officeName}
       />
 
       <main className="opr-main">
@@ -208,6 +229,7 @@ export function OperatorApp() {
           <OperatorBuildExperience
             key={editingApp?.id ?? "new"}
             demo={demoBuild ?? undefined}
+            initialPrompt={firstWorkflow ?? undefined}
             editApp={editingApp ?? undefined}
             onClose={() => {
               setAppBuilding(false);

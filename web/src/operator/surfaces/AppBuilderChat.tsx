@@ -6,7 +6,7 @@
 // operator-skinned front door onto the existing one.
 
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, Send, X } from "lucide-react";
 
 import { type CustomApp, listApps, submitAppEdit } from "../../api/apps";
@@ -76,6 +76,13 @@ interface AppBuilderChatProps {
    * moment its id resolves.
    */
   demo?: DemoCapture;
+  /**
+   * A workflow description to send the moment the chat mounts — the
+   * onboarding "first workflow" handoff. The text appears as the user's
+   * message and the build starts at once, honoring the "Start your first
+   * workflow" CTA that carried it here. Ignored in edit/demo mode.
+   */
+  initialPrompt?: string;
 }
 
 export function AppBuilderChat({
@@ -85,6 +92,7 @@ export function AppBuilderChat({
   editApp,
   panelMode,
   demo,
+  initialPrompt,
 }: AppBuilderChatProps) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [draft, setDraft] = useState("");
@@ -135,6 +143,7 @@ export function AppBuilderChat({
   const terminalSinceRef = useRef<{ id: string; at: number } | null>(null);
 
   const build = useBuildApp();
+  const queryClient = useQueryClient();
 
   // Poll the app list only while a build is in flight; a new build is the app
   // whose id was not present when we started (robust to a renamed display
@@ -145,6 +154,20 @@ export function AppBuilderChat({
     refetchInterval: phase === "building" ? BUILD_POLL_MS : false,
     enabled: phase === "building",
   });
+
+  // Belt-and-braces poll: with several observers sharing ["operator-apps"]
+  // (the shell's inventory + this chat), the per-observer refetchInterval has
+  // been observed not to tick after `enabled` flips true mid-mount — the
+  // first build then hangs on "Building your agent…" forever while the broker
+  // has long since scaffolded the app. An explicit invalidation loop is
+  // deterministic regardless of observer bookkeeping.
+  useEffect(() => {
+    if (phase !== "building") return;
+    const tick = window.setInterval(() => {
+      void queryClient.invalidateQueries({ queryKey: ["operator-apps"] });
+    }, BUILD_POLL_MS);
+    return () => window.clearInterval(tick);
+  }, [phase, queryClient]);
 
   useEffect(() => {
     if (phase !== "building") return;
@@ -246,6 +269,17 @@ export function AppBuilderChat({
     if (!demo || editApp || demoStartedRef.current) return;
     demoStartedRef.current = true;
     void send(capturePromptSeed(demo), { display: demo.goal });
+  }, []);
+
+  // The onboarding first-workflow handoff starts the build the same way: the
+  // user already pressed "Start your first workflow", so the text is sent as
+  // their message and the build kicks off on arrival. One-shot.
+  const initialStartedRef = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fire the seed start once
+  useEffect(() => {
+    if (!initialPrompt || demo || editApp || initialStartedRef.current) return;
+    initialStartedRef.current = true;
+    void send(initialPrompt);
   }, []);
 
   // ── Demo-call extras: the captured routine + tools, created on the new agent ──

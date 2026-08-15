@@ -2122,12 +2122,36 @@
    first actionable block. The clip is a self-contained product window on its
    own soft backdrop, so it reads on any theme. */
 .pre-pick-clip-figure {
+  position: relative;
   width: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+}
+
+/* "Example" chip on the verify clip — the illustration reads as a live panel
+   without it, and users click its painted Verify button. */
+.pre-pick-clip-chip {
+  position: absolute;
+  top: 10px;
+  right: max(10px, calc(50% - 210px));
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  pointer-events: none;
+}
+
+.pre-pick-clip-figure .pre-pick-clip {
+  opacity: 0.92;
 }
 
 .pre-pick-clip {

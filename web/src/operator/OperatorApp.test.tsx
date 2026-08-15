@@ -2,6 +2,7 @@
 // Mock drafts (mock/data TOOLS) must never appear in the rail or inflate the
 // Agents badge — the operator sees exactly the agents they built.
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -9,8 +10,9 @@ import type { CustomApp } from "../api/apps";
 import { TOOLS } from "./mock/data";
 import { OperatorApp } from "./OperatorApp";
 
-// Drive the apps hook directly (no network, no React Query provider) — the
-// same seam InternalToolsSurface.test.tsx uses.
+// Drive the apps hook directly (no network) — the same seam
+// InternalToolsSurface.test.tsx uses. The shell itself still needs a React
+// Query provider for its office-identity config query; give it an inert one.
 const useOperatorAppsMock = vi.fn();
 vi.mock("./apps/useOperatorApps", () => ({
   useOperatorApps: () => useOperatorAppsMock(),
@@ -51,7 +53,14 @@ describe("OperatorApp sidebar composition", () => {
       ],
       isLoading: false,
     });
-    const { container, queryByText } = render(<OperatorApp />);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, enabled: false } },
+    });
+    const { container, queryByText } = render(
+      <QueryClientProvider client={client}>
+        <OperatorApp />
+      </QueryClientProvider>,
+    );
 
     const badge = container.querySelector(".opr-nav-count");
     expect(badge?.textContent).toBe("2");

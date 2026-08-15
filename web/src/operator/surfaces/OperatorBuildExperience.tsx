@@ -28,6 +28,8 @@ interface OperatorBuildExperienceProps {
    * beside it, so a change request republishes a new version in place.
    */
   editApp?: { id: string; name: string };
+  /** Onboarding's first-workflow text — sent the moment the chat mounts. */
+  initialPrompt?: string;
 }
 
 export function OperatorBuildExperience({
@@ -35,6 +37,7 @@ export function OperatorBuildExperience({
   onFinish,
   demo,
   editApp,
+  initialPrompt,
 }: OperatorBuildExperienceProps) {
   // Set the instant the build scaffolds; flips the layout from a centered
   // describe chat to "live preview + docked chat". Edit mode starts live:
@@ -81,6 +84,7 @@ export function OperatorBuildExperience({
           <AppBuilderChat
             panelMode={live}
             demo={demo}
+            initialPrompt={initialPrompt}
             editApp={editApp}
             onClose={onClose}
             onBuildingApp={setBuildingAppId}

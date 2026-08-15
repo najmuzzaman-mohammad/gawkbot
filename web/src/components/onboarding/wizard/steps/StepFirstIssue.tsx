@@ -3,12 +3,12 @@
  *
  * Collects the first workflow text, prefilled with the RevOps CRM-audit
  * example (ONBOARDING_FIRST_ISSUE_EXAMPLE, seeded into answers.firstIssue by
- * the wizard hook). Finish seeds the (empty) office and drops the user into
- * #general with this text already in the composer. There is no CEO and no
- * team: the workflow waits for the first agent the user spins up.
+ * the wizard hook). Finish seeds the (empty) office and hands the text to the
+ * operator surface as a build seed: the front door opens with Nex already
+ * building the agent for it (see useOnboardingWizard + OperatorApp).
  *
- * The right rail shows where the handoff is headed: a small mock #general
- * row. A "reset to the example" link restores the prefill if the user clears
+ * The right rail shows where the handoff is headed: a small mock build
+ * handoff card. A "reset to the example" link restores the prefill if the user clears
  * or edits it and wants it back.
  *
  * The wizard's advance gate requires non-empty text, so the Finish button is
@@ -87,8 +87,8 @@ export function StepFirstIssue({
             data-testid="onboarding-first-issue"
           />
           <p className="onboarding-first-issue-hint">
-            It waits in #general. The first agent you spin up picks it up and
-            runs it end to end.
+            The moment you walk in, your AI starts building the agent that runs
+            this — live, in front of you.
           </p>
         </div>
 
@@ -154,17 +154,17 @@ export function StepFirstIssue({
         <div className="onboarding-handoff-card" aria-hidden="true">
           <div className="onboarding-handoff-head">
             <span className="onboarding-handoff-who">
-              <span className="onboarding-handoff-name">#general</span>
+              <span className="onboarding-handoff-name">Nex</span>
             </span>
-            <span className="onboarding-handoff-route">Workflow handoff</span>
+            <span className="onboarding-handoff-route">Agent build</span>
           </div>
           <div className="onboarding-handoff-bubble">
             {answers.firstIssue.trim() || "Write the first thing you want run."}
           </div>
           <div className="onboarding-handoff-foot">
-            <span className="onboarding-handoff-send">Send</span>
+            <span className="onboarding-handoff-send">Build</span>
             <span className="onboarding-handoff-note">
-              Lands in your composer, ready to send.
+              Hands straight to Nex — the build starts on arrival.
             </span>
           </div>
         </div>
