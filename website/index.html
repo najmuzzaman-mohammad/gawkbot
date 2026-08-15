@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="WUPHF lets anyone turn their manual workflows into microapps across 1200+ integrations in minutes. Runs local, source-available, and nothing sends without your approval.">
 <meta name="twitter:image" content="https://wuphf.team/og-image.png">
 <meta name="twitter:image:alt" content="WUPHF — build a microapp for every manual workflow. Source-available, runs on your machine, pixel office included.">
-<meta name="theme-color" content="#1b0d2a">
+<meta name="theme-color" content="#0b0b0c">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -80,17 +80,19 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #1b0d2a;
-    --surface: #24123a;
-    --surface-high: #2e1647;
-    --border: #612a92;
-    --yellow: #cf72d9;
-    --yellow-dark: #9f4dbf;
-    --yellow-glow: rgba(207,114,217,0.12);
-    --green: #D4DB18;
-    --blue: #ffb3e6;
-    --text: #ffebfc;
-    --text-muted: #a580c0;
+    /* Black and white. The token names are unchanged so every rule the old
+       skin already had keeps working; only the values went monochrome. */
+    --bg: #0b0b0c;
+    --surface: #141416;
+    --surface-high: #1c1c1f;
+    --border: #3a3a3e;
+    --yellow: #f2f2f3;          /* primary accent: paper white */
+    --yellow-dark: #6b6b70;     /* the hard pixel shadow under it */
+    --yellow-glow: rgba(242,242,243,0.10);
+    --green: #d6d6d8;           /* status / cursor / copied */
+    --blue: #b8b8bc;
+    --text: #ececee;
+    --text-muted: #8d8d93;
     --bg2: var(--surface);
     --bg3: var(--surface-high);
     --yellow-dim: var(--yellow-glow);
@@ -195,7 +197,7 @@
     content: '';
     position: absolute; inset: 0;
     background:
-      radial-gradient(ellipse 700px 400px at 50% 48%, rgba(207,114,217,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 700px 400px at 50% 48%, rgba(242,242,243,0.05) 0%, transparent 70%),
       repeating-linear-gradient(
         0deg,
         transparent,
@@ -330,13 +332,34 @@
 
   /* Pitch headline: the pixel face needs a smaller size and looser leading
      than the old one-word WUPHF wordmark to stay readable. */
+  .hero-wordmark {
+    font-family: var(--font-display);
+    font-size: clamp(18px, 2.6vw, 26px);
+    color: var(--text-muted);
+    letter-spacing: 0.16em;
+    line-height: 1;
+    text-shadow: none;
+    margin-bottom: 20px;
+  }
+
+  /* Original display face. A full sentence in Press Start 2P only reads at a
+     restrained size with generous leading — hence the smaller clamp and the
+     1.75 line-height, not the wordmark's tight 1.1. */
   .hero-title--pitch {
-    font-size: clamp(20px, 3.4vw, 34px);
-    line-height: 1.55;
-    letter-spacing: 0.02em;
-    max-width: 18ch;
+    font-family: var(--font-display);
+    font-size: clamp(15px, 2.5vw, 26px);
+    line-height: 1.75;
+    letter-spacing: 0.01em;
+    color: #c9c9ce;
+    max-width: 22ch;
     margin-left: 0;
-    text-shadow: 4px 4px 0 var(--yellow-dark);
+    margin-bottom: 8px;
+    text-shadow: 4px 4px 0 #2b2b30;
+  }
+  .hero-title--pitch em {
+    font-style: normal;
+    color: #ffffff;
+    text-shadow: 4px 4px 0 #43434a;
   }
 
   .agent-metric {
@@ -351,7 +374,8 @@
   .yc-badge img { height: 40px; width: auto; display: block; }
 
   @media (max-width: 640px) {
-    .hero-title--pitch { font-size: 17px; line-height: 1.7; }
+    .hero-wordmark { font-size: 15px; }
+    .hero-title--pitch { font-size: 14px; line-height: 1.8; }
   }
 
   .install-wrap {
@@ -1297,12 +1321,14 @@
       </div>
     </div>
 
+    <div class="hero-wordmark">WUPHF</div>
+
     <div class="hero-eyebrow">
       <span class="blink"></span>
       Runs 24x7 on your machine
     </div>
 
-    <h1 class="hero-title hero-title--pitch" data-pretext>Build a microapp for every manual workflow</h1>
+    <h1 class="hero-title hero-title--pitch" data-pretext>Build a <em>microapp</em> for every manual workflow</h1>
     <a class="hero-by" href="https://nex.ai" target="_blank" rel="noopener" aria-label="Nex.ai">by <svg class="hero-nex-logo" width="95" height="22" viewBox="0 0 95 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M11.4968 9.1124C10.2339 7.84948 9.98851 5.898 9.48601 4.18411C9.26753 3.43896 8.86469 2.73685 8.27738 2.14953C6.40286 0.275011 3.35898 0.279701 1.47868 2.16C-0.401626 4.0403 -0.406316 7.08419 1.4682 8.9587C2.05551 9.54601 2.75761 9.94885 3.50275 10.1673C5.21664 10.6698 7.16813 10.9152 8.43106 12.1782C9.69399 13.4411 9.93939 15.3926 10.4419 17.1065C10.6604 17.8516 11.0632 18.5537 11.6505 19.141C13.525 21.0155 16.5689 21.0109 18.4492 19.1306C20.3295 17.2503 20.3342 14.2064 18.4597 12.3319C17.8724 11.7445 17.1703 11.3417 16.4251 11.1232C14.7112 10.6207 12.7597 10.3753 11.4968 9.1124Z" fill="currentColor"/><path d="M7.25926 17.0471C7.25926 19.0517 5.63422 20.6768 3.62963 20.6768C1.62504 20.6768 0 19.0517 0 17.0471C0 15.0425 1.62504 13.4175 3.62963 13.4175C5.63422 13.4175 7.25926 15.0425 7.25926 17.0471Z" fill="currentColor"/><path d="M20 4.30639C20 6.31098 18.375 7.93602 16.3704 7.93602C14.3658 7.93602 12.7407 6.31098 12.7407 4.30639C12.7407 2.3018 14.3658 0.676758 16.3704 0.676758C18.375 0.676758 20 2.3018 20 4.30639Z" fill="currentColor"/><path d="M29.5211 7.15435V20.5967H26.25V1.92676H29.7915L37.4421 14.9957V1.92676H40.7132V20.5967H37.415L29.5211 7.15435Z" fill="currentColor"/><path d="M55.8786 14.5423H45.5787C45.9572 16.356 47.444 17.6896 49.2012 17.6896C50.5259 17.6896 51.6884 16.9428 52.3372 15.7959H55.6083C54.7432 18.6231 52.202 20.6768 49.2012 20.6768C45.4705 20.6768 42.4698 17.5029 42.4698 13.6088C42.4698 9.71481 45.4705 6.54091 49.2012 6.54091C52.202 6.54091 54.7432 8.59461 55.6083 11.4218C55.8246 12.1152 55.9327 12.8354 55.9327 13.6088C55.9327 13.9289 55.9327 14.2223 55.8786 14.5423ZM46.0653 11.4218H52.3372C51.6884 10.2749 50.5259 9.52811 49.2012 9.52811C47.8766 9.52811 46.7141 10.2749 46.0653 11.4218Z" fill="currentColor"/><path d="M68.75 6.32754L63.965 13.4755L68.75 20.5967H64.9652L62.0726 16.276L59.1529 20.5967H55.3952L60.1802 13.4755L55.3952 6.32754H59.1529L62.0726 10.6483L64.9652 6.32754H68.75Z" fill="currentColor"/><circle cx="72" cy="18.6768" r="2" fill="currentColor"/><path d="M94.3129 3.422C93.9263 3.80867 93.4623 4.002 92.9209 4.002C92.3796 4.002 91.9059 3.80867 91.4999 3.422C91.1133 3.016 90.9199 2.54233 90.9199 2.001C90.9199 1.45967 91.1133 0.995667 91.4999 0.609001C91.8866 0.203 92.3603 0 92.9209 0C93.4816 0 93.9553 0.203 94.3419 0.609001C94.7286 0.995667 94.9219 1.45967 94.9219 2.001C94.9219 2.54233 94.7189 3.016 94.3129 3.422ZM91.3549 20.677V6.177H94.4869V20.677H91.3549Z" fill="currentColor"/><path d="M85.5131 6.17681H88.7697V20.6768H85.5131V18.5888C84.4699 20.2321 82.9736 21.0538 81.024 21.0538C79.2626 21.0538 77.7577 20.3191 76.5093 18.8498C75.2609 17.3611 74.6367 15.5535 74.6367 13.4268C74.6367 11.2808 75.2609 9.47314 76.5093 8.0038C77.7577 6.53447 79.2626 5.7998 81.024 5.7998C82.9736 5.7998 84.4699 6.6118 85.5131 8.2358V6.17681ZM78.5614 16.7618C79.331 17.6318 80.2972 18.0668 81.4601 18.0668C82.623 18.0668 83.5892 17.6318 84.3587 16.7618C85.1283 15.8725 85.5131 14.7608 85.5131 13.4268C85.5131 12.0928 85.1283 10.9908 84.3587 10.1208C83.5892 9.23147 82.623 8.7868 81.4601 8.7868C80.2972 8.7868 79.331 9.23147 78.5614 10.1208C77.7919 10.9908 77.4071 12.0928 77.4071 13.4268C77.4071 14.7608 77.7919 15.8725 78.5614 16.7618Z" fill="currentColor"/></svg></a>
 
     <p class="hero-tagline" data-pretext>
@@ -1872,8 +1898,8 @@
   });
 
   // ── SPRITE CANVASES ───────────────────────────────────────────────────
-  var bodyColors = ['#2D4A7A', '#4A7A2D', '#7A2D4A'];
-  var accentColors = ['#cf72d9', '#ffb3e6', '#9f4dbf'];
+  var bodyColors = ['#4F4F4F', '#727272', '#474747'];
+  var accentColors = ['#F3F3F3', '#BDBDBD', '#737373'];
 
   function drawSprite(canvasId, colorBody, colorAccent, frame) {
     var canvas = document.getElementById(canvasId);
@@ -1891,12 +1917,12 @@
 
     for (var x = 3; x <= 8; x++)
       for (var y = 0; y <= 4; y++)
-        px(x, y + bob, '#D4956A');
+        px(x, y + bob, '#A5A5A5');
 
-    for (var hx = 3; hx <= 8; hx++) px(hx, bob, '#3A2810');
-    px(3, 1 + bob, '#3A2810'); px(8, 1 + bob, '#3A2810');
+    for (var hx = 3; hx <= 8; hx++) px(hx, bob, '#313131');
+    px(3, 1 + bob, '#313131'); px(8, 1 + bob, '#313131');
 
-    px(4, 2 + bob, '#1A1610'); px(7, 2 + bob, '#1A1610');
+    px(4, 2 + bob, '#1B1B1B'); px(7, 2 + bob, '#1B1B1B');
 
     for (var bx = 2; bx <= 9; bx++)
       for (var by = 6; by <= 11; by++)
@@ -1910,7 +1936,7 @@
     var rOff = frame === 3 ? -1 : 0;
     for (var ly = 12; ly <= 17; ly++) px(3, ly + lOff, colorBody);
     for (var ry = 12; ry <= 17; ry++) px(8, ry + rOff, colorBody);
-    px(3, 17 + lOff, '#2A2418'); px(8, 17 + rOff, '#2A2418');
+    px(3, 17 + lOff, '#2B2B2B'); px(8, 17 + rOff, '#2B2B2B');
   }
 
   var spriteFrame = 0;
@@ -1993,11 +2019,11 @@
     }
 
     var TILE_COLORS = {
-      0: { top: '#3A3228', left: '#2F281F', right: '#342B22' },
-      1: { top: '#3F362B', left: '#302820', right: '#372D24' },
-      2: { top: '#302A20', left: '#241F18', right: '#2A241B' },
-      3: { top: '#3A3028', left: '#2C241E', right: '#332A22' },
-      4: { top: '#332C22', left: '#282118', right: '#2D261D' }
+      0: { top: '#3A3A3A', left: '#2F2F2F', right: '#333333' },
+      1: { top: '#3E3E3E', left: '#303030', right: '#353535' },
+      2: { top: '#313131', left: '#252525', right: '#2B2B2B' },
+      3: { top: '#383838', left: '#2B2B2B', right: '#323232' },
+      4: { top: '#333333', left: '#282828', right: '#2D2D2D' }
     };
 
     // ── RESIZE ──────────────────────────────────────────
@@ -2120,52 +2146,52 @@
     // ── CHARACTERS ──────────────────────────────────────
     var CHARS = [
       { id:'pam',    name:'PAM',    x:5.5, y:5.5, homeX:5.5, homeY:5.5,
-        hair:'#C87A40', skin:'#D4956A', shirt:'#4A7A9B', pants:'#3A4A6A',
+        hair:'#8D8D8D', skin:'#A5A5A5', shirt:'#7A7A7A', pants:'#515151',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:12000, arriveState:'IDLE_DESK', arriveWait:12000,
         destX:5.5, destY:5.5, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'jim',    name:'JIM',    x:5.0, y:3.0, homeX:5.0, homeY:3.0,
-        hair:'#4A3820', skin:'#D4956A', shirt:'#5A7A4A', pants:'#2A3A5A',
+        hair:'#414141', skin:'#A5A5A5', shirt:'#777777', pants:'#404040',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:6000, arriveState:'IDLE_DESK', arriveWait:6000,
         destX:5.0, destY:3.0, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'dwight', name:'DWIGHT', x:3.0, y:3.0, homeX:3.0, homeY:3.0,
-        hair:'#3A2810', skin:'#D4956A', shirt:'#5C6030', pants:'#3A3A20',
+        hair:'#313131', skin:'#A5A5A5', shirt:'#646464', pants:'#3F3F3F',
         faceRight:false, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:4000, arriveState:'IDLE_DESK', arriveWait:4000,
         destX:3.0, destY:3.0, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'michael',name:'MICHAEL',x:10.5, y:1.0, homeX:10.5, homeY:1.0,
-        hair:'#3A2810', skin:'#D4956A', shirt:'#2D4A7A', pants:'#3A4E7A',
+        hair:'#313131', skin:'#A5A5A5', shirt:'#4F4F4F', pants:'#555555',
         faceRight:false, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:8000, arriveState:'IDLE_DESK', arriveWait:8000,
         destX:10.5, destY:1.0, isAgent:false, agentColor:'', label:'',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'ceo',    name:'CEO',    x:8.0, y:4.0, homeX:8.0, homeY:4.0,
-        hair:'#1A1610', skin:'#D4B896', shirt:'#2D4A7A', pants:'#1A2A4A',
+        hair:'#1B1B1B', skin:'#C0C0C0', shirt:'#4F4F4F', pants:'#2F2F2F',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:5000, arriveState:'IDLE_DESK', arriveWait:5000,
-        destX:8.0, destY:4.0, isAgent:true, agentColor:'#cf72d9', label:'CEO',
+        destX:8.0, destY:4.0, isAgent:true, agentColor:'#F3F3F3', label:'CEO',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'eng',    name:'ENG',    x:10.0, y:3.0, homeX:10.0, homeY:3.0,
-        hair:'#2A1A40', skin:'#C4A882', shirt:'#4A2D7A', pants:'#2A1A4A',
+        hair:'#262626', skin:'#B1B1B1', shirt:'#404040', pants:'#272727',
         faceRight:false, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:7000, arriveState:'IDLE_DESK', arriveWait:7000,
-        destX:10.0, destY:3.0, isAgent:true, agentColor:'#cf72d9', label:'ENG',
+        destX:10.0, destY:3.0, isAgent:true, agentColor:'#F3F3F3', label:'ENG',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 },
       { id:'cmo',    name:'CMO',    x:3.0, y:5.0, homeX:3.0, homeY:5.0,
-        hair:'#4A2010', skin:'#D4A870', shirt:'#7A4A2D', pants:'#3A2010',
+        hair:'#2E2E2E', skin:'#B3B3B3', shirt:'#5A5A5A', pants:'#2B2B2B',
         faceRight:true, walkFrame:0, animTimer:0,
         state:'IDLE_DESK', stateTimer:5500, arriveState:'IDLE_DESK', arriveWait:5500,
-        destX:3.0, destY:5.0, isAgent:true, agentColor:'#cf72d9', label:'CMO',
+        destX:3.0, destY:5.0, isAgent:true, agentColor:'#F3F3F3', label:'CMO',
         chatPartner:null, chatStep:0, chatTimer:0, chatConvo:null,
         patrolStep:0, patrolTimer:0, bubbleTimer: 8000 + Math.random()*8000 }
     ];
@@ -2516,7 +2542,7 @@
       // (agent backplate removed — label above character carries identity)
 
       var sk = ch.skin, hr = ch.hair, sh = ch.shirt, pt = ch.pants;
-      var shoe = '#2A2010', eye = '#1A0E08', mth = shadeHex(sk, -30);
+      var shoe = '#272727', eye = '#141414', mth = shadeHex(sk, -30);
       var hrHL = shadeHex(hr, 32), shHL = shadeHex(sh, 22), shDK = shadeHex(sh, -20);
 
       // px: absolute row (no bob)
@@ -2565,7 +2591,7 @@
         px(1, 10, hrHL); px(10, 10, hrHL);
       } else if (ch.id === 'dwight') {
         // glasses: dark horizontal bar at eye level
-        hpx(3, 4, '#6A6040'); hpx(8, 4, '#6A6040');
+        hpx(3, 4, '#686868'); hpx(8, 4, '#686868');
       } else if (ch.id === 'michael') {
         // wider hair at crown
         hpx(2, 0, hr); hpx(9, 0, hr);
@@ -2632,7 +2658,7 @@
         var badgeY = nameY - badgeH + 4;
         ctx.fillStyle = ch.agentColor;
         ctx.fillRect(cx - badgeW / 2, badgeY, badgeW, badgeH);
-        ctx.fillStyle = '#1b0d2a';
+        ctx.fillStyle = '#0E0E0E';
         ctx.font = '6px "Press Start 2P", monospace';
         ctx.fillText(ch.label, cx, badgeY + badgeH - 2);
       } else {
@@ -2666,26 +2692,26 @@
       var bx3 = pos.x - bw / 2;
       var by3 = headTop - bh - 10;
 
-      ctx.fillStyle = '#ffebfc';
+      ctx.fillStyle = '#EEEEEE';
       ctx.fillRect(bx3, by3, bw, bh);
-      ctx.fillStyle = '#9f4dbf';
-      ctx.strokeStyle = '#9f4dbf';
+      ctx.fillStyle = '#737373';
+      ctx.strokeStyle = '#737373';
       ctx.lineWidth = 2;
       ctx.strokeRect(bx3, by3, bw, bh);
 
       // tail
-      ctx.fillStyle = '#ffebfc';
+      ctx.fillStyle = '#EEEEEE';
       ctx.beginPath();
       ctx.moveTo(pos.x - 4, by3 + bh);
       ctx.lineTo(pos.x + 4, by3 + bh);
       ctx.lineTo(pos.x, by3 + bh + 8);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#9f4dbf';
+      ctx.strokeStyle = '#737373';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.fillStyle = '#1b0d2a';
+      ctx.fillStyle = '#0E0E0E';
       ctx.textAlign = 'center';
       ctx.fillText(b.text, pos.x, by3 + bh - 7);
 
@@ -2699,7 +2725,7 @@
       var wallH = 48;
 
       // ── BACK WALLS ──────────────────────────────────
-      ctx.fillStyle = '#201C14';
+      ctx.fillStyle = '#222222';
       for (var gx2 = 0; gx2 < 12; gx2++) {
         var p0 = iso(gx2, 0);
         var p1 = iso(gx2 + 1, 0);
@@ -2711,7 +2737,7 @@
         ctx.closePath();
         ctx.fill();
       }
-      ctx.fillStyle = '#18140E';
+      ctx.fillStyle = '#191919';
       for (var gy2 = 0; gy2 < 8; gy2++) {
         var lp0 = iso(0, gy2);
         var lp1 = iso(0, gy2 + 1);
@@ -2769,9 +2795,9 @@
       // ── MICHAEL'S OFFICE WALL AWARDS ─────────────────
       // Plaques on the interior face of the gx=9 glass wall
       var awards = [
-        { gy: 0.55, lines: ['DUNDIE', 'AWARD'], color: '#cf72d9' },
-        { gy: 1.55, lines: ["WORLD'S", 'BEST BOSS'], color: '#cf72d9' },
-        { gy: 2.45, lines: ['MIT', 'LICENSE'], color: '#cf72d9' }
+        { gy: 0.55, lines: ['DUNDIE', 'AWARD'], color: '#F3F3F3' },
+        { gy: 1.55, lines: ["WORLD'S", 'BEST BOSS'], color: '#F3F3F3' },
+        { gy: 2.45, lines: ['FAIR', 'CODE'], color: '#F3F3F3' }
       ];
       ctx.save();
       ctx.font = '5px "Press Start 2P", monospace';
@@ -2781,7 +2807,7 @@
         var aw = 30, ah = 18;
         var ax = ap.x - aw / 2;
         var ay = ap.y - wallH + 8;
-        ctx.fillStyle = '#1b0d2a';
+        ctx.fillStyle = '#0E0E0E';
         ctx.fillRect(ax, ay, aw, ah);
         ctx.strokeStyle = a.color;
         ctx.lineWidth = 1.5;
@@ -2795,45 +2821,45 @@
       // ── FURNITURE ────────────────────────────────────
 
       // Conference table
-      drawBox(ctx, 0.6, 0.7, 1.8, 0.8, 12, '#7A5A18', '#5A3C08', '#3A2404');
+      drawBox(ctx, 0.6, 0.7, 1.8, 0.8, 12, '#646464', '#464646', '#2D2D2D');
       // Conf chairs
-      drawBox(ctx, 0.5, 0.5, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
-      drawBox(ctx, 2.1, 0.5, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
-      drawBox(ctx, 0.5, 1.4, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
-      drawBox(ctx, 2.1, 1.4, 0.4, 0.4, 8, '#5A4632', '#403020', '#403020');
+      drawBox(ctx, 0.5, 0.5, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
+      drawBox(ctx, 2.1, 0.5, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
+      drawBox(ctx, 0.5, 1.4, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
+      drawBox(ctx, 2.1, 1.4, 0.4, 0.4, 8, '#505050', '#393939', '#393939');
 
       // Bullpen desks
       var desks = [[3,2.8],[5,2.8],[3,4.3],[5,4.3],[8,2.8],[10,2.8]];
       desks.forEach(function(d) {
-        drawBox(ctx, d[0], d[1], 0.9, 0.6, 10, '#7A5A18', '#5A3C08', '#3A2404');
+        drawBox(ctx, d[0], d[1], 0.9, 0.6, 10, '#646464', '#464646', '#2D2D2D');
         // monitor
         var mp = iso(d[0] + 0.35, d[1] + 0.1);
-        ctx.fillStyle = '#1b0d2a';
+        ctx.fillStyle = '#0E0E0E';
         ctx.fillRect(mp.x - 9, mp.y - 26, 18, 16);
-        ctx.fillStyle = 'rgba(207,114,217,0.28)';
+        ctx.fillStyle = 'rgba(242,242,243,0.22)';
         ctx.fillRect(mp.x - 7, mp.y - 24, 14, 12);
       });
 
       // Michael's fancy desk
-      drawBox(ctx, 9.8, 0.6, 1.2, 0.7, 12, '#5A9AC8', '#3F6C8C', '#3F6C8C');
+      drawBox(ctx, 9.8, 0.6, 1.2, 0.7, 12, '#969696', '#6D6D6D', '#6D6D6D');
 
       // Reception desk
-      drawBox(ctx, 4.8, 5.2, 1.0, 0.6, 12, '#6A4A14', '#4A3208', '#4A3208');
-      drawBox(ctx, 5.8, 5.0, 0.8, 0.6, 12, '#6A4A14', '#4A3208', '#4A3208');
+      drawBox(ctx, 4.8, 5.2, 1.0, 0.6, 12, '#555555', '#3B3B3B', '#3B3B3B');
+      drawBox(ctx, 5.8, 5.0, 0.8, 0.6, 12, '#555555', '#3B3B3B', '#3B3B3B');
 
       // Whiteboard
-      drawBox(ctx, 0.05, 4.2, 0.08, 0.8, 20, '#ffebfc', '#cf72d9', '#9f4dbf');
+      drawBox(ctx, 0.05, 4.2, 0.08, 0.8, 20, '#EEEEEE', '#F3F3F3', '#737373');
       var wb = iso(0.1, 4.5);
-      ctx.fillStyle = '#D4DB18';
+      ctx.fillStyle = '#D9D9D9';
       ctx.fillRect(wb.x, wb.y - 30, 3, 2);
       ctx.fillRect(wb.x + 1, wb.y - 26, 2, 2);
-      ctx.fillStyle = '#cf72d9';
+      ctx.fillStyle = '#F3F3F3';
       ctx.fillRect(wb.x + 2, wb.y - 22, 4, 2);
 
       // Water cooler
-      drawBox(ctx, 7.3, 6.3, 0.3, 0.3, 16, '#5A9AC8', '#3F6C8C', '#3F6C8C');
+      drawBox(ctx, 7.3, 6.3, 0.3, 0.3, 16, '#969696', '#6D6D6D', '#6D6D6D');
       var wcTop = iso(7.45, 6.45);
-      ctx.fillStyle = '#cf72d9';
+      ctx.fillStyle = '#F3F3F3';
       ctx.fillRect(wcTop.x - 3, wcTop.y - 20, 6, 6);
 
       // ── ROOM LABELS ──────────────────────────────────
@@ -2842,16 +2868,16 @@
       ctx.textAlign = 'center';
 
       var confLabel = iso(1.5, 2.6);
-      ctx.fillStyle = 'rgba(207,114,217,0.75)';
+      ctx.fillStyle = 'rgba(242,242,243,0.72)';
       ctx.fillText('CONF ROOM', confLabel.x, confLabel.y);
 
       var mLabel = iso(10.5, 2.6);
-      ctx.fillStyle = 'rgba(207,114,217,0.75)';
+      ctx.fillStyle = 'rgba(242,242,243,0.72)';
       ctx.fillText("MICHAEL'S", mLabel.x, mLabel.y);
       ctx.fillText('OFFICE', mLabel.x, mLabel.y + 10);
 
       var recLabel = iso(5.5, 6.4);
-      ctx.fillStyle = 'rgba(207,114,217,0.75)';
+      ctx.fillStyle = 'rgba(242,242,243,0.72)';
       ctx.fillText('RECEPTION', recLabel.x, recLabel.y);
 
       ctx.restore();
