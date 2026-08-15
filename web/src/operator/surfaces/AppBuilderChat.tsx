@@ -131,6 +131,9 @@ export function AppBuilderChat({
   // chat already built). null means it is a brand-new build. Drives completion
   // detection so a follow-up amends instead of spawning a second build.
   const activeRefineRef = useRef<string | null>(null);
+  // The described workflow of the in-flight NEW build — consumed once by the
+  // completion hook to create the agent's starter routine.
+  const starterRoutineRef = useRef<string | null>(null);
   // App ids we have OBSERVED in a "building" state during this in-flight build.
   // A new build only completes on a building -> terminal transition: without
   // this, resolveNewAppId can latch onto a stale already-ready app and declare
@@ -232,6 +235,27 @@ export function AppBuilderChat({
     setNewAppId(candidate.id);
     setPhase("done");
     const failed = state === "failed";
+    // First-build ceremony: a brand-new agent (not a refine, not a demo-call
+    // build, which creates its own captured routine) gets a starter routine —
+    // the described workflow on a weekly schedule. Told, not asked: the chat
+    // reports it with a one-line veto path (pause on the Routines tab).
+    if (!failed && !refineId && !demo && starterRoutineRef.current) {
+      const routinePrompt = starterRoutineRef.current;
+      starterRoutineRef.current = null;
+      void (async () => {
+        const created = await tryCreateRoutine({
+          agent: candidate.id,
+          name: `Weekly ${appName.replace(/\s*Agent$/i, "").trim() || appName} run`,
+          prompt: routinePrompt,
+          schedule: "0 9 * * 1",
+        });
+        if (created) {
+          say(
+            "I also set up its weekly routine — Mondays 9:00, running the workflow you described. Pause or reword it any time on the Routines tab.",
+          );
+        }
+      })();
+    }
     setMessages((prev) => [
       ...prev,
       {
@@ -368,6 +392,9 @@ export function AppBuilderChat({
       ? appName || deriveAppName(description)
       : deriveAppName(description);
     activeRefineRef.current = refineId;
+    // A brand-new build remembers its description so the completion hook can
+    // mint the starter routine from it (the workflow IS the recurring job).
+    if (!refineId) starterRoutineRef.current = description;
     // Fresh build/refine: forget any building-state we observed for a prior run.
     sawBuildingRef.current = new Set();
     terminalSinceRef.current = null;

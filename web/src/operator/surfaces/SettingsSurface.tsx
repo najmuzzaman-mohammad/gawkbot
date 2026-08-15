@@ -1,18 +1,19 @@
-// Settings — kept deliberately small. Voice (the call) economics are the
-// load-bearing decision here: bring your own OpenAI Realtime key, or let Nex
-// host it; with no key the call is optional and chat-authoring is the floor.
-// The Voice group is REAL (persists to the broker config); the rest is mock.
+// Settings — kept deliberately small, and HONEST: every control on this
+// surface is real. Voice persists to the broker config. Runtime is read-only
+// status (set during onboarding). The earlier mock groups — a digest toggle,
+// a "Deliver to #revops · maya@company.com" input, an approvals toggle, and a
+// dead Delete-workspace button — presented non-functional controls as real
+// (the approvals toggle misrepresented a safety property in both directions)
+// and were removed in the 2026-08 QA pass.
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { type ConfigStatus, get, post } from "../../api/client";
+import { type ConfigStatus, get, getConfig, post } from "../../api/client";
 import { Eyebrow, SurfaceHeader } from "../components/primitives";
 
 export function SettingsSurface() {
   const [nexHosted, setNexHosted] = useState(false);
-  const [digestOn, setDigestOn] = useState(true);
-  const [approvalsOn, setApprovalsOn] = useState(true);
 
   // The Voice group persists to the broker config so the real call can mint
   // ephemeral Realtime tokens from the key. The key itself is write-only: we
@@ -23,6 +24,13 @@ export function SettingsSurface() {
     queryFn: () => get<ConfigStatus>("/config"),
   });
   const keySet = Boolean(config.data?.openai_key_set);
+  // Full config snapshot for the read-only Runtime readout.
+  const snapshot = useQuery({
+    queryKey: ["operator-config-snapshot"],
+    queryFn: () => getConfig().catch(() => null),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
   const [keyInput, setKeyInput] = useState("");
   const [modelInput, setModelInput] = useState("");
   const save = useMutation({
@@ -134,69 +142,19 @@ export function SettingsSurface() {
         </div>
 
         <div className="opr-set-group">
-          <Eyebrow>Notifications</Eyebrow>
+          <Eyebrow>Runtime</Eyebrow>
           <div className="opr-set-row">
             <div>
-              <div className="opr-set-label">Daily digest</div>
+              <div className="opr-set-label">Default runtime</div>
               <div className="opr-set-help">
-                A morning summary of what your tools did, and anything that
-                needs you, in Slack and email.
+                The engine new agents run on, picked during setup. Per-agent
+                runtime switching lands here next; until then this is
+                read-only.
               </div>
             </div>
-            <button
-              type="button"
-              aria-pressed={digestOn}
-              aria-label="Daily digest"
-              className={`opr-toggle${digestOn ? " is-on" : ""}`}
-              onClick={() => setDigestOn((v) => !v)}
-            />
-          </div>
-          <div className="opr-set-row">
-            <div>
-              <div className="opr-set-label">Deliver to</div>
-              <div className="opr-set-help">Where digests and alerts go.</div>
-            </div>
-            <input
-              className="opr-input"
-              aria-label="Deliver digests and alerts to"
-              defaultValue="#revops · maya@company.com"
-            />
-          </div>
-        </div>
-
-        <div className="opr-set-group">
-          <Eyebrow>Approvals</Eyebrow>
-          <div className="opr-set-row">
-            <div>
-              <div className="opr-set-label">Ask before sending externally</div>
-              <div className="opr-set-help">
-                Your AI checks with you before any tool writes to an outside app
-                such as posting to Slack or updating the CRM. Recommended on.
-              </div>
-            </div>
-            <button
-              type="button"
-              aria-pressed={approvalsOn}
-              aria-label="Ask before sending externally"
-              className={`opr-toggle${approvalsOn ? " is-on" : ""}`}
-              onClick={() => setApprovalsOn((v) => !v)}
-            />
-          </div>
-        </div>
-
-        <div className="opr-set-group">
-          <Eyebrow>Danger zone</Eyebrow>
-          <div className="opr-set-row">
-            <div>
-              <div className="opr-set-label opr-danger">Delete workspace</div>
-              <div className="opr-set-help">
-                Removes every tool, its data, and the connected apps. Cannot be
-                undone.
-              </div>
-            </div>
-            <button type="button" className="opr-btn opr-btn-sm opr-danger">
-              Delete
-            </button>
+            <span className="opr-pill opr-pill-muted">
+              {snapshot.data?.llm_provider || "not set"}
+            </span>
           </div>
         </div>
       </div>

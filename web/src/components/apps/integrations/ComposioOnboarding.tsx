@@ -145,7 +145,7 @@ export function ComposioOnboarding({ onConnected }: ComposioOnboardingProps) {
         <span className="composio-onb-eyebrow">Integrations</span>
         <h2 className="composio-onb-title">Add integrations to your office</h2>
         <p className="composio-onb-lead">
-          Connect once to let your agents act in Gmail, Slack, GitHub, and 250+
+          Connect once to let your agents act in Gmail, Slack, GitHub, and 1200+
           other tools — securely, with OAuth and a full audit trail. We set up
           the rest.
         </p>

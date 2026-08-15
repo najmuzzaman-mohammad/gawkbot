@@ -307,8 +307,8 @@ export function KnowledgeSurface({ appId }: KnowledgeSurfaceProps) {
           <Eyebrow>Knowledge</Eyebrow>
           <h1 className="opr-surface-title">What your AI knows</h1>
           <p className="opr-surface-lede">
-            The shared brain behind every tool. Each fact is cited back to where
-            it came from, so you can trust what the tools act on. Hover a
+            The shared brain behind every agent. Each fact is cited back to where
+            it came from, so you can trust what your agents act on. Hover a
             citation to see the source, and ask why it was chosen.
           </p>
         </div>
@@ -384,7 +384,7 @@ export function KnowledgeSurface({ appId }: KnowledgeSurfaceProps) {
                   {page.infobox.map((row) => (
                     <div className="opr-infobox-row" key={row.label}>
                       <dt>{row.label}</dt>
-                      <dd>{row.value}</dd>
+                      <dd>{renderProse(row.value, refByN)}</dd>
                     </div>
                   ))}
                 </dl>

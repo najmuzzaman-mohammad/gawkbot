@@ -109,6 +109,7 @@ export function AppDataTab({ appId }: AppDataTabProps) {
     return (
       <EmptyState
         glyph="▦"
+        portraitSlug={appId}
         title="No data yet"
         hint="This agent has not written to its database yet. As it derives and saves its data model — the tables that power it — they appear here."
       />
