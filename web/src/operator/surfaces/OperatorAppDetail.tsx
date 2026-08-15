@@ -5,8 +5,8 @@
 // produced (md/html/pdf) collected below the app.
 
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ChevronsLeft,
@@ -35,6 +35,7 @@ import {
 } from "../apps/useOperatorApps";
 import { ArtifactsTab } from "../artifacts/ArtifactsTab";
 import type { Artifact } from "../artifacts/artifacts";
+import { AppIntegrationBanner } from "../components/AppIntegrationBanner";
 import { EmptyState } from "../components/EmptyState";
 import { Eyebrow, type TabDef, Tabs } from "../components/primitives";
 import { RoutinesTab } from "../routines/RoutinesTab";
@@ -299,6 +300,7 @@ export function OperatorAppDetail({
                   setRequestedSession(sessionId);
                   setChatOpen(true);
                 }}
+                onOpenChat={() => setChatOpen(true)}
               />
             ) : null}
           </div>
@@ -429,11 +431,14 @@ function TabBody({
   appId,
   query,
   onOpenRoutineSession,
+  onOpenChat,
 }: {
   tab: AppTab;
   appId: string;
   query: UseQueryResult<CustomAppDetail>;
   onOpenRoutineSession?: (sessionId: string) => void;
+  /** Open the Ask Agent dock — the Tools tab's teach affordance. */
+  onOpenChat?: () => void;
 }) {
   const app = query.data?.app;
   switch (tab) {
@@ -446,7 +451,9 @@ function TabBody({
         />
       );
     case "tools":
-      return <AppToolsTab appName={app?.name ?? "This app"} />;
+      return (
+        <AppToolsTab appName={app?.name ?? "This app"} onTeach={onOpenChat} />
+      );
     case "data":
       return app ? (
         <AppDataTab appId={app.id} />
@@ -538,6 +545,9 @@ function UiTab({
   if (ready) {
     return (
       <div className="opr-app-frame">
+        {/* Host-side connect affordance: the sandboxed app can say "no CRM
+            connected" but cannot offer the fix — this banner can. */}
+        <AppIntegrationBanner app={app} />
         <CustomAppFrame appId={app.id} title={app.name} html={detail.html} />
       </div>
     );

@@ -10,9 +10,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, Send, X } from "lucide-react";
 
 import { type CustomApp, listApps, submitAppEdit } from "../../api/apps";
-import type { AgentRequest } from "../../api/client";
 import { AppActivity } from "../../components/apps/AppActivity";
-import { ConnectIntegrationCard } from "../../components/messages/ConnectIntegrationCard";
 import { tryCreateRoutine } from "../agents/agentStateClient";
 import { capturePromptSeed, type DemoCapture } from "../apps/demoCapture";
 import {
@@ -28,6 +26,7 @@ import {
   missingIntegrations,
   resolveGateTargets,
 } from "../builder/describedIntegrations";
+import { IntegrationConnectRows } from "../components/IntegrationConnectRows";
 import { Eyebrow } from "../components/primitives";
 import { buildToolFromChat } from "../tools/toolAgentClient";
 
@@ -92,20 +91,6 @@ interface AppBuilderChatProps {
    * workflow" CTA that carried it here. Ignored in edit/demo mode.
    */
   initialPrompt?: string;
-}
-
-// A synthetic `connect` request so ConnectIntegrationCard can drive the real
-// connect flow (Composio sign-in gate + OAuth + status polling) for one gate
-// row. Local id — the card never answers a real broker request here.
-function gateConnectRequest(target: GateConnectTarget): AgentRequest {
-  return {
-    id: `build-gate-connect-${target.provider}-${target.platform}`,
-    from: "",
-    question: "",
-    title: `Connect ${target.label}`,
-    platform: target.platform,
-    kind: "connect",
-  };
 }
 
 /** Labels of gate refs the catalog offered NO connect row for. */
@@ -648,22 +633,7 @@ export function AppBuilderChat({
                   )}
                 </div>
                 {pendingGate.targets.length > 0 ? (
-                  <ul className="opr-gate-connect-list">
-                    {pendingGate.targets.map((t) => (
-                      <li
-                        key={`${t.provider}:${t.platform}`}
-                        className="opr-gate-connect-row"
-                      >
-                        <ConnectIntegrationCard
-                          request={gateConnectRequest(t)}
-                          submitting={false}
-                          logoUrl={t.logoUrl}
-                          onSkip={() => {}}
-                          onDismiss={() => {}}
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                  <IntegrationConnectRows targets={pendingGate.targets} />
                 ) : null}
                 <div className="opr-gate-actions">
                   <button

@@ -78,6 +78,15 @@ func (l *Launcher) headlessTurnCompletedDurably(slug string, active *headlessCod
 	if task != nil && taskHasDurableCompletionState(task) {
 		return true, ""
 	}
+	// The App Builder's durable evidence IS the app registry: a manifest
+	// created or republished during this turn proves the work landed, no
+	// office task-state write required. Without this, every successful build
+	// was judged by office-agent evidence (task writes, channel posts) the
+	// App Builder never produces, got "blocked", and burned a retry turn —
+	// observed on every build in the 2026-08-15 QA pass.
+	if isAppBuilderSlug(slug) && l.appRegistryTouchedSince(active.StartedAt) {
+		return true, ""
+	}
 	if l.agentPostedSubstantiveMessageSince(slug, active.StartedAt) {
 		return true, ""
 	}
@@ -444,4 +453,29 @@ func (l *Launcher) timedOutTurnAlreadyRecovered(task *teamTask, slug string, sta
 			review == "ready_for_review" || review == "approved"
 	}
 	return l.agentPostedSubstantiveMessageSince(slug, startedAt)
+}
+
+// appRegistryTouchedSince reports whether any custom app's manifest was
+// created or updated at/after t — the App Builder's durable-completion
+// evidence. Manifest stamps are RFC3339; unparseable stamps are skipped.
+func (l *Launcher) appRegistryTouchedSince(t time.Time) bool {
+	if l == nil || l.broker == nil || t.IsZero() {
+		return false
+	}
+	apps, err := l.broker.appStore().List()
+	if err != nil {
+		return false
+	}
+	for _, app := range apps {
+		for _, stamp := range []string{app.UpdatedAt, app.CreatedAt} {
+			ts, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(stamp))
+			if err != nil {
+				continue
+			}
+			if !ts.Before(t) {
+				return true
+			}
+		}
+	}
+	return false
 }

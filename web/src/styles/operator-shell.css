@@ -4907,3 +4907,28 @@
 .opr-gate-connect-row .eac-dismiss {
   display: none;
 }
+
+/* Host-side integration banner above a ready app's frame — the app can say
+   "no CRM connected"; only the host can offer the fix. */
+.opr-app-int-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 12px 14px;
+  margin-bottom: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--t-yellow) 40%, var(--t-line));
+  border-left: 3px solid var(--t-yellow);
+  border-radius: var(--t-r-sm);
+  background: color-mix(in srgb, var(--t-yellow) 6%, var(--t-surface));
+}
+.opr-app-int-banner-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.opr-app-int-banner-lead {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--t-ink);
+}

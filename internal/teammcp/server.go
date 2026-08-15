@@ -8,6 +8,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/nex-crm/wuphf/internal/action"
+	"github.com/nex-crm/wuphf/internal/company"
 	"github.com/nex-crm/wuphf/internal/config"
 	"github.com/nex-crm/wuphf/internal/team"
 )
@@ -225,6 +226,42 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 		if isLead || isLibrarian {
 			registerWikiLinkTool(server)
 		}
+		if hasActionProvider() {
+			registerActionTools(server)
+		}
+		return
+	}
+
+	// App Builder: the operator-era build agent. It has no teammates and no
+	// user-visible channel — the 2026-08-15 QA pass showed it never calls the
+	// office coordination tools (inbox/outbox/status/members/channels/DMs/
+	// shared tasks), which cost ~100k tokens of schema per turn anyway. It
+	// keeps a voice (team_broadcast feeds the edit-channel wake loop and the
+	// durability heuristics), the human-facing request tools, context/memory
+	// grounding, its app publish tools, and external actions. The office
+	// coordination surface is deliberately absent: every agent is its own
+	// surface now, and there is no office UI left to read those posts.
+	if slug == company.AppBuilderSlug {
+		mcp.AddTool(server, officeWriteTool(
+			"team_broadcast",
+			"Post a progress note to the build channel.",
+		), handleTeamBroadcast)
+		mcp.AddTool(server, readOnlyTool(
+			"team_poll",
+			"Read recent messages in the build channel (e.g. the operator's edit request).",
+		), handleTeamPoll)
+		mcp.AddTool(server, officeWriteTool(
+			"team_request",
+			"Create a structured request for the human: confirmation, choice, approval, freeform answer, or private/secret answer.",
+		), handleTeamRequest)
+		mcp.AddTool(server, officeWriteTool(
+			"human_message",
+			"Send a direct note to the human.",
+		), handleHumanMessage)
+		registerContextTools(server)
+		registerSharedMemoryTools(server)
+		registerRoutineTools(server)
+		registerAppTools(server, slug)
 		if hasActionProvider() {
 			registerActionTools(server)
 		}

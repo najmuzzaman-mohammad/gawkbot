@@ -7,7 +7,7 @@
 // docs/specs/operator-workflows-as-tools.md.
 
 import { useState } from "react";
-import { ChevronDown, Wrench } from "lucide-react";
+import { ChevronDown, Sparkles, Wrench } from "lucide-react";
 
 import { Eyebrow } from "../components/primitives";
 import type { Tool } from "../tools/mockTools";
@@ -15,9 +15,11 @@ import { useAppTools } from "../tools/toolsContext";
 
 interface AppToolsTabProps {
   appName: string;
+  /** Open the agent's chat (the Ask Agent dock) — where tools are taught. */
+  onTeach?: () => void;
 }
 
-export function AppToolsTab({ appName }: AppToolsTabProps) {
+export function AppToolsTab({ appName, onTeach }: AppToolsTabProps) {
   const { tools } = useAppTools();
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -32,9 +34,27 @@ export function AppToolsTab({ appName }: AppToolsTabProps) {
       </div>
 
       {tools.length === 0 ? (
-        <div className="opr-empty-hint">
-          No tools yet. Open the chat and teach {appName} a task — it'll build a
-          tool for it.
+        <div className="opr-empty">
+          <span className="opr-empty-glyph" aria-hidden={true}>
+            <Wrench size={16} strokeWidth={1.9} />
+          </span>
+          <div className="opr-empty-title">No tools yet</div>
+          <div className="opr-empty-hint">
+            Teach {appName} a task in its chat — "score a lead", "draft the
+            follow-up" — and it writes the tool for it.
+          </div>
+          {onTeach ? (
+            <div className="opr-empty-actions">
+              <button
+                type="button"
+                className="opr-btn opr-btn-primary opr-btn-sm"
+                onClick={onTeach}
+              >
+                <Sparkles size={13} strokeWidth={1.9} aria-hidden={true} />
+                Teach a tool in chat
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="opr-tool-catalog">
