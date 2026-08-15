@@ -161,7 +161,7 @@ EOF
   # Shell-phase specs: post-onboarding UI surfaces (smoke, settings,
   # /connect telegram wizard).
   echo "[run-local] running shell-phase specs"
-  (cd web/e2e && WUPHF_E2E_BASE_URL="http://localhost:${web_port}" bunx playwright test tests/smoke.spec.ts tests/app-routes.spec.ts tests/route-matrix.spec.ts tests/route-regressions.spec.ts tests/sidebar-scroll.spec.ts tests/local-llm-settings.spec.ts tests/nex-connect.spec.ts tests/telegram-connect.spec.ts)
+  (cd web/e2e && WUPHF_E2E_BASE_URL="http://localhost:${web_port}" bunx playwright test tests/smoke.spec.ts tests/app-routes.spec.ts tests/route-matrix.spec.ts tests/route-regressions.spec.ts)
   stop_wuphf
 }
 
@@ -375,8 +375,10 @@ EOF
 case "$phase" in
   wizard) run_wizard_phase ;;
   shell)  run_shell_phase ;;
-  local-llm) run_local_llm_phase ;;
-  local-llm-dialects) run_local_llm_dialects_phase ;;
+  local-llm)
+    echo "[run-local] local-llm chat phase retired with the office shell (2026-08-14) — parser coverage lives in Go tests; onboarding coverage in local-llm-onboarding.spec.ts" ;;
+  local-llm-dialects)
+    echo "[run-local] dialect sweep retired with the office shell (2026-08-14) — see internal/provider parser tests" ;;
   both)
     run_wizard_phase
     run_shell_phase

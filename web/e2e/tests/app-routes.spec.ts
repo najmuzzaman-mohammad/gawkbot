@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import {
   collectReactErrors,
@@ -6,94 +6,40 @@ import {
   waitForReactMount,
 } from "./_helpers";
 
-const APP_CASES = [
-  // The Tasks board is a first-class surface reached from the Work nav.
-  // /tasks redirects are covered in route-matrix.spec.ts.
-  // The standalone RequestsApp surface was retired and the Inbox folded
-  // into the Task board; /apps/requests now redirects to /tasks (covered
-  // in route-matrix.spec.ts / route-regressions.spec.ts).
-  {
-    app: "graph",
-    label: "Graph",
-    content: /Entity Graph/i,
-  },
-  {
-    app: "policies",
-    label: "Policies",
-    content: /Office operating rules/i,
-  },
-  {
-    app: "routines",
-    label: "Scheduled Tasks",
-    content:
-      /Loading scheduled tasks|Could not load|No scheduled tasks|Scheduled Tasks/i,
-  },
-  {
-    app: "skills",
-    label: "Skills",
-    content: /Loading skills|Could not load skills|Skills/i,
-  },
-  {
-    // The `activity` app id keeps its historical slug; the v3 sidebar label
-    // is "Dashboard" (see APP_LABELS in routeRegistry.ts).
-    app: "activity",
-    label: "Dashboard",
-    content: /Loading office activity|Office activity/i,
-  },
-  {
-    app: "health-check",
-    label: "Access & Health",
-    content: /Checking health|Could not reach health endpoint|Access & Health/i,
-  },
-  {
-    app: "integrations",
-    label: "Integrations",
-    content: /Integrations|PATCH BAY/i,
-  },
+// The office app panels (Graph, Policies, Skills, Dashboard, …) were retired
+// with the office shell: the operator surface is the only front door
+// (founder decision, 2026-08-14), and every legacy /#/apps/<id> hash
+// normalizes to /#/operator. Route-by-route operator coverage lives in
+// route-matrix.spec.ts; this spec keeps the historical app ids pinned so a
+// regression that resurrects the office panels (or breaks their redirect)
+// fails loudly.
+
+const LEGACY_APP_IDS = [
+  "graph",
+  "policies",
+  "routines",
+  "skills",
+  "activity",
+  "health-check",
+  "integrations",
 ] as const;
 
-async function expectAppRoute(
-  page: Page,
-  app: (typeof APP_CASES)[number]["app"],
-  content: RegExp,
-): Promise<void> {
-  await expect(page).toHaveURL(new RegExp(`#/apps/${app}$`));
-  const appPage = page.getByTestId(`app-page-${app}`);
-  await expect(appPage).toBeVisible({
-    timeout: 10_000,
-  });
-  await expect(appPage).toContainText(content, { timeout: 10_000 });
-}
-
-test.describe("app route isolation", () => {
-  test("each sidebar app renders its own page", async ({ page }) => {
+test.describe("legacy app routes", () => {
+  test("every retired app panel route lands on the operator", async ({
+    page,
+  }) => {
     const getErrors = collectReactErrors(page);
 
-    for (const appCase of APP_CASES) {
-      await page.goto(`/#/apps/${appCase.app}`);
+    for (const app of LEGACY_APP_IDS) {
+      await page.goto(`/#/apps/${app}`);
       await waitForReactMount(page);
-      await expectAppRoute(page, appCase.app, appCase.content);
-      await expect(
-        page.locator(".sidebar-apps .sidebar-item.active"),
-      ).toContainText(appCase.label);
+      await expect(page).toHaveURL(/#\/operator/, { timeout: 10_000 });
+      await expect(page.getByTestId("operator-root")).toBeVisible({
+        timeout: 10_000,
+      });
+      // The office panel must NOT mount on the way out.
+      await expect(page.getByTestId(`app-page-${app}`)).toHaveCount(0);
+      await expectNoReactErrors(page, getErrors, `while redirecting /${app}`);
     }
-
-    // Switch between two real sidebar apps to confirm app-route swapping
-    // still works.
-    await page.goto("/#/apps/graph");
-    await waitForReactMount(page);
-    await page
-      .locator(".sidebar-apps .sidebar-item", { hasText: "Policies" })
-      .click();
-    await expectAppRoute(page, "policies", /Office operating rules/i);
-    await expect(page.getByTestId("app-page-graph")).toHaveCount(0);
-
-    await page
-      .locator(".sidebar-apps .sidebar-item", { hasText: "Graph" })
-      .click();
-    await expectAppRoute(page, "graph", /Entity Graph/i);
-    await expect(page.getByTestId("app-page-policies")).toHaveCount(0);
-
-    await expectNoReactErrors(page, getErrors, "while switching app routes");
   });
 });
