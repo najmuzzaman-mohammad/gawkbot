@@ -4931,6 +4931,8 @@
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--t-ink);
+}
+
 /* Data tab: legible values. */
 .opr-data-none {
   color: var(--t-faint);
