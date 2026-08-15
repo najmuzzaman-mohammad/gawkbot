@@ -115,7 +115,7 @@ async function fetchWithTimeout(
     return await fetch(url, { signal: controller.signal });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(`Timed out connecting to broker after ${timeoutMs}ms`);
+      throw new Error("Timed out connecting to your workspace. Give it a moment and try again.");
     }
     throw err;
   } finally {
@@ -168,7 +168,7 @@ export function getRequestSignal(options?: GetOptions): AbortSignal {
 
 function describeGetError(err: unknown): Error | null {
   if (err instanceof Error && err.name === "TimeoutError") {
-    return new Error("Broker not responding — request timed out.");
+    return new Error("Your workspace is not responding — the request timed out.");
   }
   return null;
 }

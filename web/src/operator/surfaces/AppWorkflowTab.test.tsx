@@ -75,7 +75,7 @@ describe("AppWorkflowTab", () => {
       ],
     });
     const { getByText } = wrap(<AppWorkflowTab appId="app_abc" />);
-    await waitFor(() => expect(getByText("Deterministic")).toBeTruthy());
+    await waitFor(() => expect(getByText("Same steps every run")).toBeTruthy());
     // The app's real steps, framed by the trigger and delivery nodes.
     expect(getByText("Read city weather table")).toBeTruthy();
     expect(getByText("Runs on demand or on a schedule")).toBeTruthy();

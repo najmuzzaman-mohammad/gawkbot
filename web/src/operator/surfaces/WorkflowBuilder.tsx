@@ -389,10 +389,11 @@ export function WorkflowBuilder({
       );
       pushAI(summarizeRun(finish, result));
     } catch (err) {
+      // Raw transport/parse errors are developer material — log them, keep
+      // the chat line plain.
+      console.error("workflow test run failed:", err);
       pushAI(
-        `That test run did not go through: ${
-          err instanceof Error ? err.message : "unknown error"
-        }`,
+        "That test run did not go through — the workspace could not run it just now. Try again in a moment.",
       );
     }
   }

@@ -225,7 +225,7 @@ function CompiledWorkflow({ wf, appId }: { wf: AppWorkflow; appId: string }) {
       <div className="opr-workflow-banner">
         <span className="opr-pill opr-pill-good">
           <ShieldCheck size={12} strokeWidth={2} aria-hidden={true} />
-          Deterministic
+          Same steps every run
         </span>
         <span className="opr-scoped-note">
           Frozen plan · {steps.length} step{steps.length === 1 ? "" : "s"} ·

@@ -33,7 +33,7 @@ describe("connectBroker", () => {
 
     const pending = expect(
       connectBroker("http://localhost:7890"),
-    ).rejects.toThrow(/timed out connecting to broker/i);
+    ).rejects.toThrow(/timed out connecting to your workspace/i);
     await vi.advanceTimersByTimeAsync(8000);
 
     await pending;
@@ -120,7 +120,7 @@ describe("get timeout", () => {
     );
   });
 
-  it("surfaces a timeout abort as a broker-not-responding error", async () => {
+  it("surfaces a timeout abort as a workspace-not-responding error", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(
       (_input: RequestInfo | URL, _init?: RequestInit) => {
         const err = new DOMException(
@@ -132,7 +132,7 @@ describe("get timeout", () => {
     );
 
     await expect(get("/notebook/catalog")).rejects.toThrow(
-      /broker not responding/i,
+      /workspace is not responding/i,
     );
   });
 
