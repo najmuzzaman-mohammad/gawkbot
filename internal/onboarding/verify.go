@@ -145,10 +145,6 @@ func VerifyRuntime(ctx context.Context, name string) VerifyResult {
 	return res
 }
 
-// InstallSteps returns the guided setup steps for a CLI runtime. The steps
-// walk the user from install to signed-in, with a copyable command per step
-// and a doc link pointing at the runtime's canonical install page (reused
-
 // verifyDisplayNames maps prereq binaries to the labels the runtime cards
 // show. FailedStep must match the InstallSteps titles exactly for the FE to
 // highlight the failed step, and hints must speak the product name, not the
@@ -190,6 +186,9 @@ func verifyStepTitle(m map[string]string, name, fallback string) string {
 	return fallback
 }
 
+// InstallSteps returns the guided setup steps for a CLI runtime. The steps
+// walk the user from install to signed-in, with a copyable command per step
+// and a doc link pointing at the runtime's canonical install page (reused
 // from prereqSpecs). Returns nil only for unknown names. node and git are
 // prerequisites rather than pickable runtimes, but they are present in
 // prereqSpecs, so they still yield a generic step rather than nil.
