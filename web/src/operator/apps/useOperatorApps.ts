@@ -210,7 +210,13 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
   [/\b(forecasts?|commits?|quotas?)\b/i, "Forecast Agent"],
   [/\b(pipelines?|deals?)\b/i, "Pipeline Agent"],
   [/\b(sales|quotas?|outreach|prospects?)\b/i, "Sales Agent"],
-  [/\b(support|tickets?|escalations?|incidents?)\b/i, "Support Triage Agent"],
+  // Engineering-team rituals get their own names, not a generic bucket.
+  [/\b(stand-?ups?)\b/i, "Standup Agent"],
+  [/\b(sprints?|velocity|story points?)\b/i, "Sprint Planning Agent"],
+  [/\b(retros?|retrospectives?)\b/i, "Retro Agent"],
+  // Incident management (SRE vocabulary) is not support triage.
+  [/\b(incidents?|postmortems?|outages?|on-call|mttr)\b/i, "Incident Agent"],
+  [/\b(support|tickets?|escalations?)\b/i, "Support Triage Agent"],
   [/\b(invoices?|billing|receivables?|dunning)\b/i, "Invoice Agent"],
   [/\b(expenses?|reimburse|spend)\b/i, "Expense Agent"],
   [/\b(email|inbox|follow[- ]?ups?|replies|nurture)\b/i, "Follow-up Agent"],

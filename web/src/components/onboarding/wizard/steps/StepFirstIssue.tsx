@@ -94,56 +94,28 @@ export function StepFirstIssue({
           </p>
         </div>
 
-        {answers.email.trim() ? (
-          <label className="onboarding-keep-in-touch">
-            <input
-              type="checkbox"
-              className="onboarding-keep-in-touch-box"
-              checked={answers.keepInTouch}
-              onChange={(event) =>
-                setAnswers({ keepInTouch: event.target.checked })
-              }
-              data-testid="onboarding-keep-in-touch"
-            />
-            <span className="onboarding-keep-in-touch-copy">
-              {ONBOARDING_EMAIL_COPY.consent}
-            </span>
-          </label>
-        ) : null}
-
+        {/* Typing an email IS the keep-in-touch opt-in — the field's own hint
+            makes the promise, so no second checkbox restates it
+            (2026-08-16 ceremony slim, founder-approved). */}
         <div
           className="onboarding-analytics-consent"
           data-testid="onboarding-analytics-consent"
         >
-          <p className="onboarding-analytics-consent-heading">
-            {ONBOARDING_ANALYTICS_CONSENT_COPY.heading}
-          </p>
           <label className="onboarding-keep-in-touch">
             <input
               type="checkbox"
               className="onboarding-keep-in-touch-box"
-              checked={answers.telemetryConsent}
+              checked={answers.telemetryConsent && answers.recordingConsent}
               onChange={(event) =>
-                setAnswers({ telemetryConsent: event.target.checked })
+                setAnswers({
+                  telemetryConsent: event.target.checked,
+                  recordingConsent: event.target.checked,
+                })
               }
-              data-testid="onboarding-consent-telemetry"
+              data-testid="onboarding-consent-analytics"
             />
             <span className="onboarding-keep-in-touch-copy">
-              {ONBOARDING_ANALYTICS_CONSENT_COPY.telemetryLabel}
-            </span>
-          </label>
-          <label className="onboarding-keep-in-touch">
-            <input
-              type="checkbox"
-              className="onboarding-keep-in-touch-box"
-              checked={answers.recordingConsent}
-              onChange={(event) =>
-                setAnswers({ recordingConsent: event.target.checked })
-              }
-              data-testid="onboarding-consent-recording"
-            />
-            <span className="onboarding-keep-in-touch-copy">
-              {ONBOARDING_ANALYTICS_CONSENT_COPY.recordingLabel}
+              {ONBOARDING_ANALYTICS_CONSENT_COPY.combinedLabel}
             </span>
           </label>
           <p className="onboarding-analytics-consent-note">

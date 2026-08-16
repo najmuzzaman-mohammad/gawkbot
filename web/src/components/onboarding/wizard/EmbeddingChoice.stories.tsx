@@ -56,6 +56,8 @@ function Harness({
         saving={saving}
         saveError={saveError}
         ollamaChosen={chosen}
+        expanded={true}
+        onExpand={() => undefined}
         onChooseOllama={() => setChosen(true)}
         installBusy={installBusy}
         onInstallGbrain={() => undefined}

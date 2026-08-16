@@ -467,3 +467,12 @@ affected row/counters in the same interaction — optimistic update or refetch,
 either works. An operator who clicks "Escalate" and still sees PENDING with
 the same button assumes the click failed and clicks again. Every action's
 outcome must be visible where the operator is looking, immediately.
+
+## Bridge action failures are told, never swallowed
+
+`createTask`, `integration`, and other bridge calls can be refused (a
+confirmation is already pending), cancelled, or time out. NEVER swallow the
+rejection in an empty catch: tell the operator what happened where they are
+looking ("The confirmation was still open — finish it and try again", "That
+did not go through — try again"), and leave the row/state unchanged so the
+retry is obvious. A silent failure reads as a broken button.

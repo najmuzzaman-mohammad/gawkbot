@@ -114,7 +114,10 @@ export async function missingIntegrations(
       (r) => !r.platforms.some((p) => connected.has(p.toLowerCase())),
     );
   } catch {
-    return [];
+    // The check itself failed — treat the described systems as unverified
+    // and ASK. Silently skipping the gate on a transient error contradicts
+    // the ask-before-building decision (2026-08-16 EM pass).
+    return refs;
   }
 }
 

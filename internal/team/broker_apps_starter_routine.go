@@ -39,6 +39,9 @@ var starterScheduleRules = []struct {
 	{regexp.MustCompile(`(?i)\b(every|each)\s+week\b|\bweekly\b`), "0 9 * * 1", "Weekly"},
 }
 
+// starterRoutineCounterRe strips a trailing dedupe counter from an app name.
+var starterRoutineCounterRe = regexp.MustCompile(`\s+\d+$`)
+
 // deriveStarterSchedule reads the operator's own cadence out of the build
 // description. Returns the cron expr and a human label prefix.
 func deriveStarterSchedule(description string) (expr, prefix string) {
@@ -95,7 +98,11 @@ func (b *Broker) mintStarterRoutineForFirstBuild(app CustomApp) {
 	now := time.Now().UTC()
 	nextRun := sched.Next(now).Format(time.RFC3339)
 
-	base := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(app.Name), "Agent"))
+	// "Pipeline Agent 2" -> "Pipeline": the dedupe counter and the Agent
+	// suffix are roster bookkeeping, not routine vocabulary.
+	base := strings.TrimSpace(app.Name)
+	base = strings.TrimSpace(starterRoutineCounterRe.ReplaceAllString(base, ""))
+	base = strings.TrimSpace(strings.TrimSuffix(base, "Agent"))
 	if base == "" {
 		base = app.Name
 	}

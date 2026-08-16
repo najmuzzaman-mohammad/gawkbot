@@ -180,11 +180,12 @@ export const ONBOARDING_EMAIL_COPY = {
  */
 export const ONBOARDING_ANALYTICS_CONSENT_COPY = {
   heading: "Help improve WUPHF",
-  note: "Both are optional, on by default, and easy to change anytime in Settings. Analytics never collects your content, and recordings mask everything you type.",
-  telemetryLabel:
-    "Share anonymous product analytics. Counts and shapes of what you do, never the content.",
-  recordingLabel:
-    "Allow session recordings. We mask everything you type — passwords, keys, form fields — and capture layout, clicks, and navigation to fix rough edges.",
+  // One consent, honestly described (2026-08-16: the three-checkbox stack
+  // bracketed the hero moment; founder approved slimming it). It drives both
+  // the analytics and the masked-replay flags together.
+  combinedLabel:
+    "Share anonymous product analytics and masked session replays. Counts, clicks, and layout only: never your content, and everything you type is masked.",
+  note: "Optional, on by default, easy to change any time in Settings.",
 } as const;
 
 /**

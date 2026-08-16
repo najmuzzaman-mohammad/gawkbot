@@ -81,6 +81,38 @@ func TestMintStarterRoutineForFirstBuild(t *testing.T) {
 		t.Errorf("next run is not RFC3339: %v", err)
 	}
 
+	// The label strips the dedupe counter: "Chase Agent 2" -> "Weekday Chase
+	// run". NOTE the lock discipline: b.mu is HELD here (taken above with a
+	// deferred unlock), so the task append rides the held lock, the mint runs
+	// unlocked, and the read re-takes the lock to stay balanced with the
+	// idempotency section below.
+	b.tasks = append(b.tasks, teamTask{
+		ID:      "VANCE-9",
+		Channel: "task-VANCE-9",
+		Title:   "Build app: Chase Agent 2",
+		Details: "What it should do:\nChase invoices. Every weekday morning, remind people.",
+		Owner:   appBuilderSlug,
+	})
+	b.mu.Unlock()
+	numbered := CustomApp{
+		ID:          "app_00000000000000aa",
+		Name:        "Chase Agent 2",
+		Version:     1,
+		CreatedBy:   "human",
+		EditChannel: "task-VANCE-9",
+	}
+	b.mintStarterRoutineForFirstBuild(numbered)
+	b.mu.Lock()
+	var labeled string
+	for i := range b.scheduler {
+		if b.scheduler[i].TargetID == numbered.ID {
+			labeled = b.scheduler[i].Label
+		}
+	}
+	if labeled != "Weekday Chase run" {
+		t.Errorf("expected the counter stripped from the label, got %q", labeled)
+	}
+
 	// Idempotent: a republish (version 2) and a re-mint both no-op.
 	before := len(b.scheduler)
 	b.mu.Unlock()

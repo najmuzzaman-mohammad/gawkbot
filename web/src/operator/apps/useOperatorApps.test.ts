@@ -169,6 +169,23 @@ describe("deriveAppName", () => {
   // 2026-08-16 fresh-workspace QA: "Chase our unpaid invoices" was named
   // "Chase Agent" (plural nouns missed the role table), and a recruiting
   // description using scoring verbs was claimed by Lead Routing.
+  it("names engineering rituals by their own nouns", () => {
+    expect(deriveAppName("Prep our standup every weekday at 9")).toBe(
+      "Standup Agent",
+    );
+    expect(
+      deriveAppName("Plan sprint capacity against historical velocity"),
+    ).toBe("Sprint Planning Agent");
+  });
+
+  it("names incident tracking Incident Agent, not Support Triage", () => {
+    expect(
+      deriveAppName(
+        "Track our incidents with severity and owners, nag for postmortems, keep MTTR stats",
+      ),
+    ).toBe("Incident Agent");
+  });
+
   it("names forecast-accuracy tracking Forecast Agent", () => {
     expect(
       deriveAppName(

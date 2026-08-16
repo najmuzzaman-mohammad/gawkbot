@@ -74,6 +74,11 @@ interface EmbeddingChoiceViewProps {
   installBusy: boolean;
   /** Kick off (or retry) the gbrain install. */
   onInstallGbrain: () => void;
+  /** The optional upgrade machinery is unfolded (auto-unfolds when it
+   * already matters: key saved, local path picked, install active). */
+  expanded: boolean;
+  /** Unfold the upgrade machinery. */
+  onExpand: () => void;
 }
 
 /** The Ollama setup command, using the broker's model id when it gave one. */
@@ -321,6 +326,8 @@ export function EmbeddingChoiceView({
   onChooseOllama,
   installBusy,
   onInstallGbrain,
+  expanded,
+  onExpand,
 }: EmbeddingChoiceViewProps) {
   const resolved = resolveEmbedder(options);
   const keySet = resolved === "openai";
@@ -330,6 +337,12 @@ export function EmbeddingChoiceView({
       : resolved === "ollama"
         ? COPY.statusOllama
         : COPY.statusKeyword;
+
+  // Auto-unfold when the choice already matters: a key is saved, the local
+  // path was picked, or an install is running/errored (its progress must
+  // never hide).
+  const showBody =
+    expanded || keySet || ollamaChosen || options.install_state !== "idle";
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -370,9 +383,24 @@ export function EmbeddingChoiceView({
         </p>
       </div>
 
-      <p className="onboarding-embedding-note">{COPY.note}</p>
+      {showBody ? (
+        <p className="onboarding-embedding-note">{COPY.note}</p>
+      ) : (
+        // Activation default: keyword search is ON and stated in the status
+        // line above. The upgrade machinery only unfolds on request — a
+        // fresh operator should not weigh embedders before seeing anything
+        // work (2026-08-16 audit, founder-approved).
+        <button
+          type="button"
+          className="onboarding-embedding-expand"
+          onClick={onExpand}
+          data-testid="onboarding-embedding-expand"
+        >
+          Improve recall (optional)
+        </button>
+      )}
 
-      {keySet ? (
+      {showBody && keySet ? (
         <p
           className="onboarding-embedding-success"
           data-testid="onboarding-embedding-success"
@@ -380,7 +408,8 @@ export function EmbeddingChoiceView({
           <CheckMark />
           {COPY.openaiSet}
         </p>
-      ) : (
+      ) : null}
+      {showBody && !keySet ? (
         <>
           <form className="onboarding-embedding-key" onSubmit={onSubmit}>
             <div className="onboarding-embedding-key-head">
@@ -444,7 +473,7 @@ export function EmbeddingChoiceView({
             />
           ) : null}
         </>
-      )}
+      ) : null}
     </section>
   );
 }
@@ -461,6 +490,7 @@ export function EmbeddingChoice() {
     EMBEDDING_OPTIONS_FALLBACK,
   );
   const [keyValue, setKeyValue] = useState("");
+  const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [ollamaChosen, setOllamaChosen] = useState(false);
@@ -550,6 +580,8 @@ export function EmbeddingChoice() {
       onChooseOllama={onChooseOllama}
       installBusy={installBusy}
       onInstallGbrain={onInstallGbrain}
+      expanded={expanded}
+      onExpand={() => setExpanded(true)}
     />
   );
 }

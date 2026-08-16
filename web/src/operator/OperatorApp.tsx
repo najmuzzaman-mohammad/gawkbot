@@ -69,7 +69,12 @@ export function OperatorApp() {
   // the shell opens straight into the build flow with the text already sent —
   // the user lands on their first agent being assembled, which is what the
   // "Start your first workflow" CTA promised.
-  const [firstWorkflow] = useState<string | null>(() =>
+  // Consumed ONCE: cleared the moment the first build experience closes —
+  // holding it in state re-auto-sent the onboarding workflow on EVERY later
+  // "Build an agent" mount, burning a duplicate build (2026-08-16 EM pass:
+  // "Support Triage Agent 2" built itself while the operator typed a
+  // different description into a dead composer).
+  const [firstWorkflow, setFirstWorkflow] = useState<string | null>(() =>
     consumeFirstWorkflowSeed(),
   );
   const [appBuildingInit] = useState<boolean>(() => firstWorkflow !== null);
@@ -121,6 +126,7 @@ export function OperatorApp() {
   }));
 
   function resetSubState() {
+    setFirstWorkflow(null);
     setSelectedId(null);
     setAppBuilding(false);
     setEditingApp(null);
@@ -233,8 +239,12 @@ export function OperatorApp() {
             onClose={() => {
               setAppBuilding(false);
               setEditingApp(null);
+              setFirstWorkflow(null);
             }}
-            onFinish={finishApp}
+            onFinish={(id) => {
+              setFirstWorkflow(null);
+              finishApp(id);
+            }}
           />
         ) : building ? (
           <WorkflowBuilder
