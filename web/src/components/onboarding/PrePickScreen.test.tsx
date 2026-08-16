@@ -399,11 +399,6 @@ describe("config sections collapse", () => {
       toggle: "pre-pick-local-toggle",
       body: "pre-pick-local-body",
     },
-    {
-      name: "Custom endpoint",
-      toggle: "pre-pick-oai-toggle",
-      body: "pre-pick-oai-body",
-    },
   ];
 
   for (const section of SECTIONS) {
@@ -593,88 +588,11 @@ describe("local provider picker", () => {
   });
 });
 
-describe("OpenAI-compatible endpoint", () => {
-  it("renders the OAI-compatible section", async () => {
-    mockPrereqs({});
-    render(<PrePickScreen onComplete={vi.fn()} />);
-    await screen.findByTestId("pre-pick-oai-section");
-    expect(screen.getByTestId("pre-pick-oai-compat")).toBeInTheDocument();
-  });
-
-  it("does not show submit button when only an invalid URL is entered", async () => {
-    mockPrereqs({});
-    render(<PrePickScreen onComplete={vi.fn()} />);
-    await screen.findByTestId("pre-pick-oai-url");
-
-    fireEvent.change(screen.getByTestId("pre-pick-oai-url"), {
-      target: { value: "not-a-url" },
-    });
-
-    // URL error message should appear
-    expect(
-      await screen.findByTestId("pre-pick-oai-url-error"),
-    ).toBeInTheDocument();
-    // Submit button must NOT appear
-    expect(screen.queryByTestId("pre-pick-form-submit")).toBeNull();
-  });
-
-  it("shows submit button and posts provider_endpoints when a valid URL is entered", async () => {
-    mockPrereqs({});
-    const onComplete = vi.fn();
-    render(<PrePickScreen onComplete={onComplete} />);
-    await screen.findByTestId("pre-pick-oai-url");
-
-    fireEvent.change(screen.getByTestId("pre-pick-oai-url"), {
-      target: { value: "https://my-server.example.com/v1" },
-    });
-
-    const submitBtn = await screen.findByTestId("pre-pick-form-submit");
-    fireEvent.click(submitBtn);
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(postMock).toHaveBeenCalledWith(
-      "/config",
-      expect.objectContaining({
-        provider_endpoints: expect.objectContaining({
-          "openai-compatible": expect.objectContaining({
-            base_url: "https://my-server.example.com/v1",
-          }),
-        }),
-      }),
-    );
-  });
-
-  it("does not conflate the OAI-compat endpoint with OpenClaw config", async () => {
-    // Filling the Custom endpoint section writes only to provider_endpoints.
-    // OpenClaw is a gateway managed through Integrations, not a runtime.
-    mockPrereqs({});
-    const onComplete = vi.fn();
-    render(<PrePickScreen onComplete={onComplete} />);
-    await screen.findByTestId("pre-pick-oai-url");
-
-    fireEvent.change(screen.getByTestId("pre-pick-oai-url"), {
-      target: { value: "https://example.com/v1" },
-    });
-    fireEvent.change(screen.getByTestId("pre-pick-oai-key"), {
-      target: { value: "tok-secret" },
-    });
-
-    const submitBtn = await screen.findByTestId("pre-pick-form-submit");
-    fireEvent.click(submitBtn);
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    const calledPayload = postMock.mock.calls[0]?.[1] as Record<
-      string,
-      unknown
-    >;
-    expect(calledPayload.openclaw_token).toBeUndefined();
-    expect(calledPayload.openclaw_gateway_url).toBeUndefined();
-    expect(calledPayload.provider_endpoints).toMatchObject({
-      "openai-compatible": { base_url: "https://example.com/v1" },
-    });
-  });
-});
-
+// The "Custom endpoint" section was REMOVED (2026-08-16 audit): the FE
+// posted provider_endpoints keyed "openai-compatible", a kind no provider
+// registers, so the path 400'd on every submit — a setup flow that could
+// never succeed. A working custom-endpoint runtime can return as its own
+// feature with a registered provider kind.
 describe("canContinue predicate", () => {
   it("does not show form submit button when no form section is filled", async () => {
     mockPrereqs({});

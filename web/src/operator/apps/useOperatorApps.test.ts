@@ -79,9 +79,24 @@ describe("appBuildState", () => {
     expect(appBuildState(a, now)).toBe("building");
   });
 
-  it("reports failed for a build stalled past the timeout", () => {
-    const a = app({ status: "building", createdAt: "2026-06-29T11:40:00Z" });
+  it("reports failed for a build stalled past the backstop window", () => {
+    // The backstop is 80 minutes now (the broker stamps real failures on the
+    // wire); a build 90 minutes old with no status flip means the broker died.
+    const a = app({ status: "building", createdAt: "2026-06-29T10:35:00Z" });
     expect(appBuildState(a, now)).toBe("failed");
+  });
+
+  it("reads a broker-stamped failed status straight off the wire", () => {
+    const a = app({ status: "failed", createdAt: "2026-06-29T12:04:00Z" });
+    expect(appBuildState(a, now)).toBe("failed");
+  });
+
+  it("keeps a 20-minute-old build honest — still building, not failed", () => {
+    // Regression (2026-08-16 audit): the old 10-minute window declared
+    // legitimately-running first builds failed while the broker's own
+    // budget was 25 minutes.
+    const a = app({ status: "building", createdAt: "2026-06-29T11:45:00Z" });
+    expect(appBuildState(a, now)).toBe("building");
   });
 });
 

@@ -63,10 +63,9 @@ export function LocalProviderPicker({
           className="pre-pick-local-error"
           data-testid="pre-pick-local-fetch-error"
         >
-          Could not reach the broker to check installed runtimes:{" "}
-          <code>{fetchError}</code>. You can still pick providers — install
-          commands are in <strong>Settings &rarr; Local LLMs</strong> after
-          onboarding.
+          We could not check which local models are installed just now. You can
+          still pick one — we verify it after setup, and install commands live
+          in <strong>Settings &rarr; Local LLMs</strong>.
         </div>
       ) : null}
       {!loading ? (

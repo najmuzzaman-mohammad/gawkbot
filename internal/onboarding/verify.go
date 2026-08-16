@@ -117,14 +117,15 @@ func VerifyRuntime(ctx context.Context, name string) VerifyResult {
 		Version: r.Version,
 	}
 
+	label := verifyDisplayName(name)
 	if !r.Found {
 		res.Status = VerifyStatusNotInstalled
-		res.FailedStep = fmt.Sprintf("Install %s", name)
+		res.FailedStep = verifyStepTitle(verifyInstallStepTitles, name, fmt.Sprintf("Install %s", label))
 		res.Command = installCommands[name]
 		if res.Command != "" {
-			res.Hint = fmt.Sprintf("%s is not on your PATH yet. Run the install command, then verify again.", name)
+			res.Hint = fmt.Sprintf("%s is not installed on this computer yet. Run the install command, then verify again.", label)
 		} else {
-			res.Hint = fmt.Sprintf("%s is not on your PATH yet. Install it from the linked guide, then verify again.", name)
+			res.Hint = fmt.Sprintf("%s is not installed on this computer yet. Install it from the linked guide, then verify again.", label)
 		}
 		return res
 	}
@@ -135,7 +136,7 @@ func VerifyRuntime(ctx context.Context, name string) VerifyResult {
 		res.Status = VerifyStatusAuthRequired
 		res.Command = r.SignInCommand
 		res.SignInCommand = r.SignInCommand
-		res.FailedStep = fmt.Sprintf("Sign in to %s", name)
+		res.FailedStep = verifyStepTitle(verifySignInStepTitles, name, fmt.Sprintf("Sign in to %s", label))
 		res.Hint = "Run the sign-in command, then verify again."
 		return res
 	}
@@ -147,6 +148,48 @@ func VerifyRuntime(ctx context.Context, name string) VerifyResult {
 // InstallSteps returns the guided setup steps for a CLI runtime. The steps
 // walk the user from install to signed-in, with a copyable command per step
 // and a doc link pointing at the runtime's canonical install page (reused
+
+// verifyDisplayNames maps prereq binaries to the labels the runtime cards
+// show. FailedStep must match the InstallSteps titles exactly for the FE to
+// highlight the failed step, and hints must speak the product name, not the
+// binary (2026-08-16 first-run audit).
+var verifyDisplayNames = map[string]string{
+	"claude":   "Claude Code",
+	"codex":    "Codex",
+	"opencode": "opencode",
+	"cursor":   "Cursor",
+}
+
+// verifyInstallStepTitles maps binaries to their InstallSteps install-step
+// title; sign-in titles diverge per runtime too.
+var verifyInstallStepTitles = map[string]string{
+	"claude":   "Install Claude Code",
+	"codex":    "Install Codex",
+	"opencode": "Install opencode",
+	"cursor":   "Install Cursor",
+}
+
+var verifySignInStepTitles = map[string]string{
+	"claude":   "Sign in to Claude",
+	"codex":    "Sign in to Codex",
+	"opencode": "Add a provider credential",
+	"cursor":   "Sign in inside Cursor",
+}
+
+func verifyDisplayName(name string) string {
+	if label, ok := verifyDisplayNames[name]; ok {
+		return label
+	}
+	return name
+}
+
+func verifyStepTitle(m map[string]string, name, fallback string) string {
+	if t, ok := m[name]; ok {
+		return t
+	}
+	return fallback
+}
+
 // from prereqSpecs). Returns nil only for unknown names. node and git are
 // prerequisites rather than pickable runtimes, but they are present in
 // prereqSpecs, so they still yield a generic step rather than nil.

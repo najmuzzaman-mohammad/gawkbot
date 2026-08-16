@@ -40,11 +40,19 @@ func waitForTurnError(t *testing.T, ch <-chan error) error {
 // keywords, so neither the durability guard nor the external-action rules
 // interfere with the queue behavior under test.
 func newOfficeModeTaskForTest(t *testing.T, b *Broker) teamTask {
+	return newOfficeModeTaskForTestWithOwner(t, b, "app-builder")
+}
+
+// newOfficeModeTaskForTestWithOwner lets GENERIC office-contract tests pick a
+// non-builder owner: the App Builder now has its own retry carve-out
+// (resume-requeue on failure/timeout), so tests pinning the generic
+// block-on-failure contract must not run under its slug.
+func newOfficeModeTaskForTestWithOwner(t *testing.T, b *Broker, owner string) teamTask {
 	t.Helper()
 	task, reused, err := b.EnsurePlannedTask(plannedTaskInput{
 		Channel:       "general",
 		Title:         "Refresh the weekly metrics summary layout",
-		Owner:         "app-builder",
+		Owner:         owner,
 		CreatedBy:     "ceo",
 		TaskType:      "feature",
 		ExecutionMode: "office",
@@ -156,13 +164,13 @@ func TestHeadlessQueueDoesNotRetryOfficeTurnAfterNonTransientError(t *testing.T)
 	t.Setenv("HOME", t.TempDir())
 
 	b := newTestBroker(t)
-	task := newOfficeModeTaskForTest(t, b)
+	task := newOfficeModeTaskForTestWithOwner(t, b, "cmo")
 
 	var mu sync.Mutex
 	calls := 0
 	turnDone := make(chan error, 4)
 	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, _ context.Context, slug, _ string, _ ...string) error {
-		if slug != "app-builder" {
+		if slug != "cmo" {
 			return nil
 		}
 		mu.Lock()
@@ -176,7 +184,7 @@ func TestHeadlessQueueDoesNotRetryOfficeTurnAfterNonTransientError(t *testing.T)
 	l := newHeadlessLauncherForTest(t)
 	l.broker = b
 
-	l.enqueueHeadlessCodexTurnRecord("app-builder", headlessCodexTurn{
+	l.enqueueHeadlessCodexTurnRecord("cmo", headlessCodexTurn{
 		Prompt:  "Work the office build for #" + task.ID,
 		Channel: task.Channel,
 		TaskID:  task.ID,
@@ -199,7 +207,7 @@ func TestHeadlessQueueDoesNotRetryOfficeTurnAfterNonTransientError(t *testing.T)
 		t.Fatalf("expected non-transient failure to keep the BlockTask recovery path, got status=%s blocked=%v", updated.Status(), updated.Blocked())
 	}
 
-	for _, line := range b.AgentStream("app-builder").recentTask(task.ID) {
+	for _, line := range b.AgentStream("cmo").recentTask(task.ID) {
 		if strings.Contains(line, `"type":"reconnecting"`) {
 			t.Fatalf("expected no reconnecting event for a non-transient failure, got %q", line)
 		}
@@ -326,7 +334,7 @@ func TestRecoverFailedHeadlessTurnRetriesOfficeTaskOnceOnTransientFailure(t *tes
 	t.Setenv("HOME", t.TempDir())
 
 	b := newTestBroker(t)
-	task := newOfficeModeTaskForTest(t, b)
+	task := newOfficeModeTaskForTestWithOwner(t, b, "cmo")
 
 	l := newHeadlessLauncherForTest(t)
 	l.broker = b
@@ -336,13 +344,13 @@ func TestRecoverFailedHeadlessTurnRetriesOfficeTaskOnceOnTransientFailure(t *tes
 		Channel: task.Channel,
 		TaskID:  task.ID,
 	}
-	lane := l.laneForTurn("app-builder", turn)
+	lane := l.laneForTurn("cmo", turn)
 	l.headless.mu.Lock()
 	l.headless.workers[lane] = true // keep the queue inspectable: no worker spawns
 	l.headless.mu.Unlock()
 
 	detail := "exit status 1: read tcp 10.0.0.5:52344->104.18.2.1:443: read: connection reset by peer"
-	l.recoverFailedHeadlessTurn("app-builder", turn, time.Now().UTC().Add(-2*time.Second), detail)
+	l.recoverFailedHeadlessTurn("cmo", turn, time.Now().UTC().Add(-2*time.Second), detail)
 
 	l.headless.mu.Lock()
 	queued := append([]headlessCodexTurn(nil), l.headless.queues[lane]...)
@@ -354,7 +362,7 @@ func TestRecoverFailedHeadlessTurnRetriesOfficeTaskOnceOnTransientFailure(t *tes
 	if retry.Attempts != 1 {
 		t.Fatalf("expected recovery retry attempt 1, got %+v", retry)
 	}
-	if !strings.Contains(retry.Prompt, "Previous attempt by @app-builder failed") {
+	if !strings.Contains(retry.Prompt, "Previous attempt by @cmo failed") {
 		t.Fatalf("expected retry prompt note, got %q", retry.Prompt)
 	}
 
@@ -365,7 +373,7 @@ func TestRecoverFailedHeadlessTurnRetriesOfficeTaskOnceOnTransientFailure(t *tes
 
 	// Second transient failure of the recovery retry: the one-retry budget is
 	// spent, so the old BlockTask path takes over.
-	l.recoverFailedHeadlessTurn("app-builder", retry, time.Now().UTC().Add(-1*time.Second), detail)
+	l.recoverFailedHeadlessTurn("cmo", retry, time.Now().UTC().Add(-1*time.Second), detail)
 	updated = taskByIDForTest(t, b, task.ID)
 	if !updated.Blocked() && updated.Status() != "blocked" {
 		t.Fatalf("expected the second transient failure to block the task, got status=%s blocked=%v", updated.Status(), updated.Blocked())

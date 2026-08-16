@@ -14,6 +14,7 @@ package team
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -76,7 +77,11 @@ func (b *Broker) maybePrescaffoldAppForCreate(action, channel string, body TaskP
 		actor = appBuilderSlug
 	}
 	if _, err := b.appStore().Scaffold(id, name, "", actor, time.Now()); err != nil {
-		// Pre-scaffold is an enhancement; never block task creation on it.
+		// Pre-scaffold is an enhancement; never block task creation on it —
+		// but never swallow it either: without the scaffold there is no
+		// instant preview, no stable app id in the brief, and no edit
+		// channel, which silently degrades the whole first build.
+		log.Printf("apps: pre-scaffold %s failed (build continues without instant preview): %v", id, err)
 		return body
 	}
 

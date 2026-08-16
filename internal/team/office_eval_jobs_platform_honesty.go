@@ -89,8 +89,8 @@ func evalJobPlatformHonesty(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	notes := fx.channelMessagesByKind(stalled.Channel, taskStalledMessageKind)
 	lineOK := len(notes) == 1 &&
 		strings.Contains(notes[0].Content, "@eng") &&
-		strings.Contains(notes[0].Content, "no visible activity") &&
-		strings.Contains(notes[0].Content, taskID)
+		strings.Contains(notes[0].Content, "gone quiet") &&
+		strings.Contains(notes[0].Content, stalled.Title)
 	detail := fmt.Sprintf("lines=%d", len(notes))
 	if len(notes) > 0 {
 		detail += " first=" + truncate(notes[0].Content, 120)

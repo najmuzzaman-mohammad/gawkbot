@@ -81,9 +81,16 @@ export function AppLivePreview({
         <p className="app-build-preview__state-title">
           Preview failed to start
         </p>
-        <pre className="app-build-preview__bootlog-text">
-          {data.boot_log || data.error}
-        </pre>
+        <p className="app-build-preview__state-detail">
+          The agent's page could not boot. Ask the agent to fix it in chat, or
+          check the detail below.
+        </p>
+        <details className="app-build-preview__bootlog" open={false}>
+          <summary>Show technical detail</summary>
+          <pre className="app-build-preview__bootlog-text">
+            {data.boot_log || data.error}
+          </pre>
+        </details>
       </div>
     );
   }

@@ -18,7 +18,7 @@ export interface CustomApp {
    * "building" = a pre-scaffolded app awaiting its first published build
    * (shown as a building row, not a clickable app). Absent/"ready" = published.
    */
-  status?: "building" | "ready";
+  status?: "building" | "ready" | "failed";
   /**
    * Slug of the app's persistent edit thread — the channel of the App Builder
    * task that created/improves it (`task-<id>`). The app view binds its

@@ -31,7 +31,27 @@ import { ONBOARDING_EMBEDDING_COPY as COPY } from "./wizardSteps";
 /** How often to re-read the options while an install is running. */
 const INSTALL_POLL_MS = 2_000;
 /** Hard ceiling on the poll so a wedged install never loops forever (~6 min). */
-const INSTALL_POLL_CAP_MS = 6 * 60 * 1_000;
+// Must OUTLAST the broker's install budget (12 minutes, installTimeout in
+// broker_knowledge.go) — a shorter cap fabricated a client-side failure
+// while the real install was still running (2026-08-16 audit).
+/** The backend streams BOTH curated step headlines ("Installing Bun...")
+ * and raw installer stdout through the same progress field. Only the
+ * curated lines belong in the headline slot — raw bootstrap output reads
+ * as developer exhaust to a first-run operator (2026-08-16 audit). */
+function curatedProgressLine(progress: string): string {
+  const line = progress.trim();
+  if (!line) return "";
+  if (
+    /^(Installing|Applying|Preparing|Starting|Checking|Downloading|Setting up|Finishing)\b/.test(
+      line,
+    )
+  ) {
+    return line;
+  }
+  return "";
+}
+
+const INSTALL_POLL_CAP_MS = 13 * 60 * 1_000;
 
 interface EmbeddingChoiceViewProps {
   /** The current embedding options (drives every state). */
@@ -123,8 +143,14 @@ function InstallPanel({
             className="onboarding-embedding-install-progress"
             data-testid="onboarding-embedding-install-progress"
           >
-            {progress.trim() || COPY.install.progressPending}
+            {curatedProgressLine(progress) || COPY.install.progressPending}
           </p>
+          {progress.trim() && !curatedProgressLine(progress) ? (
+            <details className="onboarding-embedding-install-raw">
+              <summary>Show technical detail</summary>
+              <pre>{progress.trim()}</pre>
+            </details>
+          ) : null}
           <p className="onboarding-embedding-install-hint">
             {COPY.install.installingHint}
           </p>
@@ -159,8 +185,14 @@ function InstallPanel({
             role="alert"
             data-testid="onboarding-embedding-install-error"
           >
-            {error.trim() || COPY.install.errorFallback}
+            {COPY.install.errorFallback}
           </p>
+          {error.trim() ? (
+            <details className="onboarding-embedding-install-raw">
+              <summary>Show technical detail</summary>
+              <pre>{error.trim()}</pre>
+            </details>
+          ) : null}
           <p className="onboarding-embedding-install-hint">
             {COPY.install.keywordFallback}
           </p>

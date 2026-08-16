@@ -59,6 +59,11 @@ const (
 	// "ready" (back-compat with manifests written before this field existed).
 	customAppStatusBuilding = "building"
 	customAppStatusReady    = "ready"
+	// customAppStatusFailed marks a pre-scaffolded app whose build task
+	// terminally blocked. Stamped by the broker so the FE reads failure off
+	// the wire instead of inferring it from a stale createdAt; a later
+	// successful register_app flips it back to ready.
+	customAppStatusFailed = "failed"
 )
 
 // customAppPreservedSrcDirs are top-level entries under src/ that a publish must
@@ -512,6 +517,35 @@ func (s *customAppStore) SetEditChannel(id, channel string) error {
 		return nil
 	}
 	app.EditChannel = channel
+	manifestBytes, err := json.MarshalIndent(app, "", "  ")
+	if err != nil {
+		return fmt.Errorf("app: marshal manifest: %w", err)
+	}
+	manifestBytes = append(manifestBytes, '\n')
+	if err := writeFileAtomic(filepath.Join(s.appDir(id), customAppManifestFile), manifestBytes, 0o600); err != nil {
+		return fmt.Errorf("app: write manifest: %w", err)
+	}
+	return nil
+}
+
+// MarkBuildFailed flips a still-building app to "failed" — the broker calls
+// it when the build task terminally blocks, so the operator sees an honest
+// failed state instead of "Building" forever (2026-08-16 first-run audit).
+// A ready app is left untouched: a blocked REFINE does not un-ready an app.
+func (s *customAppStore) MarkBuildFailed(id string) error {
+	if err := validateCustomAppID(id); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	app, err := s.readManifestLocked(id)
+	if err != nil {
+		return newCustomAppCallerError("app: %s not found", id)
+	}
+	if app.Status != customAppStatusBuilding {
+		return nil
+	}
+	app.Status = customAppStatusFailed
 	manifestBytes, err := json.MarshalIndent(app, "", "  ")
 	if err != nil {
 		return fmt.Errorf("app: marshal manifest: %w", err)

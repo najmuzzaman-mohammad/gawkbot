@@ -46,10 +46,10 @@ import {
 import { OPERATOR_FIRST_WORKFLOW_SEED_KEY } from "../../../operator/firstWorkflowSeed";
 import { HOME_COMPOSER_DRAFT_CHANNEL, useAppStore } from "../../../stores/app";
 import {
-  pickFirstIssueExample,
   ONBOARDING_WIZARD_STEP_IDS,
   type OnboardingAnswers,
   type OnboardingWizardStepId,
+  pickFirstIssueExample,
 } from "./wizardSteps";
 
 /**

@@ -101,7 +101,9 @@ export function OperatorAppDetail({
 
   const detail = query.data;
   const app = detail?.app;
-  const state = app ? appBuildState(app) : "building";
+  // No app record yet means UNKNOWN, not "Building" — an erroring detail
+  // query must not stamp a confident build state (2026-08-16 audit).
+  const state = app ? appBuildState(app) : null;
   const failed = state === "failed";
   const ready = state === "ready" && !!detail?.html;
 
@@ -226,7 +228,13 @@ export function OperatorAppDetail({
                           : "opr-led-draft"
                     }`}
                   />
-                  {failed ? "Failed" : ready ? "Live" : "Building"}
+                  {failed
+                    ? "Stopped"
+                    : ready
+                      ? "Live"
+                      : state === "building"
+                        ? "Building"
+                        : "Loading…"}
                 </span>
                 {app ? (
                   <span className="opr-meta-dot">v{app.version}</span>
@@ -315,9 +323,13 @@ export function OperatorAppDetail({
           </div>
         </div>
 
-        {/* Ask AI — floating bubble + docked drawer, openable from any tab. During
-          the build experience the build chat is already docked, so suppress it. */}
-        {app && ready && !buildWalk ? (
+        {/* Ask AI — floating bubble + docked drawer, openable from any tab.
+          During the build experience the build chat is already docked, so the
+          floating bubble stays suppressed — but an EXPLICIT open (the header
+          button, "Teach a tool in chat", a routine's "Open its chat") must
+          still work: those buttons silently no-opped during the walk
+          (2026-08-16 audit). */}
+        {app && ready && (!buildWalk || chatOpen) ? (
           <AskAiDock
             app={app}
             open={chatOpen}

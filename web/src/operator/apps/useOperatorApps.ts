@@ -28,7 +28,11 @@ const APPS_POLL_MS = 4000;
  * agent stalled — so the operator should see a failure it can clear, not a
  * forever-spinning "building" row.
  */
-const BUILD_STALL_MS = 10 * 60 * 1000;
+// The broker's build budget is 25 minutes per attempt with up to two
+// resume-requeues (WUPHF_BUILD_TIMEOUT + the recovery carve-out), and a
+// terminally failed build is stamped status="failed" on the wire now — this
+// client-side window is only the backstop for a broker that died mid-build.
+const BUILD_STALL_MS = 80 * 60 * 1000;
 
 /** App ids carry an `app_<hex>` prefix; the operator uses it to tell a real
  * built app apart from a mock tool id. */
@@ -49,6 +53,7 @@ export function appBuildState(
   app: CustomApp,
   now: number = Date.now(),
 ): AppBuildState {
+  if (app.status === "failed") return "failed";
   if (app.status !== "building") return "ready";
   const created = Date.parse(app.createdAt ?? "");
   if (Number.isFinite(created) && now - created > BUILD_STALL_MS) {
@@ -177,17 +182,17 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
   ],
   // Nouns accept plurals; bare verbs ("score", "route", "inbound") are gone —
   // they collide with every other domain ("score a task", "inbound tickets").
-  [
-    /\b(leads?|lead routing|demo requests?)\b/i,
-    "Lead Routing Agent",
-  ],
+  [/\b(leads?|lead routing|demo requests?)\b/i, "Lead Routing Agent"],
   [/\b(pipelines?|deals?|forecasts?)\b/i, "Pipeline Agent"],
   [/\b(sales|quotas?|outreach|prospects?)\b/i, "Sales Agent"],
   [/\b(support|tickets?|escalations?|incidents?)\b/i, "Support Triage Agent"],
   [/\b(invoices?|billing|receivables?|dunning)\b/i, "Invoice Agent"],
   [/\b(expenses?|reimburse|spend)\b/i, "Expense Agent"],
   [/\b(email|inbox|follow[- ]?ups?|replies|nurture)\b/i, "Follow-up Agent"],
-  [/\b(reports?|summar|digests?|dashboards?|recaps?|kpis?|metrics?)\b/i, "Reporting Agent"],
+  [
+    /\b(reports?|summar|digests?|dashboards?|recaps?|kpis?|metrics?)\b/i,
+    "Reporting Agent",
+  ],
   [/\b(onboard|welcome|signups?|sign-ups?)\b/i, "Onboarding Agent"],
 ];
 

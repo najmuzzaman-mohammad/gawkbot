@@ -176,7 +176,7 @@ func (b *Broker) markSilentRunningTasksLocked(now time.Time, threshold time.Dura
 			From:    "system",
 			Channel: channel,
 			Kind:    taskStalledMessageKind,
-			Content: fmt.Sprintf("%s has produced no visible activity on %s for %s — investigating or stalled.", ownerRef, task.ID, silentFor),
+			Content: fmt.Sprintf("%s has gone quiet on “%s” for about %d minutes. It may still be working — if nothing lands soon, restart it from the task.", ownerRef, strings.TrimSpace(task.Title), int(silentFor.Minutes())),
 			// Stamp with the watchdog's now (not wall clock) so a
 			// fixture-clock eval produces a consistent record.
 			Timestamp: now.UTC().Format(time.RFC3339),

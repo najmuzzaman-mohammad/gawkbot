@@ -144,6 +144,25 @@ function bashVerb(command: string): string {
   return "Running a setup step";
 }
 
+/** Heuristic error sniff on a tool_result payload: explicit error envelopes
+ * and the classic crash prefixes. Conservative on purpose — a false checkmark
+ * hides failures, a false ✗ cries wolf. */
+function looksLikeToolError(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  try {
+    const parsed: unknown = JSON.parse(t);
+    if (parsed && typeof parsed === "object") {
+      const o = parsed as { is_error?: unknown; error?: unknown };
+      if (o.is_error === true) return true;
+      if (typeof o.error === "string" && o.error.trim()) return true;
+    }
+  } catch {
+    // plain text — fall through
+  }
+  return /^(error|fatal|panic):/i.test(t);
+}
+
 /** Condense a tool_result payload into a short one-line note. */
 export function summarizeResult(text: string): string {
   const t = text.trim();
@@ -229,9 +248,12 @@ export function reduceBuildActivity(
       case "tool_result": {
         const q = open.get(key);
         const note = summarizeResult(ev.text);
+        // An error payload must not render as a checkmark (2026-08-16
+        // audit: the feed could literally never show a failure).
+        const failed = looksLikeToolError(ev.text);
         if (q && q.length > 0) {
           const idx = q.shift() as number;
-          items[idx].status = "done";
+          items[idx].status = failed ? "error" : "done";
           if (note) items[idx].note = note;
         } else {
           const { verb, target } = humanizeToolEvent(ev.toolName, "");
@@ -239,7 +261,7 @@ export function reduceBuildActivity(
             id: `${ev.turnId}:${ev.toolName}:${seq++}`,
             verb,
             target,
-            status: "done",
+            status: failed ? "error" : "done",
             note: note || undefined,
             turn: ev.turnId,
           });

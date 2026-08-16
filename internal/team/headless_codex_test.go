@@ -1435,7 +1435,7 @@ func TestRecoverTimedOutHeadlessTurnBlocksTaskWithoutSubstantiveReply(t *testing
 	if updated.Status() != "blocked" || !updated.Blocked() {
 		t.Fatalf("expected task to be blocked after empty timeout, got %+v", updated)
 	}
-	if !strings.Contains(updated.Details, "timed out") {
+	if !strings.Contains(updated.Details, "ran out of time") {
 		t.Fatalf("expected timeout detail appended, got %+v", updated)
 	}
 }
@@ -1808,8 +1808,10 @@ func TestRecoverFailedHeadlessTurnBlocksLocalWorktreeAfterRetryExhausted(t *test
 	if updated.Status() != "blocked" || !updated.Blocked() {
 		t.Fatalf("expected task to be blocked after retry budget exhausted, got %+v", updated)
 	}
-	if !strings.Contains(updated.Details, "Selected model is at capacity") {
-		t.Fatalf("expected failure detail appended, got %+v", updated)
+	// The block reason is operator-voice now: the raw provider text goes to
+	// the headless log; the reason carries the classified cause.
+	if !strings.Contains(updated.Details, "the AI provider was overloaded") {
+		t.Fatalf("expected classified failure detail appended, got %+v", updated)
 	}
 	var healTask teamTask
 	for _, candidate := range b.AllTasks() {

@@ -96,10 +96,18 @@ func (l *Launcher) enqueueHeadlessCodexTurn(slug string, prompt string, channel 
 	if slug == "" || prompt == "" {
 		return
 	}
+	taskID := headlessCodexTaskID(prompt)
+	if taskID == "" && strings.HasPrefix(ch, "task-") {
+		// A per-task channel names its task ("task-VANCE-2"): dispatches
+		// whose prompt carries no #task- marker (e.g. direct app improves)
+		// still get labeled, so their events attach to the right task
+		// instead of an empty scope (2026-08-16 first-run audit).
+		taskID = strings.TrimPrefix(ch, "task-")
+	}
 	l.enqueueHeadlessCodexTurnRecord(slug, headlessCodexTurn{
 		Prompt:     prompt,
 		Channel:    ch,
-		TaskID:     headlessCodexTaskID(prompt),
+		TaskID:     taskID,
 		EnqueuedAt: time.Now(),
 	})
 }

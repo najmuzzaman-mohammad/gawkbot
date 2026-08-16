@@ -105,7 +105,8 @@ export const ONBOARDING_FIRST_ISSUE_EXAMPLES: readonly string[] = [
 ];
 
 /** Back-compat: the canonical example (tests and the tour handoff pin it). */
-export const ONBOARDING_FIRST_ISSUE_EXAMPLE = ONBOARDING_FIRST_ISSUE_EXAMPLES[0];
+export const ONBOARDING_FIRST_ISSUE_EXAMPLE =
+  ONBOARDING_FIRST_ISSUE_EXAMPLES[0];
 
 /** Pick the prefill for this visit. */
 export function pickFirstIssueExample(): string {

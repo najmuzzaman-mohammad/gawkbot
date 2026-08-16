@@ -11,10 +11,7 @@ import { ArrowRight, Check, Send, X } from "lucide-react";
 
 import { type CustomApp, listApps, submitAppEdit } from "../../api/apps";
 import { AppActivity } from "../../components/apps/AppActivity";
-import {
-  tryCreateRoutine,
-  tryListRoutines,
-} from "../agents/agentStateClient";
+import { tryCreateRoutine, tryListRoutines } from "../agents/agentStateClient";
 import { capturePromptSeed, type DemoCapture } from "../apps/demoCapture";
 import {
   appBuildState,
@@ -136,6 +133,10 @@ export function AppBuilderChat({
   });
   const [appName, setAppName] = useState(editApp?.name ?? "");
   const [newAppId, setNewAppId] = useState<string | null>(null);
+  // The finish card must never claim success for a failed build
+  // (2026-08-16 audit: a failed build rendered a green check + "Ready to
+  // use" + "Open the agent").
+  const [buildFailed, setBuildFailed] = useState(false);
   // The app currently building/refining, used to stream its live activity
   // (thinking + tool calls) by APP ID alone via <AppActivity/>. Known
   // immediately for a refine; resolved from the pre-scaffolded app for a new
@@ -268,6 +269,7 @@ export function AppBuilderChat({
     setNewAppId(candidate.id);
     setPhase("done");
     const failed = state === "failed";
+    setBuildFailed(failed);
     // First-build ceremony: the BROKER mints the starter routine at
     // registration (durable — this chat used to own the create and lost it
     // whenever it unmounted mid-build, 2026-08-16 QA). The chat only
@@ -296,7 +298,43 @@ export function AppBuilderChat({
             : `“${appName}” is ready. Tell me any change to refine it, or open it.`,
       },
     ]);
-  }, [appsQuery.data, phase, appName, onBuildingApp, demo]);
+    // dataUpdatedAt keeps the effect firing on every poll even when React
+    // Query's structural sharing returns a referentially-identical `data` —
+    // without it the 15s terminal-grace acceptance below could literally
+    // never fire for a build that published between two polls (2026-08-16
+    // audit).
+  }, [
+    appsQuery.data,
+    appsQuery.dataUpdatedAt,
+    phase,
+    appName,
+    onBuildingApp,
+    demo,
+  ]);
+
+  // Refine honesty backstop: the edit path completes only on a version bump,
+  // so a failed edit turn (blocked task, no bump) used to spin forever with a
+  // disabled composer (2026-08-16 audit). After 30 minutes with no bump, stop
+  // waiting and say so — the operator can re-send or check the agent.
+  useEffect(() => {
+    if (!(phase === "building" && activeRefineRef.current)) return;
+    const timer = window.setTimeout(
+      () => {
+        setPhase("done");
+        setBuildFailed(true);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-${seqRef.current++}`,
+            from: "ai",
+            body: `That update is taking far longer than it should — it may not have gone through. Tell me the change again, or check “${appName}” directly.`,
+          },
+        ]);
+      },
+      30 * 60 * 1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [phase, appName]);
 
   const lastMsgId = messages[messages.length - 1]?.id;
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on each new message
@@ -671,7 +709,7 @@ export function AppBuilderChat({
                         // nothing typed is lost while they go connect.
                         setDraft(gate.description);
                         say(
-                          "Holding off. Connect it from any agent's Integrations tab (connections are shared across the office) — your description is still in the composer for when you are back.",
+                          "Holding off. Connect it from any agent's Integrations tab (connections are shared across your workspace) — your description is still in the composer for when you are back.",
                         );
                       }}
                     >
@@ -703,29 +741,53 @@ export function AppBuilderChat({
           ) : null}
 
           {phase === "done" && newAppId ? (
-            <div className="opr-finish-card">
+            <div
+              className={`opr-finish-card${buildFailed ? " is-failed" : ""}`}
+            >
               <div className="opr-finish-row">
                 <span className="opr-finish-glyph" aria-hidden={true}>
-                  <Check size={15} strokeWidth={2.2} />
+                  {buildFailed ? (
+                    <X size={15} strokeWidth={2.2} />
+                  ) : (
+                    <Check size={15} strokeWidth={2.2} />
+                  )}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="opr-finish-name">{appName}</div>
                   <div className="opr-finish-sub">
                     <span>
-                      {editApp ? "New version published" : "Ready to use"}
+                      {buildFailed
+                        ? "The build stopped before it finished"
+                        : editApp
+                          ? "New version published"
+                          : "Ready to use"}
                     </span>
                   </div>
                 </div>
               </div>
               <div className="opr-finish-actions">
-                <button
-                  type="button"
-                  className="opr-btn opr-btn-primary opr-btn-sm"
-                  onClick={() => onFinish(newAppId)}
-                >
-                  Open the agent
-                  <ArrowRight size={13} strokeWidth={1.9} aria-hidden={true} />
-                </button>
+                {buildFailed ? (
+                  <button
+                    type="button"
+                    className="opr-btn opr-btn-ghost opr-btn-sm"
+                    onClick={() => onFinish(newAppId)}
+                  >
+                    Open it anyway
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="opr-btn opr-btn-primary opr-btn-sm"
+                    onClick={() => onFinish(newAppId)}
+                  >
+                    Open the agent
+                    <ArrowRight
+                      size={13}
+                      strokeWidth={1.9}
+                      aria-hidden={true}
+                    />
+                  </button>
+                )}
               </div>
             </div>
           ) : null}

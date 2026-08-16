@@ -5003,3 +5003,11 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Failed finish card: honest red framing, no green success glyph. */
+.opr-finish-card.is-failed {
+  border-color: color-mix(in srgb, var(--t-red, #e5534b) 45%, var(--t-line));
+}
+.opr-finish-card.is-failed .opr-finish-glyph {
+  color: var(--t-red, #e5534b);
+}

@@ -3,6 +3,7 @@ package onboarding
 import (
 	"context"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -227,21 +228,21 @@ func probeCodexSession(ctx context.Context, path string) bool {
 // any provider has stored credentials. The CLI prints a banner with a
 // count like "0 credentials" / "2 credentials". Zero-count or parse
 // failure → not signed in.
+// opencodeCredentialCount pulls the credential count out of `opencode
+// providers list` output ("3 credentials" / "1 credential").
+var opencodeCredentialCount = regexp.MustCompile(`(?:^|\s)(\d+)\s+credentials?\b`)
+
 func probeOpencodeSession(ctx context.Context, path string) bool {
 	out, err := exec.CommandContext(ctx, path, "providers", "list").CombinedOutput()
 	if err != nil {
 		return false
 	}
 	text := strings.ToLower(string(out))
-	if strings.Contains(text, "0 credentials") {
-		return false
-	}
-	// Match "<N> credential" where N >= 1. The trailing space (or "s")
-	// disambiguates from "0 credentials".
-	for _, n := range []string{"1 credential", "2 credential", "3 credential", "4 credential", "5 credential", "6 credential", "7 credential", "8 credential", "9 credential"} {
-		if strings.Contains(text, n) {
-			return true
-		}
+	// Word-boundary match: the old substring check read "10 credentials" as
+	// "0 credentials" and reported a configured user as signed OUT
+	// (2026-08-16 first-run audit).
+	if m := opencodeCredentialCount.FindStringSubmatch(text); m != nil {
+		return m[1] != "0"
 	}
 	// Fallback: any provider name in the rendered table implies a session.
 	// Suppress noise from the "Credentials ~/.local/share/..." header by
