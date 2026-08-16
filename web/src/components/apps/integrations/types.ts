@@ -1,9 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 
-import type {
-  ConfigSnapshot,
-  LocalProviderStatus,
-} from "../../../api/client";
+import type { ConfigSnapshot, LocalProviderStatus } from "../../../api/client";
 
 // IntegrationCategory groups cards by the role they play in the team. The
 // app renders each category as a labelled section. Add a new category only

@@ -1,9 +1,5 @@
 import { HermesDetail, hermesStatus } from "./HermesCard";
-import {
-  HermesLogo,
-  OpenClawLogo,
-  TelegramLogo,
-} from "./IntegrationLogos";
+import { HermesLogo, OpenClawLogo, TelegramLogo } from "./IntegrationLogos";
 import { OpenClawDetail, openClawStatus } from "./OpenClawCard";
 import { TelegramDetail, telegramStatus } from "./TelegramCard";
 import type { IntegrationContext, IntegrationDescriptor } from "./types";

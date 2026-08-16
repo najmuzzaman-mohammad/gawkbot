@@ -97,3 +97,57 @@ func TestMintStarterRoutineForFirstBuild(t *testing.T) {
 		t.Errorf("expected no additional routines, got %d -> %d", before, len(b.scheduler))
 	}
 }
+
+// 2026-08-16 VP-RevOps QA regression: a second build whose derived name
+// matches a PUBLISHED agent must get a fresh app id — the old identity
+// (name, "general") briefed the new build to republish over the live agent.
+func TestPrescaffoldNeverReusesAPublishedAgentsID(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	b := newTestBroker(t)
+
+	first := b.maybePrescaffoldAppForCreate("create", "general", TaskPostRequest{
+		Title:     "Build app: Pipeline Agent",
+		Owner:     appBuilderSlug,
+		CreatedBy: "human",
+		Details:   "What it should do:\nMonday brief.",
+	})
+	firstID, _ := parseAppBuilderTaskAppID(first.Details)
+	if firstID == "" {
+		t.Fatalf("expected a scaffolded app id in the first brief, got %q", first.Details)
+	}
+
+	// Publish the first app (register flips it ready).
+	if _, err := b.appStore().Save(CustomAppWriteRequest{
+		ID:    firstID,
+		Name:  "Pipeline Agent",
+		HTML:  "<html><body>brief</body></html>",
+		Actor: appBuilderSlug,
+	}, time.Now()); err != nil {
+		t.Fatalf("publish first app: %v", err)
+	}
+
+	second := b.maybePrescaffoldAppForCreate("create", "general", TaskPostRequest{
+		Title:     "Build app: Pipeline Agent",
+		Owner:     appBuilderSlug,
+		CreatedBy: "human",
+		Details:   "What it should do:\nDiscount approvals.",
+	})
+	secondID, _ := parseAppBuilderTaskAppID(second.Details)
+	if secondID == "" {
+		t.Fatalf("expected a scaffolded app id in the second brief, got %q", second.Details)
+	}
+	if secondID == firstID {
+		t.Fatalf("second build was handed the PUBLISHED agent's id %s — republish hijack", firstID)
+	}
+
+	// A retry of an UNPUBLISHED build keeps continuing its own scaffold.
+	third := b.maybePrescaffoldAppForCreate("create", "general", TaskPostRequest{
+		Title:     "Build app: Pipeline Agent",
+		Owner:     appBuilderSlug,
+		CreatedBy: "human",
+		Details:   "What it should do:\nAnother take.",
+	})
+	if got, _ := parseAppBuilderTaskAppID(third.Details); got != secondID {
+		t.Fatalf("expected the building leftover %s to be resumed, got %s", secondID, got)
+	}
+}

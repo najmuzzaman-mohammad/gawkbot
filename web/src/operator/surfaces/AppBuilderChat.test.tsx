@@ -21,6 +21,7 @@ const buildMutateMock = vi.fn(
 vi.mock("../apps/useOperatorApps", () => ({
   useBuildApp: () => ({ mutateAsync: buildMutateMock }),
   deriveAppName: () => "Pipeline Agent",
+  uniquifyAppName: (name: string) => name,
   resolveNewAppId: (before: ReadonlySet<string>, apps: { id: string }[]) =>
     apps.find((a) => !before.has(a.id))?.id ?? null,
   appBuildState: (app: { status?: string }) =>

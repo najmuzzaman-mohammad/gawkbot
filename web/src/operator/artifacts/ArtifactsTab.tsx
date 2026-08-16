@@ -24,7 +24,7 @@ export function ArtifactsTab({ agentName, artifacts }: ArtifactsTabProps) {
     return (
       <div className="opr-empty-hint">
         Everything {agentName} produces collects here — apps, PDFs, pages, docs.
-        Nothing yet.
+        The out-tray stays empty until the first run.
       </div>
     );
   }

@@ -7,7 +7,8 @@
 // their first agent being assembled. localStorage (not the app store) because
 // completing onboarding remounts the tree.
 
-export const OPERATOR_FIRST_WORKFLOW_SEED_KEY = "wuphf.operator.firstWorkflowSeed";
+export const OPERATOR_FIRST_WORKFLOW_SEED_KEY =
+  "wuphf.operator.firstWorkflowSeed";
 
 /** Read + clear the pending seed. Returns null when there is none. */
 export function consumeFirstWorkflowSeed(): string | null {

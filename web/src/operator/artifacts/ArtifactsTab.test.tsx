@@ -116,6 +116,8 @@ describe("ArtifactsTab", () => {
     const { getByText } = render(
       <ArtifactsTab agentName="Pipeline Agent" artifacts={[]} />,
     );
-    expect(getByText(/Nothing yet/)).toBeTruthy();
+    expect(
+      getByText(/The out-tray stays empty until the first run/),
+    ).toBeTruthy();
   });
 });

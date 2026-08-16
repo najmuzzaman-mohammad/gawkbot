@@ -76,7 +76,10 @@ export function OperatorSidebar({
         <PixelAvatar slug={a.id} size={18} className="opr-agent-rail-avatar" />
         <span className="opr-agent-rail-name">{a.name}</span>
         {a.building ? (
-          <span className="opr-led opr-led-draft" title="Building" />
+          <span
+            className="opr-led opr-led-building"
+            title="Building. I keep working while you look around"
+          />
         ) : null}
       </button>
     );
@@ -174,7 +177,7 @@ export function OperatorSidebar({
           <div className="opr-user-name">
             {officeName?.trim() || "Your office"}
           </div>
-          <div className="opr-user-role">your workspace</div>
+          <div className="opr-user-role">regional headquarters</div>
         </div>
       </div>
     </aside>

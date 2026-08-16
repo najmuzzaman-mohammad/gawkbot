@@ -82,7 +82,10 @@ export function ActionGrantsPanel() {
   const revokeMutation = useMutation({
     mutationFn: (id: string) => revokeActionGrant(id),
     onSuccess: () => {
-      showNotice("Grant revoked. That action will ask again next time.", "info");
+      showNotice(
+        "Grant revoked. That action will ask again next time.",
+        "info",
+      );
       void queryClient.invalidateQueries({ queryKey: ["action-grants"] });
     },
     onError: (err: unknown) => {
@@ -97,12 +100,15 @@ export function ActionGrantsPanel() {
   if (grantsQuery.isLoading || grants.length === 0) return null;
 
   return (
-    <section className="op-category grants-panel" aria-label="Always-allowed actions">
+    <section
+      className="op-category grants-panel"
+      aria-label="Always-allowed actions"
+    >
       <div className="grants-panel-head">
         <h3 className="grants-panel-title">Always-allowed actions</h3>
         <p className="grants-panel-sub">
-          Actions approved to run without asking again. Revoke any to restore the
-          approval prompt.
+          Actions approved to run without asking again. Revoke any to restore
+          the approval prompt.
         </p>
       </div>
       <ul className="grant-list">

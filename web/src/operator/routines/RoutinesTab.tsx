@@ -12,7 +12,13 @@
 // seeded state so the FE keeps working offline.
 // See docs/specs/operator-agent-routines.md.
 
-import { useEffect, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   CalendarClock,
   CheckCircle2,
@@ -65,6 +71,117 @@ function firstLine(text: string): string {
   );
 }
 
+// A live "Run now" watch: which routine queued, the client clock at queue time
+// (runs started after it are the queued one), and the phase the header label
+// renders. Cleared when the watched run reaches a terminal status.
+interface RunWatch {
+  id: string;
+  queuedAt: number;
+  phase: "queued" | "running" | "overtime";
+}
+
+// Watch cadence: the broker watchdog fires within one tick (~20s), so a 2s
+// poll bounded at 60s sees most runs start and land.
+const RUN_WATCH_INTERVAL_MS = 2_000;
+const RUN_WATCH_CAP_MS = 60_000;
+
+// Header labels per watch phase. Wayfinding, not decoration: "queued" points
+// at where the outcome lands, and past the cap the label degrades honestly
+// instead of freezing on "running now…".
+const RUN_WATCH_LABELS: Record<RunWatch["phase"], string> = {
+  queued: "queued — watch the play-by-play in its chat",
+  running: "running now…",
+  overtime: "running — open its chat to watch",
+};
+
+// The queued run's fate in a run listing: `landed` once a run started after
+// queue time reached a terminal status; `running` while one is still pending.
+function watchedOutcome(
+  runs: WireRoutineRun[],
+  queuedAt: number,
+): { landed: WireRoutineRun | undefined; running: boolean } {
+  const ours = runs.filter((run) => Date.parse(run.started_at) > queuedAt);
+  return {
+    landed: ours.find((run) => runStatusClass(run.status) !== "is-pending"),
+    running: ours.length > 0,
+  };
+}
+
+interface StartRunWatchOptions {
+  id: string;
+  queuedAt: number;
+  /** Owns the active interval; the watch clears it when it ends. */
+  pollRef: { current: ReturnType<typeof setInterval> | null };
+  setRunWatch: Dispatch<SetStateAction<RunWatch | null>>;
+  setRunsById: Dispatch<
+    SetStateAction<Record<string, WireRoutineRun[] | null>>
+  >;
+  /** Land the run on the routine row (lastRun := the run's started_at). */
+  landRun: (id: string, startedAt: string) => void;
+}
+
+// Watch a queued run land: poll the run ring, mirror it into the opened Recent
+// runs list, flip the header "queued" → "running" once the queued run starts,
+// and stop at a terminal status — lastRun then carries the run's real stamp
+// through the normal formatLastRun path. Bounded: past the cap a still-running
+// run points at the chat instead of pretending, and an unreachable broker
+// stops the poll without inventing progress.
+function startRunWatch(opts: StartRunWatchOptions): void {
+  const { id, queuedAt, pollRef, setRunWatch, setRunsById, landRun } = opts;
+  const watchedFrom = Date.now();
+  const stop = (handle: ReturnType<typeof setInterval>) => {
+    clearInterval(handle);
+    if (pollRef.current === handle) pollRef.current = null;
+  };
+  const timer = setInterval(() => {
+    if (Date.now() - watchedFrom >= RUN_WATCH_CAP_MS) {
+      stop(timer);
+      setRunWatch((prev) =>
+        prev && prev.id === id && prev.phase === "running"
+          ? { ...prev, phase: "overtime" }
+          : prev,
+      );
+      return;
+    }
+    void tryListRoutineRuns(id).then((runs) => {
+      if (pollRef.current !== timer) return; // superseded or stopped
+      if (!runs) {
+        // Offline mid-watch: settle the opened list on the honest empty
+        // note and give up quietly.
+        setRunsById((prev) => ({ ...prev, [id]: null }));
+        stop(timer);
+        return;
+      }
+      setRunsById((prev) => ({ ...prev, [id]: runs }));
+      const { landed, running } = watchedOutcome(runs, queuedAt);
+      if (landed) {
+        stop(timer);
+        landRun(id, landed.started_at);
+        setRunWatch((prev) => (prev && prev.id === id ? null : prev));
+        return;
+      }
+      if (running) {
+        setRunWatch((prev) =>
+          prev && prev.id === id && prev.phase === "queued"
+            ? { ...prev, phase: "running" }
+            : prev,
+        );
+      }
+    });
+  }, RUN_WATCH_INTERVAL_MS);
+  pollRef.current = timer;
+}
+
+// The row's status line: an active watch wins; otherwise the honest last-ran
+// stamp (or paused).
+function headerLabel(r: Routine, runWatch: RunWatch | null): string {
+  if (runWatch && runWatch.id === r.id) {
+    return RUN_WATCH_LABELS[runWatch.phase];
+  }
+  if (!r.enabled) return "paused";
+  return r.lastRun ? `last ran ${formatLastRun(r.lastRun)}` : "not run yet";
+}
+
 interface RoutinesTabProps {
   agentName: string;
   /** Real agent id (app_…). When set, routines live in the broker's scheduler
@@ -107,9 +224,14 @@ export function RoutinesTab({
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [schedule, setSchedule] = useState(SCHEDULE_PRESETS[0].expr);
-  // Run-now feedback: which routine is mid-queue, and which just queued/ran.
+  // Run-now feedback: which routine is mid-queue, plus the watch that follows
+  // a successful live queue (see startRunWatch) — one phase state drives the
+  // header label and clears when the watched run lands.
   const [runningId, setRunningId] = useState<string | null>(null);
-  const [ranJustNowId, setRanJustNowId] = useState<string | null>(null);
+  const [runWatch, setRunWatch] = useState<RunWatch | null>(null);
+  // The active watch poll — one at a time; dies on unmount and when a new
+  // Run now supersedes it.
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Recent-runs disclosure: which routine cards are expanded, and their loaded
   // run history (undefined = not fetched yet, null = fetched but unavailable).
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set());
@@ -141,6 +263,20 @@ export function RoutinesTab({
   function patch(id: string, up: (r: Routine) => Routine) {
     setRoutines((prev) => prev.map((r) => (r.id === id ? up(r) : r)));
   }
+
+  function stopWatchPoll() {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }
+
+  // The watch poll must not outlive the component.
+  useEffect(() => {
+    return () => {
+      if (pollRef.current !== null) clearInterval(pollRef.current);
+    };
+  }, []);
 
   // Expand/collapse a routine's run history; load it lazily on first expand
   // (the broker keeps a per-slug run ring). Offline/mock agents just resolve
@@ -209,29 +345,42 @@ export function RoutinesTab({
 
   // Run now — queues a fire at the broker; the watchdog runs the prompt
   // through the agent (gated server-side) within one tick. The outcome lands
-  // in the routine's chat session + run history, not in this response.
+  // in the routine's chat session + run history — so a successful queue opens
+  // the Recent runs receipts and watches them until the run lands.
   async function runNow(r: Routine) {
     if (runningId) return;
     setRunningId(r.id);
-    setRanJustNowId(null);
+    stopWatchPoll();
+    setRunWatch(null);
     try {
       if (live && realId) {
+        const queuedAt = Date.now();
         const queued = await tryRunRoutineNow(r.id);
         if (queued) {
           setNotice(null);
-          setRanJustNowId(r.id);
+          setRunWatch({ id: r.id, queuedAt, phase: "queued" });
+          setExpandedRuns((prev) => new Set(prev).add(r.id));
+          startRunWatch({
+            id: r.id,
+            queuedAt,
+            pollRef,
+            setRunWatch,
+            setRunsById,
+            landRun: (rid, startedAt) =>
+              patch(rid, (x) => ({ ...x, lastRun: startedAt })),
+          });
         } else {
           // The queue call failed: nothing will run — do not fabricate
-          // "ran just now".
+          // progress.
           setNotice(
             `Could not queue “${r.name}” — the workspace may be offline. Try again.`,
           );
         }
         return;
       }
-      // Mock agent: record the run locally so the row reflects it.
+      // Mock agent: record the run locally so the row reflects it ("last ran
+      // just now" through the normal lastRun path).
       patch(r.id, (x) => ({ ...x, lastRun: "just now" }));
-      setRanJustNowId(r.id);
     } finally {
       setRunningId(null);
     }
@@ -292,118 +441,31 @@ export function RoutinesTab({
         </p>
       ) : routines.length === 0 ? (
         <p className="opr-scoped-note">
-          No routines yet. Create the first one below — a good starter is a
-          Monday morning recap of the week ahead.
+          No routines yet. A good first one is a Monday 9:00 recap of the week
+          ahead — the status meeting that no longer needs the meeting. Create it
+          below.
         </p>
       ) : null}
 
       <div className="opr-routine-list">
         {routines.map((r) => (
-          <div
+          <RoutineCard
             key={r.id}
-            className={`opr-routine${r.enabled ? "" : " is-disabled"}`}
-          >
-            <div className="opr-routine-head">
-              <span className="opr-routine-name">{r.name}</span>
-              <span className="opr-routine-version">
-                v{r.version}
-                {r.draft ? " · draft" : ""}
-              </span>
-              <span className="opr-routine-schedule">
-                <CalendarClock size={11} strokeWidth={2} aria-hidden={true} />
-                {humanSchedule(r.schedule)}
-              </span>
-              <span className="opr-routine-lastrun">
-                {ranJustNowId === r.id
-                  ? live
-                    ? "queued — starting in a moment"
-                    : "ran just now"
-                  : r.enabled
-                    ? r.lastRun
-                      ? `last ran ${formatLastRun(r.lastRun)}`
-                      : "not run yet"
-                    : "paused"}
-              </span>
-            </div>
-
-            <textarea
-              className="opr-routine-prompt"
-              aria-label={`Prompt for ${r.name}`}
-              value={r.prompt}
-              rows={2}
-              onChange={(e) =>
-                patch(r.id, (x) => ({
-                  ...x,
-                  prompt: e.target.value,
-                  draft: true,
-                }))
-              }
-            />
-
-            <div className="opr-routine-actions">
-              <button
-                type="button"
-                className="opr-btn opr-btn-sm"
-                onClick={() => toggleEnabled(r)}
-              >
-                <Power size={12} strokeWidth={2} aria-hidden={true} />
-                {r.enabled ? "Disable" : "Enable"}
-              </button>
-              <button
-                type="button"
-                className="opr-btn opr-btn-primary opr-btn-sm"
-                disabled={!r.draft}
-                title={
-                  r.draft
-                    ? "Freeze the edited prompt as the next version"
-                    : "No changes since the last publish"
-                }
-                onClick={() => publish(r)}
-              >
-                <CheckCircle2 size={12} strokeWidth={2} aria-hidden={true} />
-                Publish new version
-              </button>
-              <button
-                type="button"
-                className="opr-btn opr-btn-sm"
-                disabled={runningId !== null}
-                title="Run this routine's prompt through the agent now"
-                onClick={() => void runNow(r)}
-              >
-                <Play size={12} strokeWidth={2} aria-hidden={true} />
-                {runningId === r.id ? "Queueing…" : "Run now"}
-              </button>
-              <button
-                type="button"
-                className="opr-btn opr-btn-ghost opr-btn-sm"
-                onClick={() => onOpenSession?.(routineSessionKey(r), r.name)}
-              >
-                <MessageSquareText
-                  size={12}
-                  strokeWidth={2}
-                  aria-hidden={true}
-                />
-                Open its chat
-              </button>
-            </div>
-
-            <div className="opr-routine-runs">
-              <button
-                type="button"
-                className={`opr-routine-runs-toggle${
-                  expandedRuns.has(r.id) ? " is-open" : ""
-                }`}
-                aria-expanded={expandedRuns.has(r.id)}
-                onClick={() => toggleRuns(r)}
-              >
-                <ChevronRight size={11} strokeWidth={2} aria-hidden={true} />
-                Recent runs
-              </button>
-              {expandedRuns.has(r.id) ? (
-                <RecentRuns runs={runsById[r.id]} />
-              ) : null}
-            </div>
-          </div>
+            r={r}
+            runWatch={runWatch}
+            queueing={runningId === r.id}
+            runDisabled={runningId !== null}
+            expanded={expandedRuns.has(r.id)}
+            runs={runsById[r.id]}
+            onToggleEnabled={() => toggleEnabled(r)}
+            onPublish={() => publish(r)}
+            onRunNow={() => void runNow(r)}
+            onToggleRuns={() => toggleRuns(r)}
+            onEditPrompt={(value) =>
+              patch(r.id, (x) => ({ ...x, prompt: value, draft: true }))
+            }
+            onOpenChat={() => onOpenSession?.(routineSessionKey(r), r.name)}
+          />
         ))}
       </div>
 
@@ -458,32 +520,172 @@ export function RoutinesTab({
   );
 }
 
+// One routine card: name/version/schedule/status header, the editable prompt,
+// the action row, and the Recent runs disclosure. While a Run now watch is
+// live the Open its chat button swaps ghost for primary — the play-by-play is
+// one click away.
+function RoutineCard({
+  r,
+  runWatch,
+  queueing,
+  runDisabled,
+  expanded,
+  runs,
+  onToggleEnabled,
+  onPublish,
+  onRunNow,
+  onToggleRuns,
+  onEditPrompt,
+  onOpenChat,
+}: {
+  r: Routine;
+  runWatch: RunWatch | null;
+  queueing: boolean;
+  runDisabled: boolean;
+  expanded: boolean;
+  runs: WireRoutineRun[] | null | undefined;
+  onToggleEnabled: () => void;
+  onPublish: () => void;
+  onRunNow: () => void;
+  onToggleRuns: () => void;
+  onEditPrompt: (value: string) => void;
+  onOpenChat: () => void;
+}) {
+  const watching = runWatch !== null && runWatch.id === r.id;
+  return (
+    <div className={`opr-routine${r.enabled ? "" : " is-disabled"}`}>
+      <div className="opr-routine-head">
+        <span className="opr-routine-name">{r.name}</span>
+        <span className="opr-routine-version">
+          v{r.version}
+          {r.draft ? " · draft" : ""}
+        </span>
+        <span className="opr-routine-schedule">
+          <CalendarClock size={11} strokeWidth={2} aria-hidden={true} />
+          {humanSchedule(r.schedule)}
+        </span>
+        <span className="opr-routine-lastrun">{headerLabel(r, runWatch)}</span>
+      </div>
+
+      <textarea
+        className="opr-routine-prompt"
+        aria-label={`Prompt for ${r.name}`}
+        value={r.prompt}
+        rows={2}
+        onChange={(e) => onEditPrompt(e.target.value)}
+      />
+
+      <div className="opr-routine-actions">
+        <button
+          type="button"
+          className="opr-btn opr-btn-sm"
+          onClick={onToggleEnabled}
+        >
+          <Power size={12} strokeWidth={2} aria-hidden={true} />
+          {r.enabled ? "Disable" : "Enable"}
+        </button>
+        <button
+          type="button"
+          className="opr-btn opr-btn-primary opr-btn-sm"
+          disabled={!r.draft}
+          title={
+            r.draft
+              ? "Freeze the edited prompt as the next version"
+              : "No changes since the last publish"
+          }
+          onClick={onPublish}
+        >
+          <CheckCircle2 size={12} strokeWidth={2} aria-hidden={true} />
+          Publish new version
+        </button>
+        <button
+          type="button"
+          className="opr-btn opr-btn-sm"
+          disabled={runDisabled}
+          title="Run this routine's prompt through the agent now"
+          onClick={onRunNow}
+        >
+          <Play size={12} strokeWidth={2} aria-hidden={true} />
+          {queueing ? "Queueing…" : "Run now"}
+        </button>
+        <button
+          type="button"
+          className={`opr-btn ${
+            watching ? "opr-btn-primary" : "opr-btn-ghost"
+          } opr-btn-sm`}
+          onClick={onOpenChat}
+        >
+          <MessageSquareText size={12} strokeWidth={2} aria-hidden={true} />
+          Open its chat
+        </button>
+      </div>
+
+      <div className="opr-routine-runs">
+        <button
+          type="button"
+          className={`opr-routine-runs-toggle${expanded ? " is-open" : ""}`}
+          aria-expanded={expanded}
+          onClick={onToggleRuns}
+        >
+          <ChevronRight size={11} strokeWidth={2} aria-hidden={true} />
+          Recent runs
+        </button>
+        {expanded ? (
+          <RecentRuns
+            runs={runs}
+            watchFrom={watching && runWatch ? runWatch.queuedAt : undefined}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 // The routine's recent runs from the broker's per-slug run ring: status dot,
 // when it ran (humanized), and the first line of its outcome. `undefined` while
-// loading; `null`/empty shows the honest empty note.
-function RecentRuns({ runs }: { runs: WireRoutineRun[] | null | undefined }) {
+// loading; `null`/empty shows the honest empty note. During a Run now watch
+// the queued run (started after `watchFrom`, still pending) blinks with the
+// existing live LED class.
+function RecentRuns({
+  runs,
+  watchFrom,
+}: {
+  runs: WireRoutineRun[] | null | undefined;
+  watchFrom?: number;
+}) {
   if (runs === undefined) {
-    return <p className="opr-scoped-note">Loading recent runs…</p>;
+    return (
+      <div role="status" aria-label="Loading recent runs">
+        <div className="opr-skeleton opr-skel-row" />
+      </div>
+    );
   }
   if (!runs || runs.length === 0) {
     return <p className="opr-scoped-note">No runs recorded yet.</p>;
   }
   return (
     <ul className="opr-routine-runs-list">
-      {runs.slice(0, 5).map((run, i) => (
-        <li className="opr-routine-run" key={`${run.started_at}-${i}`}>
-          <span
-            className={`opr-run-led ${runStatusClass(run.status)}`}
-            aria-hidden={true}
-          />
-          <span className="opr-routine-run-when">
-            {formatStamp(run.started_at)}
-          </span>
-          <span className="opr-routine-run-summary">
-            {firstLine(run.output_summary || run.message || "") || run.status}
-          </span>
-        </li>
-      ))}
+      {runs.slice(0, 5).map((run, i) => {
+        const status = runStatusClass(run.status);
+        const isLive =
+          watchFrom !== undefined &&
+          status === "is-pending" &&
+          Date.parse(run.started_at) > watchFrom;
+        return (
+          <li className="opr-routine-run" key={`${run.started_at}-${i}`}>
+            <span
+              className={`opr-run-led ${status}${isLive ? " opr-led-live" : ""}`}
+              aria-hidden={true}
+            />
+            <span className="opr-routine-run-when">
+              {formatStamp(run.started_at)}
+            </span>
+            <span className="opr-routine-run-summary">
+              {firstLine(run.output_summary || run.message || "") || run.status}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

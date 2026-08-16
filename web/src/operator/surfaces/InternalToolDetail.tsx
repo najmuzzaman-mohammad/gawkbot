@@ -199,7 +199,11 @@ export function InternalToolDetail({
             tabs={TABS}
             active={tab}
             onSelect={setTab}
-            hint={tab === "workflow" ? "same steps every run · every run logged" : undefined}
+            hint={
+              tab === "workflow"
+                ? "same steps every run · every run logged"
+                : undefined
+            }
           />
 
           <div

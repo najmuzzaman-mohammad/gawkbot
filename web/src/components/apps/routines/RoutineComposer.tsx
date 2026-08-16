@@ -139,8 +139,8 @@ export function RoutineComposer() {
             fontSize: "var(--text-sm)",
           }}
         >
-          Scheduled tasks fire on a schedule and run as a specific agent. Webhook and
-          context-change triggers are coming soon.
+          Scheduled tasks fire on a schedule and run as a specific agent.
+          Webhook and context-change triggers are coming soon.
         </p>
       </header>
 
@@ -201,7 +201,8 @@ export function RoutineComposer() {
                 marginTop: 4,
               }}
             >
-              No agents available. Add a teammate before creating a scheduled task.
+              No agents available. Add a teammate before creating a scheduled
+              task.
             </span>
           )}
         </FormField>

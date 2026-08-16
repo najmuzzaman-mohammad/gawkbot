@@ -17,10 +17,10 @@ export function App() {
     <Center mih="100vh" p="xl">
       <Stack align="center" gap="sm" maw={380}>
         <Loader size="sm" />
-        <Title order={3}>Building your app…</Title>
+        <Title order={3}>Building your agent…</Title>
         <Text c="dimmed" size="sm" ta="center">
-          Your AI is writing this tool now. It will take shape right here, live,
-          as each part comes together.
+          Your AI is writing it now. The page takes shape right here, live, as
+          each part comes together.
         </Text>
       </Stack>
     </Center>

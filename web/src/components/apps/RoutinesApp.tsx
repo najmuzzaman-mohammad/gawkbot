@@ -337,9 +337,9 @@ function EmptyState({ hiddenSystemCount, onShowSystem }: EmptyStateProps) {
           </>
         ) : (
           <>
-            Scheduled tasks run on a schedule, assigned to an agent. They appear here
-            once an agent registers a cron job, a workflow gets a schedule, or a
-            system loop publishes a heartbeat.
+            Scheduled tasks run on a schedule, assigned to an agent. They appear
+            here once an agent registers a cron job, a workflow gets a schedule,
+            or a system loop publishes a heartbeat.
           </>
         )}
       </div>

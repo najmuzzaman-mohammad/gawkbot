@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { get } from "../../api/client";
 import { EmptyState } from "../components/EmptyState";
+import { Eyebrow } from "../components/primitives";
 
 interface AppDataTabProps {
   appId: string;
@@ -83,14 +84,13 @@ export function AppDataTab({ appId }: AppDataTabProps) {
   });
 
   if (dbQuery.isLoading) {
+    // Table-shaped skeleton, not a 320px void: the wait previews the shape
+    // of what loads (2026-08-16 delight audit).
     return (
-      <div className="opr-app-building" role="status">
-        <span className="opr-work-dots" aria-hidden={true}>
-          <span />
-          <span />
-          <span />
-        </span>
-        <div className="opr-empty-title">Reading this app’s data…</div>
+      <div className="opr-tool-scoped" role="status" aria-label="Loading data">
+        <div className="opr-skeleton opr-skel-row" />
+        <div className="opr-skeleton opr-skel-row" style={{ marginTop: 8 }} />
+        <div className="opr-skeleton opr-skel-row" style={{ marginTop: 8 }} />
       </div>
     );
   }
@@ -112,13 +112,21 @@ export function AppDataTab({ appId }: AppDataTabProps) {
         glyph="▦"
         portraitSlug={appId}
         title="No data yet"
-        hint="This agent has not written to its database yet. As it derives and saves its data model — the tables that power it — they appear here."
+        hint="Nothing saved yet. After its first run, everything this agent records lands here as tables you own: browse every row, export any table as CSV or JSON. No BI ticket required."
       />
     );
   }
 
   return (
     <div className="opr-tool-scoped opr-app-data">
+      <div className="opr-data-intro">
+        <Eyebrow>This agent’s database</Eyebrow>
+        <p className="opr-scoped-note">
+          The tables this agent derived and saved, read straight from its own
+          database. Nothing reconstructed. Every table exports as CSV or JSON:
+          your data, no export ticket.
+        </p>
+      </div>
       {tables.map((t, i) => (
         // Name+index key: parseTables falls back to "Table" for a half-written
         // table, so bare names can collide and misapply reconciliation.

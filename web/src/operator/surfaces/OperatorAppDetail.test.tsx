@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render as rtlRender } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { CustomAppDetail } from "../../api/apps";
@@ -58,7 +58,10 @@ vi.mock("./ToolIntegrations", () => ({
 }));
 vi.mock("./AppToolsChat", () => ({
   AppToolsChat: ({ appName }: { appName: string }) => (
-    <div data-testid="ask-ai-chat">tools:{appName}</div>
+    <div data-testid="ask-ai-chat">
+      tools:{appName}
+      <input data-testid="chat-input" />
+    </div>
   ),
 }));
 
@@ -234,6 +237,126 @@ describe("OperatorAppDetail", () => {
     expect(getByTestId("ask-ai-chat").textContent).toContain(
       "tools:Open Tasks",
     );
+  });
+
+  it("moves focus into the Ask Agent panel on open and closes it on Escape", () => {
+    useOperatorAppMock.mockReturnValue({
+      data: detail({ status: "ready" }, "<html>hi</html>"),
+      isError: false,
+    });
+    const { container, getByRole, queryByTestId } = render(
+      <OperatorAppDetail appId="app_abc" onBack={() => {}} />,
+    );
+    fireEvent.click(
+      getByRole("button", { name: /ask agent about open tasks/i }),
+    );
+    // The panel takes focus on open (overlay keyboard grammar, as CallModal).
+    const panel = container.querySelector(".opr-ask-panel");
+    expect(panel).toBeTruthy();
+    expect(document.activeElement).toBe(panel);
+    // Escape anywhere outside the composer closes the drawer.
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(queryByTestId("ask-ai-chat")).toBeNull();
+    // The floating bubble is back.
+    expect(
+      getByRole("button", { name: /ask agent about open tasks/i }),
+    ).toBeTruthy();
+  });
+
+  it("ignores Escape pressed inside the chat composer (draft protection)", () => {
+    useOperatorAppMock.mockReturnValue({
+      data: detail({ status: "ready" }, "<html>hi</html>"),
+      isError: false,
+    });
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <OperatorAppDetail appId="app_abc" onBack={() => {}} />,
+    );
+    fireEvent.click(
+      getByRole("button", { name: /ask agent about open tasks/i }),
+    );
+    // Escape from the composer input (e.g. cancelling IME composition or an
+    // autocomplete) must NOT unmount the chat and discard the draft.
+    fireEvent.keyDown(getByTestId("chat-input"), { key: "Escape" });
+    expect(queryByTestId("ask-ai-chat")).not.toBeNull();
+    // Escape outside the composer still closes.
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(queryByTestId("ask-ai-chat")).toBeNull();
+  });
+});
+
+describe("OperatorAppDetail build walk narration", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  function renderWalk() {
+    useOperatorAppMock.mockReturnValue({
+      data: detail({ status: "ready" }, "<html>hi</html>"),
+      isError: false,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) })),
+    );
+    return render(
+      <OperatorAppDetail appId="app_abc" onBack={() => {}} buildWalk={true} />,
+    );
+  }
+
+  it("captions each walked tab, then falls silent when the walk settles", () => {
+    vi.useFakeTimers();
+    const { getByText, queryByText } = renderWalk();
+    // Before the walk starts: no caption.
+    expect(queryByText(/Its routines/)).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+    expect(
+      getByText("Its routines: the schedule it runs your workflow on."),
+    ).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(2300);
+    });
+    expect(
+      getByText("Its own database. It fills up as it works."),
+    ).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(2300);
+    });
+    expect(
+      getByText("What it learns, written down with citations."),
+    ).toBeTruthy();
+    // The walk settles back on the UI tab and the narration goes away.
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    expect(
+      queryByText(/Its routines|Its own database|What it learns/),
+    ).toBeNull();
+  });
+
+  it("clears the caption the moment the operator clicks a tab themselves", () => {
+    vi.useFakeTimers();
+    const { getByRole, getByText, queryByText } = renderWalk();
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+    expect(
+      getByText("Its routines: the schedule it runs your workflow on."),
+    ).toBeTruthy();
+    // A manual click cancels the walk AND its narration.
+    fireEvent.click(getByRole("tab", { name: "Data" }));
+    expect(
+      queryByText(/Its routines|Its own database|What it learns/),
+    ).toBeNull();
+    // The cancelled timers never resurrect a caption.
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    expect(
+      queryByText(/Its routines|Its own database|What it learns/),
+    ).toBeNull();
   });
 });
 

@@ -85,6 +85,45 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
     );
   });
 
+  it("the first tool ever taught gets the milestone reply; the second does not", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          builtTool("draftFollowup", "Draft a follow-up email"),
+        )
+        .mockResolvedValueOnce(builtTool("weeklyRecap", "Weekly recap")),
+    );
+    // Product-shaped start: agents begin with NO tools.
+    const { getByLabelText, findByText } = render(
+      <ToolsProvider appName="Pipeline" initialTools={[]}>
+        <AppToolsChat appName="Pipeline" />
+      </ToolsProvider>,
+    );
+    const input = getByLabelText(
+      "Describe a task for Nex to build a tool for",
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, {
+      target: { value: "Draft a follow-up email for a stalled deal" },
+    });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(
+      await findByText(/“Draft a follow-up email”, this agent's first tool/),
+    ).toBeTruthy();
+
+    await waitFor(() => expect(input.disabled).toBe(false));
+    fireEvent.change(input, {
+      target: { value: "Recap the pipeline every week" },
+    });
+    fireEvent.keyDown(input, { key: "Enter" });
+    // The second teach is routine: plain reply, no milestone.
+    expect(
+      await findByText(/“Weekly recap”\. It is in your Tools now/),
+    ).toBeTruthy();
+  });
+
   // 2026-08-15 QA regression: a teach that the service could not really author
   // must never mint a tool — not from the offline mock, not from the service's
   // canned stub. The chat says what happened instead.
@@ -331,7 +370,9 @@ describe("AppToolsChat calls tools (slice 5)", () => {
     fireEvent.change(input, { target: { value: "Globex renewal" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect((await findAllByText("drafted the follow-up")).length).toBeGreaterThan(0);
+    expect(
+      (await findAllByText("drafted the follow-up")).length,
+    ).toBeGreaterThan(0);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(body.args).toEqual({ lead: "Globex renewal" });
   });
@@ -357,7 +398,7 @@ describe("AppToolsChat calls tools (slice 5)", () => {
 
     fireEvent.click(await findByText("Not now"));
     expect(
-      await findByText("Okay — I didn't send it. Nothing left this agent."),
+      await findByText("Okay — I did not send it. Nothing left this agent."),
     ).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

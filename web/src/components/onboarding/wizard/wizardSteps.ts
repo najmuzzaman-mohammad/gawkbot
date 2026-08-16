@@ -102,6 +102,7 @@ export const ONBOARDING_FIRST_ISSUE_EXAMPLES: readonly string[] = [
   "Audit our CRM for duplicate accounts, deals missing an owner, and opportunities with no activity in 30 days, then propose a cleanup plan",
   "Chase our unpaid invoices: find anything past its due date, draft a polite reminder for each customer, and flag 30+ days overdue for my review",
   "Screen inbound job applications against our role requirements, keep a shortlist of strong candidates, and draft a friendly note for the rest",
+  "Prep my Monday pipeline review: every deal closing this quarter that has gone quiet for two weeks, plus a one-line ask for each owner",
 ];
 
 /** Back-compat: the canonical example (tests and the tour handoff pin it). */
@@ -266,6 +267,12 @@ export const ONBOARDING_WIZARD_LABELS = {
    * the wizard (no Esc, no skip-all).
    */
   firstIssueSkip: "Skip and look around first",
-  /** Shown while the broker seeds the office after Finish. */
-  seeding: "Setting up your office…",
+  /**
+   * Shown while the broker seeds the office after Finish. Renders as the
+   * primary button label, so it must stay SHORTER than the resting finish
+   * label to keep the button geometry stable. The mock-office metaphor from
+   * StepMeet carries the wink; the disabled state plus ellipsis keeps it
+   * unambiguously a progress message.
+   */
+  seeding: "Moving the desks in…",
 } as const;

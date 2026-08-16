@@ -130,7 +130,10 @@ export function ToolIntegrations({
       />
 
       {cfgQuery.isLoading || query.isLoading ? (
-        <p className="opr-scoped-note">Loading your integrations…</p>
+        <div role="status" aria-label="Loading your integrations">
+          <div className="opr-skeleton opr-skel-row" />
+          <div className="opr-skeleton opr-skel-row" style={{ marginTop: 8 }} />
+        </div>
       ) : query.isError ? (
         <p className="opr-scoped-note">
           Could not load integrations right now.

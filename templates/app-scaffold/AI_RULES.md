@@ -459,3 +459,11 @@ your app). NEVER invent navigation like "Settings → Integrations" — those
 surfaces are the host's, they move, and wrong directions strand the
 operator. Good: "Gmail is not connected yet — use the Connect button
 above." Bad: "Connect Gmail in Settings → Integrations."
+
+## After a mutating action, the UI reflects it immediately
+
+When a button mutates state (approve, escalate, archive, send), update the
+affected row/counters in the same interaction — optimistic update or refetch,
+either works. An operator who clicks "Escalate" and still sees PENDING with
+the same button assumes the click failed and clicks again. Every action's
+outcome must be visible where the operator is looking, immediately.

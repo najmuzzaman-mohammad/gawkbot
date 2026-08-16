@@ -11,12 +11,16 @@ import { ArrowRight, Check, Send, X } from "lucide-react";
 
 import { type CustomApp, listApps, submitAppEdit } from "../../api/apps";
 import { AppActivity } from "../../components/apps/AppActivity";
+import { PixelAvatar } from "../../components/ui/PixelAvatar";
+import { useCyclingPhrase } from "../../hooks/useCyclingPhrase";
+import { OFFICE_LOADING_PHRASES } from "../../lib/officeLoadingPhrases";
 import { tryCreateRoutine, tryListRoutines } from "../agents/agentStateClient";
 import { capturePromptSeed, type DemoCapture } from "../apps/demoCapture";
 import {
   appBuildState,
   deriveAppName,
   resolveNewAppId,
+  uniquifyAppName,
   useBuildApp,
 } from "../apps/useOperatorApps";
 import {
@@ -45,9 +49,10 @@ interface ChatMessage {
 }
 
 const STARTERS: readonly string[] = [
-  "A dashboard of our open tasks with their status",
+  "A pipeline review board: every deal with no next step, grouped by owner",
+  "A renewals radar: contracts up in 90 days, flagged when a support ticket is open",
   "A refund-approval form that posts to Slack",
-  "A weekly pipeline summary I can glance at",
+  "A Friday close-out digest: what shipped, what slipped, and who is blocked",
 ];
 
 // A per-app chat transcript, persisted across the build chat -> app detail ->
@@ -177,6 +182,13 @@ export function AppBuilderChat({
   // polls, so after a short grace window of the candidate staying terminal we
   // accept it rather than waiting forever (see the guard below).
   const terminalSinceRef = useRef<{ id: string; at: number } | null>(null);
+  // The longest wait in the product gets the shell's cycling Office gerund
+  // (the same delight system WorkflowBuilder uses for its 15s wait).
+  const workPhrase = useCyclingPhrase(
+    OFFICE_LOADING_PHRASES,
+    2400,
+    phase === "building" && !editApp,
+  );
 
   const build = useBuildApp();
   const queryClient = useQueryClient();
@@ -239,6 +251,13 @@ export function AppBuilderChat({
       reportedBuildingRef.current = candidate.id;
       onBuildingApp?.(candidate.id);
       void setupDemoExtras(candidate.id);
+      // A useful head start beats an empty wait: the operator can prep the
+      // delivery side while the build runs (2026-08-16 delight audit).
+      if (!demo) {
+        say(
+          "While it builds, a head start: connect the systems it will deliver to on the Integrations tab, and think about the next workflow you would hand off. I will keep working either way.",
+        );
+      }
     }
 
     const state = appBuildState(candidate);
@@ -536,9 +555,13 @@ export function AppBuilderChat({
     // follow-up REFINES that app instead of starting a brand-new build — so a
     // second message like "also handle event signups" amends the same app.
     const refineId = editApp?.id ?? newAppId;
+    // New builds uniquify against the roster: "Pipeline Agent" twice would
+    // read as the same agent (and the broker refuses to reuse a published
+    // agent's id, so the names MUST diverge too — 2026-08-16 VP-RevOps QA).
+    const roster = refineId || demo ? [] : await listApps().catch(() => []);
     const name = refineId
       ? appName || deriveAppName(description)
-      : deriveAppName(description);
+      : uniquifyAppName(deriveAppName(description), roster);
     activeRefineRef.current = refineId;
     // A brand-new build remembers its description so the completion hook can
     // mint the starter routine from it (the workflow IS the recurring job).
@@ -558,7 +581,7 @@ export function AppBuilderChat({
         from: "ai",
         body: refineId
           ? `On it — refining “${name}”. You can watch it update below.`
-          : `On it — building “${name}”. You can watch it come together below.`,
+          : `On it — building “${name}”. A first build usually runs 10 to 20 minutes, and every step shows below. You do not have to watch: the sidebar keeps a pulse on it, and the finish card lands right here.`,
       },
     ]);
     try {
@@ -624,7 +647,21 @@ export function AppBuilderChat({
 
         <div className="opr-builder-scroll" ref={scrollRef}>
           {messages.map((m) => (
-            <div key={m.id} className="opr-edit-msgwrap">
+            <div
+              key={m.id}
+              className={`opr-edit-msgwrap${m.from === "ai" ? " opr-msgwrap-ai" : ""}`}
+            >
+              {m.from === "ai" ? (
+                <span
+                  className="opr-msg-face opr-portrait-frame"
+                  aria-hidden={true}
+                >
+                  <PixelAvatar
+                    slug={editApp?.id ?? newAppId ?? "nex"}
+                    size={20}
+                  />
+                </span>
+              ) : null}
               <div
                 className={`opr-msg ${
                   m.from === "ai" ? "opr-msg-ai" : "opr-msg-you"
@@ -727,15 +764,27 @@ export function AppBuilderChat({
                   nothing until the first event arrives, so the working
                   indicator below carries the initial seconds. */}
               <AppActivity appId={buildingAppId} />
-              <div className="opr-act-working" aria-label="Building your agent">
+              <div
+                className="opr-act-working"
+                role="status"
+                aria-label="Building your agent"
+              >
                 <span className="opr-work-dots" aria-hidden={true}>
                   <span />
                   <span />
                   <span />
                 </span>
-                <span className="opr-work-phrase">
-                  {editApp ? "Applying your change…" : "Building your agent…"}
-                </span>
+                {editApp ? (
+                  <span className="opr-work-phrase">Applying your change…</span>
+                ) : (
+                  <span
+                    key={workPhrase}
+                    className="opr-work-phrase"
+                    aria-hidden={true}
+                  >
+                    {workPhrase ? `${workPhrase}…` : "Building your agent…"}
+                  </span>
+                )}
               </div>
             </div>
           ) : null}
@@ -745,11 +794,14 @@ export function AppBuilderChat({
               className={`opr-finish-card${buildFailed ? " is-failed" : ""}`}
             >
               <div className="opr-finish-row">
-                <span className="opr-finish-glyph" aria-hidden={true}>
+                <span
+                  className={`opr-finish-glyph${buildFailed ? "" : " opr-portrait-frame"}`}
+                  aria-hidden={true}
+                >
                   {buildFailed ? (
                     <X size={15} strokeWidth={2.2} />
                   ) : (
-                    <Check size={15} strokeWidth={2.2} />
+                    <PixelAvatar slug={newAppId} size={22} />
                   )}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -760,7 +812,7 @@ export function AppBuilderChat({
                         ? "The build stopped before it finished"
                         : editApp
                           ? "New version published"
-                          : "Ready to use"}
+                          : "Hired. It starts now, no orientation needed."}
                     </span>
                   </div>
                 </div>
@@ -815,7 +867,7 @@ export function AppBuilderChat({
             aria-label="Describe what this agent should do"
             placeholder={
               phase === "building"
-                ? `One build at a time — “${appName || "this agent"}” is almost ready`
+                ? `One build at a time — “${appName || "this agent"}” is on the bench, back shortly`
                 : "Describe what this agent should do…"
             }
             value={draft}

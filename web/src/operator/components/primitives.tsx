@@ -1,7 +1,7 @@
 // Shared visual primitives for the operator shell. Token-driven, presentational
 // only — no data fetching. See operator-shell.css for the matching styles.
 
-import type { ReactNode } from "react";
+import { type KeyboardEvent, type ReactNode, useRef } from "react";
 
 import type {
   IntegrationStatus,
@@ -113,9 +113,42 @@ export function Tabs<T extends string>({
   onSelect,
   hint,
 }: TabsProps<T>) {
+  const listRef = useRef<HTMLDivElement>(null);
+  // Roving tabindex per the ARIA tabs contract: the strip is ONE Tab stop;
+  // ArrowLeft/ArrowRight (wrapping) and Home/End move selection and focus.
+  // Selection follows focus: every panel renders local data, so switching is
+  // free. A stale `active` id falls back to the first tab so the strip never
+  // becomes keyboard-unreachable.
+  const activeIndex = tabs.findIndex((t) => t.id === active);
+
+  function moveTo(next: TabDef<T> | undefined) {
+    if (!next) return;
+    onSelect(next.id);
+    // Scoped lookup (not document-global): generic ids like "data" would
+    // collide if two Tabs instances ever mount at once.
+    listRef.current
+      ?.querySelector<HTMLButtonElement>(`#${CSS.escape(`opr-tab-${next.id}`)}`)
+      ?.focus();
+  }
+
+  function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      const dir = e.key === "ArrowRight" ? 1 : -1;
+      const from = activeIndex === -1 ? 0 : activeIndex;
+      moveTo(tabs[(from + dir + tabs.length) % tabs.length]);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      moveTo(tabs[0]);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      moveTo(tabs[tabs.length - 1]);
+    }
+  }
+
   return (
-    <div className="opr-tabs" role="tablist">
-      {tabs.map((t) => (
+    <div className="opr-tabs" role="tablist" ref={listRef}>
+      {tabs.map((t, i) => (
         <button
           key={t.id}
           type="button"
@@ -123,8 +156,10 @@ export function Tabs<T extends string>({
           id={`opr-tab-${t.id}`}
           aria-controls={`opr-panel-${t.id}`}
           aria-selected={t.id === active}
+          tabIndex={t.id === active || (activeIndex === -1 && i === 0) ? 0 : -1}
           className={`opr-tab${t.id === active ? " is-active" : ""}`}
           onClick={() => onSelect(t.id)}
+          onKeyDown={onTabKeyDown}
         >
           {t.label}
         </button>

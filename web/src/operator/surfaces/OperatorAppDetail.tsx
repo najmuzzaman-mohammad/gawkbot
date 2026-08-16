@@ -154,16 +154,35 @@ export function OperatorAppDetail({
   // the operator sees the workflow, data, and knowledge get hooked up.
   const walkedRef = useRef(false);
   const walkTimersRef = useRef<number[]>([]);
+  // One caption line under the tabs narrating the walk, so the auto-advance
+  // reads as a guided tour instead of the UI flipping between empty states.
+  const [walkNote, setWalkNote] = useState<string | null>(null);
   useEffect(() => {
     if (!(buildWalk && ready) || walkedRef.current) return;
     walkedRef.current = true;
     walkTimersRef.current = [
-      window.setTimeout(() => setTab("workflow"), 900),
-      window.setTimeout(() => setTab("data"), 3200),
-      window.setTimeout(() => setTab("knowledge"), 5500),
-      window.setTimeout(() => setTab("ui"), 8000),
+      window.setTimeout(() => {
+        setTab("workflow");
+        setWalkNote("Its routines: the schedule it runs your workflow on.");
+      }, 900),
+      window.setTimeout(() => {
+        setTab("data");
+        setWalkNote("Its own database. It fills up as it works.");
+      }, 3200),
+      window.setTimeout(() => {
+        setTab("knowledge");
+        setWalkNote("What it learns, written down with citations.");
+      }, 5500),
+      window.setTimeout(() => {
+        setTab("ui");
+        setWalkNote(null);
+      }, 8000),
     ];
-    return () => walkTimersRef.current.forEach((t) => window.clearTimeout(t));
+    return () => {
+      walkTimersRef.current.forEach((t) => window.clearTimeout(t));
+      // A mid-walk unmount must not resurrect a stale caption on re-entry.
+      setWalkNote(null);
+    };
   }, [buildWalk, ready]);
 
   // A manual tab click cancels the walk (the documented contract) — the tour
@@ -171,6 +190,7 @@ export function OperatorAppDetail({
   function selectTab(next: AppTab) {
     walkTimersRef.current.forEach((t) => window.clearTimeout(t));
     walkTimersRef.current = [];
+    setWalkNote(null);
     setTab(next);
   }
 
@@ -280,6 +300,11 @@ export function OperatorAppDetail({
           <AgentPurpose summary={app?.summary} />
 
           <Tabs tabs={TABS} active={tab} onSelect={selectTab} />
+          {walkNote ? (
+            <p className="opr-scoped-note" aria-hidden={true}>
+              {walkNote}
+            </p>
+          ) : null}
 
           <div
             role="tabpanel"
@@ -361,6 +386,37 @@ function AskAiDock({
   onSizeChange: (next: (s: PanelSize) => PanelSize) => void;
   requestedSessionId?: string | null;
 }) {
+  const panelRef = useRef<HTMLElement>(null);
+
+  // a11y: close on Escape, move focus into the panel on open, and restore it
+  // on close, matching the shell's overlay keyboard grammar (see CallModal).
+  // Escape originating inside the chat composer (input/textarea/
+  // contentEditable) is left alone: closing unmounts the composer, and a
+  // mid-composition Escape must never destroy an un-sent draft.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      onOpenChange(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      prev?.focus();
+    };
+  }, [open, onOpenChange]);
+
   if (!open) {
     return (
       <button
@@ -385,6 +441,8 @@ function AskAiDock({
         />
       ) : null}
       <aside
+        ref={panelRef}
+        tabIndex={-1}
         className={`opr-ask-panel is-${size}`}
         aria-label={`Ask Agent about ${app.name}`}
       >

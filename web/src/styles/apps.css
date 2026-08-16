@@ -1099,3 +1099,15 @@
 .app-build-preview__bootlog[open] > summary {
   margin-bottom: 6px;
 }
+
+/* The latest streamed narration line — the build telling its own story. */
+.app-build-activity__now {
+  padding: 4px 10px 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

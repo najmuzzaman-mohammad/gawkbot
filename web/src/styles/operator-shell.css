@@ -71,6 +71,11 @@
   --t-tint-2: color-mix(in srgb, var(--t-accent-2) 12%, transparent);
   --t-r: var(--radius);
   --t-r-sm: 4px;
+  /* Aliases referenced by later sections — previously undefined: secondary
+     text lost its muted tone and md-radius cards rendered square. */
+  --t-text: var(--t-ink);
+  --t-text-2: var(--t-dim);
+  --t-r-md: var(--t-r);
 
   position: fixed;
   inset: 0;
@@ -460,6 +465,20 @@
 .opr-led-warn {
   background: var(--t-accent);
 }
+.opr-led-building {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--t-accent-2);
+  animation: opr-led-breathe 2.4s ease-in-out infinite;
+}
+@keyframes opr-led-breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 .opr-led-draft {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--t-faint);
@@ -536,6 +555,22 @@
 }
 /* The live tool leads the page as an open block, set off by weight and space,
    not a box. */
+.opr-card-hero {
+  transition: background var(--duration-fast) ease;
+}
+.opr-card-hero:hover {
+  background: color-mix(in srgb, var(--t-accent-2) 5%, transparent);
+}
+.opr-card-hero:hover .opr-btn {
+  border-color: var(--t-accent);
+  color: var(--t-accent);
+}
+.opr-card-hero .opr-btn svg {
+  transition: transform var(--duration-fast) ease;
+}
+.opr-card-hero:hover .opr-btn svg {
+  transform: translateX(2px);
+}
 .opr-card-hero {
   border: none;
   border-bottom: 1px dotted var(--t-line-2);
@@ -1241,6 +1276,33 @@
   align-self: flex-start;
   background: color-mix(in srgb, var(--t-surface) 86%, transparent);
 }
+.opr-builder-scroll .opr-edit-msgwrap,
+.opr-chat-scroll .opr-msg {
+  animation: opr-step-in var(--duration-base) cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .opr-builder-scroll,
+  .opr-chat-scroll,
+  .opr-call-transcript {
+    scroll-behavior: smooth;
+  }
+}
+/* AI bubbles carry the agent's face — "Every agent has a face" extends into
+   the conversation itself (2026-08-16 delight audit). The portrait replaces
+   the mono "Nex" label; both at once would double-identify. */
+.opr-msgwrap-ai .opr-msg-ai::before {
+  display: none;
+}
+.opr-msgwrap-ai {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+.opr-msg-face {
+  flex: 0 0 auto;
+  margin-bottom: 2px;
+}
 .opr-msg-ai::before {
   content: "Nex";
   display: block;
@@ -1290,6 +1352,19 @@
 
 /* ───────────────────────────── Call modal */
 
+@keyframes opr-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+.opr-modal-scrim {
+  animation: opr-fade-in 140ms ease both;
+}
+.opr-call,
+.opr-exec {
+  animation: opr-rise-in 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
 .opr-modal-scrim {
   position: fixed;
   inset: 0;
@@ -2784,6 +2859,9 @@
 
 /* Finish card — the draft tool handed off in the conversation */
 .opr-finish-card {
+  animation: opr-rise-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.opr-finish-card {
   border: 1px solid color-mix(in srgb, var(--t-green) 40%, var(--t-line-2));
   border-radius: var(--t-r-sm);
   background: color-mix(in srgb, var(--t-green) 7%, var(--t-surface));
@@ -2995,6 +3073,50 @@
 .opr-step-reveal {
   animation: opr-step-in var(--duration-base) cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* Small interactive elements share the shell's fast ease — no snapping
+   (2026-08-16 delight audit: the left rail mixed six snap-vs-ease materials). */
+.opr-agent-rail-item,
+.opr-session-chip,
+.opr-artifact-chip,
+.opr-kn-item,
+.opr-back,
+.opr-nav-caret,
+.opr-routine-runs-toggle,
+.opr-tool-code-toggle {
+  transition:
+    background var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+.opr-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--t-r-sm);
+  background: color-mix(in srgb, var(--t-ink) 7%, transparent);
+}
+.opr-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--t-ink) 6%, transparent),
+    transparent
+  );
+  animation: opr-shimmer 1.4s ease infinite;
+}
+@keyframes opr-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+.opr-skel-row {
+  height: 34px;
+}
+
 @keyframes opr-step-in {
   from {
     opacity: 0;
@@ -3731,6 +3853,28 @@
 /* ── Auto-surfaced approval prompt (human-in-the-loop for app actions) ─────── */
 /* A prominent but NON-blocking card pinned bottom-right: it asks for the human's
    sign-off without freezing the rest of the operator behind a modal backdrop. */
+.opr-approval-sent {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12.5px;
+  color: var(--t-dim);
+  animation: opr-sent-fade 2.4s ease both;
+}
+@keyframes opr-sent-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  8%,
+  82% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
 .opr-approval-prompt {
   position: fixed;
   right: var(--space-4);
@@ -4067,6 +4211,12 @@
   display: flex;
 }
 /* Live phase: app detail fills the main area, chat docks to the right. */
+.opr-build-exp.is-live .opr-build-exp-main {
+  animation: opr-fade-in 0.35s ease-out;
+}
+.opr-build-exp.is-live .opr-build-exp-chat {
+  animation: opr-slide-in-right 0.3s ease-out;
+}
 .opr-build-exp.is-live .opr-build-exp-main {
   flex: 1;
   min-width: 0;
@@ -4460,6 +4610,19 @@
   gap: 1px;
   margin: var(--space-1) 0 var(--space-2);
   padding-left: var(--space-4);
+}
+.opr-agent-rail-item {
+  animation: opr-rail-arrive 0.3s steps(3, end) both;
+}
+@keyframes opr-rail-arrive {
+  from {
+    opacity: 0;
+    transform: translateX(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 .opr-agent-rail-item {
   display: flex;
@@ -5007,7 +5170,27 @@
 /* Failed finish card: honest red framing, no green success glyph. */
 .opr-finish-card.is-failed {
   border-color: color-mix(in srgb, var(--t-red, #e5534b) 45%, var(--t-line));
+  background: color-mix(in srgb, var(--t-red, #e5534b) 6%, var(--t-surface));
 }
 .opr-finish-card.is-failed .opr-finish-glyph {
   color: var(--t-red, #e5534b);
+  background: color-mix(in srgb, var(--t-red, #e5534b) 14%, var(--t-surface));
+}
+
+/* 2026-08-16 delight additions all degrade to their resting state. */
+@media (prefers-reduced-motion: reduce) {
+  .opr-modal-scrim,
+  .opr-call,
+  .opr-exec,
+  .opr-finish-card,
+  .opr-build-exp.is-live .opr-build-exp-main,
+  .opr-build-exp.is-live .opr-build-exp-chat,
+  .opr-agent-rail-item,
+  .opr-led-building,
+  .opr-approval-sent,
+  .opr-skeleton::after,
+  .opr-builder-scroll .opr-edit-msgwrap,
+  .opr-chat-scroll .opr-msg {
+    animation: none;
+  }
 }

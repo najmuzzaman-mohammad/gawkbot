@@ -8,6 +8,7 @@ import {
   deriveAppName,
   isRealAppId,
   resolveNewAppId,
+  uniquifyAppName,
 } from "./useOperatorApps";
 
 function app(over: Partial<CustomApp>): CustomApp {
@@ -100,6 +101,21 @@ describe("appBuildState", () => {
   });
 });
 
+describe("uniquifyAppName", () => {
+  it("appends a counter when the roster already has the name", () => {
+    expect(
+      uniquifyAppName("Pipeline Agent", [{ name: "Pipeline Agent" }]),
+    ).toBe("Pipeline Agent 2");
+    expect(
+      uniquifyAppName("Pipeline Agent", [
+        { name: "Pipeline Agent" },
+        { name: "Pipeline Agent 2" },
+      ]),
+    ).toBe("Pipeline Agent 3");
+    expect(uniquifyAppName("Deal Desk Agent", [])).toBe("Deal Desk Agent");
+  });
+});
+
 describe("deriveAppName", () => {
   it("names an agent for its role when the domain is recognizable", () => {
     expect(deriveAppName("score inbound leads and route hot ones")).toBe(
@@ -153,6 +169,25 @@ describe("deriveAppName", () => {
   // 2026-08-16 fresh-workspace QA: "Chase our unpaid invoices" was named
   // "Chase Agent" (plural nouns missed the role table), and a recruiting
   // description using scoring verbs was claimed by Lead Routing.
+  it("names forecast-accuracy tracking Forecast Agent", () => {
+    expect(
+      deriveAppName(
+        "Track rep forecast accuracy: compare each commit against pipeline coverage",
+      ),
+    ).toBe("Forecast Agent");
+  });
+
+  it("names a discount approval workflow Deal Desk, not Pipeline", () => {
+    // 2026-08-16 VP-RevOps QA: "deal desk" hit the pipeline row and collided
+    // with an existing Pipeline Agent — briefing the build to republish over
+    // the live agent.
+    expect(
+      deriveAppName(
+        "Run our deal desk discount approvals: apply our rules and draft escalation notes",
+      ),
+    ).toBe("Deal Desk Agent");
+  });
+
   it("names invoice chasing and applicant screening by their nouns", () => {
     expect(
       deriveAppName(

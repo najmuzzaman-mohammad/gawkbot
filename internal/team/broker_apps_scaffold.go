@@ -71,6 +71,23 @@ func (b *Broker) maybePrescaffoldAppForCreate(action, channel string, body TaskP
 		slug = "app"
 	}
 	id := customAppID(slug, name, channel)
+	// A PUBLISHED agent must never be handed to a new build. Identity is
+	// (name, channel) and channel is still "general" at create time, so a
+	// second workflow whose derived name matches an existing agent would be
+	// told to publish OVER it (2026-08-16 VP-RevOps QA: the discount-desk
+	// build was briefed to republish the live Pipeline Agent). Salt the id
+	// until it is free or points at a resumable building leftover — that
+	// keeps retry-of-the-same-build semantics without the hijack.
+	for n := 2; ; n++ {
+		existing, _, err := b.appStore().Get(id)
+		if err != nil {
+			break // id free
+		}
+		if existing.Status == customAppStatusBuilding {
+			break // an unpublished leftover of this same build — resume it
+		}
+		id = customAppID(slug, name, fmt.Sprintf("%s#%d", channel, n))
+	}
 
 	actor := strings.TrimSpace(body.CreatedBy)
 	if actor == "" {

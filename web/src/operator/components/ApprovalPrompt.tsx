@@ -3,6 +3,7 @@
 // modal asking the operator to Approve or Reject. The human approves; the agent
 // never self-approves. Mounted globally in the operator shell.
 
+import { useEffect, useState } from "react";
 import { ShieldCheck, X } from "lucide-react";
 
 import { useOperatorApprovals } from "../approvals/useOperatorApprovals";
@@ -11,7 +12,26 @@ import { Eyebrow } from "./primitives";
 export function ApprovalPrompt() {
   const { pending, approve, reject, answering } = useOperatorApprovals();
   const req = pending[0];
-  if (!req) return null;
+  // The trust beat: after the LAST pending approval clears via Approve, hold
+  // a 2.4s confirmation in the card's place — the modal used to just vanish
+  // (2026-08-16 delight audit). Straight copy; this is a safety surface.
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!(confirming && !req)) return;
+    const t = window.setTimeout(() => setConfirming(false), 2400);
+    return () => window.clearTimeout(t);
+  }, [confirming, req]);
+  if (!req) {
+    if (!confirming) return null;
+    return (
+      <div className="opr-approval-prompt opr-approval-sent" role="status">
+        <span className="opr-approval-prompt-glyph" aria-hidden={true}>
+          <ShieldCheck size={16} strokeWidth={1.8} />
+        </span>
+        <span>Sent. Nothing leaves the office without you.</span>
+      </div>
+    );
+  }
 
   const more = pending.length - 1;
 
@@ -51,7 +71,10 @@ export function ApprovalPrompt() {
         <button
           type="button"
           className="opr-btn opr-btn-primary opr-btn-sm"
-          onClick={() => approve(req.id)}
+          onClick={() => {
+            approve(req.id);
+            setConfirming(true);
+          }}
           disabled={answering}
         >
           {answering ? "Approving…" : "Approve & send"}

@@ -1,5 +1,5 @@
-import { NavArrowLeft, NavArrowRight } from "iconoir-react";
 import type { ReactElement, ReactNode } from "react";
+import { NavArrowLeft, NavArrowRight } from "iconoir-react";
 
 import type { IntegrationStatus, IntegrationStatusTone } from "./types";
 
@@ -18,13 +18,15 @@ import type { IntegrationStatus, IntegrationStatusTone } from "./types";
 //   warning     → amber LED · ATTENTION
 //   unconfigured → grey LED · NOT CONFIGURED
 
-const TONE_CLASS: Record<IntegrationStatusTone, "on" | "warn" | "off" | "info"> =
-  {
-    connected: "on",
-    available: "info",
-    warning: "warn",
-    unconfigured: "off",
-  };
+const TONE_CLASS: Record<
+  IntegrationStatusTone,
+  "on" | "warn" | "off" | "info"
+> = {
+  connected: "on",
+  available: "info",
+  warning: "warn",
+  unconfigured: "off",
+};
 
 function StatusPill({ status }: { status: IntegrationStatus }) {
   const tone = TONE_CLASS[status.tone];

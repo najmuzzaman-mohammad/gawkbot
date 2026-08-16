@@ -12,6 +12,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, Terminal } from "lucide-react";
 
+import { PixelAvatar } from "../../components/ui/PixelAvatar";
+import { useCyclingPhrase } from "../../hooks/useCyclingPhrase";
 import type { Tool, ToolCall } from "../tools/mockTools";
 import {
   buildToolFromChat,
@@ -55,6 +57,16 @@ function nextId(): string {
   uid += 1;
   return `tc_${uid}`;
 }
+
+// Sentinel for the tool-authoring wait. The working row swaps it for the
+// cycling phrases below at render time — raw internal identifiers like
+// create_tool are developer material, not operator narration.
+const AUTHORING_STATUS = "__authoring__";
+const AUTHORING_PHRASES = [
+  "Writing it up as a tool",
+  "Wiring the steps in order",
+  "Giving it a name",
+] as const;
 
 // The create_tool call the chat shows, with the args the agent passed.
 function callSignature(tool: Tool): string {
@@ -122,9 +134,11 @@ function extractArgs(
 ): { args: Record<string, string>; missing: string[] } {
   const args: Record<string, string> = {};
   const named = new Map(
-    [...text.matchAll(/([A-Za-z][\w]*)\s*[:=]\s*("[^"]+"|“[^”]+”|'[^']+'|\S+)/g)].map(
-      (m) => [m[1].toLowerCase(), m[2].replace(/^["“']|["”']$/g, "")],
-    ),
+    [
+      ...text.matchAll(
+        /([A-Za-z][\w]*)\s*[:=]\s*("[^"]+"|“[^”]+”|'[^']+'|\S+)/g,
+      ),
+    ].map((m) => [m[1].toLowerCase(), m[2].replace(/^["“']|["”']$/g, "")]),
   );
   const quoted = [...text.matchAll(/["“”']([^"“”']+)["“”']/g)].map((m) => m[1]);
   let qi = 0;
@@ -147,9 +161,10 @@ function extractArgs(
  * (TypeError etc.) rides after it, truncated, as diagnostic detail. */
 function frameRunError(detail: string | undefined): string {
   if (!detail) return "Something went wrong — nothing was sent.";
-  const technical = /is not a function|is not defined|undefined is not|TypeError|ReferenceError|SyntaxError|Cannot read/.test(
-    detail,
-  );
+  const technical =
+    /is not a function|is not defined|undefined is not|TypeError|ReferenceError|SyntaxError|Cannot read/.test(
+      detail,
+    );
   if (!technical) return detail;
   return `The tool hit a bug while running — nothing was sent. Ask me to rebuild it if this keeps happening. (${detail.slice(0, 140)})`;
 }
@@ -161,6 +176,12 @@ export function AppToolsChat({
   onTurn,
 }: AppToolsChatProps) {
   const { tools, addTool, logCall, agentId } = useAppTools();
+  // Read at teach time through a ref: the seeded hand-off path fires send() on
+  // mount while the persisted toolbox hydrates async, so a render-time closure
+  // would still see the empty mount-time array (and announce a "first tool"
+  // for an agent that already has some).
+  const toolsRef = useRef(tools);
+  toolsRef.current = tools;
   const [items, setItems] = useState<ChatItem[]>(() =>
     initialTranscript
       ? initialTranscript.map((m) => ({
@@ -174,7 +195,7 @@ export function AppToolsChat({
             kind: "text",
             id: nextId(),
             from: "nex",
-            body: `Tell me a repeatable task you do in ${appName} and I'll build it a tool you can call. Anything I make shows up under Tools — ask me to run one any time.`,
+            body: `Tell me a job you still do by hand (the Monday-morning one counts) and I will teach ${appName} a tool for it. It lands under Tools, and you can ask me to run it any time.`,
           },
         ],
   );
@@ -189,6 +210,11 @@ export function AppToolsChat({
   } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const seededRef = useRef(false);
+  const authoringPhrase = useCyclingPhrase(
+    AUTHORING_PHRASES,
+    2400,
+    working === AUTHORING_STATUS,
+  );
 
   function scrollDown() {
     requestAnimationFrame(() => {
@@ -237,7 +263,7 @@ export function AppToolsChat({
   }
 
   async function invokeTool(tool: Tool, args: Record<string, string>) {
-    setWorking(`Nex is calling ${tool.name}…`);
+    setWorking(`Running “${tool.title}”…`);
     scrollDown();
     try {
       const outcome = await callToolViaAgent(tool, args, false);
@@ -263,7 +289,7 @@ export function AppToolsChat({
   async function approvePending() {
     const p = pending;
     if (!p || working) return;
-    setWorking(`Nex is calling ${p.tool.name}…`);
+    setWorking(`Running “${p.tool.title}”…`);
     try {
       // Clear the pending approval only on a successful outcome: a failure
       // keeps the card actionable instead of losing the approval context.
@@ -287,7 +313,7 @@ export function AppToolsChat({
         kind: "text",
         id: nextId(),
         from: "nex",
-        body: "Okay — I didn't send it. Nothing left this agent.",
+        body: "Okay — I did not send it. Nothing left this agent.",
       },
     ]);
     scrollDown();
@@ -371,7 +397,7 @@ export function AppToolsChat({
     // tool (2026-08-15 audit). Say what this chat can do instead.
     if (looksLikeQuestion(body)) {
       const reply =
-        'This chat is where you teach me tools and run them. Describe a workflow ("score each new lead and route hot ones") and I\'ll build it as a tool, or say "run <tool name>" to use one.';
+        'This chat is where you teach me tools and run them. Describe a workflow ("score each new lead and route hot ones") and I will build it as a tool, or say "run <tool name>" to use one.';
       setItems((prev) => [
         ...prev,
         { kind: "text", id: nextId(), from: "nex", body: reply },
@@ -380,7 +406,7 @@ export function AppToolsChat({
       scrollDown();
       return;
     }
-    setWorking("Nex is calling create_tool…");
+    setWorking(AUTHORING_STATUS);
     scrollDown();
     try {
       // The pi-mono chat agent decides to make a tool and calls create_tool; we
@@ -410,7 +436,7 @@ export function AppToolsChat({
         // instead of pretending the service was down.
         const reply =
           narration ||
-          "I could not turn that into a tool. Describe the workflow step by step and I'll try again.";
+          "I could not turn that into a tool. Describe the workflow step by step and I will try again.";
         setItems((prev) => [
           ...prev,
           { kind: "text", id: nextId(), from: "nex", body: reply },
@@ -424,7 +450,7 @@ export function AppToolsChat({
         // operator's workflow is worse than nothing (2026-08-15 QA pass), so
         // say what's missing instead of minting it into Tools.
         const reply =
-          "I can't author tools on this computer yet — there's no AI model connected for me to write them with. Connect Claude Code, an Anthropic API key, or Ollama, then teach me again.";
+          "I cannot author tools on this computer yet — there is no AI model connected for me to write them with. Connect Claude Code, an Anthropic API key, or Ollama, then teach me again.";
         setItems((prev) => [
           ...prev,
           { kind: "text", id: nextId(), from: "nex", body: reply },
@@ -432,8 +458,13 @@ export function AppToolsChat({
         onTurn?.("nex", reply);
         return;
       }
+      // The first tool ever taught is a milestone in the operator's mental
+      // model (the agent can now DO something on its own) — notice it.
+      const isFirstTool = toolsRef.current.length === 0;
       addTool(tool);
-      const reply = `Done — I built “${tool.title}”. It's in your Tools now, and I'll call it when you need it.`;
+      const reply = isFirstTool
+        ? `Done — I built “${tool.title}”, this agent's first tool. It is in Tools now, and I will reach for it whenever the job calls for it.`
+        : `Done — I built “${tool.title}”. It is in your Tools now, and I will call it when you need it.`;
       setItems((prev) => [
         ...prev,
         { kind: "call", id: nextId(), tool },
@@ -463,7 +494,18 @@ export function AppToolsChat({
           {items.map((item) => {
             if (item.kind === "text") {
               return (
-                <div key={item.id} className="opr-edit-msgwrap">
+                <div
+                  key={item.id}
+                  className={`opr-edit-msgwrap${item.from === "nex" ? " opr-msgwrap-ai" : ""}`}
+                >
+                  {item.from === "nex" ? (
+                    <span
+                      className="opr-msg-face opr-portrait-frame"
+                      aria-hidden={true}
+                    >
+                      <PixelAvatar slug={agentId ?? appName} size={20} />
+                    </span>
+                  ) : null}
                   <div
                     className={`opr-msg ${item.from === "nex" ? "opr-msg-ai" : "opr-msg-you"}`}
                   >
@@ -554,7 +596,9 @@ export function AppToolsChat({
                 <span />
                 <span />
               </span>
-              <span className="opr-work-phrase">{working}</span>
+              <span className="opr-work-phrase">
+                {working === AUTHORING_STATUS ? `${authoringPhrase}…` : working}
+              </span>
             </div>
           ) : null}
         </div>

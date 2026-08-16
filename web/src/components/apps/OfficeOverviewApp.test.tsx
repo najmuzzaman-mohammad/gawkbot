@@ -289,7 +289,9 @@ describe("OfficeOverviewApp", () => {
 
       render(wrap(<OfficeOverviewApp />));
 
-      expect(await screen.findByText("1 provider connected")).toBeInTheDocument();
+      expect(
+        await screen.findByText("1 provider connected"),
+      ).toBeInTheDocument();
       expect(screen.getByText("Exo")).toBeInTheDocument();
       expect(await screen.findByText("Settings")).toBeInTheDocument();
       expect(screen.getByText("Provider Doctor")).toBeInTheDocument();
@@ -327,7 +329,6 @@ describe("OfficeOverviewApp", () => {
       await screen.findByText("Active runs");
       expect(screen.queryByText(/provider.*connected/)).not.toBeInTheDocument();
     });
-
   });
 
   describe("section links", () => {

@@ -65,7 +65,7 @@ export function AppKnowledgeTab() {
       <EmptyState
         glyph="✦"
         title="No knowledge yet"
-        hint="As your team works, the company brain fills with pages your agents can draw on. None have been written yet."
+        hint="As your agents work, pages land here with citations: how you tier accounts, how you route a lead, what counts as a stale deal. Write a rule once, and every agent reads it before acting."
       />
     );
   }

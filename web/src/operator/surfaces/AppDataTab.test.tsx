@@ -67,6 +67,22 @@ describe("AppDataTab", () => {
     expect(getByText("2 rows")).toBeTruthy();
   });
 
+  it("frames the populated view as the agent's own exportable database", async () => {
+    get.mockResolvedValue({
+      tables: [
+        {
+          name: "Emails",
+          columns: [{ name: "sender", type: "string" }],
+          rows: [{ sender: "a@b.com" }],
+        },
+      ],
+    });
+    const { getByText } = wrap(<AppDataTab appId="app_abc" />);
+    await waitFor(() => expect(getByText("Emails")).toBeTruthy());
+    expect(getByText("This agent’s database")).toBeTruthy();
+    expect(getByText(/no export ticket/i)).toBeTruthy();
+  });
+
   it("shows a defined-but-empty note for a table with no rows", async () => {
     get.mockResolvedValue({
       tables: [

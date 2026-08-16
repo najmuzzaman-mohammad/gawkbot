@@ -62,6 +62,23 @@ export function appBuildState(
   return "building";
 }
 
+/** Uniquify a derived agent name against the existing roster: a second
+ * workflow that derives the same name must not LOOK like the same agent —
+ * and the broker refuses to hand a published agent's id to a new build
+ * (2026-08-16 VP-RevOps QA). "Pipeline Agent" -> "Pipeline Agent 2". */
+export function uniquifyAppName(
+  name: string,
+  existing: readonly { name: string }[],
+): string {
+  const taken = new Set(existing.map((a) => a.name.trim().toLowerCase()));
+  if (!taken.has(name.trim().toLowerCase())) return name;
+  for (let n = 2; n <= 20; n++) {
+    const candidate = `${name} ${n}`;
+    if (!taken.has(candidate.toLowerCase())) return candidate;
+  }
+  return name;
+}
+
 /**
  * List the workspace's built apps. Polls while any app is GENUINELY building
  * (not stalled/failed) so a freshly-published app appears without a reload, then
@@ -174,6 +191,11 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
     /\b(hygiene|dedupe|duplicate|clean[- ]?up|data quality)\b/i,
     "CRM Hygiene Agent",
   ],
+  // Deal desk outranks pipeline: approval workflows mention deals constantly
+  // ("deal desk", "discount approvals") but they are not pipeline reporting.
+  // Bare "approval(s)" is too generic (a "refund-approval form" is a form
+  // app, not a deal desk) — the desk needs its own nouns.
+  [/\b(deal desk|discounts?)\b/i, "Deal Desk Agent"],
   // Recruiting outranks lead routing: hiring language ("score fit", "inbound
   // applicants") reuses scoring/routing verbs, so the noun cues must win.
   [
@@ -183,7 +205,10 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
   // Nouns accept plurals; bare verbs ("score", "route", "inbound") are gone —
   // they collide with every other domain ("score a task", "inbound tickets").
   [/\b(leads?|lead routing|demo requests?)\b/i, "Lead Routing Agent"],
-  [/\b(pipelines?|deals?|forecasts?)\b/i, "Pipeline Agent"],
+  // Forecast discipline is its own job — commits, quota, accuracy — not
+  // pipeline reporting.
+  [/\b(forecasts?|commits?|quotas?)\b/i, "Forecast Agent"],
+  [/\b(pipelines?|deals?)\b/i, "Pipeline Agent"],
   [/\b(sales|quotas?|outreach|prospects?)\b/i, "Sales Agent"],
   [/\b(support|tickets?|escalations?|incidents?)\b/i, "Support Triage Agent"],
   [/\b(invoices?|billing|receivables?|dunning)\b/i, "Invoice Agent"],

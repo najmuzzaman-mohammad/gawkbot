@@ -8,10 +8,9 @@ import type { ActionGrant } from "../../../api/client";
 const getGrants = vi.fn();
 const revoke = vi.fn();
 vi.mock("../../../api/client", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../../api/client")>(
-      "../../../api/client",
-    );
+  const actual = await vi.importActual<typeof import("../../../api/client")>(
+    "../../../api/client",
+  );
   return {
     ...actual,
     getActionGrants: () => getGrants(),
@@ -70,7 +69,9 @@ describe("<ActionGrantsPanel>", () => {
 
   it("revokes a grant by id", async () => {
     getGrants.mockResolvedValue({ grants: [grant()] });
-    revoke.mockResolvedValue({ grant: grant({ revoked_at: "2026-06-09T00:00:00Z" }) });
+    revoke.mockResolvedValue({
+      grant: grant({ revoked_at: "2026-06-09T00:00:00Z" }),
+    });
     render(wrap(<ActionGrantsPanel />));
     fireEvent.click(await screen.findByRole("button", { name: "Revoke" }));
     await waitFor(() => expect(revoke).toHaveBeenCalledWith("grant-1"));

@@ -132,8 +132,12 @@ reveals. If it doesn't clarify state, leave it out.
 The empty / loading / error / not-connected states are not afterthoughts — they're
 what the human sees first and most often. The worked example in `App.tsx` shows all
 four; match that bar. An empty state is a `<Text c="dimmed">` that says what will
-appear and why, not a blank screen. A not-connected integration renders a calm
-connect-state, not a red error. Every guarded bridge call gets a designed fallback.
+appear and why and ends by naming the next action ("Connect Gmail from the WUPHF
+Integrations tab", "Run the weekly routine to fill this"), never a bare "No items
+yet." A not-connected integration renders a calm connect-state, not a red error.
+Every guarded bridge call gets a designed fallback. Copy in these states is plain
+and warm, never jokey — the app belongs to the operator's company, not to WUPHF,
+so the host's personality stays in the host.
 
 ## Anti-patterns — if you ship one of these, it looks AI-made
 
@@ -141,8 +145,9 @@ connect-state, not a red error. Every guarded bridge call gets a designed fallba
 - A `<Title>` "Dashboard" + dimmed subtitle hero over a single table. (Generic
   SaaS hero.)
 - A grid of identical `<Card>`s where a `<Table>` or row list belongs. (Card pile.)
-- Placeholder copy: "Welcome", "Dashboard", "Items", "Data". Name the actual thing
-  ("Unread by sender", "Tasks blocked 3+ days").
+- Placeholder copy: "Welcome", "Dashboard", "Items", "Data", or a bare "No items
+  yet." empty state. Name the actual thing ("Unread by sender", "Tasks blocked
+  3+ days").
 - Five font sizes / five badge colors / mixed radii — no decided scale.
 - Centered single column when the content has a clear primary + secondary region.
 - Gradient text, glassmorphism, drop shadows on everything, animated reveals.
@@ -163,6 +168,8 @@ connect-state, not a red error. Every guarded bridge call gets a designed fallba
 - [ ] Layout fits the content — asymmetric split when there's a primary+secondary
       region, not a reflexive centered column.
 - [ ] Real, specific copy — no "Dashboard"/"Welcome"/"Items" placeholders.
+- [ ] Empty states end with a next action; copy is plain — no jokes, no host-brand
+      voice.
 - [ ] Empty / loading / error / not-connected states are all present and designed.
 - [ ] If the app COMPUTES or CURATES anything, its model is persisted to the app
       `db` (defineTable + upsert) and rendered from `db.query` — not recomputed on

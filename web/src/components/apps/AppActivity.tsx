@@ -51,6 +51,24 @@ export function AppActivity({ appId }: AppActivityProps) {
   );
   const running = items.some((i) => i.status === "running");
 
+  // The builder's streamed prose is the STORY of the build — the verb rows
+  // alone read as a wall of "Working ×14" (2026-08-16 delight audit). Show
+  // the latest narration line while the build runs.
+  const narration = useMemo(() => {
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const p = lines[i].parsed;
+      if (
+        p?.kind === "headless_event" &&
+        p.type === "text" &&
+        typeof p.text === "string" &&
+        p.text.trim()
+      ) {
+        return p.text.replace(/\s+/g, " ").trim().slice(0, 140);
+      }
+    }
+    return null;
+  }, [lines]);
+
   const lastId = items[items.length - 1]?.id;
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on each new row
   useEffect(() => {
@@ -85,6 +103,9 @@ export function AppActivity({ appId }: AppActivityProps) {
         />
         <span className="app-build-activity__count">{items.length}</span>
       </button>
+      {narration && running ? (
+        <div className="app-build-activity__now">{narration}</div>
+      ) : null}
       {open ? (
         <div className="app-build-activity__list" ref={scrollRef}>
           {collapseRepeats(items).map(({ item, repeats }) => (

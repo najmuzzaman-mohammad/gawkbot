@@ -14,7 +14,11 @@
 // null on ANY failure so callers can fall back to the local seeded state and
 // the FE keeps working offline. All agent POST bodies carry schema_version.
 
-import { get as brokerGet, patch as brokerPatch, post as brokerPost } from "../../api/client";
+import {
+  get as brokerGet,
+  patch as brokerPatch,
+  post as brokerPost,
+} from "../../api/client";
 
 const SCHEMA_VERSION = 1;
 const READ_TIMEOUT_MS = 10_000;
@@ -235,7 +239,8 @@ export async function patchRoutine(
   if (input.enabled !== undefined) body.enabled = input.enabled;
   if (input.prompt !== undefined) {
     body.payload = input.prompt;
-    body.change_note = input.changeNote || "Prompt updated from the Routines tab";
+    body.change_note =
+      input.changeNote || "Prompt updated from the Routines tab";
   }
   const data = await brokerPatch<{ job: BrokerSchedulerJob }>(
     `/scheduler/${encodeURIComponent(id)}`,
