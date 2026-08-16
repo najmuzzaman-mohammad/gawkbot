@@ -135,6 +135,25 @@ describe("deriveAppName", () => {
     expect(deriveAppName(seed)).toBe("Lead Routing Agent");
   });
 
+  // 2026-08-16 fresh-workspace QA: "Chase our unpaid invoices" was named
+  // "Chase Agent" (plural nouns missed the role table), and a recruiting
+  // description using scoring verbs was claimed by Lead Routing.
+  it("names invoice chasing and applicant screening by their nouns", () => {
+    expect(
+      deriveAppName(
+        "Chase our unpaid invoices: find anything past its due date and draft a reminder",
+      ),
+    ).toBe("Invoice Agent");
+    expect(
+      deriveAppName(
+        "Screen inbound job applicants for our warehouse role, score fit 0-100, keep a shortlist",
+      ),
+    ).toBe("Recruiting Agent");
+    expect(deriveAppName("Triage inbound support tickets by urgency")).toBe(
+      "Support Triage Agent",
+    );
+  });
+
   it("synthesizes <lead words> Agent for an unknown domain", () => {
     // "for" is a function word — the clause is cut before it, so the
     // preposition never lands in the name.

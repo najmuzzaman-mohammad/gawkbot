@@ -860,6 +860,14 @@ func (l *Launcher) beginHeadlessCodexTurn(lane headlessLane) (headlessCodexTurn,
 // TaskID that does not match the real task ID, so without the slug fallback
 // an office orchestration turn would silently drop to the tight default.
 func (l *Launcher) headlessCodexTurnTimeoutForTurn(slug string, turn headlessCodexTurn) time.Duration {
+	// App Builder builds are the longest legitimate turns in the system: a
+	// cold first build pays bun install + a full scaffold + dozens of writes.
+	// The 10m office budget force-killed one mid-write on the 2026-08-16
+	// fresh-workspace QA pass ("signal: killed" at exactly 600s) and the
+	// operator watched "Building" for 50 minutes across the kill + recovery.
+	if isAppBuilderSlug(slug) {
+		return headlessCodexAppBuildTurnTimeout
+	}
 	if task := l.timedOutTaskForTurn(slug, turn); task != nil {
 		if strings.EqualFold(strings.TrimSpace(task.ExecutionMode), "local_worktree") {
 			return headlessCodexLocalWorktreeTurnTimeout
@@ -889,6 +897,11 @@ func (l *Launcher) headlessCodexTurnTimeoutForTurn(slug string, turn headlessCod
 // it is not what falsely blocked tasks in prod (the 4m hard timeout was). slug
 // is threaded only to resolve the task identically to the timeout path.
 func (l *Launcher) headlessCodexStaleCancelAfterForTurn(slug string, turn headlessCodexTurn) time.Duration {
+	// Builds join worktree/launch turns as effectively un-preemptable: they
+	// are long, single-shot, and restarting one wastes the most work.
+	if isAppBuilderSlug(slug) {
+		return l.headlessCodexTurnTimeoutForTurn(slug, turn)
+	}
 	if task := l.timedOutTaskForTurn(slug, turn); task != nil {
 		if strings.EqualFold(strings.TrimSpace(task.ExecutionMode), "local_worktree") {
 			return l.headlessCodexTurnTimeoutForTurn(slug, turn)

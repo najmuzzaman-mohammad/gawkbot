@@ -30,6 +30,13 @@ interface RuntimeGuidePanelProps {
    * parent advance the primary button copy to "Next" without re-probing.
    */
   onVerified?: (runtime: string, result: VerifyResult) => void;
+  /**
+   * The runtime already probed as signed in: run verify immediately on mount
+   * and keep the install tutorial collapsed unless the verify FAILS. A
+   * signed-in operator should see their checkmarks, not "1. Install …"
+   * (2026-08-16 fresh-workspace QA).
+   */
+  autoVerify?: boolean;
 }
 
 const STATUS_COPY: Record<
@@ -46,6 +53,7 @@ export function RuntimeGuidePanel({
   runtime,
   label,
   onVerified,
+  autoVerify,
 }: RuntimeGuidePanelProps) {
   const [steps, setSteps] = useState<InstallStep[]>([]);
   const [stepsLoaded, setStepsLoaded] = useState(false);
@@ -82,8 +90,23 @@ export function RuntimeGuidePanel({
 
   const handleVerify = useCallback(() => verify(runtime), [verify, runtime]);
 
+  // Already signed in -> the panel IS the verify: fire it once on mount.
+  const autoFiredRef = useState(() => ({ fired: false }))[0];
+  useEffect(() => {
+    if (autoVerify && !autoFiredRef.fired && phase === "idle") {
+      autoFiredRef.fired = true;
+      verify(runtime);
+    }
+  }, [autoVerify, autoFiredRef, phase, verify, runtime]);
+
   const failedStep = result?.failed_step ?? "";
   const verifying = phase === "running";
+  // With autoVerify the tutorial steps only appear when something FAILED —
+  // a passing signed-in runtime needs no install walkthrough.
+  const showSteps =
+    stepsLoaded &&
+    steps.length > 0 &&
+    (!autoVerify || (phase === "done" && result?.status !== "pass"));
 
   return (
     <section
@@ -93,7 +116,7 @@ export function RuntimeGuidePanel({
     >
       <p className="pre-pick-guide-heading">Set up {label}</p>
 
-      {stepsLoaded && steps.length > 0 ? (
+      {showSteps ? (
         <ol className="pre-pick-guide-steps">
           {steps.map((step, index) => (
             <GuideStep

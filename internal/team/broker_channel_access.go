@@ -25,12 +25,13 @@ import "time"
 // channel-create handler guards against this by rejecting create requests
 // whose slug matches this set; keep the two lists in sync.
 var reservedChannelSlugs = map[string]bool{
-	"system":      true,
-	"nex":         true,
-	"you":         true,
-	"human":       true,
-	"ceo":         true,
-	LibrarianSlug: true,
+	"system":       true,
+	"nex":          true,
+	"you":          true,
+	"human":        true,
+	"ceo":          true,
+	LibrarianSlug:  true,
+	appBuilderSlug: true,
 }
 
 func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
@@ -56,6 +57,15 @@ func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
 	// notifications — those still flow only to channels where it is an enabled
 	// member (or is explicitly @-tagged); see notificationTargetsForMessage.
 	if slug == LibrarianSlug {
+		return true
+	}
+	// The App Builder is a system agent, not a roster member: a fresh
+	// operator workspace deliberately seeds ZERO agents, so membership can
+	// never authorize it — yet it owns every build task and must stream
+	// build narration into the task channel. Without this bypass every
+	// build post bounced with "channel access denied" and the operator
+	// watched a silent build (2026-08-16 fresh-workspace QA).
+	if isAppBuilderSlug(slug) {
 		return true
 	}
 	return b.channelHasMemberLocked(channel, slug)

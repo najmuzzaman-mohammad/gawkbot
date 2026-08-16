@@ -171,7 +171,7 @@ func InstallSteps(name string) []InstallStep {
 			},
 			{
 				Title:   "Sign in to Claude",
-				Detail:  "Sign in once and the office can run turns on your account.",
+				Detail:  "Sign in once and your agents run on your account.",
 				Command: signInCmd,
 			},
 			{

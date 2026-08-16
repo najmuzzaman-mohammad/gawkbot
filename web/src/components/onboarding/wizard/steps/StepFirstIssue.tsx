@@ -27,9 +27,10 @@ import { useCallback } from "react";
 import {
   ONBOARDING_ANALYTICS_CONSENT_COPY,
   ONBOARDING_EMAIL_COPY,
-  ONBOARDING_FIRST_ISSUE_EXAMPLE,
+  ONBOARDING_FIRST_ISSUE_EXAMPLES,
   ONBOARDING_WIZARD_COPY,
   type OnboardingWizardStepProps,
+  pickFirstIssueExample,
 } from "../wizardSteps";
 
 const COPY = ONBOARDING_WIZARD_COPY["first-issue"];
@@ -40,11 +41,12 @@ export function StepFirstIssue({
   setAnswers,
 }: OnboardingWizardStepProps) {
   const resetToExample = useCallback(() => {
-    setAnswers({ firstIssue: ONBOARDING_FIRST_ISSUE_EXAMPLE });
+    setAnswers({ firstIssue: pickFirstIssueExample() });
   }, [setAnswers]);
 
-  const isExample =
-    answers.firstIssue.trim() === ONBOARDING_FIRST_ISSUE_EXAMPLE.trim();
+  const isExample = ONBOARDING_FIRST_ISSUE_EXAMPLES.some(
+    (ex) => answers.firstIssue.trim() === ex.trim(),
+  );
 
   return (
     <div

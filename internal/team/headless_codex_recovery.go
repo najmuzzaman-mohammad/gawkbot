@@ -290,6 +290,11 @@ func headlessTimedOutRetryPrompt(slug string, prompt string, timeout time.Durati
 	note := fmt.Sprintf("Previous attempt by @%s timed out after %s without a durable task handoff. Retry #%d.", strings.TrimSpace(slug), timeout, attempt)
 	if external {
 		note += " This is a live external-action task. Do the smallest useful live external step now. If Slack target discovery is already known, use it. If the first live Slack target fails, retry once against the resolved writable target; if that still fails, pivot immediately to the smallest useful live Notion or Drive action and report the exact blocker. Do not write repo docs or planning artifacts as substitutes."
+	} else if isAppBuilderSlug(slug) {
+		// A timed-out build usually left real progress on disk (scaffold
+		// copied, src files written). Restarting from scratch doubles the
+		// wasted work — RESUME from it.
+		note += " The previous attempt likely left partial work in the app directory. Inspect what is already there and RESUME from it — do not recopy the scaffold or rewrite finished files. Finish the remaining work and register/republish the app before you stop."
 	} else {
 		note += " For this retry, move immediately from claim/status into targeted file reads and edits, then leave the task in review/done/blocked before you stop. If you cannot ship the whole slice, ship the smallest runnable sub-slice and mark that state explicitly."
 	}
@@ -358,7 +363,15 @@ func (l *Launcher) recoverTimedOutHeadlessTurn(slug string, turn headlessCodexTu
 	// Timeouts are never classified as transient stream failures — the
 	// provider was reachable, the turn just ran long — so the transient
 	// office retry does not apply here.
-	if shouldRetryHeadlessTurn(task, turn, false) {
+	//
+	// App Builder builds are the exception: a timed-out build blocked into
+	// the self-heal lane cost the operator a 41-minute silent "Building"
+	// on the 2026-08-16 fresh-workspace QA pass. A prompt requeue (with the
+	// timed-out retry prompt telling the agent to resume, not restart) is
+	// strictly better than the slow escalation for a first-build task.
+	retryable := shouldRetryHeadlessTurn(task, turn, false) ||
+		(isAppBuilderSlug(slug) && turn.Attempts < headlessCodexLocalWorktreeRetryLimit)
+	if retryable {
 		retryTurn := turn
 		retryTurn.Attempts++
 		retryTurn.EnqueuedAt = time.Now()

@@ -766,10 +766,8 @@ export function PrePickScreen({ onComplete }: PrePickScreenProps) {
               <div className="pre-pick-eyebrow">WUPHF</div>
               <h1 className="pre-pick-headline">Pick a default runtime.</h1>
               <p className="pre-pick-subhead">
-                New agents inherit this runtime when they're created — you can
-                change it later in Settings, one agent at a time. Gateway
-                imports (OpenClaw, Hermes) are managed from the Integrations
-                app.
+                New agents run on this engine. You can change it any time in
+                Settings.
               </p>
             </div>
 
@@ -805,6 +803,7 @@ export function PrePickScreen({ onComplete }: PrePickScreenProps) {
                   runtime={expandedRuntime.spec.binary}
                   label={expandedRuntime.spec.label}
                   onVerified={handleVerified}
+                  autoVerify={expandedRuntime.signedIn === true}
                 />
               ) : null}
 
@@ -893,8 +892,7 @@ export function PrePickScreen({ onComplete }: PrePickScreenProps) {
             </div>
 
             <p className="pre-pick-helper">
-              You can change this any time in{" "}
-              <strong>Settings &rarr; Runtimes</strong>.
+              You can change this any time in <strong>Settings</strong>.
             </p>
 
             {submitError ? (

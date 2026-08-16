@@ -1084,3 +1084,18 @@
     display: none;
   }
 }
+
+/* Boot log disclosure: collapsed by default, developer material on demand. */
+.app-build-preview__bootlog {
+  margin-top: var(--space-2, 8px);
+  max-width: 100%;
+}
+.app-build-preview__bootlog > summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--text-secondary, #8a8f98);
+  user-select: none;
+}
+.app-build-preview__bootlog[open] > summary {
+  margin-bottom: 6px;
+}

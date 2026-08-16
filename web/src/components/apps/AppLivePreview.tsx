@@ -107,14 +107,20 @@ export function AppLivePreview({
       <div className="app-build-preview__state" role="status">
         <span className="app-build-preview__spinner" aria-hidden="true" />
         <p className="app-build-preview__state-title">Starting live preview…</p>
+        <p className="app-build-preview__state-detail">
+          Warming up — your agent's page opens here the moment it is ready.
+        </p>
         {data?.boot_log ? (
-          <pre className="app-build-preview__bootlog-text">{data.boot_log}</pre>
-        ) : (
-          <p className="app-build-preview__state-detail">
-            Installing dependencies and booting the dev server — this is a one
-            time warm-up.
-          </p>
-        )}
+          // Raw boot output is developer material: available on demand, never
+          // the default face of a first build (2026-08-16 fresh-workspace QA
+          // put npm dependency lines in front of a brand-new operator).
+          <details className="app-build-preview__bootlog">
+            <summary>Show technical detail</summary>
+            <pre className="app-build-preview__bootlog-text">
+              {data.boot_log}
+            </pre>
+          </details>
+        ) : null}
       </div>
     );
   }

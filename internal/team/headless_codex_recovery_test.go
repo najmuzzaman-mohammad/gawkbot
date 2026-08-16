@@ -262,6 +262,66 @@ func TestShouldRetryHeadlessTurnAllowsOneTransientOfficeRetry(t *testing.T) {
 	}
 }
 
+// 2026-08-16 fresh-workspace QA regression: a timed-out App Builder BUILD
+// turn must requeue promptly with a resume prompt — the old path blocked the
+// task into the slow self-heal lane, and the operator watched "Building" for
+// 41 silent minutes before a recovery turn restarted the build from scratch.
+func TestRecoverTimedOutHeadlessTurnRequeuesAppBuilderBuild(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	b := newTestBroker(t)
+	task := newOfficeModeTaskForTest(t, b)
+
+	l := newHeadlessLauncherForTest(t)
+	l.broker = b
+
+	turn := headlessCodexTurn{
+		Prompt:  "Build the Chase Agent app for #" + task.ID,
+		Channel: task.Channel,
+		TaskID:  task.ID,
+	}
+	lane := l.laneForTurn("app-builder", turn)
+	l.headless.mu.Lock()
+	l.headless.workers[lane] = true // keep the queue inspectable: no worker spawns
+	l.headless.mu.Unlock()
+
+	l.recoverTimedOutHeadlessTurn("app-builder", turn, time.Now().UTC().Add(-2*time.Second), 10*time.Minute)
+
+	l.headless.mu.Lock()
+	queued := append([]headlessCodexTurn(nil), l.headless.queues[lane]...)
+	l.headless.mu.Unlock()
+	if len(queued) != 1 {
+		t.Fatalf("expected one queued timeout-recovery retry for the build, got %+v", queued)
+	}
+	retry := queued[0]
+	if retry.Attempts != 1 {
+		t.Fatalf("expected retry attempt 1, got %+v", retry)
+	}
+	if !strings.Contains(retry.Prompt, "RESUME from it") {
+		t.Fatalf("expected the resume-not-restart note in the retry prompt, got %q", retry.Prompt)
+	}
+
+	updated := taskByIDForTest(t, b, task.ID)
+	if updated.Blocked() || updated.Status() == "blocked" {
+		t.Fatalf("expected the build task to stay active during the prompt retry, got status=%s blocked=%v", updated.Status(), updated.Blocked())
+	}
+
+	// Simulate the retry running and timing out again: drain the queue (a
+	// pending queued turn reads as recovery-in-progress, correctly masking a
+	// duplicate requeue) and recover with the retried turn. Budget spent
+	// (attempts >= 2): the old BlockTask fallback takes over.
+	l.headless.mu.Lock()
+	l.headless.queues[lane] = nil
+	l.headless.mu.Unlock()
+	second := retry
+	second.Attempts = 2
+	l.recoverTimedOutHeadlessTurn("app-builder", second, time.Now().UTC().Add(time.Second), 10*time.Minute)
+	updated = taskByIDForTest(t, b, task.ID)
+	if !updated.Blocked() && updated.Status() != "blocked" {
+		t.Fatalf("expected the budget-spent timeout to fall back to BlockTask, got status=%s blocked=%v", updated.Status(), updated.Blocked())
+	}
+}
+
 func TestRecoverFailedHeadlessTurnRetriesOfficeTaskOnceOnTransientFailure(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 

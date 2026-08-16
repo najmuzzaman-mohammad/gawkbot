@@ -87,8 +87,8 @@ export function AppActivity({ appId }: AppActivityProps) {
       </button>
       {open ? (
         <div className="app-build-activity__list" ref={scrollRef}>
-          {items.map((item) => (
-            <ActivityRow key={item.id} item={item} />
+          {collapseRepeats(items).map(({ item, repeats }) => (
+            <ActivityRow key={item.id} item={item} repeats={repeats} />
           ))}
         </div>
       ) : null}
@@ -96,7 +96,39 @@ export function AppActivity({ appId }: AppActivityProps) {
   );
 }
 
-function ActivityRow({ item }: { item: BuildActivityItem }) {
+/** Merge runs of finished rows that read identically ("Working", "Running a
+ * setup step") into one row with a ×N count — a wall of repeats says less
+ * than one line saying it happened N times. The trailing row stays separate
+ * while it is running so the live spinner keeps its own line. */
+function collapseRepeats(
+  items: BuildActivityItem[],
+): { item: BuildActivityItem; repeats: number }[] {
+  const out: { item: BuildActivityItem; repeats: number }[] = [];
+  for (const item of items) {
+    const prev = out[out.length - 1];
+    if (
+      prev &&
+      prev.item.status === "done" &&
+      item.status === "done" &&
+      prev.item.verb === item.verb &&
+      prev.item.target === item.target
+    ) {
+      prev.repeats += 1;
+      prev.item = item;
+    } else {
+      out.push({ item, repeats: 1 });
+    }
+  }
+  return out;
+}
+
+function ActivityRow({
+  item,
+  repeats = 1,
+}: {
+  item: BuildActivityItem;
+  repeats?: number;
+}) {
   return (
     <div
       className={`app-build-activity__row app-build-activity__row--${item.status}`}
@@ -112,7 +144,10 @@ function ActivityRow({ item }: { item: BuildActivityItem }) {
           "✓"
         )}
       </span>
-      <span className="app-build-activity__verb">{item.verb}</span>
+      <span className="app-build-activity__verb">
+        {item.verb}
+        {repeats > 1 ? ` ×${repeats}` : ""}
+      </span>
       {item.target ? (
         <span className="app-build-activity__target" title={item.target}>
           {item.target}

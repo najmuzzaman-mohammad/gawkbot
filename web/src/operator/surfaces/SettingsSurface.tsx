@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { type ConfigStatus, get, getConfig, post } from "../../api/client";
 import { getUsage } from "../../api/platform";
+import { openProviderSwitcher } from "../../components/ui/ProviderSwitcher";
 import { Eyebrow, SurfaceHeader } from "../components/primitives";
 
 /** 4.6M / 227k style token formatting for the usage readout. */
@@ -40,8 +41,10 @@ export function SettingsSurface() {
     retry: false,
   });
   // Full config snapshot for the read-only Runtime readout.
+  // Shares the office-era ["config"] key: the provider switcher invalidates
+  // it after a switch, so the engine label refreshes without extra wiring.
   const snapshot = useQuery({
-    queryKey: ["operator-config-snapshot"],
+    queryKey: ["config"],
     queryFn: () => getConfig().catch(() => null),
     staleTime: 5 * 60 * 1000,
     retry: false,
@@ -173,9 +176,17 @@ export function SettingsSurface() {
               <div>
                 <div className="opr-set-label">Engine</div>
                 <div className="opr-set-help">
-                  Your agents run on {runtimeLabel}, picked during setup.
+                  Your agents run on {runtimeLabel}. Switching restarts them on
+                  the new engine.
                 </div>
               </div>
+              <button
+                type="button"
+                className="opr-btn opr-btn-sm"
+                onClick={openProviderSwitcher}
+              >
+                Change engine
+              </button>
             </div>
           ) : null}
         </div>

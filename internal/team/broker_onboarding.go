@@ -1,6 +1,7 @@
 package team
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -103,7 +104,10 @@ func (b *Broker) onboardingCompleteFn(task string, skipTask bool, blueprintID st
 	companyName = strings.TrimSpace(companyName)
 	if companyName != "" {
 		if runtimeHome := config.RuntimeHomeDir(); runtimeHome != "" {
-			if err := workspaces.UpdateCompanyNameByRuntimeHome(runtimeHome, companyName); err != nil {
+			// Ad-hoc runtime homes (WUPHF_RUNTIME_HOME pointing outside the
+			// registry) are legitimately absent — the config fallback below
+			// carries the name for them, so not-found is not an error.
+			if err := workspaces.UpdateCompanyNameByRuntimeHome(runtimeHome, companyName); err != nil && !errors.Is(err, workspaces.ErrWorkspaceNotFound) {
 				log.Printf("onboarding: sync company name to registry: %v", err)
 			}
 		}

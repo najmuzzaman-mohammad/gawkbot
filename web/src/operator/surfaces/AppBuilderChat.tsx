@@ -11,7 +11,10 @@ import { ArrowRight, Check, Send, X } from "lucide-react";
 
 import { type CustomApp, listApps, submitAppEdit } from "../../api/apps";
 import { AppActivity } from "../../components/apps/AppActivity";
-import { tryCreateRoutine } from "../agents/agentStateClient";
+import {
+  tryCreateRoutine,
+  tryListRoutines,
+} from "../agents/agentStateClient";
 import { capturePromptSeed, type DemoCapture } from "../apps/demoCapture";
 import {
   appBuildState,
@@ -265,23 +268,18 @@ export function AppBuilderChat({
     setNewAppId(candidate.id);
     setPhase("done");
     const failed = state === "failed";
-    // First-build ceremony: a brand-new agent (not a refine, not a demo-call
-    // build, which creates its own captured routine) gets a starter routine —
-    // the described workflow on a weekly schedule. Told, not asked: the chat
-    // reports it with a one-line veto path (pause on the Routines tab).
+    // First-build ceremony: the BROKER mints the starter routine at
+    // registration (durable — this chat used to own the create and lost it
+    // whenever it unmounted mid-build, 2026-08-16 QA). The chat only
+    // announces what landed, with the one-line veto path.
     if (!(failed || refineId || demo) && starterRoutineRef.current) {
-      const routinePrompt = starterRoutineRef.current;
       starterRoutineRef.current = null;
       void (async () => {
-        const created = await tryCreateRoutine({
-          agent: candidate.id,
-          name: `Weekly ${appName.replace(/\s*Agent$/i, "").trim() || appName} run`,
-          prompt: routinePrompt,
-          schedule: "0 9 * * 1",
-        });
-        if (created) {
+        const routines = await tryListRoutines(candidate.id);
+        const starter = routines?.[0];
+        if (starter) {
           say(
-            "I also set up its weekly routine — Mondays 9:00, running the workflow you described. Pause or reword it any time on the Routines tab.",
+            `I also set up its routine — “${starter.name}” (${humanSchedule(starter.schedule)}), running the workflow you described. Pause or reword it any time on the Routines tab.`,
           );
         }
       })();
@@ -753,7 +751,11 @@ export function AppBuilderChat({
           <input
             className="opr-composer-input"
             aria-label="Describe what this agent should do"
-            placeholder="Describe what this agent should do…"
+            placeholder={
+              phase === "building"
+                ? `One build at a time — “${appName || "this agent"}” is almost ready`
+                : "Describe what this agent should do…"
+            }
             value={draft}
             disabled={phase === "building"}
             onChange={(e) => setDraft(e.target.value)}

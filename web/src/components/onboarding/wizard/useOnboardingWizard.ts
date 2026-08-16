@@ -46,7 +46,7 @@ import {
 import { OPERATOR_FIRST_WORKFLOW_SEED_KEY } from "../../../operator/firstWorkflowSeed";
 import { HOME_COMPOSER_DRAFT_CHANNEL, useAppStore } from "../../../stores/app";
 import {
-  ONBOARDING_FIRST_ISSUE_EXAMPLE,
+  pickFirstIssueExample,
   ONBOARDING_WIZARD_STEP_IDS,
   type OnboardingAnswers,
   type OnboardingWizardStepId,
@@ -103,7 +103,7 @@ function initialAnswers(): OnboardingAnswers {
     ownerRole: "",
     email: "",
     keepInTouch: true,
-    firstIssue: ONBOARDING_FIRST_ISSUE_EXAMPLE,
+    firstIssue: pickFirstIssueExample(),
     telemetryConsent: true,
     recordingConsent: true,
   };

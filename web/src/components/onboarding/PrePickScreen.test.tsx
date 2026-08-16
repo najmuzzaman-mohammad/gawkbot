@@ -751,7 +751,7 @@ describe("CodeRabbit click-handler guard (PR #889)", () => {
         },
         {
           title: "Sign in to Claude",
-          detail: "Sign in once and the office can run turns on your account.",
+          detail: "Sign in once and your agents run on your account.",
           command: "claude auth login",
         },
         { title: "Verify", detail: "Press Verify and we confirm." },

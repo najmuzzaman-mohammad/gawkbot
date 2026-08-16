@@ -92,12 +92,27 @@ export interface OnboardingWizardStepProps {
 }
 
 /**
- * The prefilled first-issue example. RevOps framing: WUPHF operates on the
- * user's CRM, it is not a CRM itself. This is the same example the office tour
- * finish handoff used, kept verbatim so the two surfaces stay in lockstep.
+ * The prefilled first-issue examples. One is picked at mount — the pitch is
+ * "a microapp for EVERY manual workflow", so the prefill must not read as
+ * CRM-only (2026-08-15 fresh-workspace QA: a recruiter or finance operator
+ * saw a RevOps product on every onboarding screen). WUPHF operates on the
+ * user's systems; it is not a CRM.
  */
-export const ONBOARDING_FIRST_ISSUE_EXAMPLE =
-  "Audit our CRM for duplicate accounts, deals missing an owner, and opportunities with no activity in 30 days, then propose a cleanup plan";
+export const ONBOARDING_FIRST_ISSUE_EXAMPLES: readonly string[] = [
+  "Audit our CRM for duplicate accounts, deals missing an owner, and opportunities with no activity in 30 days, then propose a cleanup plan",
+  "Chase our unpaid invoices: find anything past its due date, draft a polite reminder for each customer, and flag 30+ days overdue for my review",
+  "Screen inbound job applications against our role requirements, keep a shortlist of strong candidates, and draft a friendly note for the rest",
+];
+
+/** Back-compat: the canonical example (tests and the tour handoff pin it). */
+export const ONBOARDING_FIRST_ISSUE_EXAMPLE = ONBOARDING_FIRST_ISSUE_EXAMPLES[0];
+
+/** Pick the prefill for this visit. */
+export function pickFirstIssueExample(): string {
+  return ONBOARDING_FIRST_ISSUE_EXAMPLES[
+    Math.floor(Math.random() * ONBOARDING_FIRST_ISSUE_EXAMPLES.length)
+  ];
+}
 
 /**
  * Per-step copy. `eyebrow` is the small-caps kicker above the headline,
@@ -115,17 +130,17 @@ export const ONBOARDING_WIZARD_COPY: Record<
   meet: {
     eyebrow: "WELCOME TO WUPHF",
     headline: "Meet WUPHF.",
-    body: "WUPHF is where you spin up AI agents that run your workflows end to end. Each agent owns one workflow, runs it start to finish, and reports back in a channel you can see.",
+    body: "WUPHF is where you spin up AI agents that run your workflows end to end. Each agent owns one workflow, runs it start to finish, and reports back in its own chat.",
   },
   wiki: {
     eyebrow: "YOUR COMPANY BRAIN",
     headline: "Write the rules once.",
-    body: "Your company brain holds the rules your agents run on. Capture account tiering, deal stages, and the dedupe policy a single time, and every agent reads them as first-class context before it touches a record.",
+    body: "Your company brain holds the rules your agents run on. Write down how you score a lead, when an invoice counts as overdue, or what makes a ticket urgent — once — and every agent reads it before touching your data.",
   },
   "first-issue": {
     eyebrow: "YOUR FIRST WORKFLOW",
     headline: "Hand off your first workflow.",
-    body: "Write the first thing you want run. We prefilled a CRM cleanup so there is real work the moment you walk in. Edit it, or write your own.",
+    body: "Write the first thing you want run. We prefilled an example so there is real work the moment you walk in. Edit it, or write your own.",
   },
 };
 
@@ -249,7 +264,7 @@ export const ONBOARDING_WIZARD_LABELS = {
    * look around first. Maps to the broker's skip_task path. The only escape in
    * the wizard (no Esc, no skip-all).
    */
-  firstIssueSkip: "Skip and explore the office first",
+  firstIssueSkip: "Skip and look around first",
   /** Shown while the broker seeds the office after Finish. */
   seeding: "Setting up your office…",
 } as const;

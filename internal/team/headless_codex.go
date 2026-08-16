@@ -118,7 +118,12 @@ var (
 	// force-killed legitimate orchestration mid-flight — the recovery path
 	// then blocked the office task, leaving its work half-done. Give office
 	// turns their own generous budget, operator-tunable via WUPHF_OFFICE_TIMEOUT.
-	headlessCodexOfficeTurnTimeout        = headlessCodexTurnTimeoutEnv("WUPHF_OFFICE_TIMEOUT", 10*time.Minute)
+	headlessCodexOfficeTurnTimeout = headlessCodexTurnTimeoutEnv("WUPHF_OFFICE_TIMEOUT", 10*time.Minute)
+	// App Builder builds: cold-start installs + full scaffold writes make
+	// these the longest legitimate turns. Killed at the 10m office budget,
+	// a first build burns the whole turn and restarts from scratch on
+	// recovery (2026-08-16 QA: 50-minute first build).
+	headlessCodexAppBuildTurnTimeout      = headlessCodexTurnTimeoutEnv("WUPHF_BUILD_TIMEOUT", 25*time.Minute)
 	headlessCodexOfficeLaunchTurnTimeout  = headlessCodexTurnTimeoutEnv("WUPHF_OFFICE_LAUNCH_TIMEOUT", 10*time.Minute)
 	headlessCodexLocalWorktreeTurnTimeout = headlessCodexTurnTimeoutEnv("WUPHF_WORKTREE_TIMEOUT", 12*time.Minute)
 	headlessCodexStaleCancelAfter         = 90 * time.Second

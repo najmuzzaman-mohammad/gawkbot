@@ -324,6 +324,29 @@ func (b *Broker) normalizeLoadedStateLocked() {
 			b.tasks[i].Channel = "general"
 		}
 	}
+	// Heal task channels missing their own task's owner. A workspace seeded
+	// before the App Builder was registered minted its first build channel
+	// with no agent member, so every streamed build post bounced with
+	// "channel access denied" (2026-08-16 fresh-workspace QA). The owner is
+	// only added when it is a registered member now.
+	ownerByChannel := make(map[string]string, len(b.tasks))
+	for i := range b.tasks {
+		if owner := normalizeActorSlug(b.tasks[i].Owner); owner != "" {
+			ownerByChannel[normalizeChannelSlug(b.tasks[i].Channel)] = owner
+		}
+	}
+	for i := range b.channels {
+		if strings.TrimSpace(b.channels[i].TaskID) == "" {
+			continue
+		}
+		owner := ownerByChannel[b.channels[i].Slug]
+		if owner == "" || owner == "ceo" || isHumanMessageSender(owner) ||
+			b.findMemberLocked(owner) == nil ||
+			containsString(b.channels[i].Members, owner) {
+			continue
+		}
+		b.channels[i].Members = uniqueSlugs(append(b.channels[i].Members, owner))
+	}
 	for i := range b.requests {
 		if strings.TrimSpace(b.requests[i].Channel) == "" {
 			b.requests[i].Channel = "general"

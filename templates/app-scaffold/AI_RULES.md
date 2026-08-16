@@ -450,3 +450,12 @@ power the live preview's **select to edit** and runtime-error surfacing. They ar
 dev-only — `vite.config.ts` injects the inspector and the production single-file
 build strips all of it — so leave both in place. You may freely rewrite
 `src/main.tsx`; the inspector loads via `index.html`, not the entry file.
+
+## Integration copy — point at the host, not invented surfaces
+
+When an integration is not connected, say so plainly and stop. The HOST
+renders the connect affordance (a banner with a real Connect button above
+your app). NEVER invent navigation like "Settings → Integrations" — those
+surfaces are the host's, they move, and wrong directions strand the
+operator. Good: "Gmail is not connected yet — use the Connect button
+above." Bad: "Connect Gmail in Settings → Integrations."

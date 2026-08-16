@@ -169,18 +169,26 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
     /\b(hygiene|dedupe|duplicate|clean[- ]?up|data quality)\b/i,
     "CRM Hygiene Agent",
   ],
+  // Recruiting outranks lead routing: hiring language ("score fit", "inbound
+  // applicants") reuses scoring/routing verbs, so the noun cues must win.
   [
-    /\b(lead|score|scoring|route|routing|inbound|demo request)\b/i,
+    /\b(hiring|recruit(?:ing|er)?|candidates?|interviews?|applicants?|job applications?)\b/i,
+    "Recruiting Agent",
+  ],
+  // Nouns accept plurals; bare verbs ("score", "route", "inbound") are gone —
+  // they collide with every other domain ("score a task", "inbound tickets").
+  [
+    /\b(leads?|lead routing|demo requests?)\b/i,
     "Lead Routing Agent",
   ],
-  [/\b(pipeline|deal|forecast)\b/i, "Pipeline Agent"],
-  [/\b(sales|quota|outreach|prospect)\b/i, "Sales Agent"],
-  [/\b(support|ticket|escalation|incident)\b/i, "Support Triage Agent"],
-  [/\b(expense|invoice|reimburse|billing|spend)\b/i, "Expense Agent"],
-  [/\b(email|inbox|follow[- ]?up|reply|nurture)\b/i, "Follow-up Agent"],
-  [/\b(report|summar|digest|dashboard|recap|kpi|metric)\b/i, "Reporting Agent"],
-  [/\b(onboard|welcome|signup|sign-up)\b/i, "Onboarding Agent"],
-  [/\b(hiring|recruit|candidate|interview)\b/i, "Recruiting Agent"],
+  [/\b(pipelines?|deals?|forecasts?)\b/i, "Pipeline Agent"],
+  [/\b(sales|quotas?|outreach|prospects?)\b/i, "Sales Agent"],
+  [/\b(support|tickets?|escalations?|incidents?)\b/i, "Support Triage Agent"],
+  [/\b(invoices?|billing|receivables?|dunning)\b/i, "Invoice Agent"],
+  [/\b(expenses?|reimburse|spend)\b/i, "Expense Agent"],
+  [/\b(email|inbox|follow[- ]?ups?|replies|nurture)\b/i, "Follow-up Agent"],
+  [/\b(reports?|summar|digests?|dashboards?|recaps?|kpis?|metrics?)\b/i, "Reporting Agent"],
+  [/\b(onboard|welcome|signups?|sign-ups?)\b/i, "Onboarding Agent"],
 ];
 
 // Relative pronouns, prepositions, and other connectives that must never land
