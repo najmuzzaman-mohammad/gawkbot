@@ -25,6 +25,10 @@ interface ToolBuildResult {
   /** How the agent authored it: a real model, or the deterministic stub the
    * service falls back to when no model is available on that machine. */
   authored_by?: "model" | "stub";
+  /** Which authoring route the service resolved. "none" = nothing configured;
+   * any other value with authored_by "stub" means the model was tried and
+   * the attempt failed (a retryable state, not a setup problem). */
+  via?: string;
 }
 
 let seq = 0;
@@ -56,6 +60,9 @@ export interface BuiltTool {
   /** "stub" when the service answered with its canned template because no
    * model is connected — callers must NOT present that as a built tool. */
   authoredBy: "model" | "stub";
+  /** True when a model IS configured but this authoring attempt failed —
+   * the right copy is "try again", not "connect a model". */
+  modelTriedAndFailed: boolean;
 }
 
 /**
@@ -87,6 +94,10 @@ export async function buildToolFromChat(
       offline: false,
       // Older services omit the field; they only ever stub-authored.
       authoredBy: data.authored_by ?? "stub",
+      modelTriedAndFailed:
+        (data.authored_by ?? "stub") === "stub" &&
+        data.via != null &&
+        data.via !== "none",
     };
   } catch {
     const tool = authorToolFromDescription(message);
@@ -95,6 +106,7 @@ export async function buildToolFromChat(
       narration: `Built ${tool.title}.`,
       offline: true,
       authoredBy: "stub",
+      modelTriedAndFailed: false,
     };
   }
 }

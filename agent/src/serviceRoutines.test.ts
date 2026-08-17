@@ -114,6 +114,16 @@ test("POST /tools/build with app persists the tool; same name bumps version", as
 	expect(((await (await fetch(`${base}/tools?agent=sales`)).json()) as { tools: StoredTool[] }).tools).toHaveLength(1);
 });
 
+test("POST /tools/build reports the resolved authoring route as via", async () => {
+	// The FE branches its stub copy on this: via "none" means nothing is
+	// configured; a real route with a stub result means the model attempt
+	// failed and the operator should retry, not reconfigure.
+	const r = (await (await post("/tools/build", { schema_version: 1, message: "summarize open invoices" })).json()) as {
+		via: string;
+	};
+	expect(r.via).toBe("api_key");
+});
+
 test("POST /routines/run (a broker fire) lands transcript + artifact and reports back", async () => {
 	const res = await post("/routines/run", {
 		schema_version: 1,

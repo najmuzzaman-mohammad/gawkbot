@@ -214,6 +214,12 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
   [/\b(stand-?ups?)\b/i, "Standup Agent"],
   [/\b(sprints?|velocity|story points?)\b/i, "Sprint Planning Agent"],
   [/\b(retros?|retrospectives?)\b/i, "Retro Agent"],
+  // Facilities vocabulary ("tenant maintenance requests") reuses request/
+  // ticket verbs, so its nouns must outrank support triage.
+  [
+    /\b(maintenance|tenants?|work orders?|facilities)\b/i,
+    "Maintenance Agent",
+  ],
   // Incident management (SRE vocabulary) is not support triage.
   // "on-call" deliberately absent: rotation staffing shows up in sprint
   // planning too, and the strong nouns below carry incident management.

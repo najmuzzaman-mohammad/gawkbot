@@ -171,10 +171,16 @@ export function createServer(opts: ServerOptions = {}) {
 				// the operator's Tools list as if it were their workflow was the worst
 				// finding of the 2026-08-15 QA pass. The stub still rides the response
 				// (labeled) so harness callers keep a deterministic shape.
+				// `via` tells the caller WHY a stub came back: "none" means nothing
+				// is configured (connect-a-model copy is right); anything else means
+				// the model was tried and failed (retry copy is right). Conflating
+				// the two told operators to "connect Claude Code" on machines where
+				// it was already connected (2026-08-17 eval8 finding).
+				const via = authoring?.via ?? "none";
 				if (app && outcome.tool && outcome.authored_by === "model") {
-					return json({ ...outcome, tool: store.upsertTool(app, outcome.tool) });
+					return json({ ...outcome, via, tool: store.upsertTool(app, outcome.tool) });
 				}
-				return json(outcome);
+				return json({ ...outcome, via });
 			}
 
 			if (req.method === "GET" && pathname === "/tools") {

@@ -176,6 +176,42 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
     expect(queryByText("Draft a board update")).toBeNull();
   });
 
+  it("stub with a configured route reads as a failed attempt, not missing setup", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          tool: {
+            name: "vendorResponseSummary",
+            title: "Vendor response summary",
+            purpose: "canned",
+            inputs: [],
+            code: "function vendorResponseSummary() {}",
+          },
+          narration: "Built Vendor response summary.",
+          authored_by: "stub",
+          via: "claude_cli",
+        }),
+      }),
+    );
+    const { getByLabelText, findByText, queryByText } = renderApp();
+    const input = getByLabelText(
+      "Describe a task for Nex to build a tool for",
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { value: "summarize vendor response times" },
+    });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    // A model IS connected; the attempt failed. Telling the operator to
+    // "connect Claude Code" here was the eval8 misdiagnosis.
+    expect(await findByText(/model call failed/i)).toBeTruthy();
+    expect(queryByText(/no AI model connected/i)).toBeNull();
+    // The canned stub tool still must not land in Tools.
+    expect(queryByText("Vendor response summary")).toBeNull();
+  });
+
   it("re-teaching the same workflow updates the tool in place (no duplicate)", async () => {
     vi.stubGlobal(
       "fetch",

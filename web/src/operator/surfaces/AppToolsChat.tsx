@@ -413,7 +413,8 @@ export function AppToolsChat({
       // render that call and drop the tool into the shared Tools state. The
       // `app` field carries the REAL agent id when the provider has one, so the
       // service persists the tool per-agent.
-      const { tool, offline, authoredBy, narration } = await buildToolFromChat(
+      const { tool, offline, authoredBy, narration, modelTriedAndFailed } =
+        await buildToolFromChat(
         body,
         agentId ?? appName,
       );
@@ -445,12 +446,14 @@ export function AppToolsChat({
         return;
       }
       if (authoredBy === "stub") {
-        // The service answered, but with its canned template — no model is
-        // connected on that machine. A template pretending to be the
-        // operator's workflow is worse than nothing (2026-08-15 QA pass), so
-        // say what's missing instead of minting it into Tools.
-        const reply =
-          "I cannot author tools on this computer yet — there is no AI model connected for me to write them with. Connect Claude Code, an Anthropic API key, or Ollama, then teach me again.";
+        // The service answered, but with its canned template. Two very
+        // different states end here: no model configured (setup copy), or a
+        // configured model whose attempt failed (retry copy). Telling an
+        // operator to "connect Claude Code" on a machine where it is already
+        // connected was the eval8 finding — diagnose honestly.
+        const reply = modelTriedAndFailed
+          ? "I hit an error writing that tool — the model call failed mid-draft. Nothing was saved. Teach me again and I will take another run at it."
+          : "I cannot author tools on this computer yet — there is no AI model connected for me to write them with. Connect Claude Code, an Anthropic API key, or Ollama, then teach me again.";
         setItems((prev) => [
           ...prev,
           { kind: "text", id: nextId(), from: "nex", body: reply },

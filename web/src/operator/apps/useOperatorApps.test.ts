@@ -178,6 +178,14 @@ describe("deriveAppName", () => {
     ).toBe("Sprint Planning Agent");
   });
 
+  it("names tenant maintenance dispatch Maintenance Agent, not a verb fallback", () => {
+    expect(
+      deriveAppName(
+        "Handle our tenant maintenance requests: classify urgency, match to the right vendor, track response time",
+      ),
+    ).toBe("Maintenance Agent");
+  });
+
   it("names a renewals radar Renewals Agent, not Follow-up", () => {
     expect(
       deriveAppName(
