@@ -211,6 +211,15 @@ type taskCompletionEntity struct {
 //
 // Bounded to maxTaskCompletionEntities, first-seen order.
 func taskCompletionEntities(task teamTask) []taskCompletionEntity {
+	// App Builder build/improve tasks talk exclusively about the workspace's
+	// OWN machinery — extracting "companies" from them minted garbage entity
+	// pages ("Deal Desk Agent is a company", "Db Approved is a company") that
+	// taught the operator not to trust the brain (2026-08-17 quality audit).
+	// Their @mentions carry no customer knowledge either; skip entirely.
+	if isAppBuilderSlug(task.Owner) ||
+		strings.HasPrefix(strings.TrimSpace(task.Title), "Build app:") {
+		return nil
+	}
 	goal := ""
 	deliverableText := ""
 	if def := task.Definition; def != nil {

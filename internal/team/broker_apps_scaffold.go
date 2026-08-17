@@ -102,7 +102,7 @@ func (b *Broker) maybePrescaffoldAppForCreate(action, channel string, body TaskP
 		return body
 	}
 
-	body.Details = strings.TrimRight(body.Details, "\n") + "\n\n" + appWorkspaceBrief(id)
+	body.Details = strings.TrimRight(body.Details, "\n") + "\n\n" + appWorkspaceBrief(id, b.appStore().SrcDir(id))
 	return body
 }
 
@@ -163,12 +163,14 @@ const appWorkspaceBriefMarker = "App workspace ready:"
 // appWorkspaceBrief is the instruction appended to a pre-scaffolded app's task:
 // build your version, then publish with this exact id so the live preview and
 // version history stay on one app.
-func appWorkspaceBrief(id string) string {
+func appWorkspaceBrief(id, srcDir string) string {
 	return fmt.Sprintf(
 		"%s a project for this app is already scaffolded and showing a LIVE preview as `%s`. "+
-			"Build your version from the scaffold, then publish with register_app(app_id=%s) — "+
-			"keep that exact id so the preview and version history stay on this one app. "+
-			"Publish early and iterate; every register_app hot-reloads the live preview.",
-		appWorkspaceBriefMarker, id, id,
+			"The project source lives at `%s` — work there directly (no searching for it, "+
+			"no copying scaffolds). Build your version from the scaffold, then publish with "+
+			"register_app(app_id=%s) — keep that exact id so the preview and version history "+
+			"stay on this one app. Publish early and iterate; every register_app hot-reloads "+
+			"the live preview.",
+		appWorkspaceBriefMarker, id, srcDir, id,
 	)
 }

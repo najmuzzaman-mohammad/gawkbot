@@ -67,6 +67,22 @@ describe("AppDataTab", () => {
     expect(getByText("2 rows")).toBeTruthy();
   });
 
+  it("renders a bare date as a local calendar date, not a TZ-shifted timestamp", async () => {
+    get.mockResolvedValue({
+      tables: [
+        {
+          name: "Accounts",
+          columns: [{ name: "renewalDate", type: "date" }],
+          rows: [{ renewalDate: "2026-09-16" }],
+        },
+      ],
+    });
+    const { getByText } = wrap(<AppDataTab appId="app_abc" />);
+    // "2026-09-16" must stay Sep 16 in every timezone (UTC-midnight parsing
+    // used to render it as the previous local day with a bogus 5:00 PM).
+    await waitFor(() => expect(getByText(/Sep 16, 2026/)).toBeTruthy());
+  });
+
   it("frames the populated view as the agent's own exportable database", async () => {
     get.mockResolvedValue({
       tables: [

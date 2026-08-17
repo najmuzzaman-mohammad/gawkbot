@@ -1,6 +1,7 @@
 package team
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
@@ -76,6 +77,75 @@ func (b *Broker) buildDescriptionForApp(app CustomApp) string {
 	return ""
 }
 
+
+
+// publishOddity returns a human-readable description of what looks wrong with
+// a freshly published app page, or "" when nothing stands out. Deterministic
+// on purpose: no model call, no false authority — just the two failure shapes
+// the quality audits actually observed (scaffold placeholder shipped as the
+// final app; a bundle too small to hold the refine+Mantine stack).
+func publishOddity(html string) string {
+	switch {
+	case strings.Contains(html, "Building your agent…"):
+		return "the published page still shows the scaffold placeholder — the build may not have replaced the starter screen"
+	case len(html) < 20_000:
+		return "the published bundle is unusually small — the page may be missing its real interface"
+	}
+	return ""
+}
+
+// advisePublishOddities is the deterministic "look at your own output once"
+// check (2026-08-17 quality audit: every area's worst defect traced to the
+// system never inspecting what it produced; the old LLM acceptance gate was
+// removed for wedging tasks — this one is advisory, cheap, and never blocks
+// or reopens anything). On a suspicious publish it posts ONE honest line to
+// the app's edit channel.
+func (b *Broker) advisePublishOddities(app CustomApp) {
+	fresh, html, err := b.appStore().Get(app.ID)
+	if err != nil {
+		return
+	}
+	app = fresh
+	oddity := publishOddity(html)
+	if oddity == "" || strings.TrimSpace(app.EditChannel) == "" {
+		return
+	}
+	msg := fmt.Sprintf("Heads up on %q: %s. Open the agent to check, and tell me what to fix here if it looks wrong.", app.Name, oddity)
+	if _, err := b.PostMessage(appBuilderSlug, app.EditChannel, msg, nil, ""); err != nil {
+		log.Printf("publish-advisory: %s: %v", app.ID, err)
+	}
+}
+
+// mintOperatorPlaybookForFirstBuild captures the operator's described
+// workflow into the company brain at first registration — VERBATIM, with
+// provenance. Onboarding promises "write the rules once and every agent
+// reads them", but until now nothing ever wrote the operator's rules INTO
+// the brain: the description (thresholds, tiers, cadences) lived only
+// inside the built app (2026-08-17 quality audit — the wiki held agent
+// SOULs and app self-guides, never the operator's own policy).
+func (b *Broker) mintOperatorPlaybookForFirstBuild(app CustomApp, description string) {
+	worker := b.WikiWorker()
+	if worker == nil || strings.TrimSpace(description) == "" {
+		return
+	}
+	slug := strings.TrimSpace(app.Slug)
+	if slug == "" {
+		slug = strings.TrimSpace(app.ID)
+	}
+	path := "team/playbooks/" + slug + ".md"
+	if !wikiArticleIsNew(worker.Repo(), path) {
+		return
+	}
+	quoted := "> " + strings.ReplaceAll(strings.TrimSpace(description), "\n", "\n> ")
+	content := fmt.Sprintf(
+		"# %s — the operator's workflow\n\nCaptured verbatim from the build request. This is the rule %s runs on; edit it here as your process evolves — agents read this page as first-class context.\n\n%s\n",
+		app.Name, app.Name, quoted,
+	)
+	if _, _, err := worker.Enqueue(context.Background(), appBuilderSlug, path, content, "create", "Capture the operator's described workflow at first build"); err != nil {
+		log.Printf("playbook-mint: %s: %v", app.ID, err)
+	}
+}
+
 // mintStarterRoutineForFirstBuild creates the standing routine for a
 // human-initiated FIRST build (version 1). No-ops for refines, agent-created
 // apps, apps whose agent already has a routine, or descriptions we cannot
@@ -89,6 +159,7 @@ func (b *Broker) mintStarterRoutineForFirstBuild(app CustomApp) {
 	if description == "" {
 		return
 	}
+	b.mintOperatorPlaybookForFirstBuild(app, description)
 	expr, prefix := deriveStarterSchedule(description)
 	sched, err := calendar.ParseCron(expr)
 	if err != nil {

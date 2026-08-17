@@ -204,6 +204,14 @@ func (s *customAppStore) appDir(id string) string {
 	return filepath.Join(s.root, id)
 }
 
+// SrcDir is the app project's source root ("<appDir>/src") — the directory a
+// build works in. Exposed so the workspace brief can name the exact path and
+// the builder stops burning turns rediscovering it (2026-08-17 quality audit:
+// one build spent 25 ToolSearch + 67 Bash calls, much of it locating files).
+func (s *customAppStore) SrcDir(id string) string {
+	return filepath.Join(s.appDir(id), "src")
+}
+
 // List returns all apps, most-recently-updated first.
 func (s *customAppStore) List() ([]CustomApp, error) {
 	s.mu.Lock()

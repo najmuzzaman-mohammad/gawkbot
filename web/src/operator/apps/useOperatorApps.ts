@@ -215,8 +215,13 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
   [/\b(sprints?|velocity|story points?)\b/i, "Sprint Planning Agent"],
   [/\b(retros?|retrospectives?)\b/i, "Retro Agent"],
   // Incident management (SRE vocabulary) is not support triage.
-  [/\b(incidents?|postmortems?|outages?|on-call|mttr)\b/i, "Incident Agent"],
+  // "on-call" deliberately absent: rotation staffing shows up in sprint
+  // planning too, and the strong nouns below carry incident management.
+  [/\b(incidents?|postmortems?|outages?|mttr)\b/i, "Incident Agent"],
   [/\b(support|tickets?|escalations?)\b/i, "Support Triage Agent"],
+  // Renewals outrank follow-up: a renewals radar drafts check-ins, but the
+  // job is the renewal book, not the email.
+  [/\b(renewals?|churn)\b/i, "Renewals Agent"],
   [/\b(invoices?|billing|receivables?|dunning)\b/i, "Invoice Agent"],
   [/\b(expenses?|reimburse|spend)\b/i, "Expense Agent"],
   [/\b(email|inbox|follow[- ]?ups?|replies|nurture)\b/i, "Follow-up Agent"],

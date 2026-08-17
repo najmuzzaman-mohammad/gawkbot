@@ -476,3 +476,33 @@ rejection in an empty catch: tell the operator what happened where they are
 looking ("The confirmation was still open — finish it and try again", "That
 did not go through — try again"), and leave the row/state unchanged so the
 retry is obvious. A silent failure reads as a broken button.
+
+## Data provenance is sacred — no invented rows, no Meta tables
+
+Every persisted row must trace to a bridge source (integration, office data)
+or something the operator typed. NEVER seed placeholder records ("Engineer 1"
+… "Engineer 6", sample deals) into the database — placeholders in the DB are
+indistinguishable from facts and poison every number computed from them.
+When a source is empty, render the honest empty state and let the operator
+add the first real record. If the workspace itself is the only data (no
+integration connected), never persist AI analysis OF THE WORKSPACE'S OWN
+SCAFFOLDING (your build task is not a deal). And no `*Meta` tables holding a
+single "initialized" sentinel — derive first-run from whether the real
+tables are empty.
+
+## Every user-triggered write gets visible feedback
+
+Use `@mantine/notifications` (already a dependency — mount `<Notifications />`
+once in main.tsx) or an inline status line: saving, saved, failed. A silent
+`.catch(() => {})` on a user-triggered write is forbidden — if the write can
+fail, the operator hears about it where they clicked.
+
+## Post-submit copy must describe surfaces that exist
+
+The host shell has NO "inbox", no task board, and no notifications center —
+its only surfaces are this app's tabs and the agent chat panel. After a
+successful `create_task` or approval-style submit, never write "check your
+inbox" or point at any surface you have not seen in the host. The honest
+line is: "Submitted — the team picked it up. You will be pinged in the agent
+chat when it needs your sign-off." Copy that sends the operator hunting for
+a page that does not exist reads as a bug even when the write succeeded.

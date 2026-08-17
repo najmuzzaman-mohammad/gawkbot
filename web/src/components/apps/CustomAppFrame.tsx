@@ -10,7 +10,7 @@ import { showNotice } from "../ui/Toast";
  *
  * Security model (the iframe is the real boundary, not the write-time HTML
  * validator):
- *   - sandbox="allow-scripts" only — no allow-same-origin, so the app runs at an
+ *   - sandbox="allow-scripts allow-forms" — no allow-same-origin, so the app runs at an
  *     opaque origin with no access to cookies, localStorage, or the parent DOM;
  *     no allow-forms / allow-popups / allow-top-navigation / allow-downloads.
  *     Downloads do NOT need allow-downloads: an opaque-origin blob anchor-click
@@ -1163,7 +1163,7 @@ export function CustomAppFrame({
         ref={iframeRef}
         className="custom-app-frame"
         title={title}
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts allow-same-origin allow-forms"
         src={devUrl}
       />
     );
@@ -1174,7 +1174,11 @@ export function CustomAppFrame({
       ref={iframeRef}
       className="custom-app-frame"
       title={title}
-      sandbox="allow-scripts"
+      // allow-forms only re-enables the submit EVENT (without it Chrome never
+      // dispatches submit in a sandboxed frame, so React onSubmit handlers
+      // silently never run — native <form> apps dead-end with zero feedback).
+      // Actual form navigation stays blocked by form-action 'none' in APP_CSP.
+      sandbox="allow-scripts allow-forms"
       srcDoc={srcDoc}
     />
   );

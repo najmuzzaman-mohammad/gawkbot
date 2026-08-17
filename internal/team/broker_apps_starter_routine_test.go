@@ -1,6 +1,9 @@
 package team
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -181,5 +184,71 @@ func TestPrescaffoldNeverReusesAPublishedAgentsID(t *testing.T) {
 	})
 	if got, _ := parseAppBuilderTaskAppID(third.Details); got != secondID {
 		t.Fatalf("expected the building leftover %s to be resumed, got %s", secondID, got)
+	}
+}
+
+// 2026-08-17 quality audit: the company brain never held the operator's own
+// rules — the described workflow lived only inside the built app. First
+// registration now captures it verbatim as a playbook page.
+func TestMintOperatorPlaybookForFirstBuild(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := filepath.Join(t.TempDir(), "wiki")
+	backup := filepath.Join(t.TempDir(), "wiki.bak")
+	repo := NewRepoAt(root, backup)
+	if err := repo.Init(context.Background()); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	b := newTestBroker(t)
+	worker := NewWikiWorker(repo, b)
+	ctx, cancel := context.WithCancel(context.Background())
+	worker.Start(ctx)
+	// Stop (not just cancel) so the worker's async side goroutines — e.g. the
+	// playbook auto-recompile — finish before TempDir cleanup, which otherwise
+	// races their git writes and fails with "directory not empty".
+	t.Cleanup(func() {
+		worker.Stop()
+		cancel()
+	})
+	b.mu.Lock()
+	b.wikiWorker = worker
+	b.mu.Unlock()
+
+	app := CustomApp{
+		ID:   "app_00000000000000bb",
+		Slug: "deal-desk",
+		Name: "Deal Desk",
+	}
+	desc := "Run our deal desk. Up to 10% any rep can give, 10-20% needs my sign-off under 50k ARR, over 20% or multi-year escalates to the CFO."
+	b.mintOperatorPlaybookForFirstBuild(app, desc)
+
+	path := filepath.Join(root, "team", "playbooks", "deal-desk.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("expected the playbook page at %s: %v", path, err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "the operator's workflow") ||
+		!strings.Contains(content, "escalates to the CFO") {
+		t.Fatalf("playbook page missing the verbatim rules, got:\n%s", content)
+	}
+
+	// Never overwrite an existing page the operator may have edited.
+	b.mintOperatorPlaybookForFirstBuild(app, "totally different text")
+	data2, _ := os.ReadFile(path)
+	if !strings.Contains(string(data2), "escalates to the CFO") {
+		t.Fatalf("re-mint overwrote the operator's page")
+	}
+}
+
+func TestPublishOddity(t *testing.T) {
+	big := strings.Repeat("<div>real interface</div>", 2000)
+	if got := publishOddity(big); got != "" {
+		t.Fatalf("healthy publish flagged: %q", got)
+	}
+	if got := publishOddity("Building your agent…" + big); !strings.Contains(got, "placeholder") {
+		t.Fatalf("placeholder publish not flagged: %q", got)
+	}
+	if got := publishOddity("<html>tiny</html>"); !strings.Contains(got, "unusually small") {
+		t.Fatalf("tiny publish not flagged: %q", got)
 	}
 }

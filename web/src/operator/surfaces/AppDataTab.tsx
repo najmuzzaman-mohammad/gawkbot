@@ -156,8 +156,22 @@ type Parsed =
   | { kind: "record"; value: Record<string, unknown> };
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+const BARE_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function humanizeDate(iso: string): string {
+  // A bare date ("2026-09-16") has no time and no timezone. Date.parse reads
+  // it as UTC midnight, so toLocaleString would shift it into the previous
+  // local day ("Sep 15, 5:00 PM"). Build it from parts as a local date and
+  // show no time-of-day the data never had.
+  const bare = BARE_DATE_RE.exec(iso);
+  if (bare) {
+    const d = new Date(Number(bare[1]), Number(bare[2]) - 1, Number(bare[3]));
+    return d.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString(undefined, {

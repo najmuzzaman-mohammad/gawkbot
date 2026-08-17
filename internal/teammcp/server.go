@@ -258,6 +258,15 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 			"human_message",
 			"Send a direct note to the human.",
 		), handleHumanMessage)
+		// The builder's turn prompt tells it to complete its build task; the
+		// lean set previously omitted team_task, so every build ended with
+		// the instruction pointing at a tool that did not exist and the task
+		// left dangling for the durability heuristics to settle (2026-08-17
+		// quality audit, pipeline lens).
+		mcp.AddTool(server, officeWriteTool(
+			"team_task",
+			"Update your build task: claim, complete, or block it with a reason.",
+		), handleTeamTask)
 		registerContextTools(server)
 		registerSharedMemoryTools(server)
 		registerRoutineTools(server)

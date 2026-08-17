@@ -178,6 +178,14 @@ describe("deriveAppName", () => {
     ).toBe("Sprint Planning Agent");
   });
 
+  it("names a renewals radar Renewals Agent, not Follow-up", () => {
+    expect(
+      deriveAppName(
+        "Watch our renewals: flag accounts renewing inside 90 days and draft a check-in email",
+      ),
+    ).toBe("Renewals Agent");
+  });
+
   it("names incident tracking Incident Agent, not Support Triage", () => {
     expect(
       deriveAppName(
@@ -263,8 +271,8 @@ describe("deriveAppName", () => {
 
   it("caps a function-word cut at four words", () => {
     expect(
-      deriveAppName("a vendor contract renewal reminder tool for legal"),
-    ).toBe("Vendor Contract Renewal Reminder Agent");
+      deriveAppName("a vendor security questionnaire response tool for legal"),
+    ).toBe("Vendor Security Questionnaire Response Agent");
   });
 
   it("caps the synthesized lead at three words when no function word appears", () => {

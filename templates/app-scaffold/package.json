@@ -15,7 +15,8 @@
     "@refinedev/react-table": "^6.0.0",
     "@tanstack/react-table": "^8.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@mantine/notifications": "^9.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

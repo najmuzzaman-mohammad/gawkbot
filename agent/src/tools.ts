@@ -14,6 +14,7 @@
 import { complete, type Context, type Model, type StreamOptions } from "@mariozechner/pi-ai";
 import { apiKeyFor, resolveModel } from "./model.js";
 import { asError, deadlineSignal, textOf } from "./modelCall.js";
+import { runTool } from "./toolRuntime.js";
 import { extractJson, type Tool, type ToolBuildResult, type ToolInput } from "./wire.js";
 
 interface Shape {
@@ -199,11 +200,22 @@ The code runs against these capabilities (use them; do not invent others). All a
 - nex.ai.score(subject, { rubric }) -> number 0-100
 - nex.ai.summarize(items, { style }) -> string
 - nex.ai.write(kind, { context, tone }) -> string
-- nex.run(input) -> generic fallback execution
+- nex.run(input) -> opaque fallback for ONE genuinely un-decomposable step inside a larger flow
 - integrations.call(platform, action, params) -> call a connected integration (e.g. integrations.call("gmail", "GMAIL_FETCH_EMAILS", { max_results: 10 })); reads return data, writes are held for human approval
 - nex.browser(goal) -> drive the operator's browser to accomplish a goal when no integration exists (needs the operator's approval)
 - nex.send(target, content) -> external send (needs the operator's approval)
-- crm.deals({ since }) -> deal list; crm.ownerFor(lead) -> owner; crm.assign(lead, owner) -> void; crm.dealContext(deal) -> context
+- crm.deals({ since }) -> array of deal objects; crm.ownerFor(lead) -> { name }; crm.assign(lead, owner) -> confirmation string; crm.dealContext(deal) -> { deal, stage, lastTouch, owner } (lastTouch is a HUMAN string like "9 days ago", not a date — do not Date.parse it)
+
+Runtime facts your code must respect:
+- Every input parameter arrives as a STRING (the chat binds arguments as text). Parse numbers with Number(...) and guard NaN; JSON.parse only when the operator is told to paste JSON.
+- There is no reliable wall clock in the sandbox — compute "days since" from fields the data provides, never from Date.now().
+- nex.ai.* return plain strings/numbers; do not JSON.parse them.
+
+Quality bar (the operator will read and rely on this code):
+- NEVER write a tool whose body is just nex.run(input) — that is not a tool, it is a shrug. Decompose the workflow into real steps with the specific capabilities above; if the workflow genuinely cannot be decomposed, still express the parts you can (validation, shaping, summary) around the one opaque step.
+- Sends are drafts first: build the content, return it in the result, and call nex.send only when the described workflow explicitly says to send. Subject lines are part of the send target/metadata, not pasted into the body.
+- Return structured objects ({count, summary, items}) rather than bare strings when the workflow produces more than one fact; format money and dates for humans.
+- Handle missing/empty inputs explicitly (guard and say what is missing in the return) instead of letting undefined flow through the math.
 
 Output the JSON object and nothing else.`;
 
@@ -281,6 +293,29 @@ export async function authorToolWithModel(message: string, opts: ToolAuthorOptio
 }
 
 // ---------------------------------------------------------------------------
+/** Execute the freshly-authored tool once in the SIMULATED sandbox with
+ * placeholder string args. Returns the crash detail for hard failures
+ * (undefined-property crashes, syntax-level issues), or "" when the run
+ * completed or failed only in expected gated/simulated ways. */
+async function smokeRunTool(tool: Tool): Promise<string> {
+	try {
+		const args: Record<string, string> = {};
+		for (const input of tool.inputs) args[input.name] = "42";
+		const res = await runTool(tool, args, { timeoutMs: 8_000 });
+		if (res.status === "error" && res.detail) {
+			const d = res.detail;
+			// Gated sends / capability denials are EXPECTED in the sandbox;
+			// only genuine code crashes count.
+			if (/is not a function|is not defined|undefined is not|Cannot read|SyntaxError|ReferenceError|TypeError/.test(d)) {
+				return d.slice(0, 240);
+			}
+		}
+		return "";
+	} catch (err) {
+		return String(err instanceof Error ? err.message : err).slice(0, 240);
+	}
+}
+
 // buildTool: the tool agent's turn (model first when enabled, stub as fallback)
 // ---------------------------------------------------------------------------
 
@@ -307,7 +342,26 @@ export interface ToolBuildOptions extends ToolAuthorOptions {
 export async function buildTool(message: string, opts: ToolBuildOptions = {}): Promise<ToolBuildOutcome> {
 	if (opts.tryModel === true) {
 		try {
-			const tool = await authorToolWithModel(message, opts);
+			let tool = await authorToolWithModel(message, opts);
+			// Smoke-run before the tool is trusted: execute once in the
+			// simulated sandbox with placeholder args. A tool that crashes on
+			// first contact ("lastTouchAt" on a shape that has "lastTouch",
+			// Date.parse of a human string) demo-fails in the operator's face
+			// — one repair attempt with the crash appended, then give up to
+			// the stub (2026-08-17 quality audit: tool-quality graded 3/10
+			// on exactly this class).
+			const crash = await smokeRunTool(tool);
+			if (crash) {
+				tool = await authorToolWithModel(
+					`${message}
+
+Your previous attempt crashed on a smoke run with: ${crash}
+Fix the code (respect the documented capability shapes) and output the corrected tool.`,
+					opts,
+				);
+				const crash2 = await smokeRunTool(tool);
+				if (crash2) throw new Error(`authored tool crashes on smoke run: ${crash2}`);
+			}
 			return { tool, narration: `Built ${tool.title}.`, authored_by: "model" };
 		} catch {
 			// Fall through to the stub: /tools/build stays real end to end, key-free.
