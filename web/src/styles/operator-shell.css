@@ -5271,6 +5271,35 @@ th[aria-sort="descending"] .opr-data-sort-caret {
   background: color-mix(in srgb, var(--t-red, #e5534b) 14%, var(--t-surface));
 }
 
+/* The finish card is the emotional beat of the whole build — the agent arrives.
+   A single non-looping scale-in with a green ring that pulses once makes
+   "Hired" land instead of just appearing. Plays once (~460ms); success only —
+   a failed build must not celebrate — and the reduce block below stills it. */
+@keyframes opr-finish-arrive {
+  0% {
+    transform: scale(0.82);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes opr-finish-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--t-green) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+.opr-finish-card:not(.is-failed) .opr-finish-glyph {
+  animation:
+    opr-finish-arrive 460ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    opr-finish-ring 720ms ease-out both;
+}
+
 /* 2026-08-16 delight additions all degrade to their resting state. */
 @media (prefers-reduced-motion: reduce) {
   .opr-modal-scrim,
@@ -5284,7 +5313,8 @@ th[aria-sort="descending"] .opr-data-sort-caret {
   .opr-approval-sent,
   .opr-skeleton::after,
   .opr-builder-scroll .opr-edit-msgwrap,
-  .opr-chat-scroll .opr-msg {
+  .opr-chat-scroll .opr-msg,
+  .opr-finish-card:not(.is-failed) .opr-finish-glyph {
     animation: none;
   }
 }

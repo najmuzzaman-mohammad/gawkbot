@@ -189,10 +189,13 @@ export function AppBuilderChat({
   const terminalSinceRef = useRef<{ id: string; at: number } | null>(null);
   // The longest wait in the product gets the shell's cycling Office gerund
   // (the same delight system WorkflowBuilder uses for its 15s wait).
+  // Cycle the Office loading phrases during ANY build wait — including an edit
+  // (a refine can also take a minute). The edit path used to sit on a flat
+  // "Applying your change…" with no personality (2026-08-17 delight audit).
   const workPhrase = useCyclingPhrase(
     OFFICE_LOADING_PHRASES,
     2400,
-    phase === "building" && !editApp,
+    phase === "building",
   );
 
   const build = useBuildApp();
@@ -802,17 +805,17 @@ export function AppBuilderChat({
                   <span />
                   <span />
                 </span>
-                {editApp ? (
-                  <span className="opr-work-phrase">Applying your change…</span>
-                ) : (
-                  <span
-                    key={workPhrase}
-                    className="opr-work-phrase"
-                    aria-hidden={true}
-                  >
-                    {workPhrase ? `${workPhrase}…` : "Building your agent…"}
-                  </span>
-                )}
+                <span
+                  key={workPhrase}
+                  className="opr-work-phrase"
+                  aria-hidden={true}
+                >
+                  {workPhrase
+                    ? `${workPhrase}…`
+                    : editApp
+                      ? "Reworking your agent…"
+                      : "Building your agent…"}
+                </span>
               </div>
             </div>
           ) : null}
