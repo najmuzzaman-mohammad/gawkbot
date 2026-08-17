@@ -5166,6 +5166,92 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* Typed cells: numbers right-align and group, booleans read as a badge. */
+.opr-data-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  display: block;
+  text-align: right;
+}
+.opr-data-bool {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.opr-data-bool.is-yes {
+  color: var(--t-accent-3);
+  border-color: color-mix(in srgb, var(--t-accent-3) 45%, transparent);
+}
+.opr-data-bool.is-no {
+  color: var(--t-faint);
+  border-color: color-mix(in srgb, var(--t-faint) 40%, transparent);
+}
+/* Search + sort + pagination controls. */
+.opr-data-toolbar {
+  margin: 8px 0 4px;
+}
+.opr-data-search {
+  width: 100%;
+  max-width: 320px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--t-ink);
+  background: var(--t-figure-bg);
+  border: 1px solid var(--t-line);
+  border-radius: var(--radius-sm, 6px);
+  padding: 6px 10px;
+}
+.opr-data-search:focus-visible {
+  outline: 2px solid var(--t-accent-2);
+  outline-offset: 1px;
+}
+.opr-data-th-sortable {
+  padding: 0;
+}
+.opr-data-sort-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  padding: 8px 10px;
+  color: inherit;
+  font: inherit;
+}
+.opr-data-sort-btn:hover {
+  background: var(--t-tint-accent);
+}
+.opr-data-sort-btn:focus-visible {
+  outline: 2px solid var(--t-accent-2);
+  outline-offset: -2px;
+}
+.opr-data-sort-caret {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--t-faint);
+}
+th[aria-sort="ascending"] .opr-data-sort-caret,
+th[aria-sort="descending"] .opr-data-sort-caret {
+  color: var(--t-accent-3);
+}
+.opr-data-pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.opr-data-pager-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--t-dim);
+  font-variant-numeric: tabular-nums;
+}
 
 /* Failed finish card: honest red framing, no green success glyph. */
 .opr-finish-card.is-failed {

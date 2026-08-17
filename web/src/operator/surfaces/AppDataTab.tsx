@@ -8,7 +8,7 @@
 // reconstruction, no re-fetch of the source — what the app persisted is what
 // shows here, so the two never drift.
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { get } from "../../api/client";
@@ -151,6 +151,8 @@ export function AppDataTab({ appId }: AppDataTabProps) {
 type Parsed =
   | { kind: "empty" }
   | { kind: "scalar"; text: string }
+  | { kind: "number"; text: string; value: number }
+  | { kind: "bool"; value: boolean }
   | { kind: "date"; text: string; full: string }
   | { kind: "list"; items: unknown[] }
   | { kind: "record"; value: Record<string, unknown> };
@@ -182,8 +184,20 @@ function humanizeDate(iso: string): string {
   });
 }
 
+function formatNumber(n: number): string {
+  // Group digits so "$8400" reads as "8,400"; keep up to 2 decimals without
+  // forcing trailing zeros on whole numbers.
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 function parseValue(v: unknown, colType: string): Parsed {
   if (v == null || v === "") return { kind: "empty" };
+  if (typeof v === "boolean") return { kind: "bool", value: v };
+  if (typeof v === "number") {
+    return Number.isFinite(v)
+      ? { kind: "number", text: formatNumber(v), value: v }
+      : { kind: "scalar", text: String(v) };
+  }
   if (typeof v === "string") {
     const t = v.trim();
     if (
@@ -191,6 +205,16 @@ function parseValue(v: unknown, colType: string): Parsed {
       !Number.isNaN(Date.parse(t))
     ) {
       return { kind: "date", text: humanizeDate(t), full: t };
+    }
+    // A number column whose value arrived as a string ("8400") still renders
+    // as a grouped number — but only when the column is typed number, so a
+    // ZIP code or SKU in a string column is never mangled into "12,345".
+    if (colType === "number" && t !== "" && !Number.isNaN(Number(t))) {
+      return {
+        kind: "number",
+        text: formatNumber(Number(t)),
+        value: Number(t),
+      };
     }
     if (t.startsWith("[") || t.startsWith("{")) {
       try {
@@ -210,11 +234,73 @@ function parseValue(v: unknown, colType: string): Parsed {
   return { kind: "scalar", text: String(v) };
 }
 
+// ── Filter + sort: pure helpers, unit-tested ────────────────────────────────
+
+/** Flatten any cell value to a lowercased searchable string (nested JSON too). */
+function cellSearchText(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "object") {
+    try {
+      return JSON.stringify(v).toLowerCase();
+    } catch {
+      return "";
+    }
+  }
+  return String(v).toLowerCase();
+}
+
+/** Case-insensitive substring match across every column of a row. */
+export function rowMatchesQuery(
+  row: Record<string, unknown>,
+  columns: ModelColumn[],
+  query: string,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (q === "") return true;
+  return columns.some((c) => cellSearchText(row[c.name]).includes(q));
+}
+
+/**
+ * Type-aware comparator for a column. Numbers compare numerically ("10" after
+ * "9"), dates by timestamp, everything else by locale string. Empty values sort
+ * last regardless of direction so blanks never crowd the top.
+ */
+export function compareByColumn(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+  col: ModelColumn,
+  dir: "asc" | "desc",
+): number {
+  const av = a[col.name];
+  const bv = b[col.name];
+  const aEmpty = av == null || av === "";
+  const bEmpty = bv == null || bv === "";
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+  const sign = dir === "asc" ? 1 : -1;
+  if (col.type === "number") {
+    return (Number(av) - Number(bv)) * sign;
+  }
+  if (col.type === "date") {
+    return (Date.parse(String(av)) - Date.parse(String(bv))) * sign;
+  }
+  return String(av).localeCompare(String(bv)) * sign;
+}
+
 /** Short inline summary for a cell; the row expansion carries the detail. */
 function CellSummary({ parsed }: { parsed: Parsed }) {
   switch (parsed.kind) {
     case "empty":
       return <span className="opr-data-none">none</span>;
+    case "number":
+      return <span className="opr-data-num">{parsed.text}</span>;
+    case "bool":
+      return (
+        <span className={`opr-data-bool${parsed.value ? " is-yes" : " is-no"}`}>
+          {parsed.value ? "Yes" : "No"}
+        </span>
+      );
     case "date":
       return <span title={parsed.full}>{parsed.text}</span>;
     case "list": {
@@ -251,6 +337,14 @@ function ValueDetail({ parsed }: { parsed: Parsed }) {
   switch (parsed.kind) {
     case "empty":
       return <span className="opr-data-none">none</span>;
+    case "number":
+      return <span className="opr-data-num">{parsed.text}</span>;
+    case "bool":
+      return (
+        <span className={`opr-data-bool${parsed.value ? " is-yes" : " is-no"}`}>
+          {parsed.value ? "Yes" : "No"}
+        </span>
+      );
     case "date":
       return (
         <span>
@@ -325,7 +419,10 @@ function downloadBlob(filename: string, mime: string, content: string) {
 }
 
 function csvEscape(v: unknown): string {
-  const s = v == null ? "" : String(v);
+  // Objects/arrays serialize to JSON (matching the JSON export), never the
+  // useless "[object Object]" String() would produce.
+  const s =
+    v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
@@ -346,16 +443,63 @@ function exportTable(table: ModelTable, format: "csv" | "json") {
   downloadBlob(`${table.name}.csv`, "text/csv", lines.join("\n"));
 }
 
+const PAGE_SIZE = 25;
+
+interface SortState {
+  col: string;
+  dir: "asc" | "desc";
+}
+
 function ModelTableView({ table }: { table: ModelTable }) {
-  const [openRow, setOpenRow] = useState<number | null>(null);
+  // Expansion is keyed on the row OBJECT, not an index: filtering, sorting, and
+  // paging all reorder the visible rows, so an index would open the wrong row.
+  const [openRow, setOpenRow] = useState<Record<string, unknown> | null>(null);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortState | null>(null);
+  const [page, setPage] = useState(0);
+
+  const filtered = useMemo(
+    () => table.rows.filter((r) => rowMatchesQuery(r, table.columns, query)),
+    [table.rows, table.columns, query],
+  );
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const col = table.columns.find((c) => c.name === sort.col);
+    if (!col) return filtered;
+    // Copy before sort: never mutate the query cache's row array in place.
+    return [...filtered].sort((a, b) => compareByColumn(a, b, col, sort.dir));
+  }, [filtered, sort, table.columns]);
+
+  // Clamp the page whenever the result set shrinks (a query narrowing past the
+  // current page must not leave the operator staring at an empty slice).
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const start = safePage * PAGE_SIZE;
+  const paged = sorted.slice(start, start + PAGE_SIZE);
+
+  const total = table.rows.length;
+  const filteredOut = query.trim() !== "" && filtered.length !== total;
+
+  function toggleSort(colName: string) {
+    setPage(0);
+    setSort((prev) =>
+      prev?.col === colName
+        ? { col: colName, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { col: colName, dir: "asc" },
+    );
+  }
+
   return (
     <div className="opr-data-block">
       <div className="opr-data-block-head">
         {table.name}
         <span className="opr-data-block-sub">
-          {table.rows.length} {table.rows.length === 1 ? "row" : "rows"}
+          {filteredOut
+            ? `${filtered.length} of ${total} rows`
+            : `${total} ${total === 1 ? "row" : "rows"}`}
         </span>
-        {table.rows.length > 0 ? (
+        {total > 0 ? (
           <span className="opr-data-export">
             <button
               type="button"
@@ -374,61 +518,134 @@ function ModelTableView({ table }: { table: ModelTable }) {
           </span>
         ) : null}
       </div>
-      {table.rows.length === 0 ? (
+      {total === 0 ? (
         <div className="opr-data-empty">
           Defined, no rows yet — the agent has declared this table but not
           written to it.
         </div>
       ) : (
-        <table className="opr-data-table">
-          <thead>
-            <tr>
-              {table.columns.map((c) => (
-                <th key={c.name}>
-                  <span className="opr-data-col-name">{c.name}</span>
-                  <span className="opr-data-col-type">{c.type}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {table.rows.map((row, i) => {
-              const open = openRow === i;
-              return (
-                <Fragment key={`row-${i}`}>
-                  <tr
-                    className={`opr-data-row${open ? " is-open" : ""}`}
-                    onClick={() => setOpenRow(open ? null : i)}
-                  >
-                    {table.columns.map((c) => (
-                      <td key={c.name}>
-                        <CellSummary parsed={parseValue(row[c.name], c.type)} />
-                      </td>
-                    ))}
-                  </tr>
-                  {open ? (
-                    <tr className="opr-data-detail-row">
-                      <td colSpan={table.columns.length}>
-                        <dl className="opr-data-kv">
-                          {table.columns.map((c) => (
-                            <div className="opr-data-kv-row" key={c.name}>
-                              <dt>{c.name}</dt>
-                              <dd>
-                                <ValueDetail
-                                  parsed={parseValue(row[c.name], c.type)}
-                                />
-                              </dd>
-                            </div>
-                          ))}
-                        </dl>
-                      </td>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+        <>
+          {total > 8 ? (
+            <div className="opr-data-toolbar">
+              <input
+                type="search"
+                className="opr-data-search"
+                placeholder={`Search ${table.name.toLowerCase()}…`}
+                aria-label={`Search ${table.name}`}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+          ) : null}
+          {filtered.length === 0 ? (
+            <div className="opr-data-empty">
+              No rows match “{query.trim()}”.
+            </div>
+          ) : (
+            <table className="opr-data-table">
+              <thead>
+                <tr>
+                  {table.columns.map((c) => {
+                    const active = sort?.col === c.name;
+                    const ariaSort = active
+                      ? sort?.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none";
+                    return (
+                      <th
+                        key={c.name}
+                        aria-sort={ariaSort}
+                        className="opr-data-th-sortable"
+                      >
+                        <button
+                          type="button"
+                          className="opr-data-sort-btn"
+                          onClick={() => toggleSort(c.name)}
+                        >
+                          <span className="opr-data-col-name">{c.name}</span>
+                          <span className="opr-data-col-type">{c.type}</span>
+                          <span
+                            className="opr-data-sort-caret"
+                            aria-hidden={true}
+                          >
+                            {active ? (sort?.dir === "asc" ? "▲" : "▼") : "↕"}
+                          </span>
+                        </button>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((row, i) => {
+                  const open = openRow === row;
+                  return (
+                    <Fragment key={`row-${start + i}`}>
+                      <tr
+                        className={`opr-data-row${open ? " is-open" : ""}`}
+                        onClick={() => setOpenRow(open ? null : row)}
+                      >
+                        {table.columns.map((c) => (
+                          <td key={c.name}>
+                            <CellSummary
+                              parsed={parseValue(row[c.name], c.type)}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                      {open ? (
+                        <tr className="opr-data-detail-row">
+                          <td colSpan={table.columns.length}>
+                            <dl className="opr-data-kv">
+                              {table.columns.map((c) => (
+                                <div className="opr-data-kv-row" key={c.name}>
+                                  <dt>{c.name}</dt>
+                                  <dd>
+                                    <ValueDetail
+                                      parsed={parseValue(row[c.name], c.type)}
+                                    />
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          {sorted.length > PAGE_SIZE ? (
+            <div className="opr-data-pager">
+              <button
+                type="button"
+                className="opr-btn opr-btn-sm"
+                disabled={safePage === 0}
+                onClick={() => setPage(safePage - 1)}
+              >
+                Prev
+              </button>
+              <span className="opr-data-pager-label">
+                Showing {start + 1}–{Math.min(start + PAGE_SIZE, sorted.length)}{" "}
+                of {sorted.length}
+              </span>
+              <button
+                type="button"
+                className="opr-btn opr-btn-sm"
+                disabled={safePage >= pageCount - 1}
+                onClick={() => setPage(safePage + 1)}
+              >
+                Next
+              </button>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );
