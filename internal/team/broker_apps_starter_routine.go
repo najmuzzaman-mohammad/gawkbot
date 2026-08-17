@@ -77,8 +77,6 @@ func (b *Broker) buildDescriptionForApp(app CustomApp) string {
 	return ""
 }
 
-
-
 // publishOddity returns a human-readable description of what looks wrong with
 // a freshly published app page, or "" when nothing stands out. Deterministic
 // on purpose: no model call, no false authority — just the two failure shapes
