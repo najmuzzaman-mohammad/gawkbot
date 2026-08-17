@@ -240,6 +240,22 @@ func TestMintOperatorPlaybookForFirstBuild(t *testing.T) {
 	}
 }
 
+func TestBuildDescriptionStripsBuilderMachinery(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	b.tasks = append(b.tasks, teamTask{
+		ID: "LAKES-2",
+		Details: "What it should do: Chase missing scorecards and apply our rule.\n\n" +
+			"When the build passes, register it with register_app so it appears under Apps.\n\n" +
+			"App workspace ready: source lives at /tmp/x/apps/app_1/src",
+	})
+	b.mu.Unlock()
+	got := b.buildDescriptionForApp(CustomApp{EditChannel: "task-LAKES-2"})
+	if got != "Chase missing scorecards and apply our rule." {
+		t.Fatalf("machinery leaked into the operator description: %q", got)
+	}
+}
+
 func TestPublishOddity(t *testing.T) {
 	big := strings.Repeat("<div>real interface</div>", 2000)
 	if got := publishOddity(big); got != "" {

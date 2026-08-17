@@ -72,6 +72,18 @@ func (b *Broker) buildDescriptionForApp(app CustomApp) string {
 		if idx := strings.Index(details, "What it should do:"); idx >= 0 {
 			details = details[idx+len("What it should do:"):]
 		}
+		// The task description is the operator's words PLUS machinery appended
+		// for the builder (register_app instructions, the workspace brief with
+		// filesystem paths). Cut at the first machinery marker so operator-facing
+		// pages (the playbook) never quote internal plumbing back at the human.
+		for _, marker := range []string{
+			"When the build passes, register it with register_app",
+			"App workspace ready:",
+		} {
+			if idx := strings.Index(details, marker); idx >= 0 {
+				details = details[:idx]
+			}
+		}
 		return strings.TrimSpace(details)
 	}
 	return ""
