@@ -44,7 +44,11 @@ const (
 	// appScaffoldSentinel is a distinctive instruction comment from the starter
 	// App.tsx (templates/app-scaffold/src/App.tsx) that no real app would keep.
 	// Its presence means the agent never replaced the template.
-	appScaffoldSentinel = "Replace the columns + resource to build a different tool"
+	// A distinctive line from the current starter App.tsx doc comment
+	// (templates/app-scaffold/src/App.tsx). A real build REPLACES App.tsx, so
+	// this string surviving means the scaffold shipped unmodified. Keep this in
+	// sync with the scaffold if that comment is reworded.
+	appScaffoldSentinel = "The App Builder REPLACES this file with the real tool"
 )
 
 // sweepStalledAppBuildsLocked returns the App Builder build tasks that have gone

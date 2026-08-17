@@ -142,6 +142,11 @@ export function AppBuilderChat({
   // (2026-08-16 audit: a failed build rendered a green check + "Ready to
   // use" + "Open the agent").
   const [buildFailed, setBuildFailed] = useState(false);
+  // A deterministic non-blocking heads-up about the publish (scaffold placeholder
+  // shipped, bundle too small). The broker stamps it on the manifest AFTER the
+  // build resolves, so we re-read once shortly after "done" to catch it and
+  // downgrade the finish card's green "ready" to an honest line.
+  const [finishAdvisory, setFinishAdvisory] = useState<string | null>(null);
   // The app currently building/refining, used to stream its live activity
   // (thinking + tool calls) by APP ID alone via <AppActivity/>. Known
   // immediately for a refine; resolved from the pre-scaffolded app for a new
@@ -216,6 +221,29 @@ export function AppBuilderChat({
     }, BUILD_POLL_MS);
     return () => window.clearInterval(tick);
   }, [phase, queryClient]);
+
+  // Catch the publish advisory: the broker stamps it on the manifest in a
+  // goroutine right after the build resolves, which the completion poll (that
+  // stops polling the instant it sees "done") systematically misses. One
+  // delayed re-read closes that race so a scaffold-placeholder publish never
+  // shows a clean green "ready".
+  useEffect(() => {
+    if (phase !== "done" || !newAppId || buildFailed) return;
+    let alive = true;
+    const t = window.setTimeout(async () => {
+      try {
+        const apps = await listApps();
+        const built = apps.find((a) => a.id === newAppId);
+        if (alive) setFinishAdvisory(built?.advisory?.trim() || null);
+      } catch {
+        // Best-effort: a missed advisory is not worth surfacing an error.
+      }
+    }, 1500);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [phase, newAppId, buildFailed]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: say/setupDemoExtras are instance functions; completion re-evaluates on poll data and phase
   useEffect(() => {
@@ -810,11 +838,16 @@ export function AppBuilderChat({
                     <span>
                       {buildFailed
                         ? "The build stopped before it finished"
-                        : editApp
-                          ? "New version published"
-                          : "Hired. It starts now, no orientation needed."}
+                        : finishAdvisory
+                          ? "Built — but this looks off"
+                          : editApp
+                            ? "New version published"
+                            : "Hired. It starts now, no orientation needed."}
                     </span>
                   </div>
+                  {!buildFailed && finishAdvisory ? (
+                    <div className="opr-finish-advisory">{finishAdvisory}</div>
+                  ) : null}
                 </div>
               </div>
               <div className="opr-finish-actions">

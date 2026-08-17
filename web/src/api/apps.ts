@@ -32,6 +32,13 @@ export interface CustomApp {
   createdAt: string;
   updatedAt: string;
   contentHash: string;
+  /**
+   * A deterministic, non-blocking heads-up about the last publish (scaffold
+   * placeholder shipped, bundle too small, corrupt publish). Empty when the
+   * publish looked healthy. The finish card downgrades a green "ready" to an
+   * honest "built, but this looks off" when this is set.
+   */
+  advisory?: string;
 }
 
 export interface CustomAppDetail {

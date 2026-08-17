@@ -94,29 +94,42 @@ func (b *Broker) buildDescriptionForApp(app CustomApp) string {
 // on purpose: no model call, no false authority — just the two failure shapes
 // the quality audits actually observed (scaffold placeholder shipped as the
 // final app; a bundle too small to hold the refine+Mantine stack).
-func publishOddity(html string) string {
-	switch {
-	case strings.Contains(html, "Building your agent…"):
-		return "the published page still shows the scaffold placeholder — the build may not have replaced the starter screen"
-	case len(html) < 20_000:
-		return "the published bundle is unusually small — the page may be missing its real interface"
+// publishOddity translates the deterministic gap list into ONE operator-facing
+// heads-up line, or "" when the publish looked healthy. It reuses
+// deterministicAppGaps (broker_app_eval.go) — the richer, unit-tested check
+// (ready/version grounding, content-hash-vs-bytes integrity, min-bundle, and
+// the scaffold-source sentinel) — instead of the two hard-coded shapes it used
+// before, so a corrupt or partial publish is caught too.
+func (b *Broker) publishOddity(app CustomApp) string {
+	gaps := b.deterministicAppGaps(app)
+	if len(gaps) == 0 {
+		return ""
 	}
-	return ""
+	// Lead with the first gap (they are ordered non-delivery → integrity →
+	// scaffold); a single clear line beats a wall of them in the finish card.
+	return gaps[0]
 }
 
 // advisePublishOddities is the deterministic "look at your own output once"
 // check (2026-08-17 quality audit: every area's worst defect traced to the
 // system never inspecting what it produced; the old LLM acceptance gate was
 // removed for wedging tasks — this one is advisory, cheap, and never blocks
-// or reopens anything). On a suspicious publish it posts ONE honest line to
-// the app's edit channel.
+// or reopens anything). On a suspicious publish it (1) STAMPS the advisory on
+// the manifest so the finish card can downgrade its green "ready", and (2)
+// posts ONE honest line to the app's edit channel. On a healthy publish it
+// clears any stale advisory from a prior build.
 func (b *Broker) advisePublishOddities(app CustomApp) {
-	fresh, html, err := b.appStore().Get(app.ID)
+	fresh, _, err := b.appStore().Get(app.ID)
 	if err != nil {
 		return
 	}
 	app = fresh
-	oddity := publishOddity(html)
+	oddity := b.publishOddity(app)
+	// Stamp (or clear) the manifest first so the finish card is honest even if
+	// there is no edit channel to post into.
+	if err := b.appStore().SetAdvisory(app.ID, oddity); err != nil {
+		log.Printf("publish-advisory: stamp %s: %v", app.ID, err)
+	}
 	if oddity == "" || strings.TrimSpace(app.EditChannel) == "" {
 		return
 	}

@@ -430,3 +430,20 @@ func TestAppAcceptanceReopensWhenNoAppRegistered(t *testing.T) {
 		t.Fatalf("want 1 acceptance-fail notice, got %d", countMessagesOfKind(b, ch, appAcceptanceFailKind))
 	}
 }
+
+// The scaffold-source gap check only works if appScaffoldSentinel is a string
+// that actually appears in the current starter App.tsx — otherwise it silently
+// matches nothing (the 2026-08-17 build-pipeline audit found exactly this drift:
+// the sentinel referenced a comment that no longer existed). Guard against it
+// recurring: the sentinel MUST be present in the live scaffold.
+func TestScaffoldSentinelMatchesTemplate(t *testing.T) {
+	// The test binary runs from the package dir; the scaffold lives at repo root.
+	path := filepath.Join("..", "..", "templates", "app-scaffold", "src", "App.tsx")
+	src, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read scaffold App.tsx: %v", err)
+	}
+	if !strings.Contains(string(src), appScaffoldSentinel) {
+		t.Fatalf("appScaffoldSentinel %q is not present in the current scaffold %s — the scaffold-source gap check is a silent no-op; update the sentinel", appScaffoldSentinel, path)
+	}
+}

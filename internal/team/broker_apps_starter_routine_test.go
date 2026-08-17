@@ -256,15 +256,38 @@ func TestBuildDescriptionStripsBuilderMachinery(t *testing.T) {
 	}
 }
 
-func TestPublishOddity(t *testing.T) {
-	big := strings.Repeat("<div>real interface</div>", 2000)
-	if got := publishOddity(big); got != "" {
+func TestPublishOddityAndAdvisoryStamp(t *testing.T) {
+	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
+	b := newTestBroker(t)
+
+	// A healthy publish (ready, versioned, big bundle, real source): no oddity,
+	// and advisePublishOddities leaves the manifest advisory empty.
+	seedAcceptanceApp(t, "app_0000000000000ea1", "task-x-2", 8000, "ready", 1)
+	healthy, _, err := b.appStore().Get("app_0000000000000ea1")
+	if err != nil {
+		t.Fatalf("get healthy: %v", err)
+	}
+	if got := b.publishOddity(healthy); got != "" {
 		t.Fatalf("healthy publish flagged: %q", got)
 	}
-	if got := publishOddity("Building your agent…" + big); !strings.Contains(got, "placeholder") {
-		t.Fatalf("placeholder publish not flagged: %q", got)
+	b.advisePublishOddities(healthy)
+	if after, _, _ := b.appStore().Get("app_0000000000000ea1"); after.Advisory != "" {
+		t.Fatalf("healthy publish stamped an advisory: %q", after.Advisory)
 	}
-	if got := publishOddity("<html>tiny</html>"); !strings.Contains(got, "unusually small") {
-		t.Fatalf("tiny publish not flagged: %q", got)
+
+	// A trivially small bundle: publishOddity flags it and advisePublishOddities
+	// stamps the advisory onto the manifest so the finish card can read it.
+	seedAcceptanceApp(t, "app_0000000000000ea2", "task-x-3", 100, "ready", 1)
+	tiny, _, err := b.appStore().Get("app_0000000000000ea2")
+	if err != nil {
+		t.Fatalf("get tiny: %v", err)
+	}
+	if got := b.publishOddity(tiny); got == "" {
+		t.Fatal("tiny bundle was not flagged")
+	}
+	b.advisePublishOddities(tiny)
+	after, _, _ := b.appStore().Get("app_0000000000000ea2")
+	if after.Advisory == "" {
+		t.Fatal("tiny publish did not stamp a manifest advisory")
 	}
 }

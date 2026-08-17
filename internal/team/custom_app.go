@@ -106,6 +106,13 @@ type CustomApp struct {
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
 	ContentHash string `json:"contentHash"`
+	// Advisory is a deterministic, non-blocking heads-up about the LAST publish
+	// (scaffold placeholder shipped, bundle too small, corrupt/partial publish).
+	// Empty when the publish looked healthy. Stamped by advisePublishOddities so
+	// the finish card can downgrade a green "ready" to an honest "built, but this
+	// looks off" — the advisory previously only reached a channel the build UI
+	// never read (2026-08-17 build-pipeline audit).
+	Advisory string `json:"advisory,omitempty"`
 }
 
 // CustomAppWriteRequest is the create/update payload. An empty ID creates a new
@@ -507,6 +514,35 @@ const scaffoldPlaceholderHTML = `<!doctype html><html lang="en"><head><meta char
 // retried create) so it never churns the manifest or bumps anything.
 //
 // Unknown id → caller error (404 upstream). Never touches Version/Status/bytes.
+// SetAdvisory stamps (or clears, with "") the post-publish advisory on the
+// manifest. Idempotent: a no-op when unchanged so a healthy republish does not
+// rewrite the manifest just to write the same empty string.
+func (s *customAppStore) SetAdvisory(id, advisory string) error {
+	if err := validateCustomAppID(id); err != nil {
+		return err
+	}
+	advisory = strings.TrimSpace(advisory)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	app, err := s.readManifestLocked(id)
+	if err != nil {
+		return newCustomAppCallerError("app: %s not found", id)
+	}
+	if app.Advisory == advisory {
+		return nil
+	}
+	app.Advisory = advisory
+	manifestBytes, err := json.MarshalIndent(app, "", "  ")
+	if err != nil {
+		return fmt.Errorf("app: marshal manifest: %w", err)
+	}
+	manifestBytes = append(manifestBytes, '\n')
+	if err := writeFileAtomic(filepath.Join(s.appDir(id), customAppManifestFile), manifestBytes, 0o600); err != nil {
+		return fmt.Errorf("app: write manifest: %w", err)
+	}
+	return nil
+}
+
 func (s *customAppStore) SetEditChannel(id, channel string) error {
 	if err := validateCustomAppID(id); err != nil {
 		return err

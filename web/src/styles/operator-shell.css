@@ -2896,6 +2896,14 @@
   font-size: 11px;
   color: var(--t-faint);
 }
+.opr-finish-advisory {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--t-warn, #d9a04b);
+  border-left: 2px solid var(--t-warn, #d9a04b);
+  padding-left: 8px;
+}
 .opr-finish-actions {
   display: flex;
   gap: var(--space-2);
