@@ -105,6 +105,13 @@ func (w *watchdogScheduler) processOperatorRoutineJob(job schedulerJob) {
 	startedAt := now.Format(time.RFC3339)
 
 	prompt := strings.TrimSpace(job.Payload)
+	// Prefer the operator's CURRENT playbook rule over the frozen build-time
+	// snapshot, so an edit to team/playbooks/<slug>.md actually changes what runs
+	// (the page promises exactly this). Falls back to the frozen payload when the
+	// app has no playbook or its rule is unrecoverable.
+	if live := w.broker.livePlaybookPrompt(strings.TrimSpace(job.TargetID)); live != "" {
+		prompt = live
+	}
 	if prompt == "" {
 		prompt = strings.TrimSpace(job.Label)
 	}

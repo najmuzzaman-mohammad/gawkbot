@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -89,11 +91,6 @@ func (b *Broker) buildDescriptionForApp(app CustomApp) string {
 	return ""
 }
 
-// publishOddity returns a human-readable description of what looks wrong with
-// a freshly published app page, or "" when nothing stands out. Deterministic
-// on purpose: no model call, no false authority — just the two failure shapes
-// the quality audits actually observed (scaffold placeholder shipped as the
-// final app; a bundle too small to hold the refine+Mantine stack).
 // publishOddity translates the deterministic gap list into ONE operator-facing
 // heads-up line, or "" when the publish looked healthy. It reuses
 // deterministicAppGaps (broker_app_eval.go) — the richer, unit-tested check
@@ -167,6 +164,56 @@ func (b *Broker) mintOperatorPlaybookForFirstBuild(app CustomApp, description st
 	if _, _, err := worker.Enqueue(context.Background(), appBuilderSlug, path, content, "create", "Capture the operator's described workflow at first build"); err != nil {
 		log.Printf("playbook-mint: %s: %v", app.ID, err)
 	}
+}
+
+// livePlaybookPrompt returns the operator's CURRENT workflow rule from
+// team/playbooks/<slug>.md, or "" when there is no playbook (or it has no
+// recoverable rule). The operator routine fires this instead of the frozen
+// build-time snapshot so that editing the playbook — which the page explicitly
+// invites ("edit it here as your process evolves; agents read this page as
+// first-class context") — actually changes what the agent runs. Before this,
+// the playbook was write-only against the runtime: the routine ran a copy of
+// the description captured at mint, so the page's promise was a lie (2026-08-17
+// wiki audit). Falls back to the frozen payload at the call site on "".
+func (b *Broker) livePlaybookPrompt(appID string) string {
+	appID = strings.TrimSpace(appID)
+	if appID == "" {
+		return ""
+	}
+	worker := b.WikiWorker()
+	if worker == nil || worker.Repo() == nil {
+		return ""
+	}
+	app, _, err := b.appStore().Get(appID)
+	if err != nil {
+		return ""
+	}
+	slug := strings.TrimSpace(app.Slug)
+	if slug == "" {
+		slug = appID
+	}
+	path := filepath.Join(worker.Repo().Root(), "team", "playbooks", slug+".md")
+	data, err := os.ReadFile(path) //nolint:gosec // slug is a validated app slug, path is broker-owned
+	if err != nil {
+		return ""
+	}
+	return extractPlaybookRule(string(data))
+}
+
+// extractPlaybookRule pulls the operator's rule out of a playbook page: the
+// blockquote body the page is built around. Editing WITHIN that blockquote (the
+// way the page invites) is picked up; a free rewrite that drops the blockquote
+// returns "" so the caller keeps the frozen fallback rather than firing a
+// heading or preamble as the prompt.
+func extractPlaybookRule(md string) string {
+	var lines []string
+	for _, ln := range strings.Split(md, "\n") {
+		t := strings.TrimSpace(ln)
+		if strings.HasPrefix(t, ">") {
+			lines = append(lines, strings.TrimSpace(strings.TrimPrefix(t, ">")))
+		}
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 
 // mintStarterRoutineForFirstBuild creates the standing routine for a

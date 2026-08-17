@@ -51,6 +51,9 @@ type schedulerBroker interface {
 	FindTask(channel, id string) (teamTask, bool)
 	FindRequest(channel, id string) (humanInterview, bool)
 	UpdateSchedulerJobState(slug string, nextRun time.Time, status string) error
+	// livePlaybookPrompt returns the operator's current playbook rule for an
+	// app id, or "" to fall back to the frozen routine payload.
+	livePlaybookPrompt(appID string) string
 	CompleteSchedulerRun(slug string, nextRun time.Time, statusForJob string, run schedulerRun) error
 	EnsureDirectChannel(agentSlug string) (string, error)
 	CreateWatchdogAlert(kind, channel, targetType, targetID, owner, summary string) (watchdogAlert, bool, error)

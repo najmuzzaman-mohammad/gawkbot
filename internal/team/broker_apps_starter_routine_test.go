@@ -291,3 +291,58 @@ func TestPublishOddityAndAdvisoryStamp(t *testing.T) {
 		t.Fatal("tiny publish did not stamp a manifest advisory")
 	}
 }
+
+func TestExtractPlaybookRule(t *testing.T) {
+	md := "# Deal Desk — the operator's workflow\n\n" +
+		"Captured verbatim from the build request. This is the rule Deal Desk runs on; edit it here.\n\n" +
+		"> Chase renewals inside 90 days.\n> Escalate anything over 20% to the CFO.\n"
+	got := extractPlaybookRule(md)
+	want := "Chase renewals inside 90 days.\nEscalate anything over 20% to the CFO."
+	if got != want {
+		t.Fatalf("extracted rule mismatch:\n got: %q\nwant: %q", got, want)
+	}
+	// A page with no blockquote yields "" so the caller keeps the frozen payload.
+	if got := extractPlaybookRule("# Title\n\nJust prose, no rule."); got != "" {
+		t.Fatalf("expected empty rule for a blockquote-less page, got %q", got)
+	}
+}
+
+func TestLivePlaybookPromptRoundTrip(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
+	root := filepath.Join(t.TempDir(), "wiki")
+	repo := NewRepoAt(root, filepath.Join(t.TempDir(), "wiki.bak"))
+	if err := repo.Init(context.Background()); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	b := newTestBroker(t)
+	worker := NewWikiWorker(repo, b)
+	ctx, cancel := context.WithCancel(context.Background())
+	worker.Start(ctx)
+	t.Cleanup(func() { worker.Stop(); cancel() })
+	b.mu.Lock()
+	b.wikiWorker = worker
+	b.mu.Unlock()
+
+	app := CustomApp{ID: "app_00000000000000cd", Slug: "deal-desk", Name: "Deal Desk"}
+	if _, err := b.appStore().Save(CustomAppWriteRequest{
+		ID: app.ID, Name: app.Name, HTML: "<html><body>x</body></html>", Actor: "human",
+	}, time.Now()); err != nil {
+		// Save requires a valid write; if the store rejects the pre-set ID, skip
+		// the store dependency and assert extraction only (covered above).
+		t.Skipf("app save unavailable in this fixture: %v", err)
+	}
+	b.mintOperatorPlaybookForFirstBuild(app, "Original rule: chase renewals.")
+	if got := b.livePlaybookPrompt(app.ID); got != "Original rule: chase renewals." {
+		t.Fatalf("live prompt after mint = %q", got)
+	}
+	// Simulate the operator EDITING the playbook: the live prompt must change.
+	path := filepath.Join(root, "team", "playbooks", "deal-desk.md")
+	edited := "# Deal Desk — the operator's workflow\n\nedit\n\n> Edited rule: escalate over 20% to the CFO.\n"
+	if err := os.WriteFile(path, []byte(edited), 0o600); err != nil {
+		t.Fatalf("edit playbook: %v", err)
+	}
+	if got := b.livePlaybookPrompt(app.ID); got != "Edited rule: escalate over 20% to the CFO." {
+		t.Fatalf("edited playbook did not change the live prompt, got %q", got)
+	}
+}
