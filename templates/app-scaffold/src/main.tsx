@@ -1,7 +1,9 @@
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createTheme, MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { Refine } from "@refinedev/core";
 
 import { App } from "./App";
@@ -41,6 +43,10 @@ if (root) {
   createRoot(root).render(
     <StrictMode>
       <MantineProvider theme={appTheme} forceColorScheme="dark">
+        {/* Mounted so notifications.show() actually renders — the AI_RULES
+            "every user-triggered write gets visible feedback" rule silently
+            no-ops without this. Keep it. */}
+        <Notifications position="top-right" />
         <Refine
           dataProvider={bridgeDataProvider}
           resources={[

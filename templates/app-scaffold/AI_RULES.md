@@ -477,18 +477,24 @@ looking ("The confirmation was still open — finish it and try again", "That
 did not go through — try again"), and leave the row/state unchanged so the
 retry is obvious. A silent failure reads as a broken button.
 
-## Data provenance is sacred — no invented rows, no Meta tables
+## Data provenance is sacred — no invented DATA rows
 
-Every persisted row must trace to a bridge source (integration, office data)
-or something the operator typed. NEVER seed placeholder records ("Engineer 1"
-… "Engineer 6", sample deals) into the database — placeholders in the DB are
-indistinguishable from facts and poison every number computed from them.
-When a source is empty, render the honest empty state and let the operator
-add the first real record. If the workspace itself is the only data (no
-integration connected), never persist AI analysis OF THE WORKSPACE'S OWN
-SCAFFOLDING (your build task is not a deal). And no `*Meta` tables holding a
-single "initialized" sentinel — derive first-run from whether the real
-tables are empty.
+Every persisted **data** row must trace to a bridge source (integration, office
+data) or something the operator typed. NEVER seed placeholder records ("Engineer
+1" … "Engineer 6", sample deals) into a data table — placeholders are
+indistinguishable from facts and poison every number computed from them. When a
+source is empty, render the honest empty state and let the operator add the
+first real record. If the workspace itself is the only data (no integration
+connected), never persist AI analysis OF THE WORKSPACE'S OWN SCAFFOLDING (your
+build task is not a deal).
+
+The one legitimate non-source row is the **derive marker** (the `Meta` /
+`initialized` sentinel in the useTable pattern above): it is app-owned CONTROL
+state, not data, and it never appears in a data table or a computed number. Use
+it exactly as shown — a `rows.length` check cannot tell "never derived" from
+"derived, and the honest answer was zero rows", so the explicit marker is
+required. That is the ONLY sentinel allowed; it is not a license for placeholder
+data.
 
 ## Every user-triggered write gets visible feedback
 
@@ -506,3 +512,19 @@ inbox" or point at any surface you have not seen in the host. The honest
 line is: "Submitted — the team picked it up. You will be pinged in the agent
 chat when it needs your sign-off." Copy that sends the operator hunting for
 a page that does not exist reads as a bug even when the write succeeded.
+
+## No half-built tabs, and reach every control by keyboard
+
+Every tab, section, and button you render must be fully wired. NEVER ship a
+tab that shows "Coming soon", a placeholder, or an empty shell you did not
+intend as an honest empty state — if a surface is not built, do not render its
+tab. A dead tab reads as a broken app even when the rest works.
+
+Accessibility minimums (they are also how the operator's keyboard and the
+live-preview inspector reach your UI):
+- Every icon-only button gets an `aria-label` naming its action.
+- Every input has a visible `<label>` or an `aria-label`.
+- Every action is reachable and triggerable by keyboard (a clickable `<div>`
+  is not — use `<button>`).
+- Status reads as more than color: pair a color with text or a shape (use
+  `src/statusColor.ts` for the color, and always render the status word too).
