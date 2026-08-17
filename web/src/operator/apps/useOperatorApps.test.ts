@@ -178,6 +178,25 @@ describe("deriveAppName", () => {
     ).toBe("Sprint Planning Agent");
   });
 
+  it("names inventory reorder work Inventory Agent", () => {
+    expect(
+      deriveAppName(
+        "Track our store inventory and reorders: flag anything below its reorder point and draft a purchase order",
+      ),
+    ).toBe("Inventory Agent");
+  });
+
+  it("skips a leading imperative verb in the fallback instead of naming by the verb", () => {
+    // No role row matches "expiry tracking"; the fallback must name by the noun
+    // phrase ("Store Produce"), never the verb ("Track Agent").
+    expect(deriveAppName("Track our store produce freshness daily")).toBe(
+      "Store Produce Freshness Agent",
+    );
+    // A bare verb with no noun after it keeps the plain behavior (nothing
+    // better to name it by), so the verb-skip must NOT fire.
+    expect(deriveAppName("Handle it quickly")).toBe("Handle Agent");
+  });
+
   it("names tenant maintenance dispatch Maintenance Agent, not a verb fallback", () => {
     expect(
       deriveAppName(

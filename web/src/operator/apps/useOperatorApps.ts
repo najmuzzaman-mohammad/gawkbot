@@ -214,12 +214,15 @@ const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
   [/\b(stand-?ups?)\b/i, "Standup Agent"],
   [/\b(sprints?|velocity|story points?)\b/i, "Sprint Planning Agent"],
   [/\b(retros?|retrospectives?)\b/i, "Retro Agent"],
+  // Inventory/reorder vocabulary — stock levels, reorder points, purchase
+  // orders — is its own job, distinct from generic "track" workflows.
+  [
+    /\b(inventory|reorders?|stock levels?|reorder points?|purchase orders?|restock)\b/i,
+    "Inventory Agent",
+  ],
   // Facilities vocabulary ("tenant maintenance requests") reuses request/
   // ticket verbs, so its nouns must outrank support triage.
-  [
-    /\b(maintenance|tenants?|work orders?|facilities)\b/i,
-    "Maintenance Agent",
-  ],
+  [/\b(maintenance|tenants?|work orders?|facilities)\b/i, "Maintenance Agent"],
   // Incident management (SRE vocabulary) is not support triage.
   // "on-call" deliberately absent: rotation staffing shows up in sprint
   // planning too, and the strong nouns below carry incident management.
@@ -261,6 +264,40 @@ const NAME_FUNCTION_WORDS = new Set([
   "it",
 ]);
 
+// Leading imperative verbs a description often opens with ("Track our stock…",
+// "Handle our tickets…"). When the first word is one of these AND the next word
+// is a possessive/article, the plain word-cap collapses to a verb-only name
+// ("Track Agent") — so skip the verb (and one following our/the/my/all/any) and
+// let the noun phrase name the agent. The high-confidence AGENT_ROLES table
+// still wins first; this only improves the generic fallback.
+const NAME_LEADING_VERBS = new Set([
+  "track",
+  "handle",
+  "manage",
+  "run",
+  "process",
+  "chase",
+  "monitor",
+  "log",
+  "review",
+  "organize",
+  "coordinate",
+  "sort",
+  "watch",
+  "check",
+  "update",
+  "maintain",
+  "oversee",
+]);
+const NAME_SKIP_AFTER_VERB = new Set([
+  "our",
+  "the",
+  "my",
+  "all",
+  "any",
+  "your",
+]);
+
 export function deriveAppName(description: string): string {
   const role = AGENT_ROLES.find(([test]) => test.test(description));
   if (role) return role[1];
@@ -273,7 +310,29 @@ export function deriveAppName(description: string): string {
     prev = firstClause;
     firstClause = firstClause.replace(leadIn, "").trim();
   }
-  const allWords = firstClause.split(/\s+/).filter(Boolean);
+  let allWords = firstClause.split(/\s+/).filter(Boolean);
+  // Drop a leading imperative verb (and one following possessive/article) so
+  // "Track our store inventory" names by the noun phrase, not the verb. Only
+  // when real noun words follow — a bare "Track it" keeps the plain behavior.
+  if (
+    allWords.length >= 2 &&
+    NAME_LEADING_VERBS.has(allWords[0].toLowerCase())
+  ) {
+    let start = 1;
+    if (
+      allWords.length > start + 1 &&
+      NAME_SKIP_AFTER_VERB.has(allWords[start].toLowerCase())
+    ) {
+      start += 1;
+    }
+    // Only skip if a non-function noun word actually remains to name it.
+    if (
+      start < allWords.length &&
+      !NAME_FUNCTION_WORDS.has(allWords[start].toLowerCase())
+    ) {
+      allWords = allWords.slice(start);
+    }
+  }
   // Cut before the first function word (never at position 0) and cap the cut
   // at 4 words; with no function word, keep the plain 3-word cap.
   const cut = allWords.findIndex(
