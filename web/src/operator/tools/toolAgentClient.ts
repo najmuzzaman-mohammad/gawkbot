@@ -125,7 +125,7 @@ export interface ToolCallOutcome {
   result?: string;
   detail?: string;
   gate?: ToolCallGate;
-  /** Every capability call the tool made, e.g. crm.deals({"since":"7d"}). */
+  /** Every capability call the tool made, e.g. data.list("records", {"since":"7d"}). */
   actions: string[];
 }
 

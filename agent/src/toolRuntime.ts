@@ -15,7 +15,7 @@
 //     by strict-mode parameter shadowing + a code scan (import/eval rejected).
 //     TODO(security): a permissioned runtime for full authority stripping.
 //
-// SEND-GATE (CQ1, default deny): gated capabilities (`crm.assign`, `nex.send`,
+// SEND-GATE (CQ1, default deny): gated capabilities (`nex.send`,
 // `nex.browser`) halt the run with status="needs_approval" unless the run carries
 // approved=true — the FE renders the human approval card in the chat.
 
@@ -23,7 +23,7 @@ import { buildCapabilities, GATED_CAPABILITIES } from "./capabilities.js";
 import { withRunSignal } from "./runContext.js";
 import type { Tool, ToolCallGate } from "./wire.js";
 
-/** One callable capability (e.g. crm.deals). Args/return are untyped on purpose:
+/** One callable capability (e.g. data.list). Args/return are untyped on purpose:
  * tool code is agent-authored JS, not a typed consumer. */
 export type CapabilityFn = (...args: unknown[]) => unknown;
 
@@ -107,7 +107,6 @@ function labelOf(v: unknown): string {
 
 /** Human-readable gate copy for the approval card ("This will <detail>."). */
 function gateDetail(path: string, args: unknown[]): string {
-	if (path === "crm.assign") return `assign ${labelOf(args[0])} to ${labelOf(args[1])}`;
 	if (path === "nex.send") return `send ${labelOf(args[1])} to ${labelOf(args[0])}`;
 	if (path === "nex.browser") return `control your browser to ${labelOf(args[0])}`;
 	return `run ${path}`;

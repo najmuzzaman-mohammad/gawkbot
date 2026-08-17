@@ -24,11 +24,11 @@ const MODEL_TOOL_JSON = JSON.stringify({
 // --- deterministic (stub) path ---------------------------------------------
 
 test("authorTool matches a known workflow shape", () => {
-	const t = authorTool("score its fit and route hot leads to the AE");
-	expect(t.name).toBe("scoreAndRouteLead");
-	expect(t.title).toBe("Score & route a lead");
-	expect(t.inputs.map((i) => i.name)).toEqual(["lead"]);
-	expect(t.code).toContain("async function scoreAndRouteLead(lead)");
+	const t = authorTool("score and triage each record by risk");
+	expect(t.name).toBe("scoreAndFlag");
+	expect(t.title).toBe("Score & flag records");
+	expect(t.inputs.map((i) => i.name)).toEqual(["rubric"]);
+	expect(t.code).toContain("async function scoreAndFlag(rubric)");
 });
 
 test("authorTool honors an explicit leading name over a keyword-hijacked shape", () => {
@@ -44,16 +44,16 @@ test("authorTool honors an explicit leading name over a keyword-hijacked shape",
 });
 
 test("authorTool still uses a shape when the explicit name AGREES with it", () => {
-	const t = authorTool("scoreAndRouteLead — Score a lead's fit and route hot ones to the right AE.");
-	expect(t.name).toBe("scoreAndRouteLead");
-	expect(t.title).toBe("Score & route a lead");
+	const t = authorTool("scoreAndFlag — Score and flag records that need attention.");
+	expect(t.name).toBe("scoreAndFlag");
+	expect(t.title).toBe("Score & flag records");
 	expect(t.code).toContain("nex.ai.score");
 });
 
 test("authorTool does not read prose with a dash as an explicit name", () => {
 	// No interior capital → not camelCase → not a name; shape matching applies.
-	const t = authorTool("okay — score its fit and route hot leads to the AE");
-	expect(t.name).toBe("scoreAndRouteLead");
+	const t = authorTool("okay — score and triage each record by risk");
+	expect(t.name).toBe("scoreAndFlag");
 });
 
 test("authorTool synthesizes a name + plain title for an unknown workflow", () => {
@@ -94,7 +94,7 @@ test("authorTool keeps a multi-line description inside the scripted-from comment
 
 test("buildTool returns the tool + a narration (stub by default)", async () => {
 	const r = await buildTool("draft a follow-up for a stalled deal");
-	expect(r.tool?.name).toBe("draftFollowup");
+	expect(r.tool?.name).toBe("draftMessage");
 	expect(r.narration).toContain("Built");
 	expect(r.authored_by).toBe("stub");
 });
@@ -124,7 +124,7 @@ test("buildTool falls back to the stub on a garbage model reply", async () => {
 		complete: fakeComplete("sorry, I cannot help with that"),
 	});
 	expect(r.authored_by).toBe("stub");
-	expect(r.tool?.name).toBe("draftFollowup"); // the deterministic shape, not the model's
+	expect(r.tool?.name).toBe("draftMessage"); // the deterministic shape, not the model's
 });
 
 test("buildTool falls back to the stub when the model call throws", async () => {
@@ -133,7 +133,27 @@ test("buildTool falls back to the stub when the model call throws", async () => 
 	}) as unknown as CompleteFn;
 	const r = await buildTool("draft a follow-up for a stalled deal", { tryModel: true, complete: throwing });
 	expect(r.authored_by).toBe("stub");
-	expect(r.tool?.name).toBe("draftFollowup");
+	expect(r.tool?.name).toBe("draftMessage");
+});
+
+test("buildTool rejects a model tool that calls a capability not in the catalog", async () => {
+	// The model authored valid JS, but against crm.deals — a capability the
+	// domain-neutral catalog no longer exposes. The smoke run's static reference
+	// check must catch it (the single placeholder run might never reach the call)
+	// and fall back to the stub rather than ship a tool that cannot run here.
+	const bogus = JSON.stringify({
+		name: "oldSalesTool",
+		title: "Old sales tool",
+		purpose: "uses a removed capability",
+		inputs: [],
+		code: "async function oldSalesTool() { const d = await crm.deals({ since: '7d' }); return d.length; }",
+	});
+	const r = await buildTool("summarize the deals", {
+		tryModel: true,
+		complete: fakeComplete(bogus),
+	});
+	expect(r.authored_by).toBe("stub");
+	expect(r.tool?.code).not.toContain("crm.deals");
 });
 
 test("buildTool falls back to the stub when the model tool fails validation", async () => {
@@ -200,8 +220,8 @@ test("POST /tools/build creates a tool", async () => {
 	});
 	expect(res.status).toBe(200);
 	const body = await res.json();
-	expect(body.tool.name).toBe("draftFollowup");
-	expect(body.tool.inputs.map((i: { name: string }) => i.name)).toEqual(["deal"]);
+	expect(body.tool.name).toBe("draftMessage");
+	expect(body.tool.inputs.map((i: { name: string }) => i.name)).toEqual(["recordId"]);
 	expect(body.narration).toContain("Built");
 	expect(body.authored_by).toBe("stub");
 });

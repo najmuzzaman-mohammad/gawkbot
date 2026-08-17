@@ -56,11 +56,12 @@ test("capabilityConfigFromEnv threads TOOL_CALL_TIMEOUT_MS into callTimeoutMs", 
 });
 
 test("GATED_CAPABILITIES lists every mutating capability the send-gate must hold", () => {
-	// toolRuntime.ts default-allows anything NOT in this set — these three paths
-	// disappearing from it would silently un-gate external mutations.
-	expect(GATED_CAPABILITIES.has("crm.assign")).toBe(true);
+	// toolRuntime.ts default-allows anything NOT in this set — these outbound
+	// paths disappearing from it would silently un-gate external mutations.
 	expect(GATED_CAPABILITIES.has("nex.send")).toBe(true);
 	expect(GATED_CAPABILITIES.has("nex.browser")).toBe(true);
+	// The catalog is domain-neutral now: no crm.* capability exists to gate.
+	expect(GATED_CAPABILITIES.has("crm.assign")).toBe(false);
 });
 
 // --- simulated fallbacks (empty input honesty) ----------------------------------

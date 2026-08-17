@@ -18,9 +18,11 @@
 //                                 GATED at the agent layer (browser control needs
 //                                 the operator's in-chat approval, mirroring the
 //                                 browser-step reframe).
-//   nex.send / crm.*              Still simulated (real sends/CRM go through
-//                                 integrations.call); nex.send stays gated so the
-//                                 approval flow is exercised end to end.
+//   nex.send / data.*             Still simulated. nex.send stays gated so the
+//                                 approval flow is exercised end to end; data.* is
+//                                 the domain-neutral store surface (list/get/upsert)
+//                                 an authored tool uses to read/write the app's own
+//                                 records — simulated as an empty store on this host.
 //
 // Secrets discipline: the broker token comes from the agent's OWN environment and
 // goes out only as an Authorization header to the configured broker — never to
@@ -40,7 +42,7 @@ import type { CapabilityFn, CapabilityTree } from "./toolRuntime.js";
 // ungated. Kept next to the capability definitions on purpose.
 // (integrations.call is intentionally absent: the broker classifies
 // read-vs-mutate server-side and raises its own approval card for mutations.)
-export const GATED_CAPABILITIES: ReadonlySet<string> = new Set(["crm.assign", "nex.send", "nex.browser"]);
+export const GATED_CAPABILITIES: ReadonlySet<string> = new Set(["nex.send", "nex.browser"]);
 
 export interface CapabilityConfig {
 	/** Broker base URL (e.g. http://127.0.0.1:7893) for integrations + browser. */
@@ -96,13 +98,6 @@ function hashScore(subject: unknown): number {
 	return 55 + (h % 41);
 }
 
-const DEALS = [
-	{ name: "Globex", stage: "Negotiation", amount: 120_000, stageChanged: true },
-	{ name: "Initech", stage: "Discovery", amount: 45_000, stageChanged: false },
-	{ name: "Acme", stage: "Proposal", amount: 80_000, stageChanged: true },
-	{ name: "Umbrella", stage: "Closed Won", amount: 96_000, stageChanged: true },
-] as const;
-
 function simSummarize(items: unknown): string {
 	const list = Array.isArray(items) ? items : [items];
 	const names = list.map(labelOf).slice(0, 3).join(", ");
@@ -138,16 +133,17 @@ export function simulatedCapabilities(): CapabilityTree {
 			send: (target: unknown) => `Sent to ${labelOf(target)} (simulated).`,
 			browser: (goal: unknown) => `Would drive the browser: ${labelOf(goal)} (browser engine not configured).`,
 		},
-		crm: {
-			deals: () => DEALS.map((d) => ({ ...d })),
-			dealContext: (deal: unknown) => ({
-				deal: labelOf(deal),
-				stage: "Negotiation",
-				lastTouch: "9 days ago",
-				owner: "Priya (AE)",
-			}),
-			ownerFor: () => ({ name: "Priya (AE)" }),
-			assign: (lead: unknown, ae: unknown) => `Assigned ${labelOf(lead)} to ${labelOf(ae)} (simulated).`,
+		// Domain-neutral store surface: an authored tool reads and writes the
+		// app's OWN records, whatever the domain (deals, tickets, candidates,
+		// products). Simulated here as an empty store — HONEST: nothing is
+		// connected yet, so list returns [] and get returns null rather than
+		// fabricating rows (a CRM-shaped fake was the reason non-sales workflows
+		// authored garbage, 2026-08-17 tools audit). On a real host this is
+		// overlaid with the app's db.* store.
+		data: {
+			list: () => [] as unknown[],
+			get: () => null,
+			upsert: (record: unknown) => `Saved ${labelOf(record)} (simulated — no data store connected).`,
 		},
 	};
 }

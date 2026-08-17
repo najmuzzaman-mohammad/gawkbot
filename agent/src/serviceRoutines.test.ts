@@ -95,7 +95,7 @@ test("POST /tools/build with app persists the tool; same name bumps version", as
 	const r1 = (await (await post("/tools/build", { schema_version: 1, message: "summarize the weekly pipeline", app: "sales" })).json()) as {
 		tool: StoredTool;
 	};
-	expect(r1.tool.name).toBe("weeklyPipelineSummary");
+	expect(r1.tool.name).toBe("weeklySummary");
 	expect(r1.tool.version).toBe(1);
 	const r2 = (await (await post("/tools/build", { schema_version: 1, message: "weekly pipeline digest", app: "sales" })).json()) as {
 		tool: StoredTool;
@@ -109,7 +109,7 @@ test("POST /tools/build with app persists the tool; same name bumps version", as
 	const r3 = (await (await post("/tools/build", { schema_version: 1, message: "draft a follow-up email" })).json()) as {
 		tool: StoredTool;
 	};
-	expect(r3.tool.name).toBe("draftFollowup");
+	expect(r3.tool.name).toBe("draftMessage");
 	expect(r3.tool.version).toBeUndefined();
 	expect(((await (await fetch(`${base}/tools?agent=sales`)).json()) as { tools: StoredTool[] }).tools).toHaveLength(1);
 });
@@ -147,7 +147,7 @@ test("POST /routines/run (a broker fire) lands transcript + artifact and reports
 	expect(session.messages[0].body).toBe("(scheduled) Summarize last week's pipeline movement");
 	// The authored tool was persisted, and the run artifact saved.
 	const tools = (await (await fetch(`${base}/tools?agent=runner`)).json()) as { tools: StoredTool[] };
-	expect(tools.tools.map((t) => t.name)).toEqual(["weeklyPipelineSummary"]);
+	expect(tools.tools.map((t) => t.name)).toEqual(["weeklySummary"]);
 	const arts = (await (await fetch(`${base}/artifacts?agent=runner`)).json()) as { artifacts: StoredArtifact[] };
 	expect(arts.artifacts).toEqual([expect.objectContaining({ type: "md", title: "recap-run-1.md", producedBy: "Recap" })]);
 

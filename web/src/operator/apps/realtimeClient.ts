@@ -140,7 +140,7 @@ const DRAFT_TOOL = {
           properties: {
             name: {
               type: "string",
-              description: "camelCase tool name, e.g. scoreAndRouteLead.",
+              description: "camelCase tool name, e.g. scoreAndFlag.",
             },
             purpose: {
               type: "string",

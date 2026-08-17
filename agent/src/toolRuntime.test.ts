@@ -17,10 +17,9 @@ function makeTool(code: string, inputs: Tool["inputs"] = [], name = "t"): Tool {
 
 const READ_TOOL = makeTool(
 	[
-		"async function weeklyPipelineSummary() {",
-		"  const deals = await crm.deals({ since: '7d' });",
-		"  const moved = deals.filter((d) => d.stageChanged);",
-		"  return nex.ai.summarize(moved, { style: 'exec recap' });",
+		"async function weeklySummary() {",
+		"  const records = await data.list('records', { since: '7d' });",
+		"  return nex.ai.summarize(records, { style: 'concise recap' });",
 		"}",
 	].join("\n"),
 	[],
@@ -29,40 +28,37 @@ const READ_TOOL = makeTool(
 
 const GATED_TOOL = makeTool(
 	[
-		"async function routeLead(lead) {",
-		"  const ae = await crm.ownerFor(lead);",
-		"  await crm.assign(lead, ae);",
-		"  return `routed ${lead} to ${ae.name}`;",
+		"async function notifyOwner(record) {",
+		"  const result = await nex.send(record, 'heads up');",
+		"  return `notified ${record}: ${result}`;",
 		"}",
 	].join("\n"),
-	[{ name: "lead", type: "string" }],
+	[{ name: "record", type: "string" }],
 	"gated_tool",
 );
 
-test("a read tool (crm.deals + summarize) runs ok with actions recorded", async () => {
+test("a read tool (data.list + summarize) runs ok with actions recorded", async () => {
 	const r = await runTool(READ_TOOL, {});
 	expect(r.status).toBe("ok");
 	if (r.status !== "ok") throw new Error("unreachable");
-	expect(r.result).toContain("simulated recap");
-	expect(r.actions.some((a) => a.startsWith("crm.deals("))).toBe(true);
+	// data.list returns [] in the sim, summarize records "0 items" honestly.
+	expect(r.actions.some((a) => a.startsWith("data.list("))).toBe(true);
 	expect(r.actions.some((a) => a.startsWith("nex.ai.summarize("))).toBe(true);
 });
 
-test("crm.assign halts needs_approval by default (default deny)", async () => {
-	const r = await runTool(GATED_TOOL, { lead: "Acme" });
+test("a gated write (nex.send) halts needs_approval by default (default deny)", async () => {
+	const r = await runTool(GATED_TOOL, { record: "Acme" });
 	expect(r.status).toBe("needs_approval");
 	if (r.status !== "needs_approval") throw new Error("unreachable");
-	expect(r.gate.capability).toBe("crm.assign");
+	expect(r.gate.capability).toBe("nex.send");
 	expect(r.gate.detail).toContain("Acme");
-	expect(r.gate.detail).toContain("Priya (AE)");
 });
 
-test("the same call with approved: true completes", async () => {
-	const r = await runTool(GATED_TOOL, { lead: "Acme" }, { approved: true });
+test("the same gated call with approved: true completes", async () => {
+	const r = await runTool(GATED_TOOL, { record: "Acme" }, { approved: true });
 	expect(r.status).toBe("ok");
 	if (r.status !== "ok") throw new Error("unreachable");
-	expect(r.result).toBe("routed Acme to Priya (AE)");
-	expect(r.actions.some((a) => a.startsWith("crm.assign("))).toBe(true);
+	expect(r.actions.some((a) => a.startsWith("nex.send("))).toBe(true);
 });
 
 test("nex.send is gated too", async () => {
@@ -76,12 +72,12 @@ test("nex.send is gated too", async () => {
 });
 
 test("a thrown error -> status error (with prior actions kept)", async () => {
-	const t = makeTool('async function boom() { await crm.deals(); throw new Error("kaput"); }');
+	const t = makeTool('async function boom() { await data.list("records"); throw new Error("kaput"); }');
 	const r = await runTool(t, {});
 	expect(r.status).toBe("error");
 	if (r.status !== "error") throw new Error("unreachable");
 	expect(r.detail).toContain("kaput");
-	expect(r.actions.some((a) => a.startsWith("crm.deals("))).toBe(true);
+	expect(r.actions.some((a) => a.startsWith("data.list("))).toBe(true);
 });
 
 test("the code scan rejects import (dynamic and static) and eval", async () => {
@@ -177,25 +173,27 @@ test("nex.browser is gated: default deny with the browser-control detail", async
 test("injected capabilities are used AND recorded (and stay gated)", async () => {
 	const seen: string[] = [];
 	const capabilities: CapabilityTree = {
-		crm: {
-			deals: () => {
-				seen.push("deals");
-				return [{ name: "OnlyDeal", stageChanged: true }];
+		data: {
+			list: () => {
+				seen.push("list");
+				return [{ name: "OnlyRecord" }];
 			},
-			assign: () => "assigned",
 		},
-		nex: { ai: { summarize: (items: unknown) => `got ${(items as unknown[]).length}` } },
+		nex: {
+			ai: { summarize: (items: unknown) => `got ${(items as unknown[]).length}` },
+			send: () => "sent",
+		},
 	};
-	const read = makeTool("async function t() { const d = await crm.deals({ since: '7d' }); return nex.ai.summarize(d); }");
+	const read = makeTool("async function t() { const d = await data.list('records', { since: '7d' }); return nex.ai.summarize(d); }");
 	const r = await runTool(read, {}, { capabilities });
 	expect(r.status).toBe("ok");
 	if (r.status !== "ok") throw new Error("unreachable");
 	expect(r.result).toBe("got 1");
-	expect(seen).toEqual(["deals"]);
-	expect(r.actions[0]).toBe('crm.deals({"since":"7d"})');
+	expect(seen).toEqual(["list"]);
+	expect(r.actions[0]).toBe('data.list("records", {"since":"7d"})');
 	// The gate is enforced at the instrumentation layer, so an injected
-	// crm.assign is still default-deny.
-	const gated = makeTool('async function t() { return crm.assign("Acme", "Priya"); }');
+	// nex.send is still default-deny.
+	const gated = makeTool('async function t() { return nex.send("Acme", "hi"); }');
 	const g = await runTool(gated, {}, { capabilities });
 	expect(g.status).toBe("needs_approval");
 });
@@ -252,11 +250,11 @@ test("POST /tools/call runs a read tool ok", async () => {
 });
 
 test("POST /tools/call halts needs_approval, then completes with approved: true", async () => {
-	const r1 = (await (await post({ schema_version: 1, agent: APP, name: "gated_tool", args: { lead: "Acme" } })).json()) as ToolCallResult;
+	const r1 = (await (await post({ schema_version: 1, agent: APP, name: "gated_tool", args: { record: "Acme" } })).json()) as ToolCallResult;
 	expect(r1.status).toBe("needs_approval");
-	expect(r1.gate?.capability).toBe("crm.assign");
+	expect(r1.gate?.capability).toBe("nex.send");
 	const r2 = (await (
-		await post({ schema_version: 1, agent: APP, name: "gated_tool", args: { lead: "Acme" }, approved: true })
+		await post({ schema_version: 1, agent: APP, name: "gated_tool", args: { record: "Acme" }, approved: true })
 	).json()) as ToolCallResult;
 	expect(r2.status).toBe("ok");
 });

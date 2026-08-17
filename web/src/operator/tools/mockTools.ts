@@ -20,7 +20,7 @@ export interface Tool {
   id: string;
   /** Plain-language title for a non-technical reader, e.g. "Score & route a lead". */
   title: string;
-  /** Callable identifier the agent invokes, e.g. scoreAndRouteLead. */
+  /** Callable identifier the agent invokes, e.g. scoreAndFlag. */
   name: string;
   /** One line: what running this tool does. */
   purpose: string;
@@ -45,54 +45,58 @@ const SHAPES: ReadonlyArray<{
   sampleResult: string;
 }> = [
   {
-    test: /\b(score|fit|route|lead|assign)\b/i,
-    name: "scoreAndRouteLead",
-    title: "Score & route a lead",
-    purpose: "Score a lead's fit and route hot ones to the right AE.",
-    inputs: [{ name: "lead", type: "string" }],
+    test: /\b(score|scor|rank|prioriti[sz]e|risk|rate|triage)\b/i,
+    name: "scoreAndFlag",
+    title: "Score & flag records",
+    purpose:
+      "Score each record against a rubric and flag the ones that need attention.",
+    inputs: [{ name: "rubric", type: "string" }],
     body: [
-      "const fit = await nex.ai.score(lead, { rubric: 'ICP fit' });",
-      "if (fit >= 75) {",
-      "  const ae = await crm.ownerFor(lead);",
-      "  await crm.assign(lead, ae);",
-      "  return `Fit ${fit} → routed to ${ae.name}`;",
+      "const records = await data.list('records');",
+      "const scored = [];",
+      "for (const r of records) {",
+      "  const score = await nex.ai.score(r, { rubric: rubric || 'priority' });",
+      "  scored.push({ record: r, score, flagged: score >= 75 });",
       "}",
-      "return `Fit ${fit} → left in the queue`;",
+      "return { count: scored.length, flagged: scored.filter((s) => s.flagged) };",
     ].join("\n"),
-    sampleArg: { lead: "Acme" },
-    sampleResult: "Fit 82 → routed to Priya (AE)",
+    sampleArg: { rubric: "priority" },
+    sampleResult: "12 records scored · 3 flagged for attention.",
   },
   {
-    test: /\b(summary|summar|pipeline|digest|weekly|report|recap)\b/i,
-    name: "weeklyPipelineSummary",
-    title: "Weekly pipeline summary",
-    purpose: "Summarize last week's pipeline movement into a glanceable recap.",
-    inputs: [],
+    test: /\b(summar\w*|digest|weekly|report|recap|roll.?up|overview)\b/i,
+    name: "weeklySummary",
+    title: "Weekly summary",
+    purpose: "Summarize this period's records into a glanceable recap.",
+    inputs: [{ name: "since", type: "string" }],
     body: [
-      "const deals = await crm.deals({ since: '7d' });",
-      "const moved = deals.filter((d) => d.stageChanged);",
-      "return nex.ai.summarize(moved, { style: 'exec recap' });",
+      "const records = await data.list('records', { since });",
+      "if (records.length === 0) return { count: 0, summary: 'No records in this period.' };",
+      "const summary = await nex.ai.summarize(records, { style: 'concise recap' });",
+      "return { count: records.length, summary };",
     ].join("\n"),
-    sampleArg: {},
-    sampleResult:
-      "6 deals moved · $420k created · 2 slipped. Biggest: Globex → Negotiation.",
+    sampleArg: { since: "7d" },
+    sampleResult: "18 records this week · summarized into a 3-line recap.",
   },
   {
-    test: /\b(draft|follow.?up|email|reply|outreach|nudge|stall)\b/i,
-    name: "draftFollowup",
-    title: "Draft a follow-up email",
-    purpose: "Draft a follow-up email for a stalled deal in the rep's voice.",
-    inputs: [{ name: "deal", type: "string" }],
+    test: /\b(draft|write|compose|follow.?up|email|reply|outreach|nudge|message|reminder)\b/i,
+    name: "draftMessage",
+    title: "Draft a message",
+    purpose:
+      "Draft a message about a record for your review before it goes out.",
+    inputs: [{ name: "recordId", type: "string" }],
     body: [
-      "const ctx = await crm.dealContext(deal);",
-      "return nex.ai.write('follow-up email', {",
-      "  context: ctx,",
+      "const record = await data.get('records', recordId);",
+      "if (!record) return { error: `No record found for ${recordId}.` };",
+      "const draft = await nex.ai.write('message', {",
+      "  context: record,",
       "  tone: 'warm, brief',",
       "});",
+      "return { recordId, draft, status: 'draft — review before sending' };",
     ].join("\n"),
-    sampleArg: { deal: "Globex" },
+    sampleArg: { recordId: "rec-1" },
     sampleResult:
-      "Subject: Quick nudge on Globex — drafted a 3-line check-in ready to send.",
+      "Drafted a warm, brief message — ready to review before sending.",
   },
 ];
 

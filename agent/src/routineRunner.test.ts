@@ -116,7 +116,7 @@ test("default authoring path (buildTool stub) stays offline and persists", async
 	const { store, sessions } = tmpDeps();
 	const r = await runRoutine("a1", fired("Recap", "Summarize last week's pipeline movement"), { store, sessions });
 	expect(r.status).toBe("ok");
-	expect(store.listTools("a1").map((t) => t.name)).toEqual(["weeklyPipelineSummary"]);
+	expect(store.listTools("a1").map((t) => t.name)).toEqual(["weeklySummary"]);
 });
 
 test("SEND-GATE: a gated routine records needs_approval — it never auto-sends", async () => {
