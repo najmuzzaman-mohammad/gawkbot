@@ -200,6 +200,49 @@ func (b *Broker) livePlaybookPrompt(appID string) string {
 	return extractPlaybookRule(string(data))
 }
 
+// recordOperatorRoutineExecution appends one run of an operator routine to its
+// playbook's execution log (team/playbooks/<slug>.executions.jsonl). This closes
+// the read -> execute -> record loop the compiled skill advertises: before this,
+// the log was ALWAYS empty in the operator flow (ExecutionLog.Append was only
+// reachable via the office-only playbook_execution_record tool), so the playbook
+// never grew a run history worth reading (2026-08-17 wiki audit). Best-effort:
+// a missing app, playbook, or log is a no-op, never a failed fire.
+func (b *Broker) recordOperatorRoutineExecution(appID string, outcome PlaybookOutcome, summary string) {
+	appID = strings.TrimSpace(appID)
+	if appID == "" {
+		return
+	}
+	log := b.PlaybookExecutionLog()
+	if log == nil {
+		return
+	}
+	app, _, err := b.appStore().Get(appID)
+	if err != nil {
+		return
+	}
+	slug := strings.TrimSpace(app.Slug)
+	if slug == "" {
+		slug = appID
+	}
+	// Only record for an app that actually has a playbook — otherwise the log
+	// would accrete for apps the operator never described a rule for.
+	if b.WikiWorker() == nil || b.WikiWorker().Repo() == nil {
+		return
+	}
+	path := filepath.Join(b.WikiWorker().Repo().Root(), "team", "playbooks", slug+".md")
+	if _, statErr := os.Stat(path); statErr != nil {
+		return
+	}
+	summary = strings.TrimSpace(summary)
+	if summary == "" {
+		summary = "Routine fired."
+	}
+	if _, err := log.Append(context.Background(), slug, outcome, summary, "", appBuilderSlug); err != nil {
+		log2 := err
+		_ = log2 // Append already logs; keep the fire clean.
+	}
+}
+
 // extractPlaybookRule pulls the operator's rule out of a playbook page: the
 // blockquote body the page is built around. Editing WITHIN that blockquote (the
 // way the page invites) is picked up; a free rewrite that drops the blockquote

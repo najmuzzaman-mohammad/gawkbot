@@ -346,3 +346,47 @@ func TestLivePlaybookPromptRoundTrip(t *testing.T) {
 		t.Fatalf("edited playbook did not change the live prompt, got %q", got)
 	}
 }
+
+func TestRecordOperatorRoutineExecution(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
+	root := filepath.Join(t.TempDir(), "wiki")
+	repo := NewRepoAt(root, filepath.Join(t.TempDir(), "wiki.bak"))
+	if err := repo.Init(context.Background()); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	b := newTestBroker(t)
+	worker := NewWikiWorker(repo, b)
+	ctx, cancel := context.WithCancel(context.Background())
+	worker.Start(ctx)
+	t.Cleanup(func() { worker.Stop(); cancel() })
+	b.mu.Lock()
+	b.wikiWorker = worker
+	b.mu.Unlock()
+	b.SetPlaybookExecutionLog(NewExecutionLog(worker))
+
+	app := CustomApp{ID: "app_00000000000000ce", Slug: "deal-desk", Name: "Deal Desk"}
+	if _, err := b.appStore().Save(CustomAppWriteRequest{
+		ID: app.ID, Name: app.Name, HTML: "<html><body>x</body></html>", Actor: "human",
+	}, time.Now()); err != nil {
+		t.Skipf("app save unavailable: %v", err)
+	}
+	// No playbook yet -> recording is a no-op.
+	b.recordOperatorRoutineExecution(app.ID, PlaybookOutcomeSuccess, "should not record")
+	if execs, _ := b.PlaybookExecutionLog().List("deal-desk"); len(execs) != 0 {
+		t.Fatalf("recorded an execution with no playbook: %d", len(execs))
+	}
+	// Mint the playbook, then a fire records a real execution.
+	b.mintOperatorPlaybookForFirstBuild(app, "Chase renewals inside 90 days.")
+	b.recordOperatorRoutineExecution(app.ID, PlaybookOutcomeSuccess, "Chased 3 renewals; drafted 3 emails.")
+	execs, err := b.PlaybookExecutionLog().List("deal-desk")
+	if err != nil {
+		t.Fatalf("list executions: %v", err)
+	}
+	if len(execs) != 1 || execs[0].Outcome != PlaybookOutcomeSuccess {
+		t.Fatalf("expected 1 success execution, got %+v", execs)
+	}
+	if !strings.Contains(execs[0].Summary, "Chased 3 renewals") {
+		t.Fatalf("execution summary not recorded: %q", execs[0].Summary)
+	}
+}

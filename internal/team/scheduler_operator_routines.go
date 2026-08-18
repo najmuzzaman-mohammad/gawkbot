@@ -172,6 +172,26 @@ func (w *watchdogScheduler) processOperatorRoutineJob(job schedulerJob) {
 			run.OutputSummary = res.Digest
 			run.Events = append(events, "Completed", "Session "+res.SessionID)
 		}
+		// Append this run to the app's playbook execution log so the wiki grows a
+		// real, readable run history (the compiled skill advertises this loop).
+		var outcome PlaybookOutcome
+		switch run.Status {
+		case "ok":
+			// A paused-for-approval run HAPPENED but did not complete its send.
+			if strings.HasPrefix(run.OutputSummary, "Paused for approval") {
+				outcome = PlaybookOutcomePartial
+			} else {
+				outcome = PlaybookOutcomeSuccess
+			}
+		default:
+			outcome = PlaybookOutcomeAborted
+		}
+		execSummary := strings.TrimSpace(run.OutputSummary)
+		if execSummary == "" {
+			execSummary = strings.TrimSpace(run.Message)
+		}
+		w.broker.recordOperatorRoutineExecution(strings.TrimSpace(job.TargetID), outcome, execSummary)
+
 		// Status "scheduled" (not "done") keeps the cron alive — same contract
 		// as processAgentJob.
 		_ = w.broker.CompleteSchedulerRun(job.Slug, nextRun, "scheduled", run)

@@ -540,7 +540,8 @@ func (b *schedulerFixtureBroker) UpdateSchedulerJobState(slug string, _ time.Tim
 
 // livePlaybookPrompt: the fixture has no wiki, so it always falls back to the
 // frozen payload (the pre-live-playbook behavior these scheduler tests assert).
-func (b *schedulerFixtureBroker) livePlaybookPrompt(_ string) string { return "" }
+func (b *schedulerFixtureBroker) livePlaybookPrompt(_ string) string                             { return "" }
+func (b *schedulerFixtureBroker) recordOperatorRoutineExecution(string, PlaybookOutcome, string) {}
 
 func (b *schedulerFixtureBroker) CompleteSchedulerRun(slug string, _ time.Time, statusForJob string, _ schedulerRun) error {
 	b.jobStateUpdates = append(b.jobStateUpdates, jobStateCall{slug: slug, status: statusForJob})
@@ -602,8 +603,9 @@ func (b *recordingLedgerBroker) FindTask(string, string) (teamTask, bool) { retu
 func (b *recordingLedgerBroker) FindRequest(string, string) (humanInterview, bool) {
 	return humanInterview{}, false
 }
-func (b *recordingLedgerBroker) UpdateSchedulerJobState(string, time.Time, string) error { return nil }
-func (b *recordingLedgerBroker) livePlaybookPrompt(string) string                        { return "" }
+func (b *recordingLedgerBroker) UpdateSchedulerJobState(string, time.Time, string) error        { return nil }
+func (b *recordingLedgerBroker) livePlaybookPrompt(string) string                               { return "" }
+func (b *recordingLedgerBroker) recordOperatorRoutineExecution(string, PlaybookOutcome, string) {}
 func (b *recordingLedgerBroker) CompleteSchedulerRun(string, time.Time, string, schedulerRun) error {
 	return nil
 }

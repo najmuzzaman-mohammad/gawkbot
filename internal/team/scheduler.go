@@ -54,6 +54,9 @@ type schedulerBroker interface {
 	// livePlaybookPrompt returns the operator's current playbook rule for an
 	// app id, or "" to fall back to the frozen routine payload.
 	livePlaybookPrompt(appID string) string
+	// recordOperatorRoutineExecution appends one routine run to the app's
+	// playbook execution log; no-op when there is no playbook.
+	recordOperatorRoutineExecution(appID string, outcome PlaybookOutcome, summary string)
 	CompleteSchedulerRun(slug string, nextRun time.Time, statusForJob string, run schedulerRun) error
 	EnsureDirectChannel(agentSlug string) (string, error)
 	CreateWatchdogAlert(kind, channel, targetType, targetID, owner, summary string) (watchdogAlert, bool, error)
