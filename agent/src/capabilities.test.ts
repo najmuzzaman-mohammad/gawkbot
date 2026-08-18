@@ -140,6 +140,50 @@ test("integrations.call surfaces the broker's approval card for a mutation", asy
 	expect(String(out)).toContain("req_9");
 });
 
+test("data.* is the empty simulation without an appId", async () => {
+	const tree = buildCapabilities({ ...BROKER });
+	expect(await cap(tree, "data.list")("records")).toEqual([]);
+	expect(await cap(tree, "data.get")("records", "x")).toBeNull();
+});
+
+test("data.list binds to the app store (query op) when an appId is set", async () => {
+	let captured: { url?: string; body?: unknown } = {};
+	const fetch = (async (url: string, init: { body: string }) => {
+		captured = { url, body: JSON.parse(init.body) };
+		return new Response(JSON.stringify({ table: { rows: [{ id: "1", name: "Meridian" }] } }), { status: 200 });
+	}) as unknown as CapabilityConfig["fetch"];
+	const tree = buildCapabilities({ ...BROKER, appId: "app_00000000000000aa", fetch });
+	const rows = await cap(tree, "data.list")("accounts");
+	expect(rows).toEqual([{ id: "1", name: "Meridian" }]);
+	expect(captured.url).toBe("http://broker.test/apps/app_00000000000000aa/db");
+	expect(captured.body).toMatchObject({ op: "query", table: "accounts" });
+});
+
+test("data.get finds a row by id from the app store", async () => {
+	const fetch = (async () =>
+		new Response(JSON.stringify({ table: { rows: [{ id: "a" }, { id: "b" }] } }), { status: 200 })) as unknown as CapabilityConfig["fetch"];
+	const tree = buildCapabilities({ ...BROKER, appId: "app_00000000000000aa", fetch });
+	expect(await cap(tree, "data.get")("t", "b")).toEqual({ id: "b" });
+	expect(await cap(tree, "data.get")("t", "z")).toBeNull();
+});
+
+test("data.list returns [] for a table that does not exist yet (honest empty)", async () => {
+	const fetch = (async () => new Response(JSON.stringify({ error: "no such table" }), { status: 404 })) as unknown as CapabilityConfig["fetch"];
+	const tree = buildCapabilities({ ...BROKER, appId: "app_00000000000000aa", fetch });
+	expect(await cap(tree, "data.list")("nope")).toEqual([]);
+});
+
+test("data.upsert writes a row to the app store (upsert op, key id)", async () => {
+	let body: unknown;
+	const fetch = (async (_url: string, init: { body: string }) => {
+		body = JSON.parse(init.body);
+		return new Response(JSON.stringify({ table: { rows: [] } }), { status: 200 });
+	}) as unknown as CapabilityConfig["fetch"];
+	const tree = buildCapabilities({ ...BROKER, appId: "app_00000000000000aa", fetch });
+	await cap(tree, "data.upsert")("accounts", { id: "1", stage: "won" });
+	expect(body).toMatchObject({ op: "upsert", table: "accounts", key: "id", rows: [{ id: "1", stage: "won" }] });
+});
+
 test("integrations.call throws on a broker error / disconnected platform", async () => {
 	const errTree = buildCapabilities({ ...BROKER, fetch: jsonFetch({ error: "boom" }) });
 	await expect(Promise.resolve(cap(errTree, "integrations.call")("gmail", "X"))).rejects.toThrow("boom");

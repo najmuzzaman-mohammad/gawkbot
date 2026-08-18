@@ -278,7 +278,8 @@ export function createServer(opts: ServerOptions = {}) {
 				return json(
 					await runTool({ ...tool, inputs: rawInputs === undefined ? [] : rawInputs }, body.args ?? {}, {
 						approved: body.approved === true,
-						capabilities: buildCapabilities(capabilityConfigFromEnv()),
+						// Pass the app id so data.* binds to THIS app's real store.
+						capabilities: buildCapabilities({ ...capabilityConfigFromEnv(), appId: agent }),
 						timeoutMs,
 					}),
 				);

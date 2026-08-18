@@ -110,7 +110,8 @@ export async function runRoutine(agent: string, routine: RoutineRunRequest, deps
 	let outcome: string;
 	if (tool) {
 		const execute = deps.execute ?? runTool;
-		const capabilities = deps.capabilities ?? buildCapabilities(capabilityConfigFromEnv());
+		// Pass the app id so a fired routine's tool reads/writes THIS app's store.
+		const capabilities = deps.capabilities ?? buildCapabilities({ ...capabilityConfigFromEnv(), appId: agent });
 		const timeoutMs = Number(process.env.TOOL_CALL_TIMEOUT_MS) || undefined;
 		// Give the tool the routine's prompt as `input`. A synthesized fallback tool
 		// takes a single `input` param (tools.ts authorTool) — without this it ran on

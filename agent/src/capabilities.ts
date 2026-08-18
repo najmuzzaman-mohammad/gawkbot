@@ -18,11 +18,14 @@
 //                                 GATED at the agent layer (browser control needs
 //                                 the operator's in-chat approval, mirroring the
 //                                 browser-step reframe).
-//   nex.send / data.*             Still simulated. nex.send stays gated so the
-//                                 approval flow is exercised end to end; data.* is
-//                                 the domain-neutral store surface (list/get/upsert)
-//                                 an authored tool uses to read/write the app's own
-//                                 records — simulated as an empty store on this host.
+//   data.*                        REAL via the broker's op-dispatched
+//                                 POST/GET /apps/{id}/db (query/upsert) when a
+//                                 broker AND an app id are configured — an authored
+//                                 tool reads/writes the app's OWN records (the same
+//                                 rows the Data tab renders). Empty simulation
+//                                 otherwise (honest "nothing stored yet").
+//   nex.send                      Still simulated, and stays gated so the approval
+//                                 flow is exercised end to end.
 //
 // Secrets discipline: the broker token comes from the agent's OWN environment and
 // goes out only as an Authorization header to the configured broker — never to
@@ -49,6 +52,10 @@ export interface CapabilityConfig {
 	brokerUrl?: string;
 	/** Broker API token; sent as a Bearer header, never exposed to tool code. */
 	brokerToken?: string;
+	/** The app whose OWN data store data.* reads/writes (POST/GET /apps/{id}/db).
+	 * Set from the tool-call/routine request's agent id; when present (with a
+	 * broker), data.* operates on the app's real rows instead of the empty sim. */
+	appId?: string;
 	/** Model for real nex.ai.* calls; unset -> simulated. */
 	aiModel?: Model<string>;
 	apiKey?: string;
@@ -277,6 +284,62 @@ function realIntegrations(cfg: CapabilityConfig): CapabilityTree {
 // Real nex.browser — the broker's cua engine, SSE. Gated at the agent layer.
 // ---------------------------------------------------------------------------
 
+// realData binds data.* to the app's OWN backing store via the broker's
+// op-dispatched POST/GET /apps/{id}/db endpoint (define|upsert|query|clear).
+// This is what makes an authored tool operate on the SAME rows the app persists
+// and the Data tab renders — deals, tickets, candidates, products — instead of
+// the empty simulation. Only overlaid when a broker AND an appId are configured.
+function realData(cfg: CapabilityConfig): CapabilityTree {
+	const base = (cfg.brokerUrl ?? "").replace(/\/$/, "");
+	const appId = cfg.appId ?? "";
+	const dbCall = async (op: string, extra: Record<string, unknown>): Promise<{ table?: { rows?: unknown[] } }> => {
+		const fetchFn = cfg.fetch ?? fetch;
+		const deadline = deadlineSignal(currentRunSignal(), cfg.callTimeoutMs ?? DEFAULT_CAP_TIMEOUT_MS, {
+			timeoutMessage: "data capability timed out",
+			abortFallback: "tool run settled",
+		});
+		try {
+			const res = await fetchFn(`${base}/apps/${encodeURIComponent(appId)}/db`, {
+				method: "POST",
+				headers: {
+					"content-type": "application/json",
+					authorization: `Bearer ${cfg.brokerToken}`,
+				},
+				body: JSON.stringify({ op, ...extra }),
+				signal: deadline.signal,
+			});
+			if (!res.ok) throw new Error(`data ${op} failed (${res.status})`);
+			return (await res.json()) as { table?: { rows?: unknown[] } };
+		} finally {
+			deadline.done();
+		}
+	};
+	// A query against a table that does not exist yet is "no records", not an
+	// error — the honest empty answer, so list/get never crash a fresh app.
+	const rowsOf = async (collection: unknown): Promise<Record<string, unknown>[]> => {
+		try {
+			const body = await dbCall("query", { table: String(collection) });
+			const rows = body.table?.rows;
+			return Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [];
+		} catch {
+			return [];
+		}
+	};
+	return {
+		list: async (collection: unknown) => rowsOf(collection),
+		get: async (collection: unknown, id: unknown) => {
+			const rows = await rowsOf(collection);
+			const key = String(id);
+			return rows.find((r) => String(r.id) === key) ?? null;
+		},
+		upsert: async (collection: unknown, record: unknown) => {
+			const row = record && typeof record === "object" && !Array.isArray(record) ? (record as Record<string, unknown>) : { value: record };
+			await dbCall("upsert", { table: String(collection), rows: [row], key: "id" });
+			return `Saved to ${String(collection)}.`;
+		},
+	};
+}
+
 function realBrowser(cfg: CapabilityConfig): CapabilityFn {
 	return async (goal: unknown) => {
 		if (!cfg.brokerUrl || !cfg.brokerToken) {
@@ -361,6 +424,11 @@ export function buildCapabilities(cfg: CapabilityConfig = {}): CapabilityTree {
 	if (cfg.brokerUrl && cfg.brokerToken) {
 		nex.browser = realBrowser(cfg);
 		tree.integrations = realIntegrations(cfg);
+		// Bind data.* to the app's real store when we know which app we are
+		// running for; without an appId it stays the honest empty simulation.
+		if (cfg.appId) {
+			tree.data = realData(cfg);
+		}
 	} else {
 		tree.integrations = {
 			call: async () => {
