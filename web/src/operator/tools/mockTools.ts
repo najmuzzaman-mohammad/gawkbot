@@ -68,14 +68,14 @@ const SHAPES: ReadonlyArray<{
     name: "weeklySummary",
     title: "Weekly summary",
     purpose: "Summarize this period's records into a glanceable recap.",
-    inputs: [{ name: "since", type: "string" }],
+    inputs: [],
     body: [
-      "const records = await data.list('records', { since });",
-      "if (records.length === 0) return { count: 0, summary: 'No records in this period.' };",
+      "const records = await data.list('records');",
+      "if (records.length === 0) return { count: 0, summary: 'No records to summarize.' };",
       "const summary = await nex.ai.summarize(records, { style: 'concise recap' });",
       "return { count: records.length, summary };",
     ].join("\n"),
-    sampleArg: { since: "7d" },
+    sampleArg: {},
     sampleResult: "18 records this week · summarized into a 3-line recap.",
   },
   {

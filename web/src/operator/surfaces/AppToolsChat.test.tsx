@@ -55,34 +55,28 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
   it("teaching a workflow calls create_tool and the tool lands in the tab", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          builtTool("draftFollowup", "Draft a follow-up email"),
-        ),
+      vi.fn().mockResolvedValue(builtTool("draftMessage", "Draft a message")),
     );
     const { getByLabelText, getByText, findByText, queryByText } = renderApp();
 
     // Seeded tools are already listed; the new one is not there yet.
-    expect(getByText("Weekly pipeline summary")).toBeTruthy();
-    expect(queryByText("Draft a follow-up email")).toBeNull();
+    expect(getByText("Weekly summary")).toBeTruthy();
+    expect(queryByText("Draft a message")).toBeNull();
 
     const input = getByLabelText(
       "Describe a task for Nex to build a tool for",
     ) as HTMLInputElement;
     fireEvent.change(input, {
-      target: { value: "Draft a follow-up email for a stalled deal" },
+      target: { value: "Draft a message for a record" },
     });
     fireEvent.keyDown(input, { key: "Enter" });
 
     // The chat renders the agent's create_tool call…
     const call = await findByText(/create_tool\(/);
-    expect(call.textContent).toContain('name: "draftFollowup"');
+    expect(call.textContent).toContain('name: "draftMessage"');
 
     // …and the new tool now appears in the Tools tab (shared context).
-    await waitFor(() =>
-      expect(getByText("Draft a follow-up email")).toBeTruthy(),
-    );
+    await waitFor(() => expect(getByText("Draft a message")).toBeTruthy());
   });
 
   it("the first tool ever taught gets the milestone reply; the second does not", async () => {
@@ -90,9 +84,7 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
       "fetch",
       vi
         .fn()
-        .mockResolvedValueOnce(
-          builtTool("draftFollowup", "Draft a follow-up email"),
-        )
+        .mockResolvedValueOnce(builtTool("draftMessage", "Draft a message"))
         .mockResolvedValueOnce(builtTool("weeklyRecap", "Weekly recap")),
     );
     // Product-shaped start: agents begin with NO tools.
@@ -106,11 +98,11 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
     ) as HTMLInputElement;
 
     fireEvent.change(input, {
-      target: { value: "Draft a follow-up email for a stalled deal" },
+      target: { value: "Draft a message for a record" },
     });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(
-      await findByText(/“Draft a follow-up email”, this agent's first tool/),
+      await findByText(/“Draft a message”, this agent's first tool/),
     ).toBeTruthy();
 
     await waitFor(() => expect(input.disabled).toBe(false));
@@ -134,14 +126,14 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
       "Describe a task for Nex to build a tool for",
     ) as HTMLInputElement;
     fireEvent.change(input, {
-      target: { value: "Draft a follow-up email for a stalled deal" },
+      target: { value: "Draft a message for a record" },
     });
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(
       await findByText(/could not reach the tool-building service/i),
     ).toBeTruthy();
-    expect(queryByText("Draft a follow-up email")).toBeNull();
+    expect(queryByText("Draft a message")).toBeNull();
   });
 
   it("refuses honestly when the service stub-authored (no canned tool)", async () => {
@@ -217,9 +209,7 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
       "fetch",
       vi
         .fn()
-        .mockResolvedValue(
-          builtTool("scoreAndRouteLead", "Score & route a lead"),
-        ),
+        .mockResolvedValue(builtTool("scoreAndFlag", "Score & flag records")),
     );
     const { getByLabelText, findAllByText } = renderApp();
     const input = getByLabelText(
@@ -228,16 +218,16 @@ describe("AppToolsChat + Tools tab (slice 2)", () => {
 
     for (let i = 0; i < 2; i++) {
       fireEvent.change(input, {
-        target: { value: "score the lead and route it" },
+        target: { value: "score and flag each record" },
       });
       fireEvent.keyDown(input, { key: "Enter" });
       // eslint-disable-next-line no-await-in-loop
       await waitFor(() => expect(input.disabled).toBe(false));
     }
 
-    // scoreAndRouteLead was seeded AND taught twice, but the tab shows one card
+    // scoreAndFlag was seeded AND taught twice, but the tab shows one card
     // (dedup by name). The chat, however, shows a call each time.
-    const cards = await findAllByText("Score & route a lead");
+    const cards = await findAllByText("Score & flag records");
     expect(cards).toHaveLength(1);
   });
 });
@@ -258,7 +248,10 @@ describe("AppToolsChat calls tools (slice 5)", () => {
       jsonResponse({
         status: "ok",
         result: "4 items — Globex, Acme (simulated recap)",
-        actions: ['crm.deals({"since":"7d"})', "nex.ai.summarize([…])"],
+        actions: [
+          'data.list("records", {"since":"7d"})',
+          "nex.ai.summarize([…])",
+        ],
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -271,9 +264,11 @@ describe("AppToolsChat calls tools (slice 5)", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     // The chat renders the tool call and what the tool did…
-    const call = await findByText(/weeklyPipelineSummary\(\)/);
+    const call = await findByText(/weeklySummary\(\)/);
     expect(call).toBeTruthy();
-    expect(await findByText('crm.deals({"since":"7d"})')).toBeTruthy();
+    expect(
+      await findByText('data.list("records", {"since":"7d"})'),
+    ).toBeTruthy();
 
     // …the result shows in the chat AND as the tab's read-only "Last run".
     const results = await findAllByText(
@@ -286,7 +281,7 @@ describe("AppToolsChat calls tools (slice 5)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     // By-reference contract: the browser sends (agent, name) + args, never code.
-    expect(body.name).toBe("weeklyPipelineSummary");
+    expect(body.name).toBe("weeklySummary");
     expect(body.code).toBeUndefined();
     expect(body.tool).toBeUndefined();
     expect(body.approved).toBe(false);
@@ -319,7 +314,7 @@ describe("AppToolsChat calls tools (slice 5)", () => {
       "Describe a task for Nex to build a tool for",
     ) as HTMLInputElement;
     fireEvent.change(input, {
-      target: { value: 'use Score & route a lead on "Acme"' },
+      target: { value: 'use Score & flag records on "Acme"' },
     });
     fireEvent.keyDown(input, { key: "Enter" });
 
@@ -335,7 +330,7 @@ describe("AppToolsChat calls tools (slice 5)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const second = JSON.parse(fetchMock.mock.calls[1][1].body as string);
     expect(second.approved).toBe(true);
-    expect(second.args).toEqual({ lead: "Acme" });
+    expect(second.args).toEqual({ rubric: "Acme" });
   });
 
   it("a bare mention of a tool teaches — it does not auto-invoke — and re-teaching keeps run history", async () => {
@@ -350,9 +345,7 @@ describe("AppToolsChat calls tools (slice 5)", () => {
         }),
       )
       // …2nd message teaches via the service (model-authored).
-      .mockResolvedValueOnce(
-        builtTool("weeklyPipelineSummary", "Weekly pipeline summary"),
-      );
+      .mockResolvedValueOnce(builtTool("weeklySummary", "Weekly summary"));
     vi.stubGlobal("fetch", fetchMock);
 
     const { getByLabelText, findByText } = renderApp();
@@ -367,12 +360,12 @@ describe("AppToolsChat calls tools (slice 5)", () => {
     // cue must TEACH (create_tool), never re-run the tool.
     fireEvent.change(input, {
       target: {
-        value: "Update the weekly pipeline summary to include churned deals",
+        value: "Update the weekly summary to include churned deals",
       },
     });
     fireEvent.keyDown(input, { key: "Enter" });
     const call = await findByText(/create_tool\(/);
-    expect(call.textContent).toContain('name: "weeklyPipelineSummary"');
+    expect(call.textContent).toContain('name: "weeklySummary"');
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1][0]).toBe("/agent/tools/build");
 
@@ -396,13 +389,13 @@ describe("AppToolsChat calls tools (slice 5)", () => {
     const input = getByLabelText(
       "Describe a task for Nex to build a tool for",
     ) as HTMLInputElement;
-    // scoreAndRouteLead takes a `lead` input; "run ..." gives no explicit value.
+    // scoreAndFlag takes a `rubric` input; "run ..." gives no explicit value.
     fireEvent.change(input, {
-      target: { value: "run score and route a lead" },
+      target: { value: "run score and flag records" },
     });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(await findByText(/I need `lead`/)).toBeTruthy();
+    expect(await findByText(/I need `rubric`/)).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
 
     // The next message answers; a single missing input takes the whole text.
@@ -413,7 +406,7 @@ describe("AppToolsChat calls tools (slice 5)", () => {
       (await findAllByText("drafted the follow-up")).length,
     ).toBeGreaterThan(0);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    expect(body.args).toEqual({ lead: "Globex renewal" });
+    expect(body.args).toEqual({ rubric: "Globex renewal" });
   });
 
   it('"Not now" skips the gated call without re-calling the agent', async () => {

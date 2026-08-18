@@ -30,7 +30,7 @@ describe("authorToolFromDescription", () => {
   it("recognizes the weekly summary workflow", () => {
     const t = authorToolFromDescription("Every Monday summarize the week");
     expect(t.name).toBe("weeklySummary");
-    expect(t.inputs.map((i) => i.name)).toEqual(["since"]);
+    expect(t.inputs).toEqual([]);
   });
 
   it("recognizes the message-draft workflow", () => {
