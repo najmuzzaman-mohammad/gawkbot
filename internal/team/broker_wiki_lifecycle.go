@@ -86,7 +86,10 @@ func (b *Broker) initWikiWorker() {
 		}
 	}
 
-	idx := NewWikiIndex(repo.Root())
+	// P1 cross-encoder rerank (OFFICE-357). Opt-in via the WUPHF_RERANK config
+	// flag; WithReranker(nil) safely keeps the no-op passthrough when the flag is
+	// off or VOYAGE_API_KEY is absent, so the frozen P0 baseline holds either way.
+	idx := NewWikiIndex(repo.Root(), WithReranker(rerankerFromEnv()))
 
 	worker := NewWikiWorkerWithIndex(repo, b, idx)
 	worker.Start(lifecycleCtx)

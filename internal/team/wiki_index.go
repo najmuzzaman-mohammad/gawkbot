@@ -47,6 +47,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nex-crm/wuphf/internal/embedding"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -228,9 +229,11 @@ type TextIndex interface {
 // WikiIndex composes a FactStore and a TextIndex behind a single handle the
 // rest of the broker uses. Construct via NewWikiIndex.
 type WikiIndex struct {
-	root  string // wiki repo root (where wiki/ and team/ live)
-	store FactStore
-	text  TextIndex
+	root     string // wiki repo root (where wiki/ and team/ live)
+	store    FactStore
+	text     TextIndex
+	embedder embedding.Provider // dense leg for RRF fusion (P0); never nil after construction
+	reranker Reranker           // final cross-encoder rerank stage (P1); never nil after construction
 
 	mu        sync.Mutex
 	lastBuild time.Time
@@ -249,6 +252,21 @@ func WithTextIndex(t TextIndex) IndexOption {
 	return func(w *WikiIndex) { w.text = t }
 }
 
+// WithEmbedder injects the dense-leg embedding provider for RRF fusion (P0).
+// Defaults to embedding.NewDefault() (a real provider when an API key is set,
+// otherwise the deterministic stub).
+func WithEmbedder(e embedding.Provider) IndexOption {
+	return func(w *WikiIndex) { w.embedder = e }
+}
+
+// WithReranker injects the final cross-encoder rerank stage (P1). Defaults to
+// the no-op passthrough, which holds the P0 baseline exactly. Pass a real
+// cross-encoder (Cohere/Voyage rerank or a local bge-reranker) here to activate
+// joint (query, candidate) rescoring without touching the retrieval routing.
+func WithReranker(r Reranker) IndexOption {
+	return func(w *WikiIndex) { w.reranker = r }
+}
+
 // NewWikiIndex constructs a WikiIndex rooted at the given wiki repo directory.
 // Defaults to in-memory stores so callers can wire up tests without new deps.
 // The real pure-Go backends (modernc.org/sqlite + bleve) replace the defaults
@@ -263,6 +281,20 @@ func NewWikiIndex(root string, opts ...IndexOption) *WikiIndex {
 	}
 	if w.text == nil {
 		w.text = newInMemoryTextIndex()
+	}
+	if w.embedder == nil {
+		// Light up the dense leg by default. NewDefault never returns nil —
+		// the deterministic stub is the floor — so retrieveFused always has a
+		// non-nil embedder and the dense leg degrades gracefully rather than
+		// panicking when no embeddings API key is configured.
+		w.embedder = embedding.NewDefault()
+	}
+	if w.reranker == nil {
+		// Default final stage is the passthrough: zero new vendor surface and a
+		// provable identity on the fused order, so the P0 gate holds exactly. A
+		// real cross-encoder is opted in via WithReranker once a provider is
+		// chosen (the human's new-vendor decision).
+		w.reranker = noopReranker{}
 	}
 	return w
 }
@@ -294,7 +326,15 @@ func NewPersistentWikiIndex(root string, indexDir string) (*WikiIndex, error) {
 		return nil, fmt.Errorf("wiki_index: bleve: %w", err)
 	}
 
-	return NewWikiIndex(root, WithFactStore(store), WithTextIndex(text)), nil
+	opts := []IndexOption{WithFactStore(store), WithTextIndex(text)}
+	// Activate the real cross-encoder (bge-reranker-v2-m3) when BGE_RERANK_URL is
+	// configured; otherwise the index keeps the noop passthrough and the P0 gate
+	// holds exactly. Opt-in by env, never an implicit default — same activation
+	// shape as the Voyage embedding leg (VOYAGE_API_KEY).
+	if rr, ok := newBgeRerankerFromEnv(); ok {
+		opts = append(opts, WithReranker(rr))
+	}
+	return NewWikiIndex(root, opts...), nil
 }
 
 // Close releases both backends. Safe to call twice.
@@ -422,7 +462,14 @@ func (w *WikiIndex) Search(ctx context.Context, query string, topK int) ([]Searc
 	if topK > 100 {
 		topK = 100
 	}
-	return retrieveWithClass(ctx, w.store, w.text, query, topK)
+	hits, err := retrieveWithClass(ctx, w.store, w.text, w.embedder, query, topK)
+	if err != nil {
+		return nil, err
+	}
+	// P1 final stage: cross-encoder rerank over the fused candidate list. The
+	// default passthrough is an identity here; a real model reorders by joint
+	// (query, candidate) relevance. Additive — never drops below the fused order.
+	return applyRerank(ctx, w.reranker, query, hits, topK), nil
 }
 
 // GetFact returns a single fact by ID.

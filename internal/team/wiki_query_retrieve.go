@@ -37,11 +37,13 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/nex-crm/wuphf/internal/embedding"
 )
 
 // retrieveWithClass routes a query to the appropriate retrieval path based
 // on its ClassifyQuery output. Called by WikiIndex.Search.
-func retrieveWithClass(ctx context.Context, store FactStore, text TextIndex, query string, topK int) ([]SearchHit, error) {
+func retrieveWithClass(ctx context.Context, store FactStore, text TextIndex, embedder embedding.Provider, query string, topK int) ([]SearchHit, error) {
 	// Confidence is intentionally discarded here: the typed walks are always
 	// additive over BM25, so there is nothing a threshold gate would reject —
 	// a low-confidence classification still falls back to BM25 via the union.
@@ -55,10 +57,13 @@ func retrieveWithClass(ctx context.Context, store FactStore, text TextIndex, que
 	case QueryClassRelationship:
 		return retrieveRelationshipSingle(ctx, store, text, query, topK)
 	default:
-		// Status / general: BM25 only. The plan's core invariant
-		// ("never replace BM25") is satisfied here by never bolting the typed
-		// walk onto a query class it cannot help.
-		return text.Search(ctx, query, topK)
+		// Status / general: the P0 path with genuine rank-1 headroom. RRF
+		// fuses BM25 (the recall floor — never dropped) with the entity-graph
+		// role_at walk and the dense leg. Every leg degrades to nil
+		// independently, so this never falls below the prior BM25-only
+		// baseline; it only lifts the multi-leg-agreement facts (q05/q09) above
+		// the token-overlap distractors that BM25 alone cannot separate.
+		return retrieveFused(ctx, store, text, embedder, query, topK)
 	}
 }
 
