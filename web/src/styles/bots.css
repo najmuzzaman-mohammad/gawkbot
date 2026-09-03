@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ─── Agent Panel (right slide-in) ─── */
-.agent-panel {
+.bot-panel {
   position: fixed;
   top: 0;
   right: 0;
@@ -28,7 +28,7 @@
   }
 }
 
-.agent-panel-header {
+.bot-panel-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -39,7 +39,7 @@
   flex-shrink: 0;
 }
 
-.agent-panel-identity {
+.bot-panel-identity {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -47,7 +47,7 @@
   min-width: 0;
 }
 
-.agent-panel-avatar {
+.bot-panel-avatar {
   width: 36px;
   height: 36px;
   padding: 0;
@@ -60,19 +60,19 @@
   font-size: 16px;
   flex-shrink: 0;
 }
-.agent-panel-avatar .pixel-avatar,
-.agent-panel-avatar .pixel-avatar-panel {
+.bot-panel-avatar .pixel-avatar,
+.bot-panel-avatar .pixel-avatar-panel {
   width: 100%;
   height: 100%;
 }
-.agent-panel-role {
+.bot-panel-role {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   font-weight: 400;
   line-height: 1.4;
 }
 
-.agent-panel-name {
+.bot-panel-name {
   font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text);
@@ -81,7 +81,7 @@
   white-space: nowrap;
 }
 
-.agent-panel-close {
+.bot-panel-close {
   width: 36px;
   height: 36px;
   border: none;
@@ -99,21 +99,21 @@
     background var(--duration-base, 0.15s),
     color var(--duration-base, 0.15s);
 }
-.agent-panel-close:hover {
+.bot-panel-close:hover {
   background: var(--bg);
   color: var(--text);
 }
-.agent-panel-close:focus-visible {
+.bot-panel-close:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
 
-.agent-panel-section {
+.bot-panel-section {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-light);
 }
 
-.agent-panel-section-title {
+.bot-panel-section-title {
   font-size: var(--text-2xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -123,27 +123,27 @@
 }
 
 /* ─── Info grid ─── */
-.agent-panel-info {
+.bot-panel-info {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.agent-panel-info-row {
+.bot-panel-info-row {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: var(--text-sm);
 }
 
-.agent-panel-info-label {
+.bot-panel-info-label {
   color: var(--text-tertiary);
   font-family: var(--font-mono);
   min-width: 72px;
   flex-shrink: 0;
 }
 
-.agent-panel-info-value {
+.bot-panel-info-value {
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,14 +151,14 @@
 }
 
 /* ─── Expertise tags ─── */
-.agent-panel-tags {
+.bot-panel-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 4px;
 }
 
-.agent-panel-tag {
+.bot-panel-tag {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
@@ -170,7 +170,7 @@
 }
 
 /* ─── Stream log ─── */
-.agent-stream-log {
+.bot-stream-log {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: 1.6;
@@ -181,17 +181,17 @@
   border-radius: var(--radius-sm);
   padding: 8px 12px;
 }
-.agent-stream-log,
-.agent-stream-log * {
+.bot-stream-log,
+.bot-stream-log * {
   font-weight: 400;
 }
 
-.agent-stream-line {
+.bot-stream-line {
   color: var(--text-secondary);
   word-break: break-word;
 }
 
-.agent-stream-empty {
+.bot-stream-empty {
   color: var(--text-tertiary);
   font-style: italic;
   padding: 12px 0;
@@ -199,7 +199,7 @@
   font-size: var(--text-xs);
 }
 
-.agent-stream-status {
+.bot-stream-status {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -208,56 +208,56 @@
   margin-bottom: 6px;
 }
 
-.agent-stream-status .status-dot {
+.bot-stream-status .status-dot {
   width: 5px;
   height: 5px;
 }
 
 /* ─── Actions row ─── */
-.agent-panel-actions {
+.bot-panel-actions {
   display: flex;
   gap: 8px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-light);
 }
 
-.agent-panel-actions-stack {
+.bot-panel-actions-stack {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 20px 16px;
   border-bottom: 1px solid var(--border-light);
 }
-.agent-panel-actions-stack .btn {
+.bot-panel-actions-stack .btn {
   width: 100%;
   justify-content: center;
 }
 
 /* ─── Enable toggle row ─── */
-.agent-panel-stat {
+.bot-panel-stat {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 6px 0;
   font-size: var(--text-base);
 }
-.agent-panel-stat-label {
+.bot-panel-stat-label {
   color: var(--text-secondary);
 }
 
-.agent-toggle {
+.bot-toggle {
   position: relative;
   display: inline-block;
   width: 40px;
   height: 22px;
   flex-shrink: 0;
 }
-.agent-toggle input {
+.bot-toggle input {
   opacity: 0;
   width: 0;
   height: 0;
 }
-.agent-toggle-slider {
+.bot-toggle-slider {
   position: absolute;
   cursor: pointer;
   inset: 0;
@@ -265,7 +265,7 @@
   border-radius: 11px;
   transition: background 0.2s;
 }
-.agent-toggle-slider::before {
+.bot-toggle-slider::before {
   content: "";
   position: absolute;
   left: 3px;
@@ -276,55 +276,55 @@
   background: #fff;
   transition: transform 0.2s;
 }
-.agent-toggle input:checked + .agent-toggle-slider {
+.bot-toggle input:checked + .bot-toggle-slider {
   background: var(--accent);
 }
-.agent-toggle input:checked + .agent-toggle-slider::before {
+.bot-toggle input:checked + .bot-toggle-slider::before {
   transform: translateX(18px);
 }
-.agent-toggle input:disabled + .agent-toggle-slider {
+.bot-toggle input:disabled + .bot-toggle-slider {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* ─── Recent logs ─── */
-.agent-panel-logs {
+.bot-panel-logs {
   flex: 1;
   overflow-y: auto;
   padding: 0;
 }
 
-.agent-log-item {
+.bot-log-item {
   padding: 8px 20px;
   border-bottom: 1px solid var(--border-light);
   font-size: var(--text-sm);
   transition: background 0.1s;
 }
-.agent-log-item:hover {
+.bot-log-item:hover {
   background: var(--bg);
 }
 
-.agent-log-action {
+.bot-log-action {
   font-weight: 600;
   color: var(--text);
   margin-bottom: 2px;
 }
 
-.agent-log-content {
+.bot-log-content {
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.agent-log-time {
+.bot-log-time {
   font-size: var(--text-2xs);
   color: var(--text-tertiary);
   font-family: var(--font-mono);
   margin-top: 2px;
 }
 
-.agent-log-empty {
+.bot-log-empty {
   color: var(--text-tertiary);
   font-style: italic;
   padding: 20px;
@@ -333,7 +333,7 @@
 }
 
 /* ─── Agent Wizard (modal overlay) ─── */
-.agent-wizard-overlay {
+.bot-wizard-overlay {
   position: fixed;
   inset: 0;
   background: var(--scrim);
@@ -344,7 +344,7 @@
   animation: fadeIn 0.15s ease-out;
 }
 
-.agent-wizard-modal {
+.bot-wizard-modal {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -356,37 +356,37 @@
   overflow-y: auto;
 }
 
-.agent-wizard-title {
+.bot-wizard-title {
   font-size: 18px;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 20px;
 }
 
-.agent-wizard-form {
+.bot-wizard-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.agent-wizard-field {
+.bot-wizard-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.agent-wizard-field .label {
+.bot-wizard-field .label {
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.agent-wizard-field .input {
+.bot-wizard-field .input {
   height: 40px;
   font-size: var(--text-md);
 }
 
-.agent-wizard-field select {
+.bot-wizard-field select {
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text);
@@ -400,21 +400,21 @@
   transition: border-color 0.2s;
   cursor: pointer;
 }
-.agent-wizard-field select:focus,
-.agent-wizard-field select:focus-visible {
+.bot-wizard-field select:focus,
+.bot-wizard-field select:focus-visible {
   border-color: var(--accent);
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
 
-.agent-wizard-footer {
+.bot-wizard-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 8px;
 }
 
-.agent-wizard-error {
+.bot-wizard-error {
   font-size: var(--text-sm);
   color: var(--red);
   padding: 8px 12px;
@@ -428,7 +428,7 @@
    tasks). The pane scrolls; sections collapse independently to
    keep dense screens scannable.
    ────────────────────────────────────────────────────────────── */
-.agent-workbench-pane {
+.bot-workbench-pane {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -438,15 +438,15 @@
   background: var(--bg);
 }
 
-.agent-workbench-empty {
+.bot-workbench-empty {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   font-style: italic;
   padding: 6px 4px;
 }
 
-.agent-workbench-task-list,
-.agent-workbench-run-list {
+.bot-workbench-task-list,
+.bot-workbench-run-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -455,8 +455,8 @@
   gap: 4px;
 }
 
-.agent-workbench-task-row,
-.agent-workbench-run-row {
+.bot-workbench-task-row,
+.bot-workbench-run-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -475,19 +475,19 @@
     background 0.15s;
 }
 
-.agent-workbench-task-row:hover,
-.agent-workbench-run-row:hover {
+.bot-workbench-task-row:hover,
+.bot-workbench-run-row:hover {
   border-color: var(--accent);
   background: var(--accent-bg);
 }
-.agent-workbench-task-row:focus-visible,
-.agent-workbench-run-row:focus-visible {
+.bot-workbench-task-row:focus-visible,
+.bot-workbench-run-row:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
   border-color: var(--accent);
 }
 
-.agent-workbench-task-title {
+.bot-workbench-task-title {
   flex: 1;
   min-width: 0;
   font-size: var(--text-base);
@@ -497,8 +497,8 @@
   white-space: nowrap;
 }
 
-.agent-workbench-task-meta,
-.agent-workbench-run-meta {
+.bot-workbench-task-meta,
+.bot-workbench-run-meta {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -508,7 +508,7 @@
   flex-shrink: 0;
 }
 
-.agent-workbench-run-id {
+.bot-workbench-run-id {
   flex: 1;
   min-width: 0;
   font-family: var(--font-mono);
@@ -519,43 +519,43 @@
   white-space: nowrap;
 }
 
-/* The shared `.agent-stream-log` caps height at 300px for the right-rail
+/* The shared `.bot-stream-log` caps height at 300px for the right-rail
    AgentPanel. Inside the workbench the section has the whole pane to
    stretch into, so we let the log claim a healthy chunk while staying
    adaptive: a fixed 320px height was forcing sibling accordions to clip
    their headers on short viewports (e.g. when the chat drawer's
    InterviewBar is open). Letting it shrink to a sensible floor keeps
    every accordion's title visible and lets the pane scroll naturally. */
-.agent-workbench-stream {
+.bot-workbench-stream {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-height: 200px;
 }
-.agent-workbench-stream-log {
+.bot-workbench-stream-log {
   flex: 1;
   min-height: 160px;
   max-height: 320px;
 }
 
 /* ─── Agent Profile Panel ─── */
-.agent-profile-panel {
-  /* Inherits .agent-panel layout; adds a scrollable body */
+.bot-profile-panel {
+  /* Inherits .bot-panel layout; adds a scrollable body */
 }
 
-.agent-profile-body {
+.bot-profile-body {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
-.agent-profile-section {
+.bot-profile-section {
   padding: 14px 20px;
   border-bottom: 1px solid var(--border-light);
 }
 
-.agent-profile-section-title {
+.bot-profile-section-title {
   font-size: var(--text-2xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -565,15 +565,15 @@
   font-family: var(--font-mono);
 }
 
-.agent-profile-empty {
+.bot-profile-empty {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   font-style: italic;
   padding: 2px 0;
 }
 
-.agent-profile-role-text,
-.agent-profile-current-task {
+.bot-profile-role-text,
+.bot-profile-current-task {
   margin: 0;
   font-size: var(--text-base);
   color: var(--text-secondary);
@@ -581,7 +581,7 @@
 }
 
 /* Status badge */
-.agent-profile-status-badge {
+.bot-profile-status-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -591,7 +591,7 @@
   text-transform: lowercase;
 }
 
-.agent-profile-status-dot {
+.bot-profile-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -599,16 +599,16 @@
   flex-shrink: 0;
 }
 
-.agent-profile-status-badge.active .agent-profile-status-dot {
+.bot-profile-status-badge.active .bot-profile-status-dot {
   background: var(--green);
 }
 
-.agent-profile-status-badge.paused .agent-profile-status-dot {
+.bot-profile-status-badge.paused .bot-profile-status-dot {
   background: var(--yellow);
 }
 
 /* List (skills, runs, tasks) */
-.agent-profile-list {
+.bot-profile-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -617,7 +617,7 @@
   gap: 2px;
 }
 
-.agent-profile-list-item {
+.bot-profile-list-item {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -626,27 +626,27 @@
   min-height: 26px;
 }
 
-.agent-profile-skill-name {
+.bot-profile-skill-name {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.agent-profile-badge {
+.bot-profile-badge {
   font-size: 9px;
   padding: 1px 6px;
   flex-shrink: 0;
 }
 
 /* Channels chips */
-.agent-profile-chips {
+.bot-profile-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.agent-profile-chip {
+.bot-profile-chip {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
@@ -662,19 +662,19 @@
   font-family: var(--font-sans);
 }
 
-.agent-profile-chip:hover {
+.bot-profile-chip:hover {
   background: var(--accent-bg);
   color: var(--accent);
   border-color: var(--accent);
 }
 
 /* Run items */
-.agent-profile-run-item {
+.bot-profile-run-item {
   width: 100%;
 }
 
-.agent-profile-run-row,
-.agent-profile-task-btn {
+.bot-profile-run-row,
+.bot-profile-task-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -685,7 +685,7 @@
   color: var(--text);
 }
 
-.agent-profile-task-btn {
+.bot-profile-task-btn {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -693,13 +693,13 @@
   transition: color 0.15s;
 }
 
-.agent-profile-task-btn:hover {
+.bot-profile-task-btn:hover {
   color: var(--accent);
 }
 
 /* When a task row also carries a Resume nudge, let the title button take the
    available space and keep the action pinned to the trailing edge. */
-.agent-profile-list-item .agent-profile-task-btn {
+.bot-profile-list-item .bot-profile-task-btn {
   flex: 1 1 auto;
   min-width: 0;
   width: auto;
@@ -708,7 +708,7 @@
 /* "Resume" nudge for a stalled task — re-engages the agent via the proven
    task wake path. Quiet by default, accent on hover, so it does not compete
    with the task title. */
-.agent-profile-resume-btn {
+.bot-profile-resume-btn {
   flex: 0 0 auto;
   font-family: var(--font-sans);
   font-size: var(--text-xs);
@@ -724,17 +724,17 @@
     border-color 0.15s,
     background 0.15s;
 }
-.agent-profile-resume-btn:hover:not(:disabled) {
+.bot-profile-resume-btn:hover:not(:disabled) {
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-bg);
 }
-.agent-profile-resume-btn:disabled {
+.bot-profile-resume-btn:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.agent-profile-run-id {
+.bot-profile-run-id {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: inherit;
@@ -744,14 +744,14 @@
   max-width: 180px;
 }
 
-.agent-profile-run-meta {
+.bot-profile-run-meta {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.agent-profile-task-title {
+.bot-profile-task-title {
   font-size: var(--text-sm);
   color: inherit;
   overflow: hidden;
@@ -760,7 +760,7 @@
   flex: 1;
 }
 
-.agent-profile-see-all {
+.bot-profile-see-all {
   display: inline-flex;
   align-items: center;
   margin-top: 8px;
@@ -774,32 +774,32 @@
   transition: opacity 0.15s;
 }
 
-.agent-profile-see-all:hover {
+.bot-profile-see-all:hover {
   opacity: 0.75;
 }
 
 /* Permissions / runtime grid */
-.agent-profile-permissions {
+.bot-profile-permissions {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
-.agent-profile-perm-row {
+.bot-profile-perm-row {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: var(--text-sm);
 }
 
-.agent-profile-perm-label {
+.bot-profile-perm-label {
   color: var(--text-tertiary);
   font-family: var(--font-mono);
   min-width: 72px;
   flex-shrink: 0;
 }
 
-.agent-profile-perm-value {
+.bot-profile-perm-value {
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -808,20 +808,20 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
-  .agent-panel {
+  .bot-panel {
     width: 100%;
   }
 
-  .agent-wizard-modal {
+  .bot-wizard-modal {
     margin: 16px;
     max-width: none;
   }
 
-  .agent-workbench-pane {
+  .bot-workbench-pane {
     padding: 12px 12px 14px;
   }
 
-  .agent-workbench-stream-log {
+  .bot-workbench-stream-log {
     max-height: 260px;
   }
 }
@@ -830,7 +830,7 @@
    Agent subspace Skills tab — per-agent enabled list + library browser.
    ═══════════════════════════════════════════════════════════════════════ */
 
-.agent-skills-tab {
+.bot-skills-tab {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -841,13 +841,13 @@
   background: var(--bg);
 }
 
-.agent-skills-header {
+.bot-skills-header {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.agent-skills-title {
+.bot-skills-title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
@@ -855,7 +855,7 @@
   letter-spacing: -0.01em;
 }
 
-.agent-skills-subtitle {
+.bot-skills-subtitle {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
@@ -863,19 +863,19 @@
   max-width: 640px;
 }
 
-.agent-skills-section {
+.bot-skills-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.agent-skills-section-head {
+.bot-skills-section-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
 }
 
-.agent-skills-section-head h3 {
+.bot-skills-section-head h3 {
   margin: 0;
   font-size: 12px;
   font-weight: 600;
@@ -884,14 +884,14 @@
   color: var(--text-secondary);
 }
 
-.agent-skills-count {
+.bot-skills-count {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-tertiary, var(--text-secondary));
   font-variant-numeric: tabular-nums;
 }
 
-.agent-skills-empty {
+.bot-skills-empty {
   margin: 0;
   padding: 16px;
   font-size: 13px;
@@ -901,13 +901,13 @@
   border-radius: 8px;
 }
 
-.agent-skills-empty--error {
+.bot-skills-empty--error {
   color: var(--red);
   border-color: var(--red);
   border-style: solid;
 }
 
-.agent-skills-filter {
+.bot-skills-filter {
   position: relative;
   display: flex;
   align-items: center;
@@ -919,16 +919,16 @@
   transition: border-color 120ms ease;
 }
 
-.agent-skills-filter:focus-within {
+.bot-skills-filter:focus-within {
   border-color: var(--accent);
 }
 
-.agent-skills-filter-icon {
+.bot-skills-filter-icon {
   color: var(--text-tertiary, var(--text-secondary));
   flex-shrink: 0;
 }
 
-.agent-skills-filter-input {
+.bot-skills-filter-input {
   flex: 1;
   margin-left: 8px;
   padding: 0;
@@ -940,11 +940,11 @@
   color: var(--text);
 }
 
-.agent-skills-filter-input::placeholder {
+.bot-skills-filter-input::placeholder {
   color: var(--text-tertiary, var(--text-secondary));
 }
 
-.agent-skills-list {
+.bot-skills-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -953,7 +953,7 @@
   gap: 6px;
 }
 
-.agent-skills-row {
+.bot-skills-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -966,15 +966,15 @@
     background-color 120ms ease;
 }
 
-.agent-skills-row:hover {
+.bot-skills-row:hover {
   border-color: var(--border-dark, var(--border));
 }
 
-.agent-skills-row--enabled {
+.bot-skills-row--enabled {
   opacity: 0.7;
 }
 
-.agent-skills-row-body {
+.bot-skills-row-body {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -982,29 +982,29 @@
   gap: 2px;
 }
 
-.agent-skills-row-name {
+.bot-skills-row-name {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
   line-height: 1.3;
 }
 
-.agent-skills-row-slug {
+.bot-skills-row-slug {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-tertiary, var(--text-secondary));
   line-height: 1.3;
 }
 
-.agent-skills-row-desc {
+.bot-skills-row-desc {
   margin: 4px 0 0;
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--text-secondary);
 }
 
-.agent-skills-row-add,
-.agent-skills-row-remove {
+.bot-skills-row-add,
+.bot-skills-row-remove {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -1026,31 +1026,31 @@
     color 120ms ease;
 }
 
-.agent-skills-row-add:hover:not(:disabled) {
+.bot-skills-row-add:hover:not(:disabled) {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-fg);
 }
 
-.agent-skills-row-remove {
+.bot-skills-row-remove {
   width: 28px;
   padding: 0;
   color: var(--text-secondary);
 }
 
-.agent-skills-row-remove:hover:not(:disabled) {
+.bot-skills-row-remove:hover:not(:disabled) {
   background: color-mix(in srgb, var(--red) 8%, transparent);
   border-color: var(--red);
   color: var(--red);
 }
 
-.agent-skills-row-add:disabled,
-.agent-skills-row-remove:disabled {
+.bot-skills-row-add:disabled,
+.bot-skills-row-remove:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.agent-skills-pill {
+.bot-skills-pill {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -1066,7 +1066,7 @@
 }
 
 /* Mode switch (Enabled / Library) at top of the Skills tab. */
-.agent-skills-header {
+.bot-skills-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -1074,7 +1074,7 @@
   flex-wrap: wrap;
 }
 
-.agent-skills-mode-switch {
+.bot-skills-mode-switch {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1083,7 +1083,7 @@
   padding: 3px;
 }
 
-.agent-skills-mode-btn {
+.bot-skills-mode-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1101,17 +1101,17 @@
     color 120ms ease;
 }
 
-.agent-skills-mode-btn:hover {
+.bot-skills-mode-btn:hover {
   color: var(--text);
 }
 
-.agent-skills-mode-btn--active {
+.bot-skills-mode-btn--active {
   background: var(--bg, #fff);
   color: var(--text);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.agent-skills-mode-count {
+.bot-skills-mode-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1126,26 +1126,26 @@
   color: var(--text-secondary);
 }
 
-.agent-skills-mode-btn--active .agent-skills-mode-count {
+.bot-skills-mode-btn--active .bot-skills-mode-count {
   background: var(--bg-warm, var(--accent-bg, rgba(0, 0, 0, 0.08)));
   color: var(--text);
 }
 
 /* PixelSkillCard grid */
-.agent-skills-grid {
+.bot-skills-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 18px;
 }
 
-.agent-skills-card-wrapper {
+.bot-skills-card-wrapper {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.agent-skills-card-btn {
+.bot-skills-card-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1167,28 +1167,28 @@
     color 120ms ease;
 }
 
-.agent-skills-card-btn:hover:not(:disabled) {
+.bot-skills-card-btn:hover:not(:disabled) {
   border-color: var(--border-dark, var(--border));
 }
 
-.agent-skills-card-btn--add:hover:not(:disabled) {
+.bot-skills-card-btn--add:hover:not(:disabled) {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-fg);
 }
 
-.agent-skills-card-btn--remove:hover:not(:disabled) {
+.bot-skills-card-btn--remove:hover:not(:disabled) {
   background: color-mix(in srgb, var(--red) 6%, transparent);
   border-color: var(--red);
   color: var(--red);
 }
 
-.agent-skills-card-btn:disabled {
+.bot-skills-card-btn:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.agent-skills-card-pill {
+.bot-skills-card-pill {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -1211,31 +1211,31 @@
    file is loaded into the agent's system prompt; this surface makes that real,
    inspectable, and editable. Token-only so it holds across every theme. */
 
-.agent-instructions-blurb {
+.bot-instructions-blurb {
   margin: 0 0 10px;
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   line-height: 1.5;
 }
 
-.agent-file-list {
+.bot-file-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.agent-file-card {
+.bot-file-card {
   border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--bg-card);
   overflow: hidden;
 }
 
-.agent-file-card.expanded {
+.bot-file-card.expanded {
   border-color: var(--border);
 }
 
-.agent-file-card-header {
+.bot-file-card-header {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -1249,24 +1249,24 @@
   transition: background var(--duration-fast) ease;
 }
 
-.agent-file-card-header:hover {
+.bot-file-card-header:hover {
   background: var(--bg-subtle);
 }
 
-.agent-file-card-chevron {
+.bot-file-card-chevron {
   flex-shrink: 0;
   display: inline-flex;
   color: var(--text-tertiary);
 }
 
-.agent-file-card-titles {
+.bot-file-card-titles {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
 
-.agent-file-card-name {
+.bot-file-card-name {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -1274,7 +1274,7 @@
   color: var(--text-secondary);
 }
 
-.agent-file-card-desc {
+.bot-file-card-desc {
   font-size: var(--text-2xs);
   color: var(--text-tertiary);
   overflow: hidden;
@@ -1282,50 +1282,50 @@
   white-space: nowrap;
 }
 
-.agent-file-card-body {
+.bot-file-card-body {
   padding: 11px 12px;
   border-top: 1px solid var(--border-light);
 }
 
-.agent-file-card-loading,
-.agent-file-card-error {
+.bot-file-card-loading,
+.bot-file-card-error {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   padding: 4px 0;
 }
 
-.agent-file-card-error {
+.bot-file-card-error {
   color: var(--error-400, var(--accent));
 }
 
-.agent-file-card-actions {
+.bot-file-card-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 10px;
 }
 
-.agent-file-card-badge {
+.bot-file-card-badge {
   margin-right: auto;
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   color: var(--text-tertiary);
 }
 
-.agent-file-edit,
-.agent-file-generate {
+.bot-file-edit,
+.bot-file-generate {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.agent-file-office {
+.bot-file-office {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px dashed var(--border-light);
 }
 
-.agent-file-office-label {
+.bot-file-office-label {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -1338,35 +1338,35 @@
 /* Rendered markdown inside a file's view mode. ReactMarkdown emits raw
    heading, paragraph, list, and code elements; scope the document typography
    here so instruction files read like a clean operating manual, not raw HTML. */
-.agent-file-view {
+.bot-file-view {
   font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.55;
   word-break: break-word;
 }
 
-.agent-file-view > :first-child {
+.bot-file-view > :first-child {
   margin-top: 0;
 }
 
-.agent-file-view > :last-child {
+.bot-file-view > :last-child {
   margin-bottom: 0;
 }
 
-.agent-file-view h1,
-.agent-file-view h2,
-.agent-file-view h3 {
+.bot-file-view h1,
+.bot-file-view h2,
+.bot-file-view h3 {
   font-weight: 600;
   color: var(--text);
   line-height: 1.3;
   margin: 14px 0 6px;
 }
 
-.agent-file-view h1 {
+.bot-file-view h1 {
   font-size: var(--text-base);
 }
 
-.agent-file-view h2 {
+.bot-file-view h2 {
   font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1374,25 +1374,25 @@
   font-family: var(--font-mono);
 }
 
-.agent-file-view h3 {
+.bot-file-view h3 {
   font-size: var(--text-sm);
 }
 
-.agent-file-view p {
+.bot-file-view p {
   margin: 6px 0;
 }
 
-.agent-file-view ul,
-.agent-file-view ol {
+.bot-file-view ul,
+.bot-file-view ol {
   margin: 6px 0;
   padding-left: 18px;
 }
 
-.agent-file-view li {
+.bot-file-view li {
   margin: 2px 0;
 }
 
-.agent-file-view code {
+.bot-file-view code {
   font-family: var(--font-mono);
   font-size: 0.92em;
   background: var(--bg-subtle);
@@ -1400,19 +1400,19 @@
   border-radius: 4px;
 }
 
-.agent-file-view pre {
+.bot-file-view pre {
   background: var(--bg-subtle);
   padding: 10px 12px;
   border-radius: 6px;
   overflow-x: auto;
 }
 
-.agent-file-view pre code {
+.bot-file-view pre code {
   background: transparent;
   padding: 0;
 }
 
-.agent-file-view a {
+.bot-file-view a {
   color: var(--accent);
   text-decoration: underline;
 }
@@ -1421,7 +1421,7 @@
    Agent instruction file maturity enhancements — purpose hints + raw editor
    ═══════════════════════════════════════════════════════════════════════ */
 
-.agent-file-purpose-hint {
+.bot-file-purpose-hint {
   margin: 0 0 10px;
   font-size: var(--text-xs);
   line-height: 1.5;
@@ -1432,7 +1432,7 @@
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
-.agent-file-mode-row {
+.bot-file-mode-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1440,25 +1440,25 @@
   margin-bottom: 10px;
 }
 
-.agent-file-mode-note {
+.bot-file-mode-note {
   font-size: var(--text-2xs);
   color: var(--text-tertiary);
 }
 
 /* Structured block editor — one labelled block per file section. */
-.agent-file-blocks {
+.bot-file-blocks {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.agent-file-block {
+.bot-file-block {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.agent-file-block-label {
+.bot-file-block-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1470,7 +1470,7 @@
   color: var(--text-secondary);
 }
 
-.agent-file-block-tag {
+.bot-file-block-tag {
   font-size: var(--text-2xs);
   font-weight: 500;
   text-transform: none;
@@ -1482,13 +1482,13 @@
   padding: 0 6px;
 }
 
-.agent-file-block-hint {
+.bot-file-block-hint {
   font-size: var(--text-2xs);
   line-height: 1.45;
   color: var(--text-tertiary);
 }
 
-.agent-file-block-input {
+.bot-file-block-input {
   width: 100%;
   box-sizing: border-box;
   font-family: var(--font-mono);
@@ -1504,16 +1504,16 @@
   transition: border-color var(--duration-fast) ease;
 }
 
-.agent-file-block-input:focus {
+.bot-file-block-input:focus {
   border-color: var(--accent);
 }
 
-.agent-file-block-input:disabled {
+.bot-file-block-input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.agent-file-mode-switch {
+.bot-file-mode-switch {
   display: inline-flex;
   align-items: center;
   background: var(--bg);
@@ -1523,7 +1523,7 @@
   gap: 2px;
 }
 
-.agent-file-mode-btn {
+.bot-file-mode-btn {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
@@ -1540,13 +1540,13 @@
     color var(--duration-fast) ease;
 }
 
-.agent-file-mode-btn.is-active {
+.bot-file-mode-btn.is-active {
   background: var(--bg-card);
   color: var(--text);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.agent-file-raw-editor {
+.bot-file-raw-editor {
   width: 100%;
   box-sizing: border-box;
   font-family: var(--font-mono);
@@ -1562,11 +1562,11 @@
   transition: border-color 0.15s;
 }
 
-.agent-file-raw-editor:focus {
+.bot-file-raw-editor:focus {
   border-color: var(--accent);
 }
 
-.agent-file-raw-editor:disabled {
+.bot-file-raw-editor:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -1575,7 +1575,7 @@
    Agent Subspace — tabbed per-agent HQ
    ═══════════════════════════════════════════════════════════════════════ */
 
-.agent-subspace {
+.bot-subspace {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1585,20 +1585,20 @@
 }
 
 /* ── Shell header ── */
-.agent-subspace-header {
+.bot-subspace-header {
   padding: 20px 28px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--bg-card);
 }
 
-.agent-subspace-header-identity {
+.bot-subspace-header-identity {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.agent-subspace-header-avatar {
+.bot-subspace-header-avatar {
   width: 48px;
   height: 48px;
   border-radius: 10px;
@@ -1611,12 +1611,12 @@
   position: relative;
 }
 
-.agent-subspace-header-avatar .pixel-avatar {
+.bot-subspace-header-avatar .pixel-avatar {
   width: 100%;
   height: 100%;
 }
 
-.agent-subspace-header-meta {
+.bot-subspace-header-meta {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1624,25 +1624,25 @@
   flex: 1;
 }
 
-.agent-subspace-header-name-row {
+.bot-subspace-header-name-row {
   display: inline-flex;
   align-items: center;
   gap: 7px;
 }
 
 /* The agent name inside the shell header is larger than the panel version */
-.agent-subspace-header-name-row .agent-panel-name {
+.bot-subspace-header-name-row .bot-panel-name {
   font-size: var(--text-xl, 20px);
   font-weight: 700;
 }
 
 /* EditableName input */
-.agent-subspace-header-name-row input.input {
+.bot-subspace-header-name-row input.input {
   font-size: var(--text-xl, 20px);
   font-weight: 700;
 }
 
-.agent-subspace-header-role {
+.bot-subspace-header-role {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   line-height: 1.3;
@@ -1651,7 +1651,7 @@
   white-space: nowrap;
 }
 
-.agent-subspace-header-status-row {
+.bot-subspace-header-status-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1659,7 +1659,7 @@
   margin-top: 1px;
 }
 
-.agent-subspace-status-badge {
+.bot-subspace-status-badge {
   display: inline-flex;
   align-items: center;
   font-family: var(--font-mono);
@@ -1670,19 +1670,19 @@
   text-transform: lowercase;
 }
 
-.agent-subspace-status-badge--active {
+.bot-subspace-status-badge--active {
   background: color-mix(in srgb, var(--green, #22c55e) 12%, transparent);
   color: var(--green, #22c55e);
 }
 
-.agent-subspace-status-badge--idle {
+.bot-subspace-status-badge--idle {
   background: var(--bg);
   color: var(--text-tertiary);
   border: 1px solid var(--border);
 }
 
 /* Current-task chip */
-.agent-subspace-task-chip {
+.bot-subspace-task-chip {
   display: inline-flex;
   align-items: center;
   max-width: 280px;
@@ -1697,7 +1697,7 @@
 }
 
 /* ── Tab bar ── */
-.agent-subspace-tabbar {
+.bot-subspace-tabbar {
   display: flex;
   align-items: center;
   gap: 0;
@@ -1709,11 +1709,11 @@
   flex-shrink: 0;
 }
 
-.agent-subspace-tabbar::-webkit-scrollbar {
+.bot-subspace-tabbar::-webkit-scrollbar {
   display: none;
 }
 
-.agent-subspace-tab {
+.bot-subspace-tab {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -1732,23 +1732,23 @@
   margin-bottom: -1px;
 }
 
-.agent-subspace-tab:hover {
+.bot-subspace-tab:hover {
   color: var(--text-secondary);
 }
 
-.agent-subspace-tab.is-active {
+.bot-subspace-tab.is-active {
   color: var(--text);
   border-bottom-color: var(--accent);
 }
 
-.agent-subspace-tab:focus-visible {
+.bot-subspace-tab:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
   border-radius: 4px;
 }
 
 /* ── Tab panel content ── */
-.agent-subspace-panel {
+.bot-subspace-panel {
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -1757,7 +1757,7 @@
 }
 
 /* Chat tab — DMView fills the panel */
-.agent-subspace-tab-content {
+.bot-subspace-tab-content {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1766,7 +1766,7 @@
 }
 
 /* Config tab — headless AgentProfilePanel inside */
-.agent-config-tab {
+.bot-config-tab {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -1775,7 +1775,7 @@
 }
 
 /* Config tab: the panel sits inline (not fixed-position) */
-.agent-config-tab .agent-panel {
+.bot-config-tab .bot-panel {
   position: static;
   width: 100%;
   height: auto;
@@ -1786,7 +1786,7 @@
 }
 
 /* ── Tasks tab ── */
-.agent-tasks-tab {
+.bot-tasks-tab {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -1794,13 +1794,13 @@
   background: var(--bg);
 }
 
-.agent-tasks-tab--loading {
+.bot-tasks-tab--loading {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.agent-tasks-empty {
+.bot-tasks-empty {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text-tertiary);
@@ -1809,26 +1809,26 @@
   text-align: center;
 }
 
-.agent-tasks-board {
+.bot-tasks-board {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.agent-tasks-column {
+.bot-tasks-column {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.agent-tasks-column-header {
+.bot-tasks-column-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
 }
 
-.agent-tasks-column-label {
+.bot-tasks-column-label {
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -1837,20 +1837,20 @@
   font-family: var(--font-mono);
 }
 
-.agent-tasks-column-count {
+.bot-tasks-column-count {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   color: var(--text-tertiary);
 }
 
-.agent-tasks-column-body {
+.bot-tasks-column-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 /* ── Policies tab ── */
-.agent-policies-tab {
+.bot-policies-tab {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -1861,13 +1861,13 @@
   background: var(--bg);
 }
 
-.agent-policies-header {
+.bot-policies-header {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.agent-policies-title {
+.bot-policies-title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
@@ -1875,7 +1875,7 @@
   letter-spacing: -0.01em;
 }
 
-.agent-policies-subtitle {
+.bot-policies-subtitle {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
@@ -1883,7 +1883,7 @@
   max-width: 640px;
 }
 
-.agent-policies-add {
+.bot-policies-add {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1893,7 +1893,7 @@
   border-radius: var(--radius-md);
 }
 
-.agent-policies-add-title {
+.bot-policies-add-title {
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -1903,16 +1903,16 @@
   margin-bottom: 4px;
 }
 
-.agent-policies-add-row {
+.bot-policies-add-row {
   display: flex;
   gap: 8px;
 }
 
-.agent-policies-input {
+.bot-policies-input {
   flex: 1;
 }
 
-.agent-policies-error {
+.bot-policies-error {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--error-400, var(--red, #ef4444));
@@ -1921,7 +1921,7 @@
   border-radius: var(--radius-sm);
 }
 
-.agent-policies-empty {
+.bot-policies-empty {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text-tertiary);
@@ -1930,7 +1930,7 @@
   padding: 24px 0;
 }
 
-.agent-policy-list {
+.bot-policy-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1939,7 +1939,7 @@
   gap: 8px;
 }
 
-.agent-policy-row {
+.bot-policy-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -1950,11 +1950,11 @@
   transition: border-color 0.15s;
 }
 
-.agent-policy-row:hover {
+.bot-policy-row:hover {
   border-color: var(--border-dark, var(--border));
 }
 
-.agent-policy-row-body {
+.bot-policy-row-body {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -1962,21 +1962,21 @@
   gap: 6px;
 }
 
-.agent-policy-rule {
+.bot-policy-rule {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text);
   line-height: 1.5;
 }
 
-.agent-policy-meta {
+.bot-policy-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.agent-policy-badge {
+.bot-policy-badge {
   display: inline-flex;
   align-items: center;
   padding: 1px 7px;
@@ -1988,47 +1988,47 @@
   letter-spacing: 0.04em;
 }
 
-.agent-policy-badge--source-human {
+.bot-policy-badge--source-human {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
 }
 
-.agent-policy-badge--source-auto {
+.bot-policy-badge--source-auto {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text-tertiary);
 }
 
-.agent-policy-badge--scope {
+.bot-policy-badge--scope {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text-tertiary);
 }
 
-.agent-policy-badge--scoped {
+.bot-policy-badge--scoped {
   background: color-mix(in srgb, var(--yellow, #f59e0b) 12%, transparent);
   color: var(--yellow, #f59e0b);
   border-color: transparent;
 }
 
-.agent-policy-actions {
+.bot-policy-actions {
   display: flex;
   flex-direction: column;
   gap: 4px;
   flex-shrink: 0;
 }
 
-.agent-policy-deactivate {
+.bot-policy-deactivate {
   color: var(--text-tertiary);
   font-size: var(--text-xs);
 }
 
-.agent-policy-deactivate:hover:not(:disabled) {
+.bot-policy-deactivate:hover:not(:disabled) {
   color: var(--error-400, var(--red, #ef4444));
 }
 
 /* ── Live Stream tab ── */
-.agent-stream-tab {
+.bot-stream-tab {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -2039,13 +2039,13 @@
   background: var(--bg);
 }
 
-.agent-stream-section {
+.bot-stream-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.agent-stream-section-title {
+.bot-stream-section-title {
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -2055,17 +2055,17 @@
 }
 
 /* Full-height log inside the tab (overrides the 300px cap from the panel) */
-.agent-stream-log--full {
+.bot-stream-log--full {
   max-height: 420px;
 }
 
-.agent-stream-runs-empty {
+.bot-stream-runs-empty {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   font-style: italic;
 }
 
-.agent-stream-runs-list {
+.bot-stream-runs-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -2074,11 +2074,11 @@
   gap: 4px;
 }
 
-.agent-stream-run-item {
+.bot-stream-run-item {
   display: flex;
 }
 
-.agent-stream-run-btn {
+.bot-stream-run-btn {
   flex: 1;
   display: flex;
   align-items: center;
@@ -2095,12 +2095,12 @@
     background 0.15s;
 }
 
-.agent-stream-run-btn:hover {
+.bot-stream-run-btn:hover {
   border-color: var(--accent);
   background: var(--accent-bg);
 }
 
-.agent-stream-run-id {
+.bot-stream-run-id {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text);
@@ -2110,7 +2110,7 @@
   flex: 1;
 }
 
-.agent-stream-run-meta {
+.bot-stream-run-meta {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
   white-space: nowrap;
@@ -2124,7 +2124,7 @@
  * normal app chrome, so it must resolve under Nex Light, Nex Dark, and Noir
  * Gold from the same variables the rest of agents.css draws on.
  */
-.agent-subspace-teach-btn {
+.bot-subspace-teach-btn {
   flex-shrink: 0;
   align-self: flex-start;
   white-space: nowrap;
@@ -2337,7 +2337,7 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .agent-subspace-header {
+  .bot-subspace-header {
     padding: 16px 20px 12px;
   }
 
@@ -2346,13 +2346,13 @@
     max-width: none;
   }
 
-  .agent-subspace-tabbar {
+  .bot-subspace-tabbar {
     padding: 0 16px;
   }
 
-  .agent-tasks-tab,
-  .agent-policies-tab,
-  .agent-stream-tab {
+  .bot-tasks-tab,
+  .bot-policies-tab,
+  .bot-stream-tab {
     padding: 16px 20px 32px;
   }
 }

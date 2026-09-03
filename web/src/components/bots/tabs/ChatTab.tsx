@@ -25,7 +25,7 @@ export function ChatTab({ agent }: ChatTabProps) {
     <section
       className="bot-subspace-tab-content bot-chat-tab conversation-chat"
       aria-label={`Chat with @${agent.slug}`}
-      data-testid="agent-chat-tab"
+      data-testid="bot-chat-tab"
     >
       <MessageFeed channel={channelSlug} />
       <Composer channel={channelSlug} />

@@ -247,7 +247,7 @@ await page.waitForFunction(
 await shotPage(page, OUT, "03-dm-live-stream-collapsed");
 await shotElement(
   page,
-  '[data-testid="agent-workbench-pane"]',
+  '[data-testid="bot-workbench-pane"]',
   OUT,
   "04-agent-workbench-live-stream-collapsed",
 );

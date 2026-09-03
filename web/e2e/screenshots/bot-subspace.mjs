@@ -264,7 +264,7 @@ async function openTab(slug, tab) {
     },
     { s: slug, t: tab },
   );
-  await page.waitForSelector(".agent-subspace", { timeout: 10_000 });
+  await page.waitForSelector(".bot-subspace", { timeout: 10_000 });
   await page.waitForTimeout(500);
 }
 
@@ -309,53 +309,53 @@ if (await agentsSection.count()) {
 }
 
 await openTab("growth", "chat");
-await shotElement(page, ".agent-subspace", OUT, "01-chat");
+await shotElement(page, ".bot-subspace", OUT, "01-chat");
 
 await openTab("growth", "tasks");
-await shotElement(page, ".agent-subspace", OUT, "02-tasks");
+await shotElement(page, ".bot-subspace", OUT, "02-tasks");
 
 await openTab("growth", "skills");
-await shotElement(page, ".agent-subspace", OUT, "03-skills");
+await shotElement(page, ".bot-subspace", OUT, "03-skills");
 
 await openTab("growth", "policies");
-await shotElement(page, ".agent-subspace", OUT, "04-policies");
+await shotElement(page, ".bot-subspace", OUT, "04-policies");
 
 await openTab("growth", "live-stream");
-await shotElement(page, ".agent-subspace", OUT, "05-live-stream");
+await shotElement(page, ".bot-subspace", OUT, "05-live-stream");
 
 await openTab("growth", "config");
-await shotElement(page, ".agent-subspace", OUT, "06-config");
+await shotElement(page, ".bot-subspace", OUT, "06-config");
 
 // Config with the SOUL file expanded (purpose hint + rendered view).
 const soulHeader = page
-  .locator(".agent-file-card-header")
+  .locator(".bot-file-card-header")
   .filter({ hasText: "SOUL" })
   .first();
 if (await soulHeader.count()) {
   await soulHeader.scrollIntoViewIfNeeded();
   await soulHeader.click();
   await page.waitForTimeout(400);
-  await shotElement(page, ".agent-subspace", OUT, "07-config-soul-view");
+  await shotElement(page, ".bot-subspace", OUT, "07-config-soul-view");
 
   // Click Edit → the structured block editor (default), one block per section.
-  const editBtn = page.locator(".agent-file-edit").first();
+  const editBtn = page.locator(".bot-file-edit").first();
   if (await editBtn.count()) {
     await editBtn.click();
     await page.waitForTimeout(400);
-    await shotElement(page, ".agent-subspace", OUT, "08-soul-block-editor");
+    await shotElement(page, ".bot-subspace", OUT, "08-soul-block-editor");
   }
 }
 
 // ── Theme coverage: dark + noir on two representative tabs ────────────
 await setTheme("nex-dark");
 await openTab("growth", "policies");
-await shotElement(page, ".agent-subspace", OUT, "09-policies-dark");
+await shotElement(page, ".bot-subspace", OUT, "09-policies-dark");
 await openTab("growth", "config");
-await shotElement(page, ".agent-subspace", OUT, "10-config-dark");
+await shotElement(page, ".bot-subspace", OUT, "10-config-dark");
 
 await setTheme("noir-gold");
 await openTab("growth", "skills");
-await shotElement(page, ".agent-subspace", OUT, "11-skills-noir");
+await shotElement(page, ".bot-subspace", OUT, "11-skills-noir");
 
 console.log(`captured screenshots to ${OUT}`);
 await browser.close();

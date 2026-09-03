@@ -22,7 +22,7 @@ function RecentRunsSection({ agentSlug }: { agentSlug: string }) {
   // for the other (object-vs-array → `.map is not a function`). Return the
   // tasks array so both consumers see an array.
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["agent-log-tasks", agentSlug],
+    queryKey: ["bot-log-tasks", agentSlug],
     queryFn: () =>
       listBotLogTasks({ limit: 8, agentSlug }).then((r) =>
         Array.isArray(r?.tasks) ? r.tasks : [],
@@ -35,18 +35,18 @@ function RecentRunsSection({ agentSlug }: { agentSlug: string }) {
 
   if (isLoading) {
     return (
-      <div className="agent-stream-section">
-        <div className="agent-stream-section-title">Recent runs</div>
-        <div className="agent-stream-runs-empty">Loading…</div>
+      <div className="bot-stream-section">
+        <div className="bot-stream-section-title">Recent runs</div>
+        <div className="bot-stream-runs-empty">Loading…</div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="agent-stream-section">
-        <div className="agent-stream-section-title">Recent runs</div>
-        <div className="agent-stream-runs-empty" role="alert">
+      <div className="bot-stream-section">
+        <div className="bot-stream-section-title">Recent runs</div>
+        <div className="bot-stream-runs-empty" role="alert">
           Couldn't load recent runs.
         </div>
       </div>
@@ -54,23 +54,23 @@ function RecentRunsSection({ agentSlug }: { agentSlug: string }) {
   }
 
   return (
-    <div className="agent-stream-section">
-      <div className="agent-stream-section-title">Recent runs</div>
+    <div className="bot-stream-section">
+      <div className="bot-stream-section-title">Recent runs</div>
       {runs.length === 0 ? (
-        <div className="agent-stream-runs-empty">No recent runs</div>
+        <div className="bot-stream-runs-empty">No recent runs</div>
       ) : (
-        <ul className="agent-stream-runs-list">
+        <ul className="bot-stream-runs-list">
           {runs.map((r) => (
-            <li key={r.taskId} className="agent-stream-run-item">
+            <li key={r.taskId} className="bot-stream-run-item">
               <button
                 type="button"
-                className="agent-stream-run-btn"
+                className="bot-stream-run-btn"
                 // Opens the shared task modal in place; a run row is a task
                 // affordance like any other.
                 onClick={() => openTaskModal(r.taskId)}
               >
-                <span className="agent-stream-run-id">{r.taskId}</span>
-                <span className="agent-stream-run-meta">
+                <span className="bot-stream-run-id">{r.taskId}</span>
+                <span className="bot-stream-run-meta">
                   {r.toolCallCount} tool call
                   {r.toolCallCount === 1 ? "" : "s"}
                   {r.hasError ? " ⚠" : ""}
@@ -102,11 +102,11 @@ export function LiveStreamTab({ agentSlug }: LiveStreamTabProps) {
   }, [lines.length, lastLine?.id, lastLine?.data]);
 
   return (
-    <div className="agent-stream-tab" data-testid="live-stream-tab">
+    <div className="bot-stream-tab" data-testid="live-stream-tab">
       {/* Live stream section */}
-      <div className="agent-stream-section">
-        <div className="agent-stream-section-title">Live output</div>
-        <div className="agent-stream-status">
+      <div className="bot-stream-section">
+        <div className="bot-stream-section-title">Live output</div>
+        <div className="bot-stream-status">
           <span
             className={`status-dot ${connected ? "active pulse" : "lurking"}`}
           />
@@ -114,7 +114,7 @@ export function LiveStreamTab({ agentSlug }: LiveStreamTabProps) {
         </div>
         <div className="bot-stream-log bot-stream-log--full" ref={scrollRef}>
           {lines.length === 0 ? (
-            <div className="agent-stream-empty">No output yet</div>
+            <div className="bot-stream-empty">No output yet</div>
           ) : (
             lines.map((line) => (
               <StreamLineView

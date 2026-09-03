@@ -75,8 +75,8 @@ function PresenceRow({
 }): React.ReactElement | null {
   if (online) {
     return (
-      <span className="sidebar-agent-peek-presence" data-state="online">
-        <span className="sidebar-agent-peek-presence-dot" aria-hidden="true" />
+      <span className="sidebar-bot-peek-presence" data-state="online">
+        <span className="sidebar-bot-peek-presence-dot" aria-hidden="true" />
         Online
       </span>
     );
@@ -85,7 +85,7 @@ function PresenceRow({
   const lastMs = Date.parse(lastSeenAt);
   if (Number.isNaN(lastMs)) return null;
   return (
-    <span className="sidebar-agent-peek-presence" data-state="offline">
+    <span className="sidebar-bot-peek-presence" data-state="offline">
       Last seen {formatRelative(lastMs, nowMs)}
     </span>
   );
@@ -210,40 +210,40 @@ export function BotEventPeek({
       role="dialog"
       aria-labelledby={`peek-name-${slug}`}
       aria-describedby={showDetailBlock ? `peek-current-${slug}` : undefined}
-      className="sidebar-agent-peek"
+      className="sidebar-bot-peek"
       data-stuck={isStuck ? "true" : undefined}
       tabIndex={-1}
       style={{ top: pos.top, left: pos.left }}
     >
       {/* Header */}
-      <div className="sidebar-agent-peek-header">
-        <div className="sidebar-agent-peek-avatar" aria-hidden="true">
+      <div className="sidebar-bot-peek-header">
+        <div className="sidebar-bot-peek-avatar" aria-hidden="true">
           {avatarLetter}
         </div>
-        <div className="sidebar-agent-peek-identity">
-          <span id={`peek-name-${slug}`} className="sidebar-agent-peek-name">
+        <div className="sidebar-bot-peek-identity">
+          <span id={`peek-name-${slug}`} className="sidebar-bot-peek-name">
             {agentName}
           </span>
           {!!agentRole && (
-            <span className="sidebar-agent-peek-role">{agentRole}</span>
+            <span className="sidebar-bot-peek-role">{agentRole}</span>
           )}
           <PresenceRow online={online} lastSeenAt={lastSeenAt} nowMs={now} />
         </div>
         {isStuck && (
-          <span className="sidebar-agent-peek-blocked-chip">BLOCKED</span>
+          <span className="sidebar-bot-peek-blocked-chip">BLOCKED</span>
         )}
       </div>
 
       {/* State chip + relative time — only when we have a snapshot */}
       {current && currentLabel ? (
-        <div className="sidebar-agent-peek-state-row">
+        <div className="sidebar-bot-peek-state-row">
           <span
-            className="sidebar-agent-peek-state-chip"
+            className="sidebar-bot-peek-state-chip"
             data-kind={currentLabel}
           >
             {currentLabel}
           </span>
-          <span className="sidebar-agent-peek-time">
+          <span className="sidebar-bot-peek-time">
             {formatRelative(current.receivedAtMs, now)}
           </span>
         </div>
@@ -251,14 +251,14 @@ export function BotEventPeek({
 
       {/* Current thought */}
       {showDetailBlock && current ? (
-        <div id={`peek-current-${slug}`} className="sidebar-agent-peek-detail">
+        <div id={`peek-current-${slug}`} className="sidebar-bot-peek-detail">
           {current.detail}
         </div>
       ) : null}
 
       {/* Empty state — no SSE event has arrived for this bot yet */}
       {showEmptyState ? (
-        <div className="sidebar-agent-peek-empty" data-testid="peek-empty">
+        <div className="sidebar-bot-peek-empty" data-testid="peek-empty">
           No activity yet. This agent has not streamed an event since the office
           opened.
         </div>
@@ -266,24 +266,24 @@ export function BotEventPeek({
 
       {/* Recent list */}
       {showRecentBlock && (
-        <div className="sidebar-agent-peek-recent-section">
-          <div className="sidebar-agent-peek-recent-header">RECENT</div>
-          <ul className="sidebar-agent-peek-recent" aria-label="Recent events">
+        <div className="sidebar-bot-peek-recent-section">
+          <div className="sidebar-bot-peek-recent-header">RECENT</div>
+          <ul className="sidebar-bot-peek-recent" aria-label="Recent events">
             {recentEntries.map(({ entry, prefix }) => (
               <li
                 key={`${entry.receivedAtMs}-${prefix ?? ""}`}
-                className="sidebar-agent-peek-recent-item"
+                className="sidebar-bot-peek-recent-item"
               >
                 <span
-                  className="sidebar-agent-peek-dot"
+                  className="sidebar-bot-peek-dot"
                   data-kind={kindLabel(entry.kind)}
                   aria-hidden="true"
                 />
-                <span className="sidebar-agent-peek-recent-text">
+                <span className="sidebar-bot-peek-recent-text">
                   {prefix ? `${prefix} ` : ""}
                   {entry.activity ?? entry.detail ?? ""}
                 </span>
-                <span className="sidebar-agent-peek-recent-time">
+                <span className="sidebar-bot-peek-recent-time">
                   {formatRelative(entry.receivedAtMs, now)}
                 </span>
               </li>
@@ -293,7 +293,7 @@ export function BotEventPeek({
       )}
 
       {/* Footer — NOT a button; Enter key drives the action */}
-      <div className="sidebar-agent-peek-footer">
+      <div className="sidebar-bot-peek-footer">
         <span>&#9166; Open workspace</span>
       </div>
     </div>,

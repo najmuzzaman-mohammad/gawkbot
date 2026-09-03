@@ -317,7 +317,7 @@ export function MessageBubble({
         <button
           type="button"
           className="message-avatar avatar-with-harness message-avatar-btn"
-          data-agent-slug={message.from}
+          data-bot-slug={message.from}
           aria-label={`Open bot panel for ${agent?.name || message.from}`}
           onClick={() => setActiveBotSlug(message.from)}
         >
@@ -358,7 +358,7 @@ export function MessageBubble({
             <button
               type="button"
               className="message-author message-author-btn"
-              data-agent-slug={message.from}
+              data-bot-slug={message.from}
               aria-label={`Open bot panel for ${agent?.name || message.from}`}
               onClick={() => setActiveBotSlug(message.from)}
             >

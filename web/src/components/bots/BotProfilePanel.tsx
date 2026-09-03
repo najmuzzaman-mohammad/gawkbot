@@ -74,21 +74,21 @@ function arrayOrEmpty<T>(value: unknown): T[] {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <div className="agent-profile-section-title">{children}</div>;
+  return <div className="bot-profile-section-title">{children}</div>;
 }
 
 function EmptyRow({ label }: { label: string }) {
-  return <div className="agent-profile-empty">{label}</div>;
+  return <div className="bot-profile-empty">{label}</div>;
 }
 
 function StatusBadge({ status }: { status: string | undefined }) {
   const s = (status || "idle").toLowerCase();
-  let cls = "agent-profile-status-badge";
+  let cls = "bot-profile-status-badge";
   if (s === "active") cls += " active";
   else if (s === "paused") cls += " paused";
   return (
     <span className={cls}>
-      <span className="agent-profile-status-dot" />
+      <span className="bot-profile-status-dot" />
       {s}
     </span>
   );
@@ -110,15 +110,15 @@ function SkillsSection({
   );
 
   return (
-    <div className="agent-profile-section">
+    <div className="bot-profile-section">
       <SectionTitle>skills</SectionTitle>
       {active.length === 0 ? (
         <EmptyRow label="No skills yet" />
       ) : (
-        <ul className="agent-profile-list">
+        <ul className="bot-profile-list">
           {active.map((sk) => (
-            <li key={sk.name} className="agent-profile-list-item">
-              <span className="agent-profile-skill-name">
+            <li key={sk.name} className="bot-profile-list-item">
+              <span className="bot-profile-skill-name">
                 {sk.title || sk.name}
               </span>
               {sk.status === "proposed" && (
@@ -146,17 +146,17 @@ function ChannelsSection({
   );
 
   return (
-    <div className="agent-profile-section">
+    <div className="bot-profile-section">
       <SectionTitle>channels</SectionTitle>
       {memberOf.length === 0 ? (
         <EmptyRow label="No channels" />
       ) : (
-        <div className="agent-profile-chips">
+        <div className="bot-profile-chips">
           {memberOf.map((ch) => (
             <button
               key={ch.slug}
               type="button"
-              className="agent-profile-chip"
+              className="bot-profile-chip"
               onClick={() =>
                 void router.navigate({
                   to: "/channels/$channelSlug",
@@ -183,7 +183,7 @@ function RecentRunsSection({ runs, loading }: RecentRunsSectionProps) {
 
   if (loading) {
     return (
-      <div className="agent-profile-section">
+      <div className="bot-profile-section">
         <SectionTitle>recent runs</SectionTitle>
         <EmptyRow label="Loading..." />
       </div>
@@ -191,20 +191,20 @@ function RecentRunsSection({ runs, loading }: RecentRunsSectionProps) {
   }
 
   return (
-    <div className="agent-profile-section">
+    <div className="bot-profile-section">
       <SectionTitle>recent runs</SectionTitle>
       {botRuns.length === 0 ? (
         <EmptyRow label="No runs yet" />
       ) : (
-        <ul className="agent-profile-list">
+        <ul className="bot-profile-list">
           {botRuns.map((r) => (
             <li
               key={r.taskId}
               className="bot-profile-list-item bot-profile-run-item"
             >
-              <div className="agent-profile-run-row">
-                <span className="agent-profile-run-id">{r.taskId}</span>
-                <span className="agent-profile-run-meta">
+              <div className="bot-profile-run-row">
+                <span className="bot-profile-run-id">{r.taskId}</span>
+                <span className="bot-profile-run-meta">
                   {r.toolCallCount} tool call{r.toolCallCount === 1 ? "" : "s"}
                   {r.hasError ? " ⚠" : ""}
                 </span>
@@ -216,7 +216,7 @@ function RecentRunsSection({ runs, loading }: RecentRunsSectionProps) {
       {botRuns.length > 0 && (
         <button
           type="button"
-          className="agent-profile-see-all"
+          className="bot-profile-see-all"
           onClick={() =>
             void router.navigate({
               to: "/apps/$appId",
@@ -287,22 +287,22 @@ function RecentArtifactsSection({ agentSlug, tasks }: RecentTasksSectionProps) {
     .slice(0, 5);
 
   return (
-    <div className="agent-profile-section">
+    <div className="bot-profile-section">
       <SectionTitle>recent tasks</SectionTitle>
       {botTasks.length === 0 ? (
         <EmptyRow label="No recent tasks" />
       ) : (
-        <ul className="agent-profile-list">
+        <ul className="bot-profile-list">
           {botTasks.map((t) => (
-            <li key={t.id} className="agent-profile-list-item">
+            <li key={t.id} className="bot-profile-list-item">
               <button
                 type="button"
-                className="agent-profile-task-btn"
+                className="bot-profile-task-btn"
                 // Opens the shared task modal in place rather than
                 // navigating into the task's chat surface.
                 onClick={() => openTaskModal(t.id)}
               >
-                <span className="agent-profile-task-title">{t.title}</span>
+                <span className="bot-profile-task-title">{t.title}</span>
                 <span
                   className={`badge ${taskStatusBadgeClass(t.status)} bot-profile-badge`}
                 >
@@ -312,7 +312,7 @@ function RecentArtifactsSection({ agentSlug, tasks }: RecentTasksSectionProps) {
               {isResumableStatus(t.status) ? (
                 <button
                   type="button"
-                  className="agent-profile-resume-btn"
+                  className="bot-profile-resume-btn"
                   title="Re-engage this bot on the task if it has gone quiet"
                   disabled={resumeMutation.isPending}
                   onClick={() => resumeMutation.mutate(t)}
@@ -350,24 +350,24 @@ function PermissionsSection({ agent }: { agent: OfficeMember }) {
   const isLead = agent.built_in === true || agent.slug === "ceo";
 
   return (
-    <div className="agent-profile-section">
+    <div className="bot-profile-section">
       <SectionTitle>permissions</SectionTitle>
-      <div className="agent-profile-permissions">
-        <div className="agent-profile-perm-row">
-          <span className="agent-profile-perm-label">role</span>
-          <span className="agent-profile-perm-value">
+      <div className="bot-profile-permissions">
+        <div className="bot-profile-perm-row">
+          <span className="bot-profile-perm-label">role</span>
+          <span className="bot-profile-perm-value">
             {isLead ? "lead bot" : "team member"}
           </span>
         </div>
-        <div className="agent-profile-perm-row">
-          <span className="agent-profile-perm-label">removable</span>
-          <span className="agent-profile-perm-value">
+        <div className="bot-profile-perm-row">
+          <span className="bot-profile-perm-label">removable</span>
+          <span className="bot-profile-perm-value">
             {isLead ? "no" : "yes"}
           </span>
         </div>
-        <div className="agent-profile-perm-row">
-          <span className="agent-profile-perm-label">built-in</span>
-          <span className="agent-profile-perm-value">
+        <div className="bot-profile-perm-row">
+          <span className="bot-profile-perm-label">built-in</span>
+          <span className="bot-profile-perm-value">
             {isLead ? "yes" : "no"}
           </span>
         </div>
@@ -681,7 +681,7 @@ function RuntimeSection({
       )}
       {!!saveError && (
         <div
-          className="agent-wizard-error"
+          className="bot-wizard-error"
           style={{ marginTop: 8 }}
           role="alert"
         >
@@ -788,7 +788,7 @@ export function EditableName({ agent }: { agent: OfficeMember }) {
     return (
       <button
         type="button"
-        className="agent-panel-name"
+        className="bot-panel-name"
         onClick={() => {
           setDraft(initial);
           setEditing(true);
@@ -898,7 +898,7 @@ export function BotProfilePanel({
   });
 
   const { data: runs = [], isLoading: runsLoading } = useQuery({
-    queryKey: ["agent-log-tasks", agent.slug],
+    queryKey: ["bot-log-tasks", agent.slug],
     queryFn: () =>
       listBotLogTasks({ limit: 8, agentSlug: agent.slug }).then((r) =>
         arrayOrEmpty<TaskLogSummary>(r?.tasks),
@@ -912,8 +912,8 @@ export function BotProfilePanel({
     <div className="bot-panel bot-profile-panel">
       {/* Header — hidden when the shell owns the header (headless mode) */}
       {!headless ? (
-        <div className="agent-panel-header">
-          <div className="agent-panel-identity">
+        <div className="bot-panel-header">
+          <div className="bot-panel-identity">
             <div className="bot-panel-avatar avatar-with-harness">
               <PixelAvatar
                 slug={agent.slug}
@@ -951,7 +951,7 @@ export function BotProfilePanel({
           </div>
           <button
             type="button"
-            className="agent-panel-close"
+            className="bot-panel-close"
             onClick={onClose}
             aria-label="Close bot profile"
           >
@@ -961,20 +961,20 @@ export function BotProfilePanel({
       ) : null}
 
       {/* Scrollable body */}
-      <div className="agent-profile-body">
+      <div className="bot-profile-body">
         {/* Role / description */}
         {agent.role ? (
-          <div className="agent-profile-section">
+          <div className="bot-profile-section">
             <SectionTitle>role</SectionTitle>
-            <p className="agent-profile-role-text">{agent.role}</p>
+            <p className="bot-profile-role-text">{agent.role}</p>
           </div>
         ) : null}
 
         {/* Current task */}
         {agent.task && agent.status === "active" ? (
-          <div className="agent-profile-section">
+          <div className="bot-profile-section">
             <SectionTitle>current task</SectionTitle>
-            <p className="agent-profile-current-task">{agent.task}</p>
+            <p className="bot-profile-current-task">{agent.task}</p>
           </div>
         ) : null}
 

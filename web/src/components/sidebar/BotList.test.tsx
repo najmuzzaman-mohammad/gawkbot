@@ -178,10 +178,10 @@ describe("<AgentList>", () => {
     });
 
     const { container } = renderList();
-    const rows = container.querySelectorAll(".sidebar-agent-row");
+    const rows = container.querySelectorAll(".sidebar-bot-row");
     expect(rows.length).toBe(2);
 
-    const pills = container.querySelectorAll(".sidebar-agent-pill");
+    const pills = container.querySelectorAll(".sidebar-bot-pill");
     expect(pills.length).toBe(2);
     expect(pills[0].textContent).toBe("drafting reply");
     expect(pills[1].textContent).toBe("tweaking spacing");
@@ -196,7 +196,7 @@ describe("<AgentList>", () => {
 
     const { container } = renderList();
 
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill).not.toBeNull();
     expect(pill?.textContent).toBe("watching tests");
     // Idle data-state because no snapshot — but with visible fallback text.
@@ -210,7 +210,7 @@ describe("<AgentList>", () => {
 
     const { container } = renderList();
 
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill).not.toBeNull();
     expect(pill?.textContent?.length ?? 0).toBeGreaterThan(0);
   });
@@ -267,7 +267,7 @@ describe("<AgentList>", () => {
     expect(nudges[0].textContent).toBe("→ open a DM with @devon");
 
     // Confirm the nudge is anchored to the first row, not the second.
-    const [firstRow] = container.querySelectorAll(".sidebar-agent-row");
+    const [firstRow] = container.querySelectorAll(".sidebar-bot-row");
     const [firstNudge] = nudges;
     expect(firstRow.contains(firstNudge)).toBe(true);
   });
@@ -298,7 +298,7 @@ describe("<AgentList>", () => {
     ]);
 
     const { container } = renderList();
-    const triggers = container.querySelectorAll(".sidebar-agent-peek-trigger");
+    const triggers = container.querySelectorAll(".sidebar-bot-peek-trigger");
     expect(triggers.length).toBe(2);
     for (const t of triggers) {
       expect(t.getAttribute("aria-expanded")).toBe("false");
@@ -316,7 +316,7 @@ describe("<AgentList>", () => {
 
     const { container } = renderList();
 
-    const slugButtons = container.querySelectorAll("button[data-agent-slug]");
+    const slugButtons = container.querySelectorAll("button[data-bot-slug]");
     expect(slugButtons.length).toBe(1);
     expect(slugButtons[0].classList.contains("sidebar-agent")).toBe(true);
 
@@ -324,7 +324,7 @@ describe("<AgentList>", () => {
       '[data-testid="peek-trigger-tess"]',
     );
     expect(chevron).not.toBeNull();
-    expect(chevron?.hasAttribute("data-agent-slug")).toBe(false);
+    expect(chevron?.hasAttribute("data-bot-slug")).toBe(false);
   });
 
   it("clicking the row (Tier 3 escalation) closes any open peek before navigating", () => {
@@ -348,7 +348,7 @@ describe("<AgentList>", () => {
 
     const { container } = renderList();
     const row = container.querySelector(
-      'button[data-agent-slug="tess"]',
+      'button[data-bot-slug="tess"]',
     ) as HTMLButtonElement;
     expect(row).not.toBeNull();
     fireEvent.click(row);

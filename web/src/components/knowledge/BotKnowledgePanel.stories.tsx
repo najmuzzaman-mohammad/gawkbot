@@ -52,7 +52,7 @@ function seeded(result: BotKnowledgeResult, pending?: PendingPromotion) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  qc.setQueryData(["agent-knowledge", result.agent], result);
+  qc.setQueryData(["bot-knowledge", result.agent], result);
   if (pending) {
     qc.setQueryData(["knowledge-promotion", pending.requestId], pending);
   }

@@ -38,4 +38,4 @@ The script:
 
 ## Why this script exists at all
 
-The smoke spec assumes `onboarded.json` is seeded — without it, wuphf serves the wizard and `.agent-panel` (a shell-only component) never mounts, so the tests fail with a 10s locator timeout that looks like a UI regression but is really a missing precondition. The CI workflow handles this in shell; this script is the local-friendly equivalent so devs don't have to read the workflow YAML to figure out the contract.
+The smoke spec assumes `onboarded.json` is seeded — without it, wuphf serves the wizard and `.bot-panel` (a shell-only component) never mounts, so the tests fail with a 10s locator timeout that looks like a UI regression but is really a missing precondition. The CI workflow handles this in shell; this script is the local-friendly equivalent so devs don't have to read the workflow YAML to figure out the contract.

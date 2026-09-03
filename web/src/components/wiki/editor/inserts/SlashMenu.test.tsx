@@ -26,7 +26,7 @@ describe("<SlashMenu>", () => {
     expect(screen.getByTestId("wk-slash-action-fact")).toBeInTheDocument();
     expect(screen.getByTestId("wk-slash-action-task-ref")).toBeInTheDocument();
     expect(
-      screen.getByTestId("wk-slash-action-agent-mention"),
+      screen.getByTestId("wk-slash-action-bot-mention"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("wk-slash-action-decision")).toBeInTheDocument();
     expect(screen.getByTestId("wk-slash-action-related")).toBeInTheDocument();

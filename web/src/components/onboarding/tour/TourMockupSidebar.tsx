@@ -117,17 +117,17 @@ export function TourMockupSidebar({
                   agent.isCeo ? " is-ceo" : " is-specialist"
                 }`}
               >
-                <span className="tour-mockup-agent-avatar">
+                <span className="tour-mockup-bot-avatar">
                   <PixelAvatar slug={agent.slug} size={22} />
                 </span>
-                <span className="tour-mockup-agent-body">
-                  <span className="tour-mockup-agent-name">
+                <span className="tour-mockup-bot-body">
+                  <span className="tour-mockup-bot-name">
                     {agent.name}
-                    <span className="tour-mockup-agent-handle">
+                    <span className="tour-mockup-bot-handle">
                       @{agent.slug}
                     </span>
                   </span>
-                  <span className="tour-mockup-agent-role">{agent.role}</span>
+                  <span className="tour-mockup-bot-role">{agent.role}</span>
                 </span>
                 {isLit ? (
                   <CompletionTick />

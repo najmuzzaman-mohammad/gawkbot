@@ -79,7 +79,7 @@ export function ConsultRelayMarker({ payload }: ConsultRelayMarkerProps) {
         className="consult-relay"
         data-testid="consult-relay-marker"
         data-direction={payload.direction ?? "sent"}
-        data-agent-slug={slug}
+        data-bot-slug={slug}
         onClick={() => setOpen(true)}
         disabled={!canOpen}
         aria-label={`${verb} ${name} — open the conversation, read only`}

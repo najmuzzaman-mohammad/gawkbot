@@ -214,7 +214,7 @@ await bootShell(page, { afterFlipSelector: ".status-bar" });
 
 // 01 — off
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "01-computer-off");
+await shotElement(page, ".bot-subspace", OUT, "01-computer-off");
 
 // 02 — no runtime: install OrbStack or paste a Box key, side by side
 Object.assign(scenario, {
@@ -223,24 +223,24 @@ Object.assign(scenario, {
   computer: "",
 });
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "02-runtime-missing");
+await shotElement(page, ".bot-subspace", OUT, "02-runtime-missing");
 
 // 03 — ready, live desktop in the noVNC iframe
 Object.assign(scenario, { state: "ready", viewer: true, frame: true });
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "03-ready-live");
+await shotElement(page, ".bot-subspace", OUT, "03-ready-live");
 
 // 04 — the bot asked for hands
 Object.assign(scenario, {
   helpReason: "Xero is asking for a login and I do not have the password.",
 });
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "04-help-requested");
+await shotElement(page, ".bot-subspace", OUT, "04-help-requested");
 
 // 05 — you have the wheel
 Object.assign(scenario, { helpReason: null, held: true });
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "05-held");
+await shotElement(page, ".bot-subspace", OUT, "05-held");
 
 // 06 — sidebar glyph: the bot is working on a ready computer
 const agentsSection = page.locator('[data-testid="sidebar-section-agents"]');
@@ -257,11 +257,11 @@ if (await agentsSection.count()) {
 Object.assign(scenario, { held: false });
 await setTheme("nex-dark");
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "07-ready-dark");
+await shotElement(page, ".bot-subspace", OUT, "07-ready-dark");
 
 await setTheme("noir-gold");
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "08-ready-noir");
+await shotElement(page, ".bot-subspace", OUT, "08-ready-noir");
 
 Object.assign(scenario, {
   state: "runtime_missing",
@@ -269,7 +269,7 @@ Object.assign(scenario, {
   frame: false,
 });
 await openComputerTab();
-await shotElement(page, ".agent-subspace", OUT, "09-runtime-missing-noir");
+await shotElement(page, ".bot-subspace", OUT, "09-runtime-missing-noir");
 
 console.log(`captured screenshots to ${OUT}`);
 await browser.close();

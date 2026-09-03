@@ -56,7 +56,7 @@ function BotCard({ agent, defaultHarness }: BotCardProps) {
       type="button"
       className="agents-tool-card"
       onClick={() => navigateToBot(agent.slug)}
-      data-agent-slug={agent.slug}
+      data-bot-slug={agent.slug}
       aria-label={`Configure ${displayName}`}
     >
       <span className="bots-tool-card-avatar avatar-with-harness">
@@ -147,14 +147,14 @@ export function BotDetail({ agentSlug, tab }: BotDetailProps) {
 
   if (!agent) {
     return (
-      <div className="app-panel active bots-tool" data-testid="agent-detail">
+      <div className="app-panel active bots-tool" data-testid="bot-detail">
         <div className="agents-tool-empty">
           <p>No agent "{agentSlug}".</p>
           <button
             type="button"
             className="issues-new-btn"
             onClick={back}
-            data-testid="agent-detail-back"
+            data-testid="bot-detail-back"
           >
             ← Back to Bots
           </button>
@@ -166,8 +166,8 @@ export function BotDetail({ agentSlug, tab }: BotDetailProps) {
   return (
     <div
       className="app-panel active bot-detail-panel"
-      data-testid="agent-detail"
-      data-agent-slug={agentSlug}
+      data-testid="bot-detail"
+      data-bot-slug={agentSlug}
     >
       <BotSubspace agent={agent} tab={tab ?? "chat"} />
     </div>

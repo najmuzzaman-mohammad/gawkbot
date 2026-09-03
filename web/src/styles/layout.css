@@ -208,7 +208,7 @@ html[data-theme] body .sidebar-rail-popover .sidebar-item.active {
 html[data-theme] body .sidebar-rail-popover .sidebar-agent-name {
   color: inherit;
 }
-.sidebar-rail-popover .sidebar-agent-task,
+.sidebar-rail-popover .sidebar-bot-task,
 .sidebar-rail-popover .sidebar-agent-activity {
   color: var(--text-tertiary);
 }
@@ -1256,7 +1256,7 @@ html[data-theme="nex"]
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.sidebar-agent-task {
+.sidebar-bot-task {
   font-size: 10px;
   color: var(--text-tertiary);
   overflow: hidden;
@@ -2081,7 +2081,7 @@ html[data-theme="nex"]
 .task-detail-page .task-detail-section {
   padding: 18px 24px;
 }
-.task-detail-page .task-detail-stream-section .agent-stream-log {
+.task-detail-page .task-detail-stream-section .bot-stream-log {
   min-height: 320px;
   max-height: 480px;
 }
@@ -2386,7 +2386,7 @@ html[data-theme="nex"]
   .task-detail-page-card {
     min-height: calc(100vh - 112px);
   }
-  .task-detail-page .task-detail-stream-section .agent-stream-log {
+  .task-detail-page .task-detail-stream-section .bot-stream-log {
     min-height: 220px;
     max-height: 320px;
   }
@@ -2706,8 +2706,8 @@ html[data-theme="nex"]
 }
 
 /* ─── Agent event pill ───────────────────────────────────────────
-   Replaces the secondary `.sidebar-agent-task` text line per agent
-   row. Inherits typography from .sidebar-agent-task (10px,
+   Replaces the secondary `.sidebar-bot-task` text line per agent
+   row. Inherits typography from .sidebar-bot-task (10px,
    --text-tertiary). State drives chrome via `data-state`.
    See web/DESIGN.md and the agent-event-bubbles design doc.
    ─────────────────────────────────────────────────────────────── */
@@ -3968,7 +3968,7 @@ body.resizing-pane * {
 .agents-tool-card-status.is-active {
   color: var(--green);
 }
-.agent-detail-panel {
+.bot-detail-panel {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -3976,10 +3976,10 @@ body.resizing-pane * {
   overflow-y: auto;
 }
 /* The agent detail is a full-screen route, but AgentProfilePanel's base
-   `.agent-panel` class is a fixed 400px right-edge slide-in drawer (its other
+   `.bot-panel` class is a fixed 400px right-edge slide-in drawer (its other
    use). Inside the detail route, neutralize the fixed positioning so the panel
    fills the page instead of floating as a narrow right-hand panel. */
-.agent-detail-panel .agent-profile-panel {
+.bot-detail-panel .bot-profile-panel {
   position: static;
   width: 100%;
   height: auto;

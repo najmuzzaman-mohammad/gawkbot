@@ -53,7 +53,7 @@ describe("deriveCurrentRoute (URL → discriminated union)", () => {
       botDetailRoute.id,
       { agentSlug: "pm" },
       {},
-      { kind: "agent-detail", agentSlug: "pm" },
+      { kind: "bot-detail", agentSlug: "pm" },
     ],
     [
       "app",

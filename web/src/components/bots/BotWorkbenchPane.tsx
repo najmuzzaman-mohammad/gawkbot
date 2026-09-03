@@ -53,7 +53,7 @@ export function BotWorkbenchPane({ agentSlug }: BotWorkbenchPaneProps) {
   // neighbour could starve this bot's recent runs out of the response;
   // 240 gives ~10 visible per bot across a 24-bot office before truncation.
   const { data: runsData } = useQuery({
-    queryKey: ["agent-workbench-runs"],
+    queryKey: ["bot-workbench-runs"],
     queryFn: () => listBotLogTasks({ limit: 240 }),
     refetchInterval: 8_000,
   });
@@ -77,18 +77,18 @@ export function BotWorkbenchPane({ agentSlug }: BotWorkbenchPaneProps) {
   }, [runsData, agentSlug]);
 
   return (
-    <div className="agent-workbench-pane" data-testid="agent-workbench-pane">
+    <div className="bot-workbench-pane" data-testid="bot-workbench-pane">
       <CollapsibleSection
         id="active-tasks"
         title="Active tasks"
         meta={<span className="collapsible-count">{activeTasks.length}</span>}
       >
         {activeTasks.length === 0 ? (
-          <div className="agent-workbench-empty">
+          <div className="bot-workbench-empty">
             No active tasks for @{agentSlug}.
           </div>
         ) : (
-          <ul className="agent-workbench-task-list">
+          <ul className="bot-workbench-task-list">
             {activeTasks.map((task) => (
               <TaskRow
                 key={task.id}
@@ -120,11 +120,11 @@ export function BotWorkbenchPane({ agentSlug }: BotWorkbenchPaneProps) {
         meta={<span className="collapsible-count">{recentRuns.length}</span>}
       >
         {recentRuns.length === 0 ? (
-          <div className="agent-workbench-empty">
+          <div className="bot-workbench-empty">
             No tool calls recorded for @{agentSlug}.
           </div>
         ) : (
-          <ul className="agent-workbench-run-list">
+          <ul className="bot-workbench-run-list">
             {recentRuns.map((run) => (
               <RunRow
                 key={run.taskId}
@@ -143,11 +143,11 @@ export function BotWorkbenchPane({ agentSlug }: BotWorkbenchPaneProps) {
         meta={<span className="collapsible-count">{recentTasks.length}</span>}
       >
         {recentTasks.length === 0 ? (
-          <div className="agent-workbench-empty">
+          <div className="bot-workbench-empty">
             No completed or canceled tasks for @{agentSlug}.
           </div>
         ) : (
-          <ul className="agent-workbench-task-list">
+          <ul className="bot-workbench-task-list">
             {recentTasks.map((task) => (
               <TaskRow
                 key={task.id}
@@ -188,8 +188,8 @@ function BotStreamSection({ slug }: BotStreamSectionProps) {
   }, [lines.length, lastLine?.id, lastLine?.data]);
 
   return (
-    <div className="agent-workbench-stream">
-      <div className="agent-stream-status" role="status" aria-live="polite">
+    <div className="bot-workbench-stream">
+      <div className="bot-stream-status" role="status" aria-live="polite">
         <span
           className={`status-dot ${connected ? "active pulse" : "lurking"}`}
           aria-hidden="true"
@@ -198,7 +198,7 @@ function BotStreamSection({ slug }: BotStreamSectionProps) {
       </div>
       <div className="bot-stream-log bot-workbench-stream-log" ref={scrollRef}>
         {lines.length === 0 ? (
-          <div className="agent-stream-empty">
+          <div className="bot-stream-empty">
             {connected ? "Waiting for output..." : "Stream idle"}
           </div>
         ) : (
@@ -223,13 +223,13 @@ function TaskRow({ task, onOpen }: TaskRowProps) {
     <li>
       <button
         type="button"
-        className="agent-workbench-task-row"
+        className="bot-workbench-task-row"
         onClick={onOpen}
       >
-        <span className="agent-workbench-task-title">
+        <span className="bot-workbench-task-title">
           {task.title || "Untitled"}
         </span>
-        <span className="agent-workbench-task-meta">
+        <span className="bot-workbench-task-meta">
           <span className={`badge status-${status}`}>
             {status.replace(/_/g, " ")}
           </span>
@@ -251,14 +251,14 @@ function RunRow({ run, onOpen }: RunRowProps) {
     <li>
       <button
         type="button"
-        className="agent-workbench-run-row"
+        className="bot-workbench-run-row"
         onClick={onOpen}
       >
-        <span className="agent-workbench-run-id">
+        <span className="bot-workbench-run-id">
           {run.taskId}
           {run.hasError ? " ⚠" : ""}
         </span>
-        <span className="agent-workbench-run-meta">
+        <span className="bot-workbench-run-meta">
           <span>
             {run.toolCallCount} tool call{run.toolCallCount === 1 ? "" : "s"}
           </span>

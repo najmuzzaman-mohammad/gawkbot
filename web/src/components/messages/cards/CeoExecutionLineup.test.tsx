@@ -81,7 +81,7 @@ describe("<CeoExecutionLineup>", () => {
     expect(screen.getByTestId("ceo-execution-lineup")).toBeInTheDocument();
     for (const agent of PAYLOAD.agents) {
       expect(
-        screen.getByTestId(`lineup-agent-row-${agent.slug}`),
+        screen.getByTestId(`lineup-bot-row-${agent.slug}`),
       ).toBeInTheDocument();
     }
   });
@@ -172,7 +172,7 @@ describe("<CeoExecutionLineup>", () => {
     setup(PAYLOAD, "committed");
     expect(screen.queryByTestId("ceo-execution-lineup")).toBeNull();
     for (const agent of PAYLOAD.agents) {
-      expect(screen.queryByTestId(`lineup-agent-row-${agent.slug}`)).toBeNull();
+      expect(screen.queryByTestId(`lineup-bot-row-${agent.slug}`)).toBeNull();
     }
   });
 
@@ -180,9 +180,9 @@ describe("<CeoExecutionLineup>", () => {
 
   it("renders XSS attack strings in role as plain text, not HTML", () => {
     setup(XSS_PAYLOAD);
-    const row = screen.getByTestId("lineup-agent-row-xss-agent");
+    const row = screen.getByTestId("lineup-bot-row-xss-agent");
     // The role text is inside a span, not interpreted as HTML.
-    const roleEl = row.querySelector(".ceo-lineup-agent-role");
+    const roleEl = row.querySelector(".ceo-lineup-bot-role");
     expect(roleEl?.textContent).toContain("<script>");
     // Crucially, no actual <script> element should be in the DOM.
     expect(row.querySelector("script")).toBeNull();
@@ -190,8 +190,8 @@ describe("<CeoExecutionLineup>", () => {
 
   it("renders XSS attack strings in reason as plain text, not HTML", () => {
     setup(XSS_PAYLOAD);
-    const row = screen.getByTestId("lineup-agent-row-xss-agent");
-    const reasonEl = row.querySelector(".ceo-lineup-agent-reason");
+    const row = screen.getByTestId("lineup-bot-row-xss-agent");
+    const reasonEl = row.querySelector(".ceo-lineup-bot-reason");
     // The img with onerror should appear as text, not an actual img element.
     expect(reasonEl?.textContent).toContain("onerror");
     expect(row.querySelector("img")).toBeNull();

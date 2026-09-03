@@ -31,7 +31,7 @@ describe("routineOwner", () => {
 
   it("resolves an explicit bot target", () => {
     const job: SchedulerJob = {
-      slug: "agent-loop-tess",
+      slug: "bot-loop-tess",
       target_type: "agent",
       target_id: "tess",
     };

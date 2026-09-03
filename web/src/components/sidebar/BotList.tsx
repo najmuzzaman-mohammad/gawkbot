@@ -88,7 +88,7 @@ function SidebarBotRow({
 
   return (
     <div
-      className="sidebar-agent-row"
+      className="sidebar-bot-row"
       ref={anchorRef}
       {...peek.hoverHandlers}
       {...peek.longPressHandlers}
@@ -104,7 +104,7 @@ function SidebarBotRow({
           peek.close();
           onSelect(agent.slug);
         }}
-        data-agent-slug={agent.slug}
+        data-bot-slug={agent.slug}
       >
         <span className="sidebar-bot-avatar avatar-with-harness">
           <PixelAvatar
@@ -155,8 +155,8 @@ function SidebarBotRow({
             />
           ) : null}
         </span>
-        <div className="sidebar-agent-wrap">
-          <span className="sidebar-agent-name">{displayName}</span>
+        <div className="sidebar-bot-wrap">
+          <span className="sidebar-bot-name">{displayName}</span>
           <BotEventPill
             slug={agent.slug}
             agentRole={agent.role}
@@ -167,7 +167,7 @@ function SidebarBotRow({
       </button>
       {onComputer ? (
         <span
-          className="sidebar-agent-computer"
+          className="sidebar-bot-computer"
           title={`${displayName} is on its computer`}
           data-testid={`computer-glyph-${agent.slug}`}
           aria-hidden="true"
@@ -190,10 +190,10 @@ function SidebarBotRow({
       ) : null}
       <button
         type="button"
-        className="sidebar-agent-peek-trigger"
+        className="sidebar-bot-peek-trigger"
         aria-haspopup="dialog"
         aria-expanded={peek.isOpen}
-        aria-controls={`agent-peek-${agent.slug}`}
+        aria-controls={`bot-peek-${agent.slug}`}
         aria-label={`Recent activity for ${displayName}`}
         onClick={(e) => {
           e.stopPropagation();
@@ -229,7 +229,7 @@ function SidebarBotRow({
         lastSeenAt={agent.last_seen_at}
       />
       {isFirst && showNudge ? (
-        <span className="sidebar-agent-nudge" data-testid="first-run-nudge">
+        <span className="sidebar-bot-nudge" data-testid="first-run-nudge">
           {`→ open a DM with @${agent.slug}`}
         </span>
       ) : null}
@@ -242,7 +242,7 @@ export function BotList() {
   const route = useCurrentRoute();
   // The active sidebar row matches the bot-detail page (/bots/$slug)
   // so the highlight tracks the per-bot config surface.
-  const activeBotSlug = route.kind === "agent-detail" ? route.agentSlug : null;
+  const activeBotSlug = route.kind === "bot-detail" ? route.agentSlug : null;
   const wizard = useBotWizard();
   const overflowRef = useOverflow<HTMLDivElement>();
   const defaultHarness = useDefaultHarness();
@@ -294,7 +294,7 @@ export function BotList() {
             <>
               {ceo ? (
                 <div className="sidebar-bot-group sidebar-bot-group--ceo">
-                  <div className="sidebar-agent-rank-label">Orchestrator</div>
+                  <div className="sidebar-bot-rank-label">Orchestrator</div>
                   <SidebarBotRow
                     agent={ceo}
                     isDMActive={activeBotSlug === ceo.slug}
@@ -307,17 +307,17 @@ export function BotList() {
               ) : null}
               {specialists.length > 0 ? (
                 <div className="sidebar-bot-group sidebar-bot-group--specialists">
-                  <div className="sidebar-agent-rank-label">
+                  <div className="sidebar-bot-rank-label">
                     {ceo ? "Reports to @ceo" : "Specialists"}
                   </div>
-                  <div className="sidebar-agent-rail-tree">
+                  <div className="sidebar-bot-rail-tree">
                     {specialists.map((agent) => (
                       <div
                         key={agent.slug}
-                        className="sidebar-agent-rail-tree-row"
+                        className="sidebar-bot-rail-tree-row"
                       >
                         <span
-                          className="sidebar-agent-rail-tree-stem"
+                          className="sidebar-bot-rail-tree-stem"
                           aria-hidden="true"
                         />
                         <SidebarBotRow

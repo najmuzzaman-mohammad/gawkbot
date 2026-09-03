@@ -162,33 +162,33 @@ function PackRoster({
               >
                 <input
                   type="checkbox"
-                  className="onboarding-team-agent-check"
+                  className="onboarding-team-bot-check"
                   checked={isPicked}
                   disabled={agent.builtIn}
                   onChange={() => onToggle(agent.slug, agent.builtIn)}
                   data-testid={`onboarding-roster-${agent.slug}`}
                 />
                 <span
-                  className="onboarding-team-agent-avatar"
+                  className="onboarding-team-bot-avatar"
                   aria-hidden="true"
                 >
                   <PixelAvatar slug={agent.slug} size={32} />
                 </span>
-                <span className="onboarding-team-agent-text">
-                  <span className="onboarding-team-agent-name">
+                <span className="onboarding-team-bot-text">
+                  <span className="onboarding-team-bot-name">
                     {agent.name}
-                    <span className="onboarding-team-agent-handle">
+                    <span className="onboarding-team-bot-handle">
                       @{agent.slug}
                     </span>
                   </span>
                   {agent.role ? (
-                    <span className="onboarding-team-agent-role">
+                    <span className="onboarding-team-bot-role">
                       {agent.role}
                     </span>
                   ) : null}
                 </span>
                 {agent.builtIn ? (
-                  <span className="onboarding-team-agent-lead">Lead</span>
+                  <span className="onboarding-team-bot-lead">Lead</span>
                 ) : null}
               </label>
             </li>
@@ -431,17 +431,17 @@ export function StepTeam({
       <div className="onboarding-team-custom">
         {showCustom ? (
           <article
-            className="onboarding-agent-brief"
-            data-testid="onboarding-agent-brief"
+            className="onboarding-bot-brief"
+            data-testid="onboarding-bot-brief"
           >
-            <header className="onboarding-agent-brief-head">
+            <header className="onboarding-bot-brief-head">
               <span
-                className="onboarding-agent-brief-avatar"
+                className="onboarding-bot-brief-avatar"
                 aria-hidden="true"
               >
                 <PixelAvatar slug="revops" size={28} />
               </span>
-              <span className="onboarding-agent-brief-title">Custom bot</span>
+              <span className="onboarding-bot-brief-title">Custom bot</span>
               <button
                 type="button"
                 className="onboarding-custom-remove"
@@ -456,12 +456,12 @@ export function StepTeam({
               <div className="onboarding-team-field">
                 <label
                   className="onboarding-team-label"
-                  htmlFor="onboarding-agent-name"
+                  htmlFor="onboarding-bot-name"
                 >
                   Bot name
                 </label>
                 <input
-                  id="onboarding-agent-name"
+                  id="onboarding-bot-name"
                   className="onboarding-team-input"
                   type="text"
                   value={answers.agentName}
@@ -469,26 +469,26 @@ export function StepTeam({
                   onChange={(event) =>
                     setAnswers({ agentName: event.target.value })
                   }
-                  data-testid="onboarding-agent-name"
+                  data-testid="onboarding-bot-name"
                 />
               </div>
 
               <div className="onboarding-team-field">
                 <label
                   className="onboarding-team-label"
-                  htmlFor="onboarding-agent-instructions"
+                  htmlFor="onboarding-bot-instructions"
                 >
                   What does it do?
                 </label>
                 <textarea
-                  id="onboarding-agent-instructions"
+                  id="onboarding-bot-instructions"
                   className="onboarding-team-textarea"
                   value={answers.botInstructions}
                   placeholder={CUSTOM_INSTRUCTIONS_PLACEHOLDER}
                   onChange={(event) =>
                     setAnswers({ botInstructions: event.target.value })
                   }
-                  data-testid="onboarding-agent-instructions"
+                  data-testid="onboarding-bot-instructions"
                 />
               </div>
             </div>

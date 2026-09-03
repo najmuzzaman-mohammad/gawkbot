@@ -78,7 +78,7 @@ function BotFileCard({
   const [genError, setGenError] = useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["agent-file", path],
+    queryKey: ["bot-file", path],
     queryFn: () => readBotFile(path),
     // Only fetch once the card is opened — keeps the panel light (4-5 files).
     enabled: expanded,
@@ -119,11 +119,11 @@ function BotFileCard({
       });
       if ("commit_sha" in result) {
         queryClient.setQueryData(
-          ["agent-file", path],
+          ["bot-file", path],
           (old: BotFileResponse | undefined) =>
             old ? { ...old, sha: result.commit_sha, exists: true } : old,
         );
-        void queryClient.invalidateQueries({ queryKey: ["agent-file", path] });
+        void queryClient.invalidateQueries({ queryKey: ["bot-file", path] });
         closeEditor();
       } else {
         // Conflict shape
@@ -161,42 +161,42 @@ function BotFileCard({
   const canGenerate = isAIGeneratableFile(label);
 
   return (
-    <div className={`agent-file-card${expanded ? " expanded" : ""}`}>
+    <div className={`bot-file-card${expanded ? " expanded" : ""}`}>
       <button
         type="button"
-        className="agent-file-card-header"
+        className="bot-file-card-header"
         onClick={toggle}
         aria-expanded={expanded}
       >
-        <span className="agent-file-card-chevron">
+        <span className="bot-file-card-chevron">
           {expanded ? (
             <NavArrowDown width={14} height={14} />
           ) : (
             <NavArrowRight width={14} height={14} />
           )}
         </span>
-        <span className="agent-file-card-titles">
-          <span className="agent-file-card-name">{label}</span>
-          <span className="agent-file-card-desc">{description}</span>
+        <span className="bot-file-card-titles">
+          <span className="bot-file-card-name">{label}</span>
+          <span className="bot-file-card-desc">{description}</span>
         </span>
       </button>
 
       {expanded ? (
-        <div className="agent-file-card-body">
+        <div className="bot-file-card-body">
           {/* Per-file purpose hint (DEFINITION-FILE MATURITY) */}
           {purposeHint ? (
-            <p className="agent-file-purpose-hint">{purposeHint}</p>
+            <p className="bot-file-purpose-hint">{purposeHint}</p>
           ) : null}
 
           {/* Blocks / Raw mode toggle — shown while editing. Blocks is the
               structured default; Raw is the Advanced whole-file escape hatch. */}
           {data && !isLoading && !isError && editing ? (
-            <div className="agent-file-mode-row">
-              <fieldset className="agent-file-mode-switch">
+            <div className="bot-file-mode-row">
+              <fieldset className="bot-file-mode-switch">
                 <legend className="sr-only">Editor mode</legend>
                 <button
                   type="button"
-                  className={`agent-file-mode-btn${mode === "blocks" ? " is-active" : ""}`}
+                  className={`bot-file-mode-btn${mode === "blocks" ? " is-active" : ""}`}
                   onClick={() => setMode("blocks")}
                   aria-pressed={mode === "blocks"}
                 >
@@ -204,7 +204,7 @@ function BotFileCard({
                 </button>
                 <button
                   type="button"
-                  className={`agent-file-mode-btn${mode === "raw" ? " is-active" : ""}`}
+                  className={`bot-file-mode-btn${mode === "raw" ? " is-active" : ""}`}
                   onClick={() => {
                     // Seed the raw textarea only if it has no draft yet —
                     // re-clicking the active Raw tab must not wipe unsaved
@@ -219,7 +219,7 @@ function BotFileCard({
                   Raw
                 </button>
               </fieldset>
-              <span className="agent-file-mode-note">
+              <span className="bot-file-mode-note">
                 {mode === "raw"
                   ? "Advanced: edit the whole file as markdown."
                   : "Edit each section in place."}
@@ -228,9 +228,9 @@ function BotFileCard({
           ) : null}
 
           {isLoading ? (
-            <div className="agent-file-card-loading">Loading…</div>
+            <div className="bot-file-card-loading">Loading…</div>
           ) : isError ? (
-            <div className="agent-file-card-error" role="alert">
+            <div className="bot-file-card-error" role="alert">
               {error instanceof Error ? error.message : "Failed to load file"}
             </div>
           ) : editing && data && mode === "blocks" ? (
@@ -248,12 +248,12 @@ function BotFileCard({
               }
               onSaved={(newSha) => {
                 queryClient.setQueryData(
-                  ["agent-file", path],
+                  ["bot-file", path],
                   (old: BotFileResponse | undefined) =>
                     old ? { ...old, sha: newSha, exists: true } : old,
                 );
                 void queryClient.invalidateQueries({
-                  queryKey: ["agent-file", path],
+                  queryKey: ["bot-file", path],
                 });
                 closeEditor();
               }}
@@ -263,7 +263,7 @@ function BotFileCard({
             /* Raw markdown — the Advanced escape hatch */
             <>
               <textarea
-                className="agent-file-raw-editor"
+                className="bot-file-raw-editor"
                 value={rawDraft ?? data.content}
                 onChange={(e) => setRawDraft(e.target.value)}
                 disabled={rawSaving}
@@ -271,11 +271,11 @@ function BotFileCard({
                 rows={14}
               />
               {rawSaveError ? (
-                <div className="agent-file-card-error" role="alert">
+                <div className="bot-file-card-error" role="alert">
                   {rawSaveError}
                 </div>
               ) : null}
-              <div className="agent-file-card-actions">
+              <div className="bot-file-card-actions">
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -298,19 +298,19 @@ function BotFileCard({
             </>
           ) : data ? (
             <>
-              <div className="agent-file-view">
+              <div className="bot-file-view">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {data.content || "_This file is empty._"}
                 </ReactMarkdown>
               </div>
               {genError ? (
-                <div className="agent-file-card-error" role="alert">
+                <div className="bot-file-card-error" role="alert">
                   {genError}
                 </div>
               ) : null}
-              <div className="agent-file-card-actions">
+              <div className="bot-file-card-actions">
                 {!data.exists ? (
-                  <span className="agent-file-card-badge">
+                  <span className="bot-file-card-badge">
                     not saved yet — seeded
                   </span>
                 ) : null}
@@ -367,24 +367,24 @@ export function BotInstructionsSection({ agent }: BotInstructionsSectionProps) {
   }));
 
   return (
-    <div className="agent-profile-section">
-      <div className="agent-profile-section-title">instructions</div>
-      <p className="agent-instructions-blurb">
+    <div className="bot-profile-section">
+      <div className="bot-profile-section-title">instructions</div>
+      <p className="bot-instructions-blurb">
         These files shape how this agent thinks and works. Each one is loaded
         into its system prompt — edits take effect on the next turn.
       </p>
-      <div className="agent-file-list">
+      <div className="bot-file-list">
         {files.map((f) => (
           <BotFileCard key={f.path} {...f} />
         ))}
       </div>
 
       {isLead ? (
-        <div className="agent-file-office">
-          <div className="agent-file-office-label">
+        <div className="bot-file-office">
+          <div className="bot-file-office-label">
             office context — shared by all bots
           </div>
-          <div className="agent-file-list">
+          <div className="bot-file-list">
             <BotFileCard
               path={OFFICE_USER_FILE_PATH}
               label="USER"

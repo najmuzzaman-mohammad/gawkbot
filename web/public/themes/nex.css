@@ -227,7 +227,7 @@ html[data-theme^="nex"] .sidebar {
    2026-09-03). Restoring from the root tokens is correct in all three
    themes and cannot drift when a palette is retuned. */
 html[data-theme^="nex"] .sidebar [role="dialog"],
-html[data-theme^="nex"] .sidebar .agent-wizard-overlay,
+html[data-theme^="nex"] .sidebar .bot-wizard-overlay,
 html[data-theme^="nex"] .sidebar .channel-wizard-overlay {
   --text: var(--text-root);
   --text-secondary: var(--text-secondary-root);
@@ -994,32 +994,32 @@ html[data-theme^="nex"] .thread-panel-parent {
 /* ═══════════════════════════════════════
    AGENT PANEL
    ═══════════════════════════════════════ */
-html[data-theme^="nex"] .agent-panel {
+html[data-theme^="nex"] .bot-panel {
   background: var(--bg);
   border-left: 1px solid var(--border);
 }
-html[data-theme^="nex"] .agent-panel-header {
+html[data-theme^="nex"] .bot-panel-header {
   background: var(--bg);
   border-bottom: none;
   padding: 16px 24px 8px;
 }
-html[data-theme^="nex"] .agent-panel-header span {
+html[data-theme^="nex"] .bot-panel-header span {
   font-family: var(--font-sans);
 }
-html[data-theme^="nex"] .agent-panel-role {
+html[data-theme^="nex"] .bot-panel-role {
   font-weight: 400;
   color: var(--text-tertiary);
 }
-html[data-theme^="nex"] .agent-panel-avatar {
+html[data-theme^="nex"] .bot-panel-avatar {
   border-radius: var(--radius-md);
   background: transparent;
 }
-html[data-theme^="nex"] .agent-panel-name {
+html[data-theme^="nex"] .bot-panel-name {
   font-family: var(--font-sans);
   font-weight: 700;
   color: var(--text);
 }
-html[data-theme^="nex"] .agent-panel-section-title {
+html[data-theme^="nex"] .bot-panel-section-title {
   font-family: var(--font-sans);
   font-weight: 600;
   font-size: 11px;
@@ -1027,7 +1027,7 @@ html[data-theme^="nex"] .agent-panel-section-title {
   letter-spacing: 0.05em;
   color: var(--text-tertiary);
 }
-html[data-theme^="nex"] .agent-panel-skill {
+html[data-theme^="nex"] .bot-panel-skill {
   border-radius: var(--radius-full);
   font-family: var(--font-sans);
   background: var(--bg-warm);

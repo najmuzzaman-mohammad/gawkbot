@@ -41,7 +41,7 @@ function headerTitleAndDesc(
       return { title: "New task", desc: "" };
     case "agents":
       return { title: "Bots", desc: "" };
-    case "agent-detail":
+    case "bot-detail":
       return { title: `@${route.agentSlug}`, desc: "" };
     case "skill-detail":
       return { title: `Skill: ${route.skillName}`, desc: "" };

@@ -440,7 +440,7 @@ function dispatchSlashAction(
     case "wiki-link":
       handlers.openMentionPicker("pages");
       break;
-    case "agent-mention":
+    case "bot-mention":
       handlers.openMentionPicker("agents");
       break;
     case "task-ref":

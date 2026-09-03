@@ -196,7 +196,7 @@ export const POPULATED_PACKET: DecisionPacket = {
   title: "Refactor bot-rail event pill state machine",
   lifecycleState: "decision",
   ownerSlug: "tess",
-  worktreePath: ".worktrees/refactor-agent-pill-2741",
+  worktreePath: ".worktrees/refactor-bot-pill-2741",
   createdAt: "2026-05-09T19:48:00Z",
   updatedAt: "2026-05-09T21:58:00Z",
   spec: {

@@ -626,7 +626,7 @@ function MainContent() {
       return <DecisionPacketRoute taskId={route.taskId} />;
     case "agents":
       return <BotsTool />;
-    case "agent-detail":
+    case "bot-detail":
       return <BotDetail agentSlug={route.agentSlug} tab={route.tab} />;
     case "skill-detail":
       return <SkillDetailRoute skillName={route.skillName} />;

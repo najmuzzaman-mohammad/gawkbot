@@ -55,10 +55,10 @@ function PolicyRow({
   const scoped = isScopedToBot(policy, agentSlug);
 
   return (
-    <div className="agent-policy-row">
-      <div className="agent-policy-row-body">
-        <p className="agent-policy-rule">{policy.rule}</p>
-        <div className="agent-policy-meta">
+    <div className="bot-policy-row">
+      <div className="bot-policy-row-body">
+        <p className="bot-policy-rule">{policy.rule}</p>
+        <div className="bot-policy-meta">
           <span
             className={`bot-policy-badge bot-policy-badge--source-${sourceBadge(policy.source)}`}
           >
@@ -75,7 +75,7 @@ function PolicyRow({
           )}
         </div>
       </div>
-      <div className="agent-policy-actions">
+      <div className="bot-policy-actions">
         {scoped ? (
           <button
             type="button"
@@ -197,21 +197,21 @@ export function PoliciesTab({ agentSlug }: PoliciesTabProps) {
   const isMutating = unassignMutation.isPending || deactivateMutation.isPending;
 
   return (
-    <div className="agent-policies-tab" data-testid="policies-tab">
-      <div className="agent-policies-header">
-        <h2 className="agent-policies-title">Policies</h2>
-        <p className="agent-policies-subtitle">
+    <div className="bot-policies-tab" data-testid="policies-tab">
+      <div className="bot-policies-header">
+        <h2 className="bot-policies-title">Policies</h2>
+        <p className="bot-policies-subtitle">
           Rules that govern how @{agentSlug} behaves. Global policies apply to
           all agents; scoped policies apply only to those listed.
         </p>
       </div>
 
       {/* Add policy form */}
-      <div className="agent-policies-add">
-        <div className="agent-policies-add-title">
+      <div className="bot-policies-add">
+        <div className="bot-policies-add-title">
           Add policy for @{agentSlug}
         </div>
-        <div className="agent-policies-add-row">
+        <div className="bot-policies-add-row">
           <input
             className="input bot-policies-input"
             type="text"
@@ -237,31 +237,31 @@ export function PoliciesTab({ agentSlug }: PoliciesTabProps) {
           </button>
         </div>
         {addError ? (
-          <p className="agent-policies-error" role="alert">
+          <p className="bot-policies-error" role="alert">
             {addError}
           </p>
         ) : null}
       </div>
 
       {mutateError ? (
-        <p className="agent-policies-error" role="alert">
+        <p className="bot-policies-error" role="alert">
           {mutateError}
         </p>
       ) : null}
 
       {/* Policy list */}
       {isLoading ? (
-        <p className="agent-policies-empty">Loading policies…</p>
+        <p className="bot-policies-empty">Loading policies…</p>
       ) : isError ? (
-        <p className="agent-policies-error" role="alert">
+        <p className="bot-policies-error" role="alert">
           Couldn't load policies. Check your connection and try again.
         </p>
       ) : applicablePolicies.length === 0 ? (
-        <p className="agent-policies-empty">
+        <p className="bot-policies-empty">
           No active policies apply to @{agentSlug}.
         </p>
       ) : (
-        <ul className="agent-policy-list" aria-label="Applicable policies">
+        <ul className="bot-policy-list" aria-label="Applicable policies">
           {applicablePolicies.map((policy) => (
             <li key={policy.id}>
               <PolicyRow

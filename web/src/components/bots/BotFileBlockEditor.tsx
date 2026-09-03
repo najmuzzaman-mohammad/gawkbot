@@ -106,12 +106,12 @@ export function BotFileBlockEditor({
   }
 
   return (
-    <div className="agent-file-blocks">
+    <div className="bot-file-blocks">
       {showPreamble ? (
-        <label className="agent-file-block">
-          <span className="agent-file-block-label">Overview</span>
+        <label className="bot-file-block">
+          <span className="bot-file-block-label">Overview</span>
           <textarea
-            className="agent-file-block-input"
+            className="bot-file-block-input"
             value={preamble}
             onChange={(e) => setPreamble(e.target.value)}
             disabled={saving}
@@ -122,18 +122,18 @@ export function BotFileBlockEditor({
       ) : null}
 
       {blocks.map((block, index) => (
-        <label className="agent-file-block" key={block.heading}>
-          <span className="agent-file-block-label">
+        <label className="bot-file-block" key={block.heading}>
+          <span className="bot-file-block-label">
             {block.heading}
             {block.fromSchema ? null : (
-              <span className="agent-file-block-tag">custom</span>
+              <span className="bot-file-block-tag">custom</span>
             )}
           </span>
           {block.hint ? (
-            <span className="agent-file-block-hint">{block.hint}</span>
+            <span className="bot-file-block-hint">{block.hint}</span>
           ) : null}
           <textarea
-            className="agent-file-block-input"
+            className="bot-file-block-input"
             value={block.body}
             onChange={(e) => setBlockBody(index, e.target.value)}
             disabled={saving}
@@ -147,12 +147,12 @@ export function BotFileBlockEditor({
       ))}
 
       {error ? (
-        <div className="agent-file-card-error" role="alert">
+        <div className="bot-file-card-error" role="alert">
           {error}
         </div>
       ) : null}
 
-      <div className="agent-file-card-actions">
+      <div className="bot-file-card-actions">
         <button
           type="button"
           className="btn btn-ghost btn-sm"

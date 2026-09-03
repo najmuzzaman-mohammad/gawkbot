@@ -115,7 +115,7 @@ export function deriveBreadcrumbs(
       ];
     case "agents":
       return [{ label: "Bots", href: "#/agents" }];
-    case "agent-detail": {
+    case "bot-detail": {
       const res = resolveObjectRoute({ kind: "agent", slug: route.agentSlug });
       return [
         { label: "Bots", href: "#/agents" },

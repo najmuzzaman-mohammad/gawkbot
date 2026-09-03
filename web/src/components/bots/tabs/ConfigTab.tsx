@@ -16,7 +16,7 @@ function noop() {}
 
 export function ConfigTab({ agent }: ConfigTabProps) {
   return (
-    <div className="agent-config-tab" data-testid="config-tab">
+    <div className="bot-config-tab" data-testid="config-tab">
       <BotProfilePanel agent={agent} onClose={noop} headless={true} />
     </div>
   );

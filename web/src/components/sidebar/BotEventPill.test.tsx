@@ -17,7 +17,7 @@ describe("<AgentEventPill>", () => {
         fallbackTask="reading channel context"
       />,
     );
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill).not.toBeNull();
     expect(pill?.textContent).toBe("reading channel context");
     // No snapshot -> derived state is idle, but fallbackTask wins over the
@@ -29,7 +29,7 @@ describe("<AgentEventPill>", () => {
     const { container } = render(
       <BotEventPill slug="devon" agentRole="engineer" />,
     );
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     // Engineer role -> dictionary copy. Just assert the visible text is
     // a non-empty string, since the rotation index depends on Date.now().
     expect(pill?.textContent?.length ?? 0).toBeGreaterThan(0);
@@ -57,7 +57,7 @@ describe("<AgentEventPill>", () => {
         fallbackTask="watching tests"
       />,
     );
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill?.textContent).toBe("drafting reply");
     expect(pill?.getAttribute("data-state")).toBe("holding");
   });
@@ -83,7 +83,7 @@ describe("<AgentEventPill>", () => {
       />,
     );
 
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill?.getAttribute("data-state")).toBe("stuck");
     expect(pill?.textContent).toBe("stuck on terraform lock");
 
@@ -110,7 +110,7 @@ describe("<AgentEventPill>", () => {
     });
 
     const { container } = render(<BotEventPill slug="sam" agentRole="pm" />);
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill?.textContent?.length).toBe(48);
     expect(pill?.textContent?.endsWith("…")).toBe(true);
   });
@@ -121,7 +121,7 @@ describe("<AgentEventPill>", () => {
     const { container } = render(
       <BotEventPill slug="lila" agentRole="Some Random Title" />,
     );
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill?.textContent?.length ?? 0).toBeGreaterThan(0);
   });
 
@@ -138,7 +138,7 @@ describe("<AgentEventPill>", () => {
         fallbackTask="reading channel context"
       />,
     );
-    const pill = container.querySelector(".sidebar-agent-pill");
+    const pill = container.querySelector(".sidebar-bot-pill");
     expect(pill).not.toBeNull();
     expect(pill?.hasAttribute("aria-haspopup")).toBe(false);
     expect(pill?.hasAttribute("aria-expanded")).toBe(false);

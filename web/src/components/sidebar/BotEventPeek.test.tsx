@@ -72,7 +72,7 @@ describe("<BotEventPeek> render", () => {
       <BotEventPeek {...defaultProps} anchorRef={anchorRef} open={false} />,
     );
     // Portal target is document.body, but the dialog itself must be absent.
-    expect(document.querySelector(".sidebar-agent-peek")).toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek")).toBeNull();
     expect(container.firstChild).toBeNull();
   });
 
@@ -87,16 +87,16 @@ describe("<BotEventPeek> render", () => {
     );
     // Dialog itself still mounts so the chevron's aria-controls target
     // resolves and the user gets a visible response to the click.
-    expect(document.querySelector(".sidebar-agent-peek")).not.toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek")).not.toBeNull();
     // Header still renders (bot name + role).
     expect(screen.getByText(defaultProps.agentName)).toBeDefined();
     // Empty-state line carries the "no activity yet" copy.
     expect(screen.getByTestId("peek-empty")).toBeDefined();
     // State row, detail, recent list all collapse — no snapshot to render.
-    expect(document.querySelector(".sidebar-agent-peek-state-row")).toBeNull();
-    expect(document.querySelector(".sidebar-agent-peek-detail")).toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek-state-row")).toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek-detail")).toBeNull();
     expect(
-      document.querySelector(".sidebar-agent-peek-recent-section"),
+      document.querySelector(".sidebar-bot-peek-recent-section"),
     ).toBeNull();
   });
 
@@ -145,7 +145,7 @@ describe("<BotEventPeek> render", () => {
         current={makeSnap({ kind: "routine" })}
       />,
     );
-    expect(document.querySelector(".sidebar-agent-peek-recent")).toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek-recent")).toBeNull();
   });
 
   it("shows up to 6 history entries in passed order", () => {
@@ -168,7 +168,7 @@ describe("<BotEventPeek> render", () => {
         current={makeSnap({ kind: "routine" })}
       />,
     );
-    const items = document.querySelectorAll(".sidebar-agent-peek-recent-item");
+    const items = document.querySelectorAll(".sidebar-bot-peek-recent-item");
     // Cap is 6 (not stuck, so no pinned entry).
     expect(items.length).toBe(6);
     // First visible item matches the first history entry.
@@ -185,7 +185,7 @@ describe("<BotEventPeek> render", () => {
           current={makeSnap({ kind: "stuck", activity: "vault timeout" })}
         />,
       );
-      const dialog = document.querySelector(".sidebar-agent-peek");
+      const dialog = document.querySelector(".sidebar-bot-peek");
       expect(dialog?.getAttribute("data-stuck")).toBe("true");
     });
 
@@ -199,7 +199,7 @@ describe("<BotEventPeek> render", () => {
         />,
       );
       expect(
-        document.querySelector(".sidebar-agent-peek-blocked-chip"),
+        document.querySelector(".sidebar-bot-peek-blocked-chip"),
       ).not.toBeNull();
     });
 
@@ -224,7 +224,7 @@ describe("<BotEventPeek> render", () => {
         />,
       );
       const items = document.querySelectorAll(
-        ".sidebar-agent-peek-recent-item",
+        ".sidebar-bot-peek-recent-item",
       );
       expect(items.length).toBeGreaterThanOrEqual(1);
       expect(items[0].textContent).toContain("BLOCKED:");
@@ -250,7 +250,7 @@ describe("<BotEventPeek> render", () => {
       const anchorRef = makeAnchorRef();
       render(<BotEventPeek {...defaultProps} anchorRef={anchorRef} />);
       // The dialog must still be present — CSS handles the motion suppression.
-      expect(document.querySelector(".sidebar-agent-peek")).not.toBeNull();
+      expect(document.querySelector(".sidebar-bot-peek")).not.toBeNull();
     } finally {
       window.matchMedia = original;
     }
@@ -270,7 +270,7 @@ describe("<BotEventPeek> interaction and accessibility", () => {
         onClose={onClose}
       />,
     );
-    const dialog = document.querySelector(".sidebar-agent-peek") as HTMLElement;
+    const dialog = document.querySelector(".sidebar-bot-peek") as HTMLElement;
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -285,7 +285,7 @@ describe("<BotEventPeek> interaction and accessibility", () => {
         onOpenWorkspace={onOpenWorkspace}
       />,
     );
-    const dialog = document.querySelector(".sidebar-agent-peek") as HTMLElement;
+    const dialog = document.querySelector(".sidebar-bot-peek") as HTMLElement;
     fireEvent.keyDown(dialog, { key: "Enter" });
     expect(onOpenWorkspace).toHaveBeenCalledOnce();
   });
@@ -302,7 +302,7 @@ describe("<BotEventPeek> interaction and accessibility", () => {
     );
 
     // Pointerdown inside the dialog — should NOT close.
-    const dialog = document.querySelector(".sidebar-agent-peek") as HTMLElement;
+    const dialog = document.querySelector(".sidebar-bot-peek") as HTMLElement;
     fireEvent.pointerDown(dialog);
     expect(onClose).not.toHaveBeenCalled();
 
@@ -314,7 +314,7 @@ describe("<BotEventPeek> interaction and accessibility", () => {
   it("aria-labelledby points to an element containing the bot name", () => {
     const anchorRef = makeAnchorRef();
     render(<BotEventPeek {...defaultProps} anchorRef={anchorRef} />);
-    const dialog = document.querySelector(".sidebar-agent-peek") as HTMLElement;
+    const dialog = document.querySelector(".sidebar-bot-peek") as HTMLElement;
     const labelId = dialog.getAttribute("aria-labelledby");
     expect(labelId).toBe(`peek-name-${defaultProps.slug}`);
     const labelEl = document.getElementById(labelId as string);
@@ -335,7 +335,7 @@ describe("<BotEventPeek> interaction and accessibility", () => {
         current={current}
       />,
     );
-    const dialog = document.querySelector(".sidebar-agent-peek") as HTMLElement;
+    const dialog = document.querySelector(".sidebar-bot-peek") as HTMLElement;
     const descId = dialog.getAttribute("aria-describedby");
     expect(descId).toBe(`peek-current-${defaultProps.slug}`);
     const descEl = document.getElementById(descId as string);
@@ -356,7 +356,7 @@ describe("<BotEventPeek> interaction and accessibility", () => {
         current={current}
       />,
     );
-    const dialog = document.querySelector(".sidebar-agent-peek") as HTMLElement;
+    const dialog = document.querySelector(".sidebar-bot-peek") as HTMLElement;
     expect(dialog.getAttribute("aria-describedby")).toBeNull();
   });
 });
@@ -370,13 +370,13 @@ describe("<BotEventPeek> presence row", () => {
       <BotEventPeek {...defaultProps} anchorRef={anchorRef} online={true} />,
     );
     const presence = document.querySelector(
-      ".sidebar-agent-peek-presence",
+      ".sidebar-bot-peek-presence",
     ) as HTMLElement;
     expect(presence).not.toBeNull();
     expect(presence.dataset.state).toBe("online");
     expect(presence.textContent).toContain("Online");
     expect(
-      document.querySelector(".sidebar-agent-peek-presence-dot"),
+      document.querySelector(".sidebar-bot-peek-presence-dot"),
     ).not.toBeNull();
   });
 
@@ -392,7 +392,7 @@ describe("<BotEventPeek> presence row", () => {
       />,
     );
     const presence = document.querySelector(
-      ".sidebar-agent-peek-presence",
+      ".sidebar-bot-peek-presence",
     ) as HTMLElement;
     expect(presence).not.toBeNull();
     expect(presence.dataset.state).toBe("offline");
@@ -400,7 +400,7 @@ describe("<BotEventPeek> presence row", () => {
     // Green dot is intentionally absent in the offline state — color encodes
     // a live transport, not historical activity.
     expect(
-      document.querySelector(".sidebar-agent-peek-presence-dot"),
+      document.querySelector(".sidebar-bot-peek-presence-dot"),
     ).toBeNull();
   });
 
@@ -414,7 +414,7 @@ describe("<BotEventPeek> presence row", () => {
         lastSeenAt=""
       />,
     );
-    expect(document.querySelector(".sidebar-agent-peek-presence")).toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek-presence")).toBeNull();
   });
 
   it("omits the presence row when last_seen_at is unparseable", () => {
@@ -427,6 +427,6 @@ describe("<BotEventPeek> presence row", () => {
         lastSeenAt="not-a-timestamp"
       />,
     );
-    expect(document.querySelector(".sidebar-agent-peek-presence")).toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek-presence")).toBeNull();
   });
 });

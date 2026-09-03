@@ -564,7 +564,7 @@ body {
 
 /* ─── Icon button — square-ish hit area for icon-only controls.
    Size variants mirror .btn-sm / default / .btn-lg in height. Already
-   used implicitly in 8+ places (.sidebar-icon-btn, .agent-panel-close);
+   used implicitly in 8+ places (.sidebar-icon-btn, .bot-panel-close);
    this is the single source of truth. */
 .icon-btn {
   display: inline-flex;

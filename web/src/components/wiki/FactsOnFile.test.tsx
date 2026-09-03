@@ -263,7 +263,7 @@ describe("isWikiSource source-path rendering (Fix M15)", () => {
   });
 
   const wikiPaths = [
-    "wiki/artifacts/agent-pm/abc123.md",
+    "wiki/artifacts/bot-pm/abc123.md",
     "team/people/sarah-chen.md",
     "wiki/facts/person/sarah-chen.jsonl",
     "wiki/insights/entity/sarah-chen.jsonl",

@@ -63,34 +63,34 @@ export function SlideBots({ active }: OfficeTourSlideProps) {
       <div className="office-tour-slide-stage office-tour-slide-stage--bots">
         <TourMockupSidebar activeBot="@analyst" litRows={["analyst"]} />
 
-        <article className="tour-agent-card">
-          <header className="tour-agent-card-head">
+        <article className="tour-bot-card">
+          <header className="tour-bot-card-head">
             {/* Numbered callout 1 anchors on the identity block. */}
-            <span className="tour-agent-card-avatar" aria-hidden="true">
-              <span className="tour-agent-card-avatar-glyph">A</span>
+            <span className="tour-bot-card-avatar" aria-hidden="true">
+              <span className="tour-bot-card-avatar-glyph">A</span>
             </span>
-            <span className="tour-agent-card-identity">
-              <span className="tour-agent-card-name">Analyst</span>
-              <span className="tour-agent-card-handle">@analyst</span>
+            <span className="tour-bot-card-identity">
+              <span className="tour-bot-card-name">Analyst</span>
+              <span className="tour-bot-card-handle">@analyst</span>
             </span>
             {/* Numbered callout 2 anchors on the heartbeat dot. */}
-            <span className="tour-agent-card-heartbeat">
-              <span className="tour-agent-card-pulse" aria-hidden="true" />
-              <span className="tour-agent-card-status">On the clock</span>
+            <span className="tour-bot-card-heartbeat">
+              <span className="tour-bot-card-pulse" aria-hidden="true" />
+              <span className="tour-bot-card-status">On the clock</span>
             </span>
           </header>
 
-          <ol className="tour-agent-callouts">
+          <ol className="tour-bot-callouts">
             {CALLOUTS.map((callout, index) => (
-              <li key={callout.label} className="tour-agent-callout">
-                <span className="tour-agent-callout-num" aria-hidden="true">
+              <li key={callout.label} className="tour-bot-callout">
+                <span className="tour-bot-callout-num" aria-hidden="true">
                   {index + 1}
                 </span>
-                <span className="tour-agent-callout-text">
-                  <span className="tour-agent-callout-label">
+                <span className="tour-bot-callout-text">
+                  <span className="tour-bot-callout-label">
                     {callout.label}
                   </span>
-                  <span className="tour-agent-callout-detail">
+                  <span className="tour-bot-callout-detail">
                     {callout.detail}
                   </span>
                 </span>

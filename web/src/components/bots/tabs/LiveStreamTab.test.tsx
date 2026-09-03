@@ -61,7 +61,7 @@ describe("LiveStreamTab recent-runs cache shape", () => {
     await screen.findByText("GROW-12");
     // The Config tab's BotProfilePanel reads this exact key and calls
     // `.map` on it — so it MUST be an array, never the {tasks} envelope.
-    const cached = client.getQueryData(["agent-log-tasks", SLUG]);
+    const cached = client.getQueryData(["bot-log-tasks", SLUG]);
     expect(Array.isArray(cached)).toBe(true);
   });
 });

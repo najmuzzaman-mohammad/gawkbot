@@ -23,7 +23,7 @@ describe("deriveBreadcrumbs", () => {
 
   it("returns [Bots, @bot] for bot-detail routes", () => {
     const route: CurrentRoute = {
-      kind: "agent-detail",
+      kind: "bot-detail",
       agentSlug: "gaia",
     };
     const crumbs = deriveBreadcrumbs(route);

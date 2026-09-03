@@ -20,8 +20,8 @@ export function BotPurpose({ summary }: BotPurposeProps) {
   if (!base) return null;
 
   return (
-    <div className="opr-agent-purpose">
-      <p className="opr-agent-purpose-text">{base}.</p>
+    <div className="opr-bot-purpose">
+      <p className="opr-bot-purpose-text">{base}.</p>
     </div>
   );
 }

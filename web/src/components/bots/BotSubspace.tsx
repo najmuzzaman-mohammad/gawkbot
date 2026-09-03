@@ -114,8 +114,8 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
   const statusClass = agent.status === "active" ? "active pulse" : "lurking";
 
   return (
-    <div className="agent-subspace-header">
-      <div className="agent-subspace-header-identity">
+    <div className="bot-subspace-header">
+      <div className="bot-subspace-header-identity">
         {/* Large pixel avatar with harness badge */}
         <div className="bot-subspace-header-avatar avatar-with-harness">
           <PixelAvatar slug={agent.slug} size={48} />
@@ -127,8 +127,8 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
         </div>
 
         {/* Name + role + status */}
-        <div className="agent-subspace-header-meta">
-          <div className="agent-subspace-header-name-row">
+        <div className="bot-subspace-header-meta">
+          <div className="bot-subspace-header-name-row">
             <EditableName agent={agent} />
             <span
               className={`status-dot ${statusClass}`}
@@ -137,9 +137,9 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
             />
           </div>
           {agent.role ? (
-            <div className="agent-subspace-header-role">{agent.role}</div>
+            <div className="bot-subspace-header-role">{agent.role}</div>
           ) : null}
-          <div className="agent-subspace-header-status-row">
+          <div className="bot-subspace-header-status-row">
             {agent.status === "active" ? (
               <span className="bot-subspace-status-badge bot-subspace-status-badge--active">
                 Working
@@ -150,7 +150,7 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
               </span>
             )}
             {agent.task && agent.status === "active" ? (
-              <span className="agent-subspace-task-chip" title={agent.task}>
+              <span className="bot-subspace-task-chip" title={agent.task}>
                 {agent.task}
               </span>
             ) : null}
@@ -193,7 +193,7 @@ function TabBar({ agentSlug, activeTab }: TabBarProps) {
 
   return (
     <div
-      className="agent-subspace-tabbar"
+      className="bot-subspace-tabbar"
       role="tablist"
       aria-label="Bot sections"
     >
@@ -204,10 +204,10 @@ function TabBar({ agentSlug, activeTab }: TabBarProps) {
             key={t.id}
             type="button"
             role="tab"
-            id={`agent-tab-${t.id}`}
+            id={`bot-tab-${t.id}`}
             aria-selected={isActive}
-            aria-controls={`agent-tabpanel-${t.id}`}
-            className={`agent-subspace-tab${isActive ? " is-active" : ""}`}
+            aria-controls={`bot-tabpanel-${t.id}`}
+            className={`bot-subspace-tab${isActive ? " is-active" : ""}`}
             onClick={() => navigate(t.id)}
           >
             {t.label}
@@ -228,9 +228,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-chat"
-          aria-labelledby="agent-tab-chat"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-chat"
+          aria-labelledby="bot-tab-chat"
+          className="bot-subspace-panel"
         >
           <ChatTab key={`chat-${agent.slug}`} agent={agent} />
         </div>
@@ -239,9 +239,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-computer"
-          aria-labelledby="agent-tab-computer"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-computer"
+          aria-labelledby="bot-tab-computer"
+          className="bot-subspace-panel"
         >
           <ComputerTab key={`computer-${agent.slug}`} agent={agent} />
         </div>
@@ -250,9 +250,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-tasks"
-          aria-labelledby="agent-tab-tasks"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-tasks"
+          aria-labelledby="bot-tab-tasks"
+          className="bot-subspace-panel"
         >
           <TasksTab key={`tasks-${agent.slug}`} agentSlug={agent.slug} />
         </div>
@@ -261,9 +261,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-skills"
-          aria-labelledby="agent-tab-skills"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-skills"
+          aria-labelledby="bot-tab-skills"
+          className="bot-subspace-panel"
         >
           <SkillsTab key={`skills-${agent.slug}`} agentSlug={agent.slug} />
         </div>
@@ -272,9 +272,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-knowledge"
-          aria-labelledby="agent-tab-knowledge"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-knowledge"
+          aria-labelledby="bot-tab-knowledge"
+          className="bot-subspace-panel"
         >
           <BotKnowledgePanel
             key={`knowledge-${agent.slug}`}
@@ -286,9 +286,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-policies"
-          aria-labelledby="agent-tab-policies"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-policies"
+          aria-labelledby="bot-tab-policies"
+          className="bot-subspace-panel"
         >
           <PoliciesTab key={`policies-${agent.slug}`} agentSlug={agent.slug} />
         </div>
@@ -297,9 +297,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-live-stream"
-          aria-labelledby="agent-tab-live-stream"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-live-stream"
+          aria-labelledby="bot-tab-live-stream"
+          className="bot-subspace-panel"
         >
           <LiveStreamTab
             key={`live-stream-${agent.slug}`}
@@ -311,9 +311,9 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
       return (
         <div
           role="tabpanel"
-          id="agent-tabpanel-config"
-          aria-labelledby="agent-tab-config"
-          className="agent-subspace-panel"
+          id="bot-tabpanel-config"
+          aria-labelledby="bot-tab-config"
+          className="bot-subspace-panel"
         >
           <ConfigTab key={`config-${agent.slug}`} agent={agent} />
         </div>
@@ -334,9 +334,9 @@ export function BotSubspace({ agent, tab }: BotSubspaceProps) {
 
   return (
     <div
-      className="agent-subspace"
-      data-testid="agent-subspace"
-      data-agent-slug={agent.slug}
+      className="bot-subspace"
+      data-testid="bot-subspace"
+      data-bot-slug={agent.slug}
     >
       <ShellHeader agent={agent} onTeachWorkflow={() => setTeaching(true)} />
       <TabBar agentSlug={agent.slug} activeTab={activeTab} />

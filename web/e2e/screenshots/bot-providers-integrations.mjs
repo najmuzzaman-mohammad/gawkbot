@@ -217,11 +217,11 @@ await shotPage(page, OUT, "03-integrations-detail-openclaw");
 // to show the gateway-managed pill. The Profile button flips AgentPanel
 // to AgentProfilePanel state.
 async function openProfile(slug) {
-  await page.locator(`[data-agent-slug="${slug}"]`).first().click();
+  await page.locator(`[data-bot-slug="${slug}"]`).first().click();
   // Wait for the AgentPanel summary view to mount (which means the members
   // query has resolved and `agent` is non-null). Without this the Profile
   // click can race the panel mount and land on nothing.
-  await page.waitForSelector(".agent-panel", { timeout: 8_000 });
+  await page.waitForSelector(".bot-panel", { timeout: 8_000 });
   await page.waitForTimeout(200);
   // The Profile button's accessible name comes from its aria-label
   // (`View full profile for <agent name>`), not its visible text. Match
@@ -250,7 +250,7 @@ await openProfile("outreach");
 // a wrong screenshot 04 would be worse than no screenshot at all.
 try {
   await page.waitForSelector(
-    ".op-runtime-grid, .op-runtime-managed, .agent-profile-panel",
+    ".op-runtime-grid, .op-runtime-managed, .bot-profile-panel",
     { timeout: 8_000 },
   );
 } catch (err) {
@@ -261,7 +261,7 @@ await page.waitForTimeout(700);
 await shotPage(page, OUT, "04-agent-runtime-editable");
 
 await openProfile("imported-coder");
-await page.waitForSelector(".op-runtime-managed, .agent-profile-panel", {
+await page.waitForSelector(".op-runtime-managed, .bot-profile-panel", {
   timeout: 8_000,
 });
 await page.waitForTimeout(700);

@@ -78,7 +78,7 @@ interface BotWizardProps {
 const AGENT_WIZARD_DIALOG_PROPS = {
   role: "dialog",
   "aria-modal": true,
-  "aria-labelledby": "agent-wizard-title",
+  "aria-labelledby": "bot-wizard-title",
 } as const;
 
 // WizardModelPicker mirrors BotProfilePanel's ModelPicker — curated catalog
@@ -125,7 +125,7 @@ function WizardModelPicker({
   return (
     <div style={{ display: "flex", gap: 6, width: "100%" }}>
       <select
-        id="agent-model"
+        id="bot-model"
         value={selectValue}
         disabled={disabled}
         onChange={(e) => {
@@ -335,12 +335,12 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
 
   return (
     <div
-      className="agent-wizard-overlay"
+      className="bot-wizard-overlay"
       role="presentation"
       onClick={handleOverlayClick}
     >
       <div className="bot-wizard-modal card" {...AGENT_WIZARD_DIALOG_PROPS}>
-        <div className="agent-wizard-title" id="agent-wizard-title">
+        <div className="bot-wizard-title" id="bot-wizard-title">
           Create bot
         </div>
 
@@ -369,13 +369,13 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
         </div>
 
         {mode === "describe" ? (
-          <div className="agent-wizard-form">
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-prompt">
+          <div className="bot-wizard-form">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-prompt">
                 Describe the bot you want
               </label>
               <textarea
-                id="agent-prompt"
+                id="bot-prompt"
                 className="input"
                 placeholder='e.g. "A DevOps engineer who manages CI/CD and infrastructure"'
                 value={prompt}
@@ -404,9 +404,9 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
               </span>
             </div>
 
-            {error ? <div className="agent-wizard-error">{error}</div> : null}
+            {error ? <div className="bot-wizard-error">{error}</div> : null}
 
-            <div className="agent-wizard-footer">
+            <div className="bot-wizard-footer">
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
@@ -426,14 +426,14 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
             </div>
           </div>
         ) : (
-          <form className="agent-wizard-form" onSubmit={handleSubmit}>
+          <form className="bot-wizard-form" onSubmit={handleSubmit}>
             {/* Name */}
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-name">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-name">
                 Name
               </label>
               <input
-                id="agent-name"
+                id="bot-name"
                 className="input"
                 type="text"
                 placeholder="e.g. Sales Rep"
@@ -443,12 +443,12 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
             </div>
 
             {/* Slug */}
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-slug">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-slug">
                 Slug
               </label>
               <input
-                id="agent-slug"
+                id="bot-slug"
                 className="input"
                 type="text"
                 placeholder="auto-generated-from-name"
@@ -461,12 +461,12 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
             </div>
 
             {/* Role */}
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-role">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-role">
                 Role
               </label>
               <input
-                id="agent-role"
+                id="bot-role"
                 className="input"
                 type="text"
                 placeholder="e.g. SDR, Engineer, Support"
@@ -476,8 +476,8 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
             </div>
 
             {/* Soul / personality — seeds SOUL.md */}
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-soul">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-soul">
                 Soul{" "}
                 <span
                   style={{ fontWeight: 400, color: "var(--text-tertiary)" }}
@@ -486,7 +486,7 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
                 </span>
               </label>
               <textarea
-                id="agent-soul"
+                id="bot-soul"
                 className="input"
                 placeholder="e.g. Relentless about pipeline, allergic to vanity metrics. Direct, never fluffy."
                 value={form.soul}
@@ -507,12 +507,12 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
             </div>
 
             {/* Emoji */}
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-emoji">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-emoji">
                 Emoji
               </label>
               <input
-                id="agent-emoji"
+                id="bot-emoji"
                 className="input"
                 type="text"
                 placeholder="e.g. robot face"
@@ -524,12 +524,12 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
             </div>
 
             {/* Provider + Model */}
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-provider">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-provider">
                 Runtime
               </label>
               <select
-                id="agent-provider"
+                id="bot-provider"
                 value={form.provider}
                 onChange={(e) =>
                   updateField("provider", e.target.value as ProviderChoice)
@@ -559,8 +559,8 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
                 </span>
               )}
             </div>
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-model">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-model">
                 Model{" "}
                 <span
                   style={{ fontWeight: 400, color: "var(--text-tertiary)" }}
@@ -583,8 +583,8 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
             </div>
 
             {/* Expertise */}
-            <div className="agent-wizard-field">
-              <label className="label" htmlFor="agent-expertise">
+            <div className="bot-wizard-field">
+              <label className="label" htmlFor="bot-expertise">
                 Expertise{" "}
                 <span
                   style={{ fontWeight: 400, color: "var(--text-tertiary)" }}
@@ -593,7 +593,7 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
                 </span>
               </label>
               <input
-                id="agent-expertise"
+                id="bot-expertise"
                 className="input"
                 type="text"
                 placeholder="e.g. outreach, cold email, pipeline"
@@ -601,9 +601,9 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
                 onChange={(e) => updateField("expertise", e.target.value)}
               />
               {expertiseTags.length > 0 && (
-                <div className="agent-panel-tags" style={{ marginTop: 6 }}>
+                <div className="bot-panel-tags" style={{ marginTop: 6 }}>
                   {expertiseTags.map((tag) => (
-                    <span key={tag} className="agent-panel-tag">
+                    <span key={tag} className="bot-panel-tag">
                       {tag}
                     </span>
                   ))}
@@ -611,10 +611,10 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
               )}
             </div>
 
-            {error ? <div className="agent-wizard-error">{error}</div> : null}
+            {error ? <div className="bot-wizard-error">{error}</div> : null}
 
             {/* Footer */}
-            <div className="agent-wizard-footer">
+            <div className="bot-wizard-footer">
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"

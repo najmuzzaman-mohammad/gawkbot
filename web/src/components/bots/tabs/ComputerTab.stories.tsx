@@ -215,10 +215,10 @@ function Harness({
   return (
     <QueryClientProvider client={client}>
       <div
-        className="agent-subspace"
+        className="bot-subspace"
         style={{ height: 720, width: "min(960px, 100vw)" }}
       >
-        <div className="agent-subspace-panel">
+        <div className="bot-subspace-panel">
           <ComputerTab agent={agent} />
         </div>
       </div>

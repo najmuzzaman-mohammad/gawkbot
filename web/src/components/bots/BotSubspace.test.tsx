@@ -107,7 +107,7 @@ vi.mock("../../stores/app", () => ({
 
 vi.mock("./BotInstructionsSection", () => ({
   BotInstructionsSection: () => (
-    <div data-testid="agent-instructions-section" />
+    <div data-testid="bot-instructions-section" />
   ),
 }));
 
@@ -137,7 +137,7 @@ vi.mock("../apps/skills/PixelSkillCard", () => ({
 // heavy children and assert on the slug it receives.
 vi.mock("../knowledge/BotKnowledgePanel", () => ({
   BotKnowledgePanel: ({ agentSlug }: { agentSlug: string }) => (
-    <div data-testid="agent-knowledge-panel" data-agent={agentSlug} />
+    <div data-testid="bot-knowledge-panel" data-agent={agentSlug} />
   ),
 }));
 
@@ -287,7 +287,7 @@ describe("<AgentSubspace>", () => {
   it("renders Knowledge tab content scoped to the bot", () => {
     render(wrap(<BotSubspace agent={baseBot} tab="knowledge" />));
 
-    const panel = screen.getByTestId("agent-knowledge-panel");
+    const panel = screen.getByTestId("bot-knowledge-panel");
     expect(panel).toBeInTheDocument();
     expect(panel).toHaveAttribute("data-agent", "planner");
     expect(screen.getByRole("tab", { name: "Knowledge" })).toHaveAttribute(
@@ -307,7 +307,7 @@ describe("<AgentSubspace>", () => {
       "aria-selected",
       "true",
     );
-    expect(screen.getByTestId("agent-knowledge-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("bot-knowledge-panel")).toBeInTheDocument();
   });
 
   // The bot's computer sits right after Chat and is handed THIS bot.

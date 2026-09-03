@@ -55,12 +55,12 @@ function BotRow({
 }) {
   return (
     <div
-      className="ceo-lineup-agent-row"
-      data-testid={`lineup-agent-row-${agent.slug}`}
+      className="ceo-lineup-bot-row"
+      data-testid={`lineup-bot-row-${agent.slug}`}
     >
-      <div className="ceo-lineup-agent-info">
-        <span className="ceo-lineup-agent-role">{agent.role}</span>
-        <span className="ceo-lineup-agent-reason">{agent.reason}</span>
+      <div className="ceo-lineup-bot-info">
+        <span className="ceo-lineup-bot-role">{agent.role}</span>
+        <span className="ceo-lineup-bot-reason">{agent.reason}</span>
       </div>
       <button
         type="button"

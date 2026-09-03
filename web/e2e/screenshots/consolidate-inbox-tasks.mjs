@@ -53,7 +53,7 @@ const TASKS = {
       task_type: "issue",
       lifecycle_state: "decision",
       owner: "mira",
-      channel: "agent-rail-refactor",
+      channel: "bot-rail-refactor",
     },
     {
       id: "task-running",

@@ -201,13 +201,13 @@ async function openProfile(slug) {
   await page.evaluate((s) => {
     window.location.hash = `/agents/${s}`;
   }, slug);
-  await page.waitForSelector(".agent-profile-panel", { timeout: 10_000 });
+  await page.waitForSelector(".bot-profile-panel", { timeout: 10_000 });
   await page.waitForTimeout(400);
 }
 
 async function expandCard(label) {
   const header = page
-    .locator(".agent-file-card-header")
+    .locator(".bot-file-card-header")
     .filter({ hasText: label })
     .first();
   await header.scrollIntoViewIfNeeded();
@@ -222,19 +222,19 @@ await openProfile("growth");
 
 // Bring the instructions section into view, then capture the collapsed list.
 await page
-  .locator(".agent-profile-section-title", { hasText: "instructions" })
+  .locator(".bot-profile-section-title", { hasText: "instructions" })
   .first()
   .scrollIntoViewIfNeeded();
 await page.waitForTimeout(250);
-await shotElement(page, ".agent-profile-panel", OUT, "01-instructions-list");
+await shotElement(page, ".bot-profile-panel", OUT, "01-instructions-list");
 
 // Expand SOUL → rendered markdown + Edit affordance.
 await expandCard("SOUL");
 await page
-  .locator(".agent-file-view")
+  .locator(".bot-file-view")
   .first()
   .waitFor({ state: "visible", timeout: 8_000 });
-await shotElement(page, ".agent-profile-panel", OUT, "02-soul-expanded");
+await shotElement(page, ".bot-profile-panel", OUT, "02-soul-expanded");
 
 // 4c: click "Generate with AI" → the LLM drafts a richer SOUL and the reused
 // wiki rich editor opens seeded with it for human review. Lazy Tiptap chunk —
@@ -247,7 +247,7 @@ try {
     .first()
     .waitFor({ state: "visible", timeout: 12_000 });
   await page.waitForTimeout(900);
-  await shotElement(page, ".agent-profile-panel", OUT, "03-soul-ai-draft");
+  await shotElement(page, ".bot-profile-panel", OUT, "03-soul-ai-draft");
 } catch (err) {
   console.warn(`editor shot skipped: ${err.message}`);
   await shotPage(page, OUT, "03-soul-ai-draft-DEBUG");
@@ -258,16 +258,16 @@ await installCommonMocks(context, { extra: mockFeature });
 await bootShell(page, { afterFlipSelector: ".status-bar" });
 await openProfile("ceo");
 await page
-  .locator(".agent-file-office-label")
+  .locator(".bot-file-office-label")
   .first()
   .scrollIntoViewIfNeeded();
 await page.waitForTimeout(200);
 await expandCard("USER");
 await page
-  .locator(".agent-file-view")
+  .locator(".bot-file-view")
   .first()
   .waitFor({ state: "visible", timeout: 8_000 });
-await shotElement(page, ".agent-profile-panel", OUT, "04-office-user-file");
+await shotElement(page, ".bot-profile-panel", OUT, "04-office-user-file");
 
 // ── 05: AgentWizard manual — the Soul field ────────────────────────────
 await installCommonMocks(context, { extra: mockFeature });

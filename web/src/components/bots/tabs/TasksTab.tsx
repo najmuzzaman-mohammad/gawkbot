@@ -33,7 +33,7 @@ const BotTaskCard = memo(function TaskCard({ task }: { task: Task }) {
       type="button"
       className="issues-kanban-card"
       onClick={() => openTaskModal(task.id)}
-      data-testid="agent-task-card"
+      data-testid="bot-task-card"
       aria-label={`Task: ${formatTaskTitleForDisplay(task.title)}, state: ${state}`}
     >
       <div className="issues-kanban-card-title">
@@ -70,15 +70,15 @@ export function TasksTab({ agentSlug }: TasksTabProps) {
   if (isLoading) {
     return (
       <div className="bot-tasks-tab bot-tasks-tab--loading">
-        <p className="agent-tasks-empty">Loading tasks…</p>
+        <p className="bot-tasks-empty">Loading tasks…</p>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="agent-tasks-tab">
-        <p className="agent-tasks-empty" role="alert">
+      <div className="bot-tasks-tab">
+        <p className="bot-tasks-empty" role="alert">
           Couldn't load tasks. Check your connection and try again.
         </p>
       </div>
@@ -87,28 +87,28 @@ export function TasksTab({ agentSlug }: TasksTabProps) {
 
   if (botTasks.length === 0) {
     return (
-      <div className="agent-tasks-tab">
-        <p className="agent-tasks-empty">No tasks owned by @{agentSlug} yet.</p>
+      <div className="bot-tasks-tab">
+        <p className="bot-tasks-empty">No tasks owned by @{agentSlug} yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="agent-tasks-tab">
-      <div className="agent-tasks-board">
+    <div className="bot-tasks-tab">
+      <div className="bot-tasks-board">
         {nonEmptyColumns.map(({ stage, tasks }) => (
           <section
             key={stage}
-            className="agent-tasks-column"
+            className="bot-tasks-column"
             aria-label={`${STAGE_LABELS[stage]} tasks`}
           >
-            <header className="agent-tasks-column-header">
-              <span className="agent-tasks-column-label">
+            <header className="bot-tasks-column-header">
+              <span className="bot-tasks-column-label">
                 {STAGE_LABELS[stage]}
               </span>
-              <span className="agent-tasks-column-count">{tasks.length}</span>
+              <span className="bot-tasks-column-count">{tasks.length}</span>
             </header>
-            <div className="agent-tasks-column-body">
+            <div className="bot-tasks-column-body">
               {tasks.map((task) => (
                 <BotTaskCard key={task.id} task={task} />
               ))}

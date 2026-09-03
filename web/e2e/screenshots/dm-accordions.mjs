@@ -154,8 +154,8 @@ const PRE_FIX_CSS = `
      default cascade applied. 'unset' reverts to that initial value
      (effectively 'visible' here) without hard-coding the keyword. */
   .dm-chat-drawer-body { overflow-y: unset !important; }
-  .agent-workbench-stream { min-height: 240px !important; }
-  .agent-workbench-stream-log {
+  .bot-workbench-stream { min-height: 240px !important; }
+  .bot-workbench-stream-log {
     height: 320px !important;
     max-height: none !important;
     min-height: 220px !important;

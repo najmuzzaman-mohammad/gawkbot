@@ -160,16 +160,16 @@ await bootShell(page, { afterFlipSelector: ".status-bar" });
 
 // The autonomy pill lives in the panel's "permissions" section, below the
 // fold of the scroll container — scroll it into view and capture that section.
-const PERMISSIONS = ".agent-profile-section:has(.agent-profile-permissions)";
+const PERMISSIONS = ".bot-profile-section:has(.bot-profile-permissions)";
 
 await gotoHash(page, "/agents/designer");
-await page.waitForSelector(".agent-profile-panel", { timeout: 10_000 });
+await page.waitForSelector(".bot-profile-panel", { timeout: 10_000 });
 await page.locator(PERMISSIONS).scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await shotElement(page, PERMISSIONS, OUT, "03-agent-profile-plan-first");
 
 await gotoHash(page, "/agents/eng");
-await page.waitForSelector(".agent-profile-panel", { timeout: 10_000 });
+await page.waitForSelector(".bot-profile-panel", { timeout: 10_000 });
 await page.locator(PERMISSIONS).scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await shotElement(page, PERMISSIONS, OUT, "04-agent-profile-auto");
@@ -178,7 +178,7 @@ await shotElement(page, PERMISSIONS, OUT, "04-agent-profile-auto");
 await installCommonMocks(context, { extra: (ctx) => mockAll(ctx, { stream: true }) });
 await bootShell(page, { afterFlipSelector: ".status-bar" });
 await flipStore(page, { activeAgentSlug: "designer" });
-await page.waitForSelector(".agent-panel", { timeout: 10_000 });
+await page.waitForSelector(".bot-panel", { timeout: 10_000 });
 await page.waitForSelector(".stream-card-plan", { timeout: 10_000 });
 await page.waitForTimeout(300);
 await shotElement(page, ".stream-card-plan", OUT, "05-plan-ready-card");

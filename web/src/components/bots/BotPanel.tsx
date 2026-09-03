@@ -56,8 +56,8 @@ function routeIdentityKey(route: CurrentRoute): string {
       return "task-new";
     case "agents":
       return "agents";
-    case "agent-detail":
-      return `agent-detail:${route.agentSlug}:${route.tab ?? ""}`;
+    case "bot-detail":
+      return `bot-detail:${route.agentSlug}:${route.tab ?? ""}`;
     case "skill-detail":
       return `skill-detail:${route.skillName}`;
     case "routine-detail":
@@ -103,17 +103,17 @@ function StreamSection({ slug }: { slug: string }) {
   }, [lines.length, lastLine?.id, lastLine?.data]);
 
   return (
-    <div className="agent-panel-section">
-      <div className="agent-panel-section-title">Live stream</div>
-      <div className="agent-stream-status">
+    <div className="bot-panel-section">
+      <div className="bot-panel-section-title">Live stream</div>
+      <div className="bot-stream-status">
         <span
           className={`status-dot ${connected ? "active pulse" : "lurking"}`}
         />
         {connected ? "Connected" : "Disconnected"}
       </div>
-      <div className="agent-stream-log" ref={scrollRef}>
+      <div className="bot-stream-log" ref={scrollRef}>
         {lines.length === 0 ? (
-          <div className="agent-stream-empty">No output yet</div>
+          <div className="bot-stream-empty">No output yet</div>
         ) : (
           lines.map((line) => (
             <StreamLineView key={line.id} line={line} compact={true} />
@@ -162,24 +162,24 @@ function LogsSection({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="agent-panel-logs">
-      <div className="agent-panel-section">
-        <div className="agent-panel-section-title">Recent activity</div>
+    <div className="bot-panel-logs">
+      <div className="bot-panel-section">
+        <div className="bot-panel-section-title">Recent activity</div>
       </div>
       {loading ? (
-        <div className="agent-log-empty">Loading...</div>
+        <div className="bot-log-empty">Loading...</div>
       ) : tasks.length === 0 ? (
-        <div className="agent-log-empty">No recent activity</div>
+        <div className="bot-log-empty">No recent activity</div>
       ) : (
         tasks.map((t) => (
-          <div key={t.taskId} className="agent-log-item">
-            <div className="agent-log-action">
+          <div key={t.taskId} className="bot-log-item">
+            <div className="bot-log-action">
               {t.taskId} {t.hasError ? "\u26a0" : ""}
             </div>
-            <div className="agent-log-content">
+            <div className="bot-log-content">
               {t.toolCallCount} tool call{t.toolCallCount === 1 ? "" : "s"}
             </div>
-            <div className="agent-log-time">{formatTime(t.lastToolAt)}</div>
+            <div className="bot-log-time">{formatTime(t.lastToolAt)}</div>
           </div>
         ))
       )}
@@ -310,10 +310,10 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
   const statusClass = agent.status === "active" ? "active pulse" : "lurking";
 
   return (
-    <div className="agent-panel">
+    <div className="bot-panel">
       {/* Header */}
-      <div className="agent-panel-header">
-        <div className="agent-panel-identity">
+      <div className="bot-panel-header">
+        <div className="bot-panel-identity">
           <div className="bot-panel-avatar avatar-with-harness">
             <PixelAvatar
               slug={agent.slug}
@@ -338,7 +338,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
             <div
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <span className="agent-panel-name">
+              <span className="bot-panel-name">
                 {agent.name || agent.slug}
               </span>
               <span
@@ -347,13 +347,13 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
               />
             </div>
             {agent.role ? (
-              <span className="agent-panel-role">{agent.role}</span>
+              <span className="bot-panel-role">{agent.role}</span>
             ) : null}
           </div>
         </div>
         <button
           type="button"
-          className="agent-panel-close"
+          className="bot-panel-close"
           onClick={onClose}
           aria-label="Close bot panel"
         >
@@ -362,32 +362,32 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
       </div>
 
       {/* Info */}
-      <div className="agent-panel-section">
-        <div className="agent-panel-info">
-          <div className="agent-panel-info-row">
-            <span className="agent-panel-info-label">slug</span>
-            <span className="agent-panel-info-value">{agent.slug}</span>
+      <div className="bot-panel-section">
+        <div className="bot-panel-info">
+          <div className="bot-panel-info-row">
+            <span className="bot-panel-info-label">slug</span>
+            <span className="bot-panel-info-value">{agent.slug}</span>
           </div>
           {(() => {
             const p = agent.provider;
             const label = typeof p === "string" ? p : p?.kind;
             return label ? (
-              <div className="agent-panel-info-row">
-                <span className="agent-panel-info-label">provider</span>
-                <span className="agent-panel-info-value">{label}</span>
+              <div className="bot-panel-info-row">
+                <span className="bot-panel-info-label">provider</span>
+                <span className="bot-panel-info-value">{label}</span>
               </div>
             ) : null;
           })()}
           {agent.status ? (
-            <div className="agent-panel-info-row">
-              <span className="agent-panel-info-label">status</span>
-              <span className="agent-panel-info-value">{agent.status}</span>
+            <div className="bot-panel-info-row">
+              <span className="bot-panel-info-label">status</span>
+              <span className="bot-panel-info-value">{agent.status}</span>
             </div>
           ) : null}
           {agent.task ? (
-            <div className="agent-panel-info-row">
-              <span className="agent-panel-info-label">task</span>
-              <span className="agent-panel-info-value">{agent.task}</span>
+            <div className="bot-panel-info-row">
+              <span className="bot-panel-info-label">task</span>
+              <span className="bot-panel-info-value">{agent.task}</span>
             </div>
           ) : null}
         </div>
@@ -399,13 +399,13 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
           section is hidden, since the toggle would otherwise hit the
           broker against a stale fallback channel. */}
       {canToggle && currentChannel ? (
-        <div className="agent-panel-section">
-          <div className="agent-panel-stat">
-            <span className="agent-panel-stat-label">
+        <div className="bot-panel-section">
+          <div className="bot-panel-stat">
+            <span className="bot-panel-stat-label">
               Enabled in <strong>#{currentChannel}</strong>
             </span>
             <label
-              className="agent-toggle"
+              className="bot-toggle"
               aria-label={`Toggle ${agent.name || agent.slug} in #${currentChannel}`}
             >
               <input
@@ -414,14 +414,14 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
                 disabled={toggling}
                 onChange={(e) => handleToggleEnabled(e.target.checked)}
               />
-              <span className="agent-toggle-slider" />
+              <span className="bot-toggle-slider" />
             </label>
           </div>
         </div>
       ) : null}
 
       {/* Primary actions */}
-      <div className="agent-panel-actions">
+      <div className="bot-panel-actions">
         <button
           type="button"
           className="btn btn-primary btn-sm"
@@ -448,7 +448,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
 
       {/* Destructive — shown only when the broker will accept a remove */}
       {canRemove && (
-        <div className="agent-panel-actions-stack">
+        <div className="bot-panel-actions-stack">
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -507,7 +507,7 @@ export function BotPanel() {
       if (!(panel && target)) return;
       if (panel.contains(target)) return;
       const el = target as HTMLElement;
-      if (el.closest?.("[data-agent-slug]")) return;
+      if (el.closest?.("[data-bot-slug]")) return;
       close();
     };
     document.addEventListener("mousedown", onDown);

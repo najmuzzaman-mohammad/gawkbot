@@ -169,7 +169,7 @@ export function BotEventPill({
   return (
     <>
       <span
-        className="sidebar-agent-pill"
+        className="sidebar-bot-pill"
         data-state={pillState}
         title={fullText}
       >

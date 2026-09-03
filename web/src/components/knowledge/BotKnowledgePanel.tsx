@@ -86,7 +86,7 @@ function PendingPromotionReview({
     onSuccess: () => {
       setError(null);
       void queryClient.invalidateQueries({
-        queryKey: ["agent-knowledge", agentSlug],
+        queryKey: ["bot-knowledge", agentSlug],
       });
     },
     onError: (err: unknown) => {
@@ -100,8 +100,8 @@ function PendingPromotionReview({
 
   const snapshot = pending.data;
   return (
-    <div className="agent-knowledge-promote">
-      <p className="agent-knowledge-promote-note">
+    <div className="bot-knowledge-promote">
+      <p className="bot-knowledge-promote-note">
         @{agentSlug} asked you to put this in the team wiki
         {snapshot?.reason ? `: ${snapshot.reason}` : "."} Approving publishes
         exactly the text below, plus a footer saying it came from @{agentSlug}.
@@ -109,21 +109,21 @@ function PendingPromotionReview({
       </p>
       {snapshot ? (
         <>
-          <p className="agent-knowledge-promote-note">
+          <p className="bot-knowledge-promote-note">
             Creates <code>{snapshot.targetPath}</code> · sha256{" "}
             <code>{snapshot.contentSha.slice(0, 16)}</code>
           </p>
-          <pre className="agent-knowledge-snapshot">{snapshot.content}</pre>
+          <pre className="bot-knowledge-snapshot">{snapshot.content}</pre>
         </>
       ) : (
-        <p className="agent-knowledge-promote-note">
+        <p className="bot-knowledge-promote-note">
           Loading the page this request would publish…
         </p>
       )}
-      {error ? <p className="agent-knowledge-error">{error}</p> : null}
+      {error ? <p className="bot-knowledge-error">{error}</p> : null}
       <button
         type="button"
-        className="agent-knowledge-btn"
+        className="bot-knowledge-btn"
         disabled={!snapshot || answer.isPending}
         onClick={() => answer.mutate("approve")}
       >
@@ -131,7 +131,7 @@ function PendingPromotionReview({
       </button>
       <button
         type="button"
-        className="agent-knowledge-btn"
+        className="bot-knowledge-btn"
         disabled={!snapshot || answer.isPending}
         onClick={() => answer.mutate("reject")}
       >
@@ -175,7 +175,7 @@ function PromoteControl({
     onSuccess: () => {
       setError(null);
       void queryClient.invalidateQueries({
-        queryKey: ["agent-knowledge", agentSlug],
+        queryKey: ["bot-knowledge", agentSlug],
       });
     },
     onError: (err: unknown) => {
@@ -191,8 +191,8 @@ function PromoteControl({
 
   if (promotion.state === "promoted") {
     return (
-      <div className="agent-knowledge-promote">
-        <p className="agent-knowledge-promote-note">
+      <div className="bot-knowledge-promote">
+        <p className="bot-knowledge-promote-note">
           In the team wiki at <code>{promotion.wikiPath}</code>. Everyone reads
           it there; @{agentSlug} still keeps the note.
         </p>
@@ -210,23 +210,23 @@ function PromoteControl({
   }
 
   return (
-    <div className="agent-knowledge-promote">
-      <p className="agent-knowledge-promote-note">
+    <div className="bot-knowledge-promote">
+      <p className="bot-knowledge-promote-note">
         Only @{agentSlug} uses this today. Promoting it copies exactly what you
         are reading into the team wiki, with a note saying it came from @
         {agentSlug}.
       </p>
-      {error ? <p className="agent-knowledge-error">{error}</p> : null}
+      {error ? <p className="bot-knowledge-error">{error}</p> : null}
       <button
         type="button"
-        className="agent-knowledge-btn"
+        className="bot-knowledge-btn"
         disabled={!wikiWritable || promote.isPending}
         onClick={() => promote.mutate()}
       >
         {promote.isPending ? "Promoting…" : "Promote to team wiki"}
       </button>
       {!wikiWritable ? (
-        <p className="agent-knowledge-promote-note">
+        <p className="bot-knowledge-promote-note">
           The wiki is not running right now, so nothing can be promoted yet.
         </p>
       ) : null}
@@ -261,9 +261,9 @@ function KnowledgeArticle({
   );
 
   return (
-    <article className="agent-knowledge-article">
+    <article className="bot-knowledge-article">
       <h1>{page.title}</h1>
-      <div className="agent-knowledge-meta">
+      <div className="bot-knowledge-meta">
         @{page.agent ?? agentSlug} · {page.sourcePath}
       </div>
       {page.lead ? <p>{page.lead}</p> : null}
@@ -286,7 +286,7 @@ function KnowledgeArticle({
 
 export function BotKnowledgePanel({ agentSlug }: BotKnowledgePanelProps) {
   const query = useQuery({
-    queryKey: ["agent-knowledge", agentSlug],
+    queryKey: ["bot-knowledge", agentSlug],
     queryFn: () => getBotKnowledge(agentSlug),
     staleTime: 60_000,
   });
@@ -302,9 +302,9 @@ export function BotKnowledgePanel({ agentSlug }: BotKnowledgePanelProps) {
 
   if (query.isLoading) {
     return (
-      <div className="agent-knowledge">
-        <div className="agent-knowledge-empty" role="status">
-          <p className="agent-knowledge-empty-title">
+      <div className="bot-knowledge">
+        <div className="bot-knowledge-empty" role="status">
+          <p className="bot-knowledge-empty-title">
             Reading what @{agentSlug} knows…
           </p>
         </div>
@@ -314,12 +314,12 @@ export function BotKnowledgePanel({ agentSlug }: BotKnowledgePanelProps) {
 
   if (query.isError) {
     return (
-      <div className="agent-knowledge">
-        <div className="agent-knowledge-empty">
-          <p className="agent-knowledge-empty-title">
+      <div className="bot-knowledge">
+        <div className="bot-knowledge-empty">
+          <p className="bot-knowledge-empty-title">
             Could not read @{agentSlug}'s knowledge.
           </p>
-          <p className="agent-knowledge-empty-hint">
+          <p className="bot-knowledge-empty-hint">
             The broker did not answer. Reopen this tab to try again.
           </p>
         </div>
@@ -328,40 +328,40 @@ export function BotKnowledgePanel({ agentSlug }: BotKnowledgePanelProps) {
   }
 
   return (
-    <div className="agent-knowledge">
-      <div className="agent-knowledge-intro">
-        <span className="agent-knowledge-eyebrow">Knowledge</span>
-        <p className="agent-knowledge-lede">
+    <div className="bot-knowledge">
+      <div className="bot-knowledge-intro">
+        <span className="bot-knowledge-eyebrow">Knowledge</span>
+        <p className="bot-knowledge-lede">
           What @{agentSlug} knows. Every page names the note it came from. A
           page stays with this agent until you promote it into the team wiki.
         </p>
       </div>
 
       {pages.length === 0 || !page ? (
-        <div className="agent-knowledge-empty">
-          <p className="agent-knowledge-empty-title">
+        <div className="bot-knowledge-empty">
+          <p className="bot-knowledge-empty-title">
             @{agentSlug} has not written anything down yet.
           </p>
-          <p className="agent-knowledge-empty-hint">
+          <p className="bot-knowledge-empty-hint">
             Pages appear here as this agent records what it learns. Nothing is
             filled in on its behalf.
           </p>
         </div>
       ) : (
-        <div className="agent-knowledge-body">
+        <div className="bot-knowledge-body">
           <nav
-            className="agent-knowledge-list"
+            className="bot-knowledge-list"
             aria-label={`Pages @${agentSlug} knows`}
           >
             {pages.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                className={`agent-knowledge-item${p.id === page.id ? " is-active" : ""}`}
+                className={`bot-knowledge-item${p.id === page.id ? " is-active" : ""}`}
                 aria-current={p.id === page.id}
                 onClick={() => setSelection({ agent: agentSlug, id: p.id })}
               >
-                <span className="agent-knowledge-item-title">{p.title}</span>
+                <span className="bot-knowledge-item-title">{p.title}</span>
                 <PromotionPill state={p.promotion?.state ?? "private"} />
               </button>
             ))}

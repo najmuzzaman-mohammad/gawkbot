@@ -51,7 +51,7 @@ export type CurrentRoute =
   | { kind: "task-decision"; taskId: string }
   // Bots tool — roster grid + per-bot config/detail page.
   | { kind: "agents" }
-  | { kind: "agent-detail"; agentSlug: string; tab?: string }
+  | { kind: "bot-detail"; agentSlug: string; tab?: string }
   // Full-screen skill detail editor + viewer.
   | { kind: "skill-detail"; skillName: string }
   | { kind: "routine-detail"; routineSlug: string }
@@ -170,12 +170,12 @@ const ROUTE_DERIVERS = {
   // + tabbed subspace (/bots/$slug/$tab).
   [botsRoute.id]: () => ({ kind: "agents" }),
   [botDetailRoute.id]: (params) => ({
-    kind: "agent-detail",
+    kind: "bot-detail",
     agentSlug: params.agentSlug ?? "",
     tab: undefined,
   }),
   [botDetailTabRoute.id]: (params) => ({
-    kind: "agent-detail",
+    kind: "bot-detail",
     agentSlug: params.agentSlug ?? "",
     tab: params.tab,
   }),
@@ -266,7 +266,7 @@ export function useActiveChannelSlug(): string | null {
   // the board card is read-only and a chat reply just makes the bot cancel
   // and re-ask. Found live: three consecutive "Add Editor?" requests, each
   // canceled by the next, with no Approve control on any surface.
-  if (route.kind === "agent-detail" && route.agentSlug.trim()) {
+  if (route.kind === "bot-detail" && route.agentSlug.trim()) {
     return directChannelSlug(route.agentSlug);
   }
   // Home used to scope to "general", a room that no longer exists — every
@@ -331,7 +331,7 @@ export function useCurrentApp(): string | null {
     case "routine-new":
       return "routines";
     case "agents":
-    case "agent-detail":
+    case "bot-detail":
       return "agents";
     case "home":
     case "channel":

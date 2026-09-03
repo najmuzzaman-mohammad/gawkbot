@@ -126,7 +126,7 @@ describe("pixel avatar sprite resolution", () => {
     }
     // Sample the procedural pool that unknown slugs land in.
     for (let i = 0; i < 250; i++) {
-      reachable.add(baseSpriteID(resolvePortraitSprite(`agent-${i}`).id));
+      reachable.add(baseSpriteID(resolvePortraitSprite(`bot-${i}`).id));
     }
 
     // Guard against the assertion below going vacuous if resolution changes.
@@ -165,7 +165,7 @@ describe("pixel avatar sprite resolution", () => {
 
   it("keeps eye colours clear of the accent, the danger colour, and the skin/brow bands", () => {
     const seen = new Set<string>();
-    for (let i = 0; i < 300; i++) seen.add(getBotEyeColor(`agent-${i}`));
+    for (let i = 0; i < 300; i++) seen.add(getBotEyeColor(`bot-${i}`));
 
     for (const hex of seen) {
       const [r, g, b] = [1, 3, 5].map((o) =>

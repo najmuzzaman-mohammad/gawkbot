@@ -35,10 +35,10 @@ export function BotName({ id, fallback }: BotNameProps) {
 
   if (editing) {
     return (
-      <span className="opr-agent-name-edit">
+      <span className="opr-bot-name-edit">
         <input
           ref={inputRef}
-          className="opr-agent-name-input"
+          className="opr-bot-name-input"
           aria-label="App name"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -62,7 +62,7 @@ export function BotName({ id, fallback }: BotNameProps) {
   }
 
   return (
-    <span className="opr-agent-name">
+    <span className="opr-bot-name">
       {name}
       <button
         type="button"

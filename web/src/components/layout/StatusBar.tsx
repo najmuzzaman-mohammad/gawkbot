@@ -106,7 +106,7 @@ export function StatusBar() {
         return "New task";
       case "agents":
         return "Bots";
-      case "agent-detail":
+      case "bot-detail":
         return `@${route.agentSlug}`;
       case "skill-detail":
         return `skill · ${route.skillName}`;

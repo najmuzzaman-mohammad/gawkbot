@@ -7,7 +7,7 @@
    design token so the panel reads correctly in all three themes.
    ═══════════════════════════════════════════════════════════════ */
 
-.agent-knowledge {
+.bot-knowledge {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -15,13 +15,13 @@
   min-height: 0;
 }
 
-.agent-knowledge-intro {
+.bot-knowledge-intro {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.agent-knowledge-eyebrow {
+.bot-knowledge-eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -29,14 +29,14 @@
   color: var(--text-tertiary);
 }
 
-.agent-knowledge-lede {
+.bot-knowledge-lede {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-secondary);
 }
 
-.agent-knowledge-body {
+.bot-knowledge-body {
   display: grid;
   grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
   gap: 16px;
@@ -44,21 +44,21 @@
 }
 
 @media (max-width: 720px) {
-  .agent-knowledge-body {
+  .bot-knowledge-body {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /* ─── Page list ─── */
 
-.agent-knowledge-list {
+.bot-knowledge-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.agent-knowledge-item {
+.bot-knowledge-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -77,23 +77,23 @@
     color 0.12s ease;
 }
 
-.agent-knowledge-item:hover {
+.bot-knowledge-item:hover {
   background: var(--bg-card);
   color: var(--text);
 }
 
-.agent-knowledge-item:focus-visible {
+.bot-knowledge-item:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-.agent-knowledge-item.is-active {
+.bot-knowledge-item.is-active {
   background: var(--bg-card);
   border-color: var(--border);
   color: var(--text);
 }
 
-.agent-knowledge-item-title {
+.bot-knowledge-item-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -101,7 +101,7 @@
 
 /* ─── Promotion state pill ─── */
 
-.agent-knowledge-pill {
+.bot-knowledge-pill {
   align-self: flex-start;
   padding: 1px 6px;
   border: 1px solid var(--border);
@@ -113,19 +113,19 @@
   color: var(--text-tertiary);
 }
 
-.agent-knowledge-pill.is-promoted {
+.bot-knowledge-pill.is-promoted {
   border-color: var(--success-200, var(--border));
   color: var(--success-400, var(--text-secondary));
 }
 
-.agent-knowledge-pill.is-pending {
+.bot-knowledge-pill.is-pending {
   border-color: var(--warning-200, var(--border));
   color: var(--warning-400, var(--text-secondary));
 }
 
 /* ─── Article ─── */
 
-.agent-knowledge-article {
+.bot-knowledge-article {
   min-width: 0;
   padding: 16px;
   background: var(--bg-card);
@@ -133,20 +133,20 @@
   border-radius: var(--radius-lg);
 }
 
-.agent-knowledge-article h1 {
+.bot-knowledge-article h1 {
   margin: 0 0 4px;
   font-size: 20px;
   line-height: 1.3;
   color: var(--text);
 }
 
-.agent-knowledge-article h2 {
+.bot-knowledge-article h2 {
   margin: 16px 0 6px;
   font-size: 14px;
   color: var(--text);
 }
 
-.agent-knowledge-article p {
+.bot-knowledge-article p {
   margin: 0 0 10px;
   font-size: 13px;
   line-height: 1.6;
@@ -154,7 +154,7 @@
   white-space: pre-wrap;
 }
 
-.agent-knowledge-meta {
+.bot-knowledge-meta {
   margin-bottom: 12px;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -164,7 +164,7 @@
 
 /* ─── Promotion bar ─── */
 
-.agent-knowledge-promote {
+.bot-knowledge-promote {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -174,7 +174,7 @@
   border-top: 1px solid var(--border);
 }
 
-.agent-knowledge-promote-note {
+.bot-knowledge-promote-note {
   flex: 1 1 220px;
   margin: 0;
   font-size: 12px;
@@ -182,7 +182,7 @@
   color: var(--text-tertiary);
 }
 
-.agent-knowledge-btn {
+.bot-knowledge-btn {
   padding: 5px 12px;
   background: transparent;
   border: 1px solid var(--border-strong, var(--border));
@@ -196,24 +196,24 @@
     border-color 0.12s ease;
 }
 
-.agent-knowledge-btn:hover:not(:disabled) {
+.bot-knowledge-btn:hover:not(:disabled) {
   background: var(--bg-card);
   border-color: var(--accent);
 }
 
-.agent-knowledge-btn:focus-visible {
+.bot-knowledge-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-.agent-knowledge-btn:disabled {
+.bot-knowledge-btn:disabled {
   color: var(--text-disabled);
   cursor: not-allowed;
 }
 
 /* The immutable snapshot on a pending promotion. Rendered verbatim as text:
    the human approves these exact bytes. */
-.agent-knowledge-snapshot {
+.bot-knowledge-snapshot {
   flex: 1 1 100%;
   max-height: 320px;
   margin: 0;
@@ -230,7 +230,7 @@
   word-break: break-word;
 }
 
-.agent-knowledge-error {
+.bot-knowledge-error {
   margin: 0;
   font-size: 12px;
   line-height: 1.5;
@@ -239,7 +239,7 @@
 
 /* ─── Empty / loading ─── */
 
-.agent-knowledge-empty {
+.bot-knowledge-empty {
   padding: 32px 16px;
   text-align: center;
   background: var(--bg-card);
@@ -247,13 +247,13 @@
   border-radius: var(--radius-lg);
 }
 
-.agent-knowledge-empty-title {
+.bot-knowledge-empty-title {
   margin: 0 0 4px;
   font-size: 14px;
   color: var(--text);
 }
 
-.agent-knowledge-empty-hint {
+.bot-knowledge-empty-hint {
   margin: 0;
   font-size: 12px;
   line-height: 1.5;

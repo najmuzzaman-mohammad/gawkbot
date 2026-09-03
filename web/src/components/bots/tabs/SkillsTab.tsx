@@ -41,7 +41,7 @@ function EnabledSkillsGrid({
 }) {
   if (skills.length === 0) {
     return (
-      <p className="agent-skills-empty">
+      <p className="bot-skills-empty">
         {filtered
           ? "No enabled skills match the filter."
           : `No skills assigned to @${agentSlug} yet. Add from the Library tab.`}
@@ -49,9 +49,9 @@ function EnabledSkillsGrid({
     );
   }
   return (
-    <ul className="agent-skills-grid">
+    <ul className="bot-skills-grid">
       {skills.map((sk) => (
-        <li key={sk.name} className="agent-skills-card-wrapper">
+        <li key={sk.name} className="bot-skills-card-wrapper">
           <PixelSkillCard
             skill={sk}
             actions={
@@ -66,7 +66,7 @@ function EnabledSkillsGrid({
               </button>
             }
           />
-          <span className="agent-skills-card-pill" aria-hidden="true">
+          <span className="bot-skills-card-pill" aria-hidden="true">
             Enabled
           </span>
         </li>
@@ -91,7 +91,7 @@ function LibrarySkillsList({
 }) {
   if (skills.length === 0) {
     return (
-      <p className="agent-skills-empty">
+      <p className="bot-skills-empty">
         {filtered
           ? "No skills match the filter."
           : "No additional skills available in the library."}
@@ -99,19 +99,19 @@ function LibrarySkillsList({
     );
   }
   return (
-    <ul className="agent-skills-list" aria-label="Available skills">
+    <ul className="bot-skills-list" aria-label="Available skills">
       {skills.map((sk) => (
-        <li key={sk.name} className="agent-skills-row">
-          <div className="agent-skills-row-body">
-            <span className="agent-skills-row-name">{sk.title ?? sk.name}</span>
-            <span className="agent-skills-row-slug">{sk.name}</span>
+        <li key={sk.name} className="bot-skills-row">
+          <div className="bot-skills-row-body">
+            <span className="bot-skills-row-name">{sk.title ?? sk.name}</span>
+            <span className="bot-skills-row-slug">{sk.name}</span>
             {sk.description ? (
-              <p className="agent-skills-row-desc">{sk.description}</p>
+              <p className="bot-skills-row-desc">{sk.description}</p>
             ) : null}
           </div>
           <button
             type="button"
-            className="agent-skills-row-add"
+            className="bot-skills-row-add"
             disabled={addPending}
             onClick={() => onAdd(sk.name)}
             aria-label={`Add ${sk.title ?? sk.name} to @${agentSlug}`}
@@ -179,19 +179,19 @@ export function SkillsTab({ agentSlug }: SkillsTabProps) {
   const visibleLibrary = librarySkills.filter(matchesFilter);
 
   return (
-    <div className="agent-skills-tab" data-testid="skills-tab">
+    <div className="bot-skills-tab" data-testid="skills-tab">
       {/* Header: title + Enabled / Library mode switch */}
-      <div className="agent-skills-header">
+      <div className="bot-skills-header">
         <div>
-          <h2 className="agent-skills-title">Skills</h2>
-          <p className="agent-skills-subtitle">
+          <h2 className="bot-skills-title">Skills</h2>
+          <p className="bot-skills-subtitle">
             Skills extend what @{agentSlug} can do. Enabled skills are injected
             into the agent's system prompt.
           </p>
         </div>
 
         <div
-          className="agent-skills-mode-switch"
+          className="bot-skills-mode-switch"
           role="tablist"
           aria-label="Skills view mode"
         >
@@ -199,11 +199,11 @@ export function SkillsTab({ agentSlug }: SkillsTabProps) {
             type="button"
             role="tab"
             aria-selected={mode === "enabled"}
-            className={`agent-skills-mode-btn${mode === "enabled" ? " bot-skills-mode-btn--active" : ""}`}
+            className={`bot-skills-mode-btn${mode === "enabled" ? " bot-skills-mode-btn--active" : ""}`}
             onClick={() => setMode("enabled")}
           >
             Enabled
-            <span className="agent-skills-mode-count">
+            <span className="bot-skills-mode-count">
               {enabledSkills.length}
             </span>
           </button>
@@ -211,11 +211,11 @@ export function SkillsTab({ agentSlug }: SkillsTabProps) {
             type="button"
             role="tab"
             aria-selected={mode === "library"}
-            className={`agent-skills-mode-btn${mode === "library" ? " bot-skills-mode-btn--active" : ""}`}
+            className={`bot-skills-mode-btn${mode === "library" ? " bot-skills-mode-btn--active" : ""}`}
             onClick={() => setMode("library")}
           >
             Library
-            <span className="agent-skills-mode-count">
+            <span className="bot-skills-mode-count">
               {librarySkills.length}
             </span>
           </button>
@@ -223,15 +223,15 @@ export function SkillsTab({ agentSlug }: SkillsTabProps) {
       </div>
 
       {/* Search filter */}
-      <div className="agent-skills-filter">
+      <div className="bot-skills-filter">
         <Search
-          className="agent-skills-filter-icon"
+          className="bot-skills-filter-icon"
           width={14}
           height={14}
           aria-hidden="true"
         />
         <input
-          className="agent-skills-filter-input"
+          className="bot-skills-filter-input"
           type="text"
           placeholder={
             mode === "enabled" ? "Filter enabled skills…" : "Search library…"
@@ -243,9 +243,9 @@ export function SkillsTab({ agentSlug }: SkillsTabProps) {
       </div>
 
       {isLoading ? (
-        <p className="agent-skills-empty">Loading skills…</p>
+        <p className="bot-skills-empty">Loading skills…</p>
       ) : isError ? (
-        <p className="agent-skills-empty" role="alert">
+        <p className="bot-skills-empty" role="alert">
           Couldn't load skills. Check your connection and try again.
         </p>
       ) : mode === "enabled" ? (
