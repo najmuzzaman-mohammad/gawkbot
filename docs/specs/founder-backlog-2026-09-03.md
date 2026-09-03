@@ -206,6 +206,7 @@ bar showed `running mcp__wuphf-office…`.
 | B4a | Silent first message | FIXED | RULE ZERO now asks for one line before the tool call |
 | B4b | Two silent round-trips | FIXED | TOOL HYGIENE no longer mandates a text-free first message |
 | B4c | 95 tools force deferral | OPEN | needs per-role tool scoping in office mode |
+| B8 | npm publish blocked | OPEN | founder-only: attach OIDC trusted publisher on npmjs.com |
 
 
 ---
@@ -376,3 +377,58 @@ did not update the tests that assert exact skill counts or sets. Nine tests in
 Left alone deliberately: that area is under active work in another session, and
 editing those tests would collide with it. `scripts/test-go.sh` halts on the
 first failing package, so this masks everything after `internal/team`.
+
+
+---
+
+## B8 — npm publish is blocked: trusted publisher not attached to `gawkbot`
+
+**Status:** OPEN — founder-only, needs npmjs.com account access
+
+CI has **never** successfully published this package. npm `latest` is
+`0.236.2`, a single manually-published version. Two separate causes, and only
+the first is fixed:
+
+1. **Fixed (PR #1229).** The publish job pinned `node-version: "20"` and then
+   ran `npm install -g npm@latest`. npm@latest is npm@12, whose engines are
+   `^22.22.2 || ^24.15.0 || >=26.0.0`, so the upgrade died with `EBADENGINE`
+   before ever reaching `npm publish`. The Node pin has to satisfy the engine
+   range of the npm the NEXT step installs — a coupling nothing stated, so npm
+   moving its floor broke us silently. Now Node 24.
+
+2. **Open.** With that fixed, v0.237.1 reached `npm publish` and got:
+
+   ```
+   npm error code E404
+   npm error 404 Not Found - PUT https://registry.npmjs.org/gawkbot
+   npm error 404  The requested resource 'gawkbot@0.237.1' could not be found
+                  or you do not have permission to access it.
+   ```
+
+   The package exists and `npm owner ls gawkbot` is
+   `najmuzzaman-mohammad`, so this is not a missing package — npm returns 404
+   rather than 403 to avoid confirming a package it thinks you cannot touch.
+   The workflow authenticates by **OIDC trusted publishing** (`id-token:
+   write`, no `NODE_AUTH_TOKEN`), and the trusted publisher has never been
+   attached on the npm side.
+
+**What unblocks it** (npmjs.com → the `gawkbot` package → Settings → Trusted
+Publisher → GitHub Actions):
+
+| field | value |
+|---|---|
+| Repository owner | `najmuzzaman-mohammad` |
+| Repository | `gawkbot` |
+| Workflow filename | `release.yml` |
+| Environment | *(leave blank — the release job declares no `environment:`)* |
+
+Then re-run the Release workflow at the tag:
+`gh workflow run release.yml --ref v0.237.1`
+
+**Current state of v0.237.1:** git tag ✅, GitHub Release ✅ (11 assets,
+published, not draft), npm ❌ (still 0.236.2). So `npx gawkbot` installs
+0.236.2 until the attach lands. Downloading from GitHub Releases works today.
+
+This is also why `release-drift.yml` is red on a schedule — it compares git
+tag / GitHub Release / npm latest and correctly reports npm behind. It is not
+a new break and not caused by the rename; it has been true since v0.236.0.
