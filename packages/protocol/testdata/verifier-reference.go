@@ -110,8 +110,8 @@ type botProviderRoutingExpected struct {
 }
 
 type botProviderRoutingAcceptedVector struct {
-	Name     string                       `json:"name"`
-	Input    json.RawMessage              `json:"input"`
+	Name     string                     `json:"name"`
+	Input    json.RawMessage            `json:"input"`
 	Expected botProviderRoutingExpected `json:"expected"`
 }
 
@@ -122,8 +122,8 @@ type botProviderRoutingRejectedVector struct {
 }
 
 type botProviderRoutingFixture struct {
-	SchemaVersion int                                  `json:"schemaVersion"`
-	Comment       string                               `json:"comment"`
+	SchemaVersion int                                `json:"schemaVersion"`
+	Comment       string                             `json:"comment"`
 	Accepted      []botProviderRoutingAcceptedVector `json:"accepted"`
 	Rejected      []botProviderRoutingRejectedVector `json:"rejected"`
 }
@@ -200,8 +200,8 @@ type routeEnvelopeFixture struct {
 }
 
 type botProviderRoutingEnvelope struct {
-	BotID string                      `json:"agentId"`
-	Routes  []botProviderRoutingEntry `json:"routes"`
+	BotID  string                    `json:"agentId"`
+	Routes []botProviderRoutingEntry `json:"routes"`
 }
 
 type botProviderRoutingEntry struct {
@@ -211,8 +211,8 @@ type botProviderRoutingEntry struct {
 }
 
 type botProviderRoutingRawEnvelope struct {
-	BotID json.RawMessage `json:"agentId"`
-	Routes  json.RawMessage `json:"routes"`
+	BotID  json.RawMessage `json:"agentId"`
+	Routes json.RawMessage `json:"routes"`
 }
 
 type botProviderRoutingRawEntry struct {
@@ -325,7 +325,7 @@ func canonicalizeBodyBytes(bodyB64 string) ([]byte, []byte, error) {
 }
 
 var (
-	botIDRE          = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,127}$`)
+	botIDRE            = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,127}$`)
 	approvalClaimIDRE  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 	base64URLRE        = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 	credentialHandleRE = regexp.MustCompile(`^cred_[A-Za-z0-9_-]{22,128}$`)
@@ -473,7 +473,7 @@ const (
 	maxRunnerOptionHeaders          = 64
 	maxRunnerOptionHeaderNameBytes  = 256
 	maxRunnerOptionHeaderValueBytes = 8 * 1024
-	maxBotIDBytes                 = 128
+	maxBotIDBytes                   = 128
 	maxCredentialHandleBytes        = 128
 	maxCredentialHandleIDBytes      = len("cred_") + 128
 	maxCredentialScopeBytes         = 128
@@ -482,7 +482,7 @@ const (
 	maxCostEventAmountMicroUsd      = 100_000_000
 	maxBudgetLimitMicroUsd          = 1_000_000_000_000
 	maxSafeInteger                  = 9_007_199_254_740_991
-	maxBotProviderRoutes          = 16
+	maxBotProviderRoutes            = 16
 	maxApprovalTokenLifetimeMs      = 30 * 60 * 1000
 	maxApprovalClaimCanonicalBytes  = 64 * 1024
 	maxApprovalScopeCanonicalBytes  = 8 * 1024
@@ -630,8 +630,8 @@ func parseBotProviderRouting(raw json.RawMessage) (botProviderRoutingEnvelope, e
 		return runnerKindOrder[entries[i].Kind] < runnerKindOrder[entries[j].Kind]
 	})
 	return botProviderRoutingEnvelope{
-		BotID: botID,
-		Routes:  entries,
+		BotID:  botID,
+		Routes: entries,
 	}, nil
 }
 

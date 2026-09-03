@@ -33,7 +33,10 @@ func TestClaudeArgsRequestPartialMessages(t *testing.T) {
 // Deltas reach the human as they generate, and the completed block that
 // follows them must NOT be emitted a second time.
 func TestClaudeStreamEmitsDeltasOnceNotTwice(t *testing.T) {
-	t.Parallel()
+	// Deliberately NOT parallel. These drive runClaudeAttemptCommand, which
+	// reads the package-level claudeConfigureProcess; sibling tests reassign
+	// that (and claudeCommand) around their own runs, so interleaving loses
+	// the process entirely — chunks came back empty under -race in CI.
 	lines := []string{
 		`{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Spinning "}}}`,
 		`{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"up a prospector."}}}`,
@@ -65,7 +68,7 @@ func TestClaudeStreamEmitsDeltasOnceNotTwice(t *testing.T) {
 // message with no deltas must still be emitted, or the guard from the previous
 // message would swallow it.
 func TestClaudeStreamStillEmitsMessageWithoutDeltas(t *testing.T) {
-	t.Parallel()
+	// Not parallel, for the same reason as the test above.
 	lines := []string{
 		`{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Scoping that."}}}`,
 		`{"type":"assistant","message":{"content":[{"type":"text","text":"Scoping that."}]}}`,
