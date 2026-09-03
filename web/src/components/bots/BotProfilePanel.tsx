@@ -680,11 +680,7 @@ function RuntimeSection({
         </p>
       )}
       {!!saveError && (
-        <div
-          className="bot-wizard-error"
-          style={{ marginTop: 8 }}
-          role="alert"
-        >
+        <div className="bot-wizard-error" style={{ marginTop: 8 }} role="alert">
           {saveError}
         </div>
       )}

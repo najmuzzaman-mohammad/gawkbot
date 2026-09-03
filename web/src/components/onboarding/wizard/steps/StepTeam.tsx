@@ -168,10 +168,7 @@ function PackRoster({
                   onChange={() => onToggle(agent.slug, agent.builtIn)}
                   data-testid={`onboarding-roster-${agent.slug}`}
                 />
-                <span
-                  className="onboarding-team-bot-avatar"
-                  aria-hidden="true"
-                >
+                <span className="onboarding-team-bot-avatar" aria-hidden="true">
                   <PixelAvatar slug={agent.slug} size={32} />
                 </span>
                 <span className="onboarding-team-bot-text">
@@ -435,10 +432,7 @@ export function StepTeam({
             data-testid="onboarding-bot-brief"
           >
             <header className="onboarding-bot-brief-head">
-              <span
-                className="onboarding-bot-brief-avatar"
-                aria-hidden="true"
-              >
+              <span className="onboarding-bot-brief-avatar" aria-hidden="true">
                 <PixelAvatar slug="revops" size={28} />
               </span>
               <span className="onboarding-bot-brief-title">Custom bot</span>

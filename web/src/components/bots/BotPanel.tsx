@@ -338,9 +338,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
             <div
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <span className="bot-panel-name">
-                {agent.name || agent.slug}
-              </span>
+              <span className="bot-panel-name">{agent.name || agent.slug}</span>
               <span
                 className={`status-dot ${statusClass}`}
                 style={{ marginLeft: -2 }}

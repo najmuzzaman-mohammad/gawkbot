@@ -106,9 +106,7 @@ vi.mock("../../stores/app", () => ({
 }));
 
 vi.mock("./BotInstructionsSection", () => ({
-  BotInstructionsSection: () => (
-    <div data-testid="bot-instructions-section" />
-  ),
+  BotInstructionsSection: () => <div data-testid="bot-instructions-section" />,
 }));
 
 // The Computer tab polls the broker and owns its own phases; it is covered in

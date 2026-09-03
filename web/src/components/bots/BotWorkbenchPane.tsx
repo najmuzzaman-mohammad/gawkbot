@@ -221,11 +221,7 @@ function TaskRow({ task, onOpen }: TaskRowProps) {
   const updated = task.updated_at ?? task.created_at;
   return (
     <li>
-      <button
-        type="button"
-        className="bot-workbench-task-row"
-        onClick={onOpen}
-      >
+      <button type="button" className="bot-workbench-task-row" onClick={onOpen}>
         <span className="bot-workbench-task-title">
           {task.title || "Untitled"}
         </span>
@@ -249,11 +245,7 @@ interface RunRowProps {
 function RunRow({ run, onOpen }: RunRowProps) {
   return (
     <li>
-      <button
-        type="button"
-        className="bot-workbench-run-row"
-        onClick={onOpen}
-      >
+      <button type="button" className="bot-workbench-run-row" onClick={onOpen}>
         <span className="bot-workbench-run-id">
           {run.taskId}
           {run.hasError ? " ⚠" : ""}

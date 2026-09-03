@@ -223,9 +223,7 @@ describe("<BotEventPeek> render", () => {
           history={history}
         />,
       );
-      const items = document.querySelectorAll(
-        ".sidebar-bot-peek-recent-item",
-      );
+      const items = document.querySelectorAll(".sidebar-bot-peek-recent-item");
       expect(items.length).toBeGreaterThanOrEqual(1);
       expect(items[0].textContent).toContain("BLOCKED:");
       expect(items[0].textContent).toContain("vault credentials expired");
@@ -399,9 +397,7 @@ describe("<BotEventPeek> presence row", () => {
     expect(presence.textContent).toMatch(/Last seen \d+m ago/);
     // Green dot is intentionally absent in the offline state — color encodes
     // a live transport, not historical activity.
-    expect(
-      document.querySelector(".sidebar-bot-peek-presence-dot"),
-    ).toBeNull();
+    expect(document.querySelector(".sidebar-bot-peek-presence-dot")).toBeNull();
   });
 
   it("omits the presence row entirely when offline with no last_seen_at (never observed)", () => {
