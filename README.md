@@ -109,8 +109,8 @@ Set up https://github.com/najmuzzaman-mohammad/gawkbot for me. Read `README.md`
 first, then run `npx gawkbot` — the web UI opens at http://localhost:7891.
 
 Walk the onboarding: verify the runtime, name the office, and start the first
-workflow. Confirm you land on an agent being built (a live build feed beside a
-chat), and that when it finishes the agent shows tabs for UI, Routines, Tools,
+workflow. Confirm you land on a bot being built (a live build feed beside a
+chat), and that when it finishes the bot shows tabs for UI, Routines, Tools,
 Data, Knowledge, and Integrations.
 
 For agent conventions read `AGENTS.md`; for internals read `ARCHITECTURE.md`;
@@ -245,7 +245,7 @@ Every claim in this README, grounded to the code that makes it true.
 | Onboarding hands the first workflow straight into the build | ✅ shipped | `web/src/operator/firstWorkflowSeed.ts`, `web/src/operator/OperatorApp.tsx` |
 | New bots get a starter weekly routine from the described workflow | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx` |
 | Routines: broker-owned cron, versioned prompts, per-run transcripts | ✅ shipped | `internal/team/scheduler_operator_routines.go`, `web/src/operator/routines/RoutinesTab.tsx` |
-| The broker spawns and supervises the routine runner | ✅ shipped | `internal/team/agent_service_supervisor.go` |
+| The broker spawns and supervises the routine runner | ✅ shipped | `internal/team/bot_service_supervisor.go` |
 | Ask-before-building when a referenced integration is not connected | ✅ shipped | `web/src/operator/builder/describedIntegrations.ts` |
 | Approval gate on external writes | ✅ shipped | `web/src/operator/components/ApprovalPrompt.tsx`, `internal/team/broker_action_grants.go` |
 | Knowledge pages with inline citations | ✅ shipped | `web/src/operator/surfaces/KnowledgeSurface.tsx` |
@@ -265,7 +265,7 @@ Before you fork, run this prompt against the codebase with any AI coding assista
 
 ```
 You are a cynical senior engineer evaluating whether to fork this repo as the
-base for an agents-that-run-workflows product. No prior context — explore it
+base for a bots-that-run-workflows product. No prior context — explore it
 as you naturally would. Tell me: should I fork this, and what's your honest
 take? Be specific: file paths, line numbers, actual evidence. "The docs are
 bad" is useless. Under 500 words.
