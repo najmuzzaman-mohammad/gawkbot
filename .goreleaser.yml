@@ -85,3 +85,17 @@ release:
     # identifier, and stay.)
     owner: najmuzzaman-mohammad
     name: gawkbot
+
+  # Re-running Release at an already-released tag must work.
+  #
+  # The npm publish step lives in the same job, AFTER goreleaser. So any tag
+  # where goreleaser succeeded and npm failed — which is every tag from
+  # v0.236.0 to v0.237.1 — can only be repaired by re-running the workflow at
+  # that tag. Without this, that re-run dies before it gets near npm:
+  # goreleaser re-uploads the assets it already attached and GitHub answers
+  # 422 already_exists, so "Publish to npm" is skipped and the tag stays
+  # unpublishable forever.
+  #
+  # replace_existing_artifacts makes the upload idempotent: same bytes, same
+  # names, overwritten rather than rejected.
+  replace_existing_artifacts: true
