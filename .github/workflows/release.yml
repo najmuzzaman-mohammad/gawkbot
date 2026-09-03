@@ -128,12 +128,19 @@ jobs:
       # version-already-published) — leaving the install surfaces drifted.
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # ratchet:actions/setup-node@v6
         with:
-          node-version: "20"
+          # Must satisfy the ENGINE RANGE of the npm the next step installs,
+          # not just this repo's needs. This said "20", and npm@latest moved to
+          # npm@12, whose engines are ^22.22.2 || ^24.15.0 || >=26.0.0 — so the
+          # upgrade step died with EBADENGINE and every release since v0.236.0
+          # shipped a GitHub Release with no npm publish behind it. Node 24
+          # leaves headroom; when npm@13 raises the floor again, this is the
+          # line to move.
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
-      # Trusted publishing needs npm >= 11.5.1 for the OIDC exchange; Node 20
-      # bundles npm 10.x, which would silently fall back to token auth (and
-      # there is no token any more).
+      # Trusted publishing needs npm >= 11.5.1 for the OIDC exchange; the npm
+      # bundled with Node is older, and would silently fall back to token auth
+      # (and there is no token any more).
       - name: Upgrade npm for OIDC trusted publishing
         run: npm install -g npm@latest && npm --version
 
