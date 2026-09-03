@@ -19,6 +19,12 @@
 #
 # Flags:
 #   --reset       Wipe WUPHF_RUNTIME_HOME before starting (default keeps state).
+#
+# Env:
+#   PORT_WEB      Web UI port (default 7891). PORT_BROKER defaults to
+#                 PORT_WEB-1, so PORT_WEB=7899 gives you 7898/7899 and leaves
+#                 a real office on 7890/7891 alone.
+#   PORT_BROKER   Broker port (default PORT_WEB-1).
 #   --skip-fe     Skip the web bundle rebuild (use when you only touched Go).
 #   --skip-go     Skip the Go binary rebuild (use when you only touched FE/CSS).
 set -euo pipefail
@@ -27,6 +33,9 @@ WUPHF_HOME="${WUPHF_HOME:-/tmp/wuphf-mvp-home}"
 BROKER_BIN="${BROKER_BIN:-./wuphf-mvp}"
 LOG="${LOG:-/tmp/wuphf-mvp.log}"
 PORT_WEB="${PORT_WEB:-7891}"
+# Broker port. Derived from PORT_WEB so overriding one port moves the whole
+# instance: the default pair is 7890/7891, so web-1 keeps that relationship.
+PORT_BROKER="${PORT_BROKER:-$((PORT_WEB - 1))}"
 
 RESET_STATE=0
 SKIP_FE=0
@@ -83,21 +92,43 @@ if [[ "$SKIP_GO" != "1" || ! -x "$BROKER_BIN" ]]; then
   go build -o "$BROKER_BIN" ./cmd/wuphf
 fi
 
-if lsof -i :"$PORT_WEB" -P -n >/dev/null 2>&1; then
-  PID=$(lsof -ti :"$PORT_WEB" -sTCP:LISTEN)
-  log "stopping existing broker (pid $PID) on :$PORT_WEB"
-  kill "$PID" 2>/dev/null || true
-  sleep 1
-fi
+for port in "$PORT_WEB" "$PORT_BROKER"; do
+  if lsof -i :"$port" -P -n >/dev/null 2>&1; then
+    PID=$(lsof -ti :"$port" -sTCP:LISTEN)
+    log "stopping existing broker (pid $PID) on :$port"
+    kill "$PID" 2>/dev/null || true
+    sleep 1
+  fi
+done
 
-log "starting broker with WUPHF_RUNTIME_HOME=$WUPHF_HOME"
-WUPHF_RUNTIME_HOME="$WUPHF_HOME" "$BROKER_BIN" --no-open >"$LOG" 2>&1 &
+# Pass the ports to the BINARY, not just to the checks below.
+#
+# These flags used to be missing, so PORT_WEB only ever decided which port the
+# script pre-killed and health-checked while the broker bound its defaults
+# (7890/7891) regardless. Running with PORT_WEB=7899 therefore reported
+# "broker failed to bind :7899" while the broker had in fact taken 7890/7891 —
+# the ports a developer's real office runs on. It killed a live office on
+# 2026-09-03.
+log "starting broker on web :$PORT_WEB / broker :$PORT_BROKER with WUPHF_RUNTIME_HOME=$WUPHF_HOME"
+WUPHF_RUNTIME_HOME="$WUPHF_HOME" "$BROKER_BIN" --no-open \
+  --web-port "$PORT_WEB" --broker-port "$PORT_BROKER" >"$LOG" 2>&1 &
 PID=$!
-sleep 2
+
+# Poll for the bind instead of sleeping a fixed 2s and hoping. Boot does wiki
+# reconcile and skill seeding first, so on a cold state dir the listener can
+# take well over two seconds — the old fixed sleep reported "failed to bind"
+# for a broker that was starting fine, while leaving it running in the
+# background for the next run to trip over.
+for _ in $(seq 1 60); do
+  lsof -i :"$PORT_WEB" -P -n >/dev/null 2>&1 && break
+  kill -0 "$PID" 2>/dev/null || break   # died; stop waiting and report
+  sleep 0.5
+done
 
 if ! lsof -i :"$PORT_WEB" -P -n >/dev/null 2>&1; then
-  log "broker failed to bind :$PORT_WEB. see $LOG:"
+  log "broker failed to bind :$PORT_WEB within 30s. see $LOG:"
   tail -20 "$LOG"
+  kill "$PID" 2>/dev/null || true
   exit 1
 fi
 
@@ -106,6 +137,7 @@ log "broker pid: $PID"
 log "state dir:  $WUPHF_HOME/.wuphf"
 log "log:        $LOG"
 log "office:     http://127.0.0.1:$PORT_WEB  ← what users hit; serves web/dist/"
+log "broker:     http://127.0.0.1:$PORT_BROKER"
 log "vite:       http://127.0.0.1:5273       ← hot-reload, component-only"
 echo
 log "after FE edits: re-run this script (or 'bash scripts/dev-mvp.sh --skip-go')."
