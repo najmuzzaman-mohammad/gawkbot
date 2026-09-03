@@ -206,7 +206,7 @@ bar showed `running mcp__wuphf-office…`.
 | B4a | Silent first message | FIXED | RULE ZERO now asks for one line before the tool call |
 | B4b | Two silent round-trips | FIXED | TOOL HYGIENE no longer mandates a text-free first message |
 | B4c | 95 tools force deferral | OPEN | needs per-role tool scoping in office mode |
-| B8 | npm publish blocked | OPEN | founder-only: attach OIDC trusted publisher on npmjs.com |
+| B8 | npm publish blocked | OPEN | publisher attached but MISMATCHED — 403 "OIDC permission denied"; check environment/repo/workflow fields |
 
 
 ---
@@ -381,9 +381,10 @@ first failing package, so this masks everything after `internal/team`.
 
 ---
 
-## B8 — npm publish is blocked: trusted publisher not attached to `gawkbot`
+## B8 — npm publish is blocked: OIDC trusted publisher MISCONFIGURED
 
-**Status:** OPEN — founder-only, needs npmjs.com account access
+**Status:** OPEN — founder-only. The publisher now exists; its config does not
+match this workflow.
 
 CI has **never** successfully published this package. npm `latest` is
 `0.236.2`, a single manually-published version. Two separate causes, and only
@@ -432,3 +433,63 @@ published, not draft), npm ❌ (still 0.236.2). So `npx gawkbot` installs
 This is also why `release-drift.yml` is red on a schedule — it compares git
 tag / GitHub Release / npm latest and correctly reports npm behind. It is not
 a new break and not caused by the rename; it has been true since v0.236.0.
+
+
+### B8 update — the attach landed, the config does not match
+
+After the trusted publisher was added, v0.237.2 got materially further. The
+error changed from `E404 Not Found` to:
+
+```
+npm notice publish Signed provenance statement with source and build
+                   information from GitHub Actions
+npm notice publish Provenance statement published to transparency log
+npm error code E403
+npm error 403 Forbidden - PUT https://registry.npmjs.org/gawkbot
+              - OIDC permission denied for this action
+```
+
+That difference is the diagnosis. npm accepted the OIDC exchange, signed a
+provenance statement and wrote it to the sigstore transparency log — none of
+which happens without a trusted publisher configured. Then it refused the
+publish. So the publisher **exists** and its **conditions do not match this
+run**. (404 = "no publisher / no permission at all"; 403 + provenance =
+"publisher found, claims rejected".)
+
+What this run actually presented:
+
+| claim | value |
+|---|---|
+| repository | `najmuzzaman-mohammad/gawkbot` |
+| workflow file | `.github/workflows/release.yml` |
+| ref | `refs/tags/v0.237.2` |
+| environment | none — the `release:` job declares no `environment:` |
+
+So the npm-side config must match exactly that. The three things that
+realistically mismatch:
+
+1. **Environment.** If the npm publisher specifies one, it will never match —
+   this job deliberately has no `environment:` (there is a long comment in
+   `release.yml` explaining why the old `npm-publish` env gate was removed
+   after it stalled ~13 tags). Leave the npm field blank.
+2. **Repository.** If it still names `nex-crm/wuphf`, it is the pre-move path.
+   The repo is `najmuzzaman-mohammad/gawkbot` now.
+3. **Workflow filename.** Must be `release.yml`, not `Release` (the workflow's
+   `name:`) and not a full path.
+
+Once corrected, no new tag is needed — v0.237.2 can be re-run directly, because
+`replace_existing_artifacts` (PR #1231) is in `.goreleaser.yml` as of that tag:
+
+```
+gh workflow run release.yml --ref v0.237.2
+```
+
+That re-runnability is itself new. Before #1231 a tag that half-published was
+stuck: goreleaser aborted on `422 already_exists` re-uploading its own assets
+and never reached the npm step.
+
+**State now:** v0.237.2 git tag ✅, GitHub Release ✅ (11 assets), npm ❌ (still
+0.236.2). v0.237.0 and v0.237.1 are also tagged + released on GitHub with no
+npm behind them; they cannot be re-run (their tags predate #1231 and #1229), so
+they stay GitHub-only. Nothing is lost — npm just skips those patch numbers
+once 0.237.2 publishes.
