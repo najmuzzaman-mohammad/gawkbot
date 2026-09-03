@@ -834,7 +834,7 @@ func (b *notificationContextBuilder) BuildTaskExecutionPacketWithContext(slug st
 		lines = append(lines,
 			"Lead execution rule: you are the coordinator, not the sole worker. For anything larger than a single owned step, DECOMPOSE this task instead of doing it all yourself:",
 			fmt.Sprintf("- Break the work into concrete sub-tasks with team_task action=create, each carrying parent_issue_id=%s so they nest under this task.", task.ID),
-			"- Give each sub-task an `owner`: REUSE the existing specialist whose expertise best fits (see AVAILABLE AGENTS). Only when no current teammate fits, propose a new specialist with team_member — creating a new bot ALWAYS requires explicit human approval (the tool blocks until the human decides), so prefer reusing the roster.",
+			"- Give each sub-task an `owner`: REUSE the existing specialist whose expertise best fits (see AVAILABLE BOTS). Only when no current teammate fits, propose a new specialist with team_member — creating a new bot ALWAYS requires explicit human approval (the tool blocks until the human decides), so prefer reusing the roster.",
 			"- Sub-tasks spin off automatically: once created with an owner they wake that owner and run concurrently on their own lanes. You do not need to tag or chase each one separately.",
 			"- Keep THIS task as the umbrella: track its sub-tasks, aggregate their results here as they land, and complete the parent only after the children are done. Do not mark the parent complete while children are still open.",
 			"- Do the work directly yourself only when it is genuinely a single step in your own domain, or when decomposition would not help.",

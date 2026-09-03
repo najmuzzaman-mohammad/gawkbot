@@ -244,8 +244,8 @@ func TestBuildPromptLeadIncludesSkillAwareness(t *testing.T) {
 		},
 	}
 	prompt := l.buildPrompt("ceo")
-	if !strings.Contains(prompt, "SKILL & AGENT AWARENESS") {
-		t.Fatalf("expected SKILL & AGENT AWARENESS block in lead prompt")
+	if !strings.Contains(prompt, "SKILL & BOT AWARENESS") {
+		t.Fatalf("expected SKILL & BOT AWARENESS block in lead prompt")
 	}
 	if strings.Contains(prompt, "team_skill_create") {
 		t.Fatalf("lead prompt must not mention team_skill_create — the tool was removed (skills come only from playbook compilation)")

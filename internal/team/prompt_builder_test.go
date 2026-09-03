@@ -491,7 +491,11 @@ func TestPromptBuilder_ToolSearchAcceptanceLanguagePreserved(t *testing.T) {
 			"Load ONLY the schemas you actually plan to use",
 			"Do NOT preload team_wiki_write",
 			"Never call ToolSearch a second time in the same turn",
-			"Do NOT narrate the tool-loading process",
+			// The tooling-narration ban stayed; what changed is that it no
+			// longer also forbids the one line of human-facing text that
+			// keeps the first message from being pure tool calls.
+			"What is still banned is narrating your TOOLING",
+			"OPEN WITH ONE LINE ABOUT THE WORK",
 		} {
 			if !strings.Contains(got, want) {
 				t.Fatalf("%s prompt missing ToolSearch language %q", slug, want)

@@ -85,7 +85,7 @@ func printTaskList(tasks []bot.TaskLogSummary, root string) {
 		fmt.Println("No task receipts yet. (Logs land in " + root + " after bots run.)")
 		return
 	}
-	fmt.Printf("%-20s  %-8s  %-6s  %-16s  %s\n", "TASK", "AGENT", "TOOLS", "LAST", "FLAGS")
+	fmt.Printf("%-20s  %-8s  %-6s  %-16s  %s\n", "TASK", "BOT", "TOOLS", "LAST", "FLAGS")
 	for _, t := range tasks {
 		last := "-"
 		if t.LastToolAt > 0 {

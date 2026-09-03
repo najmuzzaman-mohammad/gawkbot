@@ -202,7 +202,10 @@ bar showed `running mcp__wuphf-office…`.
 | B3 | Bot → Bot rename | IN PROGRESS | phase A tooling built + validated |
 | B4 | Chief of Staff latency | FIXED | a2e605d84 — token deltas; follow-ups B4a/B4b below |
 | B5 | New Bot wizard unreadable | FIXED | 04802c7ef — 1.26:1 → 12.00:1 / 15.60:1, verified in browser |
-| B6 | Dev script ignores PORT_WEB | OPEN | scripts/dev-mvp.sh only gates its health check |
+| B6 | Dev script ignores PORT_WEB | FIXED | ports passed through + non-racy readiness poll; verified live |
+| B4a | Silent first message | FIXED | RULE ZERO now asks for one line before the tool call |
+| B4b | Two silent round-trips | FIXED | TOOL HYGIENE no longer mandates a text-free first message |
+| B4c | 95 tools force deferral | OPEN | needs per-role tool scoping in office mode |
 
 
 ---
@@ -245,40 +248,108 @@ never overrides `--text`.
 
 ## B4a — First assistant message is always a tool call
 
-**Status:** OPEN (follow-up to B4)
+**Status:** FIXED
 
-`prompt_builder.go:653` RULE ZERO: "your FIRST tool call MUST be team_task
-action=create". So the first assistant message carries no prose at all — even
-with token streaming, the human waits a full tool round-trip for the first
-word. Worth letting the bot emit a one-line acknowledgement before the tool
-call.
+`prompt_builder.go` RULE ZERO: "your FIRST tool call MUST be team_task
+action=create". A message whose only content is a tool_use block carries no
+prose, so the human sees nothing until that call returns AND a second message
+starts generating — a full round-trip of dead air no matter how fast tokens
+stream.
+
+Nothing stopped the bot writing a line first; it just was never asked to.
+RULE ZERO now requires one short sentence of plain text above the tool call,
+in the same message, naming what it is about to scope.
+
+This works because assistant text really does reach the channel:
+`headlessLiveChatRelay.OnText` buffers it and flushes to a real chat message
+at a sentence boundary (16+ chars) or 480 chars — verified before relying on
+it, since if chat only came from `team_broadcast` calls the fix would have
+been useless.
 
 ---
 
-## B4b — Cold subprocess + MCP handshake every turn
+## B4b — Two silent round-trips before any prose
 
-**Status:** OPEN (follow-up to B4)
+**Status:** FIXED for the dead air. The structural round-trip remains, tracked
+below as B4c.
 
-Each turn spawns the `claude` CLI fresh (`exec.CommandContext` in
-`internal/provider/claude.go`) and hands it `--mcp-config`
-(`internal/team/headless_claude.go:50`), so the office MCP server is launched
-and its tool list negotiated before the first inference token. A warm pool or
-a persistent MCP connection would cut the floor further.
+Measured shape of a work-shaped first turn:
+
+1. spawn the `claude` CLI (cold)
+2. `claude` spawns `wuphf mcp-team` over **stdio** — a second full binary boot
+3. **95 MCP tools** are negotiated. That is far past claude-code's deferral
+   threshold, so schemas defer behind ToolSearch → a silent round-trip
+4. RULE ZERO forces `team_task action=create` → a second silent round-trip
+5. only now does prose generate
+
+Steps 3 and 4 each produced a message with no text in it, so the human watched
+a spinner through both. The TOOL HYGIENE block made it worse by *mandating*
+it: "ToolSearch happens silently… never a status line about your setup."
+
+That block's real intent was to ban narrating the TOOLING, which is right. It
+also banned any first-message text at all, which is what created the spinner.
+Those are now separated: one short line about the WORK is required at the top
+of the first message; "Let me load the tool schemas" / "now calling X" /
+plans / restating the request stay banned, and ToolSearch is never mentioned
+to the human.
+
+Net: the human sees words on the first message instead of after two
+round-trips. `Launcher` already records `FirstEventMs` / `FirstTextMs` /
+`FirstToolMs` per turn (`broker_streams.go`), so this is measurable rather
+than asserted.
+
+Ruled out while investigating: the office server is registered under every key
+in `ServerKeys()`, which would spawn one `mcp-team` process per alias —
+`LegacyServerKeys` is currently empty, so it is one process, not several.
+`teammcp.Run` itself is cheap (build server, register tools, serve stdio); it
+loads no state.
+
+---
+
+## B4c — 95 MCP tools force schema deferral on every office turn
+
+**Status:** OPEN
+
+The ToolSearch round-trip in B4b is *hidden* now, not removed. It exists
+because the office server exposes ~95 tools (95 `mcp.AddTool` calls in
+`internal/teammcp`), past the point where claude-code defers schemas. The
+existing note in `headless_claude.go` already prices this: "we accept the soft
+failure mode (~30s tax on first turn)".
+
+There is already a scoping seam and it already helps: `configureServerTools`
+registers a much smaller set in 1:1 mode, and `ensureBotMCPConfigWith` scopes
+which SERVERS a bot gets. What is missing is per-bot scoping of TOOLS in
+office mode — which is the branch the founder's Chief-of-Staff DM actually
+took.
+
+Not attempted here: cutting the office tool set needs a per-role mapping, and
+getting it wrong means a bot silently lacks a tool mid-turn. That deserves its
+own change with its own evidence, not a release-day edit.
 
 ---
 
 ## B6 — scripts/dev-mvp.sh ignores PORT_WEB
 
-**Status:** OPEN
+**Status:** FIXED
 
-`PORT_WEB` only gates the script's pre-kill and health check; the binary is
-started without `--web-port`, so it always binds the default 7890/7891.
-Running the script with `PORT_WEB=7899` therefore reported "broker failed to
-bind :7899" while the broker had in fact taken 7890/7891 — the ports a
-developer's real office is on. Pass the port through to the binary, or drop
-the variable.
+`PORT_WEB` only gated the script's pre-kill and health check; the binary was
+started with no flags, so it always bound the default 7890/7891. Running with
+`PORT_WEB=7899` reported "broker failed to bind :7899" while the broker had in
+fact taken 7890/7891 — the ports a developer's real office is on. It displaced
+the founder's running office on 2026-09-03.
 
-Hit live on 2026-09-03: it displaced the founder's running office.
+Fixed: `--web-port` / `--broker-port` are passed through, `PORT_BROKER`
+defaults to `PORT_WEB-1` so moving the pair keeps the 7890/7891 relationship,
+and both ports are pre-killed rather than one.
+
+The readiness check was also racy — a fixed 2s sleep, while boot does wiki
+reconcile and skill seeding before it listens. It reported failure for a
+broker that was starting fine and left it running for the next run to trip
+over. Now polls up to 30s, gives up early if the process died, and kills what
+it started when it does give up.
+
+Verified live: `PORT_WEB=7899` binds 7898/7899 and leaves a real office on
+7890/7891 running.
 
 
 ---

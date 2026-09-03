@@ -111,3 +111,13 @@ runner/__pycache__/
 
 # Local test-instance logs (see gawkbot-testdrive.log)
 gawkbot-testdrive.log
+
+# Composio CLI state the integration tests drop into the source tree.
+# `go test ./internal/team/` shells out to the Composio CLI, which writes its
+# config/session next to the package instead of into a temp HOME. One of these
+# (pending-login-session.json) holds a login session key, so leaving them
+# untracked-but-not-ignored put a secret one `git add -A` away from a commit.
+# Ignoring is the guard; the tests should get an isolated HOME as a follow-up.
+/internal/team/config.json
+/internal/team/pending-login-session.json
+/internal/team/user_data.json
