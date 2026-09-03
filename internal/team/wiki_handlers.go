@@ -16,7 +16,7 @@ import (
 )
 
 // handleWikiWrite is the broker HTTP endpoint the MCP subprocess posts to
-// when an agent calls team_wiki_write. POST /wiki/write with
+// when a bot calls team_wiki_write. POST /wiki/write with
 // {slug, path, content, mode, commit_message}. Responses: 200 {path,
 // commit_sha, bytes_written}; 429 saturated; 500 generic; 503 no worker.
 func (b *Broker) handleWikiWrite(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func (b *Broker) handleWikiWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isNew {
-		b.emitNewWikiArticleCard(body.Path, body.Content, r.Header.Get(agentRateLimitHeader))
+		b.emitNewWikiArticleCard(body.Path, body.Content, r.Header.Get(botRateLimitHeader))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"path":          body.Path,
@@ -102,10 +102,10 @@ func (b *Broker) handleWikiRead(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
 		return
 	}
-	// Track agent reads. The ?reader= param is set by the MCP layer using
+	// Track bot reads. The ?reader= param is set by the MCP layer using
 	// WUPHF_AGENT_SLUG. Human reads go through /wiki/article, not here.
 	// Return 400 if the caller passes the reserved human reader ("web"):
-	// an agent slug named "web" would silently inflate human_read_count.
+	// a bot slug named "web" would silently inflate human_read_count.
 	if raw := r.URL.Query().Get("reader"); raw == ReaderHuman {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": `reader "web" is reserved for human browser access`})
 		return
@@ -117,11 +117,11 @@ func (b *Broker) handleWikiRead(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleWikiSearch returns literal-substring matches across team/. When a
-// ?reader=<agent-slug> is supplied (set by the MCP layer from the trusted
-// WUPHF_AGENT_SLUG env), the same call ALSO searches that agent's OWN
+// ?reader=<bot-slug> is supplied (set by the MCP layer from the trusted
+// WUPHF_AGENT_SLUG env), the same call ALSO searches that bot's OWN
 // notebook shelf, so a single retrieval spans wiki + private notes (B4).
 // Permissioned boundary: only the reader's own notebooks are merged -
-// cross-agent notebook access stays on the explicit notebook_read path.
+// cross-bot notebook access stays on the explicit notebook_read path.
 //
 //	GET /wiki/search?pattern=launch[&reader=eng]
 func (b *Broker) handleWikiSearch(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +177,7 @@ func (b *Broker) handleWikiList(w http.ResponseWriter, r *http.Request) {
 //
 // Response shape matches web/src/api/wiki.ts { articles: WikiCatalogEntry[] }.
 // Distinct from /wiki/list (which returns raw markdown from index/all.md) -
-// agents read the markdown index, the UI reads this JSON.
+// bots read the markdown index, the UI reads this JSON.
 func (b *Broker) handleWikiCatalog(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

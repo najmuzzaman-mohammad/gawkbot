@@ -1,12 +1,12 @@
 // demoSeed.ts — turn a REAL observe capture into the message that teaches the
-// agent a tool.
+// bot a tool.
 //
 // The Demo tab's whole contract is that nothing here is invented. `screens`
 // comes from runObserve() → runner/cua_observe.py, which reads the frontmost
 // window's accessibility tree and visible text through cua-driver; `goal` is
 // what the operator typed before they started. This module only formats those
 // two real inputs into a prompt and hands it to the live authoring chat
-// (AppToolsChat's `seed` → POST /agent/tools/build).
+// (AppToolsChat's `seed` → POST /bot/tools/build).
 //
 // Deliberately NOT reusing capturePromptSeed() from the old operator shell:
 // that formatter speaks to the app-BUILD engine ("What to build: this work

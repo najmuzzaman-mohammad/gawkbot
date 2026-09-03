@@ -1,16 +1,16 @@
 /**
- * Office-voice idle copy dictionary for the agent rail event pill.
+ * Office-voice idle copy dictionary for the bot rail event pill.
  *
  * Eng decision A4: lookup order is slug overrides -> role table -> generalist
- * fallback. Copy rotates ~every 12s based on idleMs so the same agent does not
+ * fallback. Copy rotates ~every 12s based on idleMs so the same bot does not
  * stare at the same line forever during a long idle.
  */
 
 const ROTATION_INTERVAL_MS = 12_000;
 
 /**
- * Hardcoded copy for canonical built-in agents. Slug match wins over role.
- * These are the agents users meet first, so they set the voice for the rest.
+ * Hardcoded copy for canonical built-in bots. Slug match wins over role.
+ * These are the bots users meet first, so they set the voice for the rest.
  */
 const SLUG_OVERRIDES: Record<string, readonly string[]> = {
   tess: [
@@ -43,22 +43,22 @@ const SLUG_OVERRIDES: Record<string, readonly string[]> = {
 const ROLE_TABLES: Record<string, readonly string[]> = {
   // `lead` is the Chief of Staff, and it is now the ONLY built-in. The
   // librarian, app-builder, planner, executor and reviewer tables were removed
-  // when the founder retired those agents as defaults: "that concept should
+  // when the founder retired those bots as defaults: "that concept should
   // now be gone with those bots as default. their defintions also shouldn't
   // exist". The remaining entries below are ordinary ROLE copy, matched on
-  // whatever role a user gives an agent they created themselves, so they are
+  // whatever role a user gives a bot they created themselves, so they are
   // not built-in definitions and they stay.
   //
-  // A legacy workspace that still holds one of the retired agents falls
-  // through to GENERALIST_COPY, which is correct: generic copy for an agent
+  // A legacy workspace that still holds one of the retired bots falls
+  // through to GENERALIST_COPY, which is correct: generic copy for a bot
   // the product no longer defines, rather than a dangling special case.
   //
-  // Voice: flat, specific, mildly tedious. An idle agent is BETWEEN jobs,
+  // Voice: flat, specific, mildly tedious. An idle bot is BETWEEN jobs,
   // never spectating and never lazy -- founder's rule is that gawkbot is not
-  // a bystander in any messaging, because the agents do the menial work and
+  // a bystander in any messaging, because the bots do the menial work and
   // the human is the one watching a dashboard. Idle copy is where that is
   // easiest to get wrong: "watching the board" and "waiting to be asked" read
-  // as an agent doing nothing, which inverts the product story. Give it some
+  // as a bot doing nothing, which inverts the product story. Give it some
   // small boring thing it is getting on with instead.
   lead: [
     "triaging what came in",
@@ -159,10 +159,10 @@ function rotateIndex(idleMs: number, length: number): number {
 }
 
 /**
- * Pick an Office-voice idle line for an agent. Pure: same input -> same output.
+ * Pick an Office-voice idle line for a bot. Pure: same input -> same output.
  *
  * Lookup order:
- *   1. SLUG_OVERRIDES[slug.toLowerCase()] — canonical agents win.
+ *   1. SLUG_OVERRIDES[slug.toLowerCase()] — canonical bots win.
  *   2. ROLE_TABLES via ROLE_ALIASES[normalizeRole(role)] — role match.
  *   3. GENERALIST_COPY — never crashes, never returns empty.
  */

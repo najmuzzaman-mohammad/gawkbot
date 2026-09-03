@@ -3,7 +3,7 @@ package channelui
 import "strings"
 
 // FilterMessagesForViewerScope returns messages whose viewer-scope
-// matches scope ("inbox" / "outbox" / "agent"). Empty / unknown scope
+// matches scope ("inbox" / "outbox" / "bot"). Empty / unknown scope
 // returns a copy of the input unchanged. The returned slice is fresh
 // so callers may mutate without affecting messages.
 func FilterMessagesForViewerScope(messages []BrokerMessage, viewerSlug, scope string) []BrokerMessage {
@@ -27,7 +27,7 @@ func FilterMessagesForViewerScope(messages []BrokerMessage, viewerSlug, scope st
 }
 
 // NormalizeMailboxScope canonicalizes a mailbox-scope label to one of
-// "inbox" / "outbox" / "agent", returning "" for anything else.
+// "inbox" / "outbox" / "bot", returning "" for anything else.
 func NormalizeMailboxScope(value string) string {
 	switch strings.TrimSpace(strings.ToLower(value)) {
 	case "inbox", "outbox", "agent":

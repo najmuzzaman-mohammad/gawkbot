@@ -6,7 +6,7 @@ import (
 )
 
 // Group DMs are being retired with #general: a group DM is a channel by
-// another name, so it reproduces the several-agents-in-one-room shape the
+// another name, so it reproduces the several-bots-in-one-room shape the
 // switch exists to stop.
 //
 // The two halves of this test are the whole contract. Creation must REFUSE,

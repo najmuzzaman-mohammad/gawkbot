@@ -1,20 +1,20 @@
 package team
 
-// interview_dedup.go — cross-agent semantic dedupe for HUMAN-directed
+// interview_dedup.go — cross-bot semantic dedupe for HUMAN-directed
 // interviews (kind=interview only).
 //
-// Live smoke run: FIVE agents asked the human the same "which CRM?"
+// Live smoke run: FIVE bots asked the human the same "which CRM?"
 // question in five separate blocking interviews; answering one did not
 // ground the rest. handlePostRequest now checks every new interview
 // question against:
 //
 //   - ACTIVE pending interviews: a semantically-similar question does NOT
-//     create a second card — the asking agent is attached as a subscriber
+//     create a second card — the asking bot is attached as a subscriber
 //     (humanInterview.AlsoAsking) on the existing request and polls the
 //     SAME request id, so the one human answer fans out to every asker
 //     through the existing answer-delivery path.
 //   - RECENTLY-ANSWERED interviews (within recentInterviewAnswerReuseWindow):
-//     the existing answer is returned to the asking agent immediately
+//     the existing answer is returned to the asking bot immediately
 //     ("already answered by the human") and no card is raised.
 //
 // Scope guard: ONLY kind=interview requests dedupe semantically. Action
@@ -26,7 +26,7 @@ package team
 // Similarity reuses the repo's cheap text machinery (normalized text +
 // jaro_winkler.go, the same tiers as policy/skill dedupe) and is
 // deliberately CONSERVATIVE: a missed dedupe costs one extra card; a wrong
-// merge feeds agent A the human's answer to agent B's different question.
+// merge feeds bot A the human's answer to bot B's different question.
 
 import (
 	"strings"
@@ -36,7 +36,7 @@ import (
 
 // recentInterviewAnswerReuseWindow bounds how long an already-answered
 // interview keeps grounding new similar asks without re-prompting the
-// human. ~2h: long enough to cover a whole working session of agents
+// human. ~2h: long enough to cover a whole working session of bots
 // rediscovering the same gap, short enough that stale decisions get
 // re-confirmed the next session.
 const recentInterviewAnswerReuseWindow = 2 * time.Hour
@@ -166,7 +166,7 @@ func interviewAskerKnown(req humanInterview, asker string) bool {
 
 // findActiveSimilarInterviewLocked returns the first ACTIVE human-directed
 // interview whose question is semantically similar, searching across ALL
-// channels — the live failure was five agents asking from five different
+// channels — the live failure was five bots asking from five different
 // task channels. Caller must hold b.mu.
 func (b *Broker) findActiveSimilarInterviewLocked(question string) *humanInterview {
 	for i := range b.requests {

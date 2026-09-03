@@ -244,7 +244,7 @@ func fetchScopedMemoryBrief(ctx context.Context, slug string, notification strin
 // wrapUntrustedMemoryBrief frames the memory brief as background context that
 // originated in external systems (email, CRM, calendar, etc.) rather than
 // as instructions from the operator. External data can be attacker-controlled
-// (a malicious email body, a poisoned CRM note), so the agent must treat any
+// (a malicious email body, a poisoned CRM note), so the bot must treat any
 // directives inside this block as data, not commands.
 //
 // To keep an attacker from closing the fence and smuggling instructions that
@@ -260,7 +260,7 @@ func wrapUntrustedMemoryBrief(brief string) string {
 		closeFence = "== END NEX CONTEXT =="
 	)
 	// Neutralize any raw delimiter strings inside the body so the fence cannot
-	// be closed from within. We visibly bracket them so the agent can still see
+	// be closed from within. We visibly bracket them so the bot can still see
 	// them if they appear in legitimate context, but they no longer terminate
 	// our wrapping.
 	neutralized := trimmed
@@ -282,8 +282,8 @@ func wrapUntrustedMemoryBrief(brief string) string {
 	}, "\n")
 }
 
-// composeHeadlessStdinPayload builds the stdin payload for a headless agent
-// turn. The operator's notification comes FIRST so it anchors the agent's
+// composeHeadlessStdinPayload builds the stdin payload for a headless bot
+// turn. The operator's notification comes FIRST so it anchors the bot's
 // attention; any retrieved memory brief is appended afterwards, wrapped in a
 // clearly-labeled untrusted-data fence. Order matters because attacker-
 // controlled strings (email bodies, CRM notes) must never be the last thing

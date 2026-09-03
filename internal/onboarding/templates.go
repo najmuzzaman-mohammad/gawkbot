@@ -9,7 +9,7 @@ import (
 )
 
 // TaskTemplate describes a first-task suggestion shown during onboarding.
-// Templates are scoped to a specific agent role via OwnerSlug.
+// Templates are scoped to a specific bot role via OwnerSlug.
 type TaskTemplate struct {
 	// ID is a stable, URL-safe identifier for the template.
 	ID string `json:"id"`
@@ -20,7 +20,7 @@ type TaskTemplate struct {
 	// Description is a single-sentence clarification shown below the title.
 	Description string `json:"description"`
 
-	// OwnerSlug is the agent slug that should receive this task.
+	// OwnerSlug is the bot slug that should receive this task.
 	OwnerSlug string `json:"owner_slug"`
 }
 
@@ -55,7 +55,7 @@ func BlankSlateTemplates() []TaskTemplate {
 		{ID: "offer", Title: "Draft the first sellable offer", Description: "Name the customer, the promise, the scope, and the next decision needed to move the business forward.", OwnerSlug: "operator"},
 		{ID: "delivery", Title: "Build the first delivery loop", Description: "Create the minimum workflow, handoffs, approvals, and artifacts needed to deliver the offer end to end.", OwnerSlug: "builder"},
 		{ID: "instrumentation", Title: "Create the operating record", Description: "Set up the place where client state, approvals, and delivery evidence will live so the team can keep operating.", OwnerSlug: "founder"},
-		{ID: "go-live", Title: "Create missing capabilities and take the first live step", Description: "If agents, channels, skills, or tooling are missing, create them, then execute the smallest safe real action in the business workflow.", OwnerSlug: "founder"},
+		{ID: "go-live", Title: "Create missing capabilities and take the first live step", Description: "If bots, channels, skills, or tooling are missing, create them, then execute the smallest safe real action in the business workflow.", OwnerSlug: "founder"},
 	}
 }
 

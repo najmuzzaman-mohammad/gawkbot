@@ -19,12 +19,12 @@ Token families today:
   `--green*`, `--red*`, `--yellow*`, `--blue*`.
 - Typography: `--font-sans`, `--font-serif`, `--font-mono`, `--font-logo`.
 - Radius: `--radius-sm|md|lg|xl|full`.
-- Bubble (agent rail): see below.
+- Bubble (bot rail): see below.
 
-## Agent rail event pills
+## Bot rail event pills
 
-Per-agent live state surfaces inline on the agent rail row, replacing the
-previous `.sidebar-agent-task` text line. One pill per agent, anchored to
+Per-bot live state surfaces inline on the bot rail row, replacing the
+previous `.sidebar-agent-task` text line. One pill per bot, anchored to
 the row's secondary text slot. The pill never causes row reflow.
 
 ### Visual states
@@ -58,7 +58,7 @@ Under `prefers-reduced-motion: reduce`:
 
 Source: `web/src/lib/officeIdleDictionary.ts`. Lookup order:
 
-1. Slug overrides for canonical agents (e.g., `tess`, `ava`, `sam`).
+1. Slug overrides for canonical bots (e.g., `tess`, `ava`, `sam`).
 2. Role table — `engineer`, `designer`, `pm`, `devops`, `marketing` and
    their aliases.
 3. Generalist fallback — never returns empty.
@@ -74,12 +74,12 @@ at the same line forever.
   the planned Tier 2 hover peek card.
 - `member.task` is a one-shot initial-paint seed only — used before the
   first SSE event arrives.
-- When no event has ever arrived and the agent is idle, the pill renders
+- When no event has ever arrived and the bot is idle, the pill renders
   Office-voice idle copy.
 
 ## Tier 2 hover peek
 
-Popover card surfacing richer agent state on hover/long-press/Space.
+Popover card surfacing richer bot state on hover/long-press/Space.
 Rendered by `AgentEventPeek.tsx` via `createPortal` to `document.body`
 so it floats above the sidebar without causing row reflow.
 
@@ -174,7 +174,7 @@ styles `office-tour.css` (shell) + `office-tour-slides.css` (slides).
 
 Editorial, not card-pile. Each slide is a two-column grid
 (`minmax(0,1fr) minmax(0,1.15fr)`): copy left, a live mock of the real
-surface right (mock sidebar, agent card, composer fan-out, wiki tree). It
+surface right (mock sidebar, bot card, composer fan-out, wiki tree). It
 collapses to one column at `≤760px`. Headlines use `--font-logo` (serif);
 slugs and typed commands use `--font-mono`. The footer is a `1fr auto 1fr`
 grid so the progress dots stay optically centered while Back / Next / Finish

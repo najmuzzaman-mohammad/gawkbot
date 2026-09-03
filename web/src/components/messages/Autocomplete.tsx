@@ -130,7 +130,7 @@ export function mentionAutocompleteItems(
     items.push({
       insert: "@all",
       label: "@all",
-      desc: "Notify every agent",
+      desc: "Notify every bot",
       icon: "📣",
     });
   }

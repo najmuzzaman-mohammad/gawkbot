@@ -42,13 +42,13 @@ test.describe("wuphf web UI smoke (office)", () => {
     ).toEqual([]);
   });
 
-  test("the sidebar renders its agent and app sections", async ({ page }) => {
+  test("the sidebar renders its bot and app sections", async ({ page }) => {
     const getErrors = collectReactErrors(page);
     await page.goto("/");
     await waitForReactMount(page);
 
     // The sidebar is the office's navigation spine. Asserting the sections
-    // rather than a specific agent or app keeps this smoke independent of
+    // rather than a specific bot or app keeps this smoke independent of
     // roster contents, which vary with seed state.
     await expect(page.getByTestId("sidebar-section-agents")).toBeVisible({
       timeout: 10_000,

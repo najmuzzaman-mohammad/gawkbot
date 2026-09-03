@@ -11,7 +11,7 @@ import (
 // Mattermost-aligned format with proper ChannelType and deterministic slugs.
 //
 // Rules:
-//   - dm-{agent} channels: Type→D, Slug→DirectSlug("human", agent), UUID assigned, members created
+//   - dm-{bot} channels: Type→D, Slug→DirectSlug("human", bot), UUID assigned, members created
 //   - channels with empty Type and no dm- prefix: Type→O, UUID assigned if missing
 //   - channels already with UUIDs and proper types: unchanged
 //
@@ -35,9 +35,9 @@ func (s *Store) MigrateLegacyDM() bool {
 		}
 
 		if isDMSlug {
-			// Extract agent slug: "dm-engineering" → "engineering"
-			agentSlug := strings.TrimPrefix(ch.Slug, "dm-")
-			newSlug := DirectSlug("human", agentSlug)
+			// Extract bot slug: "dm-engineering" → "engineering"
+			botSlug := strings.TrimPrefix(ch.Slug, "dm-")
+			newSlug := DirectSlug("human", botSlug)
 			oldSlug := ch.Slug
 
 			ch.ID = uuid.NewString()
@@ -56,7 +56,7 @@ func (s *Store) MigrateLegacyDM() bool {
 
 			// Create members for this DM
 			s.addMemberLocked(ch.ID, "human", "all")
-			s.addMemberLocked(ch.ID, agentSlug, "all")
+			s.addMemberLocked(ch.ID, botSlug, "all")
 
 			changed = true
 		} else {
@@ -83,8 +83,8 @@ func (s *Store) MigrateLegacyDM() bool {
 // Non-DM slugs are returned unchanged. Used by broker to migrate task/request channel refs.
 func MigrateDMSlugString(slug string) string {
 	if strings.HasPrefix(slug, "dm-") {
-		agentSlug := strings.TrimPrefix(slug, "dm-")
-		return DirectSlug("human", agentSlug)
+		botSlug := strings.TrimPrefix(slug, "dm-")
+		return DirectSlug("human", botSlug)
 	}
 	return slug
 }

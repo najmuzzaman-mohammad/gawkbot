@@ -59,7 +59,7 @@ func (l *Launcher) PreflightWeb() error {
 	return nil
 }
 
-// LaunchWeb starts the broker, web UI server, and background agents without tmux.
+// LaunchWeb starts the broker, web UI server, and background bots without tmux.
 func (l *Launcher) LaunchWeb(webPort int) error {
 	mcpConfig, err := l.ensureMCPConfig()
 	if err != nil {
@@ -102,7 +102,7 @@ func (l *Launcher) LaunchWeb(webPort int) error {
 
 	l.broker.SetGenerateMemberFn(l.GenerateMemberTemplateFromPrompt)
 	l.broker.SetGenerateChannelFn(l.GenerateChannelTemplateFromPromptCtx)
-	l.broker.SetGenerateAgentFileFn(l.GenerateAgentFileFromContext)
+	l.broker.SetGenerateBotFileFn(l.GenerateBotFileFromContext)
 	if err := l.broker.ServeWebUI(webPort); err != nil {
 		// The broker is already running and the office PID file is on
 		// disk (above). On a port-bind failure we exit, so tear both
@@ -133,8 +133,8 @@ func (l *Launcher) LaunchWeb(webPort int) error {
 	// Default path: headless `claude --print` per turn. Anthropic re-sanctioned
 	// this invocation (OpenClaw policy note, 2026-04), so it runs on the user's
 	// normal subscription quota — no separate extra-usage quota is charged on
-	// top. The interactive pane-per-agent mode remains reachable via
-	// TrySpawnWebAgentPanes as an internal fallback primitive, but is not
+	// top. The interactive pane-per-bot mode remains reachable via
+	// TrySpawnWebBotPanes as an internal fallback primitive, but is not
 	// invoked at startup.
 	//
 	// Headless context is used for codex runtime, default dispatch, and
@@ -143,17 +143,17 @@ func (l *Launcher) LaunchWeb(webPort int) error {
 	l.resolveHeadlessConcurrencyCaps()
 	l.resumeInFlightWork()
 
-	// Stream tmux pane output to the web UI's per-agent stream so users see
+	// Stream tmux pane output to the web UI's per-bot stream so users see
 	// live Claude TUI activity (thinking, tool calls, responses) during a
-	// pane-backed turn. No-op when paneBackedAgents is false.
+	// pane-backed turn. No-op when paneBackedBots is false.
 	l.startPaneCaptureLoops(l.headless.ctx)
 
-	go l.notifyAgentsLoop()
+	go l.notifyBotsLoop()
 	go l.notifyTaskActionsLoop()
 	go l.notifyOfficeChangesLoop()
 	go l.watchdogSchedulerLoop()
-	if l.paneBackedAgents {
-		go l.primeVisibleAgents()
+	if l.paneBackedBots {
+		go l.primeVisibleBots()
 	}
 
 	// webAddr/webURL were computed above (right after ServeWebUI) so office.json

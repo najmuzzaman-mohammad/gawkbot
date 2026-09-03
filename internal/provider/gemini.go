@@ -6,15 +6,15 @@ import (
 
 	"google.golang.org/genai"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 const geminiModel = "gemini-2.0-flash"
 
 // CreateGeminiStreamFn returns a StreamFn backed by the Gemini API.
-func CreateGeminiStreamFn(apiKey string) agent.StreamFn {
-	return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-		ch := make(chan agent.StreamChunk, 64)
+func CreateGeminiStreamFn(apiKey string) bot.StreamFn {
+	return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+		ch := make(chan bot.StreamChunk, 64)
 		go func() {
 			defer close(ch)
 
@@ -24,7 +24,7 @@ func CreateGeminiStreamFn(apiKey string) agent.StreamFn {
 				Backend: genai.BackendGeminiAPI,
 			})
 			if err != nil {
-				ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("Gemini client initialization failed: %v. Check your API key and network connection.", err)}
+				ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("Gemini client initialization failed: %v. Check your API key and network connection.", err)}
 				return
 			}
 
@@ -32,13 +32,13 @@ func CreateGeminiStreamFn(apiKey string) agent.StreamFn {
 			config := &genai.GenerateContentConfig{}
 
 			if len(tools) > 0 {
-				config.Tools = []*genai.Tool{agentToolsToGenAI(tools)}
+				config.Tools = []*genai.Tool{botToolsToGenAI(tools)}
 			}
 
 			stream := client.Models.GenerateContentStream(ctx, geminiModel, contents, config)
 			for result, err := range stream {
 				if err != nil {
-					ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("Gemini streaming failed: %v. The model may be unavailable or the request was rejected.", err)}
+					ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("Gemini streaming failed: %v. The model may be unavailable or the request was rejected.", err)}
 					return
 				}
 				for _, cand := range result.Candidates {
@@ -47,7 +47,7 @@ func CreateGeminiStreamFn(apiKey string) agent.StreamFn {
 					}
 					for _, part := range cand.Content.Parts {
 						if txt := part.Text; txt != "" {
-							ch <- agent.StreamChunk{Type: "text", Content: txt}
+							ch <- bot.StreamChunk{Type: "text", Content: txt}
 						}
 					}
 				}
@@ -57,9 +57,9 @@ func CreateGeminiStreamFn(apiKey string) agent.StreamFn {
 	}
 }
 
-// msgsToGenAIContents converts agent messages to the genai Content slice.
+// msgsToGenAIContents converts bot messages to the genai Content slice.
 // Gemini requires alternating user/model turns.
-func msgsToGenAIContents(msgs []agent.Message) []*genai.Content {
+func msgsToGenAIContents(msgs []bot.Message) []*genai.Content {
 	contents := make([]*genai.Content, 0, len(msgs))
 	for _, m := range msgs {
 		role := m.Role
@@ -74,8 +74,8 @@ func msgsToGenAIContents(msgs []agent.Message) []*genai.Content {
 	return contents
 }
 
-// agentToolsToGenAI converts AgentTools to a single genai.Tool with function declarations.
-func agentToolsToGenAI(tools []agent.AgentTool) *genai.Tool {
+// botToolsToGenAI converts BotTools to a single genai.Tool with function declarations.
+func botToolsToGenAI(tools []bot.BotTool) *genai.Tool {
 	decls := make([]*genai.FunctionDeclaration, 0, len(tools))
 	for _, t := range tools {
 		decls = append(decls, &genai.FunctionDeclaration{

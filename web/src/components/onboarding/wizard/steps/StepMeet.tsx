@@ -1,7 +1,7 @@
 /**
  * StepMeet — wizard step 01, "Meet WUPHF."
  *
- * Sets the metaphor: gawkbot is an office, and a team of agents lives in it. The
+ * Sets the metaphor: gawkbot is an office, and a team of bots lives in it. The
  * visual is a mock office coming online, so the first thing the user sees is
  * their (mock) office coming to life.
  *
@@ -21,7 +21,7 @@
  *
  * The stage visual is a rendered Remotion clip (web/public/media/onboarding/
  * meet-office.gif): a "gawkbot · office" window where the founding team comes
- * online one agent at a time, each with a presence dot. It is a self-contained
+ * online one bot at a time, each with a presence dot. It is a self-contained
  * product window, so it reads correctly on every onboarding page theme.
  *
  * Reuses the office-tour split + copy primitives so the wizard reads as one

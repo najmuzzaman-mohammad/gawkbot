@@ -88,7 +88,7 @@ func TestCreateTelegramChannelSkipsUnadoptedManifestMembers(t *testing.T) {
 
 	// Broker has only "ceo". The manifest lists two additional desired-state
 	// members that haven't connected yet — use neutral slugs so the test
-	// isn't coupled to any particular agent set.
+	// isn't coupled to any particular bot set.
 	b.mu.Lock()
 	b.members = []officeMember{{Slug: "ceo", Name: "CEO", BuiltIn: true}}
 	b.memberIndex = nil // force lazy rebuild on next findMemberLocked

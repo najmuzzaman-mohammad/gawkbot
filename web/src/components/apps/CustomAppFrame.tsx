@@ -7,7 +7,7 @@ import { confirm } from "../ui/ConfirmDialog";
 import { showNotice } from "../ui/Toast";
 
 /**
- * CustomAppFrame renders an agent-generated internal tool inside a hardened
+ * CustomAppFrame renders a bot-generated internal tool inside a hardened
  * sandbox and brokers its data access.
  *
  * Security model (the iframe is the real boundary, not the write-time HTML
@@ -37,7 +37,7 @@ import { showNotice } from "../ui/Toast";
  *
  *   - "integration" → POST /apps/integrations/call {platform, action, params}.
  *     The HOST forwards; the BROKER decides read-vs-mutate via the same
- *     deterministic verb table the agent gate uses. A read returns the user's
+ *     deterministic verb table the bot gate uses. A read returns the user's
  *     own data into their own sandboxed app (ok). A MUTATING action is NEVER
  *     executed by this path — the broker raises the human ExternalActionApproval
  *     card and returns {status:"needs_approval", request_id}. The app cannot
@@ -512,7 +512,7 @@ async function serviceBrokerGet(
 // `/tasks` is channel-scoped and returns only the (usually empty) "general"
 // channel and excludes done tasks, but an app virtually always wants EVERY task
 // — including completed work, which is the point of a "what we did" digest — and
-// an agent often rewrites the bridge's getTasks() down to a bare `/tasks`,
+// a bot often rewrites the bridge's getTasks() down to a bare `/tasks`,
 // dropping the query. Upgrading here (host-side) makes apps see real data
 // regardless of how their bridge phrased the call. An explicit query (a specific
 // channel) is left as-is.
@@ -601,7 +601,7 @@ function serviceCreateTask(
         // Channel only — NOT owner. An app must not be able to set the owner
         // or any other privileged field (asserted in CustomAppFrame.test.ts),
         // and it does not need to: the task just needs a conversation to live
-        // in, and the agent that builds and maintains apps is the honest home
+        // in, and the bot that builds and maintains apps is the honest home
         // for work an app asked for. The broker cannot resolve one itself here
         // because created_by is "human", who is not a roster member.
         const res = await post<{ task?: { id?: string } }>("/tasks", {

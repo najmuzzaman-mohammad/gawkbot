@@ -152,14 +152,14 @@ describe("OfficeOverviewApp", () => {
       expect(screen.getByText("Office overview")).toBeInTheDocument();
       expect(screen.getByText("Active runs")).toBeInTheDocument();
       expect(screen.getByText("Blocked tasks")).toBeInTheDocument();
-      expect(screen.getByText("Agents working now")).toBeInTheDocument();
+      expect(screen.getByText("Bots working now")).toBeInTheDocument();
       expect(screen.getByText("Pending reviews")).toBeInTheDocument();
       expect(screen.getByText("Compiled skills")).toBeInTheDocument();
       expect(screen.getByText("Next scheduled routines")).toBeInTheDocument();
       expect(screen.getByText("Recent artifacts")).toBeInTheDocument();
 
       // Spot-check data in sections. Task titles, questions, etc. can appear
-      // in multiple sections (active runs, recent artifacts, agent task label,
+      // in multiple sections (active runs, recent artifacts, bot task label,
       // request label + body). Use getAllByText to allow duplicates.
       const shipLandingMatches =
         await screen.findAllByText("Ship landing page");
@@ -194,17 +194,15 @@ describe("OfficeOverviewApp", () => {
       render(wrap(<OfficeOverviewApp />));
 
       expect(
-        await screen.findByText(
-          "Nothing is blocked. Agents are moving freely.",
-        ),
+        await screen.findByText("Nothing is blocked. Bots are moving freely."),
       ).toBeInTheDocument();
     });
 
-    it("shows empty state for agents when all are idle", async () => {
+    it("shows empty state for bots when all are idle", async () => {
       render(wrap(<OfficeOverviewApp />));
 
       expect(
-        await screen.findByText("No agents are visibly active right now."),
+        await screen.findByText("No bots are visibly active right now."),
       ).toBeInTheDocument();
     });
 
@@ -212,7 +210,7 @@ describe("OfficeOverviewApp", () => {
       render(wrap(<OfficeOverviewApp />));
 
       expect(
-        await screen.findByText("No pending requests from agents."),
+        await screen.findByText("No pending requests from bots."),
       ).toBeInTheDocument();
     });
 

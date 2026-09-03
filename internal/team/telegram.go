@@ -152,7 +152,7 @@ func (t *TelegramTransport) Health() transport.Health {
 // this Run), so the prior drainOutbound goroutine is gone — the contract
 // intent of "Host calls Send from a per-transport worker goroutine" is honest
 // once again. typingLoop continues to run inside Run because it is a passive
-// presence ping (driven by tagged-agent state on the broker), not a per-message
+// presence ping (driven by tagged-bot state on the broker), not a per-message
 // outbound action — keeping it adapter-side avoids leaking telegram-specific
 // "is anyone tagged" polling onto the Host. Implements transport.Transport.
 func (t *TelegramTransport) Run(ctx context.Context, host transport.Host) error {
@@ -363,7 +363,7 @@ func (t *TelegramTransport) routeInbound(ctx context.Context, host transport.Hos
 }
 
 // typingLoop periodically sends "typing" actions to Telegram chats when
-// agents are actively processing (recently tagged and haven't replied yet).
+// bots are actively processing (recently tagged and haven't replied yet).
 func (t *TelegramTransport) typingLoop(ctx context.Context) {
 	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
@@ -375,8 +375,8 @@ func (t *TelegramTransport) typingLoop(ctx context.Context) {
 		case <-ticker.C:
 		}
 
-		// Check if any agents are "typing" (tagged within last 30s, no reply yet)
-		if !t.Broker.HasRecentlyTaggedAgents(30 * time.Second) {
+		// Check if any bots are "typing" (tagged within last 30s, no reply yet)
+		if !t.Broker.HasRecentlyTaggedBots(30 * time.Second) {
 			continue
 		}
 
@@ -470,7 +470,7 @@ func formatTelegramOutbound(msg channelMessage) string {
 		return fmt.Sprintf("→ <i>%s</i>", escapeTelegramHTML(msg.Content))
 
 	default:
-		// Regular agent message
+		// Regular bot message
 		var sb strings.Builder
 		if msg.From != "" {
 			sb.WriteString("<b>@")

@@ -27,7 +27,7 @@ as MUST MIGRATE (workspace state — needs `config.RuntimeHomeDir()`) or MUST NO
 | `cmd/wuphf/main.go:219` | `~/.wuphf/...` | MIGRATE | WUPHF state (line shifted from design's :198) |
 | `cmd/wuphf/channel_integration.go:256` | `os.Getenv("HOME") + .wuphf/team/broker-state.json` | MIGRATE | **Separate fix** — uses `os.Getenv("HOME")` directly, won't show in audit grep. Replace with `config.RuntimeHomeDir()`. |
 | `internal/calendar/store.go:27` | `~/.wuphf/calendar/...` | MIGRATE | WUPHF state |
-| `internal/agent/session.go:22` | `~/.wuphf/sessions/` | MIGRATE | Reclassified by eng-review — was "verify; if Claude session paths, leave"; verified as WUPHF state (agent JSONL sessions, not Claude auth) |
+| `internal/agent/session.go:22` | `~/.wuphf/sessions/` | MIGRATE | Reclassified by eng-review — was "verify; if Claude session paths, leave"; verified as WUPHF state (bot JSONL sessions, not Claude auth) |
 | `internal/agent/task_runtime.go:29` | `~/.wuphf/office/tasks` | MIGRATE | Reclassified by eng-review — was "verify; if task worktree under user home, leave"; verified as WUPHF state |
 | `internal/agent/tools.go:427` | `~/.wuphf/office/messages` | MIGRATE | WUPHF outbox state (line shifted from design's :420) |
 | `internal/team/launcher.go:499` | `~/.wuphf/panics.log` | MIGRATE | WUPHF state (line shifted from design's :478) |
@@ -64,7 +64,7 @@ as MUST MIGRATE (workspace state — needs `config.RuntimeHomeDir()`) or MUST NO
 | File:Line | Path resolved | Decision needed | Recommendation |
 |---|---|---|---|
 | `internal/config/config.go:877` | `~/.wuphf/openclaw/identity.json` (`ResolveOpenclawIdentityPath`) | Migrate (per-workspace OpenClaw) OR carve out | **Recommend: carve out for v1** — OpenClaw identity is user-global device credentials; per-workspace identities is a separate feature decision. Add explicit comment: `// OpenClaw identity is user-global, intentionally NOT under WUPHF_RUNTIME_HOME.` |
-| `internal/team/headless_opencode.go:321,326` | `~/.config/opencode/opencode.<slug>.json` (per-agent config) | Same-slug across workspaces collides. Workspace-namespace OR refuse to coexist | **Recommend: namespace by workspace.** Change `headlessOpencodeAgentConfigPath` to take a workspace name + slug; write per-agent configs under `<runtime_home>/.wuphf/opencode-configs/<slug>.json`. Pass via `OPENCODE_CONFIG` env (already supported per line 94). Avoids the cross-workspace collision codex flagged (the actual race is on per-agent files, not the base `opencode.json` which is read-only here). |
+| `internal/team/headless_opencode.go:321,326` | `~/.config/opencode/opencode.<slug>.json` (per-bot config) | Same-slug across workspaces collides. Workspace-namespace OR refuse to coexist | **Recommend: namespace by workspace.** Change `headlessOpencodeAgentConfigPath` to take a workspace name + slug; write per-bot configs under `<runtime_home>/.wuphf/opencode-configs/<slug>.json`. Pass via `OPENCODE_CONFIG` env (already supported per line 94). Avoids the cross-workspace collision codex flagged (the actual race is on per-bot files, not the base `opencode.json` which is read-only here). |
 
 **Subtotal: 2 decide-in-Phase-0 sites.**
 

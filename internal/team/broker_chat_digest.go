@@ -203,7 +203,7 @@ func chatDigestIsSystem(m chatDigestMessage) bool {
 }
 
 // chatDigestMeaningful keeps a window only when, after dropping system/auto and
-// empty posts, it holds at least two human/agent messages AND either two-plus
+// empty posts, it holds at least two human/bot messages AND either two-plus
 // of them are replies or they come from two-plus distinct participants.
 func chatDigestMeaningful(msgs []chatDigestMessage) bool {
 	participants := map[string]struct{}{}

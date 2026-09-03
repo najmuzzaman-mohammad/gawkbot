@@ -457,7 +457,7 @@ func TestBrokerWikiAuditReturnsFullLineage(t *testing.T) {
 	if err := repo.Init(ctx); err != nil {
 		t.Fatalf("init: %v", err)
 	}
-	// Seed a bootstrap commit and one agent commit so the audit log has
+	// Seed a bootstrap commit and one bot commit so the audit log has
 	// three distinct authors (system, wuphf-bootstrap, operator).
 	stub := filepath.Join(root, "team", "playbooks", "renewal.md")
 	if err := os.MkdirAll(filepath.Dir(stub), 0o700); err != nil {

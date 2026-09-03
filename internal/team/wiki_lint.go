@@ -436,7 +436,7 @@ func allAcknowledged(cluster []TypedFact) bool {
 // contradicts plus the reason.
 func (l *Lint) judgeCluster(ctx context.Context, entitySlug, subject, predicate string, cluster []TypedFact) (bool, string, error) {
 	// Build the user prompt manually (the template is checked in as a .tmpl
-	// file for agents; the Go runner uses a simplified inline expansion).
+	// file for bots; the Go runner uses a simplified inline expansion).
 	var sb strings.Builder
 	sb.WriteString("Entity: ")
 	sb.WriteString(entitySlug)

@@ -50,12 +50,12 @@ func TestBuildOfficeIntroLinesShowsOfflinePreviewGuidance(t *testing.T) {
 func TestBuildDirectIntroLinesPreservesDirectSessionResetLanguage(t *testing.T) {
 	m := newChannelModel(false)
 	m.sessionMode = "1o1"
-	m.oneOnOneAgent = "be"
+	m.oneOnOneBot = "be"
 
 	lines := m.buildDirectIntroLines(96)
 	plain := stripANSI(joinRenderedLines(lines))
 
-	if !strings.Contains(plain, "Direct session reset. Agent pane reloaded in place.") {
+	if !strings.Contains(plain, "Direct session reset. Bot pane reloaded in place.") {
 		t.Fatalf("expected direct-session reset copy, got %q", plain)
 	}
 	if !strings.Contains(plain, "Use /switcher to jump back to the team.") {

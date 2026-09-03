@@ -59,16 +59,16 @@ func handleTeamRuntimeState(ctx context.Context, _ *mcp.CallToolRequest, args Te
 	}
 
 	mode := team.SessionModeOffice
-	directAgent := ""
+	directBot := ""
 	if isOneOnOneMode() {
 		mode = team.SessionModeOneOnOne
-		directAgent = team.NormalizeOneOnOneAgent(os.Getenv("WUPHF_ONE_ON_ONE_AGENT"))
+		directBot = team.NormalizeOneOnOneBot(os.Getenv("WUPHF_ONE_ON_ONE_AGENT"))
 	}
 
 	snapshot := team.BuildRuntimeSnapshot(team.RuntimeSnapshotInput{
 		Channel:     taskChannel,
 		SessionMode: mode,
-		DirectAgent: directAgent,
+		DirectBot:   directBot,
 		Tasks:       convertRuntimeTasks(tasks),
 		Requests:    requests,
 		Recent:      recent,
@@ -348,7 +348,7 @@ func fetchRuntimeMessages(ctx context.Context, channel, mySlug string, limit int
 	values.Set("channel", channel)
 	if slug := strings.TrimSpace(resolveSlugOptional(mySlug)); slug != "" {
 		values.Set("my_slug", slug)
-		applyAgentMessageScope(values, slug, "agent")
+		applyBotMessageScope(values, slug, "agent")
 	}
 	switch {
 	case limit <= 0:

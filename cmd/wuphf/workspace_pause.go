@@ -27,7 +27,7 @@ func runWorkspacePause(args []string) {
 		fmt.Fprintln(os.Stderr, "  gawkbot workspace pause <name>            Graceful drain, 90s timeout")
 		fmt.Fprintln(os.Stderr, "  gawkbot workspace pause --force <name>    Skip drain; SIGKILL after 5s")
 		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Pause stops the broker and halts agent dispatch. The workspace's state stays")
+		fmt.Fprintln(os.Stderr, "Pause stops the broker and halts bot dispatch. The workspace's state stays")
 		fmt.Fprintln(os.Stderr, "intact on disk; resume restarts cleanly. While paused, no LLM tokens burn.")
 	}
 	if err := fs.Parse(args); err != nil {

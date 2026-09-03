@@ -462,7 +462,7 @@ func TestRepoAuditLogCoversAllAuthors(t *testing.T) {
 	if _, err := repo.CommitBootstrap(ctx, "materialize"); err != nil {
 		t.Fatalf("CommitBootstrap: %v", err)
 	}
-	// Two agent commits.
+	// Two bot commits.
 	if _, _, err := repo.Commit(ctx, "operator", "team/people/sarah.md", "# Sarah\n", "create", "sarah"); err != nil {
 		t.Fatalf("Commit sarah: %v", err)
 	}

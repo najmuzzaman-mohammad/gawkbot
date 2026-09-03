@@ -58,9 +58,9 @@ type Config struct {
 	WorkspaceSlug  string `json:"workspace_slug,omitempty"`
 	LLMProvider    string `json:"llm_provider,omitempty"`
 	// LLMProviderPriority is an ordered list of provider identifiers (same
-	// vocabulary as LLMProvider — "claude-code", "codex", "opencode", etc.) that agents
+	// vocabulary as LLMProvider — "claude-code", "codex", "opencode", etc.) that bots
 	// should try in order when picking a runtime. LLMProvider remains the
-	// single-value primary choice; the priority list is consulted by agent
+	// single-value primary choice; the priority list is consulted by bot
 	// creation and fallback flows. An empty slice means "fall back to
 	// LLMProvider alone", preserving legacy behavior.
 	LLMProviderPriority []string `json:"llm_provider_priority,omitempty"`
@@ -145,7 +145,7 @@ const (
 	MemoryBackendMarkdown = "markdown"
 )
 
-// OpenclawBridgeBinding binds a WUPHF agent session to an OpenClaw bridge slug.
+// OpenclawBridgeBinding binds a WUPHF bot session to an OpenClaw bridge slug.
 type OpenclawBridgeBinding struct {
 	SessionKey  string `json:"session_key"`
 	Slug        string `json:"slug"`
@@ -794,7 +794,7 @@ func SaveSlackTokens(botToken, appToken string) error {
 	return nil
 }
 
-// CompanyContextBlock returns a prompt fragment with company context for agent
+// CompanyContextBlock returns a prompt fragment with company context for bot
 // system prompts. Returns empty string if no relevant fields are configured.
 func CompanyContextBlock() string {
 	cfg, _ := Load()

@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { type AgentRequest, getAllRequests } from "../api/client";
+import { type BotRequest, getAllRequests } from "../api/client";
 
 export interface RequestsState {
-  all: AgentRequest[];
-  pending: AgentRequest[];
-  blockingPending: AgentRequest | null;
+  all: BotRequest[];
+  pending: BotRequest[];
+  blockingPending: BotRequest | null;
 }
 
 const REQUEST_REFETCH_MS = 5_000;

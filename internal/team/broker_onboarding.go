@@ -19,16 +19,16 @@ import (
 // onboardingCompleteFn is invoked by the onboarding package when the user
 // finishes the wizard. It seeds the team from the user's picked blueprint
 // (or synthesizes one if blueprintID is empty — the "from scratch" path),
-// honors the wizard's per-agent checkbox filter, and posts the kickoff
-// task to the lead's DM tagged to the blueprint's lead agent.
+// honors the wizard's per-bot checkbox filter, and posts the kickoff
+// task to the lead's DM tagged to the blueprint's lead bot.
 //
 // Contract:
 //   - blueprintID is the curated blueprint the user selected. Empty means
 //     "from scratch" — the broker synthesizes a blueprint from the
 //     onboarding-state goals.
-//   - selectedAgents mirrors the wizard's toggle state:
+//   - selectedBots mirrors the wizard's toggle state:
 //     nil   → no filtering (internal / synthesis callers, legacy client);
-//     []    → user unchecked every agent; seed lead only + system notice;
+//     []    → user unchecked every bot; seed lead only + system notice;
 //     [...] → keep only those slugs (plus the lead, which is unremovable).
 //
 // Side effects happen BEFORE the onboarding package writes the completion
@@ -39,7 +39,7 @@ import (
 // The DefaultManifest roster (the Chief of Staff alone) is NEVER reached
 // via this path. It remains only as a true-recovery fallback in
 // ensureDefaultOfficeMembersLocked for corrupted/zero-member state.
-func (b *Broker) onboardingCompleteFn(task string, skipTask bool, blueprintID string, selectedAgents []string, companyName string) error {
+func (b *Broker) onboardingCompleteFn(task string, skipTask bool, blueprintID string, selectedBots []string, companyName string) error {
 	task = strings.TrimSpace(task)
 	if !skipTask && task == "" {
 		return fmt.Errorf("onboarding: task is required when skip_task=false")
@@ -89,12 +89,12 @@ func (b *Broker) onboardingCompleteFn(task string, skipTask bool, blueprintID st
 			}
 		}
 
-		return b.seedFromBlueprintLocked(bp, selectedAgents, task, skipTask, synthesized)
+		return b.seedFromBlueprintLocked(bp, selectedBots, task, skipTask, synthesized)
 	}()
 	if seedErr != nil {
 		return seedErr
 	}
-	b.backfillAgentFilesForRoster()
+	b.backfillBotFilesForRoster()
 
 	// Materialize the blueprint's LLM wiki outside the broker lock. Lane A
 	// owns the git repo at ~/.wuphf/wiki; we write the skeleton files, commit
@@ -227,12 +227,12 @@ func (b *Broker) materializeBlueprintWiki(bp operations.Blueprint) {
 // it does not mutate broker state — the caller feeds the returned
 // Blueprint to seedFromBlueprintLocked.
 //
-// The starter roster is a fixed 5-agent founding team (CEO lead plus GTM
+// The starter roster is a fixed 5-bot founding team (CEO lead plus GTM
 // Lead, Founding Engineer, Product Manager, Designer) rather than the
 // generic operator/planner/executor/reviewer shape. This is the product
 // default for a brand-new WUPHF office: it covers the four functions a
 // real early-stage team needs (strategy, revenue, build, design) with a
-// named CEO as the human-facing lead. Users can still uncheck agents in
+// named CEO as the human-facing lead. Users can still uncheck bots in
 // the wizard's Team step; unchecked ones are dropped via the filter.
 func synthesizeBlueprintFromState(task string) operations.Blueprint {
 	state, err := onboarding.Load()
@@ -257,7 +257,7 @@ func scratchFoundingTeamBlueprint(companyName, description, directive string) op
 	if displayName == "" {
 		displayName = "Your company"
 	}
-	agents := []operations.StarterAgent{
+	bots := []operations.StarterBot{
 		{Slug: "ceo", Name: "Chief of Staff", Role: "lead", Checked: true, Type: "assistant", BuiltIn: true, Expertise: []string{"strategy", "prioritization", "delegation"}, Personality: "Sets direction, breaks directives into specialist assignments, and owns the outcome."},
 		{Slug: "gtm-lead", Name: "GTM Lead", Role: "go-to-market", Checked: true, Type: "assistant", Expertise: []string{"positioning", "sales", "marketing", "growth"}, Personality: "Turns the product into pipeline — messaging, outbound, launches, and early revenue."},
 		{Slug: "founding-engineer", Name: "Founding Engineer", Role: "engineering", Checked: true, Type: "assistant", Expertise: []string{"full-stack", "architecture", "infrastructure", "shipping"}, Personality: "Full-stack engineer who ships end-to-end and makes pragmatic architectural calls."},
@@ -288,7 +288,7 @@ func scratchFoundingTeamBlueprint(companyName, description, directive string) op
 			LeadSlug:                  "ceo",
 			GeneralChannelDescription: "Primary coordination channel.",
 			KickoffPrompt:             directive,
-			Agents:                    agents,
+			Bots:                      bots,
 			Channels:                  channels,
 			Tasks:                     tasks,
 		},
@@ -298,12 +298,12 @@ func scratchFoundingTeamBlueprint(companyName, description, directive string) op
 // seedFromBlueprintLocked is the single seed path used by both picked-
 // blueprint and from-scratch flows. It replaces the prior dual-path code
 // (seedBlankSlateOperationLocked + ensureDefaultOfficeMembersLocked+manual
-// kickoff). selectedAgents filters the blueprint's starter roster; see the
+// kickoff). selectedBots filters the blueprint's starter roster; see the
 // onboardingCompleteFn doc comment for the three-mode contract.
-func (b *Broker) seedFromBlueprintLocked(bp operations.Blueprint, selectedAgents []string, task string, skipTask bool, synthesized bool) error {
-	b.members = blankSlateOfficeMembersFromBlueprint(bp, selectedAgents)
+func (b *Broker) seedFromBlueprintLocked(bp operations.Blueprint, selectedBots []string, task string, skipTask bool, synthesized bool) error {
+	b.members = blankSlateOfficeMembersFromBlueprint(bp, selectedBots)
 	if len(b.members) == 0 {
-		// Defensive: blueprint had no parseable agents AND no lead fallback
+		// Defensive: blueprint had no parseable bots AND no lead fallback
 		// kicked in. Seed the DefaultManifest so the user has SOMETHING.
 		b.members = defaultOfficeMembers()
 	}
@@ -327,15 +327,15 @@ func (b *Broker) seedFromBlueprintLocked(bp operations.Blueprint, selectedAgents
 	// Seed the "Backup & Migration" system task that owns #general so the
 	// ~141 fallback call sites that post to "general" keep working.
 	b.ensureBackupMigrationTaskLocked()
-	// Every agent gets a DM, HERE and not only on the next Load.
+	// Every bot gets a DM, HERE and not only on the next Load.
 	//
 	// Onboarding replaces the roster wholesale, so the DMs seeded at boot are
 	// for members that no longer exist. Without this the human finishes
 	// onboarding and has the blueprint's working channels but no 1:1 with
 	// anyone -- and with #general retired, no way to talk to the lead at all
 	// until the process is restarted.
-	b.ensureAgentDMsLocked()
-	if err := b.postKickoffLocked(bp, selectedAgents, task, skipTask, synthesized); err != nil {
+	b.ensureBotDMsLocked()
+	if err := b.postKickoffLocked(bp, selectedBots, task, skipTask, synthesized); err != nil {
 		return err
 	}
 	// Pack/blueprint seeds follow the same contract as every other create
@@ -372,7 +372,7 @@ func (b *Broker) seedFromBlueprintLocked(bp operations.Blueprint, selectedAgents
 	return nil
 }
 
-func (b *Broker) postKickoffLocked(bp operations.Blueprint, selectedAgents []string, task string, skipTask bool, synthesized bool) error {
+func (b *Broker) postKickoffLocked(bp operations.Blueprint, selectedBots []string, task string, skipTask bool, synthesized bool) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	// Every message below goes to the LEAD's DM.
@@ -384,7 +384,7 @@ func (b *Broker) postKickoffLocked(bp operations.Blueprint, selectedAgents []str
 	// because appendMessageLocked does not check that the channel exists.
 	//
 	// homeChannelForLocked both resolves the DM and creates it if missing, and
-	// ensureAgentDMsLocked has just run one call up, so the lead's
+	// ensureBotDMsLocked has just run one call up, so the lead's
 	// conversation is there. Failing loudly is right if it somehow is not:
 	// this is the first thing the human ever sees, and an office seeded with
 	// an unreachable kickoff is worse than one that refuses to seed.
@@ -403,17 +403,17 @@ func (b *Broker) postKickoffLocked(bp operations.Blueprint, selectedAgents []str
 	// No lead-only warning any more. A roster of exactly the Chief of Staff
 	// is the intended default, not an anomaly to apologize for: specialists
 	// are created on demand. (The old warning also counted "specialists" by
-	// excluding the Librarian and App Builder, two agents that no longer
+	// excluding the Librarian and App Builder, two bots that no longer
 	// seed.)
 
 	if skipTask {
 		// No task was kicked off, so the Chief of Staff opens the DM itself.
 		// Founder: "the Chief of Staff should have a first prompt to introduce
 		// itself and the features and ask for the person's goal to plan the
-		// first thing to do." It speaks as the agent (From: lead), not as
+		// first thing to do." It speaks as the bot (From: lead), not as
 		// "system": the point of landing in a DM is that somebody is there.
-		// No staged agent presence lines and no invented team: the roster is
-		// one agent and the message says only what the product actually does
+		// No staged bot presence lines and no invented team: the roster is
+		// one bot and the message says only what the product actually does
 		// (core-loop R6 removed the demo_seed machinery; the honesty doctrine
 		// keeps it out).
 		b.counter++
@@ -452,7 +452,7 @@ func (b *Broker) postKickoffLocked(bp operations.Blueprint, selectedAgents []str
 	b.lastTaggedAt[lead] = time.Now()
 
 	// Synthesized blueprints (from-scratch path) post two extra markers so
-	// the downstream agents know they are running against a just-invented
+	// the downstream bots know they are running against a just-invented
 	// operation rather than a curated one.
 	if synthesized {
 		if strings.TrimSpace(bp.Name) != "" {
@@ -486,8 +486,8 @@ func (b *Broker) postKickoffLocked(bp operations.Blueprint, selectedAgents []str
 // chiefOfStaffIntroMessage is the Chief of Staff's opening line in a fresh
 // office where no task was kicked off. It replaces welcomeMessageForMembers,
 // whose copy ("the team are online and ready ... they'll claim work, argue,
-// and ship") described a six-agent default office that no longer exists and
-// spoke as "system" about agents instead of letting the one agent present
+// and ship") described a six-bot default office that no longer exists and
+// spoke as "system" about bots instead of letting the one bot present
 // speak.
 //
 // The copy promises only what the product does today: absorbing menial work,
@@ -501,7 +501,7 @@ func chiefOfStaffIntroMessage(members []officeMember) string {
 		leadName = "your Chief of Staff"
 	}
 	return fmt.Sprintf(
-		"I am %s. Hand me the boring part: I read the threads, chase the follow ups, and do the menial work, and when you want a screen to manage the outcome I build you a microapp for it. You can also show me a workflow once on a screenshare and I will handle it from then on. Anything that leaves this office waits for your approval first.\n\nSo, what are you trying to get done? Give me the goal and I will plan the first thing. If the work needs more agents, I will propose them as we go.",
+		"I am %s. Hand me the boring part: I read the threads, chase the follow ups, and do the menial work, and when you want a screen to manage the outcome I build you a microapp for it. You can also show me a workflow once on a screenshare and I will handle it from then on. Anything that leaves this office waits for your approval first.\n\nSo, what are you trying to get done? Give me the goal and I will plan the first thing. If the work needs more bots, I will propose them as we go.",
 		leadName,
 	)
 }
@@ -539,35 +539,35 @@ func onboardingPartialString(partial *onboarding.PartialProgress, step, key stri
 }
 
 // blankSlateOfficeMembersFromBlueprint projects a blueprint's starter
-// agent list into broker officeMembers, applying the wizard's
-// selectedAgents filter. See onboardingCompleteFn doc for the nil / empty
+// bot list into broker officeMembers, applying the wizard's
+// selectedBots filter. See onboardingCompleteFn doc for the nil / empty
 // / populated contract.
 //
-// The lead agent (from blueprint.Starter.LeadSlug) is always kept,
+// The lead bot (from blueprint.Starter.LeadSlug) is always kept,
 // regardless of the filter — removing the lead leaves downstream code with
 // no one to tag for kickoff and no BuiltIn member for channel ownership.
-func blankSlateOfficeMembersFromBlueprint(blueprint operations.Blueprint, selectedAgents []string) []officeMember {
-	agents := blueprint.Starter.Agents
+func blankSlateOfficeMembersFromBlueprint(blueprint operations.Blueprint, selectedBots []string) []officeMember {
+	bots := blueprint.Starter.Bots
 	leadSlug := normalizeChannelSlug(blueprint.Starter.LeadSlug)
-	filter := agentSelectionFilter(selectedAgents, leadSlug)
-	availableSlugs := starterAgentSlugSet(agents)
+	filter := botSelectionFilter(selectedBots, leadSlug)
+	availableSlugs := starterBotSlugSet(bots)
 
-	members := blankSlateOfficeMembersFromAgents(agents, leadSlug, filter)
+	members := blankSlateOfficeMembersFromBots(bots, leadSlug, filter)
 	// A stale web bundle can post scratch-team slugs from a different
 	// synthesized roster. In that case the filter keeps only the lead; prefer
-	// the full current roster over a misleading one-agent office.
-	if selectionLooksStaleForStarterAgents(selectedAgents, leadSlug, availableSlugs, members) {
-		members = blankSlateOfficeMembersFromAgents(agents, leadSlug, nil)
+	// the full current roster over a misleading one-bot office.
+	if selectionLooksStaleForStarterBots(selectedBots, leadSlug, availableSlugs, members) {
+		members = blankSlateOfficeMembersFromBots(bots, leadSlug, nil)
 	}
 	if len(members) > 0 {
 		// The blueprint roster stands as selected. The Librarian and App
 		// Builder are no longer appended here: both are retired as default
-		// agents, and their jobs (wiki contribution, app building) are system
-		// skills every agent carries rather than agents of their own.
+		// bots, and their jobs (wiki contribution, app building) are system
+		// skills every bot carries rather than bots of their own.
 		return members
 	}
 	// Defensive fallback used only when the blueprint had zero parseable
-	// agents. The smallest office that works is the Chief of Staff alone; it
+	// bots. The smallest office that works is the Chief of Staff alone; it
 	// creates specialists on demand instead of shipping an invented team.
 	now := time.Now().UTC().Format(time.RFC3339)
 	return []officeMember{
@@ -575,17 +575,17 @@ func blankSlateOfficeMembersFromBlueprint(blueprint operations.Blueprint, select
 	}
 }
 
-func blankSlateOfficeMembersFromAgents(agents []operations.StarterAgent, leadSlug string, filter func(string) bool) []officeMember {
-	members := make([]officeMember, 0, len(agents))
+func blankSlateOfficeMembersFromBots(bots []operations.StarterBot, leadSlug string, filter func(string) bool) []officeMember {
+	members := make([]officeMember, 0, len(bots))
 	now := time.Now().UTC().Format(time.RFC3339)
-	for _, agent := range agents {
+	for _, bot := range bots {
 		// The skip tests the RAW value: normalizeChannelSlug turns a nameless
-		// starter agent into an agent literally called "general".
+		// starter bot into a bot literally called "general".
 		//
 		// Normaliser deliberately UNCHANGED — this becomes officeMember.Slug,
 		// which is persisted and looked up by findMemberLocked. Switching it is
 		// a migration; see broker_indexes.go.
-		raw := operationFirstNonEmpty(agent.Slug, agent.EmployeeBlueprint, operationSlug(agent.Name))
+		raw := operationFirstNonEmpty(bot.Slug, bot.EmployeeBlueprint, operationSlug(bot.Name))
 		if strings.TrimSpace(raw) == "" {
 			continue
 		}
@@ -593,11 +593,11 @@ func blankSlateOfficeMembersFromAgents(agents []operations.StarterAgent, leadSlu
 		if filter != nil && !filter(slug) {
 			continue
 		}
-		name := strings.TrimSpace(agent.Name)
+		name := strings.TrimSpace(bot.Name)
 		if name == "" {
 			name = humanizeSlug(slug)
 		}
-		role := strings.TrimSpace(agent.Role)
+		role := strings.TrimSpace(bot.Role)
 		if role == "" {
 			role = name
 		}
@@ -614,27 +614,27 @@ func blankSlateOfficeMembersFromAgents(agents []operations.StarterAgent, leadSlu
 			Slug:         slug,
 			Name:         name,
 			Role:         role,
-			Expertise:    normalizeStringList(agent.Expertise),
-			Personality:  strings.TrimSpace(agent.Personality),
+			Expertise:    normalizeStringList(bot.Expertise),
+			Personality:  strings.TrimSpace(bot.Personality),
 			AllowedTools: nil,
 			CreatedBy:    "wuphf",
 			CreatedAt:    now,
-			BuiltIn:      agent.BuiltIn || slug == leadSlug || slug == "operator" || slug == "founder" || slug == "ceo",
+			BuiltIn:      bot.BuiltIn || slug == leadSlug || slug == "operator" || slug == "founder" || slug == "ceo",
 		})
 	}
 	return members
 }
 
-func starterAgentSlugSet(agents []operations.StarterAgent) map[string]struct{} {
-	out := make(map[string]struct{}, len(agents))
-	for _, agent := range agents {
+func starterBotSlugSet(bots []operations.StarterBot) map[string]struct{} {
+	out := make(map[string]struct{}, len(bots))
+	for _, bot := range bots {
 		// The skip tests the RAW value: normalizeChannelSlug turns a nameless
-		// starter agent into an agent literally called "general".
+		// starter bot into a bot literally called "general".
 		//
 		// Normaliser deliberately UNCHANGED — this becomes officeMember.Slug,
 		// which is persisted and looked up by findMemberLocked. Switching it is
 		// a migration; see broker_indexes.go.
-		raw := operationFirstNonEmpty(agent.Slug, agent.EmployeeBlueprint, operationSlug(agent.Name))
+		raw := operationFirstNonEmpty(bot.Slug, bot.EmployeeBlueprint, operationSlug(bot.Name))
 		if strings.TrimSpace(raw) == "" {
 			continue
 		}
@@ -644,8 +644,8 @@ func starterAgentSlugSet(agents []operations.StarterAgent) map[string]struct{} {
 	return out
 }
 
-func selectionLooksStaleForStarterAgents(selectedAgents []string, leadSlug string, availableSlugs map[string]struct{}, members []officeMember) bool {
-	if len(selectedAgents) == 0 || len(members) != 1 {
+func selectionLooksStaleForStarterBots(selectedBots []string, leadSlug string, availableSlugs map[string]struct{}, members []officeMember) bool {
+	if len(selectedBots) == 0 || len(members) != 1 {
 		return false
 	}
 	if leadSlug == "" || members[0].Slug != leadSlug {
@@ -653,8 +653,8 @@ func selectionLooksStaleForStarterAgents(selectedAgents []string, leadSlug strin
 	}
 	hasUnknown := false
 	hasKnownNonLead := false
-	for _, raw := range selectedAgents {
-		// Agent slugs from the wizard selection: actor normaliser, raw skip.
+	for _, raw := range selectedBots {
+		// Bot slugs from the wizard selection: actor normaliser, raw skip.
 		if strings.TrimSpace(raw) == "" {
 			continue
 		}
@@ -670,17 +670,17 @@ func selectionLooksStaleForStarterAgents(selectedAgents []string, leadSlug strin
 	return hasUnknown && !hasKnownNonLead
 }
 
-// agentSelectionFilter returns a membership predicate for the wizard's
-// selectedAgents array. nil input disables filtering (keep all); empty
+// botSelectionFilter returns a membership predicate for the wizard's
+// selectedBots array. nil input disables filtering (keep all); empty
 // array keeps only the lead so the team isn't empty (the caller relies on
 // len(members) == 1 to emit the lead-only system message); a populated
 // array keeps only those slugs, always including the lead.
-func agentSelectionFilter(selectedAgents []string, leadSlug string) func(string) bool {
-	if selectedAgents == nil {
+func botSelectionFilter(selectedBots []string, leadSlug string) func(string) bool {
+	if selectedBots == nil {
 		return nil
 	}
-	allowed := make(map[string]bool, len(selectedAgents)+1)
-	for _, s := range selectedAgents {
+	allowed := make(map[string]bool, len(selectedBots)+1)
+	for _, s := range selectedBots {
 		if slug := normalizeChannelSlug(s); slug != "" {
 			allowed[slug] = true
 		}
@@ -821,7 +821,7 @@ func memberSlugsFromMembers(members []officeMember) []string {
 // the sort they'd disagree on the lead in BuiltIn-free rosters).
 //
 // The CEO pass mirrors officeLeadSlugFrom and is load-bearing, not cosmetic.
-// The Librarian and the App Builder are BuiltIn service agents present in
+// The Librarian and the App Builder are BuiltIn service bots present in
 // every office, and "app-builder" sorts ahead of "ceo", so a BuiltIn-first
 // scan handed the lead to the App Builder on every seeded roster: the
 // onboarding kickoff issue was tagged to it instead of the CEO, and the

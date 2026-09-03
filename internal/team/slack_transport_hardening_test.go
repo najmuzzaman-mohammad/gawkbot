@@ -121,40 +121,40 @@ func TestSlackResolveUserCachesBotAsNonHuman(t *testing.T) {
 	}
 }
 
-// A foreign bot REGISTERED via /slack/agents flows inbound attributed to its
-// office slug — the ingress half of multi-agent coordination — while
+// A foreign bot REGISTERED via /slack/bots flows inbound attributed to its
+// office slug — the ingress half of multi-bot coordination — while
 // unregistered bots keep dropping (the registry is a fail-closed allowlist).
-func TestSlackRouteInboundRegisteredForeignAgent(t *testing.T) {
+func TestSlackRouteInboundRegisteredForeignBot(t *testing.T) {
 	api := newFakeSlackAPI()
 	tr, b := newTestSlackTransport(t, "C0123", api)
 	tr.botUserID = "UBOT"
 	host := &brokerTransportHost{broker: b}
 	ctx := context.Background()
 
-	if _, err := b.RegisterSlackAgent("claude-bot", "Claude Bot", "U777"); err != nil {
-		t.Fatalf("RegisterSlackAgent: %v", err)
+	if _, err := b.RegisterSlackBot("claude-bot", "Claude Bot", "U777"); err != nil {
+		t.Fatalf("RegisterSlackBot: %v", err)
 	}
 
 	// Modern app post: bot_id + user set, no subtype.
 	if err := tr.routeInbound(ctx, host, &slackevents.MessageEvent{
 		User: "U777", BotID: "B7", Channel: "C0123", Text: "analysis done", TimeStamp: "2.1",
 	}); err != nil {
-		t.Fatalf("routeInbound registered agent: %v", err)
+		t.Fatalf("routeInbound registered bot: %v", err)
 	}
 	// bot_message subtype variant with a user id also flows.
 	if err := tr.routeInbound(ctx, host, &slackevents.MessageEvent{
 		SubType: "bot_message", User: "U777", BotID: "B7", Channel: "C0123", Text: "follow-up", TimeStamp: "2.2",
 	}); err != nil {
-		t.Fatalf("routeInbound bot_message registered agent: %v", err)
+		t.Fatalf("routeInbound bot_message registered bot: %v", err)
 	}
 
 	msgs := b.ChannelMessages("slack-general")
 	if len(msgs) != 2 {
-		t.Fatalf("registered agent messages should flow, got %d", len(msgs))
+		t.Fatalf("registered bot messages should flow, got %d", len(msgs))
 	}
 	for _, m := range msgs {
 		if m.From != "claude-bot" {
-			t.Fatalf("agent message must be attributed to the registered slug, got From=%q", m.From)
+			t.Fatalf("bot message must be attributed to the registered slug, got From=%q", m.From)
 		}
 	}
 
@@ -175,8 +175,8 @@ func TestSlackRouteInboundSelfDropBeatsRegistration(t *testing.T) {
 	tr.botUserID = "UBOT"
 	host := &brokerTransportHost{broker: b}
 
-	if _, err := b.RegisterSlackAgent("self-echo", "Self", "UBOT"); err != nil {
-		t.Fatalf("RegisterSlackAgent: %v", err)
+	if _, err := b.RegisterSlackBot("self-echo", "Self", "UBOT"); err != nil {
+		t.Fatalf("RegisterSlackBot: %v", err)
 	}
 	_ = tr.routeInbound(context.Background(), host, &slackevents.MessageEvent{
 		User: "UBOT", BotID: "B0", Channel: "C0123", Text: "echo", TimeStamp: "3.1",
@@ -186,14 +186,14 @@ func TestSlackRouteInboundSelfDropBeatsRegistration(t *testing.T) {
 	}
 }
 
-// An office message that tags a registered foreign agent is rendered with a
+// An office message that tags a registered foreign bot is rendered with a
 // real <@U…> mention (built from the registry, never from text) so the foreign
 // bot actually wakes; unregistered tags stay escaped plain text.
-func TestSlackFormatOutboundLinksRegisteredAgentMentions(t *testing.T) {
+func TestSlackFormatOutboundLinksRegisteredBotMentions(t *testing.T) {
 	api := newFakeSlackAPI()
 	tr, b := newTestSlackTransport(t, "C0123", api)
-	if _, err := b.RegisterSlackAgent("claude-bot", "Claude Bot", "U777"); err != nil {
-		t.Fatalf("RegisterSlackAgent: %v", err)
+	if _, err := b.RegisterSlackBot("claude-bot", "Claude Bot", "U777"); err != nil {
+		t.Fatalf("RegisterSlackBot: %v", err)
 	}
 
 	out, ok := tr.FormatOutbound(channelMessage{
@@ -219,18 +219,18 @@ func TestSlackFormatOutboundLinksRegisteredAgentMentions(t *testing.T) {
 	}
 }
 
-// WUPHF presents as ONE coordinating bot in Slack. Internal agents carry no
+// WUPHF presents as ONE coordinating bot in Slack. Internal bots carry no
 // sender attribution (Slack already shows the bot as speaker); "@ceo" renders
 // as the bot's own name (there is no public CEO); "@human"/"@you" render as
-// Human; and a foreign agent is PINGED only when ADDRESSED (leading-mention
+// Human; and a foreign bot is PINGED only when ADDRESSED (leading-mention
 // position) — references render as the plain name so bots don't respond to
 // messages that merely talk about them.
 func TestSlackRenderOfficeTagsForRealSlackReaders(t *testing.T) {
 	api := newFakeSlackAPI()
 	tr, b := newTestSlackTransport(t, "C0123", api)
 	tr.botUserName = "wuphf"
-	if _, err := b.RegisterSlackAgent("claude-bot", "Claude Bot", "U777"); err != nil {
-		t.Fatalf("RegisterSlackAgent: %v", err)
+	if _, err := b.RegisterSlackBot("claude-bot", "Claude Bot", "U777"); err != nil {
+		t.Fatalf("RegisterSlackBot: %v", err)
 	}
 
 	// A REFERENCE message: no leading mention → no pings, no attribution.
@@ -244,7 +244,7 @@ func TestSlackRenderOfficeTagsForRealSlackReaders(t *testing.T) {
 		t.Fatal("FormatOutbound should map slack-general")
 	}
 	if strings.Contains(out.Text, "*") || strings.HasPrefix(out.Text, "CEO") {
-		t.Fatalf("internal agent must carry NO sender attribution, got %q", out.Text)
+		t.Fatalf("internal bot must carry NO sender attribution, got %q", out.Text)
 	}
 	if strings.Contains(out.Text, "@ceo") || strings.Contains(out.Text, "@human") || strings.Contains(out.Text, "@you") {
 		t.Fatalf("office-internal tags must not survive as fake @tags, got %q", out.Text)
@@ -253,10 +253,10 @@ func TestSlackRenderOfficeTagsForRealSlackReaders(t *testing.T) {
 		t.Fatalf("the lead must render as the bot's own name, got %q", out.Text)
 	}
 	if strings.Contains(out.Text, "<@U777>") {
-		t.Fatalf("a non-addressing reference must NOT ping the agent, got %q", out.Text)
+		t.Fatalf("a non-addressing reference must NOT ping the bot, got %q", out.Text)
 	}
 	if !strings.Contains(out.Text, "Claude Bot take it from here") {
-		t.Fatalf("referenced agent renders as plain name, got %q", out.Text)
+		t.Fatalf("referenced bot renders as plain name, got %q", out.Text)
 	}
 	if !strings.Contains(out.Text, "cc Human and Human") {
 		t.Fatalf("@human/@you should render as Human, got %q", out.Text)
@@ -270,7 +270,7 @@ func TestSlackRenderOfficeTagsForRealSlackReaders(t *testing.T) {
 		Tagged:  []string{"claude-bot"},
 	})
 	if !strings.Contains(out2.Text, "<@U777>") {
-		t.Fatalf("an addressed agent must get a real ping, got %q", out2.Text)
+		t.Fatalf("an addressed bot must get a real ping, got %q", out2.Text)
 	}
 
 	// Gate actor attribution: human:<slack id> resolves through the user cache.
@@ -292,8 +292,8 @@ func TestSlackInboundHumanMentionOfBotWakesLead(t *testing.T) {
 	api.users["U7"] = &slack.User{ID: "U7", RealName: "Naj"}
 	tr, b := newTestSlackTransport(t, "C0123", api)
 	tr.botUserID = "UBOT"
-	if _, err := b.RegisterSlackAgent("claude-bot", "Claude Bot", "U777"); err != nil {
-		t.Fatalf("RegisterSlackAgent: %v", err)
+	if _, err := b.RegisterSlackBot("claude-bot", "Claude Bot", "U777"); err != nil {
+		t.Fatalf("RegisterSlackBot: %v", err)
 	}
 	host := &brokerTransportHost{broker: b}
 
@@ -318,7 +318,7 @@ func TestSlackInboundHumanMentionOfBotWakesLead(t *testing.T) {
 		t.Fatalf("bot mention must translate to the lead, got %q", m.Content)
 	}
 	if !strings.Contains(m.Content, "loop in @claude-bot") {
-		t.Fatalf("registered agent mention must translate to its slug, got %q", m.Content)
+		t.Fatalf("registered bot mention must translate to its slug, got %q", m.Content)
 	}
 	if !strings.Contains(m.Content, "and Naj later") {
 		t.Fatalf("other-user mention must become a display name, got %q", m.Content)

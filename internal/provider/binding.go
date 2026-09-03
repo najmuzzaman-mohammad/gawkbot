@@ -4,16 +4,16 @@ import "fmt"
 
 // Kind values for ProviderBinding.Kind. The empty string means "fall back to
 // the install-wide default" (config.ResolveLLMProvider at dispatch time), which
-// keeps manifests written before per-agent providers existed loading unchanged.
+// keeps manifests written before per-bot providers existed loading unchanged.
 const (
 	KindClaudeCode   = "claude-code"
 	KindCodex        = "codex"
 	KindOpencode     = "opencode"
 	KindOpenclaw     = "openclaw"
 	KindOpenclawHTTP = "openclaw-http"
-	KindHermesAgent  = "hermes-agent"
-	// KindSlack tags a foreign Slack agent bridged through the Slack transport's
-	// membrane: the broker never dispatches LLM turns for it — the agent is a
+	KindHermesBot    = "hermes-agent"
+	// KindSlack tags a foreign Slack bot bridged through the Slack transport's
+	// membrane: the broker never dispatches LLM turns for it — the bot is a
 	// foreign bot that acts in Slack and whose registered bot user id is the
 	// inbound routing key (see internal/team/broker_slack_agents.go).
 	KindSlack = "slack"
@@ -26,12 +26,12 @@ const (
 	KindExo    = "exo"
 )
 
-// ProviderBinding is the per-agent runtime selection persisted on an office
+// ProviderBinding is the per-bot runtime selection persisted on an office
 // member and on company.MemberSpec. It captures which LLM runtime executes the
-// agent's turns (Kind) and which model the runtime should use (Model, free
+// bot's turns (Kind) and which model the runtime should use (Model, free
 // form — validated by the runtime itself, not here).
 //
-// Openclaw is a pointer so agents on other runtimes don't emit an empty object
+// Openclaw is a pointer so bots on other runtimes don't emit an empty object
 // into their JSON; it's populated only when Kind == KindOpenclaw.
 type ProviderBinding struct {
 	Kind     string                   `json:"kind,omitempty"`
@@ -41,11 +41,11 @@ type ProviderBinding struct {
 }
 
 // OpenclawProviderBinding holds OpenClaw-specific parameters. SessionKey is
-// the gateway's identifier for the agent's persistent conversation. AgentID
-// is the OpenClaw agent config name (defaults to "main" at creation time).
+// the gateway's identifier for the bot's persistent conversation. BotID
+// is the OpenClaw bot config name (defaults to "main" at creation time).
 type OpenclawProviderBinding struct {
 	SessionKey string `json:"session_key,omitempty"`
-	AgentID    string `json:"agent_id,omitempty"`
+	BotID      string `json:"agent_id,omitempty"`
 }
 
 // SlackProviderBinding holds the Slack identity attached to an office member.
@@ -53,18 +53,18 @@ type OpenclawProviderBinding struct {
 // matches inbound bot-authored messages against. It accompanies two member
 // shapes:
 //
-//   - FOREIGN agents (Kind == KindSlack): bots running outside WUPHF, bridged
+//   - FOREIGN bots (Kind == KindSlack): bots running outside WUPHF, bridged
 //     through the membrane; inbound posts from UserID are ALLOWED.
-//   - SPAWNED agents (Kind != KindSlack, BotTokenEnv != ""): real office
-//     agents on WUPHF's own runtime that carry their own Slack app identity;
+//   - SPAWNED bots (Kind != KindSlack, BotTokenEnv != ""): real office
+//     bots on WUPHF's own runtime that carry their own Slack app identity;
 //     inbound posts from UserID are DROPPED (echo guard) and outbound posts
-//     are sent with the agent's own token so they appear as that agent.
+//     are sent with the bot's own token so they appear as that bot.
 type SlackProviderBinding struct {
 	UserID string `json:"user_id,omitempty"`
 	// BotTokenEnv names the ENVIRONMENT VARIABLE holding the bot token
-	// (xoxb-…) a spawned office agent posts to Slack with. Only the env var
+	// (xoxb-…) a spawned office bot posts to Slack with. Only the env var
 	// name is ever persisted or sent over the wire — the raw token lives
-	// exclusively in process env. Empty for foreign agents.
+	// exclusively in process env. Empty for foreign bots.
 	BotTokenEnv string `json:"bot_token_env,omitempty"`
 }
 
@@ -73,12 +73,12 @@ type SlackProviderBinding struct {
 func ValidateKind(s string) error {
 	switch s {
 	case "",
-		KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesAgent,
+		KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot,
 		KindSlack, KindMLXLM, KindOllama, KindExo:
 		return nil
 	default:
 		return fmt.Errorf("unknown provider kind %q (valid: %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, or empty)",
-			s, KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesAgent, KindSlack, KindMLXLM, KindOllama, KindExo)
+			s, KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot, KindSlack, KindMLXLM, KindOllama, KindExo)
 	}
 }
 
@@ -97,13 +97,13 @@ func ResolveKind(b ProviderBinding, global func() string) string {
 
 // IsGatewayKind reports whether kind names a gateway-controlled binding rather
 // than a directly-dispatched LLM runtime. Gateway kinds (openclaw, openclaw-http,
-// hermes-agent, slack) tag agents that were imported through an external gateway
+// hermes-bot, slack) tag bots that were imported through an external gateway
 // or transport membrane; they are managed via the Integrations app, not via the
-// Default Runtime picker. Per-agent provider pickers should hide gateway kinds
+// Default Runtime picker. Per-bot provider pickers should hide gateway kinds
 // and surface a "Managed by <Gateway>" badge instead.
 func IsGatewayKind(kind string) bool {
 	switch kind {
-	case KindOpenclaw, KindOpenclawHTTP, KindHermesAgent, KindSlack:
+	case KindOpenclaw, KindOpenclawHTTP, KindHermesBot, KindSlack:
 		return true
 	default:
 		return false

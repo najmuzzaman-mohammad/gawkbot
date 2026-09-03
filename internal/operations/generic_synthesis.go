@@ -161,11 +161,11 @@ func genericStarterPlan(kind, name, objective string, input SynthesisInput, inte
 	// not replaced, removed. A blueprint no longer invents a roster.
 	//
 	// The lead stays because it is not a fabricated specialist — it is the one
-	// agent the human actually talks to, and a workspace with zero agents has
+	// bot the human actually talks to, and a workspace with zero bots has
 	// nobody to address. Integration owners below stay for the same reason in
 	// reverse: they are derived from integrations that genuinely exist, so
 	// they are evidence, not padding.
-	agents := []StarterAgent{
+	bots := []StarterBot{
 		{Slug: leadSlug, Name: "Operator", Role: "lead", Checked: true, Type: "human", BuiltIn: true, Expertise: []string{"scope-setting", "execution", "approvals"}},
 	}
 	for _, integration := range integrations {
@@ -173,7 +173,7 @@ func genericStarterPlan(kind, name, objective string, input SynthesisInput, inte
 		if provider == "" {
 			continue
 		}
-		agents = append(agents, StarterAgent{
+		bots = append(bots, StarterBot{
 			Slug:      provider,
 			Name:      genericIntegrationLabel(integration),
 			Role:      "integration-owner",
@@ -184,7 +184,7 @@ func genericStarterPlan(kind, name, objective string, input SynthesisInput, inte
 		})
 	}
 	if len(capabilities) > 0 {
-		agents = append(agents, StarterAgent{
+		bots = append(bots, StarterBot{
 			Slug:      "capability-scout",
 			Name:      "Capability Scout",
 			Role:      "capability-discovery",
@@ -198,7 +198,7 @@ func genericStarterPlan(kind, name, objective string, input SynthesisInput, inte
 		LeadSlug:                  leadSlug,
 		GeneralChannelDescription: genericGeneralChannelDescription(kind, input.Profile, objective),
 		KickoffPrompt:             genericKickoffPrompt(kind, name, objective, input.Profile, integrations),
-		Agents:                    agents,
+		Bots:                      bots,
 		Channels:                  channels,
 		Tasks:                     tasks,
 	}
@@ -564,7 +564,7 @@ func genericDefaultChannels(integrations []RuntimeIntegration) []StarterChannel 
 			Slug: channel.GeneralSlug, Name: channel.GeneralSlug,
 			Description: "Primary coordination channel.",
 			// The lead only. The retired planner/executor/reviewer trio used to
-			// be listed here, which seeded a room populated with agents that no
+			// be listed here, which seeded a room populated with bots that no
 			// longer exist.
 			Members: []string{"operator"},
 		})
@@ -604,7 +604,7 @@ func genericDefaultTasks(objective string, integrations []RuntimeIntegration) []
 	// Every starter task is owned by the LEAD and carries NO channel.
 	//
 	// Both halves changed. The owners were planner / executor / reviewer, who
-	// no longer exist, so those tasks would have been filed to agents that are
+	// no longer exist, so those tasks would have been filed to bots that are
 	// never seeded. The channels were general / planning / execution / review,
 	// none of which a workspace has any more, so the task would have been
 	// addressed to a room the broker cannot find.
@@ -614,7 +614,7 @@ func genericDefaultTasks(objective string, integrations []RuntimeIntegration) []
 	// land in the lead's conversation, which is where the human is.
 	//
 	// The four lanes collapse into two real pieces of work. Splitting one
-	// objective across four agents was the artifact of having four agents;
+	// objective across four bots was the artifact of having four bots;
 	// with one lead, "plan it" and "run it and report" is the honest shape.
 	tasks := []StarterTask{
 		{Owner: "operator", Title: "Translate the directive into the first execution plan", Details: genericTruncateText(objective, 160)},

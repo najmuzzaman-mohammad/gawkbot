@@ -14,7 +14,7 @@ import (
 // own work in.
 //
 // The reservedChannelSlugs invariant — that user-created channels
-// cannot shadow a trusted sender slug or a built-in agent slug — is
+// cannot shadow a trusted sender slug or a built-in bot slug — is
 // co-located here on purpose. The channel-create handler in
 // broker_office_channels.go is the call site that must reject any new
 // channel whose slug matches.
@@ -28,9 +28,9 @@ import (
 //     inherit that trust, letting those senders read every message in it
 //     without an explicit Members entry. Keep these in sync with the trust
 //     check below.
-//   - "ceo", the Librarian, and the App Builder are built-in AGENT slugs.
+//   - "ceo", the Librarian, and the App Builder are built-in BOT slugs.
 //     They are no longer access bypasses (membership is authoritative for
-//     every agent), but a channel that shadows an agent slug still breaks
+//     every bot), but a channel that shadows a bot slug still breaks
 //     DM slug resolution and @-mention routing, so they stay reserved.
 var reservedChannelSlugs = map[string]bool{
 	"system":       true,
@@ -58,10 +58,10 @@ func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
 	// Measured, not assumed. Today this returns true on an UPGRADED workspace
 	// and false on a FRESH one, purely by accident: #general's row is still on
 	// disk after the retirement, broker_defaults.go re-populates its member
-	// list with every agent on each Load, and normalizeChannelSlug("") lands
+	// list with every bot on each Load, and normalizeChannelSlug("") lands
 	// the lookup on exactly that row. A fresh workspace has no such row, so
-	// findChannelLocked("") is nil and every agent is already denied — which
-	// is why channel-less tasks vanish from agent task lists and office stats
+	// findChannelLocked("") is nil and every bot is already denied — which
+	// is why channel-less tasks vanish from bot task lists and office stats
 	// on a new workspace. Same broker, same code, opposite answer, decided by
 	// leftover state. Making it explicit fixes the fresh-workspace bug now and
 	// keeps the answer stable when normalizeChannelSlug stops inventing a room.
@@ -75,10 +75,10 @@ func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
 		if isHumanMessageSender(slug) {
 			return true
 		}
-		return slug == b.oneOnOneAgent
+		return slug == b.oneOnOneBot
 	}
 	// The human sees everything in their own workspace. "nex" and "system"
-	// are synthetic senders rather than agents — broker-authored notices —
+	// are synthetic senders rather than bots — broker-authored notices —
 	// and are being retired as senders separately; this bypass should go
 	// with them.
 	//
@@ -95,7 +95,7 @@ func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
 	if a, c, ok := DMParticipants(channel); ok {
 		return slug == normalizeActorSlug(a) || slug == normalizeActorSlug(c)
 	}
-	// Every AGENT is gated by membership. There are no org-wide readers: a
+	// Every BOT is gated by membership. There are no org-wide readers: a
 	// DM is readable and postable by exactly its two participants, which is
 	// the promise the DM packet preamble already makes to the model ("This
 	// is a private 1:1 conversation with the human", notification_context.go)
@@ -111,15 +111,15 @@ func (b *Broker) canAccessChannelLocked(slug, channel string) bool {
 	//   - a channel they own work in, via
 	//     ensureTaskOwnerChannelMembershipLocked below
 	//   - an app build thread, which seeds the App Builder as a member
-	//   - anywhere a human or another agent adds them
+	//   - anywhere a human or another bot adds them
 	// What they lose is exactly what they should never have had: reading a
 	// conversation they are not a party to. The CEO still routes work and
 	// consults specialists — by DMing them, not by reading their DMs.
 	//
-	// This does NOT hide the roster. Who exists and what each agent is good
-	// for comes from the AVAILABLE AGENTS block, which renders from the
+	// This does NOT hide the roster. Who exists and what each bot is good
+	// for comes from the AVAILABLE BOTS block, which renders from the
 	// member list and never consults channel access
-	// (renderAvailableAgentsBlock, prompt_builder.go). The directory is
+	// (renderAvailableBotsBlock, prompt_builder.go). The directory is
 	// public; the conversations are private.
 	return b.channelHasMemberLocked(channel, slug)
 }
@@ -203,11 +203,11 @@ func (b *Broker) ensureTaskOwnerChannelMembershipLocked(channel, owner string) {
 		return
 	}
 	// A human's 1:1 DM has exactly two participants by contract. Promoting
-	// a task owner into someone else's DM is how a third agent ended up
+	// a task owner into someone else's DM is how a third bot ended up
 	// narrating its work inside the human's private thread with the Chief
 	// of Staff; the task is re-homed to a pair DM instead (see
 	// reHomeTaskOutOfHumanDMLocked).
-	if agentSide := humanDMAgent(channel); agentSide != "" && agentSide != owner {
+	if botSide := humanDMBot(channel); botSide != "" && botSide != owner {
 		return
 	}
 	if !containsString(ch.Members, owner) {

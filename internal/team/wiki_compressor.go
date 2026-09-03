@@ -4,7 +4,7 @@ package team
 // the wiki content lifecycle.
 //
 // Design summary (see docs/specs/wiki-compress-icp-examples.md):
-//   - Compression is NOT an agent turn. It runs inside the broker as a
+//   - Compression is NOT a bot turn. It runs inside the broker as a
 //     dedicated goroutine consuming a buffered CompressJob channel — the
 //     same shape as EntitySynthesizer.
 //   - The worker shells out to the user's configured CLI (claude-code,

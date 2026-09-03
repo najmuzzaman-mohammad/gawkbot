@@ -63,7 +63,7 @@ type SessionMemoryMessageSummary struct {
 type SessionMemorySnapshot struct {
 	Version     int                           `json:"version"`
 	SessionMode string                        `json:"session_mode,omitempty"`
-	DirectAgent string                        `json:"direct_agent,omitempty"`
+	DirectBot   string                        `json:"direct_agent,omitempty"`
 	GeneratedAt string                        `json:"generated_at,omitempty"`
 	Focus       string                        `json:"focus,omitempty"`
 	NextSteps   []string                      `json:"next_steps,omitempty"`
@@ -83,17 +83,17 @@ type SessionRestoreContext struct {
 	ThreadIDs          []string `json:"thread_ids,omitempty"`
 }
 
-func BuildSessionMemorySnapshot(sessionMode, directAgent string, tasks []RuntimeTask, requests []RuntimeRequest, recent []RuntimeMessage) SessionMemorySnapshot {
+func BuildSessionMemorySnapshot(sessionMode, directBot string, tasks []RuntimeTask, requests []RuntimeRequest, recent []RuntimeMessage) SessionMemorySnapshot {
 	sessionMode = NormalizeSessionMode(sessionMode)
-	directAgent = NormalizeOneOnOneAgent(directAgent)
+	directBot = NormalizeOneOnOneBot(directBot)
 	if sessionMode != SessionModeOneOnOne {
-		directAgent = ""
+		directBot = ""
 	}
-	recovery := buildSessionRecovery(sessionMode, directAgent, tasks, requests, recent)
+	recovery := buildSessionRecovery(sessionMode, directBot, tasks, requests, recent)
 	snapshot := SessionMemorySnapshot{
 		Version:     1,
 		SessionMode: sessionMode,
-		DirectAgent: directAgent,
+		DirectBot:   directBot,
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 		Focus:       recovery.Focus,
 		NextSteps:   append([]string(nil), recovery.NextSteps...),
@@ -147,7 +147,7 @@ func BuildSessionMemorySnapshot(sessionMode, directAgent string, tasks []Runtime
 	return snapshot
 }
 
-func BuildSessionMemorySnapshotFromOfficeState(sessionMode, directAgent string, tasks []teamTask, requests []humanInterview, actions []officeActionLog, messages []channelMessage) SessionMemorySnapshot {
+func BuildSessionMemorySnapshotFromOfficeState(sessionMode, directBot string, tasks []teamTask, requests []humanInterview, actions []officeActionLog, messages []channelMessage) SessionMemorySnapshot {
 	runtimeTasks := make([]RuntimeTask, 0, len(tasks))
 	taskSummaries := make([]SessionMemoryTaskSummary, 0, len(tasks))
 	for _, task := range tasks {
@@ -240,7 +240,7 @@ func BuildSessionMemorySnapshotFromOfficeState(sessionMode, directAgent string, 
 		})
 	}
 
-	snapshot := BuildSessionMemorySnapshot(sessionMode, directAgent, runtimeTasks, runtimeRequests, runtimeRecent)
+	snapshot := BuildSessionMemorySnapshot(sessionMode, directBot, runtimeTasks, runtimeRequests, runtimeRecent)
 	snapshot.Tasks = taskSummaries
 	snapshot.Requests = requestSummaries
 	snapshot.Messages = messageSummaries

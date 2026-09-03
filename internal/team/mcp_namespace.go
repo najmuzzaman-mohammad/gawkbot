@@ -1,6 +1,6 @@
 package team
 
-// mcp_namespace.go owns the MCP server KEY that agents' tools are namespaced under,
+// mcp_namespace.go owns the MCP server KEY that bots' tools are namespaced under,
 // and the older keys that must keep working forever.
 //
 // WHY THIS IS AN ALIAS AND NEVER A RENAME.
@@ -13,7 +13,7 @@ package team
 //   - users' tool-permission allowlists, where a granted permission is stored
 //     by exact tool name
 //   - saved skills and prompt files that name specific tools
-//   - agent transcripts and replay fixtures
+//   - bot transcripts and replay fixtures
 //
 // Renaming the key silently REVOKES every one of those grants. The permission
 // simply no longer matches, the tool is refused or invisible, and nothing in
@@ -28,7 +28,7 @@ package team
 // It lives in package team, NOT in package teammcp where it was written,
 // because teammcp already imports team — so team importing teammcp back is a
 // cycle, and the wiring that has to consult these keys (buildMCPServerMap,
-// agentMCPServers, the headless opencode entry) all lives here. The file has
+// botMCPServers, the headless opencode entry) all lives here. The file has
 // no imports of its own, so moving it costs nothing; teammcp can still reach
 // these symbols through its existing dependency on team if it ever needs to.
 const (

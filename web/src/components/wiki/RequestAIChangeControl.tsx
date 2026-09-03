@@ -12,11 +12,11 @@ import { useFocusTrap } from "./editor/inserts/useFocusTrap";
  * created task. Existing wk- tokens only; markup mirrors the article
  * delete control so the parallel wiki-shell restyle can move both at once.
  *
- * The owner used to be the Librarian ("Pam"), an agent retired as a default:
+ * The owner used to be the Librarian ("Pam"), a bot retired as a default:
  * on a fresh office that slug has no member and no DM, so the task would be
  * born owned by nobody, addressed to a channel that cannot be created. The
- * Chief of Staff is the one agent every office is guaranteed to have, and
- * wiki contribution is a system skill it carries like any agent.
+ * Chief of Staff is the one bot every office is guaranteed to have, and
+ * wiki contribution is a system skill it carries like any bot.
  */
 
 export const WIKI_CHANGE_OWNER_SLUG = "ceo";
@@ -62,7 +62,7 @@ export default function RequestAIChangeControl({
     if (pending) return;
     const trimmed = instruction.trim();
     if (!trimmed) {
-      setError("Say what should change. The agent needs the instruction.");
+      setError("Say what should change. The bot needs the instruction.");
       return;
     }
     setPending(true);
@@ -70,7 +70,7 @@ export default function RequestAIChangeControl({
     try {
       // The owner's DM is the task's home. This was "general" (died with
       // "channel not found" when the shared room was retired), then the
-      // Librarian's DM (died the same way once that agent stopped seeding).
+      // Librarian's DM (died the same way once that bot stopped seeding).
       const res = await createTasks(
         [buildWikiChangeTask(title, path, trimmed)],
         {

@@ -1,15 +1,15 @@
 package team
 
-// broker_scheduler_routines.go — agent-registered standing automations
+// broker_scheduler_routines.go — bot-registered standing automations
 // (ten-out-of-ten Wave D / D1).
 //
 // ICP-eval v3 [18:30–18:36]: a single "weekly Monday 9am summary" ask
 // produced TWO provider-session cron jobs registered by two different
-// agents, each carrying a "dies in 7 days with the session" caveat, and
+// bots, each carrying a "dies in 7 days with the session" caveat, and
 // the Scheduled Tasks app showed neither. The office HAD a persistent
 // scheduler the whole time (b.scheduler → watchdogScheduler →
-// processAgentJob) — there was simply no agent-reachable registration
-// path for general standing automations, so agents reached for the
+// processBotJob) — there was simply no bot-reachable registration
+// path for general standing automations, so bots reached for the
 // provider's session-scoped cron instead.
 //
 // POST /scheduler/routines is that path. It is the broker half of the
@@ -19,10 +19,10 @@ package team
 //     broker-state.json like every other routine — it survives broker
 //     restarts and provider session ends.
 //   - VISIBLE: GET /scheduler (the Scheduled Tasks app's data source)
-//     lists it as a user routine (target_type "agent", not
+//     lists it as a user routine (target_type "bot", not
 //     system-managed), so the human can pause, edit, or re-cadence it.
 //   - DEDUPED: registering the same normalized purpose+schedule again
-//     (any agent, any wording that normalizes equal) UPDATES the
+//     (any bot, any wording that normalizes equal) UPDATES the
 //     existing job instead of minting a duplicate.
 
 import (
@@ -46,13 +46,13 @@ type routineRegisterRequest struct {
 	// 4h, "0 9 * * 1"). The other half of the dedupe key.
 	Schedule string `json:"schedule"`
 	// Channel the routine posts into on each fire. Empty routes to the
-	// owner's DM (processAgentJob semantics).
+	// owner's DM (processBotJob semantics).
 	Channel string `json:"channel,omitempty"`
-	// Owner is the agent slug tagged on each fire. Defaults to CreatedBy.
+	// Owner is the bot slug tagged on each fire. Defaults to CreatedBy.
 	Owner string `json:"owner,omitempty"`
 	// Prompt is posted to the owner on every scheduled run (job payload).
 	Prompt string `json:"prompt,omitempty"`
-	// CreatedBy is the registering actor (agent slug).
+	// CreatedBy is the registering actor (bot slug).
 	CreatedBy string `json:"created_by,omitempty"`
 }
 
@@ -60,7 +60,7 @@ type routineRegisterRequest struct {
 // deduplicated lowercase token set, so "Weekly Monday 9am renewal-risk
 // summary to #general!" and "weekly monday 9am renewal risk summary to
 // general" normalize equal. Deliberately word-order-insensitive: two
-// agents describing the same automation rarely agree on word order.
+// bots describing the same automation rarely agree on word order.
 func normalizeRoutinePurpose(s string) string {
 	var tokens []string
 	var cur strings.Builder
@@ -98,24 +98,24 @@ func normalizeRoutineScheduleExpr(s string) string {
 	return strings.Join(strings.Fields(strings.ToLower(s)), " ")
 }
 
-// isAgentRoutineJob reports whether a scheduler row is an agent-registered
-// (or human-created agent-targeted) standing automation — the dedupe
+// isBotRoutineJob reports whether a scheduler row is a bot-registered
+// (or human-created bot-targeted) standing automation — the dedupe
 // population. System crons and per-instance lifecycle jobs (task/request
 // follow-ups, rechecks) are never dedupe candidates.
-func isAgentRoutineJob(job schedulerJob) bool {
+func isBotRoutineJob(job schedulerJob) bool {
 	if job.SystemManaged {
 		return false
 	}
 	return strings.EqualFold(strings.TrimSpace(job.TargetType), "agent")
 }
 
-// findMatchingRoutineLocked returns the index of an existing agent routine
+// findMatchingRoutineLocked returns the index of an existing bot routine
 // that the candidate registration should update, or -1. Caller holds b.mu.
 // A match is: identical slug, OR identical normalized purpose+schedule.
 func (b *Broker) findMatchingRoutineLocked(slug, normPurpose, normSchedule string) int {
 	for i := range b.scheduler {
 		job := b.scheduler[i]
-		if !isAgentRoutineJob(job) {
+		if !isBotRoutineJob(job) {
 			continue
 		}
 		if job.Slug == slug {
@@ -131,7 +131,7 @@ func (b *Broker) findMatchingRoutineLocked(slug, normPurpose, normSchedule strin
 }
 
 // handleRegisterRoutine serves POST /scheduler/routines — the persistent,
-// deduplicating registration path for agent standing automations. Returns
+// deduplicating registration path for bot standing automations. Returns
 // 201 + {"job":…,"updated":false} on create and 200 + {"updated":true}
 // when the registration converged onto an existing routine.
 func (b *Broker) handleRegisterRoutine(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +175,7 @@ func (b *Broker) handleRegisterRoutine(w http.ResponseWriter, r *http.Request) {
 		owner = createdBy
 	}
 	if owner == "" {
-		http.Error(w, "owner agent slug is required (owner or created_by)", http.StatusBadRequest)
+		http.Error(w, "owner bot slug is required (owner or created_by)", http.StatusBadRequest)
 		return
 	}
 	actor := createdBy
@@ -213,7 +213,7 @@ func (b *Broker) handleRegisterRoutine(w http.ResponseWriter, r *http.Request) {
 		}
 		// A re-registration re-arms the cadence but deliberately does NOT
 		// flip Enabled: if the human paused the routine from Scheduled
-		// Tasks, an agent must not silently resurrect it.
+		// Tasks, a bot must not silently resurrect it.
 		job.NextRun = nextRunStr
 		job.DueAt = nextRunStr
 		if strings.EqualFold(job.Status, "done") || strings.EqualFold(job.Status, "canceled") {

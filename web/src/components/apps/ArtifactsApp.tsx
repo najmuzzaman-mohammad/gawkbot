@@ -12,7 +12,7 @@ import {
 import { getUsage } from "../../api/platform";
 import { getOfficeTasks } from "../../api/tasks";
 import { formatTokens } from "../../lib/format";
-import { isAgentActive, normalizeStatus } from "../../lib/officeStatus";
+import { isBotActive, normalizeStatus } from "../../lib/officeStatus";
 import { router } from "../../lib/router";
 import {
   configuredConnectedRuntimeProviders,
@@ -21,7 +21,7 @@ import {
 import { type Insight, InsightsList } from "../activity/InsightsList";
 import type { PrereqResult } from "../onboarding/runtimes";
 import { ActiveTasksPanel } from "./shared/ActiveTasksPanel";
-import { AgentPulsePanel } from "./shared/AgentPulsePanel";
+import { BotPulsePanel } from "./shared/BotPulsePanel";
 
 /** Minimal action/decision/watchdog shapes from the untyped endpoints. */
 interface WatchdogRecord {
@@ -144,7 +144,7 @@ export function ArtifactsApp() {
   const blockedTasks = allTasks.filter(
     (t) => normalizeStatus(t.status) === "blocked",
   );
-  const liveAgents = allMembers.filter(isAgentActive);
+  const liveBots = allMembers.filter(isBotActive);
 
   const insights: Insight[] = [
     ...blockedTasks.map<Insight>((t) => ({
@@ -200,7 +200,7 @@ export function ArtifactsApp() {
               marginTop: 4,
             }}
           >
-            Which lanes are moving, which agents are active, and where work is
+            Which lanes are moving, which bots are active, and where work is
             blocked.
           </div>
         </div>
@@ -248,8 +248,8 @@ export function ArtifactsApp() {
           anchorId="needs-attention"
         />
         <StatCard
-          kicker="Agents in motion"
-          value={String(liveAgents.length)}
+          kicker="Bots in motion"
+          value={String(liveBots.length)}
           copy="Specialists currently shipping or plotting."
         />
         <StatCard
@@ -280,10 +280,10 @@ export function ArtifactsApp() {
           </ActivitySection>
 
           <ActivitySection
-            title="Agent pulse"
-            meta={`${liveAgents.length} active right now`}
+            title="Bot pulse"
+            meta={`${liveBots.length} active right now`}
           >
-            <AgentPulsePanel agents={liveAgents} limit={10} />
+            <BotPulsePanel agents={liveBots} limit={10} />
           </ActivitySection>
         </div>
 

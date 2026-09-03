@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-// Agent autonomy: an agent files and does the work the human asked IT for.
+// Bot autonomy: a bot files and does the work the human asked IT for.
 //
 // The old rule routed every task create through the CEO. That bought dedup and
 // prioritisation for free when everyone shared #general and the CEO could see
 // all of it. Under DM-first the CEO is not in the conversation, so the same
-// rule costs three async agent turns to get permission for something the human
+// rule costs three async bot turns to get permission for something the human
 // asked for directly — and every hop is a place a wake can fail.
 //
 // The split is on WHERE THE WORK CAME FROM, not on who may file it:
-//   - the human asked this agent, in its DM  -> it creates and does the work
-//   - the agent thought of it itself         -> it asks the HUMAN, who is right
+//   - the human asked this bot, in its DM  -> it creates and does the work
+//   - the bot thought of it itself         -> it asks the HUMAN, who is right
 //     there, rather than the CEO, who is three turns away
 //
 // What deliberately did NOT widen: reassign, approve, and reject. Those are
@@ -77,9 +77,9 @@ func TestSpecialistCreatesItsOwnWork(t *testing.T) {
 	}
 }
 
-// An agent files ITS OWN work — it does not hand work to someone else. That is
+// A bot files ITS OWN work — it does not hand work to someone else. That is
 // reassignment wearing a different hat, and it stays a CEO/human decision.
-func TestSpecialistCannotCreateWorkOwnedByAnotherAgent(t *testing.T) {
+func TestSpecialistCannotCreateWorkOwnedByAnotherBot(t *testing.T) {
 	b := autonomyBroker(t)
 	_, err := b.MutateTask(TaskPostRequest{
 		Action:    "create",
@@ -90,7 +90,7 @@ func TestSpecialistCannotCreateWorkOwnedByAnotherAgent(t *testing.T) {
 		CreatedBy: "designer",
 		TaskType:  "issue",
 	})
-	forbidden(t, err, "a specialist creating work owned by another agent")
+	forbidden(t, err, "a specialist creating work owned by another bot")
 }
 
 // The three that did NOT widen. Each is a decision about someone else's work.
@@ -180,6 +180,6 @@ func TestCommentRemainsOpenToSpecialists(t *testing.T) {
 		Action: "comment", ID: created.Task.ID, Channel: "delivery",
 		Details: "a note from someone who does not own this", CreatedBy: "designer",
 	}); err != nil {
-		t.Fatalf("comment must stay open to every agent: %v", err)
+		t.Fatalf("comment must stay open to every bot: %v", err)
 	}
 }

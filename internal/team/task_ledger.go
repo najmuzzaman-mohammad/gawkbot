@@ -1,12 +1,12 @@
 package team
 
-// task_ledger.go — U2.3 per-(agent,task) state ledger + U3.3 living task
+// task_ledger.go — U2.3 per-(bot,task) state ledger + U3.3 living task
 // brief (docs/specs/sota-uplift.md).
 //
 // Every headless turn on a task leaves a distilled journal entry: who acted,
 // what they said last, which task mutations they made, and how the turn
 // ended. The journal is stored on the task and rendered into every
-// participant's execution packet, so turn N+1 — by the same agent or a
+// participant's execution packet, so turn N+1 — by the same bot or a
 // teammate — starts from what turn N tried instead of from amnesia. This is
 // the deterministic continuity substrate: fresh sessions stay (crash-safe,
 // provider-agnostic), but working memory survives between wakes.
@@ -23,16 +23,16 @@ import (
 
 // TaskLedgerEntry is one turn's distilled record on a task.
 type TaskLedgerEntry struct {
-	Agent   string   `json:"agent"`
+	Bot     string   `json:"agent"`
 	At      string   `json:"at"`
 	Outcome string   `json:"outcome"`           // "ok" or a short error reason
-	Said    string   `json:"said,omitempty"`    // tail of the agent's last message this turn
+	Said    string   `json:"said,omitempty"`    // tail of the bot's last message this turn
 	Actions []string `json:"actions,omitempty"` // task/action-log mutations made this turn
 	// ContextUsed is the manifest of knowledge items the turn's work packet
 	// injected ("learning:<id>", "wiki:<ref>", "upstream:<task>",
 	// "journal:<task>"). Recorded deterministically at packet-build time —
 	// never model-self-reported — so the human can audit exactly what
-	// context the agent was handed (B4). Additive wire field.
+	// context the bot was handed (B4). Additive wire field.
 	ContextUsed []string `json:"context_used,omitempty"`
 }
 
@@ -48,7 +48,7 @@ const (
 // AppendTaskLedgerEntry stamps a journal entry onto the task and persists.
 func (b *Broker) AppendTaskLedgerEntry(taskID string, entry TaskLedgerEntry) {
 	taskID = strings.TrimSpace(taskID)
-	if taskID == "" || strings.TrimSpace(entry.Agent) == "" {
+	if taskID == "" || strings.TrimSpace(entry.Bot) == "" {
 		return
 	}
 	if entry.At == "" {
@@ -80,7 +80,7 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 		return
 	}
 	entry := TaskLedgerEntry{
-		Agent:       slug,
+		Bot:         slug,
 		At:          time.Now().UTC().Format(time.RFC3339),
 		Outcome:     "ok",
 		ContextUsed: append([]string(nil), turn.ContextUsed...),
@@ -90,7 +90,7 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 	}
 	since := startedAt.UTC().Format(time.RFC3339)
 
-	// Last thing the agent said in the task's channel this turn.
+	// Last thing the bot said in the task's channel this turn.
 	if ch := normalizeChannelSlug(turn.Channel); ch != "" {
 		msgs := l.broker.ChannelMessages(ch)
 		for i := len(msgs) - 1; i >= 0; i-- {
@@ -103,7 +103,7 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 		}
 	}
 
-	// Task mutations the agent made this turn (action log is append-only;
+	// Task mutations the bot made this turn (action log is append-only;
 	// RelatedID carries the task id for task_* records).
 	for _, a := range l.broker.ActionsSince(since) {
 		if a.Actor != slug || strings.TrimSpace(a.RelatedID) != taskID {
@@ -114,7 +114,7 @@ func (l *Launcher) recordTaskLedgerEntry(slug string, turn headlessCodexTurn, st
 
 	if entry.Said == "" && len(entry.Actions) == 0 && entry.Outcome == "ok" {
 		// A turn that left no observable trace records only its outcome —
-		// still worth a line: "agent woke and produced nothing durable" is
+		// still worth a line: "bot woke and produced nothing durable" is
 		// exactly the signal reviewers and the next turn need.
 		entry.Outcome = "ok (no durable trace: no message, no task mutation)"
 	}
@@ -147,7 +147,7 @@ func taskLedgerContext(task teamTask) string {
 	}
 	var lines []string
 	for _, e := range entries {
-		line := fmt.Sprintf("- [%s @%s] %s", e.At, e.Agent, e.Outcome)
+		line := fmt.Sprintf("- [%s @%s] %s", e.At, e.Bot, e.Outcome)
 		if len(e.Actions) > 0 {
 			line += " | " + strings.Join(e.Actions, "; ")
 		}

@@ -42,15 +42,15 @@ func TestSynthesizeBlueprintDerivesGenericPlanFromDirectiveProfileAndCapabilitie
 	}
 	// The lead plus one owner per connected integration. It used to be "at
 	// least 5" because planner/executor/reviewer were seeded on every
-	// blueprint; that trio is retired, so the only agents left are the lead
+	// blueprint; that trio is retired, so the only bots left are the lead
 	// and the ones the integrations actually justify.
-	if len(blueprint.Starter.Agents) < 2 {
-		t.Fatalf("expected the lead plus integration owners, got %+v", blueprint.Starter.Agents)
+	if len(blueprint.Starter.Bots) < 2 {
+		t.Fatalf("expected the lead plus integration owners, got %+v", blueprint.Starter.Bots)
 	}
-	for _, agent := range blueprint.Starter.Agents {
-		switch agent.Slug {
+	for _, bot := range blueprint.Starter.Bots {
+		switch bot.Slug {
 		case "planner", "executor", "reviewer":
-			t.Fatalf("blueprint resurrected the retired built-in %q: %+v", agent.Slug, blueprint.Starter.Agents)
+			t.Fatalf("blueprint resurrected the retired built-in %q: %+v", bot.Slug, blueprint.Starter.Bots)
 		}
 	}
 	// No channels: every room type is retired, so a blueprint declares none.

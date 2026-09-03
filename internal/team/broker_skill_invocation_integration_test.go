@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 func TestBrokerSkillInvocationE2E_PersistsAcrossReload(t *testing.T) {
@@ -36,7 +36,7 @@ func TestBrokerSkillInvocationE2E_PersistsAcrossReload(t *testing.T) {
 		channel    = "general"
 	)
 
-	b.SeedDefaultSkills([]agent.PackSkillSpec{{
+	b.SeedDefaultSkills([]bot.PackSkillSpec{{
 		Name:        skillName,
 		Title:       skillTitle,
 		Description: "Systematic debugging with root cause analysis.",

@@ -8,7 +8,7 @@ Reproducible steps to verify the `feat/llm-wiki` feature end-to-end, plus refere
 2. [Automated tests](#automated-tests)
 3. [Manual end-to-end test (smoke)](#manual-end-to-end-test-smoke)
 4. [Live demo — scripted (Path A)](#live-demo--scripted-path-a)
-5. [Live demo — real agents (Path B)](#live-demo--real-agents-path-b)
+5. [Live demo — real bots (Path B)](#live-demo--real-bots-path-b)
 6. [Manual test checklist](#manual-test-checklist)
 7. [Recording GIFs for launch](#recording-gifs-for-launch)
 8. [Troubleshooting](#troubleshooting)
@@ -185,7 +185,7 @@ Expected:
    - Title renders in Fraunces (warm serif, not Inter)
    - Amber status banner at top shows "Live: … is editing" (pulsing dot)
    - Body renders in Source Serif 4 (serif)
-   - Pixel avatar in the byline matches the agent slug
+   - Pixel avatar in the byline matches the bot slug
    - Right rail shows TOC + page stats + cite this page + referenced by panels
    - Bottom edit-log footer shows the most recent commit in amber
 
@@ -216,7 +216,7 @@ cd /path/to/feat-llm-wiki
 
 The script:
 1. Fetches the broker token from `/web-token`
-2. Fires 8 `team_wiki_write` requests across 5 different agent slugs (`operator`, `planner`, `growth`, `reviewer`, `builder`)
+2. Fires 8 `team_wiki_write` requests across 5 different bot slugs (`operator`, `planner`, `growth`, `reviewer`, `builder`)
 3. Spaces them 3 seconds apart so the UI animation is visible
 4. Mixes `create`, `replace`, and `append_section` modes
 5. Cross-links articles via `[[wikilinks]]` so backlinks populate in real time
@@ -235,7 +235,7 @@ The script:
 - The "X articles" stat ticks up from 5 → 13
 - New cards appear on the catalog grid (CUSTOMERS, PEOPLE)
 - Navigate to `/#/wiki/team/customers/customer-x.md` before the demo and watch the "Referenced by" panel fill in live as later articles link to it
-- `git -C ~/.wuphf/wiki log --oneline` after the demo shows all 9 commits with per-agent authorship
+- `git -C ~/.wuphf/wiki log --oneline` after the demo shows all 9 commits with per-bot authorship
 
 **Reproducibility check** — run the demo twice against the same dev home:
 - First run: all writes succeed
@@ -243,13 +243,13 @@ The script:
 
 ---
 
-## Live demo — real agents (Path B)
+## Live demo — real bots (Path B)
 
-Slower but more demonstrably "real." Good for a YouTube walkthrough or the Karpathy-style launch pitch where "these are real AI agents" is load-bearing.
+Slower but more demonstrably "real." Good for a YouTube walkthrough or the Karpathy-style launch pitch where "these are real AI bots" is load-bearing.
 
 ### 1. Launch WUPHF as above
 
-Onboarding must complete. Do NOT use `--unsafe` — let the agents go through the normal permission flow.
+Onboarding must complete. Do NOT use `--unsafe` — let the bots go through the normal permission flow.
 
 ### 2. Ensure an API key is configured
 
@@ -286,13 +286,13 @@ reference each other's pages so the backlinks panel populates.
 
 ### 4. Watch
 
-The agents will work through the `team_wiki_write` MCP tool. Expected:
-- Each agent's pixel avatar appears in the edit-log footer as it commits
+The bots will work through the `team_wiki_write` MCP tool. Expected:
+- Each bot's pixel avatar appears in the edit-log footer as it commits
 - Articles appear in the catalog with genuine prose (not scripted)
-- Cross-references render as dashed-blue wikilinks; if an agent references an article that doesn't exist yet, it renders red + marker
+- Cross-references render as dashed-blue wikilinks; if a bot references an article that doesn't exist yet, it renders red + marker
 
-**Cost:** ~$0.15-0.30 in Anthropic credits (5 agents × 1-2 turns each on Sonnet)
-**Time:** 3-7 minutes depending on how verbose the agents get
+**Cost:** ~$0.15-0.30 in Anthropic credits (5 bots × 1-2 turns each on Sonnet)
+**Time:** 3-7 minutes depending on how verbose the bots get
 
 ---
 
@@ -306,7 +306,7 @@ Walk through these by hand after any change that touches wiki code:
 - [ ] Thematic group cards render (at least PLAYBOOKS + DECISIONS on a fresh niche-crm install)
 - [ ] Blueprint-specific groups show (e.g. CUSTOMERS for niche-crm, VIDEOS for youtube-factory)
 - [ ] Article titles visible in full, not truncated
-- [ ] Pixel avatars match agent slugs (Operator ≠ Planner visually)
+- [ ] Pixel avatars match bot slugs (Operator ≠ Planner visually)
 - [ ] Clicking an article navigates to `/wiki/<path>`
 - [ ] Edit-log footer shows recent commits
 - [ ] Most recent edit-log entry pulses amber
@@ -319,14 +319,14 @@ Walk through these by hand after any change that touches wiki code:
 - [ ] Thick horizontal divider below strapline
 - [ ] Amber status banner at top with pulsing dot
 - [ ] Hat-bar tabs (Article / Talk / History / Raw markdown)
-- [ ] Byline shows pixel avatar + agent display name (Title Case, not UPPERCASE) + amber timestamp
+- [ ] Byline shows pixel avatar + bot display name (Title Case, not UPPERCASE) + amber timestamp
 - [ ] Body in Source Serif 4, 18px, generous line-height
 - [ ] Wikilinks render blue with dashed underline
 - [ ] Broken wikilinks render red with trailing ⚬ marker
 - [ ] Section headings numbered (1, 1.1, 1.2, 2, …)
 - [ ] Right rail: Contents (TOC), Page stats, Cite this page, Referenced by
 - [ ] "Referenced by" populates with articles that link TO this one
-- [ ] Sources section at bottom shows git commits with per-agent avatars
+- [ ] Sources section at bottom shows git commits with per-bot avatars
 - [ ] Page footer shows "last edited by" + actions (view history, cite, download, clone)
 
 ### Backend / MCP
@@ -382,7 +382,7 @@ Target: <2 MB. For Reddit, 4 MB hard cap.
 4. After the script finishes, click back to the catalog and show the populated groups
 5. Click into `team/playbooks/churn-prevention.md` — show the wikilinks back to Customer X and Meridian Freight
 6. Drop to a terminal, run `cat ~/.wuphf/wiki/team/customers/customer-x.md` — real markdown on disk
-7. Run `git -C ~/.wuphf/wiki log --oneline` — show per-agent authorship
+7. Run `git -C ~/.wuphf/wiki log --oneline` — show per-bot authorship
 8. Stop recording
 
 Export as MP4, 1080p. The "file on disk + git log" reveal at the end is the money shot for the Karpathy-wiki pitch.
@@ -426,7 +426,7 @@ If this returns 503 "wiki backend is not active", the broker didn't start the wi
 
 - **Mobile responsive** — desktop-first per `DESIGN-WIKI.md`. Three-column layout at <768px is currently broken; resizing breakpoints are a v1.1 task.
 - **LLM merge-resolver** — v1 uses serialized writes, so concurrent-write conflicts are impossible. The merge-resolver code path has no test coverage because it doesn't exist yet.
-- **Per-agent wikis** — cut from v1. Test coverage for `agents/{slug}/` paths is intentionally absent.
+- **Per-bot wikis** — cut from v1. Test coverage for `agents/{slug}/` paths is intentionally absent.
 - **SSE live-update** of the edit-log footer from real broker events — known gap; see Troubleshooting above.
 - **Playwright E2E** — not wired. Current E2E lives in `internal/team/wiki_e2e_test.go` as Go integration tests over the broker HTTP surface.
 

@@ -9,19 +9,19 @@
  */
 
 import type {
-  BlueprintAgentSummary,
+  BlueprintBotSummary,
   BlueprintSummary,
 } from "../../../api/onboarding";
 
-/** One agent row in a blueprint roster, as the team step renders it. */
-export interface BlueprintAgentOption {
+/** One bot row in a blueprint roster, as the team step renders it. */
+export interface BlueprintBotOption {
   slug: string;
   name: string;
   role: string;
   emoji: string;
-  /** Whether the agent is kept by default. */
+  /** Whether the bot is kept by default. */
   checked: boolean;
-  /** The lead agent; the team step must keep it checked. */
+  /** The lead bot; the team step must keep it checked. */
   builtIn: boolean;
 }
 
@@ -31,10 +31,10 @@ export interface BlueprintOption {
   name: string;
   description: string;
   emoji: string;
-  agents: BlueprintAgentOption[];
+  agents: BlueprintBotOption[];
 }
 
-function toAgentOption(agent: BlueprintAgentSummary): BlueprintAgentOption {
+function toBotOption(agent: BlueprintBotSummary): BlueprintBotOption {
   return {
     slug: agent.slug,
     name: agent.name,
@@ -55,6 +55,6 @@ export function toBlueprintOption(summary: BlueprintSummary): BlueprintOption {
     name: summary.name,
     description: summary.description ?? "",
     emoji: summary.emoji ?? "",
-    agents: (summary.agents ?? []).map(toAgentOption),
+    agents: (summary.agents ?? []).map(toBotOption),
   };
 }

@@ -33,7 +33,7 @@ export const OFFICE_TASKS_QUERY_KEY = ["office-tasks"] as const;
  * Returning `Task[]` (rather than the raw `TaskListResponse`) keeps the
  * contract aligned with the projection helpers in `lib/taskProjections`.
  *
- * Other Phase 5 surfaces (calendar, agent profile, office overview, command
+ * Other Phase 5 surfaces (calendar, bot profile, office overview, command
  * palette) will consume this hook directly. This PR only migrates one
  * grouping path inside `TasksApp` to prove the shape works end-to-end.
  */

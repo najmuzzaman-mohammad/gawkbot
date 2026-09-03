@@ -77,7 +77,7 @@ The cost-ledger surface adds five caps that are part of the wire contract — wi
 | Constant | Value | Meaning |
 |---|---|---|
 | `MAX_COST_EVENT_AMOUNT_MICRO_USD` | `100_000_000` ($100) | Per-event spend cap; the gateway validates estimator output against this before `appendCostEvent`. |
-| `MAX_BUDGET_LIMIT_MICRO_USD` | `1_000_000_000_000` ($1M) | Per-budget ceiling; covers the upper bound for office/team/agent budgets. |
+| `MAX_BUDGET_LIMIT_MICRO_USD` | `1_000_000_000_000` ($1M) | Per-budget ceiling; covers the upper bound for office/team/bot budgets. |
 | `MAX_BUDGET_THRESHOLD_BPS` | `10_000` | Threshold basis-points are in `(0, 10_000]`; 10_000 bps = 100% of the budget limit. |
 | `MAX_BUDGET_THRESHOLDS` | `8` | At most 8 threshold-crossed events per budget (e.g. 50/75/90/100%). |
 | `MAX_COST_MODEL_BYTES` | `128` | `cost_event.model` string length cap (covers dated snapshots like `claude-haiku-4-5-20251001`). |

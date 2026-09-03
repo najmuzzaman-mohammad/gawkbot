@@ -5,7 +5,7 @@ package team
 //
 // Route map (registered in broker.go):
 //
-//	GET  /playbook/list              — enumerate compiled playbooks + runnable-by agents
+//	GET  /playbook/list              — enumerate compiled playbooks + runnable-by bots
 //	POST /playbook/compile           — manually recompile a specific playbook
 //	POST /playbook/execution         — append one execution entry
 //	GET  /playbook/executions?slug=  — list executions for a slug, newest-first
@@ -131,7 +131,7 @@ type PlaybookSummary struct {
 	SkillExists      bool     `json:"skill_exists"`
 	ExecutionLogPath string   `json:"execution_log_path"`
 	ExecutionCount   int      `json:"execution_count"`
-	RunnableByAgents []string `json:"runnable_by_agents"`
+	RunnableByBots   []string `json:"runnable_by_agents"`
 }
 
 // handlePlaybookList is GET /playbook/list.
@@ -195,9 +195,9 @@ func (b *Broker) handlePlaybookList(w http.ResponseWriter, r *http.Request) {
 			SkillExists:      skillExists,
 			ExecutionLogPath: ExecutionLogRelPath(slug),
 			ExecutionCount:   execCount,
-			// v1.3 scope: every agent can invoke every compiled playbook.
-			// Per-agent gating is called out as out-of-scope in the task brief.
-			RunnableByAgents: []string{"*"},
+			// v1.3 scope: every bot can invoke every compiled playbook.
+			// Per-bot gating is called out as out-of-scope in the task brief.
+			RunnableByBots: []string{"*"},
 		})
 	}
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Slug < rows[j].Slug })
@@ -277,7 +277,7 @@ func (b *Broker) handlePlaybookExecution(w http.ResponseWriter, r *http.Request)
 	}
 	recordedBy := strings.TrimSpace(body.RecordedBy)
 	if recordedBy == "" {
-		recordedBy = strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
+		recordedBy = strings.TrimSpace(r.Header.Get(botRateLimitHeader))
 	}
 	if recordedBy == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "recorded_by or X-WUPHF-Agent header is required"})
@@ -342,7 +342,7 @@ func (b *Broker) handlePlaybookExecutionsList(w http.ResponseWriter, r *http.Req
 // The compounding-intelligence loop — executions accumulate, a broker-level
 // LLM synthesis worker periodically updates the "What we've learned"
 // section of the source playbook, and the existing auto-recompile hook
-// regenerates the SKILL.md so the next agent starts smarter.
+// regenerates the SKILL.md so the next bot starts smarter.
 //
 // Kept in this file (not a new file) so the merge-surface with the parallel
 // editable-wiki branch stays additive. The synthesizer itself lives in
@@ -465,7 +465,7 @@ func (b *Broker) PublishPlaybookSynthesized(evt PlaybookSynthesizedEvent) {
 //	body: { "slug": "churn-prevention", "actor_slug"?: "..." }
 //	resp: { "synthesis_id", "queued_at" }
 //
-// On-demand trigger for humans or agents who just landed a particularly
+// On-demand trigger for humans or bots who just landed a particularly
 // useful outcome. Always goes through the debounce/coalesce path, so
 // repeated clicks don't stack work.
 func (b *Broker) handlePlaybookSynthesize(w http.ResponseWriter, r *http.Request) {
@@ -495,7 +495,7 @@ func (b *Broker) handlePlaybookSynthesize(w http.ResponseWriter, r *http.Request
 	}
 	actor := strings.TrimSpace(body.ActorSlug)
 	if actor == "" {
-		actor = strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
+		actor = strings.TrimSpace(r.Header.Get(botRateLimitHeader))
 	}
 	if actor == "" {
 		actor = "human"

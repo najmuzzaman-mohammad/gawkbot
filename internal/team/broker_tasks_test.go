@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -156,7 +156,7 @@ func TestReconcileSharedTaskChannelsLocked_RehomesSquatters(t *testing.T) {
 	})
 	b.tasks = []teamTask{
 		{ID: "OFFICE-22", Title: "Daily Digest from email", Owner: "eng", status: "in_progress", Channel: "task-office-22"},
-		{ID: "OFFICE-28", Title: "Outbound email reply agent", Owner: "eng", status: "in_progress", Channel: "task-office-22"},
+		{ID: "OFFICE-28", Title: "Outbound email reply bot", Owner: "eng", status: "in_progress", Channel: "task-office-22"},
 		{ID: "OFFICE-30", Title: "Backup", Owner: "eng", status: "open", Channel: "general"},
 		{ID: "OFFICE-31", Title: "Shared project work", Owner: "eng", status: "open", Channel: "project-loop"},
 	}
@@ -893,7 +893,7 @@ func TestBrokerTaskCreateKeepsDistinctTasksInSameThread(t *testing.T) {
 
 	// The channel both creates are made from. Named rather than repeated as a
 	// literal because #general is scheduled for removal (conversation moves to
-	// per-agent DMs); what these assertions pin is "the channel it was created
+	// per-bot DMs); what these assertions pin is "the channel it was created
 	// from", not that room's name.
 	createdFrom := "general"
 	first := post(map[string]any{
@@ -1110,7 +1110,7 @@ func TestBrokerSecondTopLevelTaskStaysInTheOfficeChannel(t *testing.T) {
 	// Second top-level Issue (NO parent_issue_id) created from the same chat.
 	second := post(map[string]any{
 		"action":     "create",
-		"title":      "Outbound email reply agent",
+		"title":      "Outbound email reply bot",
 		"details":    "Top-level issue two",
 		"created_by": "ceo",
 		"channel":    first.Channel,
@@ -2102,7 +2102,7 @@ func ensureTestMemberAccess(b *Broker, channel, slug, name string) {
 		// the CEO (broker_office_channels.go, `final := append([]string{"ceo"},
 		// …)`). Fixtures used to omit it and still work because the CEO held a
 		// blanket channel-access bypass; membership is authoritative for every
-		// agent now, so a fixture without the CEO is a fixture that does not
+		// bot now, so a fixture without the CEO is a fixture that does not
 		// look like a real workspace. DMs are the deliberate exception and are
 		// built explicitly elsewhere — never through this helper.
 		Members: []string{slug, "ceo"},
@@ -2249,9 +2249,9 @@ func TestBrokerHandlePostTaskCapabilityGapCreatesSelfHealingTask(t *testing.T) {
 	if healing.Owner != "ceo" || healing.TaskType != "issue" || healing.PipelineID != "incident" || healing.ExecutionMode != "office" {
 		t.Fatalf("expected office issue/incident owned by ceo, got %+v", healing)
 	}
-	// The self-heal title should follow the new "[@<agent>] <verb>: <parent>"
+	// The self-heal title should follow the new "[@<bot>] <verb>: <parent>"
 	// shape with the parent title carried through.
-	wantTitle := selfHealingTaskTitle("eng", task.ID, blocked.Title, agent.EscalationCapabilityGap)
+	wantTitle := selfHealingTaskTitle("eng", task.ID, blocked.Title, bot.EscalationCapabilityGap)
 	if healing.Title != wantTitle {
 		t.Fatalf("expected self-heal title %q, got %q", wantTitle, healing.Title)
 	}
@@ -2801,7 +2801,7 @@ func TestTaskStaysInTheChannelItWasCreatedFrom(t *testing.T) {
 
 	// --- Case 3: an explicit project channel is kept as-is ---
 	// The creating actor has to be a member too: membership is authoritative for
-	// every agent, the CEO included, so a create into a project channel it is not
+	// every bot, the CEO included, so a create into a project channel it is not
 	// in is denied.
 	ensureTestMemberAccess(b, "youtube-factory", "builder", "Builder")
 	ensureTestMemberAccess(b, "youtube-factory", "ceo", "CEO")
@@ -2844,7 +2844,7 @@ func TestNoPerTaskChannels(t *testing.T) {
 		{"incident self-heal", "general", false, teamTask{Title: "Recover", PipelineID: "incident"}},
 		{"sub-task", "general", false, teamTask{Title: "child", ParentIssueID: "task-1"}},
 		{"sub-task handed the parent channel", "task-1", true, teamTask{Title: "child", ParentIssueID: "task-1"}},
-		{"task created inside another task's legacy channel", "task-22", true, teamTask{Title: "Outbound email reply agent"}},
+		{"task created inside another task's legacy channel", "task-22", true, teamTask{Title: "Outbound email reply bot"}},
 		{"explicit shared channel", "youtube-factory", false, teamTask{Title: "Publish the launch video"}},
 		{"empty task", "general", false, teamTask{}},
 	}
@@ -2881,7 +2881,7 @@ func TestReuseIsChannelAgnostic(t *testing.T) {
 	ensureTestMemberAccess(b, "general", "builder", "Builder")
 	ensureTestMemberAccess(b, "client-loop", "builder", "Builder")
 	// The creating actor has to be a member too: membership is authoritative for
-	// every agent, the CEO included, so a create into a project channel it is not
+	// every bot, the CEO included, so a create into a project channel it is not
 	// in is denied.
 	ensureTestMemberAccess(b, "client-loop", "ceo", "CEO")
 	if err := b.StartOnPort(0); err != nil {

@@ -49,7 +49,7 @@ const (
 	// minRoutineIntervalMinutes is the floor we enforce on user-created
 	// routines. System-managed crons self-register
 	// at boot and are not subject to this rule. The cap exists to keep
-	// the agent dispatcher from getting hammered by accidentally-fast
+	// the bot dispatcher from getting hammered by accidentally-fast
 	// cadences ("every minute" is almost always a misclick).
 	minRoutineIntervalMinutes = 15
 )
@@ -391,7 +391,7 @@ func (b *Broker) handleRestoreSchedulerRevision(w http.ResponseWriter, r *http.R
 
 // schedulerCreateRequest is the wire shape for POST /scheduler. Legacy
 // callers also pass Provider / WorkflowKey / NextRun / DueAt / Status;
-// we accept them so the multi-agent-harness integration tests keep
+// we accept them so the multi-bot-harness integration tests keep
 // working through this path.
 type schedulerCreateRequest struct {
 	Slug            string `json:"slug,omitempty"`
@@ -635,7 +635,7 @@ func sortRevisionsByVersionDesc(revs []schedulerRevision) {
 	sort.Slice(revs, func(i, j int) bool { return revs[i].Version > revs[j].Version })
 }
 
-// healStuckRoutines auto-recovers agent-targeted routines that ended up
+// healStuckRoutines auto-recovers bot-targeted routines that ended up
 // in a terminal "done" status before this build's fix. Old code marked
 // every fire as "done" which broke schedulerJobDue; on restart we rewrite
 // those rows so the schedule resumes. One-shot routines (task / request

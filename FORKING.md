@@ -39,7 +39,7 @@ WUPHF uses *The Office* (US) references throughout the UI and copy. If you're sh
 | `web/index.html` | Any "WUPHF" branding in the office UI |
 | `cmd/wuphf/channel.go` | Welcome messages, slash command copy |
 | `cmd/wuphf/channel_render.go` | Office-themed status lines |
-| `internal/team/template.go` | Agent prompt templates that reference Office tone |
+| `internal/team/template.go` | Bot prompt templates that reference Office tone |
 | `internal/teammcp/actions.go` | Action descriptions |
 
 A fast pass scoped to source files only:
@@ -70,7 +70,7 @@ If you rename the module in `go.mod`, rewrite all import paths in one pass:
 find . -name '*.go' | xargs sed -i 's|github.com/nex-crm/wuphf|github.com/your-org/your-fork|g'
 ```
 
-## 3. Add your own agent pack
+## 3. Add your own bot pack
 
 Packs live in Go (`internal/agent/packs.go`) as a static slice. Not YAML — yet. Recompile after editing.
 
@@ -102,7 +102,7 @@ go build -o wuphf ./cmd/wuphf
 ./wuphf --pack my-team
 ```
 
-Permissions: `plan` means every tool call needs human approval in the Requests panel. `auto` lets the agent run but you can scope with `AllowedTools` (see existing `starter` pack for examples).
+Permissions: `plan` means every tool call needs human approval in the Requests panel. `auto` lets the bot run but you can scope with `AllowedTools` (see existing `starter` pack for examples).
 
 ## 4. Swap the action layer
 
@@ -123,7 +123,7 @@ goreleaser release --clean
 
 - **Broker push model.** It's the architectural spine. Replacing it means rewriting the project.
 - **Per-turn fresh sessions.** This is the reason for the benchmark win. If you switch to `--resume`, you lose the 9× cost advantage.
-- **Git worktree isolation.** Each agent works in its own branch. Removing this means agents share a working directory and can corrupt each other's in-progress files.
+- **Git worktree isolation.** Each bot works in its own branch. Removing this means bots share a working directory and can corrupt each other's in-progress files.
 
 Fork anything above the broker freely. Fork the broker and you're building a different project.
 

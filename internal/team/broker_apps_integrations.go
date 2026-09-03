@@ -13,12 +13,12 @@ package team
 //
 //  1. READ-ONLY CLASSIFICATION IS SERVER-SIDE. The App sends {platform, action,
 //     params}; the broker — never the App — decides read-vs-mutate via
-//     action.ActionIsReadOnly (the SAME deterministic table the agent gate
+//     action.ActionIsReadOnly (the SAME deterministic table the bot gate
 //     uses). A read executes; a mutate is REFUSED execution and instead raises
 //     the human ExternalActionApprovalCard. The App cannot smuggle a write by
 //     lying about the verb: it only supplies the action_id, and the verb table
 //     reclassifies it here.
-//  2. MUTATIONS REQUIRE THE SAME APPROVAL CARD AS THE AGENT PATH. We mint a
+//  2. MUTATIONS REQUIRE THE SAME APPROVAL CARD AS THE BOT PATH. We mint a
 //     `kind:approval` request carrying the structured integration_action
 //     payload (masked envelope) and return {status:"needs_approval",
 //     request_id} — the App gets NO execution, only a card the human must
@@ -198,12 +198,12 @@ func (b *Broker) handleAppsIntegrationsCall(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// READ-VS-MUTATE IS DECIDED HERE, SERVER-SIDE, from the SAME table the agent
+	// READ-VS-MUTATE IS DECIDED HERE, SERVER-SIDE, from the SAME table the bot
 	// gate uses. The App never gets to assert "this is read-only."
 	readOnly := action.ActionIsReadOnly(actionID)
 
 	// MUTATING ACTION: do NOT execute. Raise the human approval card (the same
-	// ExternalActionApprovalCard the agent path raises) and hand the App a
+	// ExternalActionApprovalCard the bot path raises) and hand the App a
 	// request_id to poll. The App gets no execution, ever, without a human click.
 	if !readOnly {
 		requestID := b.raiseAppActionApproval(r, platform, actionID, req.Params)
@@ -310,7 +310,7 @@ func (b *Broker) resolveAppIntegrationConnection(ctx context.Context, composio *
 }
 
 // raiseAppActionApproval mints a human approval card for a mutating
-// integration action requested from an App, mirroring the agent gate's
+// integration action requested from an App, mirroring the bot gate's
 // `kind:approval` request (structured integration_action payload, masked
 // envelope). It returns the request id the App polls. The App NEVER executes
 // the action; only a human approval can. The card is non-blocking so it does
@@ -381,7 +381,7 @@ func (b *Broker) raiseAppActionApproval(r *http.Request, platform, actionID stri
 
 // buildAppActionCard composes the structured approval payload for a mutating
 // App integration action: the masked HTTP envelope (built via a dry-run
-// execute, secrets masked by the SAME masker the agent gate uses) so the
+// execute, secrets masked by the SAME masker the bot gate uses) so the
 // approval card's raw toggle shows exactly what would go over the wire.
 func (b *Broker) buildAppActionCard(ctx context.Context, platform, actionID string, params map[string]any) *approvalActionPayload {
 	card := &approvalActionPayload{
@@ -426,7 +426,7 @@ func appActionApprovalDedupeKey(platform, actionID string) string {
 
 // appActionApprovalActor resolves who requested the action for the audit trail:
 // the authenticated human session if present, else a generic "app" label. An
-// App can never impersonate an agent here.
+// App can never impersonate a bot here.
 func appActionApprovalActor(r *http.Request) string {
 	if a, ok := requestActorFromContext(r.Context()); ok && a.Kind == requestActorKindHuman {
 		if slug := strings.TrimSpace(a.Slug); slug != "" {
@@ -440,7 +440,7 @@ func appActionApprovalActor(r *http.Request) string {
 // ─────────────────────────── A. integration catalog ────────────────────────
 
 // appIntegrationCatalogItem is the minimal shape an App sees: a connected
-// platform plus its available READ actions, so the App (and the agent building
+// platform plus its available READ actions, so the App (and the bot building
 // it) knows what it can call without execute-time guesswork.
 type appIntegrationCatalogItem struct {
 	Platform    string   `json:"platform"`

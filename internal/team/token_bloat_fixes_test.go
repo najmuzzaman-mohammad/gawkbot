@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-// TestDuplicateAgentBroadcastIsSuppressed verifies that when the same agent
+// TestDuplicateBotBroadcastIsSuppressed verifies that when the same bot
 // posts a near-identical broadcast to the same channel+thread within the
 // dedup window, the broker silently drops the duplicate. This is the
 // broker-side safety net for the "CEO emits 3 broadcasts in one turn"
-// pattern — the prompt rule telling agents not to do that is routinely
+// pattern — the prompt rule telling bots not to do that is routinely
 // ignored, so this enforces it at the persistence layer.
-func TestDuplicateAgentBroadcastIsSuppressed(t *testing.T) {
+func TestDuplicateBotBroadcastIsSuppressed(t *testing.T) {
 	b := newTestBroker(t)
 	now := time.Now().UTC().Format(time.RFC3339)
 	b.mu.Lock()
@@ -32,30 +32,30 @@ func TestDuplicateAgentBroadcastIsSuppressed(t *testing.T) {
 	defer b.mu.Unlock()
 
 	// Byte-identical → drop.
-	if !b.isDuplicateAgentBroadcastLocked("ceo", "team", "", "Ball is in reviewer's court, shipping the PR now.") {
+	if !b.isDuplicateBotBroadcastLocked("ceo", "team", "", "Ball is in reviewer's court, shipping the PR now.") {
 		t.Error("exact duplicate should be detected")
 	}
 	// Paraphrased but same semantic content → drop (Jaccard over word set).
-	if !b.isDuplicateAgentBroadcastLocked("ceo", "team", "", "Ball is in the reviewer's court — shipping the PR now.") {
+	if !b.isDuplicateBotBroadcastLocked("ceo", "team", "", "Ball is in the reviewer's court — shipping the PR now.") {
 		t.Error("near-duplicate with trivial punctuation drift should be detected")
 	}
 	// Truly different content → allow.
-	if b.isDuplicateAgentBroadcastLocked("ceo", "team", "", "Planner is blocked on a missing spec.") {
+	if b.isDuplicateBotBroadcastLocked("ceo", "team", "", "Planner is blocked on a missing spec.") {
 		t.Error("distinct content must not be flagged duplicate")
 	}
-	// Different agent → allow.
-	if b.isDuplicateAgentBroadcastLocked("planner", "team", "", "Ball is in reviewer's court, shipping the PR now.") {
+	// Different bot → allow.
+	if b.isDuplicateBotBroadcastLocked("planner", "team", "", "Ball is in reviewer's court, shipping the PR now.") {
 		t.Error("duplicate detection must scope to the sender")
 	}
 	// Different thread → allow.
-	if b.isDuplicateAgentBroadcastLocked("ceo", "team", "msg-99", "Ball is in reviewer's court, shipping the PR now.") {
+	if b.isDuplicateBotBroadcastLocked("ceo", "team", "msg-99", "Ball is in reviewer's court, shipping the PR now.") {
 		t.Error("duplicate detection must scope to (channel, thread)")
 	}
 }
 
-// TestDuplicateAgentBroadcastWindowExpires verifies the dedup window is time
+// TestDuplicateBotBroadcastWindowExpires verifies the dedup window is time
 // bounded — a follow-up beyond the window posts normally.
-func TestDuplicateAgentBroadcastWindowExpires(t *testing.T) {
+func TestDuplicateBotBroadcastWindowExpires(t *testing.T) {
 	b := newTestBroker(t)
 	old := time.Now().UTC().Add(-2 * duplicateBroadcastWindow).Format(time.RFC3339)
 	b.mu.Lock()
@@ -64,7 +64,7 @@ func TestDuplicateAgentBroadcastWindowExpires(t *testing.T) {
 	}
 	defer b.mu.Unlock()
 
-	if b.isDuplicateAgentBroadcastLocked("ceo", "team", "", "same content") {
+	if b.isDuplicateBotBroadcastLocked("ceo", "team", "", "same content") {
 		t.Error("messages older than duplicateBroadcastWindow must not trigger dedup")
 	}
 }

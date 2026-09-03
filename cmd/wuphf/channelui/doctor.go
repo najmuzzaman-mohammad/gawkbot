@@ -103,7 +103,7 @@ func RenderDoctorCard(report DoctorReport, width int) string {
 	meta := lipgloss.NewStyle().Foreground(lipgloss.Color(SlackMuted)).Render(report.GeneratedAt.Format("Jan 2 15:04"))
 	lines := []string{
 		title + "  " + SubtlePill(report.StatusLine(), "#E5E7EB", "#334155") + "  " + meta,
-		MutedText("This is the live readiness check for setup, integrations, and the agent runtime."),
+		MutedText("This is the live readiness check for setup, integrations, and the bot runtime."),
 		"",
 	}
 

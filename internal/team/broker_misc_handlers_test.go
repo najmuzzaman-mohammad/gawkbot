@@ -162,21 +162,21 @@ func TestBrokerSessionModePersistsAndSurvivesReset(t *testing.T) {
 	}
 
 	reloaded := reloadedBroker(t, b)
-	mode, agent := reloaded.SessionModeState()
+	mode, bot := reloaded.SessionModeState()
 	if mode != SessionModeOneOnOne {
 		t.Fatalf("expected persisted 1o1 mode, got %q", mode)
 	}
-	if agent != "pm" {
-		t.Fatalf("expected persisted 1o1 agent pm, got %q", agent)
+	if bot != "pm" {
+		t.Fatalf("expected persisted 1o1 bot pm, got %q", bot)
 	}
 
 	reloaded.Reset()
-	mode, agent = reloaded.SessionModeState()
+	mode, bot = reloaded.SessionModeState()
 	if mode != SessionModeOneOnOne {
 		t.Fatalf("expected reset to preserve 1o1 mode, got %q", mode)
 	}
-	if agent != "pm" {
-		t.Fatalf("expected reset to preserve 1o1 agent pm, got %q", agent)
+	if bot != "pm" {
+		t.Fatalf("expected reset to preserve 1o1 bot pm, got %q", bot)
 	}
 	if len(reloaded.Messages()) != 0 {
 		t.Fatalf("expected reset to clear direct messages, got %d", len(reloaded.Messages()))

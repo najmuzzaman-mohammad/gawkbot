@@ -163,13 +163,13 @@ func TestPhase6MigrationLoadsLegacyWorkspaceClean(t *testing.T) {
 	// --- NOTHING is appended to the legacy roster. ---
 	//
 	// This block used to assert the opposite: that loading a legacy workspace
-	// back-filled a built-in Librarian and App Builder onto it, "so the agent
+	// back-filled a built-in Librarian and App Builder onto it, "so the bot
 	// appears in the office without re-onboarding". That back-fill is exactly
-	// how the founder's removal of both agents kept undoing itself — the seed
+	// how the founder's removal of both bots kept undoing itself — the seed
 	// edit landed and the next boot appended them again — so it is deleted,
 	// and the assertion is inverted rather than dropped.
 	//
-	// A legacy workspace that HAS these agents on disk still keeps them; that
+	// A legacy workspace that HAS these bots on disk still keeps them; that
 	// half is pinned in broker_default_roster_test.go. What this fixture has is
 	// a roster that never had them, and it must come back the same way.
 	for _, slug := range []string{LibrarianSlug, appBuilderSlug} {

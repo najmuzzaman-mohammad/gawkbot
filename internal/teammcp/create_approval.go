@@ -12,8 +12,8 @@ import (
 )
 
 // createApproval describes one blocking "may I create this?" card raised by an
-// agent-facing tool. Spinning up durable office structure — a new teammate, a
-// new channel — is a persistent act the human owns, so the agent proposes and
+// bot-facing tool. Spinning up durable office structure — a new teammate, a
+// new channel — is a persistent act the human owns, so the bot proposes and
 // waits.
 //
 // Shared by requireTeamMemberApproval (member_approval.go) and
@@ -23,7 +23,7 @@ import (
 // a typed approvalContext and understands steer/hold options this binary gate
 // deliberately does not offer.
 type createApproval struct {
-	// Actor is the requesting agent slug (defaults to "ceo" when empty).
+	// Actor is the requesting bot slug (defaults to "ceo" when empty).
 	Actor string
 	// Subject names the thing being created in error copy, already sigiled:
 	// "@growth" for a member, "#launch" for a channel.
@@ -34,9 +34,9 @@ type createApproval struct {
 	// Context lines are rendered under the question, one per line.
 	Context []string
 	// DedupeKey collapses repeated attempts for the same subject onto one card
-	// so an agent retry loop cannot stack duplicates.
+	// so a bot retry loop cannot stack duplicates.
 	DedupeKey string
-	// Guidance is appended to decline/timeout errors to route the agent to the
+	// Guidance is appended to decline/timeout errors to route the bot to the
 	// right fallback instead of retrying the create.
 	Guidance string
 }
@@ -45,12 +45,12 @@ type createApproval struct {
 //
 // Returns nil when approved (the caller then performs the create). Returns a
 // descriptive error on reject / hold / cancel / timeout, carrying Guidance so
-// the agent takes the fallback path rather than retrying.
+// the bot takes the fallback path rather than retrying.
 //
 // WUPHF_UNSAFE=1 bypasses the gate, matching the action gate and the --unsafe
 // launch flag: an operator who set it has explicitly opted out of every
 // approval gate. Human-initiated creation never reaches this path — the UI
-// posts to the broker directly; only the agent-facing MCP tools call this.
+// posts to the broker directly; only the bot-facing MCP tools call this.
 func requireHumanCreateApproval(ctx context.Context, req createApproval) error {
 	if os.Getenv("WUPHF_UNSAFE") == "1" {
 		return nil
@@ -78,7 +78,7 @@ func requireHumanCreateApproval(ctx context.Context, req createApproval) error {
 	}
 	// The approval card goes to the ACTOR's own DM. It was addressed to
 	// "general", and this is a BLOCKING, REQUIRED request: filed to a room that
-	// no longer exists it is invisible to the human, and the agent waits on it
+	// no longer exists it is invisible to the human, and the bot waits on it
 	// until the approval times out. The actor is resolved just above and is
 	// always set, so there is always a real conversation to put it in.
 	if err := brokerPostJSON(ctx, "/requests", map[string]any{

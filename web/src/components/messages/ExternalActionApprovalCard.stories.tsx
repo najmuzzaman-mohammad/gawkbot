@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { AgentRequest } from "../../api/client";
+import type { BotRequest } from "../../api/client";
 import { ExternalActionApprovalCard } from "./ExternalActionApprovalCard";
 
 // Renders the card inside a surface that mimics the blocking-interview shell so
 // the story reads like the real overlay without mounting the whole app.
-function CardSurface({ request }: { request: AgentRequest }) {
+function CardSurface({ request }: { request: BotRequest }) {
   return (
     <div
       style={{
@@ -51,7 +51,7 @@ const meta: Meta<typeof CardSurface> = {
 export default meta;
 type Story = StoryObj<typeof CardSurface>;
 
-const gmailSend: AgentRequest = {
+const gmailSend: BotRequest = {
   id: "req-1",
   from: "growthops",
   kind: "approval",

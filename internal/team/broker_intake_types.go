@@ -1,9 +1,9 @@
 package team
 
 // broker_intake_types.go owns the structured-output schema the synthetic
-// intake agent must emit. The shapes mirror the design doc's "Intake agent /
+// intake bot must emit. The shapes mirror the design doc's "Intake bot /
 // Output schema" section verbatim (see
-// /Users/najmuzzaman/.gstack/projects/.../multi-agent-control-loop.md). They
+// /Users/najmuzzaman/.gstack/projects/.../multi-bot-control-loop.md). They
 // live in their own file so the intake driver, the parser, and the future
 // Decision Packet aggregator (Lane C) all reference the same canonical
 // definition without dragging the broader broker types in.
@@ -18,12 +18,12 @@ package team
 
 import "time"
 
-// Spec is the intake agent's structured output. All fields are optional on
+// Spec is the intake bot's structured output. All fields are optional on
 // the wire (omitempty) so a partial response can still parse for inspection,
 // but the validator enforces the design doc's gate: Problem != "",
 // len(AcceptanceCriteria) >= 1, Assignment != "".
 //
-// AutoAssign is the optional pre-declared owner agent slug. When non-empty
+// AutoAssign is the optional pre-declared owner bot slug. When non-empty
 // the CLI runs the 3-second auto-assign countdown described in the design
 // doc; Lane B exposes the cancellable countdown API and leaves the terminal
 // UX to Lane F.
@@ -41,7 +41,7 @@ type Spec struct {
 }
 
 // ACItem is one acceptance-criterion checklist row. Done is always false
-// when emitted by the intake agent; the owner agent flips it when the
+// when emitted by the intake bot; the owner bot flips it when the
 // session report commits.
 type ACItem struct {
 	Statement string `json:"statement,omitempty"`

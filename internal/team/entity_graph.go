@@ -2,7 +2,7 @@ package team
 
 // entity_graph.go is the cross-entity graph built on top of the v1.2 fact log.
 //
-// Every time an agent records a fact on one entity that references another
+// Every time a bot records a fact on one entity that references another
 // entity (e.g. "Sarah works at [[companies/acme]]" logged on people/sarah),
 // we emit an edge to an append-only adjacency log at
 // team/entities/.graph.jsonl. Reads coalesce the log into a deduplicated
@@ -169,7 +169,7 @@ func (g *EntityGraph) knownEntityResolver() func(slug string) (EntityKind, bool)
 	}
 	root := g.worker.Repo().Root()
 	// Build the index once per call — cheap for a hundred briefs, and the
-	// graph append is not on the hot path for agent turns.
+	// graph append is not on the hot path for bot turns.
 	index := make(map[string][]EntityKind)
 	for _, kind := range ValidEntityKinds() {
 		dir := filepath.Join(root, "team", string(kind))

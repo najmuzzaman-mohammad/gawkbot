@@ -24,7 +24,7 @@ const GLOBAL_KEYS: Keybinding[] = [
   { keys: ["?"], description: "Toggle this keyboard reference" },
   {
     keys: [MOD_KEY, "K"],
-    description: "Command palette — channels, agents, commands, search",
+    description: "Command palette — channels, bots, commands, search",
   },
   { keys: [MOD_KEY, "/"], description: "Focus the composer" },
   { keys: [MOD_KEY, "1"], description: "Jump to channel 1" },

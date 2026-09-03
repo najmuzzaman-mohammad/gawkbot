@@ -18,7 +18,7 @@ import (
 // Process / lifecycle helpers for the channel TUI binary:
 //   - tickChannel: 2s heartbeat that drives liveness redraws
 //   - killTeamSession: best-effort cleanup at exit (tmux kill + broker
-//     ping). Not a graceful Stop() — agents own their own tmux panes
+//     ping). Not a graceful Stop() — bots own their own tmux panes
 //     and we can't await them.
 //   - runChannelView: process entrypoint; runs onboarding/splash gates
 //     before booting the channel program. Wraps in a recover so a
@@ -33,13 +33,13 @@ func tickChannel() tea.Cmd {
 	})
 }
 
-// killTeamSession kills the entire wuphf-team tmux session and all agent processes.
+// killTeamSession kills the entire wuphf-team tmux session and all bot processes.
 func killTeamSession() {
 	// Best-effort cleanup at process exit; cap each step so a hung tmux or
 	// broker doesn't keep us alive forever.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	// Kill tmux session (kills all agent processes in all panes/windows)
+	// Kill tmux session (kills all bot processes in all panes/windows)
 	_ = exec.CommandContext(ctx, "tmux", "-L", "gawkbot", "kill-session", "-t", "wuphf-team").Run()
 	// Ping the broker to verify it's still reachable (best-effort).
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, brokerURL("/health"), nil)

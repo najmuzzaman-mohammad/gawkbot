@@ -2,7 +2,7 @@
 //
 // NOT MOUNTED. Apps no longer author tools, so this is unwired from the app
 // tab bar and its hand-off target (AppToolsChat) is gone. The file is kept
-// deliberately: the screenshare teaching flow is moving to the AGENT surface
+// deliberately: the screenshare teaching flow is moving to the BOT surface
 // and this is its reference implementation, alongside apps/observeClient.ts
 // and apps/demoSeed.ts, which that flow imports directly.
 //
@@ -16,7 +16,7 @@
 //   3. "Stop" ends the capture and shows exactly what was read, so the
 //      operator sees the payload before it is sent anywhere.
 //   4. "Hand this to the chat" formats it (demoSeed) and seeds the LIVE
-//      authoring chat — AppToolsChat → POST /agent/tools/build. The
+//      authoring chat — AppToolsChat → POST /bot/tools/build. The
 //      understanding step is the real model on that endpoint; this tab never
 //      plans or drafts a tool locally.
 //
@@ -45,7 +45,7 @@ interface AppDemoTabProps {
   appName: string;
   /** Hand the formatted capture to the live authoring chat. */
   onHandoff?: (seed: string) => void;
-  /** Open the agent's chat directly — the fallback when there is no observer. */
+  /** Open the bot's chat directly — the fallback when there is no observer. */
   onTeach?: () => void;
 }
 

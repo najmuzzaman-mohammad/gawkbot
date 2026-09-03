@@ -6,7 +6,7 @@ package team
 //
 // Motivation: every pre-existing safeguard in the dispatch path is PER-TURN
 // (max-turns 15/30, 8 tool iterations, 4-12 min timeouts). Nothing bounded
-// CUMULATIVE token/cost spend or gave a human a one-click interrupt. Agents
+// CUMULATIVE token/cost spend or gave a human a one-click interrupt. Bots
 // looped as long as work was enqueued. The governor adds two things:
 //
 //  1. A checkpoint: after each completed autonomous turn the broker calls
@@ -59,7 +59,7 @@ const (
 	defaultGovernorMaxTurns   = 12
 
 	// defaultGovernorDisabled turns OFF automatic budget/turn pausing by default.
-	// The operator surface is single-agent, human-initiated work (describe an app,
+	// The operator surface is single-bot, human-initiated work (describe an app,
 	// it builds); an auto-pause at 150k tokens silently froze multi-million-token
 	// builds, which read as a hang. Manual pause/stop still work; re-enable the
 	// automatic checkpoint with WUPHF_GOVERNOR_ENABLED=1.
@@ -80,7 +80,7 @@ type governorConfig struct {
 
 // loadGovernorConfig reads thresholds from the environment, falling back to the
 // conservative defaults above. Mirrors the env-override pattern used by
-// compactionTokenLimit in internal/agent/task_runtime.go.
+// compactionTokenLimit in internal/bot/task_runtime.go.
 func loadGovernorConfig() governorConfig {
 	cfg := governorConfig{
 		MaxSessionTokens:  defaultGovernorMaxTokens,
@@ -170,11 +170,11 @@ func (g *governor) cancelInFlight(slug string) {
 	}
 }
 
-// headlessTurnEnqueuer is the optional capability to enqueue a fresh agent turn
+// headlessTurnEnqueuer is the optional capability to enqueue a fresh bot turn
 // directly (the Launcher implements it). The broker uses it to dispatch a single
-// agent for a specific job — e.g. an app edit straight to the App Builder —
+// bot for a specific job — e.g. an app edit straight to the App Builder —
 // WITHOUT routing through the CEO/lead orchestration, which is the pi-skeleton
-// shape: one agent, one job, no multi-agent hop.
+// shape: one bot, one job, no multi-bot hop.
 type headlessTurnEnqueuer interface {
 	EnqueueHeadlessTurn(slug, prompt, channel string)
 }

@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { SidebarContext } from "../../../.storybook/sidebar-decorator";
-import { AgentList } from "./AgentList";
 import { AppList } from "./AppList";
+import { BotList } from "./BotList";
 import { ChannelList } from "./ChannelList";
 import { TasksNavButton } from "./TasksNavButton";
 import { UsagePanel } from "./UsagePanel";
@@ -62,17 +62,17 @@ export const TasksModule: StoryObj = {
   ),
 };
 
-export const Agents: StoryObj = {
+export const Bots: StoryObj = {
   render: () => (
     <>
       <div className="sidebar-section is-team">
-        <div className="sidebar-section-title">Agents</div>
+        <div className="sidebar-section-title">Bots</div>
       </div>
       <div
         className="sidebar-collapsible is-open"
         style={collapsibleNaturalHeight}
       >
-        <AgentList />
+        <BotList />
       </div>
     </>
   ),

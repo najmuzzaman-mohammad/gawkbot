@@ -2,11 +2,11 @@ package team
 
 // task_artifact_delta_test.go — the resubmission artifact-delta gate
 // (done-integrity fix family; ICP-eval v2 [00:30]: after a human
-// request-changes, the agent announced "revised and back in review" while
+// request-changes, the bot announced "revised and back in review" while
 // the artifact on disk was byte-identical):
 //
 //  1. request_changes stamps the artifact's content hash on the objection.
-//  2. An agent resubmission (submit_for_review/complete) with an unchanged
+//  2. A bot resubmission (submit_for_review/complete) with an unchanged
 //     artifact is refused; changing the bytes clears the gate.
 //  3. Human actors are exempt — the human knows what they reviewed.
 //  4. An unreadable artifact (external/visual-artifact reference) degrades
@@ -73,7 +73,7 @@ func TestArtifactDelta_ByteIdenticalResubmissionBlocked(t *testing.T) {
 		_, err := b.MutateTask(TaskPostRequest{Action: action, ID: "task-delta-1", Channel: "general", CreatedBy: "eng", Details: "revised"})
 		var mutationErr *TaskMutationError
 		if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationInvalid {
-			t.Fatalf("agent %s with an unchanged artifact must be invalid; got %v", action, err)
+			t.Fatalf("bot %s with an unchanged artifact must be invalid; got %v", action, err)
 		}
 		if !strings.Contains(mutationErr.Message, "byte-identical") {
 			t.Errorf("%s error must name the byte-identical artifact; got %q", action, mutationErr.Message)

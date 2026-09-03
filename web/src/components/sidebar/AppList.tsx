@@ -45,7 +45,7 @@ const APP_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   activity: Package,
   "health-check": Search,
   settings: Settings,
-  // Agents + Integrations previously fell back to emoji (🤖 / 🔌), which read
+  // Bots + Integrations previously fell back to emoji (🤖 / 🔌), which read
   // as AI-template slop next to the clean iconoir line-icon set. Give them
   // real line icons so every nav row is visually consistent.
   agents: Community,

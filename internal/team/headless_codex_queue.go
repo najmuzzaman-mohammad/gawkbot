@@ -22,7 +22,7 @@ import (
 
 // taskRunsInIsolatedWorktree reports whether a task executes in its own git
 // worktree (a distinct directory), making it safe to run concurrently with the
-// agent's other lanes. Office-mode and external tasks share the office cwd, so
+// bot's other lanes. Office-mode and external tasks share the office cwd, so
 // they are NOT isolated and must stay on the serialized default lane.
 func taskRunsInIsolatedWorktree(task *teamTask) bool {
 	if task == nil {
@@ -40,7 +40,7 @@ func taskRunsInIsolatedWorktree(task *teamTask) bool {
 // l.headless.mu; the broker lookup respects the established headless.mu →
 // broker.mu order (see headlessLeadTurnNeedsImmediateWakeLocked).
 //
-//   - chat / channel-triage turns (no task) → the agent's default lane (""):
+//   - chat / channel-triage turns (no task) → the bot's default lane (""):
 //     conversational coherence, and the lead's triage never forks. This is the
 //     ONLY lane the lead (CEO) uses for non-task turns.
 //   - worktree tasks → keyed by worktree PATH: distinct worktrees run in
@@ -48,9 +48,9 @@ func taskRunsInIsolatedWorktree(task *teamTask) bool {
 //     collapses to one serialized lane. A worktree task with no path assigned
 //     yet serializes on the default lane until it's prepared.
 //   - office / live_external / other → keyed by TASK id: no shared worktree to
-//     collide on (concurrent office turns share cwd exactly as different agents'
+//     collide on (concurrent office turns share cwd exactly as different bots'
 //     turns already do; the broker mediates shared state), so each task runs in
-//     its own lane and non-dependent tasks of one agent run at once. This now
+//     its own lane and non-dependent tasks of one bot run at once. This now
 //     applies to the LEAD too: a CEO turn carrying a task id gets its own
 //     per-task lane so the CEO can work several tasks concurrently. A lead turn
 //     with no task id still serializes on the default lane (channel triage).
@@ -77,7 +77,7 @@ func (l *Launcher) laneForTurn(slug string, turn headlessCodexTurn) headlessLane
 }
 
 // EnqueueHeadlessTurn satisfies headlessTurnEnqueuer: the broker uses it to
-// dispatch a single agent for one job (e.g. an app edit straight to the App
+// dispatch a single bot for one job (e.g. an app edit straight to the App
 // Builder) without a CEO/lead orchestration hop.
 func (l *Launcher) EnqueueHeadlessTurn(slug, prompt, channel string) {
 	if l == nil {
@@ -142,9 +142,9 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 		l.headless.workers = make(map[headlessLane]bool)
 	}
 	// Resolve the lane this turn runs in. Lead turns and non-isolated-worktree
-	// turns share the agent's default lane (serialized as before); isolated
+	// turns share the bot's default lane (serialized as before); isolated
 	// worktree turns get their own lane keyed by worktree path so they can run
-	// concurrently with the agent's other lanes.
+	// concurrently with the bot's other lanes.
 	lane := l.laneForTurn(slug, turn)
 	isLead := slug == l.targeter().LeadSlug()
 	urgentLeadTurn := l.headlessLeadTurnNeedsImmediateWakeLocked(slug, turn.TaskID)
@@ -165,7 +165,7 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 				if isLead {
 					appendHeadlessCodexLog(slug, "queue-drop: lead already handling same task")
 				} else {
-					appendHeadlessCodexLog(slug, "queue-drop: agent already handling same task")
+					appendHeadlessCodexLog(slug, "queue-drop: bot already handling same task")
 				}
 				return
 			}
@@ -191,13 +191,13 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 			}
 		}
 	}
-	// For the lead (CEO) agent, suppress a NO-TASK triage notification if any
+	// For the lead (CEO) bot, suppress a NO-TASK triage notification if any
 	// other specialist is still active or has pending work. The lead should only
 	// step in on general channel chatter when all parallel work is done — not
 	// when one specialist finishes while others are still running. This is where
 	// the re-route race lives (the CEO reacting to chatter mid-flight and
-	// redundantly re-routing to still-running agents). Scans every non-lead lane
-	// (an agent may now hold several).
+	// redundantly re-routing to still-running bots). Scans every non-lead lane
+	// (a bot may now hold several).
 	//
 	// A TASK-carrying lead turn is NOT held here: the CEO runs it on its own
 	// per-task lane so non-dependent tasks proceed concurrently (CEO
@@ -231,8 +231,8 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 			}
 		}
 	}
-	// For the lead (CEO) agent, cap the pending queue at 1 turn PER LANE.
-	// Multiple rapid-fire notifications (agent completions, status pings) can
+	// For the lead (CEO) bot, cap the pending queue at 1 turn PER LANE.
+	// Multiple rapid-fire notifications (bot completions, status pings) can
 	// stack up redundant CEO turns that each re-route the same task. One pending
 	// turn is enough to catch the latest state; extras are dropped — except for
 	// urgent task wakes and human-originated messages, which replace the pending
@@ -271,7 +271,7 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 	if active := l.headless.active[lane]; active != nil && active.Cancel != nil {
 		age := time.Since(active.StartedAt)
 		// Human turns preempt unconditionally. The staleness/min-age floors
-		// exist to break tight agent-to-agent cancel loops, but a real person
+		// exist to break tight bot-to-bot cancel loops, but a real person
 		// chatting must never wait behind an in-flight turn. For non-human
 		// turns both floors must hold: past the configured staleness threshold
 		// AND past the minimum-turn-age floor.
@@ -289,7 +289,7 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 
 	if cancel != nil {
 		if humanPriority {
-			appendHeadlessCodexLog(slug, fmt.Sprintf("human-priority: cancelling active turn after %s so the agent absorbs the human message", staleAge.Round(time.Millisecond)))
+			appendHeadlessCodexLog(slug, fmt.Sprintf("human-priority: cancelling active turn after %s so the bot absorbs the human message", staleAge.Round(time.Millisecond)))
 			l.updateHeadlessProgress(slug, "active", "queued", "preempting in-flight turn for human message", headlessProgressMetrics{})
 		} else {
 			appendHeadlessCodexLog(slug, fmt.Sprintf("stale-turn: cancelling active turn after %s to process queued work", staleAge.Round(time.Second)))
@@ -319,7 +319,7 @@ func (l *Launcher) replaceDuplicateTaskTurnLocked(lane headlessLane, turn headle
 }
 
 // headlessLeadTurnNeedsImmediateWakeLocked decides whether a lead-
-// agent enqueue should bypass the "wait for specialists to finish"
+// bot enqueue should bypass the "wait for specialists to finish"
 // queue-hold. taskID is the already-normalized turn.TaskID — we
 // must NOT re-parse the prompt here. The original implementation
 // did `headlessCodexTaskID(prompt)`, which broke any enqueue path
@@ -426,14 +426,14 @@ func (l *Launcher) stopHeadlessWorkers() {
 
 // CancelHeadlessTurns cancels in-flight headless turns so a governor Stop takes
 // effect immediately instead of waiting out the per-turn timeout. slug == ""
-// cancels every active turn; a specific slug cancels just that agent. Queued
+// cancels every active turn; a specific slug cancels just that bot. Queued
 // work is left intact and parked at the governor gate until resume. Implements
 // headlessDispatchController (wired via Broker.SetHeadlessDispatchController).
 func (l *Launcher) CancelHeadlessTurns(slug string) {
 	slug = strings.TrimSpace(slug)
 	l.headless.mu.Lock()
 	defer l.headless.mu.Unlock()
-	// active is keyed by lane (slug + worktree); an agent can hold several
+	// active is keyed by lane (slug + worktree); a bot can hold several
 	// lanes, so cancel every lane whose slug matches.
 	for lane, active := range l.headless.active {
 		if slug != "" && lane.slug != slug {
@@ -491,8 +491,8 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 			// lead/CEO after a specialist completes. If a panic in
 			// headlessCodexRunTurn, the recovery helpers, or
 			// recordTaskLedgerEntry skipped it, the slot leaked forever:
-			// under a cap every other agent's lane stayed parked and the CEO
-			// never reacted to completions — agents silently stalled with no
+			// under a cap every other bot's lane stayed parked and the CEO
+			// never reacted to completions — bots silently stalled with no
 			// reply. recoverPanicTo (deferred above, so it runs last) still
 			// swallows and logs the panic after this cleanup runs.
 			defer l.finishHeadlessTurn(lane)
@@ -516,7 +516,7 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 			case err == nil:
 				// Turn succeeded and is durable (or the durability guard
 				// doesn't apply). If a real person prompted this chat reply and
-				// the agent still posted nothing anywhere, surface one honest
+				// the bot still posted nothing anywhere, surface one honest
 				// line so a human DM never vanishes into silence.
 				l.noteChatTurnNoReply(slug, turn, startedAt)
 			case errors.Is(ctxErr, context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded):
@@ -533,7 +533,7 @@ func (l *Launcher) runHeadlessCodexQueue(lane headlessLane, stop <-chan struct{}
 				countTurn = false
 			case isDurabilityError:
 				// The provider returned successfully but left no durable task state.
-				// Don't retry — the agent already had its turn. Block the task immediately.
+				// Don't retry — the bot already had its turn. Block the task immediately.
 				appendHeadlessCodexLog(slug, fmt.Sprintf("error: %v", err))
 				l.updateHeadlessProgress(slug, "error", "error", truncate(err.Error(), 180), headlessProgressMetrics{})
 				exhaustedTurn := turn
@@ -610,7 +610,7 @@ func (l *Launcher) finishHeadlessTurn(lane headlessLane) {
 	// Without this, the CEO misses completion broadcasts because the queue-hold
 	// fires while the specialist is still "active" (process running), and after the
 	// process exits there is nothing else to re-trigger the CEO. Scans by lane
-	// grouped on lane.slug — an agent may finish one lane while others run on.
+	// grouped on lane.slug — a bot may finish one lane while others run on.
 	shouldWakeLead := slug != lead && lead != ""
 	if shouldWakeLead {
 		for workerLane, queue := range l.headless.queues {
@@ -653,7 +653,7 @@ func (l *Launcher) finishHeadlessTurn(lane headlessLane) {
 	}
 	// A turn just finished, freeing an active slot. Re-spawn the lanes the
 	// concurrency cap parked (queued work but no running worker). Only the
-	// subset that fits the newly-available global/per-agent slots is woken:
+	// subset that fits the newly-available global/per-bot slots is woken:
 	// we simulate admission under the lock — seed counts from the lanes still
 	// active, then admit parked lanes one at a time, incrementing the running
 	// tallies as we go — so a single completion never spawns the whole herd
@@ -663,15 +663,15 @@ func (l *Launcher) finishHeadlessTurn(lane headlessLane) {
 	// the actual spawn happens after unlocking. Only meaningful when a cap is
 	// active — with no cap every queued lane already has a worker.
 	var parkedLanes []headlessLane
-	if global, perAgent := l.headlessConcurrencyCaps(); global > 0 || perAgent > 0 {
+	if global, perBot := l.headlessConcurrencyCaps(); global > 0 || perBot > 0 {
 		total := 0
-		byAgent := map[string]int{}
+		byBot := map[string]int{}
 		for activeLane, active := range l.headless.active {
 			if active == nil {
 				continue
 			}
 			total++
-			byAgent[activeLane.slug]++
+			byBot[activeLane.slug]++
 		}
 		for parkedLane, queue := range l.headless.queues {
 			if len(queue) == 0 || l.headless.workers[parkedLane] {
@@ -680,13 +680,13 @@ func (l *Launcher) finishHeadlessTurn(lane headlessLane) {
 			if global > 0 && total >= global {
 				break
 			}
-			if perAgent > 0 && byAgent[parkedLane.slug] >= perAgent {
+			if perBot > 0 && byBot[parkedLane.slug] >= perBot {
 				continue
 			}
 			l.headless.workers[parkedLane] = true
 			parkedLanes = append(parkedLanes, parkedLane)
 			total++
-			byAgent[parkedLane.slug]++
+			byBot[parkedLane.slug]++
 		}
 	}
 	l.headless.mu.Unlock()
@@ -742,7 +742,7 @@ func (l *Launcher) wakeLeadAfterSpecialist(specialistSlug string) {
 		// Reuse the substantive-message predicate so agent_issue
 		// helpdesk pings (and other non-progress kinds) don't get
 		// treated as a completion handoff and wake the lead unnecessarily.
-		if !isSubstantiveAgentProgressMessage(m) {
+		if !isSubstantiveBotProgressMessage(m) {
 			continue
 		}
 		lastMsg = &msgs[i]
@@ -816,11 +816,11 @@ func (l *Launcher) beginHeadlessCodexTurn(lane headlessLane) (headlessCodexTurn,
 
 	turn := queue[0]
 	// Concurrency cap (cost guard for CEO multitasking): if starting this lane
-	// would exceed the global or per-agent in-flight cap, PARK the worker without
+	// would exceed the global or per-bot in-flight cap, PARK the worker without
 	// consuming the queued turn — the lane keeps its queued work and
 	// finishHeadlessTurn re-spawns parked lanes as active slots free. A
 	// human-priority turn bypasses the cap so a real person is never starved
-	// behind agent work.
+	// behind bot work.
 	if !turn.FromHuman && !l.headlessLaneMayStartLocked(lane) {
 		delete(l.headless.workers, lane)
 		appendHeadlessCodexLog(slug, "queue-park: at concurrency cap, deferring lane until a slot frees")
@@ -840,12 +840,12 @@ func (l *Launcher) beginHeadlessCodexTurn(lane headlessLane) (headlessCodexTurn,
 	turnCtx, cancel := context.WithTimeout(baseCtx, timeout)
 	// Tag the turn context with its task id so the runner helpers
 	// (model / effort / provider / workspace) resolve THIS turn's task even when
-	// the agent has several tasks in flight at once. See headless_runtime.go.
+	// the bot has several tasks in flight at once. See headless_runtime.go.
 	turnCtx = withHeadlessTurnTaskID(turnCtx, turn.TaskID)
 	startedAt := time.Now()
 	// Launch-param record (V3-N5): the active turn carries the working
 	// directory the runner will execute in — the task worktree when this
-	// turn's task has one, else the agent's scratch dir inside the office
+	// turn's task has one, else the bot's scratch dir inside the office
 	// runtime home. Never the broker process launch cwd. The recovery
 	// durability guard keys off the snapshot delta; a non-git scratch dir
 	// snapshots to "" so it never trips that guard.
@@ -1011,7 +1011,7 @@ func isTransientProviderErrorText(detail string) bool {
 // attempt, and attributing the retry to one would tag the reconnecting row
 // with a stale turn. Best-effort: returns "" when the tail has no
 // attributable event (e.g. the runner died before emitting anything).
-func headlessLastErrorTurnID(stream *agentStreamBuffer, taskID string, notBefore time.Time) string {
+func headlessLastErrorTurnID(stream *botStreamBuffer, taskID string, notBefore time.Time) string {
 	if stream == nil || strings.TrimSpace(taskID) == "" {
 		return ""
 	}
@@ -1047,7 +1047,7 @@ func headlessLastErrorTurnID(stream *agentStreamBuffer, taskID string, notBefore
 }
 
 // emitHeadlessReconnecting pushes the "reconnecting" HeadlessEvent for a
-// transient-failure retry onto the agent's stream — the same task-scoped
+// transient-failure retry onto the bot's stream — the same task-scoped
 // channel the /apps/{id}/activity SSE serves — so the build feed shows the
 // retry instead of a silent stall. The type string is a wire contract with
 // the web feed (see HeadlessEventTypeReconnecting).
@@ -1057,16 +1057,16 @@ func (l *Launcher) emitHeadlessReconnecting(slug string, turn headlessCodexTurn,
 	}
 	taskID := strings.TrimSpace(turn.TaskID)
 	if taskID == "" {
-		taskID = l.agentActiveTaskID(slug)
+		taskID = l.botActiveTaskID(slug)
 	}
-	stream := l.broker.AgentStream(slug)
+	stream := l.broker.BotStream(slug)
 	turnID := headlessLastErrorTurnID(stream, taskID, attemptStartedAt)
 	if turnID == "" {
 		turnID = newHeadlessTurnID()
 	}
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:   HeadlessEventTypeReconnecting,
-		Agent:  slug,
+		Bot:    slug,
 		TurnID: turnID,
 		TaskID: taskID,
 		Text:   "Connection dropped — retrying",

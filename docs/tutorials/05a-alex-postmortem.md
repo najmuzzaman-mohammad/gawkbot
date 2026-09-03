@@ -6,7 +6,7 @@
 24 hours. Yesterday's onboarding-flow goal led to a PR, a blocker
 resolved without them, and a small copy disagreement between ENG and
 CMO. They want a structured postmortem they can paste into their own
-weekly review. The test: do the agents remember what happened, or do
+weekly review. The test: do the bots remember what happened, or do
 they ask Alex to re-state the context?
 
 **Outcome they came for:** type one sentence, get a postmortem draft
@@ -44,7 +44,7 @@ shipped, what blockers came up, and one lesson for next time.
   - **Blockers:** names the SVG/PNG format issue (or whatever the
     real blocker was) with a one-line description.
   - **Lesson:** at least one concrete sentence (not generic).
-- The reviewer-grade panel shows at least one agent grade.
+- The reviewer-grade panel shows at least one bot grade.
 
 ### 4. Click into the wiki article via the citation chip
 
@@ -57,7 +57,7 @@ shipped, what blockers came up, and one lesson for next time.
 
 The postmortem references at least three specific events from the
 previous 24 hours (the PR, the blocker, the copy resolution) without
-Alex re-stating any of them in the request. If the agents reach back
-into yesterday's transcript, the "agents remember context" claim is
+Alex re-stating any of them in the request. If the bots reach back
+into yesterday's transcript, the "bots remember context" claim is
 real. If the postmortem is generic, the memory layer is not pulling
 the prior session's facts.

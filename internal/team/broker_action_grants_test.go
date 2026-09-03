@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// A grant matches EXACTLY one (agent, platform, action_id) — never a different
-// action, agent, or platform, and never a wildcard. This is the invariant that
+// A grant matches EXACTLY one (bot, platform, action_id) — never a different
+// action, bot, or platform, and never a wildcard. This is the invariant that
 // keeps a scoped grant from widening the approval bypass beyond what the human
 // authorized.
 func TestActionGrantExactMatchOnly(t *testing.T) {
@@ -18,7 +18,7 @@ func TestActionGrantExactMatchOnly(t *testing.T) {
 	b := newBrokerWithTeamRoom(filepath.Join(t.TempDir(), "state.json"))
 	now := time.Now().UTC()
 
-	b.addActionGrant(actionGrant{AgentSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL", GrantedBy: "human"})
+	b.addActionGrant(actionGrant{BotSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL", GrantedBy: "human"})
 
 	if !b.hasActiveActionGrant("ceo", "gmail", "GMAIL_SEND_EMAIL", now) {
 		t.Fatalf("exact grant did not match")
@@ -27,12 +27,12 @@ func TestActionGrantExactMatchOnly(t *testing.T) {
 	if !b.hasActiveActionGrant("CEO", "Gmail", "gmail_send_email", now) {
 		t.Fatalf("grant match should be case-insensitive")
 	}
-	for _, c := range []struct{ agent, platform, action, label string }{
+	for _, c := range []struct{ bot, platform, action, label string }{
 		{"ceo", "gmail", "GMAIL_DELETE_EMAIL", "different action"},
-		{"sales", "gmail", "GMAIL_SEND_EMAIL", "different agent"},
+		{"sales", "gmail", "GMAIL_SEND_EMAIL", "different bot"},
 		{"ceo", "slack", "GMAIL_SEND_EMAIL", "different platform"},
 	} {
-		if b.hasActiveActionGrant(c.agent, c.platform, c.action, now) {
+		if b.hasActiveActionGrant(c.bot, c.platform, c.action, now) {
 			t.Errorf("%s must NOT match the grant", c.label)
 		}
 	}
@@ -46,7 +46,7 @@ func TestActionGrantExpiryAndRevoke(t *testing.T) {
 	now := time.Now().UTC()
 
 	expired := b.addActionGrant(actionGrant{
-		AgentSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL",
+		BotSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL",
 		ExpiresAt: now.Add(-time.Hour).Format(time.RFC3339),
 	})
 	if b.hasActiveActionGrant("ceo", "gmail", "GMAIL_SEND_EMAIL", now) {
@@ -57,7 +57,7 @@ func TestActionGrantExpiryAndRevoke(t *testing.T) {
 	}
 	_ = expired
 
-	live := b.addActionGrant(actionGrant{AgentSlug: "ceo", Platform: "slack", ActionScope: "SLACK_SEND_MESSAGE"})
+	live := b.addActionGrant(actionGrant{BotSlug: "ceo", Platform: "slack", ActionScope: "SLACK_SEND_MESSAGE"})
 	if !b.hasActiveActionGrant("ceo", "slack", "SLACK_SEND_MESSAGE", now) {
 		t.Fatalf("live grant should authorize before revoke")
 	}
@@ -69,13 +69,13 @@ func TestActionGrantExpiryAndRevoke(t *testing.T) {
 	}
 }
 
-// addActionGrant is idempotent on (agent, platform, scope): the same triple does
+// addActionGrant is idempotent on (bot, platform, scope): the same triple does
 // not stack duplicate grants.
 func TestActionGrantIdempotent(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	b := newBrokerWithTeamRoom(filepath.Join(t.TempDir(), "state.json"))
-	g1 := b.addActionGrant(actionGrant{AgentSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL"})
-	g2 := b.addActionGrant(actionGrant{AgentSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL"})
+	g1 := b.addActionGrant(actionGrant{BotSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL"})
+	g2 := b.addActionGrant(actionGrant{BotSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL"})
 	if g1.ID != g2.ID {
 		t.Fatalf("duplicate grant minted: %s vs %s", g1.ID, g2.ID)
 	}
@@ -92,7 +92,7 @@ func TestActionGrantCappedToMaxTTL(t *testing.T) {
 	b := newBrokerWithTeamRoom(filepath.Join(t.TempDir(), "state.json"))
 	now := time.Now().UTC()
 
-	g := b.addActionGrant(actionGrant{AgentSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL"})
+	g := b.addActionGrant(actionGrant{BotSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL"})
 	if g.ExpiresAt == "" {
 		t.Fatalf("grant minted with no expiry; max TTL cap not applied")
 	}
@@ -112,7 +112,7 @@ func TestActionGrantCappedToMaxTTL(t *testing.T) {
 
 	// A request for a longer-than-policy expiry is clamped down.
 	far := now.Add(365 * 24 * time.Hour).Format(time.RFC3339)
-	g2 := b.addActionGrant(actionGrant{AgentSlug: "ceo", Platform: "slack", ActionScope: "SLACK_SEND_MESSAGE", ExpiresAt: far})
+	g2 := b.addActionGrant(actionGrant{BotSlug: "ceo", Platform: "slack", ActionScope: "SLACK_SEND_MESSAGE", ExpiresAt: far})
 	exp2, _ := parseGrantTime(g2.ExpiresAt)
 	if exp2.After(now.Add(maxGrantTTL + time.Minute)) {
 		t.Fatalf("over-long expiry not clamped: %v", exp2)
@@ -152,7 +152,7 @@ func TestResolveProceedsWithGrant(t *testing.T) {
 	defer srv.Close()
 
 	body, _ := json.Marshal(integrationResolveRequest{
-		Platform: "gmail", ActionID: "GMAIL_SEND_EMAIL", Agent: "ceo",
+		Platform: "gmail", ActionID: "GMAIL_SEND_EMAIL", Bot: "ceo",
 		Data: map[string]any{"to": "lead@acme.com"},
 	})
 
@@ -162,8 +162,8 @@ func TestResolveProceedsWithGrant(t *testing.T) {
 		t.Fatalf("without a grant, decision = %q, want approve", got.Decision)
 	}
 
-	// Mint a grant for exactly this (agent, platform, action), then re-resolve.
-	b.addActionGrant(actionGrant{AgentSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL", GrantedBy: "human"})
+	// Mint a grant for exactly this (bot, platform, action), then re-resolve.
+	b.addActionGrant(actionGrant{BotSlug: "ceo", Platform: "gmail", ActionScope: "GMAIL_SEND_EMAIL", GrantedBy: "human"})
 	got = decodeResolve(t, integrationRequest(t, srv, b, http.MethodPost, "/integrations/resolve", body))
 	if got.Decision != "proceed" {
 		t.Fatalf("with a grant, decision = %q, want proceed (skip the modal)", got.Decision)

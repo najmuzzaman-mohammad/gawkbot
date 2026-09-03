@@ -30,11 +30,11 @@ requirements:
   - kind: api-key
     name: "ANTHROPIC_API_KEY or OPENAI_API_KEY"
     required: true
-    detail: "Powers the planner, builder, and client-success agents."
+    detail: "Powers the planner, builder, and client-success bots."
   - kind: runtime
     name: "Claude Code or Codex CLI"
     required: true
-    detail: "Runs the agent loops locally."
+    detail: "Runs the bot loops locally."
   - kind: local-tool
     name: "Calendar integration"
     required: false

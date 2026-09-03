@@ -4,7 +4,7 @@
 
 The broker UI contract is a Go HTTP server bound to `127.0.0.1` that serves the
 React bundle, a same-origin reverse proxy for HTTP and SSE API calls, and the
-loopback WebSocket transport used by the agent terminal. The contract is the
+loopback WebSocket transport used by the bot terminal. The contract is the
 same no matter which host starts it: today's `cmd/wuphf` binary used by
 `npx wuphf`, and any external desktop host (the Electron shell lives in the
 `nex-crm/nex-local` repo, which now owns the desktop broker package), must both
@@ -104,7 +104,7 @@ desktop mode share the same transport contracts so the React app does not learn
 whether it is inside a normal browser tab or a Wails WebView.
 
 The existing app-data transports are HTTP, SSE, and WebSocket. The desktop plan
-must include all three; the agent terminal WebSocket is real app data, not an
+must include all three; the bot terminal WebSocket is real app data, not an
 OS integration detail.
 
 | Transport | Browser/WebView entry point | Broker route | Owning files |

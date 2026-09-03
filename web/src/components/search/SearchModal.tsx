@@ -31,7 +31,7 @@ function navigateToWikiArticle(path: string): void {
 
 interface PaletteItem {
   id: string;
-  group: "Channels" | "Agents" | "Commands" | "Messages" | "Wiki";
+  group: "Channels" | "Bots" | "Commands" | "Messages" | "Wiki";
   icon: string;
   label: string;
   desc?: string;
@@ -76,7 +76,7 @@ function prettyWikiPath(path: string): string {
 export function SearchModal() {
   const searchOpen = useAppStore((s) => s.searchOpen);
   const setSearchOpen = useAppStore((s) => s.setSearchOpen);
-  const setActiveAgentSlug = useAppStore((s) => s.setActiveAgentSlug);
+  const setActiveBotSlug = useAppStore((s) => s.setActiveBotSlug);
   const composerSearchInitialQuery = useAppStore(
     (s) => s.composerSearchInitialQuery,
   );
@@ -231,13 +231,13 @@ export function SearchModal() {
       if (q && !hay.includes(q.replace(/^@/, ""))) continue;
       list.push({
         id: `ag:${m.slug}`,
-        group: "Agents",
+        group: "Bots",
         icon: m.emoji || "🤖",
         label: m.name || m.slug,
         desc: m.role,
         meta: `@${m.slug}`,
         run: () => {
-          setActiveAgentSlug(m.slug);
+          setActiveBotSlug(m.slug);
           close();
         },
       });
@@ -301,7 +301,7 @@ export function SearchModal() {
     members,
     messageHits,
     wikiHits,
-    setActiveAgentSlug,
+    setActiveBotSlug,
     setSearchOpen,
     close,
   ]);
@@ -389,7 +389,7 @@ export function SearchModal() {
             ref={inputRef}
             className="search-input"
             type="text"
-            placeholder="Search channels, agents, commands, messages, wiki..."
+            placeholder="Search channels, bots, commands, messages, wiki..."
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
           />
@@ -518,13 +518,13 @@ function dispatchPaletteCommand(name: string, deps: CommandDeps) {
         );
       return;
     case "/pause":
-      post("/signals", { kind: "pause", summary: "Human paused all agents" })
-        .then(() => showNotice("All agents paused", "success"))
+      post("/signals", { kind: "pause", summary: "Human paused all bots" })
+        .then(() => showNotice("All bots paused", "success"))
         .catch((e: Error) => showNotice(`Pause failed: ${e.message}`, "error"));
       return;
     case "/resume":
-      post("/signals", { kind: "resume", summary: "Human resumed agents" })
-        .then(() => showNotice("Agents resumed", "success"))
+      post("/signals", { kind: "resume", summary: "Human resumed bots" })
+        .then(() => showNotice("Bots resumed", "success"))
         .catch((e: Error) =>
           showNotice(`Resume failed: ${e.message}`, "error"),
         );

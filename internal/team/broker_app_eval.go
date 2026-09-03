@@ -6,7 +6,7 @@ package team
 // publish gate (tsc + vite + the stack/theme/card-pile guards) proves the app
 // compiles and conforms; it cannot tell whether the app actually satisfies the
 // human's brief. This gate closes that gap: when an App Builder build task
-// reaches done, the BROKER (not an agent) runs two checks against the original
+// reaches done, the BROKER (not a bot) runs two checks against the original
 // brief — deterministic structure checks plus a bounded one-shot LLM acceptance
 // judge — and, if the app falls short, REOPENS the task with the specific gaps so
 // the App Builder fixes + republishes. Bounded retries stop an endless loop; once
@@ -29,7 +29,7 @@ import (
 const (
 	// The acceptance judge runs on the workspace's own LLM, which can be a cold
 	// headless `claude --print` call under contention (the office may have other
-	// agent turns in flight). 60s proved too tight in practice — the call timed
+	// bot turns in flight). 60s proved too tight in practice — the call timed
 	// out and the gate silently passed. A goroutine waiting longer costs nothing
 	// (it never blocks the delivered task), so give the judge real room.
 	appAcceptanceTimeout        = 120 * time.Second
@@ -43,7 +43,7 @@ const (
 	appAcceptanceHaltKind       = "app_acceptance_halt"
 	// appScaffoldSentinel is a distinctive instruction comment from the starter
 	// App.tsx (templates/app-scaffold/src/App.tsx) that no real app would keep.
-	// Its presence means the agent never replaced the template.
+	// Its presence means the bot never replaced the template.
 	// A distinctive line from the current starter App.tsx doc comment
 	// (templates/app-scaffold/src/App.tsx). A real build REPLACES App.tsx, so
 	// this string surviving means the scaffold shipped unmodified. Keep this in
@@ -86,7 +86,7 @@ func (b *Broker) sweepStalledAppBuildsLocked() []string {
 }
 
 // appAcceptanceGateEnabled toggles the post-done acceptance gate. DISABLED as
-// pi-skeleton cleanup: the gate was old multi-agent-harness fluff — a second
+// pi-skeleton cleanup: the gate was old multi-bot-harness fluff — a second
 // LLM/deterministic re-grader that REOPENED a completed build task when its
 // (flaky) judge was unavailable or found "gaps", leaving the task stuck
 // in_progress. That stuck state then broke the edit-channel follow-up wake
@@ -296,7 +296,7 @@ func (b *Broker) deterministicAppGaps(app CustomApp) []string {
 	// A legacy app published before ContentHash existed carries an empty recorded
 	// hash but real bytes — that IS finalized, so an empty hash is NOT itself a
 	// gap (the status/version + scaffold checks still catch a true non-delivery).
-	// This grounds "ready" in the actual published bytes, not a flag the agent set.
+	// This grounds "ready" in the actual published bytes, not a flag the bot set.
 	_, html, err := b.appStore().Get(app.ID)
 	switch {
 	case err != nil || len(html) < appAcceptanceMinBundleBytes:
@@ -304,7 +304,7 @@ func (b *Broker) deterministicAppGaps(app CustomApp) []string {
 	case strings.TrimSpace(app.ContentHash) != "" && customAppContentHash(html) != strings.TrimSpace(app.ContentHash):
 		gaps = append(gaps, "The published bundle does not match its recorded build hash (corrupt or partial publish).")
 	}
-	// The agent must REPLACE the starter scaffold. An App.tsx that still carries
+	// The bot must REPLACE the starter scaffold. An App.tsx that still carries
 	// the scaffold's instruction sentinel means it shipped (or stalled on) the
 	// unmodified template — a non-delivery the status/bundle checks miss when a
 	// scaffold happens to pass the build + publish. Cheap, deterministic backstop
@@ -398,7 +398,7 @@ func (b *Broker) reopenAppForAcceptanceFix(taskID, channel string, app CustomApp
 // only verdicts against the brief; it never calls a tool. The strict JSON
 // contract is what the broker actuates.
 func buildAppAcceptancePrompt(app CustomApp, caps, brief string, detGaps []string) (system, user string) {
-	system = "You are an acceptance reviewer for a small internal React tool (an \"App\") that a builder agent just produced for a human. " +
+	system = "You are an acceptance reviewer for a small internal React tool (an \"App\") that a builder bot just produced for a human. " +
 		"Decide whether the FINISHED app actually satisfies the human's brief — NOT whether it compiles (that is already checked separately). " +
 		"Judge ONLY against the brief's explicit requirements: for each requirement (a specific input, a named output, a workflow step, a control, a stated behavior), is it implemented by the app as described by its capabilities/source? " +
 		"Be strict but fair. A requirement the brief states that the app does not implement is a GAP. Do NOT invent requirements the brief never stated, and do NOT fail an app for lacking a capability the workspace cannot provide. " +

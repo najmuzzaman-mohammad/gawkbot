@@ -3,7 +3,7 @@ package team
 import (
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // The founder's requirement: "any manual changes to tasks should be reported to
@@ -17,15 +17,15 @@ import (
 // address — straight to the owner.
 //
 // These tests run against focus mode, the routing that is hardest on this case:
-// it deliberately suppresses cross-agent chatter so specialists only wake when
+// it deliberately suppresses cross-bot chatter so specialists only wake when
 // the CEO or a human addresses them. A task_changed post must clear that bar.
 
 func taskChangedLauncher() *Launcher {
 	return &Launcher{
 		focusMode: true,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "designer", Name: "Designer"},
 				{Slug: "eng", Name: "Engineer"},

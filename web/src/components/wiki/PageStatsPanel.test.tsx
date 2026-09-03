@@ -19,7 +19,7 @@ describe("<PageStatsPanel>", () => {
     // Assert
     expect(screen.getByText("Page stats")).toBeInTheDocument();
     expect(screen.getByText("47")).toBeInTheDocument();
-    expect(screen.getByText("6 agents")).toBeInTheDocument();
+    expect(screen.getByText("6 bots")).toBeInTheDocument();
     expect(screen.getByText("2,347")).toBeInTheDocument();
     expect(screen.getByText("2026-01-14")).toBeInTheDocument();
     expect(screen.getByText("128 times")).toBeInTheDocument();

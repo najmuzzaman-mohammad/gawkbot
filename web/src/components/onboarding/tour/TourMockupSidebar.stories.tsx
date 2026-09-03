@@ -5,7 +5,7 @@ import { TourMockupSidebar } from "./TourMockupSidebar";
 /**
  * Stories for the decorative mock sidebar used inside the office tour. The
  * component is purely presentational (no store, no query), so each story only
- * varies the two inputs that slides drive: `activeAgent` and `litRows`. A wide
+ * varies the two inputs that slides drive: `activeBot` and `litRows`. A wide
  * card decorator gives the rows room to breathe; nothing here mounts the app
  * shell.
  */
@@ -32,7 +32,7 @@ const meta: Meta<typeof TourMockupSidebar> = {
 export default meta;
 type Story = StoryObj<typeof TourMockupSidebar>;
 
-/** Slide 1 state: the office is waking up, nothing lit, no active agent. */
+/** Slide 1 state: the office is waking up, nothing lit, no active bot. */
 export const Empty: Story = {
   args: {},
 };
@@ -40,20 +40,20 @@ export const Empty: Story = {
 /** Slide 2 state: the analyst row is highlighted and earns the first tick. */
 export const AnalystActive: Story = {
   args: {
-    activeAgent: "@analyst",
+    activeBot: "@analyst",
     litRows: ["analyst"],
   },
 };
 
-/** Mid-tour: agents have filled in, channels begin to light up. */
+/** Mid-tour: bots have filled in, channels begin to light up. */
 export const PartiallyLit: Story = {
   args: {
-    activeAgent: "@engineer",
+    activeBot: "@engineer",
     litRows: ["analyst", "engineer", "general"],
   },
 };
 
-/** The all-ticks end state: every agent and channel row is complete. */
+/** The all-ticks end state: every bot and channel row is complete. */
 export const AllTicks: Story = {
   args: {
     litRows: ["ceo", "analyst", "engineer", "general", "engineering"],

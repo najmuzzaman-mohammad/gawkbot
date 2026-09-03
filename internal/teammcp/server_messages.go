@@ -25,7 +25,7 @@ func handleTeamBroadcast(ctx context.Context, _ *mcp.CallToolRequest, args TeamB
 		replyTo = location.ReplyToID
 	}
 
-	if !isOneOnOneMode() && !isAgentPairDM(channel, slug) {
+	if !isOneOnOneMode() && !isBotPairDM(channel, slug) {
 		if messages, tasks, err := fetchBroadcastContext(ctx, channel, slug); err == nil {
 			if reason := suppressBroadcastReason(slug, args.Content, replyTo, messages, tasks); reason != "" {
 				return textResult(fmt.Sprintf("Held reply for @%s: %s. Poll again if the thread changes or if the Chief of Staff tags you in.", slug, reason)), nil, nil
@@ -33,7 +33,7 @@ func handleTeamBroadcast(ctx context.Context, _ *mcp.CallToolRequest, args TeamB
 		}
 	}
 
-	// Auto-promote @-mentions in the body into the tagged array. Agents
+	// Auto-promote @-mentions in the body into the tagged array. Bots
 	// routinely write "@operator please handle X" without setting tagged,
 	// and the old path posted anyway + printed a warning nobody acted on
 	// (so @operator never woke up). The intent is unambiguous — honor it.
@@ -122,7 +122,7 @@ func detectUntaggedMentions(content string, tagged []string) []string {
 		if !valid {
 			continue
 		}
-		// Skip common non-agent references
+		// Skip common non-bot references
 		switch raw {
 		case "you", "human", "nex", "system", "everyone", "all", "team", "channel":
 			continue
@@ -186,14 +186,14 @@ func fetchBroadcastContext(ctx context.Context, channel, mySlug string) ([]broke
 	return messages.Messages, tasks.Tasks, nil
 }
 
-// isAgentPairDM reports whether channel is an agent↔agent pair DM that
+// isBotPairDM reports whether channel is a bot↔bot pair DM that
 // includes the sender: "<a>__<b>", neither side a human sender, sender one
 // of the two parts. A pair DM is the sender's own private consult thread,
 // so the domain chatter suppressor must never hold those replies — observed
-// live: two agents mid-consult were told "this is outside your domain" and
+// live: two bots mid-consult were told "this is outside your domain" and
 // the exchange stalled. The broker still enforces membership and the human
 // write-block on POST.
-func isAgentPairDM(channel, slug string) bool {
+func isBotPairDM(channel, slug string) bool {
 	parts := strings.SplitN(strings.TrimSpace(channel), "__", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" || parts[0] == parts[1] {
 		return false
@@ -211,15 +211,15 @@ func suppressBroadcastReason(slug, content, replyTo string, messages []brokerMes
 		return ""
 	}
 	threadRoot := threadRootForReply(replyTo, messages)
-	myDomain := inferOfficeAgentDomain(slug)
+	myDomain := inferOfficeBotDomain(slug)
 	latest := latestRelevantMessage(messages, replyTo)
 	latestDomain := inferOfficeTextDomain(content)
 	if latestDomain == "general" && latest != nil {
 		latestDomain = inferOfficeTextDomain(latest.Title + " " + latest.Content)
 	}
-	// An agent is explicitly needed if it was tagged in the latest relevant
+	// A bot is explicitly needed if it was tagged in the latest relevant
 	// message OR in any message in the thread (e.g. the root human message that
-	// originally requested work from multiple agents in parallel).
+	// originally requested work from multiple bots in parallel).
 	explicitNeed := latest != nil && containsSlug(latest.Tagged, slug)
 	if !explicitNeed && replyTo != "" {
 		for _, msg := range messages {
@@ -341,12 +341,12 @@ func taskAllowsFollowUpBroadcast(task brokerTaskSummary, replyTo, domain string,
 	return taskDomain == domain || taskDomain == "general" || domain == ""
 }
 
-// inferOfficeAgentDomain and inferOfficeTextDomain are canonical wrappers around
-// team.InferAgentDomain / team.InferTextDomain. All domain classification lives in
+// inferOfficeBotDomain and inferOfficeTextDomain are canonical wrappers around
+// team.InferBotDomain / team.InferTextDomain. All domain classification lives in
 // team/domains.go — update keywords there and both packages stay in sync.
 
-func inferOfficeAgentDomain(slug string) string { return team.InferAgentDomain(slug) }
-func inferOfficeTextDomain(text string) string  { return team.InferTextDomain(text) }
+func inferOfficeBotDomain(slug string) string  { return team.InferBotDomain(slug) }
+func inferOfficeTextDomain(text string) string { return team.InferTextDomain(text) }
 
 func containsSlug(items []string, want string) bool {
 	want = strings.TrimSpace(strings.ToLower(want))
@@ -368,7 +368,7 @@ func handleTeamPoll(ctx context.Context, _ *mcp.CallToolRequest, args TeamPollAr
 	}
 	if slug := strings.TrimSpace(resolveSlugOptional(args.MySlug)); slug != "" {
 		values.Set("my_slug", slug)
-		applyAgentMessageScope(values, slug, scope)
+		applyBotMessageScope(values, slug, scope)
 	} else if scope != "" {
 		values.Set("scope", scope)
 	}
@@ -449,7 +449,7 @@ func normalizePollScope(value string) (string, error) {
 	}
 }
 
-func applyAgentMessageScope(values url.Values, slug, scope string) {
+func applyBotMessageScope(values url.Values, slug, scope string) {
 	slug = strings.TrimSpace(slug)
 	if slug == "" || slug == "ceo" || isOneOnOneMode() {
 		return
@@ -479,12 +479,12 @@ func formatMessages(messages []brokerMessage, mySlug string) string {
 		if msg.ReplyTo != "" {
 			threadNote = " ↳ " + msg.ReplyTo
 		}
-		// Truncate AGENT/SYSTEM content to avoid token explosion when agents
+		// Truncate BOT/SYSTEM content to avoid token explosion when bots
 		// return long code blocks or reports. Human-authored messages are NEVER
 		// clipped: the human's words are the work contract, and the 800-char
 		// clip silently dropped the tail of long human redline messages
 		// (ten-out-of-ten Wave E handoff; v3 [18:05–18:10]: half the message
-		// read, half dropped). Agents who need a full agent thread can read it
+		// read, half dropped). Bots who need a full bot thread can read it
 		// via a targeted team_poll with thread_id.
 		const pollContentLimit = 800
 		if msg.Kind == "automation" || msg.From == "wuphf" || msg.From == "nex" {
@@ -517,7 +517,7 @@ func formatMessages(messages []brokerMessage, mySlug string) string {
 }
 
 // isHumanPollSender reports whether a poll line's sender is the human —
-// human content reaches agents in full, never clipped.
+// human content reaches bots in full, never clipped.
 func isHumanPollSender(from string) bool {
 	from = strings.ToLower(strings.TrimSpace(from))
 	return from == "you" || from == "human" || strings.HasPrefix(from, "human:")

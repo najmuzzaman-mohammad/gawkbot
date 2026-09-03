@@ -51,7 +51,7 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	}
 
 	// Workspace isolation (V3-N5): task worktree when this turn's task has
-	// one, else the agent's scratch dir inside the office runtime home.
+	// one, else the bot's scratch dir inside the office runtime home.
 	// NEVER the broker process launch cwd.
 	workspaceDir, isTaskWorktree := l.headlessTurnWorkspace(slug, headlessTurnTaskID(ctx))
 
@@ -64,7 +64,7 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	// then apply the Opencode-specific fixups: restore the user's real HOME so
 	// opencode finds ~/.local/share/opencode/auth.json, strip secrets that
 	// should never reach the third-party opencode process, overlay WUPHF's MCP
-	// config so agents can claim tasks / post status / update wiki, and flip
+	// config so bots can claim tasks / post status / update wiki, and flip
 	// the provider tag + NO_COLOR.
 	env := l.buildHeadlessCodexEnv(slug, workspaceDir, firstNonEmpty(channel...))
 	env = setEnvValue(env, "WUPHF_HEADLESS_PROVIDER", "opencode")
@@ -95,10 +95,10 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 		return fmt.Errorf("attach opencode stdout: %w", err)
 	}
 
-	var agentStream *agentStreamBuffer
+	var botStream *botStreamBuffer
 	taskID := l.turnTaskIDForCtx(ctx, slug)
 	if l.broker != nil {
-		agentStream = l.broker.AgentStream(slug)
+		botStream = l.broker.BotStream(slug)
 	}
 
 	var stderr strings.Builder
@@ -129,7 +129,7 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	// Live-chat relay surfaces the model's user-facing text to the
 	// channel at sentence/paragraph boundaries during the turn. Opencode
 	// emits one `text` event type for the assistant's spoken output;
-	// piping it through the relay is what turns the agent's reply from
+	// piping it through the relay is what turns the bot's reply from
 	// a single end-of-turn post into a visible live conversation.
 	target := firstNonEmpty(channel...)
 	relay := newHeadlessLiveChatRelay(l, slug, target, notification, func(line string) {
@@ -148,8 +148,8 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 	var turnToolNames []string
 	var turnTextLen int
 	pushStream := func(line string) {
-		if agentStream != nil && strings.TrimSpace(line) != "" {
-			agentStream.PushTask(taskID, line)
+		if botStream != nil && strings.TrimSpace(line) != "" {
+			botStream.PushTask(taskID, line)
 		}
 	}
 
@@ -174,7 +174,7 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 			pushStream(ev.Text)
 			relay.OnText(ev.Text)
 			turnTextLen += len(ev.Text)
-			emitHeadlessText(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, ev.Text, "opencode.text")
+			emitHeadlessText(botStream, turnID, HeadlessProviderOpencode, slug, taskID, ev.Text, "opencode.text")
 		case "tool_use":
 			relay.Flush()
 			if firstToolAt.IsZero() {
@@ -190,11 +190,11 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 			// opencode exposes no tool input, so the proxy action_id cannot be
 			// unwrapped here; manifestToolToken falls back to the raw name.
 			turnToolNames = append(turnToolNames, manifestToolToken(detail, ""))
-			emitHeadlessToolUse(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, ev.ToolName, "", "opencode.tool_use")
+			emitHeadlessToolUse(botStream, turnID, HeadlessProviderOpencode, slug, taskID, ev.ToolName, "", "opencode.tool_use")
 		case "tool_result":
 			if d := strings.TrimSpace(ev.Detail); d != "" {
 				pushStream("[tool_result] " + truncate(d, 240))
-				emitHeadlessToolResult(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, ev.ToolName, d, "opencode.tool_result")
+				emitHeadlessToolResult(botStream, turnID, HeadlessProviderOpencode, slug, taskID, ev.ToolName, d, "opencode.tool_result")
 			}
 		case "error":
 			if msg := strings.TrimSpace(ev.Detail); msg != "" {
@@ -219,12 +219,12 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 			))
 			appendHeadlessCodexLog(slug, "opencode_stderr: "+detail)
 			l.updateHeadlessProgress(slug, "error", "error", truncate(detail, 180), metrics)
-			emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, "", detail, metrics, nil)
-			emitHeadlessManifest(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, detail, turnToolNames, turnTextLen, metrics, nil)
+			emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", detail, metrics, nil)
+			emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, detail, turnToolNames, turnTextLen, metrics, nil)
 			if isOpencodeAuthError(detail) && l.broker != nil {
 				sysTarget := target
 				if strings.TrimSpace(sysTarget) == "" {
-					// The agent's own DM; see the codex runner for the rule.
+					// The bot's own DM; see the codex runner for the rule.
 					sysTarget = DMSlugFor(slug)
 				}
 				l.broker.PostSystemMessage(sysTarget,
@@ -240,15 +240,15 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 			durationMillis(startedAt, firstTextAt),
 			err.Error(),
 		))
-		emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, "", err.Error(), metrics, nil)
-		emitHeadlessManifest(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, err.Error(), turnToolNames, turnTextLen, metrics, nil)
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", err.Error(), metrics, nil)
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, err.Error(), turnToolNames, turnTextLen, metrics, nil)
 		return err
 	}
 	if scanErr != nil {
 		metrics.TotalMs = time.Since(startedAt).Milliseconds()
 		l.updateHeadlessProgress(slug, "error", "error", truncate(scanErr.Error(), 180), metrics)
-		emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, "", scanErr.Error(), metrics, nil)
-		emitHeadlessManifest(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, scanErr.Error(), turnToolNames, turnTextLen, metrics, nil)
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", scanErr.Error(), metrics, nil)
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, scanErr.Error(), turnToolNames, turnTextLen, metrics, nil)
 		return scanErr
 	}
 
@@ -269,8 +269,8 @@ func (l *Launcher) runHeadlessOpencodeTurn(ctx context.Context, slug string, not
 		summary = "reply ready · " + summary
 	}
 	l.updateHeadlessProgress(slug, "idle", "idle", summary, metrics)
-	emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, summary, "", metrics, nil)
-	emitHeadlessManifest(agentStream, turnID, HeadlessProviderOpencode, slug, taskID, "", turnToolNames, turnTextLen, metrics, nil)
+	emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderOpencode, slug, taskID, summary, "", metrics, nil)
+	emitHeadlessManifest(botStream, turnID, HeadlessProviderOpencode, slug, taskID, "", turnToolNames, turnTextLen, metrics, nil)
 	relay.Flush()
 	if text != "" {
 		appendHeadlessCodexLog(slug, "opencode_result: "+text)

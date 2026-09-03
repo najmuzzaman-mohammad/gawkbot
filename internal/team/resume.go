@@ -13,25 +13,25 @@ const recentHumanMessageLimit = 50
 // staleUnansweredThreshold is the oldest an unanswered human message can be
 // before it gets dropped on broker restart. Older messages are zombie work —
 // the user's intent has likely moved on, and replaying them burns a spawn per
-// agent for a turn the human didn't ask for. If the human still wants the old
+// bot for a turn the human didn't ask for. If the human still wants the old
 // message answered they can retag. Exposed as a var so tests that pre-seed
 // broker state with ancient timestamps can raise the threshold.
 var staleUnansweredThreshold = time.Hour
 
 // isHumanOrSystemSender reports whether a message sender is a human or system
-// source (not an agent). Only agent replies count as "answers".
+// source (not a bot). Only bot replies count as "answers".
 func isHumanOrSystemSender(from string) bool {
 	f := strings.ToLower(strings.TrimSpace(from))
 	return isHumanMessageSender(f) || f == "nex" || f == "system"
 }
 
 // findUnansweredMessages returns the subset of humanMsgs that have received no
-// agent reply in allMessages. A human message is considered "answered" only when
-// at least one AGENT message (not human/nex/system) in allMessages has ReplyTo
+// bot reply in allMessages. A human message is considered "answered" only when
+// at least one BOT message (not human/nex/system) in allMessages has ReplyTo
 // set to that human message's ID.
 func findUnansweredMessages(humanMsgs, allMessages []channelMessage) []channelMessage {
-	// Build a set of human message IDs that have been replied to by agents.
-	// Skip replies from human/nex/system senders — only agent replies count.
+	// Build a set of human message IDs that have been replied to by bots.
+	// Skip replies from human/nex/system senders — only bot replies count.
 	replied := make(map[string]struct{})
 	for _, msg := range allMessages {
 		if msg.ReplyTo == "" {
@@ -52,8 +52,8 @@ func findUnansweredMessages(humanMsgs, allMessages []channelMessage) []channelMe
 	return out
 }
 
-// buildResumePacket constructs a context string that an agent can use to resume
-// in-flight work. It combines the agent's assigned tasks (with worktree paths)
+// buildResumePacket constructs a context string that a bot can use to resume
+// in-flight work. It combines the bot's assigned tasks (with worktree paths)
 // and any unanswered human messages (with channel/reply_to routing instructions).
 // Returns an empty string when there is nothing to resume.
 func buildResumePacket(slug string, tasks []teamTask, msgs []channelMessage) string {
@@ -96,21 +96,21 @@ func buildResumePacket(slug string, tasks []teamTask, msgs []channelMessage) str
 }
 
 // buildResumePackets scans the broker for in-flight tasks and unanswered
-// human messages, then builds a resume packet per agent. Routing:
+// human messages, then builds a resume packet per bot. Routing:
 //   - tasks: routed to their owner slug
-//   - tagged messages: each tagged agent receives the message
+//   - tagged messages: each tagged bot receives the message
 //   - untagged messages: the pack lead receives the message
 //
-// Only agents in the current pack receive packets. Agents not in the pack
+// Only bots in the current pack receive packets. Bots not in the pack
 // (e.g. removed members with leftover tasks) are silently skipped.
 //
-// Returns a map of agent slug → resume packet (empty strings are omitted).
+// Returns a map of bot slug → resume packet (empty strings are omitted).
 func (l *Launcher) buildResumePackets() map[string]string {
 	if l.broker == nil {
 		return nil
 	}
 
-	// Build the set of valid office agent slugs from the live broker roster, not
+	// Build the set of valid office bot slugs from the live broker roster, not
 	// the original launch pack. Dynamically created specialists must resume after
 	// restart just like built-in members.
 	officeSlugs := make(map[string]struct{})
@@ -129,12 +129,12 @@ func (l *Launcher) buildResumePackets() map[string]string {
 	lead := l.targeter().LeadSlug()
 
 	// Collect in-flight tasks per owner — skip owners not in the pack.
-	tasksByAgent := make(map[string][]teamTask)
+	tasksByBot := make(map[string][]teamTask)
 	for _, task := range l.broker.InFlightTasks() {
 		if !inPack(task.Owner) {
 			continue
 		}
-		tasksByAgent[task.Owner] = append(tasksByAgent[task.Owner], task)
+		tasksByBot[task.Owner] = append(tasksByBot[task.Owner], task)
 	}
 
 	// Collect unanswered human messages.
@@ -162,41 +162,41 @@ func (l *Launcher) buildResumePackets() map[string]string {
 		unanswered = fresh
 	}
 
-	// Route unanswered messages: explicit tags → tagged agents; untagged → lead.
-	// Skip agents not in the current pack.
-	msgsByAgent := make(map[string][]channelMessage)
+	// Route unanswered messages: explicit tags → tagged bots; untagged → lead.
+	// Skip bots not in the current pack.
+	msgsByBot := make(map[string][]channelMessage)
 	for _, msg := range unanswered {
 		if len(msg.Tagged) > 0 {
 			for _, tag := range msg.Tagged {
 				slug := strings.TrimPrefix(tag, "@")
-				// Skip human/you tags — those are not agents.
+				// Skip human/you tags — those are not bots.
 				if isHumanOrSystemSender(slug) {
 					continue
 				}
 				if !inPack(slug) {
 					continue
 				}
-				msgsByAgent[slug] = append(msgsByAgent[slug], msg)
+				msgsByBot[slug] = append(msgsByBot[slug], msg)
 			}
 		} else {
 			if lead != "" && inPack(lead) {
-				msgsByAgent[lead] = append(msgsByAgent[lead], msg)
+				msgsByBot[lead] = append(msgsByBot[lead], msg)
 			}
 		}
 	}
 
-	// Build packets — include an agent only if they have tasks or messages.
+	// Build packets — include a bot only if they have tasks or messages.
 	allSlugs := make(map[string]struct{})
-	for slug := range tasksByAgent {
+	for slug := range tasksByBot {
 		allSlugs[slug] = struct{}{}
 	}
-	for slug := range msgsByAgent {
+	for slug := range msgsByBot {
 		allSlugs[slug] = struct{}{}
 	}
 
 	packets := make(map[string]string)
 	for slug := range allSlugs {
-		packet := buildResumePacket(slug, tasksByAgent[slug], msgsByAgent[slug])
+		packet := buildResumePacket(slug, tasksByBot[slug], msgsByBot[slug])
 		if packet != "" {
 			packets[slug] = packet
 		}
@@ -204,15 +204,15 @@ func (l *Launcher) buildResumePackets() map[string]string {
 	return packets
 }
 
-// resumeInFlightWork builds resume packets for all agents with pending work and
+// resumeInFlightWork builds resume packets for all bots with pending work and
 // delivers them via the appropriate runtime:
 //   - Headless or non-pane provider: enqueueHeadlessCodexTurn
 //   - Pane-eligible provider with a live pane target: sendNotificationToPane
 //
-// Routing is decided per agent so ProviderBinding overrides can mix pane-backed
+// Routing is decided per bot so ProviderBinding overrides can mix pane-backed
 // and headless runtimes in the same team. webMode alone is not sufficient: TUI
 // mode now defaults to headless dispatch, and keying on webMode would send
-// resume packets through agentPaneTargets() to pane indices that were never
+// resume packets through botPaneTargets() to pane indices that were never
 // spawned, silently dropping resumption.
 //
 // In headless mode the lead is enqueued FIRST to avoid the queue-hold guard:
@@ -227,7 +227,7 @@ func (l *Launcher) resumeInFlightWork() {
 
 	paneTargets := l.targeter().PaneTargets()
 	routePacket := func(slug, packet string) {
-		if l.targeter().MemberUsesHeadlessOneShotRuntime(slug) || !l.paneBackedAgents {
+		if l.targeter().MemberUsesHeadlessOneShotRuntime(slug) || !l.paneBackedBots {
 			l.enqueueHeadlessCodexTurn(slug, packet)
 			return
 		}

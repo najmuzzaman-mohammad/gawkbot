@@ -6,8 +6,8 @@ type ChannelType string
 
 const (
 	ChannelTypePublic ChannelType = "O" // Public channels (general, engineering)
-	ChannelTypeDirect ChannelType = "D" // 1:1 DMs (human + one agent)
-	ChannelTypeGroup  ChannelType = "G" // Group DMs (human + N agents)
+	ChannelTypeDirect ChannelType = "D" // 1:1 DMs (human + one bot)
+	ChannelTypeGroup  ChannelType = "G" // Group DMs (human + N bots)
 )
 
 // Channel represents a communication channel.

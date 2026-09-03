@@ -66,10 +66,10 @@ describe("<ChannelParticipants>", () => {
     mocks.useChannelMembers.mockReset();
     mocks.useOfficeMembers.mockReset();
     mocks.useOfficeMembers.mockReturnValue({ data: [] });
-    useAppStore.setState({ activeAgentSlug: null });
+    useAppStore.setState({ activeBotSlug: null });
   });
 
-  it("lists channel agents and filters out human seats", () => {
+  it("lists channel bots and filters out human seats", () => {
     mocks.useChannelMembers.mockReturnValue({
       data: [
         member({ slug: "human", name: "Human" }),
@@ -93,18 +93,18 @@ describe("<ChannelParticipants>", () => {
     render(<ChannelParticipants channelSlug="general" />);
 
     expect(mocks.useChannelMembers).toHaveBeenCalledWith("general");
-    expect(screen.getByText("2 agents")).toBeInTheDocument();
+    expect(screen.getByText("2 bots")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Open agent panel for CEO" }),
+      screen.getByRole("button", { name: "Open bot panel for CEO" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Open agent panel for Ops" }),
+      screen.getByRole("button", { name: "Open bot panel for Ops" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Human")).not.toBeInTheDocument();
     expect(screen.getByText("Disabled in this channel")).toBeInTheDocument();
   });
 
-  it("opens the agent panel for a participant", () => {
+  it("opens the bot panel for a participant", () => {
     mocks.useChannelMembers.mockReturnValue({
       data: [member({ slug: "planner", name: "Planner" })],
       isLoading: false,
@@ -113,10 +113,10 @@ describe("<ChannelParticipants>", () => {
     render(<ChannelParticipants channelSlug="strategy" />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Open agent panel for Planner" }),
+      screen.getByRole("button", { name: "Open bot panel for Planner" }),
     );
 
-    expect(useAppStore.getState().activeAgentSlug).toBe("planner");
+    expect(useAppStore.getState().activeBotSlug).toBe("planner");
   });
 
   it("adds an available office member to the channel", async () => {
@@ -127,7 +127,7 @@ describe("<ChannelParticipants>", () => {
     mocks.useOfficeMembers.mockReturnValue({
       data: [
         member({ slug: "ceo", name: "CEO", built_in: true }),
-        member({ slug: "planner", name: "Planner", role: "Research agent" }),
+        member({ slug: "planner", name: "Planner", role: "Research bot" }),
       ],
     });
 
@@ -242,7 +242,7 @@ describe("<ChannelParticipants>", () => {
     );
   });
 
-  it("does not expose remove for the lead agent", () => {
+  it("does not expose remove for the lead bot", () => {
     mocks.useChannelMembers.mockReturnValue({
       data: [member({ slug: "ceo", name: "CEO" })],
       isLoading: false,
@@ -258,7 +258,7 @@ describe("<ChannelParticipants>", () => {
     ).toBeDisabled();
   });
 
-  it("renders an empty state when the channel has no agents", () => {
+  it("renders an empty state when the channel has no bots", () => {
     mocks.useChannelMembers.mockReturnValue({
       data: [member({ slug: "human", name: "Human" })],
       isLoading: false,
@@ -266,7 +266,7 @@ describe("<ChannelParticipants>", () => {
 
     render(<ChannelParticipants channelSlug="solo" />);
 
-    expect(screen.getByText("0 agents")).toBeInTheDocument();
-    expect(screen.getByText("No agents in this channel")).toBeInTheDocument();
+    expect(screen.getByText("0 bots")).toBeInTheDocument();
+    expect(screen.getByText("No bots in this channel")).toBeInTheDocument();
   });
 });

@@ -20,12 +20,12 @@ export interface SchedulerJob {
   interval_minutes?: number;
   /** Cron expression for cron-driven workflow jobs. */
   schedule_expr?: string;
-  /** Office agent slug that owns this job (the agent that scheduled it). For
-   * workflow jobs this is the owning agent — distinct from `provider`, which is
-   * the integration vendor and must never be shown as an agent. */
+  /** Office bot slug that owns this job (the bot that scheduled it). For
+   * workflow jobs this is the owning bot — distinct from `provider`, which is
+   * the integration vendor and must never be shown as a bot. */
   agent?: string;
   /** Integration vendor for workflow jobs ("composio" | "one" | "system"). NOT
-   * an agent slug — use `agent` / `target_id` for the owning agent. */
+   * a bot slug — use `bot` / `target_id` for the owning bot. */
   provider?: string;
   /** Target type ("workflow" | "skill" | …) when surfaced by the runtime. */
   target_type?: string;
@@ -137,9 +137,9 @@ export interface SchedulerRun {
   events?: string[];
   /** Optional detailed error block (multi-line, monospace-friendly). */
   error?: string;
-  /** Target type the job was pointed at (workflow / skill / agent / …). */
+  /** Target type the job was pointed at (workflow / skill / bot / …). */
   target_type?: string;
-  /** Target id (workflow key, agent slug, task id, etc.). */
+  /** Target id (workflow key, bot slug, task id, etc.). */
   target_id?: string;
 }
 

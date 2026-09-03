@@ -59,7 +59,7 @@ func TestAppDevURLScrape(t *testing.T) {
 	cases := map[string]string{
 		"  ➜  Local:   http://localhost:5173/": "http://localhost:5173",
 		"➜  Local:   http://127.0.0.1:5199/":   "http://127.0.0.1:5199",
-		// A decoy URL NOT on a Vite "Local:" line must NOT match — an agent's
+		// A decoy URL NOT on a Vite "Local:" line must NOT match — a bot's
 		// vite.config plugin could print one early to redirect the proxy.
 		"plugin printed http://127.0.0.1:9999/ early": "",
 		"no url in this line":                         "",
@@ -77,7 +77,7 @@ func TestAppDevURLScrape(t *testing.T) {
 
 // TestAppDevProxyEnforcesCSP locks the security invariant: the broker-owned
 // proxy injects the App-Builder CSP on every dev response and strips
-// X-Frame-Options, REGARDLESS of what the (agent-controlled) dev server sent —
+// X-Frame-Options, REGARDLESS of what the (bot-controlled) dev server sent —
 // so a generated vite.config cannot weaken the no-exfiltration guarantee.
 func TestAppDevProxyEnforcesCSP(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

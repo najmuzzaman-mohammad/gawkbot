@@ -81,7 +81,7 @@ func TestBindingJSONRoundTrip_Openclaw(t *testing.T) {
 	in := ProviderBinding{
 		Kind:     "openclaw",
 		Model:    "openai-codex/gpt-5.4",
-		Openclaw: &OpenclawProviderBinding{SessionKey: "agent:foo:demo", AgentID: "main"},
+		Openclaw: &OpenclawProviderBinding{SessionKey: "agent:foo:demo", BotID: "main"},
 	}
 	data, err := json.Marshal(in)
 	if err != nil {
@@ -143,7 +143,7 @@ func TestResolveKindFallsBackToGlobal(t *testing.T) {
 
 func TestIsGatewayKind(t *testing.T) {
 	t.Parallel()
-	gateways := []string{KindOpenclaw, KindOpenclawHTTP, KindHermesAgent, KindSlack}
+	gateways := []string{KindOpenclaw, KindOpenclawHTTP, KindHermesBot, KindSlack}
 	for _, k := range gateways {
 		if !IsGatewayKind(k) {
 			t.Errorf("IsGatewayKind(%q) = false, want true", k)
@@ -188,7 +188,7 @@ func TestLLMProviderKindsExcludesGateways(t *testing.T) {
 			t.Errorf("LLMProviderKinds missing %q: %v", k, llmKinds)
 		}
 	}
-	mustGateway := []string{KindOpenclawHTTP, KindHermesAgent}
+	mustGateway := []string{KindOpenclawHTTP, KindHermesBot}
 	for _, k := range mustGateway {
 		if !inSet(k, gateway) {
 			t.Errorf("GatewayKinds missing %q: %v", k, gateway)

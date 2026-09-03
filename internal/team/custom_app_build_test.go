@@ -14,7 +14,7 @@ import (
 // does that matters for these tests — INLINE the (now-canonical) bridge source
 // into the sealed bundle — by reading the on-disk wuphf-bridge.ts and embedding
 // it in a valid app document. That lets a test assert the published bundle
-// reflects the canonical bridge bytes the host wrote, not the agent's tampered
+// reflects the canonical bridge bytes the host wrote, not the bot's tampered
 // version.
 func stubBuildBundle(srcDir string) ([]byte, error) {
 	bridge, err := os.ReadFile(filepath.Join(srcDir, "src", "wuphf-bridge.ts"))
@@ -45,10 +45,10 @@ const theme = createTheme({ primaryColor: "indigo", defaultRadius: "md", spacing
 createRoot(document.getElementById("root")!).render(<MantineProvider theme={theme}><App /></MantineProvider>);`
 
 // TestPublishOverwritesTamperedBridgeWithCanonical is the core security
-// regression: an agent that rewrites the protected wuphf-bridge.ts (here,
+// regression: a bot that rewrites the protected wuphf-bridge.ts (here,
 // dropping the lean Gmail params getEmails relies on) must still publish with the
 // CANONICAL host-owned bridge. We assert two things: the persisted SOURCE bridge
-// is the canonical bytes (agent's tamper discarded), and the stored BUNDLE
+// is the canonical bytes (bot's tamper discarded), and the stored BUNDLE
 // reflects the canonical bridge (the lean-param marker is present and the
 // tampered marker is gone).
 func TestPublishOverwritesTamperedBridgeWithCanonical(t *testing.T) {
@@ -57,7 +57,7 @@ func TestPublishOverwritesTamperedBridgeWithCanonical(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0).UTC()
 
 	const tamperMarker = "TAMPERED_BRIDGE_NO_LEAN_PARAMS"
-	// The agent ships a gutted bridge: no lean Gmail params, plus a unique marker
+	// The bot ships a gutted bridge: no lean Gmail params, plus a unique marker
 	// so we can prove its bytes never reach the published source or bundle.
 	tamperedBridge := "// " + tamperMarker + "\n" +
 		"export function getEmails(){ return callIntegration('gmail','GMAIL_FETCH_EMAILS',{}); }\n"
@@ -65,7 +65,7 @@ func TestPublishOverwritesTamperedBridgeWithCanonical(t *testing.T) {
 	app, err := store.Save(CustomAppWriteRequest{
 		Name:  "Inbox Triage",
 		Actor: "app-builder",
-		HTML:  "<html><body>agent bundle that should be ignored</body></html>",
+		HTML:  "<html><body>bot bundle that should be ignored</body></html>",
 		Files: map[string]string{
 			"package.json":           "{}",
 			"src/App.tsx":            "export default function App(){return null}",
@@ -89,10 +89,10 @@ func TestPublishOverwritesTamperedBridgeWithCanonical(t *testing.T) {
 		t.Fatalf("canonical bridge: %v", err)
 	}
 	if src["src/wuphf-bridge.ts"] != string(canonical) {
-		t.Fatalf("persisted bridge is not canonical (agent tamper survived)")
+		t.Fatalf("persisted bridge is not canonical (bot tamper survived)")
 	}
 	if strings.Contains(src["src/wuphf-bridge.ts"], tamperMarker) {
-		t.Fatalf("persisted bridge still contains the agent tamper marker")
+		t.Fatalf("persisted bridge still contains the bot tamper marker")
 	}
 	// The other protected files were overwritten too.
 	for _, p := range []string{"src/wuphf-inspector.ts", "vite.config.ts"} {
@@ -105,7 +105,7 @@ func TestPublishOverwritesTamperedBridgeWithCanonical(t *testing.T) {
 		}
 	}
 
-	// 2) The stored BUNDLE reflects the canonical bridge, not the agent's html or
+	// 2) The stored BUNDLE reflects the canonical bridge, not the bot's html or
 	// the tampered bridge. The canonical bridge carries the lean Gmail params; the
 	// tamper marker must be absent.
 	_, html, err := store.Get(app.ID)
@@ -115,8 +115,8 @@ func TestPublishOverwritesTamperedBridgeWithCanonical(t *testing.T) {
 	if strings.Contains(html, tamperMarker) {
 		t.Fatalf("stored bundle contains the tampered bridge marker")
 	}
-	if strings.Contains(html, "agent bundle that should be ignored") {
-		t.Fatalf("stored bundle is the agent-submitted html, not the host build")
+	if strings.Contains(html, "bot bundle that should be ignored") {
+		t.Fatalf("stored bundle is the bot-submitted html, not the host build")
 	}
 	for _, leanMarker := range []string{"GMAIL_FETCH_EMAILS", "verbose: false", "include_payload: false"} {
 		if !strings.Contains(html, leanMarker) {
@@ -224,12 +224,12 @@ func TestPublishHTMLOnlyFallback(t *testing.T) {
 	}
 }
 
-// TestPublishWithFilesDiscardsAgentHTML proves req.HTML is never read when
+// TestPublishWithFilesDiscardsBotHTML proves req.HTML is never read when
 // source Files are present: even an html that would FAIL the sandbox policy is
 // harmlessly discarded, because the stored bundle is the host build, not the
-// agent's html. (Without this, a future refactor that re-validated req.HTML would
+// bot's html. (Without this, a future refactor that re-validated req.HTML would
 // reject a publish whose html was always going to be thrown away.)
-func TestPublishWithFilesDiscardsAgentHTML(t *testing.T) {
+func TestPublishWithFilesDiscardsBotHTML(t *testing.T) {
 	store := newCustomAppStore(t.TempDir())
 	store.buildBundle = stubBuildBundle
 	now := time.Unix(1_700_000_000, 0).UTC()
@@ -254,7 +254,7 @@ func TestPublishWithFilesDiscardsAgentHTML(t *testing.T) {
 		t.Fatalf("Get: %v", err)
 	}
 	if strings.Contains(html, "evil.example") {
-		t.Fatalf("agent html leaked into the stored bundle")
+		t.Fatalf("bot html leaked into the stored bundle")
 	}
 }
 

@@ -4,7 +4,7 @@ package team
 //
 // Data flow:
 //
-//   agent publishes artifact
+//   bot publishes artifact
 //     │
 //     ▼
 //   WikiWorker.EnqueueArtifact

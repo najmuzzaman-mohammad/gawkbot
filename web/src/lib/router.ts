@@ -68,9 +68,9 @@ export const legacyWorkbenchRoute = createRoute({
   },
 });
 
-export const legacyWorkbenchAgentRoute = createRoute({
+export const legacyWorkbenchBotRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: ROUTE_PATHS.legacyWorkbenchAgent,
+  path: ROUTE_PATHS.legacyWorkbenchBot,
   beforeLoad: () => {
     throw redirect({ to: "/tasks", replace: true });
   },
@@ -123,7 +123,7 @@ export const articleRoute = createRoute({
   path: ROUTE_PATHS.article,
 });
 
-// /inbox — Decision Inbox (Lane G, multi-agent control loop)
+// /inbox — Decision Inbox (Lane G, multi-bot control loop)
 export const inboxRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTE_PATHS.inbox,
@@ -194,27 +194,27 @@ export const skillDetailRoute = createRoute({
   path: ROUTE_PATHS.skillDetail,
 });
 
-// /agents — Agents tool. Roster grid of every agent (CEO, Librarian,
-// specialists). Replaces the per-agent chat subspace: agents are
+// /bots — Bots tool. Roster grid of every bot (CEO, Librarian,
+// specialists). Replaces the per-bot chat subspace: bots are
 // first-class, configured here, but they are not chat surfaces. The
-// detail page (/agents/$agentSlug) is mounted as a child so the static
-// index and the dynamic detail share the same `/agents` prefix.
-export const agentsRoute = createRoute({
+// detail page (/bots/$botSlug) is mounted as a child so the static
+// index and the dynamic detail share the same `/bots` prefix.
+export const botsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTE_PATHS.agents,
 });
 
-// /agents/$agentSlug — agent detail / config (provider, role, persona,
-// skills). Child of agentsRoute.
-export const agentDetailRoute = createRoute({
-  getParentRoute: () => agentsRoute,
+// /bots/$botSlug — bot detail / config (provider, role, persona,
+// skills). Child of botsRoute.
+export const botDetailRoute = createRoute({
+  getParentRoute: () => botsRoute,
   path: "$agentSlug",
 });
 
-// /agents/$agentSlug/$tab — tabbed subspace view. Child of agentDetailRoute.
+// /bots/$botSlug/$tab — tabbed subspace view. Child of botDetailRoute.
 // Tab values: chat | tasks | skills | policies | live-stream | config.
-export const agentDetailTabRoute = createRoute({
-  getParentRoute: () => agentDetailRoute,
+export const botDetailTabRoute = createRoute({
+  getParentRoute: () => botDetailRoute,
   path: "$tab",
 });
 
@@ -226,7 +226,7 @@ export const routeTree = rootRoute.addChildren([
   tasksRoute.addChildren([taskNewRoute, taskDetailRoute]),
   appTaskDetailRoute,
   legacyWorkbenchRoute,
-  legacyWorkbenchAgentRoute,
+  legacyWorkbenchBotRoute,
   legacyWorkbenchTaskRoute,
   appRoute,
   wikiRoute.addChildren([wikiIndexRoute, wikiLookupRoute, wikiArticleRoute]),
@@ -236,11 +236,9 @@ export const routeTree = rootRoute.addChildren([
   routinesRoute,
   routineNewRoute,
   routineDetailRoute,
-  // Agents tool: roster (/agents) with the detail/config page as a child,
-  // and the tabbed subspace (/agents/$agentSlug/$tab) as a grandchild.
-  agentsRoute.addChildren([
-    agentDetailRoute.addChildren([agentDetailTabRoute]),
-  ]),
+  // Bots tool: roster (/bots) with the detail/config page as a child,
+  // and the tabbed subspace (/bots/$botSlug/$tab) as a grandchild.
+  botsRoute.addChildren([botDetailRoute.addChildren([botDetailTabRoute])]),
   // Skill detail (full-screen edit + render with raw/preview toggle).
   skillDetailRoute,
 ]);

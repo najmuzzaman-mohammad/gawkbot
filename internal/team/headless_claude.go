@@ -32,10 +32,10 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 	mount := l.mountComputerForTurn(ctx, slug)
 	defer l.releaseComputerForTurn(mount)
 
-	// Per-agent MCP scoping: give each agent only the MCP servers it needs.
-	agentMCP := l.mcpConfig
-	if path, err := l.ensureAgentMCPConfigWith(slug, mount.mcpServers()); err == nil {
-		agentMCP = path
+	// Per-bot MCP scoping: give each bot only the MCP servers it needs.
+	botMCP := l.mcpConfig
+	if path, err := l.ensureBotMCPConfigWith(slug, mount.mcpServers()); err == nil {
+		botMCP = path
 	}
 
 	args := []string{
@@ -47,16 +47,16 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		"--disable-slash-commands",
 		"--setting-sources", "user",
 		"--append-system-prompt", l.buildPrompt(slug) + mount.promptHint(),
-		"--mcp-config", agentMCP,
+		"--mcp-config", botMCP,
 		"--strict-mcp-config",
 		// NOTE: tried --disallowedTools ToolSearch to block the
 		// deferred-tools reminder loop. claude-code requires ToolSearch
-		// when MCP tools are deferred; the agent exited with SIGTERM
+		// when MCP tools are deferred; the bot exited with SIGTERM
 		// after ~23s and zero events. Reverted. The prompt's TOOL
 		// HYGIENE block continues to instruct the model to ignore the
 		// reminder and call MCP tools directly; we accept the soft
 		// failure mode (~30s tax on first turn) over the hard one
-		// (agent dies before producing any output).
+		// (bot dies before producing any output).
 	}
 	args = append(args, strings.Fields(l.resolvePermissionFlags(ctx, slug))...)
 
@@ -67,11 +67,11 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		args = append(args, "--effort", effort)
 	}
 
-	// Workspace isolation: coding agents get their own git worktree. Resolve the
+	// Workspace isolation: coding bots get their own git worktree. Resolve the
 	// worktree for THIS turn's task (via ctx) so a parallel instance writes its
 	// own per-task worktree instead of whichever in_progress task is first.
 	worktreeDir := ""
-	if codingAgentSlugs[slug] && l.broker != nil {
+	if codingBotSlugs[slug] && l.broker != nil {
 		if task := l.turnTaskForCtx(ctx, slug); task != nil && strings.TrimSpace(task.ID) != "" {
 			if wPath, _, err := prepareTaskWorktree(task.ID); err == nil {
 				worktreeDir = wPath
@@ -79,7 +79,7 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		}
 	}
 	if worktreeDir == "" {
-		// Non-coding agents (CEO included) still honor an assigned
+		// Non-coding bots (CEO included) still honor an assigned
 		// local_worktree path on this turn's task.
 		worktreeDir = strings.TrimSpace(l.headlessTaskWorkspaceDir(slug, headlessTurnTaskID(ctx)))
 	}
@@ -89,11 +89,11 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		cmd.Dir = worktreeDir
 	} else {
 		// V3-N5: a turn without a task worktree (chat turns, office-mode
-		// task turns) runs in the agent's scratch dir inside the office
+		// task turns) runs in the bot's scratch dir inside the office
 		// runtime home — NEVER the broker process launch cwd. The v3 live
 		// run had the CEO writing landing/index.html into (and later
 		// `git checkout`-destroying it inside) the founder's host repo.
-		cmd.Dir = agentScratchDir(slug)
+		cmd.Dir = botScratchDir(slug)
 	}
 	configureHeadlessProcess(cmd)
 	env := l.buildHeadlessClaudeEnv(slug)
@@ -104,13 +104,13 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 	cmd.Env = env
 
 	// Enrich the notification with memory-backend context. Use a 2s deadline so a
-	// slow or unreachable memory backend never holds up the agent turn.
+	// slow or unreachable memory backend never holds up the bot turn.
 	//
 	// The memory brief can contain attacker-controlled data (email bodies, CRM
 	// notes, calendar entries, etc.), so it is appended AFTER the operator's
 	// notification and wrapped in an explicitly untrusted fence. Putting
 	// attacker data before the operator's instructions is a known prompt-
-	// injection vector; last-message anchoring is where the agent's attention
+	// injection vector; last-message anchoring is where the bot's attention
 	// lands, so the operator's notification stays first.
 	memoryCtx, memoryCancel := context.WithTimeout(ctx, 2*time.Second)
 	brief := fetchScopedMemoryBrief(memoryCtx, slug, notification, l.broker)
@@ -123,11 +123,11 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		return fmt.Errorf("attach claude stdout: %w", err)
 	}
 
-	// Pipe raw stdout to the agent stream for the web UI's live output pane.
-	var agentStream *agentStreamBuffer
+	// Pipe raw stdout to the bot stream for the web UI's live output pane.
+	var botStream *botStreamBuffer
 	taskID := l.turnTaskIDForCtx(ctx, slug)
 	if l.broker != nil {
-		agentStream = l.broker.AgentStream(slug)
+		botStream = l.broker.BotStream(slug)
 	}
 	pr, pw := io.Pipe()
 	teedStdout := io.TeeReader(stdout, pw)
@@ -138,8 +138,8 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 	// for the underlying contract.
 	go func() {
 		_ = provider.DrainStreamLines(pr, func(chunk string) {
-			if agentStream != nil && chunk != "" {
-				agentStream.PushTask(taskID, chunk)
+			if botStream != nil && chunk != "" {
+				botStream.PushTask(taskID, chunk)
 			}
 		})
 	}()
@@ -171,11 +171,11 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 	}
 	l.updateHeadlessProgress(slug, "active", "thinking", "reviewing work packet", metrics)
 
-	// Live-chat relay streams the agent's user-facing `text` output to the
+	// Live-chat relay streams the bot's user-facing `text` output to the
 	// channel as it's generated, so a long turn doesn't sit silent until the
 	// final summary. Claude's `thinking` blocks are intentionally not piped:
 	// those are private chain-of-thought, not "items that concern the user
-	// and other agents". The model's `text` output is what the agent has
+	// and other bots". The model's `text` output is what the bot has
 	// chosen to surface, and the relay's sentence/paragraph flush boundaries
 	// keep the channel from being flooded with mid-token chunks.
 	target := firstNonEmpty(channel...)
@@ -195,7 +195,7 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 	turnID := newHeadlessTurnID()
 	var turnToolNames []string
 	var turnTextLen int
-	// Plan posture (task in LifecycleStatePlanning): the agent runs read-only
+	// Plan posture (task in LifecycleStatePlanning): the bot runs read-only
 	// and delivers its plan via the ExitPlanMode tool call, which we harvest
 	// here so it can be surfaced to the human for plan approval.
 	planning := l.resolveTurnPosture(ctx, slug) == posturePlan
@@ -220,7 +220,7 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 			}
 			relay.OnText(event.Text)
 			turnTextLen += len(event.Text)
-			emitHeadlessText(agentStream, turnID, HeadlessProviderClaude, slug, taskID, event.Text, "claude.text")
+			emitHeadlessText(botStream, turnID, HeadlessProviderClaude, slug, taskID, event.Text, "claude.text")
 		case "tool_use":
 			relay.Flush()
 			if firstToolAt.IsZero() {
@@ -243,11 +243,11 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 			// detection substrate; the live tool_use event below keeps the true
 			// tool name for the UI. See manifestToolToken (workflow_detect.go).
 			turnToolNames = append(turnToolNames, manifestToolToken(event.ToolName, event.ToolInput))
-			emitHeadlessToolUse(agentStream, turnID, HeadlessProviderClaude, slug, taskID, event.ToolName, event.ToolInput, "claude.tool_use")
+			emitHeadlessToolUse(botStream, turnID, HeadlessProviderClaude, slug, taskID, event.ToolName, event.ToolInput, "claude.tool_use")
 		case "tool_result":
 			appendHeadlessClaudeLog(slug, "tool_result: "+truncate(event.Text, 140))
 			l.updateHeadlessProgress(slug, "active", "tool_result", progressDetail(event.Text, 140), metrics)
-			emitHeadlessToolResult(agentStream, turnID, HeadlessProviderClaude, slug, taskID, event.ToolName, event.Text, "claude.tool_result")
+			emitHeadlessToolResult(botStream, turnID, HeadlessProviderClaude, slug, taskID, event.ToolName, event.Text, "claude.tool_result")
 		case "error":
 			appendHeadlessClaudeLog(slug, "stream_error: "+event.Detail)
 			l.updateHeadlessProgress(slug, "error", "error", truncate(event.Detail, 180), metrics)
@@ -265,8 +265,8 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 			detail,
 		))
 		l.updateHeadlessProgress(slug, "error", "error", truncate(detail, 180), metrics)
-		emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderClaude, slug, taskID, "", detail, metrics, claudeUsageToTokenUsage(result.Usage))
-		emitHeadlessManifest(agentStream, turnID, HeadlessProviderClaude, slug, taskID, detail, turnToolNames, turnTextLen, metrics, claudeUsageToTokenUsage(result.Usage))
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderClaude, slug, taskID, "", detail, metrics, claudeUsageToTokenUsage(result.Usage))
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderClaude, slug, taskID, detail, turnToolNames, turnTextLen, metrics, claudeUsageToTokenUsage(result.Usage))
 		return fmt.Errorf("%w: %s", err, detail)
 	}
 	if parseErr != nil {
@@ -279,8 +279,8 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 			parseErr.Error(),
 		))
 		l.updateHeadlessProgress(slug, "error", "error", truncate(parseErr.Error(), 180), metrics)
-		emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderClaude, slug, taskID, "", parseErr.Error(), metrics, claudeUsageToTokenUsage(result.Usage))
-		emitHeadlessManifest(agentStream, turnID, HeadlessProviderClaude, slug, taskID, parseErr.Error(), turnToolNames, turnTextLen, metrics, claudeUsageToTokenUsage(result.Usage))
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderClaude, slug, taskID, "", parseErr.Error(), metrics, claudeUsageToTokenUsage(result.Usage))
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderClaude, slug, taskID, parseErr.Error(), turnToolNames, turnTextLen, metrics, claudeUsageToTokenUsage(result.Usage))
 		return parseErr
 	}
 
@@ -299,10 +299,10 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		summary = "reply ready · " + summary
 	}
 	l.updateHeadlessProgress(slug, "idle", "idle", summary, metrics)
-	emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderClaude, slug, taskID, summary, "", metrics, claudeUsageToTokenUsage(result.Usage))
-	emitHeadlessManifest(agentStream, turnID, HeadlessProviderClaude, slug, taskID, "", turnToolNames, turnTextLen, metrics, claudeUsageToTokenUsage(result.Usage))
+	emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderClaude, slug, taskID, summary, "", metrics, claudeUsageToTokenUsage(result.Usage))
+	emitHeadlessManifest(botStream, turnID, HeadlessProviderClaude, slug, taskID, "", turnToolNames, turnTextLen, metrics, claudeUsageToTokenUsage(result.Usage))
 	if l.broker != nil {
-		l.broker.RecordAgentUsage(slug, l.headlessClaudeModel(ctx, slug), result.Usage)
+		l.broker.RecordBotUsage(slug, l.headlessClaudeModel(ctx, slug), result.Usage)
 	}
 	relay.Flush()
 	finalText := strings.TrimSpace(result.FinalMessage)
@@ -311,7 +311,7 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 		// summary the human reviews: under plan mode Claude delivers the plan
 		// via ExitPlanMode (a tool call), so result.FinalMessage is usually
 		// empty and the plan would otherwise sit only in the raw tool stream.
-		emitHeadlessPlan(agentStream, turnID, HeadlessProviderClaude, slug, taskID, planArtifact)
+		emitHeadlessPlan(botStream, turnID, HeadlessProviderClaude, slug, taskID, planArtifact)
 		if finalText == "" {
 			finalText = planArtifact
 		}
@@ -335,22 +335,22 @@ func (l *Launcher) runHeadlessClaudeTurn(ctx context.Context, slug string, notif
 }
 
 func (l *Launcher) headlessClaudeModel(ctx context.Context, slug string) string {
-	// Per-agent override wins: when the user picks a specific model in the
-	// AgentProfilePanel runtime section (or AgentWizard), that's the
+	// Per-bot override wins: when the user picks a specific model in the
+	// BotProfilePanel runtime section (or BotWizard), that's the
 	// model the next dispatch must use. Without this check the picker
 	// silently rewrote ProviderBinding.Model but every turn still ran
 	// against the hardcoded default — the user-visible symptom was
 	// "I picked a different model and nothing changed."
 	//
-	// The per-agent binding is only consulted when its kind is also
-	// claude-code: if a user moved the agent to codex with model=gpt-4o,
+	// The per-bot binding is only consulted when its kind is also
+	// claude-code: if a user moved the bot to codex with model=gpt-4o,
 	// we must not feed gpt-4o to claude on a later switch back. The
 	// runtime-switch flow clears the binding entirely on kind change
-	// (see AgentProfilePanel save path), so the most common edge cases
+	// (see BotProfilePanel save path), so the most common edge cases
 	// are already prevented at the source, but the kind check here is
 	// belt-and-suspenders.
-	// Per-task model wins over the agent binding (the model lives on the task,
-	// not the agent). Only when the task's provider is claude-code.
+	// Per-task model wins over the bot binding (the model lives on the task,
+	// not the bot). Only when the task's provider is claude-code.
 	if model := l.taskModelForKind(ctx, slug, provider.KindClaudeCode); model != "" {
 		return model
 	}
@@ -373,7 +373,7 @@ func (l *Launcher) headlessClaudeModel(ctx context.Context, slug string) string 
 	return "claude-sonnet-4-6"
 }
 
-// headlessClaudeMaxTurns returns the turn budget for an agent. The CEO routes
+// headlessClaudeMaxTurns returns the turn budget for a bot. The CEO routes
 // untagged and DM messages, which typically requires looking up tasks, channel
 // members, and posting an assignment — easily more than 5 turns. Specialists
 // get a smaller budget since they focus on a single task.
@@ -404,7 +404,7 @@ func claudeUsageToTokenUsage(u provider.ClaudeUsage) *headlessTokenUsage {
 }
 
 func (l *Launcher) buildHeadlessClaudeEnv(slug string) []string {
-	// gitexec.CleanEnv: a spawned claude agent will run
+	// gitexec.CleanEnv: a spawned claude bot will run
 	// `git status/diff/commit` inside its sandbox. If wuphf inherited
 	// GIT_DIR (e.g. launched from a git hook) every child `git` would
 	// silently retarget the outer repo.
@@ -420,7 +420,7 @@ func (l *Launcher) buildHeadlessClaudeEnv(slug string) []string {
 	if l.isOneOnOne() {
 		env = append(env,
 			"WUPHF_ONE_ON_ONE=1",
-			"WUPHF_ONE_ON_ONE_AGENT="+l.oneOnOneAgent(),
+			"WUPHF_ONE_ON_ONE_AGENT="+l.oneOnOneBot(),
 		)
 	}
 	if secret := strings.TrimSpace(config.ResolveOneSecret()); secret != "" {

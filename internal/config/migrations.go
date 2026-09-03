@@ -3,7 +3,7 @@ package config
 // MigrationStatus describes what a one-shot migration observed and changed,
 // returned to the caller so broker init can log a system message.
 type MigrationStatus struct {
-	OpenclawBridgesMoved int // legacy bindings converted into per-agent Provider values
+	OpenclawBridgesMoved int // legacy bindings converted into per-bot Provider values
 }
 
 // MigrateOpenclawBridgesFromConfig strips `openclaw_bridges` from the persisted

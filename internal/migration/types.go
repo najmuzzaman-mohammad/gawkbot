@@ -36,7 +36,7 @@ type Kind string
 
 const (
 	// KindPeople maps to team/people/{slug}.md — profile-style notes on
-	// humans and agents.
+	// humans and bots.
 	KindPeople Kind = "people"
 	// KindCompanies maps to team/companies/{slug}.md — external org briefs.
 	KindCompanies Kind = "companies"

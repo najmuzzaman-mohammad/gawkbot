@@ -2,7 +2,7 @@ package team
 
 // Tests for the C5f clock-injected paneLifecycle methods. The 1.5s
 // sleep in DetectDeadPanesAfterSpawn and the 1s sleeps in
-// PrimeVisibleAgents previously made these methods un-testable
+// PrimeVisibleBots previously made these methods un-testable
 // without time.Sleep in the test (the hard "no sleeps in tests"
 // rule). Now that paneLifecycle takes a clock interface the tests
 // drive them through manualClock.Advance — same pattern as
@@ -25,7 +25,7 @@ func TestDetectDeadPanesAfterSpawn_RecordsDeadPanesUnderManualClock(t *testing.T
 	posted := 0
 	recorded := map[string]string{}
 	deps := paneLifecycleDeps{
-		agentPaneTargets: func() map[string]notificationTarget {
+		botPaneTargets: func() map[string]notificationTarget {
 			return map[string]notificationTarget{
 				"ceo": {PaneTarget: "wuphf-team:team.1"},
 				"fe":  {PaneTarget: "wuphf-team:team.2"},
@@ -75,7 +75,7 @@ func TestPrimeVisibleAgents_NoTargetsExitsImmediately(t *testing.T) {
 	setTmuxRunnerForTest(t, fake)
 
 	deps := paneLifecycleDeps{
-		agentPaneTargets: func() map[string]notificationTarget { return nil },
+		botPaneTargets: func() map[string]notificationTarget { return nil },
 	}
 
 	clk := newManualClock(time.Unix(0, 0))
@@ -83,11 +83,11 @@ func TestPrimeVisibleAgents_NoTargetsExitsImmediately(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		pl.PrimeVisibleAgents()
+		pl.PrimeVisibleBots()
 		close(done)
 	}()
 	// Drive the manual clock forward without coupling the test to
-	// the internal sleep ordering. PrimeVisibleAgents currently
+	// the internal sleep ordering. PrimeVisibleBots currently
 	// registers a 1s warmup sleeper before checking targets, so
 	// advancing 1s lets it through; if a future implementation
 	// short-circuits earlier, <-done fires immediately and the
@@ -101,7 +101,7 @@ func TestPrimeVisibleAgents_NoTargetsExitsImmediately(t *testing.T) {
 	}()
 	<-done
 
-	// Empty agentPaneTargets short-circuits — no capture-pane / send-keys
+	// Empty botPaneTargets short-circuits — no capture-pane / send-keys
 	// should fire.
 	if got := len(fake.callsFor("capture-pane")); got != 0 {
 		t.Errorf("capture-pane calls = %d, want 0 (no targets)", got)
@@ -123,7 +123,7 @@ func TestPrimeVisibleAgents_SendsEnterWhenPaneNeedsPriming(t *testing.T) {
 	setTmuxRunnerForTest(t, fake)
 
 	deps := paneLifecycleDeps{
-		agentPaneTargets: func() map[string]notificationTarget {
+		botPaneTargets: func() map[string]notificationTarget {
 			return map[string]notificationTarget{
 				"ceo": {PaneTarget: "wuphf-team:team.1"},
 			}
@@ -135,11 +135,11 @@ func TestPrimeVisibleAgents_SendsEnterWhenPaneNeedsPriming(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		pl.PrimeVisibleAgents()
+		pl.PrimeVisibleBots()
 		close(done)
 	}()
 
-	// First sleep: 1s warmup. PrimeVisibleAgents loops up to 3 times,
+	// First sleep: 1s warmup. PrimeVisibleBots loops up to 3 times,
 	// sleeping 1s between iterations when not ready. So the goroutine
 	// will register at most 4 sleeps total (warmup + 3 between). Drive
 	// each in turn.

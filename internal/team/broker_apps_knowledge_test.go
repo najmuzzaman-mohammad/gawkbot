@@ -407,7 +407,7 @@ func TestAppKnowledgeEmptySynthesisCachedWhenGBrainBacked(t *testing.T) {
 		"name": "Empty App", "description": "An app with nothing worth writing down.",
 		"html": validAppHTML,
 	})
-	created := postAppsAsAgent(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
+	created := postAppsAsBot(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
 	app, _ := created["app"].(map[string]any)
 	id, _ := app["id"].(string)
 	if id == "" {
@@ -518,7 +518,7 @@ func TestAppKnowledgeGBrainReadFailureServesCache(t *testing.T) {
 		"name": "Cached App", "description": "An app with a cached operating guide.",
 		"html": validAppHTML,
 	})
-	created := postAppsAsAgent(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
+	created := postAppsAsBot(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
 	app, _ := created["app"].(map[string]any)
 	id, _ := app["id"].(string)
 	if id == "" {
@@ -591,7 +591,7 @@ func TestAppKnowledgeGBrainEmptyStaysAuthoritative(t *testing.T) {
 		"name": "Stale Cache App", "description": "An app whose brain pages were deleted.",
 		"html": validAppHTML,
 	})
-	created := postAppsAsAgent(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
+	created := postAppsAsBot(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
 	app, _ := created["app"].(map[string]any)
 	id, _ := app["id"].(string)
 	if id == "" {

@@ -39,7 +39,7 @@ func TestIsTurnKilledError(t *testing.T) {
 func TestTurnKilledHumanDetailHasNoRawExhaust(t *testing.T) {
 	detail := turnKilledHumanDetail("eng")
 	if !strings.Contains(detail, "@eng") {
-		t.Fatalf("detail must name the agent: %q", detail)
+		t.Fatalf("detail must name the bot: %q", detail)
 	}
 	for _, raw := range []string{"signal:", "exit status", "SIGKILL"} {
 		if strings.Contains(detail, raw) {
@@ -79,14 +79,14 @@ func TestNoteChatTurnStallTasklessVsTask(t *testing.T) {
 		t.Fatal("taskless chat reply must post a stall note")
 	}
 	if !strings.Contains(note, "@ceo") || !strings.Contains(note, "timed out") {
-		t.Fatalf("note must name the agent and the reason: %q", note)
+		t.Fatalf("note must name the bot and the reason: %q", note)
 	}
 }
 
 // TestNoteChatTurnNoReplyGating pins the three-way gate on the silent-success
-// note: it fires only for a human-prompted, taskless turn where the agent
-// posted nothing, and stays silent for agent-to-agent turns, task turns, and
-// turns where the agent already replied.
+// note: it fires only for a human-prompted, taskless turn where the bot
+// posted nothing, and stays silent for bot-to-bot turns, task turns, and
+// turns where the bot already replied.
 func TestNoteChatTurnNoReplyGating(t *testing.T) {
 	b := brokerWithTasks(t,
 		teamTask{ID: "task-x", Title: "x", Owner: "eng", status: "in_progress", ExecutionMode: "office"},
@@ -105,7 +105,7 @@ func TestNoteChatTurnNoReplyGating(t *testing.T) {
 		return n
 	}
 
-	// Not human-prompted: agent-to-agent turns may legitimately stay silent.
+	// Not human-prompted: bot-to-bot turns may legitimately stay silent.
 	l.noteChatTurnNoReply("ceo", headlessCodexTurn{Channel: "team"}, start)
 	// Task-attached (even if human-prompted): the task path owns surfacing.
 	l.noteChatTurnNoReply("eng", headlessCodexTurn{TaskID: "task-x", Channel: "team", FromHuman: true}, start)
@@ -125,10 +125,10 @@ func TestNoteChatTurnNoReplyGating(t *testing.T) {
 		}
 	}
 	if !strings.Contains(note, "@ceo") {
-		t.Fatalf("note must name the agent: %q", note)
+		t.Fatalf("note must name the bot: %q", note)
 	}
 
-	// Human-prompted, taskless, but the agent already replied: no extra note.
+	// Human-prompted, taskless, but the bot already replied: no extra note.
 	b.mu.Lock()
 	b.counter++
 	b.messages = append(b.messages, channelMessage{
@@ -142,7 +142,7 @@ func TestNoteChatTurnNoReplyGating(t *testing.T) {
 	l.noteChatTurnNoReply("gtm", headlessCodexTurn{Channel: "team", FromHuman: true}, start)
 	for _, m := range b.AllMessages() {
 		if m.From == "system" && strings.Contains(m.Content, "finished without posting a reply") && strings.Contains(m.Content, "@gtm") {
-			t.Fatalf("no note expected when the agent already replied: %q", m.Content)
+			t.Fatalf("no note expected when the bot already replied: %q", m.Content)
 		}
 	}
 }
@@ -152,7 +152,7 @@ func TestNoteChatTurnNoReplyGating(t *testing.T) {
 // honest line so a human DM never vanishes into silence.
 func TestHeadlessQueueHumanChatSilentSuccessPostsNote(t *testing.T) {
 	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, _ context.Context, _ string, _ string, _ ...string) error {
-		return nil // success, but the agent posts nothing
+		return nil // success, but the bot posts nothing
 	})
 
 	l := newHeadlessLauncherForTest(t)
@@ -179,7 +179,7 @@ func TestHeadlessQueueHumanChatSilentSuccessPostsNote(t *testing.T) {
 		b.mu.Unlock()
 		if content != "" {
 			if !strings.Contains(content, "@ceo") {
-				t.Fatalf("silent-success note must name the agent: %q", content)
+				t.Fatalf("silent-success note must name the bot: %q", content)
 			}
 			return
 		}
@@ -194,7 +194,7 @@ func TestHeadlessQueueHumanChatSilentSuccessPostsNote(t *testing.T) {
 // TestHeadlessQueueChatTimeoutPostsStallNote drives the real worker: a taskless
 // chat turn that times out must leave one honest line in the channel instead of
 // silence. Before the fix the timeout recovery early-returned (no task to
-// block) and the user was left staring at a stalled agent that never replied.
+// block) and the user was left staring at a stalled bot that never replied.
 func TestHeadlessQueueChatTimeoutPostsStallNote(t *testing.T) {
 	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, _ context.Context, _ string, _ string, _ ...string) error {
 		return context.DeadlineExceeded
@@ -219,7 +219,7 @@ func TestHeadlessQueueChatTimeoutPostsStallNote(t *testing.T) {
 		b.mu.Unlock()
 		if content != "" {
 			if !strings.Contains(content, "@fe") || !strings.Contains(content, "timed out") {
-				t.Fatalf("timeout stall note must name the agent and reason: %q", content)
+				t.Fatalf("timeout stall note must name the bot and reason: %q", content)
 			}
 			return
 		}
@@ -259,7 +259,7 @@ func TestHeadlessQueueKilledTurnPostsHumanReadableNote(t *testing.T) {
 		b.mu.Unlock()
 		if note != nil {
 			if !strings.Contains(content, "@fe") {
-				t.Fatalf("kill note must name the agent: %q", content)
+				t.Fatalf("kill note must name the bot: %q", content)
 			}
 			if strings.Contains(content, "signal: killed") || strings.Contains(content, "exit status") {
 				t.Fatalf("kill note must not carry raw exhaust: %q", content)

@@ -2,7 +2,7 @@ package avatar
 
 import "hash/fnv"
 
-// Procedural pixel-art avatar builder for unknown agent slugs.
+// Procedural pixel-art avatar builder for unknown bot slugs.
 // Mirrors web/src/lib/proceduralAvatar.ts — the layer set, color pools, and
 // hash strategy match so the same slug looks identical in the CLI and browser.
 //
@@ -163,7 +163,7 @@ func headwearVisor() [][]int {
 	return l
 }
 
-// Weight "none" more heavily so most agents aren't wearing hats.
+// Weight "none" more heavily so most bots aren't wearing hats.
 var headwearStyles = []layerBuilder{
 	headwearNone, headwearNone,
 	headwearCap, headwearHeadband, headwearBeanie, headwearVisor,
@@ -305,7 +305,7 @@ func proceduralSpriteForSlug(slug string) Sprite {
 }
 
 // proceduralPaletteForSlug returns the per-slug palette (skin, hair, accent
-// all picked independently by hash) for an agent without a mascot entry.
+// all picked independently by hash) for a bot without a mascot entry.
 func proceduralPaletteForSlug(slug string) map[int][3]int {
 	hash := proceduralHash(slug)
 	accentHex := accentPool[pickIndex(hash, 5, len(accentPool))]

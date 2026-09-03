@@ -23,16 +23,16 @@ func TestFixtureBlueprintsDeclareReviewerConfig(t *testing.T) {
 			if bp.DefaultReviewer == ReviewerHumanOnly {
 				return
 			}
-			slugs := agentSlugSet(bp)
+			slugs := botSlugSet(bp)
 			if _, ok := slugs[bp.DefaultReviewer]; !ok {
-				t.Fatalf("blueprint %s default_reviewer %q not in starter agent slugs %v", id, bp.DefaultReviewer, keysOf(slugs))
+				t.Fatalf("blueprint %s default_reviewer %q not in starter bot slugs %v", id, bp.DefaultReviewer, keysOf(slugs))
 			}
 			for _, rule := range bp.ReviewerPaths {
 				if rule.Reviewer == ReviewerHumanOnly {
 					continue
 				}
 				if _, ok := slugs[rule.Reviewer]; !ok {
-					t.Fatalf("blueprint %s reviewer_paths %q -> %q not in starter agent slugs %v", id, rule.Pattern, rule.Reviewer, keysOf(slugs))
+					t.Fatalf("blueprint %s reviewer_paths %q -> %q not in starter bot slugs %v", id, rule.Pattern, rule.Reviewer, keysOf(slugs))
 				}
 			}
 		})
@@ -343,9 +343,9 @@ func TestReviewerPathMapAsMap(t *testing.T) {
 
 // helpers below.
 
-func agentSlugSet(bp Blueprint) map[string]struct{} {
-	out := make(map[string]struct{}, len(bp.Starter.Agents))
-	for _, a := range bp.Starter.Agents {
+func botSlugSet(bp Blueprint) map[string]struct{} {
+	out := make(map[string]struct{}, len(bp.Starter.Bots))
+	for _, a := range bp.Starter.Bots {
 		out[strings.TrimSpace(a.Slug)] = struct{}{}
 	}
 	return out

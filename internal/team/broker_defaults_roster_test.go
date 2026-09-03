@@ -7,9 +7,9 @@ import (
 )
 
 // The wizard's contract since the packs/CEO removal: blueprint "" plus an
-// explicit empty agents list seeds an office with NO agents. No synthesis, no
+// explicit empty bots list seeds an office with NO bots. No synthesis, no
 // DefaultManifest fallback, no lead to tag. These tests pin that contract; the
-// legacy nil-agents synthesis path keeps its own coverage in
+// legacy nil-bots synthesis path keeps its own coverage in
 // broker_onboarding_wiki_test.go.
 
 func TestEnsureDefaultOfficeMembersSkipsOnboardedEmptyOffice(t *testing.T) {
@@ -39,7 +39,7 @@ func TestEnsureDefaultOfficeMembersSkipsOnboardedEmptyOffice(t *testing.T) {
 
 // The load-time normalization must not resurrect built-ins either: the Pam /
 // App Builder back-fill and the ceo channel pin only apply to rosters that
-// have agents. An intentionally empty office survives a broker restart empty.
+// have bots. An intentionally empty office survives a broker restart empty.
 func TestNormalizeLoadedStateKeepsEmptyOfficeEmpty(t *testing.T) {
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)

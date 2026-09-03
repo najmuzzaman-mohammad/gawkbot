@@ -174,7 +174,7 @@ func TestMutateTaskCreatesAndCompletesTask(t *testing.T) {
 
 	// Parked tasks are the ONE drafting state left. Park the lane the
 	// deliberate way (lifecycle chokepoint, same as /task-plan park=true),
-	// then pin the parked-task gate: an agent "complete" on a parked task
+	// then pin the parked-task gate: a bot "complete" on a parked task
 	// must be refused with a structured conflict, and the human's start
 	// (approve) un-parks it into running.
 	if err := b.TransitionLifecycle(created.Task.ID, LifecycleStateDrafting, "parked by composer"); err != nil {

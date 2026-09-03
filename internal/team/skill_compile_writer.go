@@ -33,7 +33,7 @@ var skillSystemAuthors = map[string]bool{
 	"system":      true,
 }
 
-// skillSlugRegex validates the Anthropic Agent Skills slug format.
+// skillSlugRegex validates the Anthropic Bot Skills slug format.
 var skillSlugRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 // skillInvariantBlockRegex matches a protected invariant region inside a
@@ -226,7 +226,7 @@ func (b *Broker) writeCompiledSkillLocked(spec teamSkill) (*teamSkill, error) {
 	}
 	// Compiled skills go live immediately — there is no proposal/approval
 	// state in the compile path (core-loop R5). Humans curate after the
-	// fact via the Skills page (archive / restore / edit / per-agent
+	// fact via the Skills page (archive / restore / edit / per-bot
 	// assignment).
 	status := strings.TrimSpace(spec.Status)
 	if status == "" {
@@ -246,13 +246,13 @@ func (b *Broker) writeCompiledSkillLocked(spec teamSkill) (*teamSkill, error) {
 	}
 
 	// Auto-assignment (core-loop step 8): a compiled skill is assigned to
-	// the relevant agents at creation so it is loaded into their system
+	// the relevant bots at creation so it is loaded into their system
 	// context on the next prompt build. Until a finer relevance signal
 	// exists, "relevant" = the whole office roster; the human or CEO can
-	// narrow it afterwards via the per-agent enable/disable endpoints.
-	ownerAgents := append([]string(nil), spec.OwnerAgents...)
-	if len(ownerAgents) == 0 {
-		ownerAgents = b.allMemberSlugsLocked()
+	// narrow it afterwards via the per-bot enable/disable endpoints.
+	ownerBots := append([]string(nil), spec.OwnerBots...)
+	if len(ownerBots) == 0 {
+		ownerBots = b.allMemberSlugsLocked()
 	}
 
 	b.counter++
@@ -263,7 +263,7 @@ func (b *Broker) writeCompiledSkillLocked(spec teamSkill) (*teamSkill, error) {
 		Description:         strings.TrimSpace(spec.Description),
 		Content:             strings.TrimSpace(spec.Content),
 		CreatedBy:           createdBy,
-		OwnerAgents:         ownerAgents,
+		OwnerBots:           ownerBots,
 		SourceArticle:       strings.TrimSpace(spec.SourceArticle),
 		Channel:             channel,
 		Tags:                append([]string(nil), spec.Tags...),
@@ -308,7 +308,7 @@ func (b *Broker) writeCompiledSkillLocked(spec teamSkill) (*teamSkill, error) {
 		return nil, fmt.Errorf("skill_guard: rejected — %s", scan.Summary)
 	}
 	// agent_created trust requires safe verdict; caution + dangerous are rejected.
-	if trust == TrustAgentCreated && scan.Verdict != VerdictSafe {
+	if trust == TrustBotCreated && scan.Verdict != VerdictSafe {
 		atomic.AddInt64(&b.skillCompileMetrics.ProposalsRejectedByGuardTotal, 1)
 		return nil, fmt.Errorf("skill_guard: rejected (agent_created trust requires safe verdict) — %s", scan.Summary)
 	}
@@ -372,7 +372,7 @@ func (b *Broker) writeCompiledSkillLocked(spec teamSkill) (*teamSkill, error) {
 	result := &b.skills[len(b.skills)-1]
 	slog.Info("writeCompiledSkillLocked: compiled skill created",
 		"name", name, "slug", slug, "created_by", createdBy, "sha", sha,
-		"owner_agents", len(result.OwnerAgents))
+		"owner_agents", len(result.OwnerBots))
 	return result, nil
 }
 
@@ -431,7 +431,7 @@ func (b *Broker) RegisterCompiledPlaybookSkill(slug, sourcePath string, skillByt
 }
 
 // allMemberSlugsLocked returns every registered office member slug, sorted
-// for deterministic OwnerAgents assignment. Caller must hold b.mu.
+// for deterministic OwnerBots assignment. Caller must hold b.mu.
 func (b *Broker) allMemberSlugsLocked() []string {
 	out := make([]string, 0, len(b.members))
 	for _, m := range b.members {

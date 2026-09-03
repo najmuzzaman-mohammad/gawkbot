@@ -272,8 +272,8 @@ export function describeCosignFailure(error: unknown): string {
   if (/expired|unknown|invalid|reused|challenge/i.test(message)) {
     return "The approval challenge expired or is no longer valid. Start the approval again.";
   }
-  if (/wrong.?agent|issuedTo|audience|agent/i.test(message)) {
-    return "The broker rejected this approval for the current agent. Refresh the pending request and try again.";
+  if (/wrong.?(agent|bot)|issuedTo|audience|agent/i.test(message)) {
+    return "The broker rejected this approval for the current bot. Refresh the pending request and try again.";
   }
   if (/credential|role|trusted|threshold/i.test(message)) {
     return "The credential did not satisfy the approval policy. Use a registered role or ask another trusted role to co-sign.";

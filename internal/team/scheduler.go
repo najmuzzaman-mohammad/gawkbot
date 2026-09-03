@@ -58,7 +58,7 @@ type schedulerBroker interface {
 	// playbook execution log; no-op when there is no playbook.
 	recordOperatorRoutineExecution(appID string, outcome PlaybookOutcome, summary string)
 	CompleteSchedulerRun(slug string, nextRun time.Time, statusForJob string, run schedulerRun) error
-	EnsureDirectChannel(agentSlug string) (string, error)
+	EnsureDirectChannel(botSlug string) (string, error)
 	CreateWatchdogAlert(kind, channel, targetType, targetID, owner, summary string) (watchdogAlert, bool, error)
 	RecordSignals([]officeSignal) ([]officeSignalRecord, error)
 	RecordDecision(kind, channel, summary, reason, owner string, signalIDs []string, requiresHuman, blocking bool) (officeDecisionRecord, error)
@@ -244,7 +244,7 @@ func (w *watchdogScheduler) processOnce() {
 		case "workflow":
 			w.processWorkflowJob(job)
 		case "agent":
-			w.processAgentJob(job)
+			w.processBotJob(job)
 		default:
 			// Unknown target type — keep the row alive at its scheduled
 			// cadence so the user can still pause / edit it from the UI,
@@ -506,34 +506,34 @@ func (w *watchdogScheduler) updateJob(slug, label string, interval time.Duration
 	w.broker.updateSchedulerHeartbeat(slug, label, int(interval/time.Minute), nextRun, status, "")
 }
 
-// processAgentJob fires an agent-targeted routine. The routine's payload
+// processBotJob fires a bot-targeted routine. The routine's payload
 // (or label, when payload is empty) is posted as an automation message
-// into the routine's channel, tagged at the owning agent so the agent's
+// into the routine's channel, tagged at the owning bot so the bot's
 // loop picks it up. Re-arms via CompleteSchedulerRun so the job stays
 // schedulable for the next tick AND the Runs tab gets a detailed trace.
-func (w *watchdogScheduler) processAgentJob(job schedulerJob) {
+func (w *watchdogScheduler) processBotJob(job schedulerJob) {
 	if w.broker == nil {
 		return
 	}
-	// A custom-app owner means an OPERATOR routine: fire the agent service
+	// A custom-app owner means an OPERATOR routine: fire the bot service
 	// (pi chat session) instead of posting into an office channel.
-	if isOperatorAgentTarget(job.TargetID) {
+	if isOperatorBotTarget(job.TargetID) {
 		w.processOperatorRoutineJob(job)
 		return
 	}
 	now := w.clock.Now().UTC()
-	agentSlug := strings.TrimSpace(job.TargetID)
+	botSlug := strings.TrimSpace(job.TargetID)
 	nextRun := nextRoutineRun(job, now)
 	startedAt := now.Format(time.RFC3339)
 
-	if agentSlug == "" {
+	if botSlug == "" {
 		// Misconfigured — keep the schedule alive but record a failed run
 		// so the user can see why nothing landed in the channel.
 		_ = w.broker.CompleteSchedulerRun(job.Slug, nextRun, "scheduled", schedulerRun{
 			Slug:        job.Slug,
 			StartedAt:   startedAt,
 			Status:      "failed",
-			Message:     "Routine has no owning agent — set target_id in Edit",
+			Message:     "Routine has no owning bot — set target_id in Edit",
 			TriggeredBy: "scheduler",
 			TargetType:  job.TargetType,
 			TargetID:    job.TargetID,
@@ -558,13 +558,13 @@ func (w *watchdogScheduler) processAgentJob(job schedulerJob) {
 		channel = normalizeChannelSlug(raw)
 	}
 	if channel == "" {
-		dm, err := w.broker.EnsureDirectChannel(agentSlug)
+		dm, err := w.broker.EnsureDirectChannel(botSlug)
 		if err != nil {
 			_ = w.broker.CompleteSchedulerRun(job.Slug, nextRun, "scheduled", schedulerRun{
 				Slug:        job.Slug,
 				StartedAt:   startedAt,
 				Status:      "failed",
-				Message:     fmt.Sprintf("Could not resolve DM channel for @%s: %v", agentSlug, err),
+				Message:     fmt.Sprintf("Could not resolve DM channel for @%s: %v", botSlug, err),
 				ErrorDetail: err.Error(),
 				TriggeredBy: "scheduler",
 				TargetType:  job.TargetType,
@@ -611,7 +611,7 @@ func (w *watchdogScheduler) processAgentJob(job schedulerJob) {
 	// load-bearing structural routing).
 	isDM := isDirectChannelSlug(channel)
 	if !isDM {
-		mention := "@" + agentSlug
+		mention := "@" + botSlug
 		if !strings.Contains(body, mention) {
 			body = mention + " " + body
 		}
@@ -623,7 +623,7 @@ func (w *watchdogScheduler) processAgentJob(job schedulerJob) {
 
 	events := []string{
 		fmt.Sprintf("Scheduler tick at %s UTC", now.Format(time.RFC3339)),
-		fmt.Sprintf("Posting message to #%s tagging @%s", channel, agentSlug),
+		fmt.Sprintf("Posting message to #%s tagging @%s", channel, botSlug),
 	}
 
 	_, _, err := w.broker.PostAutomationMessage(
@@ -634,7 +634,7 @@ func (w *watchdogScheduler) processAgentJob(job schedulerJob) {
 		fmt.Sprintf("routine:%s:%d", job.Slug, now.Unix()),
 		"routine-scheduler",
 		"Routine scheduler",
-		[]string{agentSlug},
+		[]string{botSlug},
 		"",
 	)
 	if err != nil {
@@ -653,8 +653,8 @@ func (w *watchdogScheduler) processAgentJob(job schedulerJob) {
 		return
 	}
 
-	events = append(events, fmt.Sprintf("Posted; @%s notified", agentSlug))
-	summary := fmt.Sprintf("Posted to #%s and notified @%s", channel, agentSlug)
+	events = append(events, fmt.Sprintf("Posted; @%s notified", botSlug))
+	summary := fmt.Sprintf("Posted to #%s and notified @%s", channel, botSlug)
 
 	// Status MUST be "scheduled" (not "done") so schedulerJobDue keeps
 	// picking up the routine on subsequent ticks. "done" terminates the
@@ -672,8 +672,8 @@ func (w *watchdogScheduler) processAgentJob(job schedulerJob) {
 }
 
 // isDirectChannelSlug returns true for the broker's DM channel-naming
-// convention (`<agent>__human` or the migration shape `dm-<agent>`).
-// Used by processAgentJob to decide whether to prefix the routine body
+// convention (`<bot>__human` or the migration shape `dm-<bot>`).
+// Used by processBotJob to decide whether to prefix the routine body
 // with an @mention — DMs are 1:1 so the prefix is redundant noise.
 func isDirectChannelSlug(slug string) bool {
 	s := strings.TrimSpace(slug)
@@ -689,7 +689,7 @@ func isDirectChannelSlug(slug string) bool {
 	return false
 }
 
-// nextRoutineRun computes the next fire time for an agent-targeted
+// nextRoutineRun computes the next fire time for a bot-targeted
 // routine. Prefers cron when present, falls back to interval_override
 // or interval_minutes, and ultimately a 5-minute heartbeat so the row
 // never goes silent — the caller can flip Enabled to actually pause it.

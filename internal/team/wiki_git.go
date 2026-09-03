@@ -388,7 +388,7 @@ func (r *Repo) Commit(ctx context.Context, slug, relPath, content, mode, message
 	}
 
 	// If the content is byte-identical to what's already committed (e.g. an
-	// agent retrying with the exact same body), `git add` stages nothing new
+	// bot retrying with the exact same body), `git add` stages nothing new
 	// and `git commit` would fail with "nothing to commit." Detect that and
 	// return a no-op success — the caller's contract is "make the content
 	// current," which it already is. We return the current HEAD so downstream
@@ -544,12 +544,12 @@ func (r *Repo) CommitArchive(ctx context.Context, relPath, tombstone, archivePat
 // are untracked — on a later crash they get folded into a `wuphf-recovery`
 // commit, which is misleading in an audit view. With it, the first commit
 // for every skeleton article is attributable to the bootstrap step, not to
-// some later recovery pass or to an agent that happened to edit the file.
+// some later recovery pass or to a bot that happened to edit the file.
 //
 // The author slug `wuphf-bootstrap` is deliberate: it is visually distinct
-// from both the per-agent slugs (operator/planner/…) and the two reserved
+// from both the per-bot slugs (operator/planner/…) and the two reserved
 // system slugs (`system`, `wuphf-recovery`). Audit views can filter or
-// colour it differently from real human / agent edits.
+// colour it differently from real human / bot edits.
 func (r *Repo) CommitBootstrap(ctx context.Context, message string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -851,10 +851,10 @@ type AuditEntry struct {
 //     downstream audit tooling (CSV export, compliance review, SOC2
 //     artefact generation, etc.) can work without re-shelling to git.
 //  2. Bootstrap (`wuphf-bootstrap`), recovery (`wuphf-recovery`), and
-//     system (`system`) authors are surfaced alongside agent slugs. Audit
+//     system (`system`) authors are surfaced alongside bot slugs. Audit
 //     tools can filter them out by author, but the default feed is the
 //     complete lineage — hiding bootstrap would create a false impression
-//     that articles "appeared" at first-agent-write time.
+//     that articles "appeared" at first-bot-write time.
 //
 // limit <= 0 returns everything. since.IsZero() returns everything regardless
 // of age; otherwise only commits strictly newer than `since` are returned.
@@ -982,7 +982,7 @@ func (r *Repo) regenerateIndexLocked() error {
 			return err
 		}
 		rel = filepath.ToSlash(rel)
-		// Exclude archived tombstones from the index so agents consuming
+		// Exclude archived tombstones from the index so bots consuming
 		// index/all.md don't follow links to archived content.
 		if content, cerr := os.ReadFile(path); cerr == nil && parseFrontmatterBool(string(content), "archived") {
 			return nil
@@ -1008,7 +1008,7 @@ func (r *Repo) regenerateIndexLocked() error {
 
 	var buf strings.Builder
 	buf.WriteString("# Team wiki index\n\n")
-	buf.WriteString("_Auto-generated. Do not edit by hand — agents regenerate this on every commit._\n\n")
+	buf.WriteString("_Auto-generated. Do not edit by hand — bots regenerate this on every commit._\n\n")
 	if len(entries) == 0 {
 		buf.WriteString("_No articles yet._\n")
 	} else {
@@ -1169,7 +1169,7 @@ func (r *Repo) stageAllLocked(ctx context.Context) error {
 // is byte-identical to HEAD by the time the watcher's debounce fires, so
 // there is nothing external to attribute. Without this check the watcher
 // stamped a fresh `last_human_edit_ts` sentinel on every echo — content
-// always differed, so every agent-authored commit was followed by a
+// always differed, so every bot-authored commit was followed by a
 // human-attributed "wiki: external edit" commit, and that sentinel commit
 // re-triggered the watcher into a commit storm (B3 + B4: the v3 run's
 // all-human git history and "173 revisions" on a minutes-old article).
@@ -1197,7 +1197,7 @@ func (r *Repo) runGitLocked(ctx context.Context, slug string, args ...string) (s
 // runGitLockedAs runs `git` with an explicit author name + email. Used
 // for human wiki edits where we want the user's real git identity on
 // the commit (e.g. `Sarah Chen <sarah@acme.com>`) instead of the
-// synthetic slug@wuphf.local pattern used for agents.
+// synthetic slug@wuphf.local pattern used for bots.
 //
 // Caller must hold r.mu.
 func (r *Repo) runGitLockedAs(ctx context.Context, name, email string, args ...string) (string, error) {

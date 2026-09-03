@@ -57,7 +57,7 @@ export const Destructive: Story = {
   render: () => (
     <Dialog>
       <DialogTrigger asChild={true}>
-        <Button variant="destructive">Delete agent</Button>
+        <Button variant="destructive">Delete bot</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

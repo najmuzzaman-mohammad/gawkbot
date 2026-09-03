@@ -69,7 +69,7 @@ func renderSidebar(channels []channelui.ChannelInfo, members []channelui.Member,
 	lines = append(lines, channelui.SidebarPlainRow(workspaceStyle.Render("gawkbot"), width))
 	lines = append(lines, channelui.SidebarPlainRow(workspaceMetaStyle.Render("gawkbot"), width))
 	lines = append(lines, channelui.SidebarPlainRow(workspaceSummaryStyle.Render(summaryLine), width))
-	lines = append(lines, channelui.SidebarPlainRow(workspaceMetaStyle.Render("Ctrl+G channels · Ctrl+O apps · d DM agent"), width))
+	lines = append(lines, channelui.SidebarPlainRow(workspaceMetaStyle.Render("Ctrl+G channels · Ctrl+O apps · d DM bot"), width))
 	lines = append(lines, channelui.SidebarPlainRow(workspaceHintStyle.Render(hintLine), width))
 	lines = append(lines, "")
 	channelHeaderText := "Channels"
@@ -138,7 +138,7 @@ func renderSidebar(channels []channelui.ChannelInfo, members []channelui.Member,
 	divider := dividerStyle.Render(strings.Repeat("\u2500", innerW))
 	lines = append(lines, channelui.SidebarPlainRow(divider, width))
 
-	// Insert onboarding checklist section above the agents list, if provided and active.
+	// Insert onboarding checklist section above the bots list, if provided and active.
 	if len(checklist) > 0 {
 		if cl := checklist[0]; !cl.Dismissed {
 			clSection := renderOnboardingChecklist(cl, width)
@@ -188,9 +188,9 @@ func renderSidebar(channels []channelui.ChannelInfo, members []channelui.Member,
 	}
 	peopleHeader := "Agents"
 	if fallbackRoster {
-		peopleHeader = "Agents · office roster"
+		peopleHeader = "Bots · office roster"
 	} else if totalMembers > 0 && end > start {
-		peopleHeader = fmt.Sprintf("Agents · %d-%d/%d", start+1, end, totalMembers)
+		peopleHeader = fmt.Sprintf("Bots · %d-%d/%d", start+1, end, totalMembers)
 	}
 	lines = append(lines, channelui.SidebarStyledRow(sectionBandStyle, peopleHeader, width))
 
@@ -207,7 +207,7 @@ func renderSidebar(channels []channelui.ChannelInfo, members []channelui.Member,
 		dotStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(act.Color))
 		dot := dotStyle.Render(act.Dot)
 
-		nameColor := channelui.AgentColor(m.Slug)
+		nameColor := channelui.BotColor(m.Slug)
 		name := m.Name
 		if name == "" {
 			name = channelui.DisplayName(m.Slug)
@@ -227,7 +227,7 @@ func renderSidebar(channels []channelui.ChannelInfo, members []channelui.Member,
 		if compact {
 			// Compact: single line per member with a simple glyph.
 			meta := memberMetaStyle.Render(sidebarLabel)
-			mini := lipgloss.NewStyle().Foreground(lipgloss.Color(nameColor)).Render(channelui.AgentAvatar(m.Slug))
+			mini := lipgloss.NewStyle().Foreground(lipgloss.Color(nameColor)).Render(channelui.BotAvatar(m.Slug))
 			line := leftPart + " " + mini
 			pad := innerW - ansi.StringWidth(line) - ansi.StringWidth(sidebarLabel)
 			if pad < 1 {
@@ -278,7 +278,7 @@ func renderSidebar(channels []channelui.ChannelInfo, members []channelui.Member,
 	}
 
 	if totalMembers > maxMembers {
-		hint := memberMetaStyle.Render("PgUp/PgDn scroll agents")
+		hint := memberMetaStyle.Render("PgUp/PgDn scroll bots")
 		lines = append(lines, channelui.SidebarPlainRow(hint, width))
 	}
 

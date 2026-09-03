@@ -201,7 +201,7 @@ func relevantLearnings(log *LearningLog, query string, limit int) []LearningSear
 // block is worse than no block. The second return is the context manifest:
 // the ids of every injected item ("learning:<id>", "wiki:<ref>"), recorded
 // on the turn's ledger entry so the human can see exactly what context the
-// agent was handed (B4 transparency).
+// bot was handed (B4 transparency).
 func (b *notificationContextBuilder) taskKnowledgeContext(task teamTask) (string, []string) {
 	query := strings.TrimSpace(task.Title + " " + task.Details)
 	if query == "" {
@@ -296,7 +296,7 @@ func taskRetrievalTerms(task teamTask) []string {
 // searchWikiArticlesByTerms walks the wiki's team/ tree once and scores each
 // active (non-archived) article by how many distinct terms its content
 // contains, case-insensitive. Returns the top `limit` hits ordered by score
-// then path. This searches the ARTICLE FILES the humans and agents actually
+// then path. This searches the ARTICLE FILES the humans and bots actually
 // wrote — not the derived fact index — so an approved brief is findable the
 // moment it lands, with no extractor in the loop. (The live failure this
 // closes: the CEO declared "No Acme Corp data in the wiki" while three
@@ -444,8 +444,8 @@ func tailClip(s string, max int) string {
 
 // upstreamOutcomesContext renders the outcomes of completed upstream
 // dependencies into a dependent task's packet (U3.2): dependency edges
-// carry data, not just scheduling. Without this, agent B starts a task
-// that depends on agent A's finished work without A's findings in
+// carry data, not just scheduling. Without this, bot B starts a task
+// that depends on bot A's finished work without A's findings in
 // context — side-by-side work, not collaboration. The second return is
 // the manifest of injected upstream task ids ("upstream:<id>") for the
 // turn's context-used record (B4 transparency).

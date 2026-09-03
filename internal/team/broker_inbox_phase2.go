@@ -59,11 +59,11 @@ type InboxItem struct {
 	// last-mutation timestamp. The unread cursor compares against this.
 	UpdatedAt string `json:"updatedAt,omitempty"`
 	ElapsedMs int64  `json:"elapsedMs,omitempty"`
-	// AgentSlug is the agent who owns / sent / submitted this item.
-	// Phase 3 uses this to group items into per-agent threads. Empty
-	// when the item has no agent attribution (e.g. system-generated
-	// tasks the harness can't trace back to a single agent).
-	AgentSlug string `json:"agentSlug,omitempty"`
+	// BotSlug is the bot who owns / sent / submitted this item.
+	// Phase 3 uses this to group items into per-bot threads. Empty
+	// when the item has no bot attribution (e.g. system-generated
+	// tasks the harness can't trace back to a single bot).
+	BotSlug string `json:"agentSlug,omitempty"`
 	// IsUnread is true when the item's latest activity post-dates the
 	// caller's InboxCursor.LastSeenAt (or the cursor is zero). Computed
 	// by the /inbox/items handler from the caller's cursor; the broker
@@ -82,7 +82,7 @@ type RequestPeek struct {
 	From     string `json:"from"`
 	Blocking bool   `json:"blocking,omitempty"`
 	// IssueID is the parent Issue (team_task) id when the owner
-	// agent filed this request from inside an owned Issue. Renders
+	// bot filed this request from inside an owned Issue. Renders
 	// as a breadcrumb on the Inbox card so the human can jump back
 	// to the parent Issue without losing context. Empty when the
 	// request was filed outside an Issue (e.g. CEO clarifications).
@@ -276,7 +276,7 @@ func (b *Broker) tasksForInbox(actor requestActor) []InboxItem {
 			CreatedAt: task.CreatedAt,
 			UpdatedAt: task.UpdatedAt,
 			ElapsedMs: row.ElapsedMs,
-			AgentSlug: normalizeReviewerSlug(task.Owner),
+			BotSlug:   normalizeReviewerSlug(task.Owner),
 			TaskRow:   &row,
 		})
 	}
@@ -326,7 +326,7 @@ func (b *Broker) requestsForInbox(actor requestActor) []InboxItem {
 			Channel:   req.Channel,
 			CreatedAt: req.CreatedAt,
 			UpdatedAt: updatedAt,
-			AgentSlug: normalizeReviewerSlug(req.From),
+			BotSlug:   normalizeReviewerSlug(req.From),
 			Request: &RequestPeek{
 				Kind:     req.Kind,
 				Question: req.Question,

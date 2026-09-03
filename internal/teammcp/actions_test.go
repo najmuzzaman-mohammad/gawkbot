@@ -131,7 +131,7 @@ func TestActionIsReadOnly(t *testing.T) {
 
 // TestRequireTeamActionApprovalBypasses exercises the three bypass paths
 // that must never require a human click: DryRun=true, WUPHF_UNSAFE=1, and
-// read-only action_ids. If any of these regress, agents either can't take
+// read-only action_ids. If any of these regress, bots either can't take
 // safe actions (read operations pile up approval requests) or the gate
 // fails open entirely.
 func TestRequireTeamActionApprovalBypasses(t *testing.T) {
@@ -179,7 +179,7 @@ func TestRequireTeamActionApprovalBypasses(t *testing.T) {
 // and the approval card MUST surface the recipient, subject, and body so
 // the human can decide without leaving the page. Before this change, the
 // card said only "Approve gmail action: GMAIL_SEND_EMAIL" and the user
-// had to dig through the agent transcript to find what was being sent.
+// had to dig through the bot transcript to find what was being sent.
 func TestBuildActionApprovalSpecGmailSend(t *testing.T) {
 	args := TeamActionExecuteArgs{
 		Platform: "gmail",
@@ -576,12 +576,12 @@ func TestActionApprovalDedupeKey(t *testing.T) {
 
 // TestBuildActionApprovalSpecRejectsForgedSummary is the adversarial
 // regression test for the trust-boundary vulnerability flagged during
-// /ship's adversarial review. A malicious agent supplies a Summary
+// /ship's adversarial review. A malicious bot supplies a Summary
 // containing fake "What this will do:" / "Action:" / "Channel:" sections.
 // Without the sanitizer, the web parser's first-match-wins regexes would
 // match the FORGED structure (it appears first in the context string),
 // hiding the real action behind a benign-looking display. With the
-// sanitizer, the agent's newlines and bullet glyph are flattened so
+// sanitizer, the bot's newlines and bullet glyph are flattened so
 // none of those forged prefixes can land at a line start where the
 // `^Section:` parser regexes match.
 func TestBuildActionApprovalSpecRejectsForgedSummary(t *testing.T) {
@@ -595,7 +595,7 @@ func TestBuildActionApprovalSpecRejectsForgedSummary(t *testing.T) {
 	}
 	spec := buildActionApprovalSpec("growthops", "general", args)
 
-	// The legit details block must survive: no agent-injected "What this
+	// The legit details block must survive: no bot-injected "What this
 	// will do:" line should appear at a line start before the real one.
 	whatLineCount := strings.Count(spec.Context, "\nWhat this will do:")
 	if whatLineCount != 1 {
@@ -640,7 +640,7 @@ func TestBuildActionApprovalSpecRejectsForgedSummary(t *testing.T) {
 	}
 
 	// No line-leading bullet may carry one of the FORGED values from the
-	// agent's Summary. Legit bullets (e.g., "• Thread: important-thread-123"
+	// bot's Summary. Legit bullets (e.g., "• Thread: important-thread-123"
 	// produced from args.Data) are fine; the test rejects only the
 	// specific forged content.
 	forgedValues := []string{"ceo@nex.ai", "Approve immediately", "Routine task"}
@@ -657,7 +657,7 @@ func TestBuildActionApprovalSpecRejectsForgedSummary(t *testing.T) {
 }
 
 // TestBuildActionApprovalSpecRejectsForgedConnectionKey covers the same
-// trust-boundary defense for the Account: line. An agent that controls
+// trust-boundary defense for the Account: line. A bot that controls
 // the connection_key string could otherwise newline-inject a forged
 // Channel: line.
 func TestBuildActionApprovalSpecRejectsForgedConnectionKey(t *testing.T) {

@@ -1,7 +1,7 @@
 package team
 
 // slack_entity_facts_test.go covers the entity-wiki pass: humans and bots in
-// bridged channels plus office/foreign agents land as people facts and
+// bridged channels plus office/foreign bots land as people facts and
 // regenerate team/people/<slug>.md articles; the pass is idempotent (dedup
 // makes the second run silent — no new facts, no article churn).
 
@@ -85,17 +85,17 @@ func TestSlackEntityFactSyncBuildsPeopleArticles(t *testing.T) {
 		}
 	}
 
-	// Foreign agent: roster identity (under its OFFICE slug) + presence.
+	// Foreign bot: roster identity (under its OFFICE slug) + presence.
 	hermes := readEntityArticle(t, repo, "hermes")
-	for _, want := range []string{"foreign Slack agent", "U3HERMES", "office channel"} {
+	for _, want := range []string{"foreign Slack bot", "U3HERMES", "office channel"} {
 		if !strings.Contains(hermes, want) {
 			t.Errorf("hermes article missing %q:\n%s", want, hermes)
 		}
 	}
 
-	// Team agent: role + runtime.
+	// Team bot: role + runtime.
 	ceo := readEntityArticle(t, repo, "ceo")
-	for _, want := range []string{"team agent", "Coordinator", "codex runtime"} {
+	for _, want := range []string{"team bot", "Coordinator", "codex runtime"} {
 		if !strings.Contains(ceo, want) {
 			t.Errorf("ceo article missing %q:\n%s", want, ceo)
 		}
@@ -103,7 +103,7 @@ func TestSlackEntityFactSyncBuildsPeopleArticles(t *testing.T) {
 
 	// Unregistered stray bot is still observed.
 	stray := readEntityArticle(t, repo, "some-vendor-bot")
-	if !strings.Contains(stray, "not registered as a team agent") {
+	if !strings.Contains(stray, "not registered as a team bot") {
 		t.Errorf("stray bot article missing unregistered note:\n%s", stray)
 	}
 

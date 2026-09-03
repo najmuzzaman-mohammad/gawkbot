@@ -3,11 +3,11 @@ package team
 // custom_app_guard.go — the deterministic App Builder efficiency harness.
 //
 // AI_RULES.md TELLS the App Builder not to ship wasteful interactions, but
-// guidance is advisory: an agent ignored it and shipped a Gmail digest that
+// guidance is advisory: a bot ignored it and shipped a Gmail digest that
 // re-fetched 25 emails and re-ran an ai() summary on EVERY browser-tab refocus —
 // exactly the pattern that endangers integration rate limits and burns LLM
 // tokens. This guard makes the rule ENFORCED. It runs inside the host-owned
-// publish build (resolvePublishHTML, which the agent cannot bypass — the host
+// publish build (resolvePublishHTML, which the bot cannot bypass — the host
 // already overwrites the protected files and builds server-side) and REJECTS a
 // publish whose source contains the canonical waste patterns, so a token-burner
 // can never reach the sealed bundle.
@@ -18,7 +18,7 @@ package team
 //     polling) are essentially never legitimate in a sealed, single-screen tool.
 //     A real refresh cadence (a daily timer) uses a COMPUTED delay and is never
 //     flagged; a setInterval with a non-literal period is left alone.
-//   - "UNLESS ASKED FOR" is an explicit, auditable opt-in: the agent puts a
+//   - "UNLESS ASKED FOR" is an explicit, auditable opt-in: the bot puts a
 //     `wuphf-allow:` marker on the offending line (or the line directly above),
 //     recording on the record that the human requested this cadence. The runtime
 //     per-app budget (broker_apps_integrations.go) is the defense-in-depth
@@ -113,7 +113,7 @@ var (
 	reSetInterval         = regexp.MustCompile(`\bsetInterval\s*\(`)
 )
 
-// checkAppSourceEfficiency scans the agent-authored source files and returns the
+// checkAppSourceEfficiency scans the bot-authored source files and returns the
 // waste-pattern violations (deterministic, stable order). An empty result means
 // the app is clean to publish. Protected host-contract files and build artifacts
 // are skipped — the host owns those, and they are overwritten with canonical
@@ -308,7 +308,7 @@ func checkAppCardPile(files map[string]string) []appGuardViolation {
 	return out
 }
 
-// appGuardShouldScan reports whether a project-relative path is agent-authored
+// appGuardShouldScan reports whether a project-relative path is bot-authored
 // source the guard should lint: a .ts/.tsx/.js/.jsx/.mjs/.cjs file, not a type
 // declaration, not a protected host-contract file, and not under a build/VCS dir.
 func appGuardShouldScan(rel string) bool {

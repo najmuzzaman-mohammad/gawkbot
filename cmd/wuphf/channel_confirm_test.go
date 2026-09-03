@@ -26,7 +26,7 @@ func TestConfirmationForResetTeamMode(t *testing.T) {
 func TestConfirmationForResetOneOnOneMode(t *testing.T) {
 	m := channelModel{}
 	m.sessionMode = "1o1"
-	m.oneOnOneAgent = "fe"
+	m.oneOnOneBot = "fe"
 	got := m.confirmationForReset()
 	if got == nil {
 		t.Fatalf("expected confirmation")
@@ -34,8 +34,8 @@ func TestConfirmationForResetOneOnOneMode(t *testing.T) {
 	if !strings.Contains(strings.ToLower(got.Title), "direct") {
 		t.Errorf("expected 'direct' in title for 1:1 mode, got %q", got.Title)
 	}
-	if got.Agent != "fe" {
-		t.Errorf("expected agent=fe, got %q", got.Agent)
+	if got.Bot != "fe" {
+		t.Errorf("expected bot=fe, got %q", got.Bot)
 	}
 }
 
@@ -44,8 +44,8 @@ func TestConfirmationForResetDM(t *testing.T) {
 	if got == nil || got.Action != channelui.ChannelConfirmActionResetDM {
 		t.Fatalf("expected reset_dm action, got %#v", got)
 	}
-	if got.Agent != "fe" || got.Channel != "office__fe" {
-		t.Errorf("expected agent/channel echoed, got %#v", got)
+	if got.Bot != "fe" || got.Channel != "office__fe" {
+		t.Errorf("expected bot/channel echoed, got %#v", got)
 	}
 }
 
@@ -57,8 +57,8 @@ func TestConfirmationForSessionSwitchToOneOnOne(t *testing.T) {
 	if !strings.Contains(strings.ToLower(got.Title), "direct") {
 		t.Errorf("expected 'direct' in title, got %q", got.Title)
 	}
-	if got.SessionMode != "1o1" || got.Agent != "fe" {
-		t.Errorf("expected mode/agent echoed, got %#v", got)
+	if got.SessionMode != "1o1" || got.Bot != "fe" {
+		t.Errorf("expected mode/bot echoed, got %#v", got)
 	}
 }
 
@@ -162,7 +162,7 @@ func TestExecuteConfirmationSwitchModeReturnsCmd(t *testing.T) {
 func TestExecuteConfirmationResetReturnsCmd(t *testing.T) {
 	m := channelModel{}
 	for _, action := range []channelui.ChannelConfirmAction{channelui.ChannelConfirmActionResetTeam, channelui.ChannelConfirmActionResetDM} {
-		_, cmd := m.executeConfirmation(channelui.ChannelConfirm{Action: action, Agent: "fe", Channel: "office"})
+		_, cmd := m.executeConfirmation(channelui.ChannelConfirm{Action: action, Bot: "fe", Channel: "office"})
 		if cmd == nil {
 			t.Errorf("action %q expected non-nil cmd", action)
 		}

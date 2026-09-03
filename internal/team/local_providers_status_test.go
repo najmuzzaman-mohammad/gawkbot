@@ -60,7 +60,7 @@ func TestComputeLocalProviderStatuses_AllInstalledAndReachable(t *testing.T) {
 	for _, s := range got {
 		gotByKind[s.Kind] = s
 	}
-	for _, k := range []string{provider.KindMLXLM, provider.KindOllama, provider.KindExo, provider.KindHermesAgent, provider.KindOpenclawHTTP} {
+	for _, k := range []string{provider.KindMLXLM, provider.KindOllama, provider.KindExo, provider.KindHermesBot, provider.KindOpenclawHTTP} {
 		s, ok := gotByKind[k]
 		if !ok {
 			t.Fatalf("missing kind %q", k)
@@ -127,7 +127,7 @@ func TestComputeLocalProviderStatuses_LinuxHidesMLXButShowsOthers(t *testing.T) 
 			if s.PlatformSupported {
 				t.Errorf("mlx-lm: PlatformSupported = true on linux")
 			}
-		case provider.KindOllama, provider.KindExo, provider.KindHermesAgent, provider.KindOpenclawHTTP:
+		case provider.KindOllama, provider.KindExo, provider.KindHermesBot, provider.KindOpenclawHTTP:
 			if !s.PlatformSupported {
 				t.Errorf("%s: PlatformSupported = false on linux", s.Kind)
 			}
@@ -157,7 +157,7 @@ func TestComputeLocalProviderStatuses_IntelMacRejectsMLXLM(t *testing.T) {
 			if s.PlatformSupported {
 				t.Errorf("mlx-lm: PlatformSupported = true on darwin/amd64 (Intel Mac); MLX requires Apple Silicon")
 			}
-		case provider.KindOllama, provider.KindExo, provider.KindHermesAgent, provider.KindOpenclawHTTP:
+		case provider.KindOllama, provider.KindExo, provider.KindHermesBot, provider.KindOpenclawHTTP:
 			// Ollama/Exo/Hermes/OpenClaw Gateway work on both arm64 and amd64
 			// Intel Macs should still see those as supported.
 			if !s.PlatformSupported {

@@ -1,7 +1,7 @@
 /**
  * EmbeddingChoice — the company-brain step's "Power the company brain" section.
  *
- * The company brain holds the rules agents run on, so this is where the user
+ * The company brain holds the rules bots run on, so this is where the user
  * picks how it recalls a rule: by meaning (embeddings) or by exact word (keyword
  * search). The backend's EnsureBrain auto-selects in priority order — an OpenAI
  * key, then a local Ollama model, then keyword — so this section is mostly

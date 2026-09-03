@@ -264,7 +264,7 @@ func (b *Broker) createTelegramChannel(slug, title string, chatID int64, chType 
 	//
 	// This filter used to name "planner", "executor" and "reviewer" as its
 	// examples. They are gone: the founder retired the default specialists, so
-	// naming them here would send the next reader looking for agents the
+	// naming them here would send the next reader looking for bots the
 	// product no longer defines. The check itself is generic and unchanged.
 	adopted := make([]string, 0, len(members))
 	for _, m := range members {

@@ -236,56 +236,56 @@ func (b *Broker) ensureDefaultChannelsLocked() {
 
 	// With #general retired, every conversation is a 1:1 DM — so the DMs have
 	// to exist, or the roster has nowhere to talk.
-	b.ensureAgentDMsLocked()
+	b.ensureBotDMsLocked()
 }
 
-// ensureAgentDMsLocked gives every roster member a 1:1 DM with the human.
+// ensureBotDMsLocked gives every roster member a 1:1 DM with the human.
 //
 // THIS IS THE THING #general WAS BLOCKING ON. The kill switch was threaded
 // through seven gates and left off, and flipping it produced a workspace with
-// six agents and ZERO channels: a full roster and nowhere to say anything. The
+// six bots and ZERO channels: a full roster and nowhere to say anything. The
 // switch removed the shared room without anyone building what replaces it.
 // Measured, not assumed — a fresh broker with generalEnabled=false seeded
 // `channels: 0, members: 6`.
 //
-// A DM per agent is the replacement the product design already calls for:
-// "all chats will be in agent DMs, and you can tag an agent in a DM to make
-// your agent go consult them and report back". This seeds exactly that.
+// A DM per bot is the replacement the product design already calls for:
+// "all chats will be in bot DMs, and you can tag a bot in a DM to make
+// your bot go consult them and report back". This seeds exactly that.
 //
 // Idempotent by slug, so it is safe on every Load: an existing DM is left
 // completely alone, including its history and its member list.
 //
 // Runs regardless of the switch. When #general is enabled these DMs sit
 // alongside it and nothing is lost; when it is disabled they are the only way
-// to reach an agent. Gating this on the switch would mean the DMs appear only
+// to reach a bot. Gating this on the switch would mean the DMs appear only
 // in the configuration where they are load-bearing, which is the configuration
 // least able to survive a bug in this function.
-func (b *Broker) ensureAgentDMsLocked() {
+func (b *Broker) ensureBotDMsLocked() {
 	if b.channelStore == nil {
 		return
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	for _, m := range b.members {
-		agent := strings.TrimSpace(strings.ToLower(m.Slug))
-		if agent == "" || isHumanMessageSender(agent) {
+		bot := strings.TrimSpace(strings.ToLower(m.Slug))
+		if bot == "" || isHumanMessageSender(bot) {
 			continue
 		}
-		slug := channel.DirectSlug("human", agent)
+		slug := channel.DirectSlug("human", bot)
 		if b.findChannelLocked(slug) != nil {
 			continue // already there; never touch an existing conversation
 		}
-		if _, err := b.channelStore.GetOrCreateDirect("human", agent); err != nil {
+		if _, err := b.channelStore.GetOrCreateDirect("human", bot); err != nil {
 			// Degrade rather than fail the boot: one unseedable DM must not
 			// stop the office from starting.
-			log.Printf("seed: could not create DM with %s: %v", agent, err)
+			log.Printf("seed: could not create DM with %s: %v", bot, err)
 			continue
 		}
 		b.channels = append(b.channels, teamChannel{
 			Slug:        slug,
 			Name:        m.Name,
 			Type:        "dm",
-			Description: "Direct messages with " + agent,
-			Members:     []string{"human", agent},
+			Description: "Direct messages with " + bot,
+			Members:     []string{"human", bot},
 			CreatedBy:   "system",
 			CreatedAt:   now,
 			UpdatedAt:   now,
@@ -304,7 +304,7 @@ func (b *Broker) ensureDefaultOfficeMembersLocked() {
 		return
 	}
 	// An onboarded office with zero members is intentional, not corrupted:
-	// since the packs/CEO removal, agents are user-created and a fresh office
+	// since the packs/CEO removal, bots are user-created and a fresh office
 	// starts empty. Only an office that never finished onboarding gets the
 	// recovery roster.
 	if s, err := onboarding.Load(); err == nil && s != nil && strings.TrimSpace(s.CompletedAt) != "" {
@@ -315,9 +315,9 @@ func (b *Broker) ensureDefaultOfficeMembersLocked() {
 
 func (b *Broker) normalizeLoadedStateLocked() {
 	b.sessionMode = NormalizeSessionMode(b.sessionMode)
-	b.oneOnOneAgent = NormalizeOneOnOneAgent(b.oneOnOneAgent)
-	if b.findMemberLocked(b.oneOnOneAgent) == nil {
-		b.oneOnOneAgent = DefaultOneOnOneAgent
+	b.oneOnOneBot = NormalizeOneOnOneBot(b.oneOnOneBot)
+	if b.findMemberLocked(b.oneOnOneBot) == nil {
+		b.oneOnOneBot = DefaultOneOnOneBot
 	}
 	seenMembers := make(map[string]struct{}, len(b.members))
 	normalizedMembers := make([]officeMember, 0, len(b.members))
@@ -332,7 +332,7 @@ func (b *Broker) normalizeLoadedStateLocked() {
 		//
 		// This value is PERSISTED. Existing rosters were normalised with the
 		// channel normaliser, and the two normalisers agree on every ordinary
-		// agent slug (lowercase, hyphenated), so this load-path rewrite is a
+		// bot slug (lowercase, hyphenated), so this load-path rewrite is a
 		// no-op for real data. It would only rewrite a slug containing "__" or
 		// a leading "#", which operationSlug cannot produce.
 		if strings.TrimSpace(member.Slug) == "" {
@@ -352,9 +352,9 @@ func (b *Broker) normalizeLoadedStateLocked() {
 			member.Role = member.Name
 		}
 		// Only the lead is built-in now. A legacy librarian or app-builder on
-		// disk becomes an ordinary, removable member: with the agents retired
+		// disk becomes an ordinary, removable member: with the bots retired
 		// as defaults, pinning them undeletable would strand users with two
-		// agents the product no longer defines.
+		// bots the product no longer defines.
 		member.BuiltIn = member.Slug == "ceo"
 		// A built-in's display name is owned by the code, not by the saved
 		// roster. Renaming the Librarian to "Pam the librarian" changed the
@@ -375,14 +375,14 @@ func (b *Broker) normalizeLoadedStateLocked() {
 		member.AllowedTools = normalizeStringList(member.AllowedTools)
 		normalizedMembers = append(normalizedMembers, member)
 	}
-	// Phase 6 migration: the Librarian (Pam) is a built-in agent like the CEO,
+	// Phase 6 migration: the Librarian (Pam) is a built-in bot like the CEO,
 	// added to every NEW workspace at seed time. Existing rosters loaded from
 	// disk predate her, and ensureDefaultOfficeMembersLocked only seeds when the
 	// roster is empty — so append her here on every load. Idempotent (no-op once
 	// present); the BuiltIn line above keeps her flag set on subsequent loads.
 	// No back-fill. The load path used to append the Librarian and App Builder
 	// to any non-empty roster ("legacy-safe migration"), which is precisely how
-	// the founder's removal of both agents kept undoing itself: the seed edit
+	// the founder's removal of both bots kept undoing itself: the seed edit
 	// was real, and this line resurrected them on the next boot. Existing
 	// members already on disk load unchanged — the migration's data-safety half
 	// — but nothing is ever appended.
@@ -406,14 +406,14 @@ func (b *Broker) normalizeLoadedStateLocked() {
 			b.channels[i].Members = allSlugs
 		}
 		// A DM's membership is its ACCESS CONTROL LIST, not a roster view.
-		// canAccessChannelLocked authorizes an agent by membership alone, so
+		// canAccessChannelLocked authorizes a bot by membership alone, so
 		// anything added here is granted read AND post on that conversation.
 		//
 		// Two bugs lived in this block, both invisible until #general was
 		// switched off and DMs became the only surface:
 		//
 		//  1. The filter below drops any slug that is not a roster member.
-		//     "human" is not an agent, so it was stripped from every DM --
+		//     "human" is not a bot, so it was stripped from every DM --
 		//     the one participant who is always a party to it.
 		//  2. The CEO pin below prepended "ceo" to EVERY channel, DMs
 		//     included. Measured before this fix:
@@ -487,7 +487,7 @@ func (b *Broker) normalizeLoadedStateLocked() {
 	}
 	// Heal task channels missing their own task's owner. A workspace seeded
 	// before the App Builder was registered minted its first build channel
-	// with no agent member, so every streamed build post bounced with
+	// with no bot member, so every streamed build post bounced with
 	// "channel access denied" (2026-08-16 fresh-workspace QA). The owner is
 	// only added when it is a registered member now.
 	ownerByChannel := make(map[string]string, len(b.tasks))

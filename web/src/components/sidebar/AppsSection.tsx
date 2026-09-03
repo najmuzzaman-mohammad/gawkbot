@@ -12,7 +12,7 @@ import { SidebarSection } from "./SidebarSection";
 const BUILD_TTL_MS = 5 * 60_000;
 
 /**
- * AppsSection lists the office's agent-generated internal tools (Apps), any
+ * AppsSection lists the office's bot-generated internal tools (Apps), any
  * in-flight builds, and the "Create app" affordance. Data-driven from GET /apps;
  * the optimistic "building…" rows close the dead air between submitting a new app
  * and it appearing (a build takes 20-60s).

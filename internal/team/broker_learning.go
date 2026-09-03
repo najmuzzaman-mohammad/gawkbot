@@ -55,7 +55,7 @@ func (b *Broker) handleLearningRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.TrimSpace(body.CreatedBy) == "" {
-		body.CreatedBy = strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
+		body.CreatedBy = strings.TrimSpace(r.Header.Get(botRateLimitHeader))
 	}
 	if strings.TrimSpace(body.CreatedBy) == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "created_by or X-WUPHF-Agent header is required"})

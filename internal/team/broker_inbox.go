@@ -1,6 +1,6 @@
 package team
 
-// broker_inbox.go is Lane E of the multi-agent control loop. It exposes the
+// broker_inbox.go is Lane E of the multi-bot control loop. It exposes the
 // indexed lifecycle lookup that Lane A built (b.lifecycleIndex) as a clean
 // query API for the Decision Inbox web UI (Lane G) and the CLI (Lane F).
 //
@@ -108,8 +108,8 @@ type InboxRow struct {
 	// frontend chooses when to show them.
 	BlockedOn []string `json:"blockedOn,omitempty"`
 	// Details is the free-text reason the broker last attached to the
-	// task. For blocked tasks this carries the actual "why" (agent
-	// timeout, agent error, manual block reason) so the inbox card does
+	// task. For blocked tasks this carries the actual "why" (bot
+	// timeout, bot error, manual block reason) so the inbox card does
 	// not have to guess. Truncated by the broker for inbox payload size.
 	Details string `json:"details,omitempty"`
 	// UpdatedAt is the RFC3339 timestamp of the task's last mutation.
@@ -433,7 +433,7 @@ func (b *Broker) findTaskByIDLocked(id string) *teamTask {
 }
 
 // normalizeReviewerSlug lowercases and trims a slug for membership
-// comparisons. Reviewer assignment can come from agent slugs (which the
+// comparisons. Reviewer assignment can come from bot slugs (which the
 // broker stores lower-cased) or from human session slugs (which
 // humanIdentityFromActor lowercases via normalizeHumanSessionSlug); both
 // land in the same shape after this normalizer.

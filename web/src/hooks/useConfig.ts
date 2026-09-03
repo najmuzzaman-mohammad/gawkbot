@@ -24,7 +24,7 @@ function useConfigSnapshot(): ConfigSnapshot | undefined {
 
 /**
  * Returns the install-wide default harness kind, used to render the avatar
- * badge for agents that have no explicit provider binding.
+ * badge for bots that have no explicit provider binding.
  */
 export function useDefaultHarness(): HarnessKind {
   const cfg = useConfigSnapshot();

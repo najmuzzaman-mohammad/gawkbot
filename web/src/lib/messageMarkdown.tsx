@@ -1,5 +1,5 @@
 /**
- * Markdown pipeline for chat-bubble agent messages.
+ * Markdown pipeline for chat-bubble bot messages.
  *
  * Mirrors the wiki pipeline (wikiMarkdownConfig.tsx) but with a chat-tuned
  * plugin set and CSS class mapping that preserves the legacy formatTrusted
@@ -50,7 +50,7 @@ const MENTION_RE = /(?:^|[^a-zA-Z0-9_])@([a-z0-9][a-z0-9-]{1,29})\b/g;
 const TASK_REF_RE =
   /(?:^|[^A-Za-z0-9_/-])((?:[A-Z][A-Z0-9]{1,11}-\d+|task-\d+))\b/g;
 
-// App references. Agent-built apps carry an `app_<hex>` id, and agents quote
+// App references. Bot-built apps carry an `app_<hex>` id, and bots quote
 // them in prose ("shipped it in app_9f3c1d2e"). Bare, that is unreadable and
 // unclickable; AppRefLink resolves it to the app's name and opens it.
 // Mirrors TASK_REF_RE's boundary handling so an id inside a path or an

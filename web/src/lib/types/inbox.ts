@@ -25,7 +25,7 @@ interface InboxItemBase {
   /** RFC3339 timestamp of the latest activity on the underlying artifact. */
   updatedAt?: string;
   elapsedMs?: number;
-  /** Agent who owns / sent / submitted this item. Phase 3+. */
+  /** Bot who owns / sent / submitted this item. Phase 3+. */
   agentSlug?: string;
   /**
    * True when the item's latest activity post-dates the caller's

@@ -4,9 +4,9 @@ package team
 //
 // Deterministic checks that boot a real broker and measure HARNESS quality:
 // does the system deliver full specs, full thread context, task-relevant
-// knowledge, and upstream outcomes to the agent that needs them, and does
+// knowledge, and upstream outcomes to the bot that needs them, and does
 // the task lifecycle hold its contract end to end. No LLM calls — the
-// scripted driver below plays the agent, so the checks measure what the
+// scripted driver below plays the bot, so the checks measure what the
 // harness puts in front of a model, not what a model does with it.
 //
 // Each check encodes one verified gap from the SOTA gap analysis. Checks
@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // OfficeEvalCheck is one scored assertion inside an eval job.
@@ -88,9 +88,9 @@ func (r *OfficeEvalReport) add(job, check string, pass bool, detail, knownGap st
 // pane/tmux state.
 func launcherForBrokerFixture(b *Broker) *Launcher {
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "Chief of Staff"},
 				{Slug: "eng", Name: "Engineer"},
 			},
@@ -180,7 +180,7 @@ func RunOfficeEvals(dir string) (*OfficeEvalReport, error) {
 	setRetrievalEmbedding(nil, nil)
 	defer resetRetrievalEmbedding()
 	// Pin the office runtime home to the eval scratch dir — the same env
-	// knob the live team launches with. Agent scratch dirs and DoD-check
+	// knob the live team launches with. Bot scratch dirs and DoD-check
 	// working dirs (headless_workspace.go) derive from it; without the pin
 	// a `go run ./cmd/office-eval` would create dirs under the developer's
 	// real ~/.wuphf. Restored on return; in `go test` the package init
@@ -283,7 +283,7 @@ func evalJobLifecycleBasic(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		fmt.Sprintf("completeErr=%v", completeErr), "")
 
 	// Produce the artifact the check demands, then complete again: the
-	// harness — not the agent's claim — decides done.
+	// harness — not the bot's claim — decides done.
 	workDir := strings.TrimSpace(stamped.WorktreePath)
 	if workDir == "" {
 		workDir = fx.scratchDir
@@ -525,7 +525,7 @@ func evalJobTurnJournal(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		return err
 	}
 	fx.broker.AppendTaskLedgerEntry(task.ID, TaskLedgerEntry{
-		Agent: "eng", Outcome: "turn timed out after 20m",
+		Bot: "eng", Outcome: "turn timed out after 20m",
 		Said:    "Reproduced the flake: auth_test.go races on the shared fixture. Next: isolate the fixture per test.",
 		Actions: []string{"task_updated: noted reproduction steps"},
 	})
@@ -605,7 +605,7 @@ func evalJobTurnJournal(fx *officeEvalFixture, r *OfficeEvalReport) error {
 
 // evalJobCompoundingLoop: the full moat loop (U4.1 + U2.2) — a verified
 // outcome auto-distills into the learning store, and the NEXT similar task's
-// packet carries it without any human or agent touching the knowledge layer.
+// packet carries it without any human or bot touching the knowledge layer.
 func evalJobCompoundingLoop(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	const job = "compounding-loop"
 	created, err := fx.broker.MutateTask(TaskPostRequest{

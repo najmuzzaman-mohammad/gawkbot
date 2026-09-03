@@ -1,7 +1,7 @@
-// Package computer gives every agent its own Linux desktop: a hardened
-// container per agent on the user's machine (Docker, Podman, or Apple
+// Package computer gives every bot its own Linux desktop: a hardened
+// container per bot on the user's machine (Docker, Podman, or Apple
 // container) built from a digest-pinned Cua desktop image, or a rented VM
-// from ascii.dev. The agent process never moves; the desktop is reached as
+// from ascii.dev. The bot process never moves; the desktop is reached as
 // one MCP server named "computer" (see bridge.go) and watched through a
 // loopback noVNC proxy (see viewer.go).
 //
@@ -11,7 +11,7 @@
 // Cua Driver inside the container; nothing here reimplements a click.
 //
 // Ported from milind-soni/OpenMausBot (Apache-2.0) server/container-computer.ts
-// and server/box.ts, reshaped for a Go broker whose agents are local CLIs.
+// and server/box.ts, reshaped for a Go broker whose bots are local CLIs.
 package computer
 
 import (
@@ -65,7 +65,7 @@ const DefaultTimeout = 8 * time.Second
 const MaxOutputBytes = 64 << 20
 
 // ExecRunner is the production Runner: resolves the binary through the same
-// PATH augmentation the agent CLIs use, applies the timeout, and captures
+// PATH augmentation the bot CLIs use, applies the timeout, and captures
 // bounded output.
 func ExecRunner(ctx context.Context, name string, args []string, timeout time.Duration) (string, string, error) {
 	if timeout <= 0 {

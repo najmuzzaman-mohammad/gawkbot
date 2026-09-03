@@ -7,9 +7,9 @@ probing beyond Ollama, and the subscription-only chat shim).
 
 Today, giving the wiki context layer semantic retrieval means handing WUPHF an
 OpenAI API key that exists only to serve gbrain embeddings. For a user already
-running a local model for their agents, that is a second credential for a
+running a local model for their bots, that is a second credential for a
 capability they are already paying for in hardware. The goal is: **if a local
-runtime is already selected for agents, embeddings should use it.**
+runtime is already selected for bots, embeddings should use it.**
 
 ## What already exists (most of this is built)
 

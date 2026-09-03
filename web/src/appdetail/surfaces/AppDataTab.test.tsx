@@ -83,7 +83,7 @@ describe("AppDataTab", () => {
     await waitFor(() => expect(getByText(/Sep 16, 2026/)).toBeTruthy());
   });
 
-  it("frames the populated view as the agent's own exportable database", async () => {
+  it("frames the populated view as the bot's own exportable database", async () => {
     get.mockResolvedValue({
       tables: [
         {

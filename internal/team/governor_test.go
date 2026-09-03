@@ -196,7 +196,7 @@ func TestLoadGovernorConfigEnv(t *testing.T) {
 	}
 }
 
-// Automatic pausing is OFF by default; a single-agent build must not be frozen
+// Automatic pausing is OFF by default; a single-bot build must not be frozen
 // by a budget checkpoint nobody asked for. Manual pause/stop still work.
 func TestLoadGovernorConfigDisabledByDefault(t *testing.T) {
 	cfg := loadGovernorConfig()

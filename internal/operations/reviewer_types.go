@@ -8,7 +8,7 @@ import (
 )
 
 // ReviewerHumanOnly is the sentinel DefaultReviewer / ReviewerPaths value
-// that disables agent approval for a promotion. When the resolver returns
+// that disables bot approval for a promotion. When the resolver returns
 // this value, Lane C keeps the promotion in Pending until a human clicks
 // Approve in the web UI.
 const ReviewerHumanOnly = "human-only"

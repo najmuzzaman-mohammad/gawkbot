@@ -1,9 +1,9 @@
 package team
 
 // broker_intake_test.go covers Lane B build-time gate #5 of the
-// multi-agent control loop success criteria: the four parse-failure / parse-
+// multi-bot control loop success criteria: the four parse-failure / parse-
 // success paths plus an integration smoke test that asserts the intake →
-// ready transition fires and the spec.created event lands on the agent
+// ready transition fires and the spec.created event lands on the bot
 // stream.
 //
 // Tests inject a fake IntakeProvider so no real LLM is called. Each test
@@ -179,7 +179,7 @@ func TestIntakeParse_ExtraUnknownFields(t *testing.T) {
 			{"statement": "tests pass"},
 			{"statement": "docs updated"}
 		],
-		"assignment": "owner-agent picks up",
+		"assignment": "owner-bot picks up",
 		"constraints": ["must be additive"],
 		"random_key": "junk that should be ignored",
 		"deeper": {"nested": "noise"},
@@ -200,7 +200,7 @@ func TestIntakeParse_ExtraUnknownFields(t *testing.T) {
 	if got, want := len(outcome.Spec.AcceptanceCriteria), 2; got != want {
 		t.Fatalf("len(AcceptanceCriteria): got %d, want %d", got, want)
 	}
-	if outcome.Spec.Assignment != "owner-agent picks up" {
+	if outcome.Spec.Assignment != "owner-bot picks up" {
 		t.Fatalf("Assignment: got %q", outcome.Spec.Assignment)
 	}
 	// Auto-assign empty → no countdown.
@@ -298,7 +298,7 @@ func TestIntake_AutoAssignCountdownHonorsContext(t *testing.T) {
 // TestIntakeHappyPath is the integration smoke test: feed a synthetic
 // LLM response with a valid JSON-fenced spec, assert task transitions
 // intake → ready, the manifest spec.created event is emitted on the
-// intake agent's stream, and the persisted spec is retrievable.
+// intake bot's stream, and the persisted spec is retrievable.
 func TestIntakeHappyPath(t *testing.T) {
 	t.Parallel()
 	b := newTestBroker(t)
@@ -309,16 +309,16 @@ func TestIntakeHappyPath(t *testing.T) {
 			{"statement": "blocked tasks render with a banner"},
 			{"statement": "filter chip 'blocked' shows count"}
 		],
-		"assignment": "frontend agent picks up the inbox view",
+		"assignment": "frontend bot picks up the inbox view",
 		"constraints": ["must work at 1000 tasks", "no new dependencies"]
 	}`
 	provider := &fakeIntakeProvider{response: fenceJSON(body)}
 
-	// Subscribe to the intake agent's stream BEFORE StartIntake so we see
+	// Subscribe to the intake bot's stream BEFORE StartIntake so we see
 	// the spec.created manifest event.
-	stream := b.AgentStream(intakeAgentSlug)
+	stream := b.BotStream(intakeBotSlug)
 	if stream == nil {
-		t.Fatal("expected non-nil intake agent stream buffer")
+		t.Fatal("expected non-nil intake bot stream buffer")
 	}
 	// Give the subscription buffer headroom: events drop the channel send
 	// when the buffer is full.
@@ -363,7 +363,7 @@ func TestIntakeHappyPath(t *testing.T) {
 	if got, want := provider.Calls(), 1; got != want {
 		t.Fatalf("provider Calls: got %d, want %d", got, want)
 	}
-	if !strings.Contains(provider.lastSys, "WUPHF intake agent") {
+	if !strings.Contains(provider.lastSys, "WUPHF intake bot") {
 		t.Fatal("system prompt should be the hardcoded intake prompt")
 	}
 	if !strings.Contains(provider.lastUser, "make inbox legible") {
@@ -398,7 +398,7 @@ collect:
 		}
 	}
 	if !seenSpecCreated {
-		t.Fatal("expected spec.created manifest event on the intake agent's stream")
+		t.Fatal("expected spec.created manifest event on the intake bot's stream")
 	}
 }
 

@@ -7,10 +7,10 @@ import (
 
 // Per-task runtime resolution.
 //
-// The LLM provider + model are a property of the TASK, not the agent — an
-// agent is a persona that can run different tasks on different models, and (per
+// The LLM provider + model are a property of the TASK, not the bot — an
+// bot is a persona that can run different tasks on different models, and (per
 // the parallel-instances change) several at once. Dispatch therefore prefers
-// the running turn's task Provider/Model over the owner agent's binding (now
+// the running turn's task Provider/Model over the owner bot's binding (now
 // only a soft default), which itself falls back to the install-wide default.
 // Effort is resolved the same way in headless_effort.go.
 //
@@ -18,17 +18,17 @@ import (
 // Model also sets a Provider. taskModelForKind only returns the task's model
 // when the task's provider matches the runtime asking — this prevents a codex
 // task's model id from leaking into the claude runner (and vice versa) when the
-// agent's own binding routed the turn.
+// bot's own binding routed the turn.
 //
 // ── Per-turn task identity ──────────────────────────────────────────────
-// An agent can run several tasks concurrently, so "the agent's active task" is
+// A bot can run several tasks concurrently, so "the bot's active task" is
 // ambiguous on the execution path. Every headless turn carries its task id; we
 // stash it on the turn's context.Context (set in beginHeadlessCodexTurn) so the
 // runtime helpers below resolve the SPECIFIC task the turn is for, rather than
-// guessing via agentActiveTask(slug) (which returns the first in_progress task
-// — wrong once an agent owns more than one). Callers off the headless path
+// guessing via botActiveTask(slug) (which returns the first in_progress task
+// — wrong once a bot owns more than one). Callers off the headless path
 // (e.g. the interactive pane builder) pass a background context and fall back
-// to agentActiveTask, which is correct there because panes are single-task.
+// to botActiveTask, which is correct there because panes are single-task.
 
 type headlessTurnTaskIDKey struct{}
 
@@ -56,8 +56,8 @@ func headlessTurnTaskID(ctx context.Context) string {
 
 // turnTaskForCtx resolves the task a turn is running, preferring the turn's
 // task id carried on ctx over the legacy "first in_progress task for slug"
-// lookup. With parallel instances agentActiveTask(slug) alone is ambiguous; the
-// ctx task id disambiguates. Falls back to agentActiveTask when ctx carries no
+// lookup. With parallel instances botActiveTask(slug) alone is ambiguous; the
+// ctx task id disambiguates. Falls back to botActiveTask when ctx carries no
 // id (chat turns, the pane path) so existing single-task callers are unchanged.
 func (l *Launcher) turnTaskForCtx(ctx context.Context, slug string) *teamTask {
 	if l == nil || l.broker == nil {
@@ -68,7 +68,7 @@ func (l *Launcher) turnTaskForCtx(ctx context.Context, slug string) *teamTask {
 			return task
 		}
 	}
-	return l.agentActiveTask(slug)
+	return l.botActiveTask(slug)
 }
 
 // raisePlanApprovalAfterTurn surfaces a finished planning turn's plan for human
@@ -105,19 +105,19 @@ func (l *Launcher) maybeQueueInlineDetection(ctx context.Context, slug string, c
 }
 
 // turnTaskIDForCtx returns the running turn's task id, preferring the id carried
-// on ctx over the legacy agentActiveTaskID(slug) lookup. Used for stream/event
+// on ctx over the legacy botActiveTaskID(slug) lookup. Used for stream/event
 // labelling so each parallel instance's output is tagged with its own task.
 func (l *Launcher) turnTaskIDForCtx(ctx context.Context, slug string) string {
 	if id := headlessTurnTaskID(ctx); id != "" {
 		return id
 	}
-	return l.agentActiveTaskID(slug)
+	return l.botActiveTaskID(slug)
 }
 
-// effectiveProviderKindForAgent picks the runtime kind for slug's current turn,
-// preferring the turn task's per-task provider over the agent binding / global
+// effectiveProviderKindForBot picks the runtime kind for slug's current turn,
+// preferring the turn task's per-task provider over the bot binding / global
 // default. The dispatch switch uses it to route to the right runner.
-func (l *Launcher) effectiveProviderKindForAgent(ctx context.Context, slug string) string {
+func (l *Launcher) effectiveProviderKindForBot(ctx context.Context, slug string) string {
 	if l == nil {
 		return ""
 	}

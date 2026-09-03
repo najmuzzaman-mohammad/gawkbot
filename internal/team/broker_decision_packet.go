@@ -300,7 +300,7 @@ func (b *Broker) SetSpec(taskID string, spec Spec) error {
 }
 
 // AppendSessionReport replaces the SessionReport on the packet for
-// taskID. The owner agent commits one session report per session;
+// taskID. The owner bot commits one session report per session;
 // resumes (changes_requested → running) replace the prior report.
 // Emits artifact.ready.
 func (b *Broker) AppendSessionReport(taskID string, report SessionReport) error {
@@ -326,7 +326,7 @@ func (b *Broker) AppendSessionReport(taskID string, report SessionReport) error 
 }
 
 // AppendDiffSummary replaces the ChangedFiles list with the supplied
-// slice. The owner agent recomputes the full diff at session-report
+// slice. The owner bot recomputes the full diff at session-report
 // time, so a wholesale replace matches the producer's mental model.
 func (b *Broker) AppendDiffSummary(taskID string, files []DiffSummary) error {
 	if b == nil {
@@ -347,7 +347,7 @@ func (b *Broker) AppendDiffSummary(taskID string, files []DiffSummary) error {
 	return nil
 }
 
-// AppendReviewerGrade is the multi-writer hot path. Each reviewer agent
+// AppendReviewerGrade is the multi-writer hot path. Each reviewer bot
 // calls in once with their grade; the broker serialises the appends via
 // b.mu. Emits review.submitted. Mirrors into Lane D's routing-side
 // store so convergence runs on every grade.
@@ -840,7 +840,7 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 	// task with a required definition-of-done check must pass that check
 	// first — the live FE Approve button posts here, not to /tasks, so the
 	// gate previously never bound on a human's click (ICP-eval v3: the DoD
-	// was "checked" only by the agent's narration, three runs in a row).
+	// was "checked" only by the bot's narration, three runs in a row).
 	// Runs BEFORE the locked section because checks execute external
 	// commands (lock discipline in task_verification.go). Activation
 	// approves (pre-execution states) are exempt inside the gate itself.
@@ -886,7 +886,7 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 			currentState = task.LifecycleState
 			// Human-sovereignty gate (mirrors MutateTask): an open human
 			// request-changes objection blocks approve for every
-			// non-human actor — agents that share the broker token land
+			// non-human actor — bots that share the broker token land
 			// here via /tasks/{id}/decision. Humans pass and the clear
 			// happens after the successful transition below.
 			if action == RecordDecisionApprove && !actor.isHuman {
@@ -965,11 +965,11 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 		}
 		// Wake the owner so work actually STARTS on approval. The
 		// transition above only posts a From=system lifecycle card, which
-		// notifyAgentsLoop drops — so without an explicit task action the
+		// notifyBotsLoop drops — so without an explicit task action the
 		// owner is never enqueued and the issue sits idle until the human
 		// sends another message. Emitting task_updated routes through
 		// notifyTaskActionsLoop -> deliverTaskNotification ->
-		// enqueueHeadlessTurnForAgent(owner). Mirrors the status-change
+		// enqueueHeadlessTurnForBot(owner). Mirrors the status-change
 		// emit in broker_tasks_lifecycle.go. Only on Drafting->Running
 		// (start work); terminal Approved decisions don't need a wake.
 		if startingWork {
@@ -1022,7 +1022,7 @@ func (b *Broker) recordTaskDecisionInternal(taskID, rawAction string, actor deci
 		// records and can be threaded through later if needed.
 		_ = actorSlug
 		if action == RecordDecisionRequestChanges {
-			// Mirror the agent-side path: when a human clicks
+			// Mirror the bot-side path: when a human clicks
 			// "Request changes" in the unified Inbox, broadcast a
 			// channel message tagging the task owner with the
 			// reviewer feedback so they wake up and revise. The
@@ -1261,7 +1261,7 @@ func (b *Broker) writeWikiPromotionLocked(taskID string, packet DecisionPacket) 
 
 // AppendPacketFeedbackLocked appends a FeedbackItem to a task's
 // DecisionPacket without changing any lifecycle state. Used by the
-// PR-style comment action so humans and agents can leave notes on a
+// PR-style comment action so humans and bots can leave notes on a
 // task that show up in the unified Inbox detail thread before any
 // approve / request_changes decision is made.
 //
@@ -1297,8 +1297,8 @@ func (b *Broker) AppendPacketFeedbackLocked(taskID, author, body string) {
 // broadcastDecisionLocked posts a system message to the task's
 // originating channel announcing the approved decision. This closes the
 // "approving means posting output to everyone in channel and wiki" leg
-// of the multi-agent control loop — wiki promotion is the canonical
-// record, this announce is the discovery hook so other agents
+// of the multi-bot control loop — wiki promotion is the canonical
+// record, this announce is the discovery hook so other bots
 // subscribed to the channel know to read the wiki.
 //
 // Caller holds b.mu.
@@ -1327,7 +1327,7 @@ func (b *Broker) broadcastDecisionLocked(taskID string, packet DecisionPacket) {
 		wikiNote = fmt.Sprintf("\nCanonical output: `wiki/%s`", relPath)
 	}
 	content := fmt.Sprintf(
-		"🔔 %s approved: %s. Other agents — read the wiki entry, not pre-approval channel messages.%s",
+		"🔔 %s approved: %s. Other bots — read the wiki entry, not pre-approval channel messages.%s",
 		taskID, headline, wikiNote,
 	)
 	b.counter++

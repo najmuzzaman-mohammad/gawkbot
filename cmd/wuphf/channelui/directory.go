@@ -57,10 +57,10 @@ func LookupMember(slug string) (OfficeMember, bool) {
 	return m, ok
 }
 
-// DisplayName resolves a human-readable label for an agent slug.
+// DisplayName resolves a human-readable label for a bot slug.
 // Custom names from the office directory take precedence; otherwise we
 // fall back to the canonical title for one of the built-in roles, and
-// finally to "@<slug>" for unknown agents.
+// finally to "@<slug>" for unknown bots.
 func DisplayName(slug string) string {
 	if member, ok := officeDirectory[slug]; ok && member.Name != "" {
 		return member.Name
@@ -91,7 +91,7 @@ func DisplayName(slug string) string {
 	}
 }
 
-// RoleLabel resolves a short role descriptor for an agent slug, used in
+// RoleLabel resolves a short role descriptor for a bot slug, used in
 // secondary metadata lines (e.g., "frontend" under the FE avatar).
 // Falls back to the canonical role for built-in slugs, then to
 // "teammate" for anything else.

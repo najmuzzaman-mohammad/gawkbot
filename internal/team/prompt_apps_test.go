@@ -5,7 +5,7 @@ package team
 // `bun run verify` (tsc --noEmit + vite build), retry a bounded number of
 // rounds on failure, and refuse to publish a broken app. The non-builder
 // awareness block must NOT carry that gate language — the gate is the
-// builder's responsibility, not every office agent's.
+// builder's responsibility, not every office bot's.
 
 import (
 	"strings"
@@ -58,7 +58,7 @@ func TestAppBuilderPromptBlock_HasVerifyGateGuidance(t *testing.T) {
 func TestAppsAwarenessPromptBlock_OmitsVerifyGate(t *testing.T) {
 	block := appsAwarenessPromptBlock()
 
-	// The gate is App-Builder-only. The awareness block (every other agent)
+	// The gate is App-Builder-only. The awareness block (every other bot)
 	// must not carry build/type-check gate language.
 	for _, phrase := range []string{"bun run verify", "tsc --noEmit", "register_app"} {
 		if containsFold(block, phrase) {

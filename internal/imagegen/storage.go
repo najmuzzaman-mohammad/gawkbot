@@ -30,7 +30,7 @@ func outputDir() string {
 // SaveResult is the output of SavePNG: both the on-disk path AND the
 // HTTP-relative URL the BoardRoom serves the file at. Callers should set
 // the HTTP URL on Result.ImageURL so the BoardRoom can render <img> inline,
-// and keep the disk path around for the agent's debug log.
+// and keep the disk path around for the bot's debug log.
 type SaveResult struct {
 	DiskPath string
 	HTTPURL  string // relative — `/artist-files/<date>/<file>.png`

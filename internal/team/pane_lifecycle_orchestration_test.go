@@ -1,8 +1,8 @@
 package team
 
 // Tests for the C5e ownership consolidation: the spawn orchestration
-// methods (SpawnVisibleAgents, SpawnOverflowAgents, ReportPaneFallback,
-// TrySpawnWebAgentPanes) now live on paneLifecycle and consult deps
+// methods (SpawnVisibleBots, SpawnOverflowBots, ReportPaneFallback,
+// TrySpawnWebBotPanes) now live on paneLifecycle and consult deps
 // via the paneLifecycleDeps struct. These tests construct paneLifecycle
 // directly with stubbed deps + fakeTmuxRunner, exercising the
 // orchestration logic without the full Launcher.
@@ -22,21 +22,21 @@ func TestSpawnVisibleAgents_OneOnOneMode(t *testing.T) {
 	setTmuxRunnerForTest(t, fake)
 
 	deps := paneLifecycleDeps{
-		cwd:           "/repo",
-		isOneOnOne:    func() bool { return true },
-		oneOnOneAgent: func() string { return "ceo" },
+		cwd:         "/repo",
+		isOneOnOne:  func() bool { return true },
+		oneOnOneBot: func() string { return "ceo" },
 		claudeCommand: func(slug, prompt string) (string, error) {
 			return fmt.Sprintf("claude --slug=%s", slug), nil
 		},
 		buildPrompt:   func(slug string) string { return "<prompt:" + slug + ">" },
-		agentName:     func(slug string) string { return "Boss" },
+		botName:       func(slug string) string { return "Boss" },
 		recordFailure: func(slug, reason string) { t.Fatalf("unexpected recordFailure: slug=%s reason=%s", slug, reason) },
 	}
 	pl := newPaneLifecycleWithDeps("wuphf-team", deps)
 
-	got, err := pl.SpawnVisibleAgents()
+	got, err := pl.SpawnVisibleBots()
 	if err != nil {
-		t.Fatalf("SpawnVisibleAgents err = %v", err)
+		t.Fatalf("SpawnVisibleBots err = %v", err)
 	}
 	if len(got) != 1 || got[0] != "ceo" {
 		t.Fatalf("returned slugs = %v, want [ceo]", got)
@@ -73,16 +73,16 @@ func TestSpawnVisibleAgents_FirstSplitFailureAborts(t *testing.T) {
 		visibleOfficeMembers: func() []officeMember { return []officeMember{{Slug: "ceo"}, {Slug: "fe"}} },
 		claudeCommand:        func(slug, prompt string) (string, error) { return "claude", nil },
 		buildPrompt:          func(slug string) string { return "" },
-		agentName:            func(slug string) string { return slug },
+		botName:              func(slug string) string { return slug },
 		recordFailure:        func(slug, reason string) {},
 	}
 	pl := newPaneLifecycleWithDeps("wuphf-team", deps)
 
-	if _, err := pl.SpawnVisibleAgents(); err == nil {
-		t.Fatalf("SpawnVisibleAgents err = nil, want error from first split failure")
+	if _, err := pl.SpawnVisibleBots(); err == nil {
+		t.Fatalf("SpawnVisibleBots err = nil, want error from first split failure")
 	}
 	// Only one split-window call should have been made: the failed first.
-	// Subsequent agents are not attempted because the first split is mandatory.
+	// Subsequent bots are not attempted because the first split is mandatory.
 	if got := len(fake.callsFor("split-window")); got != 1 {
 		t.Errorf("split-window calls = %d, want 1 (first failed -> abort)", got)
 	}
@@ -111,22 +111,22 @@ func TestSpawnVisibleAgents_AdditionalSplitFailureRecordsAndContinues(t *testing
 		visibleOfficeMembers: func() []officeMember { return []officeMember{{Slug: "ceo"}, {Slug: "fe"}, {Slug: "be"}} },
 		claudeCommand:        func(slug, prompt string) (string, error) { return "claude --" + slug, nil },
 		buildPrompt:          func(slug string) string { return "" },
-		agentName:            func(slug string) string { return slug },
+		botName:              func(slug string) string { return slug },
 		recordFailure: func(slug, reason string) {
 			recorded[slug] = reason
 		},
 	}
 	pl := newPaneLifecycleWithDeps("wuphf-team", deps)
 
-	got, err := pl.SpawnVisibleAgents()
+	got, err := pl.SpawnVisibleBots()
 	if err != nil {
-		t.Fatalf("SpawnVisibleAgents err = %v, want nil (later split failures don't abort)", err)
+		t.Fatalf("SpawnVisibleBots err = %v, want nil (later split failures don't abort)", err)
 	}
 	// Only the two successfully-spawned slugs (ceo, be) end up in the
 	// returned list — the failed spawn (fe) is recorded via
 	// recordFailure and skipped from the title-set + visibleSlugs
 	// loop. Pre-fix every member appeared regardless, which titled
-	// pane index 2 with the failed agent's name and gave callers a
+	// pane index 2 with the failed bot's name and gave callers a
 	// stale "all three panes alive" view.
 	if len(got) != 2 {
 		t.Errorf("returned slugs = %v, want 2 entries (failed spawn excluded)", got)
@@ -136,7 +136,7 @@ func TestSpawnVisibleAgents_AdditionalSplitFailureRecordsAndContinues(t *testing
 			t.Errorf("returned slugs %v unexpectedly contains the failed-spawn slug fe", got)
 		}
 	}
-	// "fe" is the second agent, which is the one we made fail.
+	// "fe" is the second bot, which is the one we made fail.
 	if _, ok := recorded["fe"]; !ok {
 		t.Errorf("recordFailure was not called for fe; recorded = %v", recorded)
 	}
@@ -163,7 +163,7 @@ func TestSpawnOverflowAgents_SkipsHeadlessOneShotMembers(t *testing.T) {
 		recordFailure: func(slug, reason string) { t.Fatalf("unexpected failure for %s: %s", slug, reason) },
 	}
 	pl := newPaneLifecycleWithDeps("wuphf-team", deps)
-	pl.SpawnOverflowAgents()
+	pl.SpawnOverflowBots()
 
 	news := fake.callsFor("new-window")
 	if len(news) != 2 {
@@ -212,7 +212,7 @@ func TestTrySpawnWebAgentPanes_NilBrokerNoOp(t *testing.T) {
 		// postSystemMessage nil simulates l.broker == nil.
 		usesPaneRuntime: func() bool { return true },
 	})
-	pl.TrySpawnWebAgentPanes()
+	pl.TrySpawnWebBotPanes()
 
 	if got := len(fake.calls); got != 0 {
 		t.Errorf("expected zero tmux calls when broker is nil, got %d", got)
@@ -228,7 +228,7 @@ func TestTrySpawnWebAgentPanes_HeadlessRuntimeNoOp(t *testing.T) {
 		postSystemMessage: func(channel, body, kind string) { posted++ },
 		usesPaneRuntime:   func() bool { return false },
 	})
-	pl.TrySpawnWebAgentPanes()
+	pl.TrySpawnWebBotPanes()
 
 	if got := len(fake.calls); got != 0 {
 		t.Errorf("expected zero tmux calls in headless runtime, got %d", got)
@@ -239,7 +239,7 @@ func TestTrySpawnWebAgentPanes_HeadlessRuntimeNoOp(t *testing.T) {
 }
 
 // TestTrySpawnWebAgentPanes_BlankSlateNoOp guards the early-return that
-// prevents an empty tmux session (only the placeholder pane, no agent
+// prevents an empty tmux session (only the placeholder pane, no bot
 // panes) when this fallback primitive is explicitly invoked while the
 // broker has zero members yet. Without this guard, the fallback path
 // would create a half-built session and flip paneBackedFlag=true,
@@ -256,7 +256,7 @@ func TestTrySpawnWebAgentPanes_BlankSlateNoOp(t *testing.T) {
 		visibleOfficeMembers: func() []officeMember { return nil },
 		paneBackedFlag:       &flag,
 	})
-	pl.TrySpawnWebAgentPanes()
+	pl.TrySpawnWebBotPanes()
 
 	if got := len(fake.calls); got != 0 {
 		t.Errorf("expected zero tmux calls when there are no visible members, got %d (calls=%v)", got, fake.calls)
@@ -271,7 +271,7 @@ func TestTrySpawnWebAgentPanes_BlankSlateNoOp(t *testing.T) {
 
 // TestTrySpawnWebAgentPanes_HappyPathFlipsFlag is the fallback path's
 // load-bearing contract: with claude-code + at least one visible member
-// + a working tmux runner, TrySpawnWebAgentPanes flips paneBackedFlag=true
+// + a working tmux runner, TrySpawnWebBotPanes flips paneBackedFlag=true
 // so subsequent dispatch routes through the live panes instead of falling
 // through to headless `claude --print`.
 func TestTrySpawnWebAgentPanes_HappyPathFlipsFlag(t *testing.T) {
@@ -286,15 +286,15 @@ func TestTrySpawnWebAgentPanes_HappyPathFlipsFlag(t *testing.T) {
 		usesPaneRuntime:       func() bool { return true },
 		visibleOfficeMembers:  func() []officeMember { return []officeMember{{Slug: "ceo"}} },
 		overflowOfficeMembers: func() []officeMember { return nil },
-		agentPaneTargets:      func() map[string]notificationTarget { return nil },
+		botPaneTargets:        func() map[string]notificationTarget { return nil },
 		isOneOnOne:            func() bool { return false },
 		claudeCommand:         func(slug, prompt string) (string, error) { return "claude --slug=" + slug, nil },
 		buildPrompt:           func(slug string) string { return "" },
-		agentName:             func(slug string) string { return slug },
+		botName:               func(slug string) string { return slug },
 		recordFailure:         func(slug, reason string) { t.Fatalf("unexpected recordFailure for %s: %s", slug, reason) },
 		paneBackedFlag:        &flag,
 	})
-	pl.TrySpawnWebAgentPanes()
+	pl.TrySpawnWebBotPanes()
 
 	if !flag {
 		t.Errorf("paneBackedFlag = false after successful spawn, want true (dispatch would stay headless)")

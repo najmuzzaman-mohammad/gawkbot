@@ -80,13 +80,11 @@ describe("tasks api client", () => {
     });
   });
 
-  it("listAgentLogTasks calls agent-logs with a limit query", async () => {
+  it("listBotLogTasks calls bot-logs with a limit query", async () => {
     const response = { tasks: [] satisfies api.TaskLogSummary[] };
     const getSpy = vi.spyOn(client, "get").mockResolvedValue(response);
 
-    await expect(api.listAgentLogTasks({ limit: 25 })).resolves.toEqual(
-      response,
-    );
+    await expect(api.listBotLogTasks({ limit: 25 })).resolves.toEqual(response);
     expect(getSpy).toHaveBeenCalledWith("/agent-logs", { limit: "25" });
   });
 });

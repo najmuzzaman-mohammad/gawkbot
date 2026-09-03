@@ -5,7 +5,7 @@ package team
 // before the type exists, so a compile failure at first run is expected.
 //
 // The aim is twofold: (1) exercise branches that buildPrompt wasn't covering
-// (1:1 mode, codingAgentSlugs branch, headlessSandboxNote, teamVoiceForSlug
+// (1:1 mode, codingBotSlugs branch, headlessSandboxNote, teamVoiceForSlug
 // table) so the new file lands well above the 85% per-file gate, and
 // (2) prove that the new type can be driven without a *Launcher — that's
 // the whole point of the extraction.
@@ -318,7 +318,7 @@ func TestPromptBuilder_VisualArtifactSelectivityRulePresentOnEverySurface(t *tes
 	// research/explain/plan request. The 2026-05-29 demo showed that was a
 	// bug: a one-line coffee-pressure question got a full HTML article plus
 	// an unsolicited team_skill_create. The block is now a selectivity
-	// decision tree — agents must judge whether HTML is warranted before
+	// decision tree — bots must judge whether HTML is warranted before
 	// reaching for the tool. This test pins the new shape across every
 	// surface that markdown memory reaches.
 	mkBuilder := func(oneOnOne bool) *promptBuilder {
@@ -461,13 +461,13 @@ func TestPromptBuilder_HTMLArtifactFlowIsConsistentAcrossBlocks(t *testing.T) {
 
 func TestPromptBuilder_ToolSearchAcceptanceLanguagePreserved(t *testing.T) {
 	// Existing behavior we don't want to lose: when claude-code defers tool
-	// schemas, the agent should make ONE ToolSearch call at the start of the
+	// schemas, the bot should make ONE ToolSearch call at the start of the
 	// turn (silently, no narration) and proceed. The schema list it loads is
 	// now pared back — it must NOT preload the genuinely-unsolicited tools
 	// (skill_create, wiki_write) unless the human explicitly asked. team_task
 	// is NO LONGER in the ban: Rule Zero requires team_task action=create as
 	// the FIRST tool call on a work-shaped request, so banning its schema
-	// would forbid loading a tool the agent is mandated to use.
+	// would forbid loading a tool the bot is mandated to use.
 	pb := &promptBuilder{
 		isOneOnOne:  func() bool { return false },
 		isFocusMode: func() bool { return false },
@@ -511,7 +511,7 @@ func TestPromptBuilder_ToolSearchAcceptanceLanguagePreserved(t *testing.T) {
 
 func TestPromptBuilder_UnsolicitedToolBanIsExplicit(t *testing.T) {
 	// Live demo failure 2026-05-29: after answering a coffee question, the
-	// agent self-codified a skill and called team_task to mark a task
+	// bot self-codified a skill and called team_task to mark a task
 	// complete. Neither was requested. team_skill_create is gone entirely
 	// (core-loop R5); pin the ban on the remaining tools plus the absence
 	// of any skill-creation tool mention.
@@ -636,7 +636,7 @@ func TestPromptBuilder_SpecialistFocusModeAddsDelegationSection(t *testing.T) {
 }
 
 func TestPromptBuilder_SpecialistCodingAgentRequiresGhPRCreate(t *testing.T) {
-	// codingAgentSlugs (eng/be/fe/etc.) get the explicit "actually open the
+	// codingBotSlugs (eng/be/fe/etc.) get the explicit "actually open the
 	// PR" instruction. Verify that branch fires for an eng specialist.
 	pb := &promptBuilder{
 		isOneOnOne:  func() bool { return false },
@@ -654,10 +654,10 @@ func TestPromptBuilder_SpecialistCodingAgentRequiresGhPRCreate(t *testing.T) {
 	}
 	got := pb.Build("eng")
 	if !strings.Contains(got, "gh pr create") {
-		t.Fatalf("coding-agent specialist prompt must require running gh pr create, got: %s", got)
+		t.Fatalf("coding-bot specialist prompt must require running gh pr create, got: %s", got)
 	}
 	if !strings.Contains(got, "https://github.com/...") {
-		t.Fatalf("coding-agent specialist prompt must require pasting the returned URL")
+		t.Fatalf("coding-bot specialist prompt must require pasting the returned URL")
 	}
 }
 
@@ -719,7 +719,7 @@ func TestPromptBuilder_LeadIncludesActivePoliciesSorted(t *testing.T) {
 }
 
 func TestMarkdownKnowledgeToolBlock_HumanRememberAutoRoutingNote(t *testing.T) {
-	// PR 7 edit 1: the memory guidance must warn agents that the
+	// PR 7 edit 1: the memory guidance must warn bots that the
 	// broker auto-routes human "remember this" / "save to wiki" phrases so
 	// they do not duplicate the write. PR 2 originally added this copy; PR 7
 	// keeps it as a regression gate.
@@ -739,15 +739,15 @@ func TestMarkdownKnowledgeToolBlock_HumanRememberAutoRoutingNote(t *testing.T) {
 // the test that stood here ("the Librarian owns wiki review, the CEO
 // delegates").
 //
-// Phase 4 gave wiki authority to a Librarian agent, and the prompt builder
+// Phase 4 gave wiki authority to a Librarian bot, and the prompt builder
 // special-cased that slug with a WIKI OWNERSHIP block naming it the sole writer
-// of canonical knowledge. The Librarian is retired as a default agent, so there
+// of canonical knowledge. The Librarian is retired as a default bot, so there
 // is no sole writer to hand authority to. Wiki contribution is a system skill
-// every agent carries, and what gates canonical knowledge is now a HUMAN
-// approving the promotion — not an agent's job title.
+// every bot carries, and what gates canonical knowledge is now a HUMAN
+// approving the promotion — not a bot's job title.
 //
 // Inverted rather than deleted because the special case is the regression risk:
-// a slug-keyed branch that hands one agent authority over everyone else's
+// a slug-keyed branch that hands one bot authority over everyone else's
 // knowledge is exactly what this must not grow back.
 func TestPromptBuilder_NoAgentOwnsTheWikiPromotionNeedsAHuman(t *testing.T) {
 	mk := func() *promptBuilder {
@@ -786,12 +786,12 @@ func TestPromptBuilder_NoAgentOwnsTheWikiPromotionNeedsAHuman(t *testing.T) {
 		}
 	}
 
-	// 2. A workspace that still holds a legacy agent on the "librarian" slug
+	// 2. A workspace that still holds a legacy bot on the "librarian" slug
 	//    gets the ordinary specialist prompt. Compared against another
 	//    specialist so the assertion fails if any slug-keyed branch returns:
-	//    the two differ only in the agent's own identity lines.
+	//    the two differ only in the bot's own identity lines.
 	if lib == fe {
-		t.Fatal("librarian and fe prompts are byte-identical; the fixture is not exercising per-agent rendering")
+		t.Fatal("librarian and fe prompts are byte-identical; the fixture is not exercising per-bot rendering")
 	}
 	for _, shared := range []string{
 		"Use wuphf_wiki_lookup or team_wiki_search when prior knowledge matters",
@@ -902,7 +902,7 @@ func TestPromptBuilder_DeterministicOrderingFromMembers(t *testing.T) {
 // non-trivial Issue spec must ship with an HTML artifact reference inside
 // the `details` field. The FE's IssueDescription renders that artifact
 // inline above the markdown body via the same RichArtifactEmbed pipeline
-// wiki articles use — without this prompt language, agents fall back to
+// wiki articles use — without this prompt language, bots fall back to
 // pasting a wall of markdown into details and the inline-embed surface
 // never gets exercised.
 func TestVisualArtifactForcingBlock_CoversIssueSpecs(t *testing.T) {
@@ -924,8 +924,8 @@ func TestVisualArtifactForcingBlock_CoversIssueSpecs(t *testing.T) {
 }
 
 // TestPromptBuilder_PoliciesFilteredByAgentAssignment pins the B3
-// always-loaded contract for policies: a policy scoped to another agent
-// stays OUT of this agent's prompt; nil-scope (all agents) and own-scope
+// always-loaded contract for policies: a policy scoped to another bot
+// stays OUT of this bot's prompt; nil-scope (all bots) and own-scope
 // policies are rendered.
 func TestPromptBuilder_PoliciesFilteredByAgentAssignment(t *testing.T) {
 	pb := &promptBuilder{
@@ -942,8 +942,8 @@ func TestPromptBuilder_PoliciesFilteredByAgentAssignment(t *testing.T) {
 		policies: func() []officePolicy {
 			return []officePolicy{
 				{ID: "a", Rule: "applies to everyone"},
-				{ID: "b", Rule: "eng-only deploy checklist", Agents: []string{"eng"}},
-				{ID: "c", Rule: "ceo-only hiring review", Agents: []string{"ceo"}},
+				{ID: "b", Rule: "eng-only deploy checklist", Bots: []string{"eng"}},
+				{ID: "c", Rule: "ceo-only hiring review", Bots: []string{"ceo"}},
 			}
 		},
 		nameFor: func(slug string) string { return slug },
@@ -951,10 +951,10 @@ func TestPromptBuilder_PoliciesFilteredByAgentAssignment(t *testing.T) {
 
 	eng := pb.Build("eng")
 	if !strings.Contains(eng, "applies to everyone") || !strings.Contains(eng, "eng-only deploy checklist") {
-		t.Fatalf("eng prompt must carry all-agents + eng-scoped policies:\n%s", eng)
+		t.Fatalf("eng prompt must carry all-bots + eng-scoped policies:\n%s", eng)
 	}
 	if strings.Contains(eng, "ceo-only hiring review") {
-		t.Fatalf("eng prompt must NOT carry a policy scoped to another agent")
+		t.Fatalf("eng prompt must NOT carry a policy scoped to another bot")
 	}
 
 	ceo := pb.Build("ceo")

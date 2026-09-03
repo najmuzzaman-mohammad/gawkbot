@@ -119,8 +119,8 @@ func TestQueuePaneNotification_SingleTagDispatchesImmediately(t *testing.T) {
 }
 
 // TestQueuePaneNotification_DifferentSlugsRunInParallel: per-slug queues
-// must not block each other. A slow pane for one agent must not starve
-// notifications to another agent.
+// must not block each other. A slow pane for one bot must not starve
+// notifications to another bot.
 func TestQueuePaneNotification_DifferentSlugsRunInParallel(t *testing.T) {
 	oldGap := paneDispatchMinGap
 	oldWin := paneDispatchCoalesceWindow

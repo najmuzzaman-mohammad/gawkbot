@@ -602,14 +602,14 @@ export function download(input: DownloadInput): Promise<void> {
 export interface CreateTaskInput {
   /** Short imperative title, e.g. "Follow up on the Acme renewal". Required. */
   title: string;
-  /** Optional longer brief for the agents. */
+  /** Optional longer brief for the bots. */
   details?: string;
 }
 
 /**
  * createTask asks WUPHF to spin up a new office task. The host shows the human a
  * confirmation first (this is a state-changing action), then creates a normal
- * task on their behalf — the agents pick it up like any other. The app only
+ * task on their behalf — the bots pick it up like any other. The app only
  * supplies a title + details; it can't set owner, type, or anything privileged.
  * Resolves with the new task id once the human confirms; rejects if they cancel
  * (or after a timeout). Wire it to a button — never fire it on load.

@@ -3,7 +3,7 @@
  *
  * Explains the shared brain through the RevOps lens: the wiki holds the
  * operator's CRM rules and playbooks (tiering, deal stages, dedupe policy),
- * and agents read them as first-class context before they touch a record.
+ * and bots read them as first-class context before they touch a record.
  *
  * The stage visual is a rendered Remotion clip (web/public/media/onboarding/
  * knowledge-base.gif): a "gawkbot · wiki / revops" window where the RevOps
@@ -39,8 +39,8 @@ export function StepWiki({ active }: OnboardingWizardStepProps) {
         </h2>
         <p className="office-tour-slide-body">{COPY.body}</p>
         <p className="office-tour-slide-caption">
-          Your agents read these rules before they merge an account, route a
-          lead, or close a stale opportunity.
+          Your bots read these rules before they merge an account, route a lead,
+          or close a stale opportunity.
         </p>
 
         <EmbeddingChoice />
@@ -57,7 +57,7 @@ export function StepWiki({ active }: OnboardingWizardStepProps) {
             src="/media/onboarding/knowledge-base.gif"
             width={800}
             height={680}
-            alt="A RevOps knowledge base: CRM hygiene playbook, account tiering, deal stage definitions, lead routing rules, duplicate merge policy, and stale opportunity thresholds, with an agent reading the playbook before acting."
+            alt="A RevOps knowledge base: CRM hygiene playbook, account tiering, deal stage definitions, lead routing rules, duplicate merge policy, and stale opportunity thresholds, with a bot reading the playbook before acting."
             loading="lazy"
             decoding="async"
           />

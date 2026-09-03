@@ -13,7 +13,7 @@ import (
 // renderComposer renders the Slack-style input area with typing indicator,
 // label, rounded border, cursor, @mention popup, and interview options.
 func renderComposer(width int, input []rune, inputPos int, channelName string,
-	replyToID string, typingAgents []string, liveActivities map[string]string,
+	replyToID string, typingBots []string, liveActivities map[string]string,
 	pending *channelui.Interview, selectedOption int, hint string, focused bool, tickFrame int) string {
 
 	if width < 10 {
@@ -67,10 +67,10 @@ func renderComposer(width int, input []rune, inputPos int, channelName string,
 		cursorStyle := lipgloss.NewStyle().Reverse(true)
 		placeholder := "Type a message... (/ commands, @ mention)"
 		if strings.HasPrefix(channelName, "1:1 ") {
-			placeholder = "Talk directly to your agent here... (Ctrl+J for a new line)"
+			placeholder = "Talk directly to your bot here... (Ctrl+J for a new line)"
 		} else if isDM {
-			agentName := strings.TrimPrefix(channelName, "DM→")
-			placeholder = fmt.Sprintf("Message %s directly... (office stays active)", agentName)
+			botName := strings.TrimPrefix(channelName, "DM→")
+			placeholder = fmt.Sprintf("Message %s directly... (office stays active)", botName)
 		}
 		if pending != nil {
 			placeholder = "Type your answer here, or Enter to accept the highlighted option"

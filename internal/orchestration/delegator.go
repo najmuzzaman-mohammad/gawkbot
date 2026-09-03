@@ -8,8 +8,8 @@ import (
 
 // Delegation represents a sub-task extracted from Team-Lead output.
 type Delegation struct {
-	AgentSlug string
-	Task      string // The sentence context around the @mention
+	BotSlug string
+	Task    string // The sentence context around the @mention
 }
 
 // Delegator parses Team-Lead responses and extracts specialist delegations.
@@ -29,7 +29,7 @@ func NewDelegator(maxConcurrent int) *Delegator {
 	}
 }
 
-// ExtractDelegations parses the Team-Lead response for @agent-slug mentions
+// ExtractDelegations parses the Team-Lead response for @bot-slug mentions
 // and extracts the surrounding sentence as the task description.
 // Only mentions matching knownSlugs are returned.
 func (d *Delegator) ExtractDelegations(response string, knownSlugs []string) []Delegation {
@@ -57,8 +57,8 @@ func (d *Delegator) ExtractDelegations(response string, knownSlugs []string) []D
 		task := strings.TrimSpace(sentence)
 
 		delegations = append(delegations, Delegation{
-			AgentSlug: slug,
-			Task:      task,
+			BotSlug: slug,
+			Task:    task,
 		})
 	}
 

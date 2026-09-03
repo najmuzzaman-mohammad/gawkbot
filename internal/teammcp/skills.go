@@ -12,7 +12,7 @@ import (
 type TeamSkillRunArgs struct {
 	SkillName string `json:"skill_name" jsonschema:"Name of the skill to run (slug, e.g. 'investigate', 'daily-digest')"`
 	Channel   string `json:"channel,omitempty" jsonschema:"Optional channel slug to log the invocation into. Defaults to the active conversation channel."`
-	MySlug    string `json:"my_slug,omitempty" jsonschema:"Agent slug invoking the skill. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug    string `json:"my_slug,omitempty" jsonschema:"Bot slug invoking the skill. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 // brokerSkillResponse mirrors the JSON shape returned by
@@ -32,9 +32,9 @@ type brokerSkillResponse struct {
 	} `json:"skill"`
 }
 
-// registerSkillTools wires the skill surface available to agents. Skills are
-// created ONLY by playbook compilation (core-loop R5) — there is no agent
-// tool to create or propose a skill. Agents can run skills, trigger a
+// registerSkillTools wires the skill surface available to bots. Skills are
+// created ONLY by playbook compilation (core-loop R5) — there is no bot
+// tool to create or propose a skill. Bots can run skills, trigger a
 // compile pass, and maintain existing skills (patch/edit/archive).
 func registerSkillTools(server *mcp.Server) {
 	registerSkillCompileTools(server)
@@ -44,7 +44,7 @@ func registerSkillTools(server *mcp.Server) {
 // handleTeamSkillRun invokes a named skill through the broker, mirroring the
 // HTTP endpoint humans hit from the UI. The broker bumps UsageCount and
 // appends a `skill_invocation` message to the channel so the office sees
-// that the agent actually followed the playbook rather than freelancing.
+// that the bot actually followed the playbook rather than freelancing.
 func handleTeamSkillRun(ctx context.Context, _ *mcp.CallToolRequest, args TeamSkillRunArgs) (*mcp.CallToolResult, any, error) {
 	name := strings.TrimSpace(args.SkillName)
 	if name == "" {

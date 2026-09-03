@@ -20,11 +20,11 @@ mkdir -p ~/.wuphf/packs/agency-six/agents
 mkdir -p ~/.wuphf/packs/agency-six/channels
 ```
 
-### 2. Drop agent JSONs into the pack
+### 2. Drop bot JSONs into the pack
 
 Create `~/.wuphf/packs/agency-six/agents/producer.json`,
 `account.json`, `strategy.json`, `creative.json`, `dev.json`. Each
-file mirrors the default agent JSON shape with a custom
+file mirrors the default bot JSON shape with a custom
 `system_prompt` per role.
 
 ### 3. Define the channel list
@@ -43,7 +43,7 @@ npx wuphf --pack agency-six
 
 - The CLI prints the pack name on startup.
 - The office name reads "agency-six" in the sidebar.
-- All five named agents are in the participants column.
+- All five named bots are in the participants column.
 - Three channels appear in the sidebar.
 
 ### 5. Run a real agency workflow
@@ -57,7 +57,7 @@ Strategy briefs creative; Dev confirms tech stack.
 
 #### Verify
 
-- All three named agents reply in-thread within 90s.
+- All three named bots reply in-thread within 90s.
 - Producer's reply contains a numbered agenda.
 - The Inbox sidebar entry gets a non-zero badge.
 
@@ -71,9 +71,9 @@ npx wuphf --pack agency-six
 
 #### Verify
 
-- The teammate's office has the same channels and the same agent
+- The teammate's office has the same channels and the same bot
   roster.
-- The agent JSONs match (compare `~/.wuphf/agents/*.json`).
+- The bot JSONs match (compare `~/.wuphf/agents/*.json`).
 
 ## What success looks like
 

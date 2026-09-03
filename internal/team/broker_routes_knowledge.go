@@ -31,11 +31,11 @@ func (b *Broker) registerKnowledgeRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/studio/bootstrap-package", b.requireAuth(handleOperationBootstrapPackage))
 	mux.HandleFunc("/operations/bootstrap-package", b.requireAuth(handleOperationBootstrapPackage))
 	mux.HandleFunc("/studio/run-workflow", b.requireAuth(b.handleStudioRunWorkflow))
-	// Agent-scoped Knowledge: what one agent knows, plus the two promotion
-	// paths into the shared wiki (a human promoting, and an agent asking).
-	mux.HandleFunc("/agent-knowledge", b.requireAuth(b.handleAgentKnowledge))
-	mux.HandleFunc("/agent-knowledge/promote", b.requireAuth(b.handleAgentKnowledgePromote))
-	mux.HandleFunc("/agent-knowledge/promotion-request", b.requireAuth(b.handleAgentKnowledgePromotionRequest))
+	// Bot-scoped Knowledge: what one bot knows, plus the two promotion
+	// paths into the shared wiki (a human promoting, and a bot asking).
+	mux.HandleFunc("/agent-knowledge", b.requireAuth(b.handleBotKnowledge))
+	mux.HandleFunc("/agent-knowledge/promote", b.requireAuth(b.handleBotKnowledgePromote))
+	mux.HandleFunc("/agent-knowledge/promotion-request", b.requireAuth(b.handleBotKnowledgePromotionRequest))
 	mux.HandleFunc("/requests", b.requireAuth(b.handleRequests))
 	mux.HandleFunc("/requests/answer", b.requireAuth(b.handleRequestAnswer))
 }

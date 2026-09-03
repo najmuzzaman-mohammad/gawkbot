@@ -80,7 +80,7 @@ type Transport interface {
 //     reconnected. The Host creates (or finds) the corresponding office member.
 //  2. Call [Host.DetachParticipant] when a session ends permanently. The Host
 //     marks the member offline in the broker.
-//  3. [CreateSession]: the Host calls this when a user hires a new agent from
+//  3. [CreateSession]: the Host calls this when a user hires a new bot from
 //     the web UI. The adapter creates the upstream session and returns its key.
 //  4. [AttachSlug] / [DetachSlug]: called by the Host when an office member
 //     slug is bound to or unbound from an adapter session. The adapter uses
@@ -89,11 +89,11 @@ type Transport interface {
 type MemberBoundTransport interface {
 	Transport
 
-	// CreateSession creates a new upstream session for the given agentID and
+	// CreateSession creates a new upstream session for the given botID and
 	// human-readable label. Returns the opaque session key the adapter will use
 	// to correlate future events. The Host stores the key and calls [AttachSlug]
 	// immediately after.
-	CreateSession(ctx context.Context, agentID, label string) (sessionKey string, err error)
+	CreateSession(ctx context.Context, botID, label string) (sessionKey string, err error)
 
 	// AttachSlug binds an office member slug to a session key. The adapter
 	// should update its internal slug→key and key→slug maps under its own lock.

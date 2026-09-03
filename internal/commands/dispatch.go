@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -18,10 +18,10 @@ type CommandResult struct {
 	Error    string
 }
 
-// DispatchWithService is like Dispatch but accepts an AgentService for commands
-// that need access to running agents (e.g. /agents, /agent).
-func DispatchWithService(input string, format string, timeout int, agentSvc *agent.AgentService) CommandResult {
-	return dispatchInternal(input, format, timeout, agentSvc)
+// DispatchWithService is like Dispatch but accepts a BotService for commands
+// that need access to running bots (e.g. /bots, /bot).
+func DispatchWithService(input string, format string, timeout int, botSvc *bot.BotService) CommandResult {
+	return dispatchInternal(input, format, timeout, botSvc)
 }
 
 // Dispatch parses input and runs the matching command non-interactively.
@@ -30,7 +30,7 @@ func Dispatch(input string, format string, timeout int) CommandResult {
 	return dispatchInternal(input, format, timeout, nil)
 }
 
-func dispatchInternal(input string, format string, timeout int, agentSvc *agent.AgentService) CommandResult {
+func dispatchInternal(input string, format string, timeout int, botSvc *bot.BotService) CommandResult {
 	name, args, isSlash := ParseSlashInput(input)
 	if !isSlash {
 		// Plain prose has no non-interactive handler: conversation belongs to
@@ -67,8 +67,8 @@ func dispatchInternal(input string, format string, timeout int, agentSvc *agent.
 	var execErr error
 
 	ctx := &SlashContext{
-		AgentService: agentSvc,
-		Config:       &cfg,
+		BotService: botSvc,
+		Config:     &cfg,
 		AddMessage: func(role, content string) {
 			output.WriteString(content)
 			output.WriteString("\n")

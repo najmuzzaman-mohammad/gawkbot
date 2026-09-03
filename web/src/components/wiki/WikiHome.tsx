@@ -7,7 +7,7 @@ import {
   type WikiCatalogEntry,
   type WikiSearchHit,
 } from "../../api/wiki";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 import { formatRelativeTime, pluralize } from "../../lib/format";
 import NewArticleModal from "./NewArticleModal";
 import { categoryLabel } from "./WikiCategoryPage";
@@ -240,7 +240,7 @@ export default function WikiHome({
                 <li key={entry.sha}>
                   <span className="wk-home-recent-msg">{entry.message}</span>
                   <span className="wk-home-recent-meta">
-                    {formatAgentName(entry.author_slug)} ·{" "}
+                    {formatBotName(entry.author_slug)} ·{" "}
                     {safeRelative(entry.timestamp)}
                   </span>
                   {entry.paths.slice(0, 3).map((p) => (
@@ -273,7 +273,7 @@ export default function WikiHome({
                     {entry.title}
                   </a>
                   <span className="wk-home-recent-meta">
-                    {formatAgentName(entry.author_slug)} ·{" "}
+                    {formatBotName(entry.author_slug)} ·{" "}
                     {safeRelative(entry.last_edited_ts)}
                   </span>
                 </li>

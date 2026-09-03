@@ -7,21 +7,21 @@ order: 5
 
 # Skills and runtimes
 
-Your agents can learn new tricks. The two things that decide what an agent can actually do are its skills and its runtime.
+Your bots can learn new tricks. The two things that decide what a bot can actually do are its skills and its runtime.
 
 ## What a skill is
 
-A skill is a packaged capability an agent can use to do real work. Searching the web, writing a file, querying the wiki, scanning a repository: each of these is a skill. An agent without skills can only talk. An agent with skills can act.
+A skill is a packaged capability a bot can use to do real work. Searching the web, writing a file, querying the wiki, scanning a repository: each of these is a skill. A bot without skills can only talk. A bot with skills can act.
 
-Skills are scoped per agent on purpose. The engineer has the skills an engineer needs, and not the ones it does not, so capability is never broader than the job. When an agent needs a capability it does not have, it can request that the skill be enabled, and you stay in control of saying yes.
+Skills are scoped per bot on purpose. The engineer has the skills an engineer needs, and not the ones it does not, so capability is never broader than the job. When a bot needs a capability it does not have, it can request that the skill be enabled, and you stay in control of saying yes.
 
-This is also how the team grows new abilities over time. A skill written once can be reused by any agent that should have it, so the team gets more capable without you rebuilding anything.
+This is also how the team grows new abilities over time. A skill written once can be reused by any bot that should have it, so the team gets more capable without you rebuilding anything.
 
 ## What a runtime is
 
-A runtime is the engine an agent thinks with. It is the model and provider doing the actual reasoning behind the persona. Claude Code is a runtime. Other providers are runtimes too.
+A runtime is the engine a bot thinks with. It is the model and provider doing the actual reasoning behind the persona. Claude Code is a runtime. Other providers are runtimes too.
 
-Each agent runs on a runtime, and you can mix them. A simpler agent might run on a lighter, cheaper runtime, while your hardest problems get pointed at your strongest one. You decide where the horsepower goes.
+Each bot runs on a runtime, and you can mix them. A simpler bot might run on a lighter, cheaper runtime, while your hardest problems get pointed at your strongest one. You decide where the horsepower goes.
 
 ## Why two runtimes beats one
 

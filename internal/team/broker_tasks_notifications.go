@@ -16,7 +16,7 @@ import (
 var issueMentionRegex = regexp.MustCompile(`(?i)(?:^|[\s,.;:!?(\[])@([a-z][a-z0-9-]{1,40})\b`)
 
 // parseAtMentions extracts unique @slug mentions from a comment body
-// in left-to-right order. Used to wake the right agents when a human
+// in left-to-right order. Used to wake the right bots when a human
 // comments on an Issue. Returns lowercased slugs.
 func parseAtMentions(body string) []string {
 	matches := issueMentionRegex.FindAllStringSubmatch(body, -1)
@@ -53,7 +53,7 @@ func parseAtMentions(body string) []string {
 //
 // A task with no channel has no conversation. A card about it is an OPTIONAL
 // write, so it is SKIPPED rather than redirected: posting it into the acting
-// agent's DM would drop a card about task X into a conversation that may have
+// bot's DM would drop a card about task X into a conversation that may have
 // nothing to do with task X, and defaulting it to a shared room is the exact
 // laundering the channel retirement exists to stop. Skipping writes nothing,
 // which is the strictest available answer.
@@ -217,7 +217,7 @@ func (b *Broker) postTaskDMLocked(from, targetSlug, kind, title, content string)
 	})
 }
 
-// isDMTargetSlug reports whether slug is a valid recipient for a human-to-agent DM.
+// isDMTargetSlug reports whether slug is a valid recipient for a human-to-bot DM.
 // The human user ("human"/"you") and the CEO seat ("ceo", which is the human)
 // are excluded because they would create self-DMs.
 func isDMTargetSlug(slug string) bool {
@@ -350,9 +350,9 @@ func (b *Broker) postTaskRejectedNotificationsLocked(actor string, task *teamTas
 // postIssueCreatedCardLocked emits a system-authored chat message that
 // renders as an issue card in the channel where the Issue was filed.
 // The card is the audit-trail anchor for "any work getting done should
-// have an issue in place" — the human (and other agents in the channel)
+// have an issue in place" — the human (and other bots in the channel)
 // see the new Issue as soon as it lands, with a one-click link into the
-// Issue detail view. The agent that called team_task can still post its
+// Issue detail view. The bot that called team_task can still post its
 // own chat reply; this card is independent.
 //
 // Only called when task_type=issue (other types are internal and do not
@@ -404,7 +404,7 @@ func (b *Broker) postIssueCreatedCardLocked(actor string, task *teamTask) string
 		// subsequent messages in that thread appear after the card
 		// rather than the card visually floating "above" newer chat
 		// activity in its own top-level slot. task.ThreadID is set at
-		// create time from the agent's MCP call.
+		// create time from the bot's MCP call.
 		ReplyTo:      strings.TrimSpace(task.ThreadID),
 		SourceTaskID: task.ID,
 		Payload:      raw,
@@ -455,7 +455,7 @@ func classifyIssueLifecycleTransition(from, to LifecycleState) IssueLifecycleTra
 // an Issue's lifecycle state transitions in a way the human should see —
 // most importantly Drafting → Running ("Approved & started — @owner on
 // it") so the human knows the owner woke up. The card also doubles as
-// the wake signal: tagging the owner in `tagged` causes the agent loop
+// the wake signal: tagging the owner in `tagged` causes the bot loop
 // to pick this up as a notification on its next tick.
 //
 // Only emitted for task_type=issue. Caller holds b.mu for write.

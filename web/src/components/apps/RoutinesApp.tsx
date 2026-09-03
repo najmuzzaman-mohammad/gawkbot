@@ -45,7 +45,7 @@ function loadInitialShowSystem(): boolean {
  *     enable toggle, click-through to detail).
  *
  * Both views drive a shared right-side detail drawer that surfaces the
- * routine's instructions, schedule, owning agent, and previous-run history.
+ * routine's instructions, schedule, owning bot, and previous-run history.
  */
 export function RoutinesApp() {
   const [view, setView] = useState<ViewMode>(loadInitialView);

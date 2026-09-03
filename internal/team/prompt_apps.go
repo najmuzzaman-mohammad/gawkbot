@@ -2,11 +2,11 @@ package team
 
 import "strings"
 
-// prompt_apps.go — the Apps guidance injected into office-mode agent prompts.
-// Every agent gets the awareness rule (notice repetition -> propose_app); the
+// prompt_apps.go — the Apps guidance injected into office-mode bot prompts.
+// Every bot gets the awareness rule (notice repetition -> propose_app); the
 // App Builder gets the full build-and-publish playbook.
 
-func isAppBuilderAgent(slug, role string) bool {
+func isAppBuilderBot(slug, role string) bool {
 	if strings.EqualFold(strings.TrimSpace(slug), appBuilderSlug) {
 		return true
 	}
@@ -14,7 +14,7 @@ func isAppBuilderAgent(slug, role string) bool {
 }
 
 func appsPromptBlock(slug, role string) string {
-	if isAppBuilderAgent(slug, role) {
+	if isAppBuilderBot(slug, role) {
 		return appBuilderPromptBlock()
 	}
 	return appsAwarenessPromptBlock()

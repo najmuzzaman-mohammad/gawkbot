@@ -3,7 +3,7 @@ package team
 // wiki_sections.go implements v1.3 dynamic wiki sections. Sections are
 // discovered from actual article paths under team/ and merged with the
 // sections declared in the active blueprint's wiki_schema. The discovered
-// list drives the sidebar IA so as agents write articles into new
+// list drives the sidebar IA so as bots write articles into new
 // top-level dirs ("retrospectives/", "templates/", ...) the sidebar grows
 // to match — instead of the hardcoded starter-pack list staying stale.
 //

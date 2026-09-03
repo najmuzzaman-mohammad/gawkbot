@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
@@ -19,18 +19,18 @@ import (
 // the model emits text without firing more tools (or maxIters trips).
 //
 // Pulled out as its own type so it can be tested without a Launcher,
-// broker, or live server: a fake StreamFn + fake AgentTool.Execute is all
+// broker, or live server: a fake StreamFn + fake BotTool.Execute is all
 // it takes. See openai_compat_loop_test.go.
 type openAICompatToolLoop struct {
-	// streamFn is the per-agent provider StreamFn (returned by
+	// streamFn is the per-bot provider StreamFn (returned by
 	// entry.StreamFn(slug)). Called once per iteration with the
 	// accumulated message history.
-	streamFn agent.StreamFn
+	streamFn bot.StreamFn
 
 	// tools are passed verbatim into streamFn; toolByName routes tool_use
 	// chunks back to their Execute callbacks.
-	tools      []agent.AgentTool
-	toolByName map[string]agent.AgentTool
+	tools      []bot.BotTool
+	toolByName map[string]bot.BotTool
 
 	// maxIters caps the inner loop. Required (zero means "no iterations").
 	maxIters int
@@ -48,19 +48,19 @@ type openAICompatToolLoop struct {
 	onFirstTool  func()
 
 	// Receipts logging — when taskLogRoot and taskID are both non-empty,
-	// every tool execution in this loop appends an agent.TaskLogEntry
+	// every tool execution in this loop appends a bot.TaskLogEntry
 	// JSONL record to <taskLogRoot>/<taskID>/output.log so the BoardRoom
-	// Receipts panel (GET /agent-logs) sees this turn's tool calls.
+	// Receipts panel (GET /bot-logs) sees this turn's tool calls.
 	// Both empty disables logging entirely (zero overhead, used by tests).
 	taskLogRoot string
 	taskID      string
-	agentSlug   string
+	botSlug     string
 }
 
 // appendTaskLogEntry writes one TaskLogEntry to the receipts log.
 // Best-effort: any error (mkdir, marshal, write) is swallowed so a wedged
-// disk can't break the agent's turn. Mirrors AgentLoop.logToolExecution.
-func (lp *openAICompatToolLoop) appendTaskLogEntry(entry agent.TaskLogEntry) {
+// disk can't break the bot's turn. Mirrors BotLoop.logToolExecution.
+func (lp *openAICompatToolLoop) appendTaskLogEntry(entry bot.TaskLogEntry) {
 	if lp.taskLogRoot == "" || lp.taskID == "" {
 		return
 	}
@@ -93,7 +93,7 @@ func (lp *openAICompatToolLoop) appendTaskLogEntry(entry agent.TaskLogEntry) {
 //     the model failing, not the loop itself; the caller decides whether
 //     to escalate.
 //   - err: a context cancellation or other Go-side error.
-func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (finalText string, iterations int, usage provider.ClaudeUsage, streamErr string, err error) {
+func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []bot.Message) (finalText string, iterations int, usage provider.ClaudeUsage, streamErr string, err error) {
 	if lp.maxIters <= 0 {
 		return "", 0, provider.ClaudeUsage{}, "", fmt.Errorf("openAICompatToolLoop: maxIters must be > 0")
 	}
@@ -109,7 +109,7 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 		iterations = iter + 1
 		var (
 			turnText     strings.Builder
-			turnToolUses []agent.StreamChunk
+			turnToolUses []bot.StreamChunk
 			turnErr      string
 		)
 
@@ -207,18 +207,18 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 
 		// Encode the assistant's tool intent as a plain text turn so the
 		// next iteration's prompt has the same conversation prefix.
-		// agent.Message lacks structured tool_calls, so we serialize as
+		// bot.Message lacks structured tool_calls, so we serialize as
 		// `[tool_call <name> <args-json>]` lines — practical for any
 		// OpenAI-compatible model since they all parse mixed-format
 		// transcripts fine.
-		msgs = append(msgs, agent.Message{
+		msgs = append(msgs, bot.Message{
 			Role:    "assistant",
 			Content: encodeAssistantToolIntent(turnText.String(), turnToolUses),
 		})
 
 		// Execute each tool and append the consolidated results. We do
 		// this serially: parallel tool execution would need either OpenAI's
-		// structured tool_call_id round-trip (which agent.Message doesn't
+		// structured tool_call_id round-trip (which bot.Message doesn't
 		// carry) or risk the model getting confused about which result
 		// belongs to which call.
 		var resultBlocks []string
@@ -231,9 +231,9 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 				if lp.onToolResult != nil {
 					lp.onToolResult(tc.ToolName, "", fmt.Errorf("not available"))
 				}
-				lp.appendTaskLogEntry(agent.TaskLogEntry{
+				lp.appendTaskLogEntry(bot.TaskLogEntry{
 					TaskID:      lp.taskID,
-					AgentSlug:   lp.agentSlug,
+					BotSlug:     lp.botSlug,
 					ToolName:    tc.ToolName,
 					Params:      tc.ToolParams,
 					Error:       "tool not available",
@@ -251,9 +251,9 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 				if lp.onToolResult != nil {
 					lp.onToolResult(tc.ToolName, "", execErr)
 				}
-				lp.appendTaskLogEntry(agent.TaskLogEntry{
+				lp.appendTaskLogEntry(bot.TaskLogEntry{
 					TaskID:      lp.taskID,
-					AgentSlug:   lp.agentSlug,
+					BotSlug:     lp.botSlug,
 					ToolName:    tc.ToolName,
 					Params:      tc.ToolParams,
 					Error:       execErr.Error(),
@@ -266,9 +266,9 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 			if lp.onToolResult != nil {
 				lp.onToolResult(tc.ToolName, out, nil)
 			}
-			lp.appendTaskLogEntry(agent.TaskLogEntry{
+			lp.appendTaskLogEntry(bot.TaskLogEntry{
 				TaskID:      lp.taskID,
-				AgentSlug:   lp.agentSlug,
+				BotSlug:     lp.botSlug,
 				ToolName:    tc.ToolName,
 				Params:      tc.ToolParams,
 				Result:      out,
@@ -278,8 +278,8 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 		}
 		// TODO: localize the trailer — non-English-speaking deployments may
 		// want this hook configurable. Hardcoded English for v1 because all
-		// agent prompts in wuphf today assume English.
-		msgs = append(msgs, agent.Message{
+		// bot prompts in wuphf today assume English.
+		msgs = append(msgs, bot.Message{
 			Role:    "user",
 			Content: strings.Join(resultBlocks, "\n\n") + "\n\nIf the tool results answer the user's request, reply with a final message. Only call another tool if it's strictly required.",
 		})
@@ -296,7 +296,7 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 }
 
 // encodeAssistantToolIntent serializes the model's tool intent as the
-// content of a synthetic assistant message. The wuphf agent.Message shape
+// content of a synthetic assistant message. The wuphf bot.Message shape
 // doesn't carry structured tool_calls, so we use a `[tool_call name args]`
 // trailer that any chat-completion model parses fine in subsequent turns.
 //
@@ -305,7 +305,7 @@ func (lp *openAICompatToolLoop) run(ctx context.Context, msgs []agent.Message) (
 // in the prompt history. If a future extension allows parallel tool
 // execution, the IDs will need to thread through here so the model can
 // disambiguate which result belongs to which call.
-func encodeAssistantToolIntent(prefixText string, toolUses []agent.StreamChunk) string {
+func encodeAssistantToolIntent(prefixText string, toolUses []bot.StreamChunk) string {
 	var b strings.Builder
 	if t := strings.TrimSpace(prefixText); t != "" {
 		b.WriteString(t)

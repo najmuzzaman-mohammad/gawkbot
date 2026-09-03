@@ -158,12 +158,12 @@ func (b *Broker) handleTaskByID(w http.ResponseWriter, r *http.Request) {
 	// onto every task in the channel it was posted to. teamTask is both the
 	// persisted struct and the wire struct, so the field ships to anyone who
 	// can call this endpoint — and taskAccessAllowed returns true
-	// unconditionally for any broker-token holder, which is every agent. There
-	// is no per-agent check here at all: the handler carries no agent identity,
+	// unconditionally for any broker-token holder, which is every bot. There
+	// is no per-bot check here at all: the handler carries no bot identity,
 	// as its own comment below explains.
 	//
 	// That combination is a hole straight through the DM privacy boundary. An
-	// agent barred from reading a conversation could still read that
+	// bot barred from reading a conversation could still read that
 	// conversation's messages back, verbatim, off any task in it. The
 	// Librarian's wiki-link tool calls exactly this endpoint.
 	//
@@ -196,12 +196,12 @@ func (b *Broker) handleTaskByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Note (Slice 7): /tasks/{id} stays open to broker-token holders.
-	// Agent identity isn't carried on this endpoint (no my_slug header),
-	// so we can't enforce per-agent visibility here without breaking
-	// legitimate cross-agent reads (e.g. an agent looking up the
+	// Bot identity isn't carried on this endpoint (no my_slug header),
+	// so we can't enforce per-bot visibility here without breaking
+	// legitimate cross-bot reads (e.g. a bot looking up the
 	// parent of a sub-issue it owns). The visibility filter on the
 	// /tasks LIST endpoint (which DOES take viewer_slug) is what
-	// shapes the agent's "which Issues exist" view and drives behavior.
+	// shapes the bot's "which Issues exist" view and drives behavior.
 
 	if packetErr != nil {
 		// findDecisionPacketLocked returns (nil, nil) for "not yet
@@ -216,7 +216,7 @@ func (b *Broker) handleTaskByID(w http.ResponseWriter, r *http.Request) {
 	if packet == nil {
 		// Lazy-seed: any task can reach the Issue detail surface, but
 		// only task_type=issue creates seed a packet on the
-		// MutateTask create path. Sub-issues created by agents with
+		// MutateTask create path. Sub-issues created by bots with
 		// a non-issue task_type (or any pre-Slice-1 task) hit this
 		// branch and would 404 with "decision packet not yet
 		// available", breaking the detail view. Seed one on read so
@@ -329,7 +329,7 @@ func (b *Broker) handleTaskBlock(w http.ResponseWriter, r *http.Request, actor r
 //	{"actor": "<slug>", "reason": "<text>"}
 //
 // Manually clears a blocked (or otherwise paused) task so
-// the owner agent picks it up again. Wraps Broker.ResumeTask, which the
+// the owner bot picks it up again. Wraps Broker.ResumeTask, which the
 // watchdog scheduler also calls on retry. Humans with reviewer access on
 // the task may resume it; everyone else gets 403. The action is
 // idempotent — a re-issued resume on an already-running task returns
@@ -423,9 +423,9 @@ func (b *Broker) handleTaskDecision(w http.ResponseWriter, r *http.Request, acto
 		Action  string `json:"action"`
 		Comment string `json:"comment,omitempty"`
 		// CreatedBy lets the local web UI (which shares the broker token with
-		// agents and is therefore indistinguishable by auth) self-attribute as
+		// bots and is therefore indistinguishable by auth) self-attribute as
 		// the human, mirroring the team_task created_by field. Only an explicit
-		// human value clears the Plan-mode approval gate below; agents that omit
+		// human value clears the Plan-mode approval gate below; bots that omit
 		// it fall back to "owner" and are blocked.
 		CreatedBy string `json:"created_by,omitempty"`
 	}
@@ -458,7 +458,7 @@ func (b *Broker) handleTaskDecision(w http.ResponseWriter, r *http.Request, acto
 
 	// Resolve the decision actor for the audit trail AND the Plan-mode gate in
 	// recordTaskDecisionInternal. A human session (remote share cookie) is a
-	// human. A broker-token caller is the local UI or an agent — both share the
+	// human. A broker-token caller is the local UI or a bot — both share the
 	// token, so we trust only an explicit human created_by from the body (the
 	// local UI sends it) and otherwise attribute a non-human "owner". Building
 	// the typed actor here, at the boundary, lets the gate assert on isHuman
@@ -470,7 +470,7 @@ func (b *Broker) handleTaskDecision(w http.ResponseWriter, r *http.Request, acto
 	default:
 		// isHumanMessageSender("") is true, so require a non-empty value before
 		// honoring it — otherwise a broker-token caller that omits created_by
-		// (an agent) would be mis-attributed as human.
+		// (a bot) would be mis-attributed as human.
 		if bodyAuthor := strings.TrimSpace(body.CreatedBy); bodyAuthor != "" && isHumanMessageSender(bodyAuthor) {
 			dActor = decisionActor{slug: bodyAuthor, isHuman: true}
 		}
@@ -483,7 +483,7 @@ func (b *Broker) handleTaskDecision(w http.ResponseWriter, r *http.Request, acto
 		if errors.Is(err, ErrHumanObjectionOpen) {
 			// Human-sovereignty gate: a non-human approve hit an open
 			// human request-changes objection. 409 (not 500) with the
-			// full message so the blocked agent reads whose "no" stands
+			// full message so the blocked bot reads whose "no" stands
 			// and how to proceed.
 			writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return

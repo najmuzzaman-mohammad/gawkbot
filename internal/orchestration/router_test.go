@@ -18,19 +18,19 @@ func TestSimilarity(t *testing.T) {
 
 func TestTaskRouter_RegisterUnregister(t *testing.T) {
 	r := NewTaskRouter()
-	r.RegisterAgent("alice", []SkillDeclaration{{Name: "research", Proficiency: 0.9}})
-	if _, ok := r.agents["alice"]; !ok {
-		t.Fatal("agent should be registered")
+	r.RegisterBot("alice", []SkillDeclaration{{Name: "research", Proficiency: 0.9}})
+	if _, ok := r.bots["alice"]; !ok {
+		t.Fatal("bot should be registered")
 	}
-	r.UnregisterAgent("alice")
-	if _, ok := r.agents["alice"]; ok {
-		t.Fatal("agent should be removed")
+	r.UnregisterBot("alice")
+	if _, ok := r.bots["alice"]; ok {
+		t.Fatal("bot should be removed")
 	}
 }
 
 func TestTaskRouter_ScoreMatch(t *testing.T) {
 	r := NewTaskRouter()
-	r.RegisterAgent("alice", []SkillDeclaration{
+	r.RegisterBot("alice", []SkillDeclaration{
 		{Name: "market-research", Proficiency: 0.9},
 		{Name: "competitive-analysis", Proficiency: 0.8},
 	})
@@ -44,9 +44,9 @@ func TestTaskRouter_ScoreMatch(t *testing.T) {
 		t.Errorf("expected score >= 0.3, got %f", score)
 	}
 
-	// Unknown agent returns 0.
+	// Unknown bot returns 0.
 	if r.ScoreMatch("unknown", task) != 0 {
-		t.Error("unknown agent should return 0")
+		t.Error("unknown bot should return 0")
 	}
 
 	// Empty required skills returns 0.
@@ -58,19 +58,19 @@ func TestTaskRouter_ScoreMatch(t *testing.T) {
 
 func TestTaskRouter_FindBestAgent(t *testing.T) {
 	r := NewTaskRouter()
-	r.RegisterAgent("alice", []SkillDeclaration{{Name: "prospecting", Proficiency: 0.9}})
-	r.RegisterAgent("bob", []SkillDeclaration{{Name: "outreach", Proficiency: 0.7}})
+	r.RegisterBot("alice", []SkillDeclaration{{Name: "prospecting", Proficiency: 0.9}})
+	r.RegisterBot("bob", []SkillDeclaration{{Name: "outreach", Proficiency: 0.7}})
 
 	task := TaskDefinition{
 		ID:             "t1",
 		RequiredSkills: []string{"prospecting"},
 	}
-	best := r.FindBestAgent(task)
+	best := r.FindBestBot(task)
 	if best == nil {
-		t.Fatal("expected a best agent")
+		t.Fatal("expected a best bot")
 	}
-	if best.AgentSlug != "alice" {
-		t.Errorf("expected alice, got %s", best.AgentSlug)
+	if best.BotSlug != "alice" {
+		t.Errorf("expected alice, got %s", best.BotSlug)
 	}
 
 	// No match returns nil.
@@ -78,23 +78,23 @@ func TestTaskRouter_FindBestAgent(t *testing.T) {
 		ID:             "t2",
 		RequiredSkills: []string{"zzz-nonexistent"},
 	}
-	if r.FindBestAgent(noMatchTask) != nil {
+	if r.FindBestBot(noMatchTask) != nil {
 		t.Error("expected nil for unmatched task")
 	}
 }
 
 func TestTaskRouter_FindCapableAgents_Sorted(t *testing.T) {
 	r := NewTaskRouter()
-	r.RegisterAgent("alice", []SkillDeclaration{{Name: "seo", Proficiency: 0.5}})
-	r.RegisterAgent("bob", []SkillDeclaration{{Name: "seo", Proficiency: 1.0}})
+	r.RegisterBot("alice", []SkillDeclaration{{Name: "seo", Proficiency: 0.5}})
+	r.RegisterBot("bob", []SkillDeclaration{{Name: "seo", Proficiency: 1.0}})
 
 	task := TaskDefinition{
 		ID:             "t1",
 		RequiredSkills: []string{"seo"},
 	}
-	results := r.FindCapableAgents(task)
+	results := r.FindCapableBots(task)
 	if len(results) != 2 {
-		t.Fatalf("expected 2 capable agents, got %d", len(results))
+		t.Fatalf("expected 2 capable bots, got %d", len(results))
 	}
 	// Should be sorted descending — bob has higher proficiency.
 	if results[0].Score < results[1].Score {

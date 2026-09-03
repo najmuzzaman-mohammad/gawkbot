@@ -17,10 +17,10 @@ import (
 //   - brokerState is the persisted snapshot — it composes every other
 //     entity type below. Loaded by broker_persistence.go's loadState
 //     and written by saveLocked.
-//   - usageTotals + teamUsageState track per-agent cost/token aggregates.
+//   - usageTotals + teamUsageState track per-bot cost/token aggregates.
 //     The "session" subtotal is reset on broker restart; "total" is
 //     monotonic across the workspace lifetime.
-//   - officeMember.Provider is the per-agent runtime binding consumed
+//   - officeMember.Provider is the per-bot runtime binding consumed
 //     by the launcher's dispatch switch (see broker_provider_binding.go).
 //
 // Methods on these types: TitleOrDefault on humanInterview is the
@@ -46,7 +46,7 @@ type channelMessage struct {
 	Content     string `json:"content"`
 	// Redacted, RedactionCount, and RedactionReasons describe secret
 	// redactions applied before chat content reached storage, APIs, external
-	// transports, or future agent context. The raw values are intentionally
+	// transports, or future bot context. The raw values are intentionally
 	// not retained.
 	Redacted         bool              `json:"redacted,omitempty"`
 	RedactionCount   int               `json:"redaction_count,omitempty"`
@@ -59,9 +59,9 @@ type channelMessage struct {
 	// SourceTaskID is the lifecycle-tracked task the sender was
 	// actively working on when this message was posted. Empty for
 	// free conversation, system messages, and human posts. Used by
-	// the agent-context builder to suppress pre-review chatter from
-	// agents who are NOT the task's owner or a reviewer — this is
-	// what prevents Agent B from working off Agent A's unreviewed
+	// the bot-context builder to suppress pre-review chatter from
+	// bots who are NOT the task's owner or a reviewer — this is
+	// what prevents Bot B from working off Bot A's unreviewed
 	// in-stream commentary.
 	SourceTaskID string `json:"source_task_id,omitempty"`
 	// Payload carries the structured card payload for CEO onboarding message
@@ -74,7 +74,7 @@ type channelMessage struct {
 
 type incidentRecord struct {
 	ID                string `json:"id"`
-	Agent             string `json:"agent"`
+	Bot               string `json:"agent"`
 	Channel           string `json:"channel"`
 	ReplyTo           string `json:"reply_to,omitempty"`
 	Detail            string `json:"detail"`
@@ -129,9 +129,9 @@ type humanInterview struct {
 	ReplyTo       string            `json:"reply_to,omitempty"`
 	// DedupeKey collapses duplicate POSTs with the same key onto the
 	// existing active request. Used by the action approval gate so a
-	// retry of the same (agent, platform, action_id, connection_key)
+	// retry of the same (bot, platform, action_id, connection_key)
 	// tuple does not produce a fresh blocking request each time the
-	// agent loop reconnects.
+	// bot loop reconnects.
 	// Redacted is set true when sanitizeHumanInterview stripped at least one
 	// secret from any field. The UI surfaces a badge so humans know the
 	// question/context/options they are reading has been partially censored.
@@ -139,11 +139,11 @@ type humanInterview struct {
 	RedactionCount   int      `json:"redaction_count,omitempty"`
 	RedactionReasons []string `json:"redaction_reasons,omitempty"`
 	DedupeKey        string   `json:"dedupe_key,omitempty"`
-	// AlsoAsking lists additional agent slugs subscribed to this interview's
-	// answer. When an agent raises a HUMAN-directed interview whose question
+	// AlsoAsking lists additional bot slugs subscribed to this interview's
+	// answer. When a bot raises a HUMAN-directed interview whose question
 	// is semantically similar to this still-pending one, the broker attaches
-	// that agent here instead of stacking a duplicate card (live smoke run:
-	// FIVE agents asked "which CRM?" in five separate blocking interviews).
+	// that bot here instead of stacking a duplicate card (live smoke run:
+	// FIVE bots asked "which CRM?" in five separate blocking interviews).
 	// Subscribers poll the same request id, so the one human answer fans out
 	// to every asker through the existing answer-delivery path. Additive
 	// wire field (omitempty); only ever set on kind=interview requests.
@@ -152,7 +152,7 @@ type humanInterview struct {
 	// that scopes the work. Populated by team_action_execute via the
 	// auto-resolve gate (resolveActionIssue) so every approval card has
 	// an Issue to anchor its audit trail to. Empty when the request was
-	// not action-execute-driven (e.g. raw team_request from an agent).
+	// not action-execute-driven (e.g. raw team_request from a bot).
 	IssueID string `json:"issue_id,omitempty"`
 	// Platform and LogoURL anchor integration-scoped cards (connect, and later
 	// the external-action approval card) to a concrete toolkit. The web Connect
@@ -171,14 +171,14 @@ type humanInterview struct {
 	ConnectionUnverified bool `json:"connection_unverified,omitempty"`
 	// AppProposal marks this approval request as an App Builder proposal. On
 	// approve / approve_with_note the broker spawns a task owned by the App
-	// Builder agent to build (or improve) the app. Nil for every other request.
+	// Builder bot to build (or improve) the app. Nil for every other request.
 	AppProposal *appProposalSpec `json:"app_proposal,omitempty"`
-	// KnowledgePromotion marks this approval request as an agent asking a human
+	// KnowledgePromotion marks this approval request as a bot asking a human
 	// to promote one of its knowledge pages into the shared wiki. It carries the
 	// IMMUTABLE snapshot of the page the human is shown, and on approve the
 	// broker promotes exactly those bytes. Set ONLY by
 	// requestKnowledgePromotion (broker_agent_knowledge.go) — it is deliberately
-	// not part of the POST /requests body, so an agent cannot forge one.
+	// not part of the POST /requests body, so a bot cannot forge one.
 	KnowledgePromotion *knowledgePromotionSpec `json:"knowledge_promotion,omitempty"`
 	DueAt              string                  `json:"due_at,omitempty"`
 	FollowUpAt         string                  `json:"follow_up_at,omitempty"`
@@ -251,7 +251,7 @@ type teamTask struct {
 	Effort string `json:"effort,omitempty"`
 	// Provider and Model are the per-task LLM runtime override chosen in the
 	// new-task composer. The model/provider is a property of the TASK, not the
-	// agent: dispatch prefers these over the owner agent's binding, which is
+	// bot: dispatch prefers these over the owner bot's binding, which is
 	// now only a soft default. Provider is a runtime kind ("claude-code",
 	// "codex", …); Model is the runtime-specific model id. Empty means "fall
 	// back to the owner's binding, then the global default". Wire keys
@@ -265,7 +265,7 @@ type teamTask struct {
 	WorktreeBranch   string   `json:"worktree_branch,omitempty"`
 	DependsOn        []string `json:"depends_on,omitempty"`
 	// BlockedOn is the typed-blocker list that supersedes DependsOn for
-	// the multi-agent harness path (Lane A foundation). Entries are task IDs
+	// the multi-bot harness path (Lane A foundation). Entries are task IDs
 	// or PR identifiers that must resolve before the task can leave
 	// blocked. DependsOn is preserved for legacy unblock paths;
 	// the extended unblockDependentsLocked sweeps the union of both.
@@ -275,13 +275,13 @@ type teamTask struct {
 	// shows sub-issues inline under their parent (Linear-style).
 	ParentIssueID string `json:"parent_issue_id,omitempty"`
 	blocked       bool
-	// LifecycleState is the source of truth for the multi-agent control loop.
+	// LifecycleState is the source of truth for the multi-bot control loop.
 	// Direct callers must NOT write this field — route through the broker's
 	// transition layer (b.transitionLifecycleLocked / b.TransitionLifecycle)
 	// so derived fields, the indexed lookup, and self-heal gating all stay
 	// in sync.
 	LifecycleState LifecycleState `json:"lifecycle_state,omitempty"`
-	// Reviewers is the auto-assigned agent slug list resolved by Lane D's
+	// Reviewers is the auto-assigned bot slug list resolved by Lane D's
 	// reviewer-routing logic at the running → review transition. The CLI
 	// (`wuphf task review --invite <slug>`) appends tunnel-human slugs to
 	// this same list as additional reviewers. Convergence rule fires
@@ -342,17 +342,17 @@ type teamTask struct {
 	// one keep legacy behavior. Wire key "artifact" is additive.
 	Artifact string `json:"artifact,omitempty"`
 	// ChangesRequested is the LATEST request-changes verdict on this task
-	// (any reviewer — human or agent). Stored on the task itself so the
+	// (any reviewer — human or bot). Stored on the task itself so the
 	// feedback TEXT rides into the owner's next execution packet and wake
 	// notification ("CHANGES REQUESTED by <actor>: <text>") instead of
-	// living only in the Decision Packet feedback log, which agents
+	// living only in the Decision Packet feedback log, which bots
 	// reported they could not read (ICP-eval v2, J2). Refreshed on every
 	// request_changes; cleared when a HUMAN actor approves or completes
 	// the task. Wire key "changes_requested" is additive.
 	ChangesRequested *TaskReviewObjection `json:"changes_requested,omitempty"`
 	// HumanObjection is the open human "no": set when a HUMAN actor
 	// issues request_changes on this task. While non-nil, approve and
-	// complete by ANY agent — including the CEO/lead — return
+	// complete by ANY bot — including the CEO/lead — return
 	// TaskMutationForbidden naming the objection; only a human actor can
 	// approve/complete (which clears it) or refresh it with another
 	// request_changes. The human's no is sovereign (core-loop fix family
@@ -364,7 +364,7 @@ type teamTask struct {
 	// build. The owner's NEXT packet renders it at the very top ("HUMAN
 	// POSTED WHILE YOU WORKED") and consumes it. When Halt is set (the
 	// message led with stop/wait/hold), submit_for_review and complete by
-	// any agent are blocked until a packet build has consumed the note —
+	// any bot are blocked until a packet build has consumed the note —
 	// the structural backstop for the ignored mid-turn stop order
 	// (ICP-eval v2 [00:50]). Wire key "human_note_pending" is additive.
 	// Always assign a fresh struct — never mutate in place — so
@@ -411,7 +411,7 @@ type teamTask struct {
 // mutate one in place — so mutation-snapshot rollbacks stay correct.
 type TaskReviewObjection struct {
 	// Actor is the reviewer who requested the changes ("human", a
-	// "human:<slug>" session sender, or an agent slug).
+	// "human:<slug>" session sender, or a bot slug).
 	Actor string `json:"actor"`
 	// Body is the verbatim feedback text supplied with the request.
 	Body string `json:"body,omitempty"`
@@ -419,7 +419,7 @@ type TaskReviewObjection struct {
 	At string `json:"at"`
 	// ArtifactHash is the content hash ("sha256:<hex>") of the task's
 	// delivered artifact at the moment changes were requested. On the next
-	// agent resubmission (submit_for_review/complete) the broker requires
+	// bot resubmission (submit_for_review/complete) the broker requires
 	// the artifact bytes to have CHANGED — a byte-identical "revision" is
 	// refused (gateTaskResubmissionArtifactDelta; ICP-eval v2 [00:30]:
 	// "revised and back in review" with an untouched file). Empty when the
@@ -441,7 +441,7 @@ type TaskHumanNote struct {
 	// At is the RFC3339 timestamp the message was posted.
 	At string `json:"at"`
 	// Halt is true when the message led with a stop token (stop / wait /
-	// hold): submit_for_review and complete by agents are blocked until a
+	// hold): submit_for_review and complete by bots are blocked until a
 	// packet build consumes the note.
 	Halt bool `json:"halt,omitempty"`
 }
@@ -693,13 +693,13 @@ type officeMember struct {
 	BuiltIn      bool                     `json:"built_in,omitempty"`
 	Provider     provider.ProviderBinding `json:"provider,omitempty"`
 	// Watching declares the file-glob, wiki-glob, tool-name, and task-tag
-	// categories this agent should be auto-assigned as a reviewer for when
+	// categories this bot should be auto-assigned as a reviewer for when
 	// a task enters review. See broker_reviewer_routing.go (Lane D) for
 	// the intersection logic. omitempty keeps existing brokers' wire
-	// format unchanged on disk for agents that have not been configured
+	// format unchanged on disk for bots that have not been configured
 	// with a watching set.
 	Watching Watching `json:"watching,omitempty"`
-	// Computer is where this agent's hands live: "sandbox" (a container on
+	// Computer is where this bot's hands live: "sandbox" (a container on
 	// this machine), "cloud" (an ascii.dev box), "off", or "" for auto
 	// (sandbox when a runtime is running, else off). CloudBackend picks the
 	// cloud provider; "" means box. See docs/specs/gawkbot-bot-computers.md.
@@ -721,7 +721,7 @@ type officeActionLog struct {
 	CreatedAt  string            `json:"created_at"`
 }
 
-type agentActivitySnapshot struct {
+type botActivitySnapshot struct {
 	Slug         string `json:"slug"`
 	Status       string `json:"status,omitempty"`
 	Activity     string `json:"activity,omitempty"`
@@ -791,12 +791,12 @@ type schedulerJob struct {
 	TargetType string `json:"target_type,omitempty"`
 	TargetID   string `json:"target_id,omitempty"`
 	Channel    string `json:"channel,omitempty"`
-	// Agent is the office agent slug that owns this job (scheduled it / will be
-	// credited as the owner). For workflow jobs this is the scheduling agent —
+	// Bot is the office bot slug that owns this job (scheduled it / will be
+	// credited as the owner). For workflow jobs this is the scheduling bot —
 	// NOT the integration vendor. The UI surfaces this as the routine's owner;
 	// without it a Composio/One workflow job would fall back to showing the
-	// vendor name ("composio") as if it were an agent.
-	Agent           string `json:"agent,omitempty"`
+	// vendor name ("composio") as if it were a bot.
+	Bot             string `json:"agent,omitempty"`
 	Provider        string `json:"provider,omitempty"`
 	ScheduleExpr    string `json:"schedule_expr,omitempty"`
 	WorkflowKey     string `json:"workflow_key,omitempty"`
@@ -851,25 +851,25 @@ type teamSkill struct {
 	// RelatedSkills lists slugs of other skills this skill overlaps with.
 	// Populated by the semantic dedup gate and the consolidation endpoint.
 	RelatedSkills []string `json:"related_skills,omitempty"`
-	// OwnerAgents is the set of agent slugs this skill is assigned to —
-	// only assigned skills surface in an agent's AVAILABLE SKILLS prompt
+	// OwnerBots is the set of bot slugs this skill is assigned to —
+	// only assigned skills surface in a bot's AVAILABLE SKILLS prompt
 	// block and can be invoked via team_skill_run. Unassigned skills are
-	// invisible to that agent (core-loop step 8).
+	// invisible to that bot (core-loop step 8).
 	//
 	// Defaults: compilation and seeding auto-assign the whole office
-	// roster; the human or CEO narrows the set via the agent Skills tab
+	// roster; the human or CEO narrows the set via the bot Skills tab
 	// (/skills/{name}/enable-for and /disable-for).
-	OwnerAgents []string `json:"owner_agents,omitempty"`
+	OwnerBots []string `json:"owner_agents,omitempty"`
 	// System marks a built-in capability skill (app building, wiki
 	// maintenance). System skills always exist and stay active: they can be
-	// disabled per agent, never archived, rejected, or deleted. For a
-	// system skill OwnerAgents is ignored — the effective assignment is the
-	// whole roster minus DisabledAgents (see system_skills.go).
+	// disabled per bot, never archived, rejected, or deleted. For a
+	// system skill OwnerBots is ignored — the effective assignment is the
+	// whole roster minus DisabledBots (see system_skills.go).
 	System bool `json:"system,omitempty"`
-	// DisabledAgents lists agent slugs a SYSTEM skill is switched off for.
-	DisabledAgents []string `json:"disabled_agents,omitempty"`
-	CreatedAt      string   `json:"created_at"`
-	UpdatedAt      string   `json:"updated_at"`
+	// DisabledBots lists bot slugs a SYSTEM skill is switched off for.
+	DisabledBots []string `json:"disabled_agents,omitempty"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
 }
 
 type brokerState struct {
@@ -882,7 +882,7 @@ type brokerState struct {
 	Members            []officeMember                     `json:"members,omitempty"`
 	Channels           []teamChannel                      `json:"channels,omitempty"`
 	SessionMode        string                             `json:"session_mode,omitempty"`
-	OneOnOneAgent      string                             `json:"one_on_one_agent,omitempty"`
+	OneOnOneBot        string                             `json:"one_on_one_agent,omitempty"`
 	FocusMode          bool                               `json:"focus_mode,omitempty"`
 	Tasks              []teamTask                         `json:"tasks,omitempty"`
 	Requests           []humanInterview                   `json:"requests,omitempty"`
@@ -924,6 +924,6 @@ type usageTotals struct {
 type teamUsageState struct {
 	Session usageTotals            `json:"session,omitempty"`
 	Total   usageTotals            `json:"total"`
-	Agents  map[string]usageTotals `json:"agents,omitempty"`
+	Bots    map[string]usageTotals `json:"agents,omitempty"`
 	Since   string                 `json:"since,omitempty"`
 }

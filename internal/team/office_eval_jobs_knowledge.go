@@ -12,12 +12,12 @@ package team
 //	    create → define → activate → complete → human decision-approve,
 //	    then requires both named companies as graph nodes plus their
 //	    co-occurrence edge from the graph endpoint.
-//	(b) B2 — agent creates with a similar slug duplicated articles on disk
+//	(b) B2 — bot creates with a similar slug duplicated articles on disk
 //	    (two Corti briefs, [20:15]); the write boundary must route the
 //	    create onto the existing article instead.
-//	(d) B3 — git history attributed agent writes to "human · wiki:
-//	    external edit"; an agent write through the worker must keep the
-//	    agent as the git author.
+//	(d) B3 — git history attributed bot writes to "human · wiki:
+//	    external edit"; a bot write through the worker must keep the
+//	    bot as the git author.
 //	(e) B4 — "173 revisions on a minutes-old article"; a byte-identical
 //	    double-write must fold into ONE commit.
 //	(f) B5 — chat-only deliverables leaked through phantom artifact paths
@@ -91,7 +91,7 @@ func evalJobKnowledgeIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error
 	if err := fx.seedWikiFile(renewalsArtifact, "# Q3 renewals brief\n"); err != nil {
 		return err
 	}
-	// The agent hands its work to review explicitly — submit_for_review is
+	// The bot hands its work to review explicitly — submit_for_review is
 	// the wire shape that parked all six v3 tasks in front of the human's
 	// Inbox "Approve" button (the decision path under test).
 	if status, body, err := client.postJSON("/tasks", map[string]any{
@@ -102,7 +102,7 @@ func evalJobKnowledgeIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error
 		return fmt.Errorf("submit_for_review: status=%d body=%s err=%w", status, body, err)
 	}
 	inReview := fx.broker.TaskByID(taskID)
-	r.add(job, "agent submit_for_review parks the task in review (decision-path precondition)",
+	r.add(job, "bot submit_for_review parks the task in review (decision-path precondition)",
 		inReview != nil && strings.EqualFold(strings.TrimSpace(inReview.status), "review"),
 		fmt.Sprintf("status=%q lifecycle=%s", strings.TrimSpace(inReview.status), inReview.LifecycleState), "")
 	// Terminalize through the DECISION endpoint — the exact path the v3 run
@@ -158,25 +158,25 @@ func evalJobKnowledgeIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error
 	r.add(job, "graph endpoint returns both company nodes and the co-occurrence edge after a decision-path done",
 		graphOK, fmt.Sprintf("nodes=%d edges=%d", len(graph.Nodes), len(graph.Edges)), "")
 
-	// ── (b) B2: similar-slug agent create updates the existing article ────
+	// ── (b) B2: similar-slug bot create updates the existing article ────
 	const existingRel = "team/accounts/acme-corp-brief.md"
 	if _, _, err := worker.Enqueue(context.Background(), "eng", existingRel,
-		"# Acme Corp — Account Brief\n\nSeed body.\n", "create", "agent: acme brief"); err != nil {
+		"# Acme Corp — Account Brief\n\nSeed body.\n", "create", "bot: acme brief"); err != nil {
 		return err
 	}
 	const duplicateRel = "team/accounts/acme-corp-briefing.md"
 	if _, _, err := worker.Enqueue(context.Background(), "eng", duplicateRel,
-		"## Renewal addendum\n\nUPDATE-FIRST-MARKER\n", "create", "agent: acme briefing"); err != nil {
+		"## Renewal addendum\n\nUPDATE-FIRST-MARKER\n", "create", "bot: acme briefing"); err != nil {
 		return err
 	}
 	worker.WaitForIdle()
 	_, dupErr := os.Stat(filepath.Join(repo.Root(), filepath.FromSlash(duplicateRel)))
 	existingBody, _ := os.ReadFile(filepath.Join(repo.Root(), filepath.FromSlash(existingRel)))
-	r.add(job, "similar-slug agent create folds into the existing article (no second file)",
+	r.add(job, "similar-slug bot create folds into the existing article (no second file)",
 		os.IsNotExist(dupErr) && strings.Contains(string(existingBody), "UPDATE-FIRST-MARKER"),
 		fmt.Sprintf("duplicateExists=%v existing=%dB", dupErr == nil, len(existingBody)), "")
 
-	// ── (d) B3: agent wiki write attributed to the agent in git log ───────
+	// ── (d) B3: bot wiki write attributed to the bot in git log ───────
 	refs, err := repo.Log(context.Background(), existingRel)
 	if err != nil {
 		return err
@@ -191,17 +191,17 @@ func evalJobKnowledgeIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error
 	for _, ref := range refs {
 		authors = append(authors, ref.Author)
 	}
-	r.add(job, "agent wiki write is attributed to the agent in git history",
+	r.add(job, "bot wiki write is attributed to the bot in git history",
 		attributed, fmt.Sprintf("authors=%v", authors), "")
 
 	// ── (e) B4: byte-identical double-write produces one commit ───────────
 	const foldRel = "team/accounts/fold-probe.md"
 	const foldBody = "# Fold probe\n\nIdentical body.\n"
-	sha1, _, err := worker.Enqueue(context.Background(), "eng", foldRel, foldBody, "replace", "agent: fold probe")
+	sha1, _, err := worker.Enqueue(context.Background(), "eng", foldRel, foldBody, "replace", "bot: fold probe")
 	if err != nil {
 		return err
 	}
-	sha2, _, err := worker.Enqueue(context.Background(), "eng", foldRel, foldBody, "replace", "agent: fold probe again")
+	sha2, _, err := worker.Enqueue(context.Background(), "eng", foldRel, foldBody, "replace", "bot: fold probe again")
 	if err != nil {
 		return err
 	}

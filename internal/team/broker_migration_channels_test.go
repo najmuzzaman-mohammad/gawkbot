@@ -7,7 +7,7 @@ import (
 
 // TestSanitizeChannelDisplayName covers the prompt-injection sanitizer applied
 // to user-supplied channel names before they are embedded in an archived
-// task's Title/Details (which reach agents verbatim in execution packets). The
+// task's Title/Details (which reach bots verbatim in execution packets). The
 // migration's happy-path fixtures use clean names, so the adversarial cases are
 // pinned here directly — mirroring broker_onboarding_sanitize_test.go.
 func TestSanitizeChannelDisplayName(t *testing.T) {

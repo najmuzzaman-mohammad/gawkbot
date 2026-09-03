@@ -2,7 +2,7 @@
  * StepShip — wizard step 04, "How work ships."
  *
  * Visualizes the issue → tasks → ship loop with the RevOps framing: a mock
- * @revops issue types into a composer, fans out into a task per agent, and
+ * @revops issue types into a composer, fans out into a task per bot, and
  * lands back in a visible channel.
  *
  * The stage visual is a rendered Remotion clip (web/public/media/onboarding/

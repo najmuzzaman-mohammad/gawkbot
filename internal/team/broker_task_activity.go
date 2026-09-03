@@ -222,7 +222,7 @@ func (b *Broker) collectIssueActivityLocked(taskID string) []IssueActivityEvent 
 				ID:          fmt.Sprintf("turn-%s-%d", taskID, i),
 				Kind:        IssueActivityKindTurn,
 				Timestamp:   e.At,
-				Actor:       e.Agent,
+				Actor:       e.Bot,
 				Summary:     e.Outcome,
 				Detail:      e.Said,
 				ContextUsed: append([]string(nil), e.ContextUsed...),

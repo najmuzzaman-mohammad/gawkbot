@@ -19,7 +19,7 @@ package team
 //   - Trigger: deterministic only. The B1 completion hook regenerates the
 //     articles for every entity it just recorded facts for, from the same
 //     queued distillation goroutine (off the broker hot path, commits ride
-//     the WikiWorker queue under the archivist identity). No agent-whim
+//     the WikiWorker queue under the archivist identity). No bot-whim
 //     writes.
 //   - Update-first: regeneration reuses the brief system's conventions —
 //     synthesis frontmatter bookkeeping (fact_count_at_synthesis), the
@@ -147,7 +147,7 @@ type entityFactCitation struct {
 
 // citeFact recovers the citation for a fact: the task ID and artifact path
 // embedded by the B1 hook's fact text, with the fact log's source_path as
-// the artifact fallback for agent-recorded facts.
+// the artifact fallback for bot-recorded facts.
 func citeFact(f Fact) entityFactCitation {
 	c := entityFactCitation{}
 	if m := factTaskRefPattern.FindStringSubmatch(f.Text); m != nil {

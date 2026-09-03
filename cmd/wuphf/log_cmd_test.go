@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 func TestRunLogCmd_EmptyListingDoesNotPanic(t *testing.T) {
@@ -47,7 +47,7 @@ func TestRunLogCmd_JSONFlagReturnsValidJSON(t *testing.T) {
 	}
 
 	// Sanity check the reader sees it before we test the CLI.
-	summaries, err := agent.ListRecentTasks(dir, 10)
+	summaries, err := bot.ListRecentTasks(dir, 10)
 	if err != nil || len(summaries) != 1 {
 		t.Fatalf("reader saw %d tasks, err=%v", len(summaries), err)
 	}

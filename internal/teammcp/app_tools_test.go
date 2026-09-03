@@ -73,7 +73,7 @@ func TestResolveRegisterAppHTML(t *testing.T) {
 }
 
 // TestResolveRegisterAppFiles covers the source_path fix: the broker copies the
-// WHOLE project tree (minus build/VCS dirs) so the agent can't ship a partial,
+// WHOLE project tree (minus build/VCS dirs) so the bot can't ship a partial,
 // unbuildable source by dropping a file from a hand-listed map.
 func TestResolveRegisterAppFiles(t *testing.T) {
 	root := t.TempDir()
@@ -120,7 +120,7 @@ func TestResolveRegisterAppFiles(t *testing.T) {
 	})
 
 	t.Run("source_path wins when both are provided", func(t *testing.T) {
-		// source_path is the PREFERRED, complete copy; an agent that hedges by
+		// source_path is the PREFERRED, complete copy; a bot that hedges by
 		// passing both must get the whole tree, not the partial map.
 		files, err := resolveRegisterAppFiles(RegisterAppArgs{
 			Files:      map[string]string{"src/App.tsx": "x"},

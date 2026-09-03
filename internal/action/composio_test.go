@@ -437,7 +437,7 @@ func TestComposioRESTWorkflowNormalizesProviderStepAliases(t *testing.T) {
 	}
 }
 
-func TestComposioRESTWorkflowNormalizesAgentShorthandSyntax(t *testing.T) {
+func TestComposioRESTWorkflowNormalizesBotShorthandSyntax(t *testing.T) {
 	client := &ComposioREST{}
 	definition, _ := json.Marshal(map[string]any{
 		"version": composioWorkflowVersion,

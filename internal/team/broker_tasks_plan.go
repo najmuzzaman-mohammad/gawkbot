@@ -31,7 +31,7 @@ func (b *Broker) handleTaskPlan(w http.ResponseWriter, r *http.Request) {
 	// Raw emptiness first: normalizeChannelSlug("") is "general", so a missing
 	// channel used to be silently laundered into the shared room. Resolve a real
 	// home instead — while #general is enabled this still answers "general", so
-	// today is unchanged; once it is off this is the agent's DM, or a refusal.
+	// today is unchanged; once it is off this is the bot's DM, or a refusal.
 	//
 	// homeChannelFor is the correct variant HERE specifically: b.mu is
 	// NOT held at this point. The other variant would
@@ -242,7 +242,7 @@ func (b *Broker) handleTaskPlan(w http.ResponseWriter, r *http.Request) {
 		// the owner's turn context to the task's own thread (notification_context.go)
 		// instead of raw channel scrollback — the boundary that stops one task's
 		// history bleeding into another. HTTP-created tasks never set ThreadID
-		// otherwise; agent/MCP-created tasks carry it from the call. Auto-owner
+		// otherwise; bot/MCP-created tasks carry it from the call. Auto-owner
 		// (ownerless) tasks are skipped: they have no owner to dispatch yet and
 		// must go through CEO triage first — a system-authored card here would
 		// also race the triage wake message (broker_tasks_auto.go). Their thread
@@ -331,7 +331,7 @@ func (b *Broker) refreshPlannedTaskBlockStateLocked(task *teamTask) {
 		return
 	}
 	task.blocked = false
-	// An "auto" owner is a triage sentinel, not a real agent — it must not
+	// An "auto" owner is a triage sentinel, not a real bot — it must not
 	// promote the task to in_progress (there is no @auto to dispatch). The CEO
 	// resolves it to a real specialist first (see requestAutoAssignmentLocked).
 	if strings.TrimSpace(task.Owner) != "" && !isAutoOwner(task.Owner) {

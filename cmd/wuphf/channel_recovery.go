@@ -9,7 +9,7 @@ func (m channelModel) currentRuntimeSnapshot() team.RuntimeSnapshot {
 	return team.BuildRuntimeSnapshot(team.RuntimeSnapshotInput{
 		Channel:     m.activeChannel,
 		SessionMode: m.sessionMode,
-		DirectAgent: m.oneOnOneAgentSlug(),
+		DirectBot:   m.oneOnOneBotSlug(),
 		Tasks:       channelui.RuntimeTasksFromChannel(m.tasks),
 		Requests:    channelui.RuntimeRequestsFromChannel(m.requests),
 		Recent:      channelui.RuntimeMessagesFromChannel(m.messages, 6),

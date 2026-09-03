@@ -11,17 +11,17 @@ import (
 )
 
 // Tmux pane activity capture. The activity watchdog calls this on a
-// timer to detect "is this agent doing something or stuck?" by
+// timer to detect "is this bot doing something or stuck?" by
 // diffing the captured pane content against the last snapshot.
 //
 // In office mode it walks every member of the manifest and checks
 // the pane at the conventional position (wuphf-team:team.<i>); in
 // 1:1 mode it captures only pane 1. Returns a slug→summary map of
-// agents whose pane content changed since the last call (idle
-// agents are silently dropped).
+// bots whose pane content changed since the last call (idle
+// bots are silently dropped).
 
-// capturePaneActivity returns the tmux pane content per agent slug.
-// If content is the same as last time, agent is idle — return nothing.
+// capturePaneActivity returns the tmux pane content per bot slug.
+// If content is the same as last time, bot is idle — return nothing.
 func (b *Broker) capturePaneActivity(slugOverride string) map[string]string {
 	result := make(map[string]string)
 
@@ -40,9 +40,9 @@ func (b *Broker) capturePaneActivity(slugOverride string) map[string]string {
 		if loadErr == nil && len(loaded.Members) > 0 {
 			manifest = loaded
 		}
-		for i, agent := range manifest.Members {
+		for i, bot := range manifest.Members {
 			checks = append(checks, paneCheck{
-				slug:   agent.Slug,
+				slug:   bot.Slug,
 				target: fmt.Sprintf("wuphf-team:team.%d", i+1),
 			})
 		}
@@ -73,11 +73,11 @@ func (b *Broker) capturePaneActivity(slugOverride string) map[string]string {
 		b.mu.Unlock()
 
 		if content == prev {
-			// No change — agent is idle
+			// No change — bot is idle
 			continue
 		}
 
-		// Content changed — agent is active. Extract last 5 meaningful lines.
+		// Content changed — bot is active. Extract last 5 meaningful lines.
 		lines := strings.Split(content, "\n")
 		var meaningful []string
 		for i := len(lines) - 1; i >= 0 && len(meaningful) < 5; i-- {

@@ -10,11 +10,11 @@ import (
 // Two DM plumbing bugs, both from treating "dm-" as the DM format when the
 // canonical slug is the pair-sorted "<a>__<b>" (channel.DirectSlug):
 //
-//  1. Tool registration tested the raw prefix, so an agent woken in a
+//  1. Tool registration tested the raw prefix, so a bot woken in a
 //     canonical DM was not recognised as being in one and kept the tools that
 //     let it post its way out.
 //  2. Conversation context listed /channels with no type param, and the
-//     broker EXCLUDES DMs from that default listing — so an agent standing in
+//     broker EXCLUDES DMs from that default listing — so a bot standing in
 //     a DM could not discover which DM it was in.
 
 func hasTool(names []string, want string) bool {
@@ -26,7 +26,7 @@ func hasTool(names []string, want string) bool {
 	return false
 }
 
-// escapeTools are the affordances that let an agent post its way out of a DM.
+// escapeTools are the affordances that let a bot post its way out of a DM.
 // team_channel creates and joins rooms; team_bridge posts to external
 // surfaces. Both are lead-only, so the lead is the actor that makes the DM
 // gate observable — for a specialist they are absent either way.
@@ -48,15 +48,15 @@ func TestCanonicalDMSlugGetsTheMinimalToolSet(t *testing.T) {
 	}
 }
 
-func TestAgentToAgentDMSlugAlsoGetsTheMinimalToolSet(t *testing.T) {
-	// "ceo__designer" has no human side. The old canonicalDMTargetAgent-based
+func TestBotToBotDMSlugAlsoGetsTheMinimalToolSet(t *testing.T) {
+	// "ceo__designer" has no human side. The old canonicalDMTargetBot-based
 	// recognition returned "" for it, so it was not a DM at any layer and the
 	// lead kept its full structural tool set inside someone's DM.
 	names := listRegisteredToolsWithSlug(t, "ceo", "ceo__designer", false)
 
 	for _, tool := range escapeTools {
 		if hasTool(names, tool) {
-			t.Errorf("lead in an agent-to-agent DM must not get %q", tool)
+			t.Errorf("lead in a bot-to-bot DM must not get %q", tool)
 		}
 	}
 }
@@ -78,7 +78,7 @@ func TestCanonicalDMTrimsASpecialistsOfficeTools(t *testing.T) {
 
 func TestNonDMChannelKeepsTheFullToolSet(t *testing.T) {
 	// The control, same actor: widening DM recognition must not strip tools
-	// from an agent working in a real channel.
+	// from a bot working in a real channel.
 	names := listRegisteredToolsWithSlug(t, "ceo", "general", false)
 	for _, tool := range escapeTools {
 		if !hasTool(names, tool) {
@@ -110,7 +110,7 @@ func channelsStub(t *testing.T, regular, dms []map[string]any) *[]string {
 	return &seen
 }
 
-func TestFetchAccessibleChannelsFindsTheAgentsOwnDM(t *testing.T) {
+func TestFetchAccessibleChannelsFindsTheBotsOwnDM(t *testing.T) {
 	seen := channelsStub(t,
 		[]map[string]any{
 			{"slug": "general", "members": []string{"pm", "ceo"}},
@@ -127,10 +127,10 @@ func TestFetchAccessibleChannelsFindsTheAgentsOwnDM(t *testing.T) {
 		slugs[ch.Slug] = true
 	}
 	if !slugs["human__pm"] {
-		t.Errorf("agent must be able to discover its own DM; got %v", got)
+		t.Errorf("bot must be able to discover its own DM; got %v", got)
 	}
 	// Asking for ?type=dm alone would have swapped one blind spot for a worse
-	// one — the agent would lose every real channel.
+	// one — the bot would lose every real channel.
 	if !slugs["general"] {
 		t.Errorf("regular channels must survive the DM lookup; got %v", got)
 	}
@@ -140,7 +140,7 @@ func TestFetchAccessibleChannelsFindsTheAgentsOwnDM(t *testing.T) {
 }
 
 func TestFetchAccessibleChannelsStillFiltersByMembership(t *testing.T) {
-	// Discovering DMs must not hand an agent someone else's DM.
+	// Discovering DMs must not hand a bot someone else's DM.
 	channelsStub(t,
 		[]map[string]any{
 			{"slug": "general", "members": []string{"pm"}},
@@ -173,7 +173,7 @@ func TestFetchAccessibleChannelsHonoursDisabled(t *testing.T) {
 }
 
 func TestFetchAccessibleChannelsSurvivesOneLegFailing(t *testing.T) {
-	// A partial view beats blanking the agent's whole world.
+	// A partial view beats blanking the bot's whole world.
 	srv, _ := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("type") == "dm" {
 			http.Error(w, "boom", http.StatusInternalServerError)
@@ -204,7 +204,7 @@ func TestFetchAccessibleChannelsReturnsNilWhenBothLegsFail(t *testing.T) {
 
 func TestFetchAccessibleChannelsDedupesBySlug(t *testing.T) {
 	// The two listings are disjoint today, but a handler change must not be
-	// able to double-list a channel into the agent's context packet.
+	// able to double-list a channel into the bot's context packet.
 	channelsStub(t,
 		[]map[string]any{{"slug": "human__pm", "members": []string{"human", "pm"}}},
 		[]map[string]any{{"slug": "human__pm", "members": []string{"human", "pm"}}},

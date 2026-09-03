@@ -17,7 +17,7 @@ type ProvisionResult struct {
 	JoinURL     string `json:"join_url"`
 }
 
-// Provision finds or creates the agent's persistent box, waits for ready,
+// Provision finds or creates the bot's persistent box, waits for ready,
 // runs the idempotent bootstrap, and mints a fresh desktop URL.
 func (c *Client) Provision(ctx context.Context, slug, botName string) (*ProvisionResult, error) {
 	if !c.Configured() {

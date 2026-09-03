@@ -29,8 +29,8 @@ func newHeadlessLiveChatRelay(l *Launcher, slug string, targetChannel string, no
 		targetChannel = "general"
 	}
 	if IsDMSlug(targetChannel) {
-		if targetAgent := DMTargetAgent(targetChannel); targetAgent != "" {
-			targetChannel = DMSlugFor(targetAgent)
+		if targetBot := DMTargetBot(targetChannel); targetBot != "" {
+			targetChannel = DMSlugFor(targetBot)
 		}
 	}
 	return &headlessLiveChatRelay{

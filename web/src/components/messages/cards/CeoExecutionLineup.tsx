@@ -1,16 +1,16 @@
 /**
  * CeoExecutionLineup — Phase 4 execution roster suggestion card.
  *
- * Rendered inside the CEO DM when the broker proposes an agent roster
+ * Rendered inside the CEO DM when the broker proposes a bot roster
  * for executing an approved issue. The user can accept or decline each
- * agent individually before submitting.
+ * bot individually before submitting.
  *
  * Universal three-stage card matrix (spec design review decisions - State coverage):
- *   pending    — list of agents with role + reason + Accept/Decline chips
+ *   pending    — list of bots with role + reason + Accept/Decline chips
  *   submitting — button disabled, inline spinner
  *   committed  — collapses to a one-line confirmation in --text-secondary
  *
- * Sanitization: all agent strings (slug, role, reason) are rendered as
+ * Sanitization: all bot strings (slug, role, reason) are rendered as
  * React text children, never via innerHTML. Backend sanitization via
  * sanitizeContextValue (PR 684) is inherited through the existing
  * suggestion payload path.
@@ -28,7 +28,7 @@ import { post } from "../../../api/client";
 import type {
   CardStage,
   CeoExecutionLineupPayload,
-  ExecutionLineupAgent,
+  ExecutionLineupBot,
 } from "../../onboarding/types";
 import { showNotice } from "../../ui/Toast";
 
@@ -39,16 +39,16 @@ interface CeoExecutionLineupProps {
 }
 
 /**
- * One agent row with Accept / Decline toggle chips.
+ * One bot row with Accept / Decline toggle chips.
  * Renders slug/role/reason as plain text nodes.
  */
-function AgentRow({
+function BotRow({
   agent,
   accepted,
   disabled,
   onToggle,
 }: {
-  agent: ExecutionLineupAgent;
+  agent: ExecutionLineupBot;
   accepted: boolean;
   disabled: boolean;
   onToggle: () => void;
@@ -82,7 +82,7 @@ export function CeoExecutionLineup({
   stage,
   onStageChange,
 }: CeoExecutionLineupProps) {
-  // All agents accepted by default per spec.
+  // All bots accepted by default per spec.
   const [accepted, setAccepted] = useState<Set<string>>(
     () => new Set(payload.agents.map((a) => a.slug)),
   );
@@ -96,7 +96,7 @@ export function CeoExecutionLineup({
         data-testid="lineup-committed"
       >
         <span className="ceo-card-committed-text">
-          &#10003; {count} {count === 1 ? "agent" : "agents"} added to roster
+          &#10003; {count} {count === 1 ? "bot" : "bots"} added to roster
         </span>
       </div>
     );
@@ -105,7 +105,7 @@ export function CeoExecutionLineup({
   const isSubmitting = stage === "submitting";
   const selectedCount = accepted.size;
 
-  const toggleAgent = (slug: string) => {
+  const toggleBot = (slug: string) => {
     if (isSubmitting) return;
     setAccepted((prev) => {
       const next = new Set(prev);
@@ -141,14 +141,14 @@ export function CeoExecutionLineup({
       data-testid="ceo-execution-lineup"
     >
       <div className="ceo-card-label">Proposed execution lineup</div>
-      <ul className="ceo-lineup-agents" aria-label="Proposed agents">
+      <ul className="ceo-lineup-agents" aria-label="Proposed bots">
         {payload.agents.map((agent) => (
           <li key={agent.slug}>
-            <AgentRow
+            <BotRow
               agent={agent}
               accepted={accepted.has(agent.slug)}
               disabled={isSubmitting}
-              onToggle={() => toggleAgent(agent.slug)}
+              onToggle={() => toggleBot(agent.slug)}
             />
           </li>
         ))}
@@ -160,14 +160,14 @@ export function CeoExecutionLineup({
           disabled={isSubmitting || selectedCount === 0}
           onClick={() => void handleSubmit()}
           data-testid="lineup-submit"
-          aria-label={`Spin up ${selectedCount} ${selectedCount === 1 ? "agent" : "agents"}`}
+          aria-label={`Spin up ${selectedCount} ${selectedCount === 1 ? "bot" : "bots"}`}
         >
           {isSubmitting ? (
             <span className="ceo-card-spinner" aria-hidden="true" />
           ) : null}
           {isSubmitting
             ? "Spinning up…"
-            : `Spin up ${selectedCount} ${selectedCount === 1 ? "agent" : "agents"}`}
+            : `Spin up ${selectedCount} ${selectedCount === 1 ? "bot" : "bots"}`}
         </button>
       </div>
     </div>

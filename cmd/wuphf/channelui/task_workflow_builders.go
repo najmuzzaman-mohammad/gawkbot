@@ -15,7 +15,7 @@ import (
 // readers can share the schema.
 type TaskLogRecord struct {
 	TaskID      string          `json:"task_id"`
-	AgentSlug   string          `json:"agent_slug"`
+	BotSlug     string          `json:"agent_slug"`
 	ToolName    string          `json:"tool_name"`
 	Params      json.RawMessage `json:"params"`
 	Result      json.RawMessage `json:"result"`
@@ -31,7 +31,7 @@ type TaskLogRecord struct {
 // reader stitches in from the active task list.
 type TaskLogArtifact struct {
 	TaskID       string
-	AgentSlug    string
+	BotSlug      string
 	ToolName     string
 	Summary      string
 	StartedAt    string
@@ -128,7 +128,7 @@ func BuildOrphanTaskLogRuntimeArtifact(artifact TaskLogArtifact) team.RuntimeArt
 		Title:         fmt.Sprintf("Task %s log", FallbackString(artifact.TaskID, "artifact")),
 		Summary:       "Retained task output from a task that is no longer in the active runtime list.",
 		State:         state,
-		Owner:         strings.TrimSpace(artifact.AgentSlug),
+		Owner:         strings.TrimSpace(artifact.BotSlug),
 		StartedAt:     strings.TrimSpace(artifact.StartedAt),
 		UpdatedAt:     LatestArtifactTimestamp(artifact.CompletedAt, artifact.StartedAt, artifact.UpdatedAt.Format(time.RFC3339)),
 		Path:          strings.TrimSpace(artifact.LogPath),

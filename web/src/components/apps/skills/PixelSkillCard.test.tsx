@@ -218,7 +218,7 @@ describe("<PixelSkillCard>", () => {
     expect(screen.getByRole("button", { name: "Disable" })).toBeInTheDocument();
   });
 
-  it("shows lead-routable when no owner agents are scoped", () => {
+  it("shows lead-routable when no owner bots are scoped", () => {
     render(<PixelSkillCard skill={makeSkill({ owner_agents: [] })} />);
     // Front-face stat strip uses 'Lead-routable'; the back face also lists
     // 'Lead-routable' as the Owners value, so we expect at least one match.

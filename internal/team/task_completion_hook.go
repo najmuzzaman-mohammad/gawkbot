@@ -190,7 +190,7 @@ type taskCompletionEntity struct {
 // deterministic only, no LLM:
 //
 //   - explicit @mentions in title/details/goal/deliverables → people
-//     (agents and humans referenced by slug), minus plumbing slugs;
+//     (bots and humans referenced by slug), minus plumbing slugs;
 //   - capitalized multi-word names in the Definition goal + deliverable
 //     names + task details → companies, slugified via the existing
 //     slugify normalizer and validated against slugPattern. Details are
@@ -202,7 +202,7 @@ type taskCompletionEntity struct {
 func taskCompletionEntities(task teamTask) []taskCompletionEntity {
 	// App Builder build/improve tasks talk exclusively about the workspace's
 	// OWN machinery — extracting "companies" from them minted garbage entity
-	// pages ("Deal Desk Agent is a company", "Db Approved is a company") that
+	// pages ("Deal Desk Bot is a company", "Db Approved is a company") that
 	// taught the operator not to trust the brain (2026-08-17 quality audit).
 	// Their @mentions carry no customer knowledge either; skip entirely.
 	if isAppBuilderSlug(task.Owner) ||
@@ -282,7 +282,7 @@ func taskCompletionFactText(task teamTask, entities []taskCompletionEntity, self
 }
 
 // taskCompletionFactSourcePath maps the task artifact onto the fact log's
-// source_path contract (must start with agents/ or team/). Visual-artifact
+// source_path contract (must start with bots/ or team/). Visual-artifact
 // ids and other references fall back to empty.
 func taskCompletionFactSourcePath(task teamTask) string {
 	artifact := strings.TrimSpace(task.Artifact)

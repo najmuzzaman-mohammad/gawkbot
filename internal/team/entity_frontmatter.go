@@ -2,7 +2,7 @@ package team
 
 // entity_frontmatter.go owns the YAML frontmatter helpers used by the
 // synthesizer to stamp brief metadata (last synthesized sha, timestamp,
-// fact count) without disturbing other keys the authoring agents or
+// fact count) without disturbing other keys the authoring bots or
 // maintainers may have added.
 
 import (

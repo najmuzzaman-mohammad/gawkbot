@@ -2,7 +2,7 @@ package team
 
 // notifier_loops.go owns the per-launcher notification poll loops
 // (PLAN.md §C11) plus the panic-recovery wrapper they share.
-// notifyAgentsLoop watches broker.Messages, notifyTaskActionsLoop
+// notifyBotsLoop watches broker.Messages, notifyTaskActionsLoop
 // watches the action ledger, notifyOfficeChangesLoop fans out roster
 // changes to deliverOfficeChangeNotification. Split out of launcher.go
 // so the notification orchestration sits in one file rather than
@@ -19,8 +19,8 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
-// notifyAgentsLoop subscribes to broker messages and pushes notifications immediately.
-func (l *Launcher) notifyAgentsLoop() {
+// notifyBotsLoop subscribes to broker messages and pushes notifications immediately.
+func (l *Launcher) notifyBotsLoop() {
 	if l.broker == nil {
 		return
 	}
@@ -29,11 +29,11 @@ func (l *Launcher) notifyAgentsLoop() {
 
 	// Note: there is intentionally NO office-wide pending-interview gate
 	// here. The old HasPendingInterview() skip silently dropped EVERY
-	// message wake while any one agent waited on a human interview —
+	// message wake while any one bot waited on a human interview —
 	// ICP-eval v3 [19:23:59]: one buried interview wedged the whole
 	// office (a librarian dead to a direct @-mention for 7+ minutes).
 	// The gate is now scoped per-target in sendChannelUpdate /
-	// sendTaskUpdate: only the ASKING agent's new turns are suppressed
+	// sendTaskUpdate: only the ASKING bot's new turns are suppressed
 	// while its own interview is pending.
 	for msg := range msgs {
 		if msg.From == "system" {
@@ -49,7 +49,7 @@ func (l *Launcher) notifyAgentsLoop() {
 //
 // The panic-context line includes IDs and channel only — not the
 // full message body. Bodies are attacker-controlled (CRM emails,
-// calendar entries, agent output) and the panic log lands in
+// calendar entries, bot output) and the panic log lands in
 // ~/.wuphf/logs/panics.log which the user often shares verbatim
 // when filing a bug. Drop the payload to avoid leaking secrets or
 // personal data.
@@ -91,7 +91,7 @@ func recoverPanicTo(site, extra string) {
 		}
 		// 0o600 (owner-only) — even though message bodies are now
 		// redacted, panics.log still leaks routing metadata
-		// (channel slugs, agent slugs) that's sensitive on shared
+		// (channel slugs, bot slugs) that's sensitive on shared
 		// systems where wuphf runs under a service account whose
 		// home is world-readable.
 		if f, ferr := os.OpenFile(filepath.Join(dir, "panics.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600); ferr == nil {
@@ -108,7 +108,7 @@ func (l *Launcher) notifyTaskActionsLoop() {
 	actions, unsubscribe := l.broker.SubscribeActions(128)
 	defer unsubscribe()
 
-	// Same scoping as notifyAgentsLoop: no office-wide pending-interview
+	// Same scoping as notifyBotsLoop: no office-wide pending-interview
 	// drop — the per-target gate lives in sendTaskUpdate.
 	for action := range actions {
 		if action.Kind != "task_created" && action.Kind != "task_updated" &&
@@ -119,7 +119,7 @@ func (l *Launcher) notifyTaskActionsLoop() {
 		if !ok {
 			continue
 		}
-		// Skip "done" tasks for task_created / task_updated — the agent that completed
+		// Skip "done" tasks for task_created / task_updated — the bot that completed
 		// the task should send a follow-up broadcast which wakes CEO via the message
 		// loop. But for task_unblocked the task status is still "in_progress" (it was
 		// just unblocked), so we must never skip it regardless of status. task_followup
@@ -157,15 +157,15 @@ func (l *Launcher) notifyOfficeChangesLoop() {
 			// office_reseeded fires after onboarding rewrites the whole roster
 			// (blueprint selection). The interactive claude panes were spawned
 			// from the earlier default team and now point at slugs that are no
-			// longer registered agents — messages typed into them go into a
+			// longer registered bots — messages typed into them go into a
 			// dead shell. Respawn them against the new roster, outside the
 			// interview guard so it can't be blocked by a half-complete wizard.
 			if evt.Kind == "office_reseeded" {
 				l.respawnPanesAfterReseed()
 				return
 			}
-			// member_updated covers per-agent provider switches initiated
-			// from the AgentProfilePanel runtime picker. The launcher needs
+			// member_updated covers per-bot provider switches initiated
+			// from the BotProfilePanel runtime picker. The launcher needs
 			// to drop any pane that was holding the old runtime so the
 			// next dispatch routes through the headless path the new kind
 			// expects. This is best-effort: the worker that picks up the
@@ -175,7 +175,7 @@ func (l *Launcher) notifyOfficeChangesLoop() {
 			if evt.Kind == "member_updated" {
 				l.reconcileMemberRuntime(evt.Slug)
 			}
-			// No office-wide pending-interview drop (see notifyAgentsLoop);
+			// No office-wide pending-interview drop (see notifyBotsLoop);
 			// the per-target gate lives in sendTaskUpdate.
 			l.deliverOfficeChangeNotification(evt)
 		}(evt)

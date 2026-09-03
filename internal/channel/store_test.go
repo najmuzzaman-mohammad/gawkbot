@@ -109,7 +109,7 @@ func TestGetOrCreateDirectRejectsSelfDM(t *testing.T) {
 }
 
 // Group DMs are retired: a group DM is a channel wearing a different label,
-// and every conversation is now 1:1 with a single agent. The store REFUSING is
+// and every conversation is now 1:1 with a single bot. The store REFUSING is
 // the contract, so this asserts the refusal rather than the old happy path.
 func TestStoreGetOrCreateGroupIsRefusedWhileRetired(t *testing.T) {
 	if GroupDMsEnabled() {

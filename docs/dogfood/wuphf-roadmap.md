@@ -2,7 +2,7 @@
 
 ## Current Themes
 
-- Make domain boundaries explicit so agents can own tasks, requests, reviews,
+- Make domain boundaries explicit so bots can own tasks, requests, reviews,
   wiki/notebook, workspaces, providers, integrations, skills, and platform work
   independently.
 - Move surface parity to contract-first planning. Web and TUI may render

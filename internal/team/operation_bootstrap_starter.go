@@ -50,7 +50,7 @@ func buildOperationStarterTemplate(blueprint operations.Blueprint, pack operatio
 			Priority:    priority,
 			Size:        size,
 		},
-		Agents:         operationStarterAgentsFromBlueprint(starter.Agents, replacements),
+		Bots:           operationStarterBotsFromBlueprint(starter.Bots, replacements),
 		Channels:       operationStarterChannelsFromBlueprint(starter.Channels, replacements),
 		Tasks:          operationStarterTasksFromBlueprint(starter.Tasks, replacements),
 		KickoffTagged:  []string{leadSlug},
@@ -99,23 +99,23 @@ func operationFirstResolvedNonEmpty(values ...string) string {
 	return ""
 }
 
-func operationStarterAgentsFromBlueprint(agents []operations.StarterAgent, replacements map[string]string) []operationStarterAgent {
-	out := make([]operationStarterAgent, 0, len(agents))
-	for _, agent := range agents {
-		expertise := make([]string, 0, len(agent.Expertise))
-		for _, item := range agent.Expertise {
+func operationStarterBotsFromBlueprint(bots []operations.StarterBot, replacements map[string]string) []operationStarterBot {
+	out := make([]operationStarterBot, 0, len(bots))
+	for _, bot := range bots {
+		expertise := make([]string, 0, len(bot.Expertise))
+		for _, item := range bot.Expertise {
 			expertise = append(expertise, operationRenderTemplateString(item, replacements))
 		}
-		out = append(out, operationStarterAgent{
-			Slug:        operationRenderTemplateString(agent.Slug, replacements),
-			Emoji:       operationRenderTemplateString(agent.Emoji, replacements),
-			Name:        operationRenderTemplateString(agent.Name, replacements),
-			Role:        operationRenderTemplateString(agent.Role, replacements),
-			Checked:     agent.Checked,
-			Type:        operationRenderTemplateString(agent.Type, replacements),
-			BuiltIn:     agent.BuiltIn,
+		out = append(out, operationStarterBot{
+			Slug:        operationRenderTemplateString(bot.Slug, replacements),
+			Emoji:       operationRenderTemplateString(bot.Emoji, replacements),
+			Name:        operationRenderTemplateString(bot.Name, replacements),
+			Role:        operationRenderTemplateString(bot.Role, replacements),
+			Checked:     bot.Checked,
+			Type:        operationRenderTemplateString(bot.Type, replacements),
+			BuiltIn:     bot.BuiltIn,
 			Expertise:   expertise,
-			Personality: operationRenderTemplateString(agent.Personality, replacements),
+			Personality: operationRenderTemplateString(bot.Personality, replacements),
 		})
 	}
 	return out

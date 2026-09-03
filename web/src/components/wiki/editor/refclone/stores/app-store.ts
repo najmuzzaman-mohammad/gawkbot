@@ -12,7 +12,7 @@ import { create } from "zustand";
 export interface ComposeRequest {
   source: string;
   pinnedPagePath: string | null;
-  defaultAgentSlug: string;
+  defaultBotSlug: string;
 }
 
 export interface AppStore {

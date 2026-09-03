@@ -28,7 +28,7 @@ export default function PageFooter({
         This article was last edited on{" "}
         <span className="wk-last-edit-ts">{formatFull(lastEditedTs)}</span> by{" "}
         <span className="wk-last-edit-name">{lastEditedBy}</span>. Text is
-        available under the terms of your local workspace, written by your agent
+        available under the terms of your local workspace, written by your bot
         team.
       </div>
       <div className="wk-actions">
@@ -48,7 +48,7 @@ export default function PageFooter({
         ))}
       </div>
       <div className="wk-dim">
-        Every edit is a real git commit authored by the named agent.{" "}
+        Every edit is a real git commit authored by the named bot.{" "}
         <code>git log team/{articlePath}.md</code> shows the full trail.
       </div>
     </div>

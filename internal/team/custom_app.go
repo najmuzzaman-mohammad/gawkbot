@@ -1,9 +1,9 @@
 package team
 
-// custom_app.go owns the storage + validation for agent-generated internal
+// custom_app.go owns the storage + validation for bot-generated internal
 // tools ("Apps"). An App is a small, self-contained single-file web app — the
 // built output of a real Vite/React/TS project (inlined via
-// vite-plugin-singlefile by the App Builder agent) — that lives under
+// vite-plugin-singlefile by the App Builder bot) — that lives under
 // <runtime-home>/.wuphf/apps/<id>/ and renders inside a sandboxed iframe.
 //
 // Why a dedicated store instead of the wiki git worker:
@@ -71,14 +71,14 @@ const (
 // a running dev server depends on. Keeping node_modules across a register_app
 // lets the live Vite server hot-reload the freshly published source instead of
 // crashing on a vanished dependency tree. They are also skipped when reading
-// source back (get_app) so the agent never sees node_modules.
+// source back (get_app) so the bot never sees node_modules.
 var customAppPreservedSrcDirs = map[string]bool{
 	"node_modules": true,
 	"dist":         true,
 	".vite":        true,
 }
 
-// CustomApp is the durable manifest for an agent-generated internal tool. The
+// CustomApp is the durable manifest for a bot-generated internal tool. The
 // built HTML bundle lives next to it on disk (Entry) so listings stay cheap.
 type CustomApp struct {
 	ID          string `json:"id"`
@@ -295,7 +295,7 @@ func (s *customAppStore) readManifestLocked(id string) (CustomApp, error) {
 // owns the bundle: it overwrites the protected host-contract files with their
 // canonical embedded bytes, writes the source, builds it server-side
 // (`bun install` + `bun run build`), and stores the BROKER-built
-// dist/index.html — the agent-submitted html is ignored, so a generated app can
+// dist/index.html — the bot-submitted html is ignored, so a generated app can
 // never ship a tampered bridge or an unverified bundle. A build failure does NOT
 // publish; it returns a caller error carrying the build output tail.
 //
@@ -434,7 +434,7 @@ func (s *customAppStore) resolveSaveManifestLocked(req CustomAppWriteRequest, na
 // resolvePublishHTML produces the bytes to store as the app's html. When req
 // carries source Files it is the HOST-built bundle: protected host-contract files
 // are overwritten with canonical embedded bytes, the source is persisted, and
-// `bun install` + `bun run build` produces dist/index.html — the agent's req.HTML
+// `bun install` + `bun run build` produces dist/index.html — the bot's req.HTML
 // is discarded. Without Files it returns req.HTML unchanged (html-only fallback).
 //
 // It is called WITHOUT the store mutex (so the build never starves reads) but
@@ -451,7 +451,7 @@ func (s *customAppStore) resolvePublishHTML(dir string, req CustomAppWriteReques
 	// that (a) re-runs work on tab focus or polls tighter than the floor, or
 	// (b) abandons the fixed Mantine kit. AI_RULES advises these; this ENFORCES
 	// them so a token-burner or off-stack app can never reach the sealed bundle.
-	// The agent reads the file:line list and republishes.
+	// The bot reads the file:line list and republishes.
 	violations := checkAppSourceEfficiency(req.Files)
 	violations = append(violations, checkAppStackConformance(req.Files)...)
 	violations = append(violations, checkAppThemeDepth(req.Files)...)
@@ -459,7 +459,7 @@ func (s *customAppStore) resolvePublishHTML(dir string, req CustomAppWriteReques
 	if len(violations) > 0 {
 		return "", appEfficiencyGuardError(violations)
 	}
-	// The host owns the contract: discard the agent's protected files and replace
+	// The host owns the contract: discard the bot's protected files and replace
 	// them with the canonical embedded versions before anything is persisted or
 	// built.
 	files, err := overwriteProtectedFiles(req.Files)
@@ -656,7 +656,7 @@ func (s *customAppStore) Rename(id, name, actor string, now time.Time) (CustomAp
 // Builder writes a single line of code. The live preview can then boot a real
 // dev server on this source in seconds — turning the old multi-minute
 // "Building…" dead air into an instant, running scaffold the human watches the
-// agent shape. The agent publishes the finished build with register_app(app_id)
+// bot shape. The bot publishes the finished build with register_app(app_id)
 // using this same id, which flips the draft to a ready, listed app.
 //
 // Scaffold is idempotent: if the id already exists (draft or published) it
@@ -851,7 +851,7 @@ func clearSourceExceptArtifacts(srcRoot string) error {
 // They change the SERVER-SIDE build environment, not the app: .npmrc/.bunfig.toml
 // redirect the registry the host's `bun install` resolves from (a supply-chain
 // vector), and .env* files are read by Vite and inlined into the bundle as
-// import.meta.env.VITE_*. The host owns the build config; the agent ships app
+// import.meta.env.VITE_*. The host owns the build config; the bot ships app
 // source only.
 var blockedAppSourceBasenames = map[string]bool{
 	".npmrc":           true,

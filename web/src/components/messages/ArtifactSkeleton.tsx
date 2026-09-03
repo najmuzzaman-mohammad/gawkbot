@@ -4,13 +4,13 @@ import type { Message, OfficeMember } from "../../api/client";
 import { extractRichArtifactIds } from "../../lib/richArtifactReferences";
 
 /**
- * Trailing promise nouns an agent emits right before it posts a follow-up
+ * Trailing promise nouns a bot emits right before it posts a follow-up
  * visual artifact ("...full breakdown below", "...see the diagram", etc).
  *
  * The heuristic matches when the message ends with a SHORT clause built from
  * these nouns plus a small set of promise verbs/prepositions. We match the
  * tail only — never mid-body — so normal sentences that merely mention a
- * "chart" earlier on don't false-positive. On the codex path the agent may
+ * "chart" earlier on don't false-positive. On the codex path the bot may
  * not emit one of a fixed set of phrases, so we match the shape of a promise
  * (a deictic like "below"/"see the" or an artifact noun at the very end)
  * rather than an exact string.
@@ -100,8 +100,8 @@ const ARTIFACT_PROMISE_LEADINS: readonly string[] = [
  *
  * Sized to comfortably cover a long codex turn (~100s) plus broker/SSE lag,
  * so the skeleton does not age out mid-build. It unmounts the instant the
- * artifact marker lands (see {@link hasArtifactArrivedFromSameAgent}) and on
- * the agent leaving "active", so the wide window is an upper bound, not the
+ * artifact marker lands (see {@link hasArtifactArrivedFromSameBot}) and on
+ * the bot leaving "active", so the wide window is an upper bound, not the
  * common case.
  */
 export const ARTIFACT_SKELETON_RECENCY_WINDOW_MS = 180_000;
@@ -117,7 +117,7 @@ interface ArtifactSkeletonProps {
 }
 
 /**
- * Technical-manual draft preview shown while an agent is building an HTML
+ * Technical-manual draft preview shown while a bot is building an HTML
  * artifact. Visual language matches the artifact aesthetic (paper card,
  * accent hairlines, monospace captions, schematic figure being plotted
  * live) so the loader previews the form factor instead of looking like a
@@ -231,7 +231,7 @@ export interface ShouldShowArtifactSkeletonInput {
    * "has a `visual-artifact:` marker landed yet". Order is irrelevant.
    */
   newerMessages: ReadonlyArray<Pick<Message, "from" | "content">>;
-  /** Office members. Used to confirm the same agent is still active/typing. */
+  /** Office members. Used to confirm the same bot is still active/typing. */
   members: ReadonlyArray<Pick<OfficeMember, "slug" | "status">>;
   /**
    * Current wall-clock time in ms. Injected so tests are deterministic and
@@ -244,14 +244,14 @@ export interface ShouldShowArtifactSkeletonInput {
  * Decide whether to render the skeleton under `message`.
  *
  * Trigger requires ALL of:
- *  1. message is from an agent currently in `status: "active"` (server's
- *     "agent X is typing" signal — same source as <TypingIndicator>).
+ *  1. message is from a bot currently in `status: "active"` (server's
+ *     "bot X is typing" signal — same source as <TypingIndicator>).
  *  2. message body ends with an artifact promise (see
  *     {@link endsWithArtifactPromise}).
  *  3. message is less than {@link ARTIFACT_SKELETON_RECENCY_WINDOW_MS} old.
  *  4. message itself does not already carry a `visual-artifact:` marker
  *     (no skeleton when the artifact reference is already inline).
- *  5. no newer message from the same agent carries a `visual-artifact:`
+ *  5. no newer message from the same bot carries a `visual-artifact:`
  *     marker yet (skeleton unmounts cleanly when the artifact card lands).
  */
 export function shouldShowArtifactSkeleton(
@@ -260,20 +260,20 @@ export function shouldShowArtifactSkeleton(
   const { message, newerMessages, members, nowMs } = input;
   const content = message.content ?? "";
 
-  if (!isAgentAuthor(message.from)) return false;
+  if (!isBotAuthor(message.from)) return false;
   if (!isMemberActive(members, message.from)) return false;
   if (!endsWithArtifactPromise(content)) return false;
   if (!isWithinSkeletonWindow(message.timestamp, nowMs)) return false;
   // Message already has the artifact inline — no skeleton needed.
   if (extractRichArtifactIds(content).length > 0) return false;
   // The artifact card has already landed — unmount.
-  if (hasArtifactArrivedFromSameAgent(newerMessages, message.from)) {
+  if (hasArtifactArrivedFromSameBot(newerMessages, message.from)) {
     return false;
   }
   return true;
 }
 
-function isAgentAuthor(from: string): boolean {
+function isBotAuthor(from: string): boolean {
   if (!from) return false;
   if (from === "human" || from === "you") return false;
   if (from.startsWith("human:")) return false;
@@ -300,7 +300,7 @@ function isWithinSkeletonWindow(
   return delta < ARTIFACT_SKELETON_RECENCY_WINDOW_MS;
 }
 
-function hasArtifactArrivedFromSameAgent(
+function hasArtifactArrivedFromSameBot(
   newerMessages: ReadonlyArray<Pick<Message, "from" | "content">>,
   from: string,
 ): boolean {

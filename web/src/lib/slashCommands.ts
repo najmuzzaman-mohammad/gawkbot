@@ -20,7 +20,7 @@ export function unknownSlashCommandMessage(command: string): string {
   return `Unknown command: ${name}. Try /help.`;
 }
 
-/** Pick the team-lead slug: configured first, else first built-in agent, else 'ceo'. */
+/** Pick the team-lead slug: configured first, else first built-in bot, else 'ceo'. */
 export function resolveLeadSlug(
   configured: string | undefined,
   members: { slug?: string; built_in?: boolean }[],
@@ -170,13 +170,13 @@ export function handleSlashCommand(
         .catch(() => showNotice("Failed to switch mode", "error"));
       return true;
     case "/pause":
-      post("/signals", { kind: "pause", summary: "Human paused all agents" })
-        .then(() => showNotice("All agents paused", "success"))
+      post("/signals", { kind: "pause", summary: "Human paused all bots" })
+        .then(() => showNotice("All bots paused", "success"))
         .catch((e: Error) => showNotice(`Pause failed: ${e.message}`, "error"));
       return true;
     case "/resume":
-      post("/signals", { kind: "resume", summary: "Human resumed agents" })
-        .then(() => showNotice("Agents resumed", "success"))
+      post("/signals", { kind: "resume", summary: "Human resumed bots" })
+        .then(() => showNotice("Bots resumed", "success"))
         .catch((e: Error) =>
           showNotice(`Resume failed: ${e.message}`, "error"),
         );
@@ -202,7 +202,7 @@ export function handleSlashCommand(
       return true;
     case "/1o1": {
       if (!args) {
-        showNotice("Usage: /1o1 <agent-slug>", "info");
+        showNotice("Usage: /1o1 <bot-slug>", "info");
         return true;
       }
       const slug = args.trim().toLowerCase();
@@ -213,7 +213,7 @@ export function handleSlashCommand(
             params: { agentSlug: slug },
           });
         })
-        .catch(() => showNotice(`Agent not found: ${args.trim()}`, "error"));
+        .catch(() => showNotice(`Bot not found: ${args.trim()}`, "error"));
       return true;
     }
     case "/task": {

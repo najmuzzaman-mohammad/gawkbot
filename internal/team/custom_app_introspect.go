@@ -7,7 +7,7 @@ package team
 // app already reads Slack, or has a data type, or exposes a screen it does not.
 // This derives the app's real shape — data model, APIs, office writes, UI — by
 // statically reading its persisted source (comment/string-aware, reusing the
-// guard's lexer). It is attached to get_app and to the edit brief so the agent
+// guard's lexer). It is attached to get_app and to the edit brief so the bot
 // builds on GROUND TRUTH instead of guessing. Informational, not a gate, so it
 // errs toward over-reporting rather than blocking.
 
@@ -66,7 +66,7 @@ func compileBridgeAPIRegexps() map[string]*regexp.Regexp {
 }
 
 // introspectAppSource derives an app's capabilities from its source files. Only
-// agent-authored TS/JS is scanned (the same predicate the guard uses, so the
+// bot-authored TS/JS is scanned (the same predicate the guard uses, so the
 // host-owned protected files and build artifacts are skipped) — bridge USAGE
 // lives in App.tsx, not in the bridge definition.
 func introspectAppSource(files map[string]string) AppCapabilities {

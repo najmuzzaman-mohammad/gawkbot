@@ -126,7 +126,7 @@ func TestRequireTeamChannelApprovalBlocksOnReject(t *testing.T) {
 		t.Errorf("error %q must name the declined channel", err)
 	}
 	if !strings.Contains(err.Error(), "existing channel") {
-		t.Errorf("error %q must route the agent to an existing channel", err)
+		t.Errorf("error %q must route the bot to an existing channel", err)
 	}
 	if !strings.Contains(err.Error(), "we already have #gtm") {
 		t.Errorf("error %q must carry the human's reason", err)

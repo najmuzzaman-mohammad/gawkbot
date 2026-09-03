@@ -74,11 +74,11 @@ team_decision({
 ```
 
 - `action=propose` opens a `human_interview`-style request with the
-  options so the human picks. The agent SHOULD NOT call `action=record`
+  options so the human picks. The bot SHOULD NOT call `action=record`
   directly when the call is human-facing — let the human pick the
   option to make it explicit.
-- `action=record` is the agent declaring a decision (for engineering
-  picks the agent owns, e.g. "I chose Postgres over MySQL because
+- `action=record` is the bot declaring a decision (for engineering
+  picks the bot owns, e.g. "I chose Postgres over MySQL because
   pgvector").
 - `action=supersede` records a new Decision that overrides a previous
   one. The old Decision is preserved (immutable history) with

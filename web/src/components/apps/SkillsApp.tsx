@@ -752,7 +752,7 @@ function SkillActions({
   status: SkillStatus;
   skillName: string;
   /** System skills hide Archive and whole-skill Disable — the broker
-   * refuses both; per-agent toggles live on each agent's Skills tab. */
+   * refuses both; per-bot toggles live on each bot's Skills tab. */
   isSystem?: boolean;
   onSuggestChanges?: () => void;
 }) {
@@ -1083,7 +1083,7 @@ function SkillActions({
         aria-label={`Disable ${skillName}`}
         title={
           isSystem
-            ? "System skill — disable it per agent from that agent's Skills tab"
+            ? "System skill — disable it per bot from that bot's Skills tab"
             : undefined
         }
       >
@@ -1384,7 +1384,7 @@ function SkillCard({
           {skill.system ? (
             <span
               className="badge badge-neutral"
-              title="Always available. Enabled for every agent by default; disable it per agent from that agent's Skills tab."
+              title="Always available. Enabled for every bot by default; disable it per bot from that bot's Skills tab."
             >
               system
             </span>

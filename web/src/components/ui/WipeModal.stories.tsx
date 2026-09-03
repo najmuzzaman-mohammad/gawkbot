@@ -83,7 +83,7 @@ export const Warn: Story = {
             <WipeModal
               title="Reset all sessions?"
               severity="warn"
-              intro="This signs every agent out and clears in-memory provider state."
+              intro="This signs every bot out and clears in-memory provider state."
               confirmLabel="Reset sessions"
               busy={false}
               onCancel={() => setOpen(false)}

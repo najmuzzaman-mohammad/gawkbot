@@ -216,36 +216,36 @@ func (b *Broker) CreateWatchdogAlert(kind, channel, targetType, targetID, owner,
 	if len(b.watchdogs) > 120 {
 		b.watchdogs = append([]watchdogAlert(nil), b.watchdogs[len(b.watchdogs)-120:]...)
 	}
-	// Mirror the alert into the agent's activity snapshot so the office rail
+	// Mirror the alert into the bot's activity snapshot so the office rail
 	// shows the stuck escalation immediately (no need to wait for the 90s
-	// stale-while-active reaper). Owner is the agent slug for task/request
-	// alerts. Best-effort: an alert without a known agent owner (e.g. stuck
+	// stale-while-active reaper). Owner is the bot slug for task/request
+	// alerts. Best-effort: an alert without a known bot owner (e.g. stuck
 	// on a system target) just doesn't surface a pill change.
-	b.markAgentStuckFromWatchdogLocked(record)
+	b.markBotStuckFromWatchdogLocked(record)
 	if err := b.saveLocked(); err != nil {
 		return watchdogAlert{}, false, err
 	}
 	return record, false, nil
 }
 
-// markAgentStuckFromWatchdogLocked stamps the alert's Owner activity snapshot
+// markBotStuckFromWatchdogLocked stamps the alert's Owner activity snapshot
 // with Kind="stuck" and republishes it. Caller must hold b.mu. No-op when the
 // owner is empty or has no live activity entry yet.
-func (b *Broker) markAgentStuckFromWatchdogLocked(alert watchdogAlert) {
+func (b *Broker) markBotStuckFromWatchdogLocked(alert watchdogAlert) {
 	// Emptiness is tested on the raw value: normalizeChannelSlug
 	// would have returned "general" for an ownerless alert, defeating the
-	// no-op the doc comment above promises and stamping a phantom agent.
+	// no-op the doc comment above promises and stamping a phantom bot.
 	if strings.TrimSpace(alert.Owner) == "" {
 		return
 	}
 	slug := normalizeChannelSlug(alert.Owner)
 	snap, ok := b.activity[slug]
 	if !ok {
-		// No prior activity for this agent — synthesize a minimal snapshot
+		// No prior activity for this bot — synthesize a minimal snapshot
 		// so the rail still surfaces the stuck signal. Status stays empty
-		// (would otherwise lie about agent state); the frontend keys off
+		// (would otherwise lie about bot state); the frontend keys off
 		// Kind=="stuck" for the chrome.
-		snap = agentActivitySnapshot{Slug: slug}
+		snap = botActivitySnapshot{Slug: slug}
 	}
 	if snap.Kind == "stuck" {
 		return
@@ -259,13 +259,13 @@ func (b *Broker) markAgentStuckFromWatchdogLocked(alert watchdogAlert) {
 	b.publishActivityLocked(snap)
 }
 
-// markAgentStuckClearedFromWatchdogLocked is the inverse hook for the clear
+// markBotStuckClearedFromWatchdogLocked is the inverse hook for the clear
 // path in resolveWatchdogAlertsLocked. It does NOT invent a new "clear" Kind:
 // the alert resolution is itself treated as a routine status update so the
 // pill drops the bordered chrome and waits for the next real activity event
 // to repopulate live state. Caller must hold b.mu.
-func (b *Broker) markAgentStuckClearedFromWatchdogLocked(alert watchdogAlert) {
-	// Same actor-slug + raw-emptiness pairing as markAgentStuckFromWatchdogLocked
+func (b *Broker) markBotStuckClearedFromWatchdogLocked(alert watchdogAlert) {
+	// Same actor-slug + raw-emptiness pairing as markBotStuckFromWatchdogLocked
 	// above; the two must agree because they key the same b.activity map.
 	if strings.TrimSpace(alert.Owner) == "" {
 		return
@@ -326,9 +326,9 @@ func (b *Broker) resolveWatchdogAlertsLocked(targetType, targetID, channel strin
 		}
 		alert.Status = "resolved"
 		alert.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
-		// Drop the stuck flag from the agent's activity snapshot so the
+		// Drop the stuck flag from the bot's activity snapshot so the
 		// rail pill stops escalating. We do not try to repaint live
-		// status here — the next real event from the agent owns that.
-		b.markAgentStuckClearedFromWatchdogLocked(*alert)
+		// status here — the next real event from the bot owns that.
+		b.markBotStuckClearedFromWatchdogLocked(*alert)
 	}
 }

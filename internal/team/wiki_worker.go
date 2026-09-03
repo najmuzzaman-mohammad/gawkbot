@@ -42,7 +42,7 @@ import (
 )
 
 // ErrQueueSaturated is returned by Enqueue when the buffered request channel
-// is full. Callers (MCP handlers) should surface this to the agent as
+// is full. Callers (MCP handlers) should surface this to the bot as
 // "wiki queue saturated, retry on next turn" — no hidden retries.
 var ErrQueueSaturated = errors.New("wiki: queue saturated, retry on next turn")
 
@@ -407,12 +407,12 @@ func (w *WikiWorker) process(ctx context.Context, req wikiWriteRequest) {
 	} else if req.IsFactLogAppend {
 		sha, n, err = w.repo.AppendFactLog(writeCtx, req.Slug, req.Path, req.Content, req.CommitMsg)
 	} else {
-		// B2 update-first (wiki_update_first.go): an agent create whose
+		// B2 update-first (wiki_update_first.go): a bot create whose
 		// target directory already holds a similar-slug article is rerouted
 		// to append onto the existing file — update, never duplicate. The
 		// rerouted path/mode are written back onto req so the event fan-out
 		// and index reconcile below see the file that actually changed.
-		req.Path, req.Mode = routeAgentCreateToSimilarSlug(w.repo.Root(), req.Slug, req.Path, req.Mode)
+		req.Path, req.Mode = routeBotCreateToSimilarSlug(w.repo.Root(), req.Slug, req.Path, req.Mode)
 		// B4 coalesce: a byte-identical consecutive write to the same path
 		// folds into the previous commit instead of committing again.
 		foldKey := contentHashForFold(req.Mode, req.Content)
@@ -1070,7 +1070,7 @@ func (w *WikiWorker) EnqueueArtifact(ctx context.Context, slug, path, content, c
 
 // SubmitFacts routes an index mutation — entities + facts — through the
 // single-writer queue. This preserves the single-writer invariant for the
-// extractor loop: agents, the resolver, and the extractor ask; only the
+// extractor loop: bots, the resolver, and the extractor ask; only the
 // worker writes.
 //
 // Entities are upserted BEFORE facts so fact rows always resolve against a

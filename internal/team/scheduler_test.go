@@ -548,8 +548,8 @@ func (b *schedulerFixtureBroker) CompleteSchedulerRun(slug string, _ time.Time, 
 	return nil
 }
 
-func (b *schedulerFixtureBroker) EnsureDirectChannel(agentSlug string) (string, error) {
-	return agentSlug + "__human", nil
+func (b *schedulerFixtureBroker) EnsureDirectChannel(botSlug string) (string, error) {
+	return botSlug + "__human", nil
 }
 
 func (b *schedulerFixtureBroker) CreateWatchdogAlert(kind, channel, targetType, targetID, owner, summary string) (watchdogAlert, bool, error) {
@@ -609,8 +609,8 @@ func (b *recordingLedgerBroker) recordOperatorRoutineExecution(string, PlaybookO
 func (b *recordingLedgerBroker) CompleteSchedulerRun(string, time.Time, string, schedulerRun) error {
 	return nil
 }
-func (b *recordingLedgerBroker) EnsureDirectChannel(agentSlug string) (string, error) {
-	return agentSlug + "__human", nil
+func (b *recordingLedgerBroker) EnsureDirectChannel(botSlug string) (string, error) {
+	return botSlug + "__human", nil
 }
 func (b *recordingLedgerBroker) CreateWatchdogAlert(string, string, string, string, string, string) (watchdogAlert, bool, error) {
 	return watchdogAlert{}, false, nil

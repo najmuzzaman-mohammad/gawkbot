@@ -2,7 +2,7 @@
 
 Rich HTML artifacts should feel like old mathematics and physics books printed
 on real paper, not generic SaaS dashboards or digital spec sheets. Use this
-style when an agent produces an explainer, plan, incident room, review packet,
+style when a bot produces an explainer, plan, incident room, review packet,
 comparison grid, or tuning surface.
 
 ## Visual Language

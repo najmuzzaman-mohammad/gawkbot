@@ -261,7 +261,7 @@ func TestTeamSkillToFrontmatter(t *testing.T) {
 		Status:             "disabled",
 		DisabledFromStatus: "proposed",
 		Tags:               []string{"comms", "daily"},
-		OwnerAgents:        []string{"ceo", "ops"},
+		OwnerBots:          []string{"ceo", "ops"},
 		Trigger:            "Every morning",
 		WorkflowProvider:   "zapier",
 		WorkflowKey:        "wk-digest",
@@ -314,22 +314,22 @@ func TestTeamSkillToFrontmatter(t *testing.T) {
 	if len(w.RelayEventTypes) != len(sk.RelayEventTypes) {
 		t.Errorf("Wuphf.RelayEventTypes len: got %d, want %d", len(w.RelayEventTypes), len(sk.RelayEventTypes))
 	}
-	if len(w.OwnerAgents) != len(sk.OwnerAgents) {
-		t.Fatalf("Wuphf.OwnerAgents len: got %d, want %d", len(w.OwnerAgents), len(sk.OwnerAgents))
+	if len(w.OwnerBots) != len(sk.OwnerBots) {
+		t.Fatalf("Wuphf.OwnerBots len: got %d, want %d", len(w.OwnerBots), len(sk.OwnerBots))
 	}
-	for i, slug := range sk.OwnerAgents {
-		if w.OwnerAgents[i] != slug {
-			t.Errorf("Wuphf.OwnerAgents[%d]: got %q, want %q", i, w.OwnerAgents[i], slug)
+	for i, slug := range sk.OwnerBots {
+		if w.OwnerBots[i] != slug {
+			t.Errorf("Wuphf.OwnerBots[%d]: got %q, want %q", i, w.OwnerBots[i], slug)
 		}
 	}
 }
 
-// TestSkillFrontmatterOwnerAgentsRoundTrip confirms per-agent enablement
+// TestSkillFrontmatterOwnerBotsRoundTrip confirms per-bot enablement
 // survives a render+parse cycle so the SKILL.md copy stays canonical for
-// any path that reloads from disk (boot, wiki preview, agent skill
+// any path that reloads from disk (boot, wiki preview, bot skill
 // scanner). Without round-trip the enable-for / disable-for handlers
 // would silently drift broker state out of sync with the wiki copy.
-func TestSkillFrontmatterOwnerAgentsRoundTrip(t *testing.T) {
+func TestSkillFrontmatterOwnerBotsRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	in := SkillFrontmatter{
@@ -337,10 +337,10 @@ func TestSkillFrontmatterOwnerAgentsRoundTrip(t *testing.T) {
 		Description: "Post final results to the channel.",
 		Metadata: SkillMetadata{
 			Wuphf: SkillWuphfMeta{
-				Title:       "Share Results",
-				CreatedBy:   "ceo",
-				Status:      "active",
-				OwnerAgents: []string{"ceo", "ops", "eng"},
+				Title:     "Share Results",
+				CreatedBy: "ceo",
+				Status:    "active",
+				OwnerBots: []string{"ceo", "ops", "eng"},
 			},
 		},
 	}
@@ -353,14 +353,14 @@ func TestSkillFrontmatterOwnerAgentsRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	got := out.Metadata.Wuphf.OwnerAgents
-	want := in.Metadata.Wuphf.OwnerAgents
+	got := out.Metadata.Wuphf.OwnerBots
+	want := in.Metadata.Wuphf.OwnerBots
 	if len(got) != len(want) {
-		t.Fatalf("OwnerAgents len: got %v, want %v", got, want)
+		t.Fatalf("OwnerBots len: got %v, want %v", got, want)
 	}
 	for i, slug := range want {
 		if got[i] != slug {
-			t.Errorf("OwnerAgents[%d]: got %q, want %q", i, got[i], slug)
+			t.Errorf("OwnerBots[%d]: got %q, want %q", i, got[i], slug)
 		}
 	}
 }

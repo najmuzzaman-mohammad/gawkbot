@@ -24,7 +24,7 @@ func TestReadLog_Append_NoOp(t *testing.T) {
 	}
 }
 
-// TestReadLog_Append_Human: reader="web" produces IsAgent=false.
+// TestReadLog_Append_Human: reader="web" produces IsBot=false.
 func TestReadLog_Append_Human(t *testing.T) {
 	rl := newTestReadLog(t)
 	rl.Append("team/people/alice.md", "web")
@@ -32,21 +32,21 @@ func TestReadLog_Append_Human(t *testing.T) {
 	if s.HumanReadCount != 1 {
 		t.Errorf("HumanReadCount: want 1, got %d", s.HumanReadCount)
 	}
-	if s.AgentReadCount != 0 {
-		t.Errorf("AgentReadCount: want 0, got %d", s.AgentReadCount)
+	if s.BotReadCount != 0 {
+		t.Errorf("BotReadCount: want 0, got %d", s.BotReadCount)
 	}
 	if s.LastRead == nil {
 		t.Error("LastRead should be non-nil after a read")
 	}
 }
 
-// TestReadLog_Append_Agent: non-"web" reader produces IsAgent=true.
+// TestReadLog_Append_Agent: non-"web" reader produces IsBot=true.
 func TestReadLog_Append_Agent(t *testing.T) {
 	rl := newTestReadLog(t)
 	rl.Append("team/people/alice.md", "slack-agent")
 	s := rl.Stats("team/people/alice.md")
-	if s.AgentReadCount != 1 {
-		t.Errorf("AgentReadCount: want 1, got %d", s.AgentReadCount)
+	if s.BotReadCount != 1 {
+		t.Errorf("BotReadCount: want 1, got %d", s.BotReadCount)
 	}
 	if s.HumanReadCount != 0 {
 		t.Errorf("HumanReadCount: want 0, got %d", s.HumanReadCount)
@@ -60,7 +60,7 @@ func TestReadLog_Stats_NeverRead(t *testing.T) {
 	if s.LastRead != nil {
 		t.Error("LastRead should be nil for never-read article")
 	}
-	if s.HumanReadCount != 0 || s.AgentReadCount != 0 {
+	if s.HumanReadCount != 0 || s.BotReadCount != 0 {
 		t.Error("counts should be zero for never-read article")
 	}
 }
@@ -78,8 +78,8 @@ func TestReadLog_Stats_Mixed(t *testing.T) {
 	if s.HumanReadCount != 2 {
 		t.Errorf("HumanReadCount: want 2, got %d", s.HumanReadCount)
 	}
-	if s.AgentReadCount != 3 {
-		t.Errorf("AgentReadCount: want 3, got %d", s.AgentReadCount)
+	if s.BotReadCount != 3 {
+		t.Errorf("BotReadCount: want 3, got %d", s.BotReadCount)
 	}
 }
 
@@ -105,14 +105,14 @@ func TestReadLog_AllStats_MultiPath(t *testing.T) {
 		t.Fatalf("AllStats: want 2 paths, got %d", len(all))
 	}
 	alice := all["team/people/alice.md"]
-	if alice.HumanReadCount != 1 || alice.AgentReadCount != 1 {
-		t.Errorf("alice: want human=1 agent=1, got human=%d agent=%d",
-			alice.HumanReadCount, alice.AgentReadCount)
+	if alice.HumanReadCount != 1 || alice.BotReadCount != 1 {
+		t.Errorf("alice: want human=1 bot=1, got human=%d bot=%d",
+			alice.HumanReadCount, alice.BotReadCount)
 	}
 	bob := all["team/people/bob.md"]
-	if bob.AgentReadCount != 1 || bob.HumanReadCount != 0 {
-		t.Errorf("bob: want agent=1 human=0, got agent=%d human=%d",
-			bob.AgentReadCount, bob.HumanReadCount)
+	if bob.BotReadCount != 1 || bob.HumanReadCount != 0 {
+		t.Errorf("bob: want bot=1 human=0, got bot=%d human=%d",
+			bob.BotReadCount, bob.HumanReadCount)
 	}
 }
 
@@ -207,7 +207,7 @@ func TestReadLog_Stats_DaysUnread_Positive(t *testing.T) {
 		t.Fatal(err)
 	}
 	old := time.Now().UTC().Add(-72 * time.Hour)
-	ev := ReadEvent{Path: path, Timestamp: old, Reader: "web", IsAgent: false}
+	ev := ReadEvent{Path: path, Timestamp: old, Reader: "web", IsBot: false}
 	line, _ := json.Marshal(ev)
 	if err := os.WriteFile(rl.path, append(line, '\n'), 0o644); err != nil {
 		t.Fatal(err)
@@ -230,8 +230,8 @@ func TestReadLog_LastRead_IsLatest(t *testing.T) {
 	earlier := time.Now().UTC().Add(-2 * time.Second)
 	later := earlier.Add(time.Second)
 
-	ev1 := ReadEvent{Path: path, Timestamp: earlier, Reader: "web", IsAgent: false}
-	ev2 := ReadEvent{Path: path, Timestamp: later, Reader: "slack-agent", IsAgent: true}
+	ev1 := ReadEvent{Path: path, Timestamp: earlier, Reader: "web", IsBot: false}
+	ev2 := ReadEvent{Path: path, Timestamp: later, Reader: "slack-agent", IsBot: true}
 	line1, _ := json.Marshal(ev1)
 	line2, _ := json.Marshal(ev2)
 	data := append(append(line1, '\n'), append(line2, '\n')...)

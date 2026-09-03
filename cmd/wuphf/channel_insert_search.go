@@ -168,11 +168,11 @@ func (m *channelModel) applySearchSelection(value, label string) tea.Cmd {
 		m.notice = "Jumped to #" + channel
 		return tea.Batch(pollBroker("", m.activeChannel), pollMembers(m.activeChannel), pollRequests(m.activeChannel), pollTasks(m.activeChannel))
 	case strings.HasPrefix(value, "dm:"):
-		agent := strings.TrimSpace(strings.TrimPrefix(value, "dm:"))
-		if agent == "" {
-			agent = team.DefaultOneOnOneAgent
+		bot := strings.TrimSpace(strings.TrimPrefix(value, "dm:"))
+		if bot == "" {
+			bot = team.DefaultOneOnOneBot
 		}
-		m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, agent)
+		m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, bot)
 		m.notice = "Confirm the direct session switch."
 		return nil
 	case strings.HasPrefix(value, "task:"):

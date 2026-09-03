@@ -85,15 +85,15 @@ func printSubcommandHelp(sub string) {
 		fmt.Fprintln(os.Stderr, "  gawkbot memory migrate --from <backend> --dry-run  Preview without committing")
 		fmt.Fprintln(os.Stderr, "  gawkbot memory migrate --from <backend> --limit N  Cap the number imported")
 	case "log":
-		fmt.Fprintln(os.Stderr, "gawkbot log — show agent task receipts")
+		fmt.Fprintln(os.Stderr, "gawkbot log — show bot task receipts")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Lists recent tasks from ~/.wuphf/office/tasks/ so you can see what")
-		fmt.Fprintln(os.Stderr, "each agent actually did — tool by tool, with timestamps.")
+		fmt.Fprintln(os.Stderr, "each bot actually did — tool by tool, with timestamps.")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  gawkbot log                     List recent tasks")
 		fmt.Fprintln(os.Stderr, "  gawkbot log <taskID>            Show one task in detail")
-		fmt.Fprintln(os.Stderr, "  gawkbot log --agent eng         Filter to one agent")
+		fmt.Fprintln(os.Stderr, "  gawkbot log --bot eng         Filter to one bot")
 	case "share":
 		fmt.Fprintln(os.Stderr, "gawkbot share — invite one team member to this office")
 		fmt.Fprintln(os.Stderr, "")
@@ -109,12 +109,12 @@ func printSubcommandHelp(sub string) {
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Public interfaces are blocked by default.")
 	case "mcp-team":
-		fmt.Fprintln(os.Stderr, "gawkbot mcp-team — start the team MCP server (used by agents, not humans)")
+		fmt.Fprintln(os.Stderr, "gawkbot mcp-team — start the team MCP server (used by bots, not humans)")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  gawkbot mcp-team")
 	case "computer-mcp":
-		fmt.Fprintln(os.Stderr, "gawkbot computer-mcp — stdio bridge into a bot's computer (used by agents, not humans)")
+		fmt.Fprintln(os.Stderr, "gawkbot computer-mcp — stdio bridge into a bot's computer (used by bots, not humans)")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  gawkbot computer-mcp <runtime> <container> <socket>")
@@ -238,11 +238,11 @@ func main() {
 	packFlag := flag.String("pack", "", "Operation blueprint ID (legacy pack alias supported)")
 	fromScratchFlag := flag.Bool("from-scratch", false, "Start without a saved blueprint and synthesize the first operation from the directive")
 	providerFlag := flag.String("provider", "", "LLM provider override for this run (claude-code, codex, opencode)")
-	oneOnOne := flag.Bool("1o1", false, "Launch a direct 1:1 session with a single agent (default ceo)")
+	oneOnOne := flag.Bool("1o1", false, "Launch a direct 1:1 session with a single bot (default ceo)")
 	channelView := flag.Bool("channel-view", false, "Run as channel view (internal)")
 	channelApp := flag.String("channel-app", "", "Start channel view on a specific app (internal)")
 	threadsCollapsed := flag.Bool("threads-collapsed", false, "Start with threads collapsed (default: expanded)")
-	unsafeMode := flag.Bool("unsafe", false, "Bypass all agent permission checks (use for local dev only)")
+	unsafeMode := flag.Bool("unsafe", false, "Bypass all bot permission checks (use for local dev only)")
 	tuiMode := false
 	flag.BoolVar(&tuiMode, "legacy-tui", false, "Launch with legacy tmux TUI instead of the web UI (deprecated; slated for removal)")
 	flag.BoolVar(&tuiMode, "tui", false, "Deprecated alias for --legacy-tui")
@@ -255,8 +255,8 @@ func main() {
 	// never read.
 	_ = flag.Bool("no-nex", false, "Deprecated: accepted and ignored (internal)")
 	memoryBackend := flag.String("memory-backend", "", "Memory backend for organizational context (gbrain, markdown, none)")
-	opusCEO := flag.Bool("opus-ceo", false, "Upgrade Chief of Staff agent from Sonnet to Opus")
-	collabMode := flag.Bool("collab", false, "Start in collaborative mode (all agents see all messages)")
+	opusCEO := flag.Bool("opus-ceo", false, "Upgrade Chief of Staff bot from Sonnet to Opus")
+	collabMode := flag.Bool("collab", false, "Start in collaborative mode (all bots see all messages)")
 	noOpen := flag.Bool("no-open", false, "Don't open browser automatically on launch")
 	// --workspace=<name> overrides the active workspace for a single
 	// invocation. The flag sets WUPHF_RUNTIME_HOME so every WUPHF state path
@@ -269,13 +269,13 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "gawkbot v%s. Everyone is already staring.\n\n", buildinfo.Current().Version)
 		fmt.Fprintf(os.Stderr, "Usage:\n")
-		fmt.Fprintf(os.Stderr, "  %s              Launch multi-agent team (web UI on :%d)\n", appName, *webPort)
+		fmt.Fprintf(os.Stderr, "  %s              Launch multi-bot team (web UI on :%d)\n", appName, *webPort)
 		fmt.Fprintf(os.Stderr, "  %s --legacy-tui  Launch with legacy tmux TUI instead\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s init         Install the latest CLI and save setup defaults\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s upgrade      Check npm for a newer version and show the changelog\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s shred        Burn the workspace down and reopen onboarding\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s import --from legacy  Import from a running external orchestrator (auto-detect)\n", appName)
-		fmt.Fprintf(os.Stderr, "  %s log          Show what your agents actually did (task receipts)\n", appName)
+		fmt.Fprintf(os.Stderr, "  %s log          Show what your bots actually did (task receipts)\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s share        Invite one team member over a private network\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s memory migrate --from gbrain  Port legacy memory into the team wiki\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s workspace ...  Manage multiple isolated gawkbot workspaces\n", appName)
@@ -421,7 +421,7 @@ func main() {
 			}
 			return
 		case "computer-mcp":
-			// stdio bridge into a bot's computer; spawned by agent CLIs.
+			// stdio bridge into a bot's computer; spawned by bot CLIs.
 			os.Exit(runComputerMCP(args[1:]))
 		case "shred":
 			if !confirmDestructive(args[1:], "shred", shredSummary) {
@@ -625,11 +625,11 @@ func runTeam(args []string, packSlug string, unsafe bool, oneOnOne bool, opusCEO
 	}
 
 	if oneOnOne {
-		agentSlug := team.DefaultOneOnOneAgent
+		botSlug := team.DefaultOneOnOneBot
 		if len(args) > 0 {
-			agentSlug = args[0]
+			botSlug = args[0]
 		}
-		l.SetOneOnOne(agentSlug)
+		l.SetOneOnOne(botSlug)
 	}
 
 	if opusCEO {
@@ -645,7 +645,7 @@ func runTeam(args []string, packSlug string, unsafe bool, oneOnOne bool, opusCEO
 		// per-action human approval gate. The broker and teammcp servers read
 		// this env var directly; the flag is deliberately local-only.
 		_ = os.Setenv("WUPHF_UNSAFE", "1")
-		fmt.Fprintf(os.Stderr, "\n\u26a0\ufe0f  UNSAFE MODE: All agents have unrestricted permissions.\n")
+		fmt.Fprintf(os.Stderr, "\n\u26a0\ufe0f  UNSAFE MODE: All bots have unrestricted permissions.\n")
 		fmt.Fprintf(os.Stderr, "   Use for local dev only. Nobody is watching in production yet.\n\n")
 	}
 
@@ -669,7 +669,7 @@ func runTeam(args []string, packSlug string, unsafe bool, oneOnOne bool, opusCEO
 		_ = os.Setenv("WUPHF_HEADLESS_PROVIDER", "codex")
 		if oneOnOne {
 			_ = os.Setenv("WUPHF_ONE_ON_ONE", "1")
-			_ = os.Setenv("WUPHF_ONE_ON_ONE_AGENT", l.OneOnOneAgent())
+			_ = os.Setenv("WUPHF_ONE_ON_ONE_AGENT", l.OneOnOneBot())
 		}
 		defer func() { _ = l.Kill() }()
 		runChannelView(false, channelui.ResolveInitialOfficeApp(""), false)
@@ -735,7 +735,7 @@ func runWeb(args []string, packSlug string, unsafe bool, webPort int, opusCEO bo
 	tunnelController := newWebTunnelController()
 
 	// Clean up tunnel/share subprocesses, the launcher (headless workers,
-	// broker, per-agent temp files), and then exit when the process receives
+	// broker, per-bot temp files), and then exit when the process receives
 	// SIGINT or SIGTERM. Without l.Kill() the per-launch temp directory
 	// ($TMPDIR/wuphf-launch-*) containing MCP configs and broker tokens
 	// would linger on disk after every Ctrl+C.

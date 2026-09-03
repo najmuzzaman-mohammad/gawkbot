@@ -15,11 +15,11 @@ interface RoutineChannelSelectProps {
  * Dropdown for picking where a routine posts when it fires.
  *
  *   - Default value `""` → Owner DM (the backend ensures a `__human` DM
- *     for the owning agent and posts there).
+ *     for the owning bot and posts there).
  *   - Other values are team-channel slugs the owner is a member of.
  *
  * DM channels and channels the owner isn't in are filtered out — there's
- * no point listing a channel the agent can't actually read from.
+ * no point listing a channel the bot can't actually read from.
  */
 export function RoutineChannelSelect({
   value,
@@ -61,7 +61,7 @@ export function RoutineChannelSelect({
 }
 
 /**
- * Filter the channel list down to the ones the owning agent can
+ * Filter the channel list down to the ones the owning bot can
  * actually participate in. Rules:
  *
  *   1. Direct-message channels (`type: "dm"`) are excluded; the explicit

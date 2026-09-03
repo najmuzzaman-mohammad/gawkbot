@@ -105,27 +105,27 @@ type runnerFixture struct {
 	RejectVectors []runnerVector `json:"rejectVectors"`
 }
 
-type agentProviderRoutingExpected struct {
+type botProviderRoutingExpected struct {
 	CanonicalSerialization string `json:"canonicalSerialization"`
 }
 
-type agentProviderRoutingAcceptedVector struct {
+type botProviderRoutingAcceptedVector struct {
 	Name     string                       `json:"name"`
 	Input    json.RawMessage              `json:"input"`
-	Expected agentProviderRoutingExpected `json:"expected"`
+	Expected botProviderRoutingExpected `json:"expected"`
 }
 
-type agentProviderRoutingRejectedVector struct {
+type botProviderRoutingRejectedVector struct {
 	Name          string          `json:"name"`
 	Input         json.RawMessage `json:"input"`
 	ExpectedError string          `json:"expectedError"`
 }
 
-type agentProviderRoutingFixture struct {
+type botProviderRoutingFixture struct {
 	SchemaVersion int                                  `json:"schemaVersion"`
 	Comment       string                               `json:"comment"`
-	Accepted      []agentProviderRoutingAcceptedVector `json:"accepted"`
-	Rejected      []agentProviderRoutingRejectedVector `json:"rejected"`
+	Accepted      []botProviderRoutingAcceptedVector `json:"accepted"`
+	Rejected      []botProviderRoutingRejectedVector `json:"rejected"`
 }
 
 type signedApprovalTokenExpected struct {
@@ -199,23 +199,23 @@ type routeEnvelopeFixture struct {
 	Rejected      []routeEnvelopeRejectedVector `json:"rejected"`
 }
 
-type agentProviderRoutingEnvelope struct {
-	AgentID string                      `json:"agentId"`
-	Routes  []agentProviderRoutingEntry `json:"routes"`
+type botProviderRoutingEnvelope struct {
+	BotID string                      `json:"agentId"`
+	Routes  []botProviderRoutingEntry `json:"routes"`
 }
 
-type agentProviderRoutingEntry struct {
+type botProviderRoutingEntry struct {
 	Kind            string `json:"kind"`
 	CredentialScope string `json:"credentialScope"`
 	ProviderKind    string `json:"providerKind"`
 }
 
-type agentProviderRoutingRawEnvelope struct {
-	AgentID json.RawMessage `json:"agentId"`
+type botProviderRoutingRawEnvelope struct {
+	BotID json.RawMessage `json:"agentId"`
 	Routes  json.RawMessage `json:"routes"`
 }
 
-type agentProviderRoutingRawEntry struct {
+type botProviderRoutingRawEntry struct {
 	Kind            json.RawMessage `json:"kind"`
 	CredentialScope json.RawMessage `json:"credentialScope"`
 	ProviderKind    json.RawMessage `json:"providerKind"`
@@ -325,7 +325,7 @@ func canonicalizeBodyBytes(bodyB64 string) ([]byte, []byte, error) {
 }
 
 var (
-	agentIDRE          = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,127}$`)
+	botIDRE          = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,127}$`)
 	approvalClaimIDRE  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 	base64URLRE        = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 	credentialHandleRE = regexp.MustCompile(`^cred_[A-Za-z0-9_-]{22,128}$`)
@@ -473,7 +473,7 @@ const (
 	maxRunnerOptionHeaders          = 64
 	maxRunnerOptionHeaderNameBytes  = 256
 	maxRunnerOptionHeaderValueBytes = 8 * 1024
-	maxAgentIDBytes                 = 128
+	maxBotIDBytes                 = 128
 	maxCredentialHandleBytes        = 128
 	maxCredentialHandleIDBytes      = len("cred_") + 128
 	maxCredentialScopeBytes         = 128
@@ -482,7 +482,7 @@ const (
 	maxCostEventAmountMicroUsd      = 100_000_000
 	maxBudgetLimitMicroUsd          = 1_000_000_000_000
 	maxSafeInteger                  = 9_007_199_254_740_991
-	maxAgentProviderRoutes          = 16
+	maxBotProviderRoutes          = 16
 	maxApprovalTokenLifetimeMs      = 30 * 60 * 1000
 	maxApprovalClaimCanonicalBytes  = 64 * 1024
 	maxApprovalScopeCanonicalBytes  = 8 * 1024
@@ -522,19 +522,19 @@ func loadRunnerFixture() (runnerFixture, error) {
 	return fx, nil
 }
 
-func loadAgentProviderRoutingFixture() (agentProviderRoutingFixture, error) {
+func loadBotProviderRoutingFixture() (botProviderRoutingFixture, error) {
 	fixtureBytes, err := os.ReadFile("agent-provider-routing-vectors.json")
 	if err != nil {
-		return agentProviderRoutingFixture{}, err
+		return botProviderRoutingFixture{}, err
 	}
-	var fx agentProviderRoutingFixture
+	var fx botProviderRoutingFixture
 	decoder := json.NewDecoder(bytes.NewReader(fixtureBytes))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&fx); err != nil {
-		return agentProviderRoutingFixture{}, err
+		return botProviderRoutingFixture{}, err
 	}
 	if fx.SchemaVersion != 1 {
-		return agentProviderRoutingFixture{}, fmt.Errorf("unsupported agent-provider-routing fixture schemaVersion: %d", fx.SchemaVersion)
+		return botProviderRoutingFixture{}, fmt.Errorf("unsupported bot-provider-routing fixture schemaVersion: %d", fx.SchemaVersion)
 	}
 	return fx, nil
 }
@@ -590,38 +590,38 @@ func loadRouteEnvelopeFixture() (routeEnvelopeFixture, error) {
 	return fx, nil
 }
 
-func parseAgentProviderRouting(raw json.RawMessage) (agentProviderRoutingEnvelope, error) {
-	var rawEnvelope agentProviderRoutingRawEnvelope
+func parseBotProviderRouting(raw json.RawMessage) (botProviderRoutingEnvelope, error) {
+	var rawEnvelope botProviderRoutingRawEnvelope
 	if err := decodeStrictJSON(raw, "agentProviderRouting", &rawEnvelope); err != nil {
-		return agentProviderRoutingEnvelope{}, err
+		return botProviderRoutingEnvelope{}, err
 	}
-	agentID, err := requiredRawString(rawEnvelope.AgentID, "agentProviderRouting.agentId")
+	botID, err := requiredRawString(rawEnvelope.BotID, "agentProviderRouting.agentId")
 	if err != nil {
-		return agentProviderRoutingEnvelope{}, err
+		return botProviderRoutingEnvelope{}, err
 	}
-	if err := validateUtf8Budget(agentID, maxAgentIDBytes, "agentProviderRouting.agentId"); err != nil {
-		return agentProviderRoutingEnvelope{}, err
+	if err := validateUtf8Budget(botID, maxBotIDBytes, "agentProviderRouting.agentId"); err != nil {
+		return botProviderRoutingEnvelope{}, err
 	}
-	if !agentIDRE.MatchString(agentID) {
-		return agentProviderRoutingEnvelope{}, fmt.Errorf("agentProviderRouting.agentId: not an AgentId")
+	if !botIDRE.MatchString(botID) {
+		return botProviderRoutingEnvelope{}, fmt.Errorf("botProviderRouting.botId: not a BotId")
 	}
 	rawRoutes, err := requiredRawArray(rawEnvelope.Routes, "agentProviderRouting.routes")
 	if err != nil {
-		return agentProviderRoutingEnvelope{}, err
+		return botProviderRoutingEnvelope{}, err
 	}
-	if len(rawRoutes) > maxAgentProviderRoutes {
-		return agentProviderRoutingEnvelope{}, fmt.Errorf("agentProviderRouting.routes: exceeds %d entries (got %d)", maxAgentProviderRoutes, len(rawRoutes))
+	if len(rawRoutes) > maxBotProviderRoutes {
+		return botProviderRoutingEnvelope{}, fmt.Errorf("botProviderRouting.routes: exceeds %d entries (got %d)", maxBotProviderRoutes, len(rawRoutes))
 	}
 	seenKinds := map[string]bool{}
-	entries := make([]agentProviderRoutingEntry, 0, len(rawRoutes))
+	entries := make([]botProviderRoutingEntry, 0, len(rawRoutes))
 	for index, rawEntry := range rawRoutes {
 		path := fmt.Sprintf("agentProviderRouting.routes/%d", index)
-		entry, err := parseAgentProviderRoutingEntry(rawEntry, path)
+		entry, err := parseBotProviderRoutingEntry(rawEntry, path)
 		if err != nil {
-			return agentProviderRoutingEnvelope{}, err
+			return botProviderRoutingEnvelope{}, err
 		}
 		if seenKinds[entry.Kind] {
-			return agentProviderRoutingEnvelope{}, fmt.Errorf("%s.kind: duplicate route for kind %q", path, entry.Kind)
+			return botProviderRoutingEnvelope{}, fmt.Errorf("%s.kind: duplicate route for kind %q", path, entry.Kind)
 		}
 		seenKinds[entry.Kind] = true
 		entries = append(entries, entry)
@@ -629,53 +629,53 @@ func parseAgentProviderRouting(raw json.RawMessage) (agentProviderRoutingEnvelop
 	sort.SliceStable(entries, func(i, j int) bool {
 		return runnerKindOrder[entries[i].Kind] < runnerKindOrder[entries[j].Kind]
 	})
-	return agentProviderRoutingEnvelope{
-		AgentID: agentID,
+	return botProviderRoutingEnvelope{
+		BotID: botID,
 		Routes:  entries,
 	}, nil
 }
 
-func parseAgentProviderRoutingEntry(raw json.RawMessage, path string) (agentProviderRoutingEntry, error) {
-	var rawEntry agentProviderRoutingRawEntry
+func parseBotProviderRoutingEntry(raw json.RawMessage, path string) (botProviderRoutingEntry, error) {
+	var rawEntry botProviderRoutingRawEntry
 	if err := decodeStrictJSON(raw, path, &rawEntry); err != nil {
-		return agentProviderRoutingEntry{}, err
+		return botProviderRoutingEntry{}, err
 	}
 	kind, err := requiredRawString(rawEntry.Kind, path+".kind")
 	if err != nil {
-		return agentProviderRoutingEntry{}, err
+		return botProviderRoutingEntry{}, err
 	}
 	if !runnerKindSet[kind] {
-		return agentProviderRoutingEntry{}, fmt.Errorf("%s.kind: not a supported RunnerKind", path)
+		return botProviderRoutingEntry{}, fmt.Errorf("%s.kind: not a supported RunnerKind", path)
 	}
 	credentialScope, err := requiredRawString(rawEntry.CredentialScope, path+".credentialScope")
 	if err != nil {
-		return agentProviderRoutingEntry{}, err
+		return botProviderRoutingEntry{}, err
 	}
 	if err := validateUtf8Budget(credentialScope, maxCredentialScopeBytes, path+".credentialScope"); err != nil {
-		return agentProviderRoutingEntry{}, err
+		return botProviderRoutingEntry{}, err
 	}
 	if !credentialScopeSet[credentialScope] {
-		return agentProviderRoutingEntry{}, fmt.Errorf("%s.credentialScope: not a supported CredentialScope", path)
+		return botProviderRoutingEntry{}, fmt.Errorf("%s.credentialScope: not a supported CredentialScope", path)
 	}
 	providerKind, err := requiredRawString(rawEntry.ProviderKind, path+".providerKind")
 	if err != nil {
-		return agentProviderRoutingEntry{}, err
+		return botProviderRoutingEntry{}, err
 	}
 	if err := validateUtf8Budget(providerKind, maxCredentialScopeBytes, path+".providerKind"); err != nil {
-		return agentProviderRoutingEntry{}, err
+		return botProviderRoutingEntry{}, err
 	}
 	if !providerKindSet[providerKind] {
-		return agentProviderRoutingEntry{}, fmt.Errorf("%s.providerKind: not a supported ProviderKind", path)
+		return botProviderRoutingEntry{}, fmt.Errorf("%s.providerKind: not a supported ProviderKind", path)
 	}
-	return agentProviderRoutingEntry{
+	return botProviderRoutingEntry{
 		Kind:            kind,
 		CredentialScope: credentialScope,
 		ProviderKind:    providerKind,
 	}, nil
 }
 
-func validateAgentProviderRoutingAccepted(vec agentProviderRoutingAcceptedVector) error {
-	parsed, err := parseAgentProviderRouting(vec.Input)
+func validateBotProviderRoutingAccepted(vec botProviderRoutingAcceptedVector) error {
+	parsed, err := parseBotProviderRouting(vec.Input)
 	if err != nil {
 		return err
 	}
@@ -689,8 +689,8 @@ func validateAgentProviderRoutingAccepted(vec agentProviderRoutingAcceptedVector
 	return nil
 }
 
-func validateAgentProviderRoutingRejected(vec agentProviderRoutingRejectedVector) error {
-	_, err := parseAgentProviderRouting(vec.Input)
+func validateBotProviderRoutingRejected(vec botProviderRoutingRejectedVector) error {
+	_, err := parseBotProviderRouting(vec.Input)
 	if err == nil {
 		return fmt.Errorf("expected reject, got accept")
 	}
@@ -2292,7 +2292,7 @@ func validateSignedApprovalTokenRecord(record map[string]interface{}, path strin
 	if err != nil {
 		return err
 	}
-	if err := validateAgentID(issuedTo, path+"/issuedTo"); err != nil {
+	if err := validateBotID(issuedTo, path+"/issuedTo"); err != nil {
 		return err
 	}
 	signature, err := requiredObjectValue(record, "signature", path+"/signature")
@@ -2330,7 +2330,7 @@ func validateApprovalClaim(record map[string]interface{}, path string) (string, 
 	}
 	switch kind {
 	case "cost_spike_acknowledgement":
-		if err := validateAgentIDField(record, "agentId", path+"/agentId"); err != nil {
+		if err := validateBotIDField(record, "agentId", path+"/agentId"); err != nil {
 			return "", "", err
 		}
 		if err := validateCostCeilingIDField(record, "costCeilingId", path+"/costCeilingId"); err != nil {
@@ -2346,7 +2346,7 @@ func validateApprovalClaim(record map[string]interface{}, path string) (string, 
 			return "", "", err
 		}
 	case "endpoint_allowlist_extension":
-		if err := validateAgentIDField(record, "agentId", path+"/agentId"); err != nil {
+		if err := validateBotIDField(record, "agentId", path+"/agentId"); err != nil {
 			return "", "", err
 		}
 		providerKind, err := requiredStringValue(record, "providerKind", path+"/providerKind")
@@ -2363,7 +2363,7 @@ func validateApprovalClaim(record map[string]interface{}, path string) (string, 
 			return "", "", err
 		}
 	case "credential_grant_to_agent":
-		if err := validateAgentIDField(record, "granteeAgentId", path+"/granteeAgentId"); err != nil {
+		if err := validateBotIDField(record, "granteeAgentId", path+"/granteeAgentId"); err != nil {
 			return "", "", err
 		}
 		if err := validateCredentialHandleIDField(record, "credentialHandleId", path+"/credentialHandleId"); err != nil {
@@ -2428,14 +2428,14 @@ func validateApprovalScope(record map[string]interface{}, path string) (string, 
 	}
 	switch claimKind {
 	case "cost_spike_acknowledgement":
-		if err := validateAgentIDField(record, "agentId", path+"/agentId"); err != nil {
+		if err := validateBotIDField(record, "agentId", path+"/agentId"); err != nil {
 			return "", "", err
 		}
 		if err := validateCostCeilingIDField(record, "costCeilingId", path+"/costCeilingId"); err != nil {
 			return "", "", err
 		}
 	case "endpoint_allowlist_extension":
-		if err := validateAgentIDField(record, "agentId", path+"/agentId"); err != nil {
+		if err := validateBotIDField(record, "agentId", path+"/agentId"); err != nil {
 			return "", "", err
 		}
 		providerKind, err := requiredStringValue(record, "providerKind", path+"/providerKind")
@@ -2449,7 +2449,7 @@ func validateApprovalScope(record map[string]interface{}, path string) (string, 
 			return "", "", err
 		}
 	case "credential_grant_to_agent":
-		if err := validateAgentIDField(record, "granteeAgentId", path+"/granteeAgentId"); err != nil {
+		if err := validateBotIDField(record, "granteeAgentId", path+"/granteeAgentId"); err != nil {
 			return "", "", err
 		}
 		if err := validateCredentialHandleIDField(record, "credentialHandleId", path+"/credentialHandleId"); err != nil {
@@ -2581,20 +2581,20 @@ func validateWebAuthnAssertion(record map[string]interface{}, path string) error
 	return nil
 }
 
-func validateAgentIDField(record map[string]interface{}, key string, path string) error {
+func validateBotIDField(record map[string]interface{}, key string, path string) error {
 	value, err := requiredStringValue(record, key, path)
 	if err != nil {
 		return err
 	}
-	return validateAgentID(value, path)
+	return validateBotID(value, path)
 }
 
-func validateAgentID(value string, path string) error {
-	if err := validateUtf8Budget(value, maxAgentIDBytes, path); err != nil {
+func validateBotID(value string, path string) error {
+	if err := validateUtf8Budget(value, maxBotIDBytes, path); err != nil {
 		return err
 	}
-	if !agentIDRE.MatchString(value) {
-		return fmt.Errorf("%s: not an AgentId", path)
+	if !botIDRE.MatchString(value) {
+		return fmt.Errorf("%s: not a BotId", path)
 	}
 	return nil
 }
@@ -3115,15 +3115,15 @@ func validateRunnerSpawnRequest(record map[string]interface{}) error {
 	if !runnerKindSet[kind] {
 		return fmt.Errorf("runnerSpawnRequest.kind: unsupported RunnerKind")
 	}
-	agentID, err := requiredStringValue(record, "agentId", "runnerSpawnRequest.agentId")
+	botID, err := requiredStringValue(record, "agentId", "runnerSpawnRequest.agentId")
 	if err != nil {
 		return err
 	}
-	if err := validateUtf8Budget(agentID, maxAgentIDBytes, "runnerSpawnRequest.agentId"); err != nil {
+	if err := validateUtf8Budget(botID, maxBotIDBytes, "runnerSpawnRequest.agentId"); err != nil {
 		return err
 	}
-	if !agentIDRE.MatchString(agentID) {
-		return fmt.Errorf("runnerSpawnRequest.agentId: not an AgentId")
+	if !botIDRE.MatchString(botID) {
+		return fmt.Errorf("runnerSpawnRequest.botId: not a BotId")
 	}
 	credential, err := requiredObjectValue(record, "credential", "runnerSpawnRequest.credential")
 	if err != nil {
@@ -3453,15 +3453,15 @@ func validateCostEventEntry(record map[string]interface{}) error {
 	} else if ok && !ulidRE.MatchString(receiptID) {
 		return fmt.Errorf("runnerEvent.entry.receiptId: not a ReceiptId")
 	}
-	agentSlug, err := requiredStringValue(record, "agentSlug", "runnerEvent.entry.agentSlug")
+	botSlug, err := requiredStringValue(record, "agentSlug", "runnerEvent.entry.agentSlug")
 	if err != nil {
 		return err
 	}
-	if err := validateUtf8Budget(agentSlug, maxAgentIDBytes, "runnerEvent.entry.agentSlug"); err != nil {
+	if err := validateUtf8Budget(botSlug, maxBotIDBytes, "runnerEvent.entry.agentSlug"); err != nil {
 		return err
 	}
-	if !agentIDRE.MatchString(agentSlug) {
-		return fmt.Errorf("runnerEvent.entry.agentSlug: not an AgentSlug")
+	if !botIDRE.MatchString(botSlug) {
+		return fmt.Errorf("runnerEvent.entry.botSlug: not a BotSlug")
 	}
 	if taskID, ok, err := optionalString(record, "taskId", "runnerEvent.entry.taskId"); err != nil {
 		return err
@@ -3949,9 +3949,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "could not load runner fixture: %v\n", err)
 		os.Exit(2)
 	}
-	agentProviderRoutingFx, err := loadAgentProviderRoutingFixture()
+	botProviderRoutingFx, err := loadBotProviderRoutingFixture()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not load agent-provider-routing fixture: %v\n", err)
+		fmt.Fprintf(os.Stderr, "could not load bot-provider-routing fixture: %v\n", err)
 		os.Exit(2)
 	}
 	signedApprovalTokenFx, err := loadSignedApprovalTokenFixture()
@@ -3993,8 +3993,8 @@ func main() {
 	frozenMoatDisallowedRanges = moatFx.DisallowedRanges
 
 	fmt.Printf("%s@wuphf/protocol — Go reference verifier%s\n", colorBold, colorReset)
-	fmt.Printf("%sLoaded fixture schemaVersion=%d, %d audit-event vectors, %d merkle-root vectors, %d signed-approval-token accept vectors, %d signed-approval-token reject vectors, %d approval-request accept vectors, %d approval-request reject vectors, %d route-envelope accept vectors, %d route-envelope reject vectors, %d runner accept vectors, %d runner reject vectors, %d agent-provider-routing accept vectors, %d agent-provider-routing reject vectors, moat table Unicode %s (%d ranges, %d vectors), nfkc table Unicode %s (%d normalization vectors)%s\n\n",
-		colorDim, fx.SchemaVersion, len(fx.Vectors), len(fx.MerkleRootVectors), len(signedApprovalTokenFx.Accepted), len(signedApprovalTokenFx.Rejected), len(approvalRequestFx.Accepted), len(approvalRequestFx.Rejected), len(routeEnvelopeFx.Accepted), len(routeEnvelopeFx.Rejected), len(runnerFx.Vectors), len(runnerFx.RejectVectors), len(agentProviderRoutingFx.Accepted), len(agentProviderRoutingFx.Rejected), moatFx.UnicodeVersion, len(moatFx.DisallowedRanges), len(moatFx.ClassificationVectors), nfkcFx.UnicodeVersion, len(nfkcFx.NormalizationVectors), colorReset)
+	fmt.Printf("%sLoaded fixture schemaVersion=%d, %d audit-event vectors, %d merkle-root vectors, %d signed-approval-token accept vectors, %d signed-approval-token reject vectors, %d approval-request accept vectors, %d approval-request reject vectors, %d route-envelope accept vectors, %d route-envelope reject vectors, %d runner accept vectors, %d runner reject vectors, %d bot-provider-routing accept vectors, %d bot-provider-routing reject vectors, moat table Unicode %s (%d ranges, %d vectors), nfkc table Unicode %s (%d normalization vectors)%s\n\n",
+		colorDim, fx.SchemaVersion, len(fx.Vectors), len(fx.MerkleRootVectors), len(signedApprovalTokenFx.Accepted), len(signedApprovalTokenFx.Rejected), len(approvalRequestFx.Accepted), len(approvalRequestFx.Rejected), len(routeEnvelopeFx.Accepted), len(routeEnvelopeFx.Rejected), len(runnerFx.Vectors), len(runnerFx.RejectVectors), len(botProviderRoutingFx.Accepted), len(botProviderRoutingFx.Rejected), moatFx.UnicodeVersion, len(moatFx.DisallowedRanges), len(moatFx.ClassificationVectors), nfkcFx.UnicodeVersion, len(nfkcFx.NormalizationVectors), colorReset)
 
 	failed := 0
 
@@ -4095,22 +4095,22 @@ func main() {
 		fmt.Printf("  %sPASS%s runner/%s rejected\n", colorGreen, colorReset, vec.Name)
 	}
 
-	for _, vec := range agentProviderRoutingFx.Accepted {
-		if err := validateAgentProviderRoutingAccepted(vec); err != nil {
-			fmt.Printf("  %sFAIL%s agent-provider-routing/%s: expected accept, got %v\n", colorRed, colorReset, vec.Name, err)
+	for _, vec := range botProviderRoutingFx.Accepted {
+		if err := validateBotProviderRoutingAccepted(vec); err != nil {
+			fmt.Printf("  %sFAIL%s bot-provider-routing/%s: expected accept, got %v\n", colorRed, colorReset, vec.Name, err)
 			failed++
 			continue
 		}
-		fmt.Printf("  %sPASS%s agent-provider-routing/%s accepted\n", colorGreen, colorReset, vec.Name)
+		fmt.Printf("  %sPASS%s bot-provider-routing/%s accepted\n", colorGreen, colorReset, vec.Name)
 	}
 
-	for _, vec := range agentProviderRoutingFx.Rejected {
-		if err := validateAgentProviderRoutingRejected(vec); err != nil {
-			fmt.Printf("  %sFAIL%s agent-provider-routing/%s: %v\n", colorRed, colorReset, vec.Name, err)
+	for _, vec := range botProviderRoutingFx.Rejected {
+		if err := validateBotProviderRoutingRejected(vec); err != nil {
+			fmt.Printf("  %sFAIL%s bot-provider-routing/%s: %v\n", colorRed, colorReset, vec.Name, err)
 			failed++
 			continue
 		}
-		fmt.Printf("  %sPASS%s agent-provider-routing/%s rejected\n", colorGreen, colorReset, vec.Name)
+		fmt.Printf("  %sPASS%s bot-provider-routing/%s rejected\n", colorGreen, colorReset, vec.Name)
 	}
 
 	for _, vec := range signedApprovalTokenFx.Accepted {
@@ -4181,8 +4181,8 @@ func main() {
 		len(routeEnvelopeFx.Rejected) +
 		len(runnerFx.Vectors) +
 		len(runnerFx.RejectVectors) +
-		len(agentProviderRoutingFx.Accepted) +
-		len(agentProviderRoutingFx.Rejected) +
+		len(botProviderRoutingFx.Accepted) +
+		len(botProviderRoutingFx.Rejected) +
 		len(moatFx.ClassificationVectors) +
 		len(nfkcFx.NormalizationVectors)
 	if failed == 0 {

@@ -1,11 +1,11 @@
 /**
- * TaskCommentCard — chat card emitted when a human (or agent) leaves a
+ * TaskCommentCard — chat card emitted when a human (or bot) leaves a
  * PR-style comment on a Task via POST /tasks/{id}/comment.
  *
  * The broker posts a system-authored message (Kind="issue_comment") into
  * the channel where the Task lives. Without a dedicated card, that
  * message rendered as a plain markdown chat bubble — which made the
- * comment text look like a direct chat ask, prompting the woken agent
+ * comment text look like a direct chat ask, prompting the woken bot
  * to act on it rather than reply to the thread on the Task.
  *
  * This card surfaces the comment as a clear "this happened on Task X"

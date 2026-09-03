@@ -20,7 +20,7 @@ import { formatVersion } from "./upgradeBanner.utils";
 
 /**
  * Bottom status bar mirroring the legacy IIFE: shows the active channel/app,
- * mode (office vs 1:1), agent count, broker connection, and runtime provider.
+ * mode (office vs 1:1), bot count, broker connection, and runtime provider.
  */
 export function StatusBar() {
   const route = useCurrentRoute();
@@ -74,7 +74,7 @@ export function StatusBar() {
       refetchOnWindowFocus: false,
     });
 
-  const agentCount = members.filter(
+  const botCount = members.filter(
     (m) =>
       m.slug && m.slug !== "human" && m.slug !== "you" && m.slug !== "system",
   ).length;
@@ -105,7 +105,7 @@ export function StatusBar() {
       case "task-new":
         return "New task";
       case "agents":
-        return "Agents";
+        return "Bots";
       case "agent-detail":
         return `@${route.agentSlug}`;
       case "skill-detail":
@@ -173,7 +173,7 @@ export function StatusBar() {
         <span>shortcuts</span>
       </button>
       <span className="status-bar-item">
-        {agentCount} agent{agentCount === 1 ? "" : "s"}
+        {botCount} bot{botCount === 1 ? "" : "s"}
       </span>
       {provider ? (
         <span

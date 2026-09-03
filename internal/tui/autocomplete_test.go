@@ -10,7 +10,7 @@ import (
 var testCommands = []SlashCommand{
 	{Name: "help", Description: "Show help", Category: "general"},
 	{Name: "history", Description: "Show history", Category: "general"},
-	{Name: "agents", Description: "List agents", Category: "team"},
+	{Name: "bots", Description: "List bots", Category: "team"},
 	{Name: "clear", Description: "Clear screen", Category: "general"},
 }
 

@@ -22,7 +22,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export function useKeyboardShortcuts() {
   const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
   const setSearchOpen = useAppStore((s) => s.setSearchOpen);
-  const setActiveAgentSlug = useAppStore((s) => s.setActiveAgentSlug);
+  const setActiveBotSlug = useAppStore((s) => s.setActiveBotSlug);
   const setActiveThread = useAppStore((s) => s.setActiveThread);
   const setComposerHelpOpen = useAppStore((s) => s.setComposerHelpOpen);
   const queryClient = useQueryClient();
@@ -109,8 +109,8 @@ export function useKeyboardShortcuts() {
           setSearchOpen(false);
           return;
         }
-        if (state.activeAgentSlug) {
-          setActiveAgentSlug(null);
+        if (state.activeBotSlug) {
+          setActiveBotSlug(null);
           return;
         }
         if (state.activeThread) {
@@ -125,7 +125,7 @@ export function useKeyboardShortcuts() {
   }, [
     setCommandPaletteOpen,
     setSearchOpen,
-    setActiveAgentSlug,
+    setActiveBotSlug,
     setActiveThread,
     setComposerHelpOpen,
     queryClient,

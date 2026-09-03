@@ -43,7 +43,7 @@ Make the memory workflow gate semantically honest: every task with an owner gets
 **Gate satisfaction API (all acquire `b.mu`):**
 - `internal/team/broker_tasks_memory_workflow.go:14–36` — `Broker.RecordTaskMemoryLookup`: acquires `b.mu`, finds the task, calls `recordMemoryWorkflowLookup`, calls `saveLocked`.
 - `internal/team/broker_tasks_memory_workflow.go:38–76` — `Broker.RecordTaskMemoryCapture` / `Broker.RecordTaskMemoryPromotion` / `Broker.recordTaskMemoryArtifact`: all acquire `b.mu` unconditionally.
-- `internal/team/broker_tasks_memory_workflow.go:78–179` — `Broker.handleTaskMemoryWorkflow`: the HTTP handler used by MCP tools that call the gate from agent-side.
+- `internal/team/broker_tasks_memory_workflow.go:78–179` — `Broker.handleTaskMemoryWorkflow`: the HTTP handler used by MCP tools that call the gate from bot-side.
 
 **Async write pattern (PR 1, the template for PR 8):**
 - `internal/team/auto_notebook_writer.go` — `AutoNotebookWriter`: buffered-chan async writer. `Handle` is a non-blocking enqueue; `process` runs in a dedicated goroutine with no lock acquisition on `b.mu`. This is the correct model for any gate-satisfaction call that cannot hold `b.mu`.
@@ -55,7 +55,7 @@ Make the memory workflow gate semantically honest: every task with an owner gets
 - `internal/team/memory_workflow_reconciler.go:245–283` — `Broker.ReconcileMemoryWorkflows`: snapshot-under-lock, reconcile-without-lock, write-back-under-lock pattern. Safe against the deadlock because reconcile work runs outside `b.mu`.
 
 **Notebook search (the lookup backend):**
-- `internal/team/notebook_worker.go:224–280` — `WikiWorker.NotebookSearch`: literal substring search scoped to a single agent's shelf (`agents/{slug}/notebook/`). Has its own mutex inside `WikiWorker`, independent of `b.mu`.
+- `internal/team/notebook_worker.go:224–280` — `WikiWorker.NotebookSearch`: literal substring search scoped to a single bot's shelf (`agents/{slug}/notebook/`). Has its own mutex inside `WikiWorker`, independent of `b.mu`.
 - `internal/team/broker_notebook.go:439–490` — `Broker.handleNotebookSearch`: HTTP handler. Calls `wikiWorker.NotebookSearch` outside `b.mu`.
 - `internal/team/broker_streams.go:324–330` — `Broker.WikiIndex`: accessor for the `*WikiIndex`. Returns under `b.mu` but the index itself has its own internal mutex.
 
@@ -65,7 +65,7 @@ Make the memory workflow gate semantically honest: every task with an owner gets
 
 The deadlock scenario, step by step:
 
-1. An HTTP request (agent turn) enters `Broker.PostMessage` at `broker_messages.go:393`.
+1. An HTTP request (bot turn) enters `Broker.PostMessage` at `broker_messages.go:393`.
 2. `PostMessage` calls `b.mu.Lock()` at line 393 and holds it for the function's entire body via `defer b.mu.Unlock()`.
 3. Inside that critical section, `PostMessage` calls `b.autoNotebookWriter.Handle(...)` at line 443. `Handle` does a non-blocking channel send and returns immediately — no additional lock acquired. Safe.
 4. Now suppose the original PR 8 design had placed a `b.RecordTaskMemoryCapture(...)` call inside `AutoNotebookWriter.process`. The drain goroutine calls `RecordTaskMemoryCapture` → `recordTaskMemoryArtifact` at `broker_tasks_memory_workflow.go:52` → `b.mu.Lock()`.
@@ -88,9 +88,9 @@ The gate's `Required` field is widened: every task with a non-empty `Owner` sati
 
 ### Lookup
 
-**Trigger:** every MCP `notebook_search` call from an agent that has an active gated task.
+**Trigger:** every MCP `notebook_search` call from a bot that has an active gated task.
 
-**Mechanism:** `Broker.handleNotebookSearch` (`broker_notebook.go:443`) is the HTTP entry point for agent-side `notebook_search` tool calls. After the search completes, if the request carries a non-empty `X-WUPHF-Task-ID` header (or a `task_id` body field), the handler calls `b.RecordTaskMemoryLookup(taskID, actor, query, citations)`. This call is already correct: `handleNotebookSearch` does not hold `b.mu` when it runs (it is an HTTP handler that acquires the lock only briefly to fetch the wiki worker, then releases it before doing search work). `RecordTaskMemoryLookup` acquires `b.mu` internally, which is safe at this point.
+**Mechanism:** `Broker.handleNotebookSearch` (`broker_notebook.go:443`) is the HTTP entry point for bot-side `notebook_search` tool calls. After the search completes, if the request carries a non-empty `X-WUPHF-Task-ID` header (or a `task_id` body field), the handler calls `b.RecordTaskMemoryLookup(taskID, actor, query, citations)`. This call is already correct: `handleNotebookSearch` does not hold `b.mu` when it runs (it is an HTTP handler that acquires the lock only briefly to fetch the wiki worker, then releases it before doing search work). `RecordTaskMemoryLookup` acquires `b.mu` internally, which is safe at this point.
 
 **Output:** `MemoryWorkflow.Citations` is populated; `refreshMemoryWorkflowStepStatus` marks `wf.Lookup.Status = satisfied` on the next reconcile pass.
 
@@ -98,7 +98,7 @@ The gate's `Required` field is widened: every task with a non-empty `Owner` sati
 
 **What changes:** add `task_id` field to the `NotebookSearchRequest` type; thread it through `handleNotebookSearch` to the `RecordTaskMemoryLookup` call site. No new types or goroutines.
 
-**Invariant:** if an agent never calls `notebook_search` on a task, the lookup step stays `pending`. That is acceptable: the reconciler can auto-satisfy lookup for tasks where the auto-notebook writer has already written a matching entry (see Capture below), by treating the existence of a notebook entry for the task as implicit evidence a lookup occurred.
+**Invariant:** if a bot never calls `notebook_search` on a task, the lookup step stays `pending`. That is acceptable: the reconciler can auto-satisfy lookup for tasks where the auto-notebook writer has already written a matching entry (see Capture below), by treating the existence of a notebook entry for the task as implicit evidence a lookup occurred.
 
 ### Capture
 
@@ -126,7 +126,7 @@ type memoryCaptureSink interface {
 
 ### Promote
 
-**Trigger:** cumulative demand score crosses threshold (PR 3 demand pipeline) OR agent explicitly calls `notebook_promote` MCP tool (existing PR 3+7 path).
+**Trigger:** cumulative demand score crosses threshold (PR 3 demand pipeline) OR bot explicitly calls `notebook_promote` MCP tool (existing PR 3+7 path).
 
 **Mechanism:** no change in PR 8. The existing `handleNotebookPromote` → `ReviewLog` → promotion state path already calls `RecordTaskMemoryPromotion` when a promotion completes. The reconciler's `repairPromotionsFromCapture` (`memory_workflow_reconciler.go:158`) also auto-populates promotion artifacts from matching captures found in `ReviewLog`. PR 8 does not add a new promote auto-satisfaction path.
 
@@ -147,17 +147,17 @@ func (w *AutoNotebookWriter) process(ctx context.Context, evt autoNotebookEvent)
 }
 ```
 
-`PostMessage` (broker_messages.go:393) holds `b.mu` via `defer b.mu.Unlock()` for the entire function body, which includes calling `b.autoNotebookWriter.Handle(...)`. `Handle` enqueues the event. Later, `AutoNotebookWriter.process` runs in its own goroutine, no lock held. If `process` calls `RecordTaskMemoryCapture`, that function acquires `b.mu` at `broker_tasks_memory_workflow.go:52`. If `PostMessage` is still in its critical section on another goroutine (or any other `b.mu`-holding path is active), `process` blocks waiting for the lock. Since `PostMessage` will eventually release and `process` will eventually acquire, this is not a textbook deadlock in the single-path case. However: if the broker is under high concurrency with many agents posting simultaneously, `process` can be starved; more critically, if the reconciler loop (`memory_workflow_reconciler.go:246`) or any other path calls `RecordTaskMemoryCapture` while also holding something `process` is waiting for, a real cycle forms. The deferred-channel pattern eliminates the ambiguity entirely by ensuring `process` never acquires `b.mu`.
+`PostMessage` (broker_messages.go:393) holds `b.mu` via `defer b.mu.Unlock()` for the entire function body, which includes calling `b.autoNotebookWriter.Handle(...)`. `Handle` enqueues the event. Later, `AutoNotebookWriter.process` runs in its own goroutine, no lock held. If `process` calls `RecordTaskMemoryCapture`, that function acquires `b.mu` at `broker_tasks_memory_workflow.go:52`. If `PostMessage` is still in its critical section on another goroutine (or any other `b.mu`-holding path is active), `process` blocks waiting for the lock. Since `PostMessage` will eventually release and `process` will eventually acquire, this is not a textbook deadlock in the single-path case. However: if the broker is under high concurrency with many bots posting simultaneously, `process` can be starved; more critically, if the reconciler loop (`memory_workflow_reconciler.go:246`) or any other path calls `RecordTaskMemoryCapture` while also holding something `process` is waiting for, a real cycle forms. The deferred-channel pattern eliminates the ambiguity entirely by ensuring `process` never acquires `b.mu`.
 
 ---
 
 ## What changes vs PRs 1–7
 
 **Already shipped (PRs 1–7):**
-- PR 1: `AutoNotebookWriter` drains broker events into per-agent notebook entries. `emitTaskTransitionAutoNotebook` is the task-transition hook. `PostMessage` has the `Handle` call. `autoNotebookEvent.TaskID` is already populated for task-transition events.
+- PR 1: `AutoNotebookWriter` drains broker events into per-bot notebook entries. `emitTaskTransitionAutoNotebook` is the task-transition hook. `PostMessage` has the `Handle` call. `autoNotebookEvent.TaskID` is already populated for task-transition events.
 - PR 2: human "remember" intent classifier → `team_wiki_write` direct path. No memory workflow gate interaction.
 - PRs 3–6: demand pipeline, promotion ranking, channel intent, hourly sweep. These feed the promote step via `ReviewLog` and `notebook_promote`.
-- PR 7: prompt-side reinforcement — agents are instructed to call `notebook_search` with a task_id. Prompt matches the system contract PR 8 makes real.
+- PR 7: prompt-side reinforcement — bots are instructed to call `notebook_search` with a task_id. Prompt matches the system contract PR 8 makes real.
 
 **PR 8 adds:**
 
@@ -179,9 +179,9 @@ Nothing in PRs 1–7 is removed or changed except the additive `task_id` field i
 
 2. **Widening `Required: true` surfaces pending gates on old tasks.** Tasks created before PR 8 that have already completed will suddenly show `MemoryWorkflow.Status = pending` after the `memoryWorkflowRequirementForTask` change is deployed. Mitigation: the reconciler's `syncTaskMemoryWorkflow` call already runs on every reconcile tick; it will populate the gate for old tasks. For tasks that are already `done` in the task list, add a guard: `memoryWorkflowRequirementForTask` returns `Required: false` if `task.Status == "done"` and `task.MemoryWorkflow == nil` (i.e., the gate was never initialized, meaning the task predates PR 8). New completed tasks get the gate initialized at creation time and auto-satisfied before completion.
 
-3. **Agent never calls `notebook_search` on a short task.** The lookup step stays pending. Mitigation: the reconciler auto-satisfies lookup for any task whose `MemoryWorkflow.Captures` is non-empty by treating "capture happened" as evidence that a search occurred (implicit lookup). Specifically: `repairTaskWorkflow` can be extended to call `recordMemoryWorkflowLookup` with a synthetic `ContextCitation` pointing at the capture artifact's path when `wf.Captures` is non-empty and `wf.Citations` is empty.
+3. **Bot never calls `notebook_search` on a short task.** The lookup step stays pending. Mitigation: the reconciler auto-satisfies lookup for any task whose `MemoryWorkflow.Captures` is non-empty by treating "capture happened" as evidence that a search occurred (implicit lookup). Specifically: `repairTaskWorkflow` can be extended to call `recordMemoryWorkflowLookup` with a synthetic `ContextCitation` pointing at the capture artifact's path when `wf.Captures` is non-empty and `wf.Citations` is empty.
 
-4. **`task_id` absent from `notebook_search` call.** The MCP tool does not require it. Agents that do not pass it get no lookup step satisfaction from the HTTP path. Mitigation: the PR 7 prompt instructions already include the `task_id` guidance; the reconciler implicit-lookup path (failure mode 3 above) covers the rest. This is belt-and-suspenders: lookup satisfaction via two paths.
+4. **`task_id` absent from `notebook_search` call.** The MCP tool does not require it. Bots that do not pass it get no lookup step satisfaction from the HTTP path. Mitigation: the PR 7 prompt instructions already include the `task_id` guidance; the reconciler implicit-lookup path (failure mode 3 above) covers the rest. This is belt-and-suspenders: lookup satisfaction via two paths.
 
 5. **Reconciler write-back clobbers a concurrent capture.** `ReconcileMemoryWorkflows` does a snapshot-outside-lock, reconcile, then `reconciledTaskNewer` check before write-back. If a `RecordTaskMemoryCapture` landed between snapshot and write-back, `reconciledTaskNewer` compares `UpdatedAt` timestamps. The capture write is more recent; write-back is skipped for that task. Correct behavior already in the existing reconciler logic.
 
@@ -216,15 +216,15 @@ All new tests live in `internal/team/` following the existing table-driven Go te
 ## Out of scope (deferred)
 
 - **LLM-gated capture classifier.** PR 8 uses the notebook write itself as the capture signal; there is no LLM call to judge whether a tool result is "worth capturing." A future pass can add a classifier that gates the `captureSignalCh` send on a lightweight LLM quality check.
-- **Per-tool whitelist for capture.** Every successful notebook write triggers a capture signal regardless of which MCP tool caused the agent's turn. Start with this wide coverage; tune based on production signal-to-noise (the same metric TODO #18 will surface).
-- **Cross-agent lookup.** The lookup hook in `handleNotebookSearch` covers searches within the calling agent's own shelf. Cross-agent lookup (agent A searching agent B's shelf) is what PR 5's channel intent classifier handles on the demand side. PR 8's lookup hook applies to any `notebook_search` call regardless of whose shelf is searched — the `task_id` threading is agnostic to scope. Cross-agent lookup satisfaction therefore falls out for free as long as the calling agent passes `task_id`.
+- **Per-tool whitelist for capture.** Every successful notebook write triggers a capture signal regardless of which MCP tool caused the bot's turn. Start with this wide coverage; tune based on production signal-to-noise (the same metric TODO #18 will surface).
+- **Cross-bot lookup.** The lookup hook in `handleNotebookSearch` covers searches within the calling bot's own shelf. Cross-bot lookup (bot A searching bot B's shelf) is what PR 5's channel intent classifier handles on the demand side. PR 8's lookup hook applies to any `notebook_search` call regardless of whose shelf is searched — the `task_id` threading is agnostic to scope. Cross-bot lookup satisfaction therefore falls out for free as long as the calling bot passes `task_id`.
 - **`MemoryWorkflowStatusSatisfied` as a task-completion gate.** Today, a task's `done` status does not block on `MemoryWorkflow.Status`. PR 8 does not change this. A future enforcement pass can add a pre-completion check that refuses a `done` transition if `MemoryWorkflow.Status != satisfied` (with an override escape hatch via `MemoryWorkflowOverride`).
 
 ---
 
 ## Open questions for eng review
 
-1. **Implicit lookup via capture — correct or too loose?** Failure mode 3 proposes auto-satisfying lookup when captures are present. This is pragmatic but conflates "the agent wrote a notebook entry" with "the agent searched before writing." Is there a cleaner invariant — e.g., require that at least one `notebook_search` call happened with this `task_id` before allowing implicit satisfaction, and surface a separate `lookup_skipped` state?
+1. **Implicit lookup via capture — correct or too loose?** Failure mode 3 proposes auto-satisfying lookup when captures are present. This is pragmatic but conflates "the bot wrote a notebook entry" with "the bot searched before writing." Is there a cleaner invariant — e.g., require that at least one `notebook_search` call happened with this `task_id` before allowing implicit satisfaction, and surface a separate `lookup_skipped` state?
 
 2. **`captureSignalCh` capacity.** The event queue uses 256 (decision 6A, based on "minutes of headroom under burst"). The capture channel is downstream of writes, not messages, so its burst rate is lower. 64 is proposed. Is there a principled way to derive this from the event queue depth and write throughput, or should it match 256 for symmetry?
 

@@ -15,12 +15,12 @@ import { ThinkingLoader } from "../ui/ThinkingLoader";
  *
  * Beyond "who is composing", the deeper requirement (vs a fragile
  * phrase-triggered skeleton) is that the user always knows WHAT is happening
- * across a long (~100s) turn: the broker pushes a per-agent progress detail
+ * across a long (~100s) turn: the broker pushes a per-bot progress detail
  * (`liveActivity`/`task`/`activity`/`detail`, fed by the headless runner's
- * thinking/tool_use/text states), so when exactly one agent is active we
+ * thinking/tool_use/text states), so when exactly one bot is active we
  * surface it ("scoping issue", "drafting figure", "writing article") next to
  * the typing label. Falls back to the classic typing bubble when no detail is
- * available, so the indicator never goes silent while an agent is active.
+ * available, so the indicator never goes silent while a bot is active.
  */
 export function TypingIndicator({ channel }: { channel?: string } = {}) {
   const route = useCurrentRoute();
@@ -51,12 +51,12 @@ export function TypingIndicator({ channel }: { channel?: string } = {}) {
       ? names[0]
       : names.length <= 3
         ? names.join(", ")
-        : `${names.length} agents`;
+        : `${names.length} bots`;
   const verb = names.length === 1 ? "is typing" : "are typing";
   // buildLabel carries the canonical "X is typing..." accessible label so the
   // loader's screen-reader text and aria-label stay stable across surfaces.
   const label = buildLabel(active);
-  // Live per-agent progress detail (single active agent only) surfaced next to
+  // Live per-bot progress detail (single active bot only) surfaced next to
   // the typing verb so the user sees WHAT is happening, not just WHO.
   const detail = resolveProgressDetail(active);
 
@@ -119,7 +119,7 @@ function buildLabel(active: ReadonlyArray<OfficeMember>): string {
   const names = active.map((m) => m.name || m.slug);
   if (names.length === 1) return `${names[0]} is typing...`;
   if (names.length <= 3) return `${names.join(", ")} are typing...`;
-  return `${names.length} agents are typing...`;
+  return `${names.length} bots are typing...`;
 }
 
 /**
@@ -129,8 +129,8 @@ function buildLabel(active: ReadonlyArray<OfficeMember>): string {
  * progress string) wins, then the active `task`, then `activity`, then the
  * lower-level `detail`.
  *
- * When exactly one agent is active we show its detail; with several active
- * we suppress it to avoid implying one agent's progress is shared.
+ * When exactly one bot is active we show its detail; with several active
+ * we suppress it to avoid implying one bot's progress is shared.
  *
  * The raw broker string can carry runtime internals — tool-call JSON
  * ('[{"tool_name":"mcp__…","type":"tool_reference"}]'), MCP tool ids,

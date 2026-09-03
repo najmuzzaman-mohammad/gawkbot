@@ -100,10 +100,10 @@ easy to recognize before repeating the bug.
    Discipline: Hard rule #2 requires golden vectors, and audit-chain changes
    must also run the independent Go reference verifier.
 
-8. **Sub-agent prompt completeness**
+8. **Sub-bot prompt completeness**
 
-   Failure mode: delegated agents needed a second pass when the prompt omitted
-   the AGENTS path, ambiguity options, verification commands, or disposition
+   Failure mode: delegated bots needed a second pass when the prompt omitted
+   the BOTS path, ambiguity options, verification commands, or disposition
    format.
 
    ```text
@@ -112,7 +112,7 @@ easy to recognize before repeating the bug.
    Missing: FIXED / SKIPPED+reason / DEFERRED+issue and exact checks run.
    ```
 
-   Discipline: Hard rule #12 requires self-contained sub-agent prompts with
+   Discipline: Hard rule #12 requires self-contained sub-bot prompts with
    hard rules quoted, checks named, scope bounded, and dispositions specified.
 
 9. **Sustainability dimension**
@@ -131,7 +131,7 @@ easy to recognize before repeating the bug.
 
 10. **Cherry-pick conflict patterns**
 
-    Failure mode: parallel agents touching the same file produced predictable
+    Failure mode: parallel bots touching the same file produced predictable
     cherry-pick conflicts during integration.
 
     ```text

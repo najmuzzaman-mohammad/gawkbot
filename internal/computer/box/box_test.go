@@ -172,7 +172,7 @@ func TestRunWakesArchivedBoxViaProxyPath(t *testing.T) {
 	}
 	last := api.commands[len(api.commands)-1]
 	if !strings.HasPrefix(last, "exec env -i") || !strings.Contains(last, "'echo hi'") {
-		t.Fatalf("agent commands must run in the isolated env: %s", last)
+		t.Fatalf("bot commands must run in the isolated env: %s", last)
 	}
 }
 

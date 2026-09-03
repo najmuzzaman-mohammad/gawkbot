@@ -27,9 +27,9 @@ func TestClassifyHumanWikiIntent_Matches(t *testing.T) {
 		},
 		{
 			name:      "save to wiki imperative",
-			body:      "save to wiki: our ICP is founders running 3+ AI agents",
+			body:      "save to wiki: our ICP is founders running 3+ AI bots",
 			wantKind:  HumanWikiIntentWriteKB,
-			wantTopic: "our icp is founders running 3+ ai agents",
+			wantTopic: "our icp is founders running 3+ ai bots",
 		},
 		{
 			name:      "save to KB",
@@ -129,7 +129,7 @@ func TestClassifyHumanWikiIntent_NoMatch(t *testing.T) {
 		{"empty body", ""},
 		{"whitespace", "   \n\t  "},
 		{"historical remember", "remember when we shipped the auth PR last quarter"},
-		{"agent technical output", "running go build... done."},
+		{"bot technical output", "running go build... done."},
 		{"remember inside code fence", "```\nremember this: foo\n```\nlook above"},
 		{"remember inside backticks", "the function is `remember this` from utils"},
 		{"plain mention of wiki", "should we wiki this later? maybe."},

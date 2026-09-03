@@ -6,8 +6,8 @@ Always read this file before making any visual or UI decisions on notebooks. If 
 
 ## Product Context
 
-- **What this is:** per-agent draft workspace. Agents write half-baked thoughts, working notes, and draft playbooks in their notebooks before anything is reviewed and promoted to the canonical team wiki.
-- **Who it's for:** the same Claude-Pro/Max power users running 3+ agents on WUPHF. Notebooks give agents (and humans) a focus space without polluting team context.
+- **What this is:** per-bot draft workspace. Bots write half-baked thoughts, working notes, and draft playbooks in their notebooks before anything is reviewed and promoted to the canonical team wiki.
+- **Who it's for:** the same Claude-Pro/Max power users running 3+ bots on WUPHF. Notebooks give bots (and humans) a focus space without polluting team context.
 - **Memorable thing:** *"This feels like my engineering notebook. Draft, then promote."* Every design decision should serve this.
 - **Project type:** In-app working surface. Two-column layout with a clear "this is a draft" posture.
 - **Relationship to wiki:** same git/markdown substrate, opposite editorial posture. Wiki = canonical reference. Notebook = working draft. Promotion is the review gate between them.
@@ -127,18 +127,18 @@ Do NOT use Caveat for: article body, H2/H3 section headings inside body, app bar
 ## Information Architecture Primitives
 
 ### `/notebooks` catalog (bookshelf)
-Vertical stack of agent shelves. One row per agent in the team. Each row:
-- Large agent pixel avatar (28×28, `image-rendering: pixelated`)
+Vertical stack of bot shelves. One row per bot in the team. Each row:
+- Large bot pixel avatar (28×28, `image-rendering: pixelated`)
 - Author name in Caveat ("PM's notebook", 24px)
-- Role subtitle in system-ui ("Product Manager · agent")
+- Role subtitle in system-ui ("Product Manager · bot")
 - Last 3-5 entries in a horizontal mini-shelf: each entry is a small card with entry title (Plex Serif, 13px) + relative timestamp + draft/promoted badge
 - Right-aligned mono stats per shelf: `12 entries · 3 promoted · updated 2h ago`
 - Separator: horizontal dashed ruled line in `--nb-border-light`
 
 Header: Caveat "Team notebooks" (36px). Right-aligned mono: `6 agents · 42 entries · 3 pending promotion`.
 
-### `/notebooks/{agent-slug}` agent view
-Left sidebar: the agent's author-shelf (now primary, full-height, reverse-chron dated log grouped by date headers). Right: their most recent entry rendered in full (or a landing prompt if no entries).
+### `/notebooks/{agent-slug}` bot view
+Left sidebar: the bot's author-shelf (now primary, full-height, reverse-chron dated log grouped by date headers). Right: their most recent entry rendered in full (or a landing prompt if no entries).
 
 ### Entry article view
 The surface demonstrated in `variant-A-physical.html`. Ruled paper, Caveat title, Plex Serif body, sticky byline-strip with DRAFT pill, rotated red DRAFT stamp at top-right (absolute, does NOT repeat on scroll).
@@ -165,7 +165,7 @@ The surface demonstrated in `variant-A-physical.html`. Ruled paper, Caveat title
 Accessibility: `role="img" aria-label="Draft entry, not yet reviewed"`. Critical — without this, screen readers miss the most important state signal.
 
 ### Byline strip (sticky on scroll)
-Agent pixel avatar + DRAFT pill (system-ui, uppercase, 10px, red bg) + agent name + timestamp meta. Sticky-top-46px so the DRAFT pill remains visible as the user scrolls past the fixed DRAFT stamp.
+Bot pixel avatar + DRAFT pill (system-ui, uppercase, 10px, red bg) + bot name + timestamp meta. Sticky-top-46px so the DRAFT pill remains visible as the user scrolls past the fixed DRAFT stamp.
 
 ### Marginalia (right-gutter callouts for Q/NEXT)
 Caveat-font callouts anchored in the right gutter relative to the content they annotate. Ink-blue color. Each callout has a small inline tag ("Q:", "Next:", "TODO:"). At < 768px width, marginalia collapse to inline Callout blocks within the body.
@@ -213,7 +213,7 @@ Minimal-functional. Three moments.
 |---|---|---|---|
 | Promotion submitted | 300ms | ease-out | Button → pending-pill state change |
 | Review approval / rejection | 200ms | ease-out | Reviewer action; entry sidebar badge transitions |
-| Live draft-being-edited pulse | 1800ms infinite | ease-in-out | When another agent is actively editing this entry (rare but possible for shared notebooks in v1.2) |
+| Live draft-being-edited pulse | 1800ms infinite | ease-in-out | When another bot is actively editing this entry (rare but possible for shared notebooks in v1.2) |
 
 No scroll-driven animations. No parallax. No entrance animations on page load. Respect `prefers-reduced-motion`.
 
@@ -269,13 +269,13 @@ reviewer_paths:
   team/customers/**: pm
 ```
 
-When an agent promotes a notebook entry:
+When a bot promotes a notebook entry:
 1. Check `reviewer_paths` for a match against the proposed wiki path. First match wins.
 2. Fall back to `default_reviewer`.
 3. Fall back to `ceo` if no blueprint-level config exists.
 4. Author can override on submit (dropdown next to the Promote button).
 
-`human-only` disables agent approval — promotion sits in `Pending` until a human clicks Approve.
+`human-only` disables bot approval — promotion sits in `Pending` until a human clicks Approve.
 
 ## Promotion Artifact (Pass 7.3 decision)
 
@@ -355,19 +355,19 @@ The following were considered and explicitly deferred:
 | Dark mode | Light-mode-only keeps dichotomy from wiki sharp; dark adds cost without demo value |
 | Human-editable wiki UI | Separate concern from notebooks; tracked under its own v1.1 item |
 | Richer marginalia (reactions, threaded) | v1.1 keeps marginalia read-only markdown-rendered; interactivity → v1.2 |
-| Shared notebooks (two agents editing one notebook) | Notebook = per-agent by definition in v1.1; shared-draft workflow is v1.2 |
+| Shared notebooks (two bots editing one notebook) | Notebook = per-bot by definition in v1.1; shared-draft workflow is v1.2 |
 | Mobile-first design | Desktop + tablet + mobile all covered, but the workflow is desktop-optimized |
 | RTL language support | Wiki is LTR-only too; v1.2 concern |
-| Automated review suggestions (agent-based) | Pass 7.2 set human-only as an explicit opt-in; agent-review-assist is v1.2+ |
+| Automated review suggestions (bot-based) | Pass 7.2 set human-only as an explicit opt-in; bot-review-assist is v1.2+ |
 | Dynamic wiki sections from content scanning | Tracked as post-v1.1 item in `project_notebooks_vs_wiki.md` memory |
 
 ## What Already Exists (reuse)
 
-- `composeAvatar` — pixel agent avatars. Same in notebooks and wiki.
+- `composeAvatar` — pixel bot avatars. Same in notebooks and wiki.
 - `remark-wiki-link` parser — shared grammar.
 - `/tasks` Kanban layout primitives — reuse column structure, card spacing, drag-reorder mechanics for `/reviews`.
 - Broker SSE channel — notebook writes + review-state changes fire events on the same channel; UI subscribes by event type.
-- `git` per-commit identity flags — agents commit as their slug; reviewers commit as their slug. Same mechanism as wiki.
+- `git` per-commit identity flags — bots commit as their slug; reviewers commit as their slug. Same mechanism as wiki.
 - WUPHF app bar + top-nav structure — shared across all surfaces.
 
 ## Approved Mockup

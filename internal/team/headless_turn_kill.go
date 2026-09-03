@@ -7,7 +7,7 @@ package team
 // system note into the turn's channel and (b) feeds a humanized detail into
 // the recovery path, so the retry prompt, the progress pill, and any
 // resulting block reason all carry the honest line instead of the raw
-// signal string. The raw error stays in the agent log for operators.
+// signal string. The raw error stays in the bot log for operators.
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 // isTurnKilledError reports whether a headless turn died to an external kill
 // signal. exec.ExitError renders SIGKILL as "signal: killed" and SIGTERM as
 // "signal: terminated"; both mean the process was stopped from outside (OOM
-// killer, watchdog escalation, manual kill), not that the agent errored.
+// killer, watchdog escalation, manual kill), not that the bot errored.
 func isTurnKilledError(err error) bool {
 	if err == nil {
 		return false
@@ -31,7 +31,7 @@ func isTurnKilledError(err error) bool {
 // signal exhaust. It rides into updateHeadlessProgress and
 // recoverFailedHeadlessTurn (retry prompt / block reason).
 func turnKilledHumanDetail(slug string) string {
-	return fmt.Sprintf("@%s's agent process was killed by the system before it could finish — usually memory pressure or a forced stop, not a fault in the work itself", slug)
+	return fmt.Sprintf("@%s's bot process was killed by the system before it could finish — usually memory pressure or a forced stop, not a fault in the work itself", slug)
 }
 
 // postTurnKilledNote posts the one human-readable system note for a killed
@@ -43,7 +43,7 @@ func (l *Launcher) postTurnKilledNote(slug, channel string) {
 	}
 	target := strings.TrimSpace(channel)
 	if target == "" {
-		// This notice is ABOUT this agent, so its DM is where it belongs.
+		// This notice is ABOUT this bot, so its DM is where it belongs.
 		// "general" is retired, and PostSystemMessage would drop it there.
 		target = DMSlugFor(slug)
 	}
@@ -71,7 +71,7 @@ func (l *Launcher) chatTurnIsTaskless(slug string, turn headlessCodexTurn) bool 
 // it timed out or errored. Task turns are skipped: their failure already
 // surfaces through BlockTask + self-healing in the decision inbox. Without it,
 // a chat reply that times out or errors leaves the user staring at silence —
-// the agent "stalled and never replied" with no visible reason. Best-effort: a
+// the bot "stalled and never replied" with no visible reason. Best-effort: a
 // nil broker (tests) is a no-op.
 func (l *Launcher) noteChatTurnStall(slug string, turn headlessCodexTurn, reason string) {
 	if l == nil || l.broker == nil {
@@ -82,7 +82,7 @@ func (l *Launcher) noteChatTurnStall(slug string, turn headlessCodexTurn, reason
 	}
 	target := strings.TrimSpace(turn.Channel)
 	if target == "" {
-		// The agent's own DM; see postTurnKilledNote above.
+		// The bot's own DM; see postTurnKilledNote above.
 		target = DMSlugFor(slug)
 	}
 	l.broker.PostSystemMessage(target,
@@ -93,15 +93,15 @@ func (l *Launcher) noteChatTurnStall(slug string, turn headlessCodexTurn, reason
 
 // noteChatTurnNoReply posts one honest line when a turn that a real person
 // directly prompted (a DM or @-mention, marked turn.FromHuman) completes
-// successfully yet the agent never posts a reply anywhere. The provider runners
+// successfully yet the bot never posts a reply anywhere. The provider runners
 // already salvage a forgotten broadcast by posting the model's final text when
 // it ran but didn't call team_broadcast (postHeadlessFinalMessageIfSilent), so
 // this only fires in the narrower case where the turn returned with no
 // user-facing output at all — a genuine silent miss against a human who is owed
-// an answer (the human-priority prompt instructs the agent to always reply,
+// an answer (the human-priority prompt instructs the bot to always reply,
 // status, or acknowledge). Gated three ways to avoid false positives on
-// intentional silence: only human-prompted turns (agent-to-agent turns may
-// legitimately stay quiet), only taskless turns, and only when the agent posted
+// intentional silence: only human-prompted turns (bot-to-bot turns may
+// legitimately stay quiet), only taskless turns, and only when the bot posted
 // no substantive message in ANY channel since the turn began. Best-effort: a
 // nil broker (tests) is a no-op.
 func (l *Launcher) noteChatTurnNoReply(slug string, turn headlessCodexTurn, startedAt time.Time) {
@@ -114,12 +114,12 @@ func (l *Launcher) noteChatTurnNoReply(slug string, turn headlessCodexTurn, star
 	if !l.chatTurnIsTaskless(slug, turn) {
 		return
 	}
-	if l.agentPostedSubstantiveMessageSince(slug, startedAt) {
+	if l.botPostedSubstantiveMessageSince(slug, startedAt) {
 		return
 	}
 	target := strings.TrimSpace(turn.Channel)
 	if target == "" {
-		// The agent's own DM; see postTurnKilledNote above.
+		// The bot's own DM; see postTurnKilledNote above.
 		target = DMSlugFor(slug)
 	}
 	l.broker.PostSystemMessage(target,

@@ -56,8 +56,8 @@ export const SLASH_ACTIONS: SlashActionDef[] = [
   },
   {
     id: "agent-mention",
-    title: "Insert agent mention",
-    description: "Reference an agent by their wiki page.",
+    title: "Insert bot mention",
+    description: "Reference a bot by their wiki page.",
     keywords: ["agent", "mention", "@"],
   },
   {

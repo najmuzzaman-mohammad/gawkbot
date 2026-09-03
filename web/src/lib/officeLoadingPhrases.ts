@@ -16,15 +16,15 @@
  * from lazy humans to AI models and let the humans have a false sense of
  * control by giving them microapps to manage the outcomes."
  *
- * So the agent is the one WORKING. The human is the one gawking, at a
- * dashboard, after the fact. A spinner that says "Staring" while the agent
+ * So the bot is the one WORKING. The human is the one gawking, at a
+ * dashboard, after the fact. A spinner that says "Staring" while the bot
  * grinds through real work tells the exact inverse of the product story, and
  * it does it at the single moment the user is watching most closely.
  *
  * These are therefore the drudgery being absorbed: flat, specific, tedious
  * verbs for the work a person no longer has to do. The comedy is in how
- * boring the task is and how untroubled the agent is by it, never in the
- * agent being idle or dim. Do not reintroduce a spectating verb here.
+ * boring the task is and how untroubled the bot is by it, never in the
+ * bot being idle or dim. Do not reintroduce a spectating verb here.
  *
  * House style: no contractions, no em-dashes. They cycle decoratively, so they
  * are aria-hidden behind a stable status label.

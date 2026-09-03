@@ -797,7 +797,7 @@ func TestOpenclawConfigRoundTrip(t *testing.T) {
 			OpenclawGatewayURL: "ws://127.0.0.1:18789",
 			OpenclawToken:      "secret-token",
 			OpenclawBridges: []OpenclawBridgeBinding{
-				{SessionKey: "agent:main:main", Slug: "openclaw-ops", DisplayName: "Ops Agent"},
+				{SessionKey: "agent:main:main", Slug: "openclaw-ops", DisplayName: "Ops Bot"},
 			},
 		}
 		if err := Save(want); err != nil {

@@ -32,13 +32,13 @@ func buildOfficeMessageLines(messages []channelui.BrokerMessage, expanded map[st
 	return lines
 }
 
-func buildOneOnOneMessageLines(messages []channelui.BrokerMessage, expanded map[string]bool, contentWidth int, agentName string, unreadAnchorID string, unreadCount int) []channelui.RenderedLine {
+func buildOneOnOneMessageLines(messages []channelui.BrokerMessage, expanded map[string]bool, contentWidth int, botName string, unreadAnchorID string, unreadCount int) []channelui.RenderedLine {
 	if len(messages) == 0 {
 		mutedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(channelui.SlackMuted))
 		return []channelui.RenderedLine{
 			{Text: ""},
-			{Text: mutedStyle.Render("  Conference room reserved. Direct session reset. Agent pane reloaded in place.")},
-			{Text: mutedStyle.Render("  No sidebar, no interruptions. Just you and " + agentName + ".")},
+			{Text: mutedStyle.Render("  Conference room reserved. Direct session reset. Bot pane reloaded in place.")},
+			{Text: mutedStyle.Render("  No sidebar, no interruptions. Just you and " + botName + ".")},
 			{Text: ""},
 			{Text: mutedStyle.Render("  Suggested: Help me think through the v1 launch plan.")},
 			{Text: mutedStyle.Render("  Whatever you say here stays in this room.")},

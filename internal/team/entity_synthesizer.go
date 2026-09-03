@@ -4,7 +4,7 @@ package team
 // entity briefs.
 //
 // Design summary (see project_entity_briefs_v1_2.md):
-//   - Synthesis is NOT an agent turn. It runs inside the broker as a
+//   - Synthesis is NOT a bot turn. It runs inside the broker as a
 //     dedicated goroutine consuming a buffered SynthesisJob channel.
 //   - The worker shells out to the user's configured CLI (claude-code,
 //     codex, openclaw, ...) through provider.RunConfiguredOneShot so we

@@ -13,9 +13,9 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
-// Workflow-detection substrate (T0). Production agents run headless
-// (claude/codex) and bypass the in-process AgentLoop, so its output.log is
-// never written. The tool-level signal those agents DO emit is the per-turn
+// Workflow-detection substrate (T0). Production bots run headless
+// (claude/codex) and bypass the in-process BotLoop, so its output.log is
+// never written. The tool-level signal those bots DO emit is the per-turn
 // HeadlessEvent `manifest` (see headless_event.go), but that stream is
 // in-memory only. This file persists each manifest as one durable JSONL line
 // so the detection miner has a real cross-task corpus to read.
@@ -27,13 +27,13 @@ type TurnToolCount struct {
 	Count int    `json:"count"`
 }
 
-// TurnManifest is the persisted detection record: one per agent turn,
+// TurnManifest is the persisted detection record: one per bot turn,
 // summarizing which tools the turn invoked. A task's "shape" is its ordered
 // sequence of TurnManifests; the detection miner clusters tasks by that shape.
 type TurnManifest struct {
 	TaskID    string          `json:"task_id"`
 	TurnID    string          `json:"turn_id,omitempty"`
-	Agent     string          `json:"agent,omitempty"`
+	Bot       string          `json:"agent,omitempty"`
 	StartedAt string          `json:"started_at,omitempty"`
 	Tools     []TurnToolCount `json:"tools"`
 }
@@ -90,13 +90,13 @@ func turnManifestFromEvent(e HeadlessEvent) (TurnManifest, bool) {
 	return TurnManifest{
 		TaskID:    taskID,
 		TurnID:    strings.TrimSpace(e.TurnID),
-		Agent:     strings.TrimSpace(e.Agent),
+		Bot:       strings.TrimSpace(e.Bot),
 		StartedAt: strings.TrimSpace(e.StartedAt),
 		Tools:     tools,
 	}, true
 }
 
-// workToolCount returns how many of the tools are real workflow work (not agent
+// workToolCount returns how many of the tools are real workflow work (not bot
 // orchestration plumbing) — the signal that a turn did something worth detecting.
 func workToolCount(tools []TurnToolCount) int {
 	n := 0

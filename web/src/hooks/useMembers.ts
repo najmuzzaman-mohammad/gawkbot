@@ -35,7 +35,7 @@ export function useOfficeMembersMeta() {
 
 export function useChannelMembers(channel: string | null) {
   // `channel` is allowed to be null so callers reachable from off-conversation
-  // routes (e.g. AgentPanel mounted in Shell) don't have to invent a stub
+  // routes (e.g. BotPanel mounted in Shell) don't have to invent a stub
   // channel just to satisfy this signature. With no channel there is no
   // membership to fetch — react-query keeps the query idle and the caller
   // gets the default `data: []` shape.

@@ -34,11 +34,11 @@ type officePolicy struct {
 	Rule      string `json:"rule"`   // plain-English description of the rule
 	Active    bool   `json:"active"`
 	CreatedAt string `json:"created_at"`
-	// Agents lists the agent slugs this policy is assigned to (core-loop
-	// step 8/B3). Empty or nil means the policy applies to ALL agents —
+	// Bots lists the bot slugs this policy is assigned to (core-loop
+	// step 8/B3). Empty or nil means the policy applies to ALL bots —
 	// today's behavior, preserved for every pre-existing record. Wire
-	// shape: additive `agents` key, omitted when empty.
-	Agents []string `json:"agents,omitempty"`
+	// shape: additive `bots` key, omitted when empty.
+	Bots []string `json:"agents,omitempty"`
 }
 
 func newOfficePolicy(source, rule string) officePolicy {
@@ -56,14 +56,14 @@ func newOfficePolicy(source, rule string) officePolicy {
 	}
 }
 
-// normalizePolicyAgents canonicalizes an agent-scope list: trims, drops
+// normalizePolicyBots canonicalizes a bot-scope list: trims, drops
 // empties, dedupes, and sorts so persisted scope (and the prompt blocks
 // derived from it) are deterministic. Returns nil for an effectively-empty
-// list, which is the "applies to all agents" representation.
-func normalizePolicyAgents(agents []string) []string {
+// list, which is the "applies to all bots" representation.
+func normalizePolicyBots(bots []string) []string {
 	seen := map[string]struct{}{}
-	out := make([]string, 0, len(agents))
-	for _, a := range agents {
+	out := make([]string, 0, len(bots))
+	for _, a := range bots {
 		slug := strings.ToLower(strings.TrimSpace(a))
 		if slug == "" {
 			continue
@@ -81,15 +81,15 @@ func normalizePolicyAgents(agents []string) []string {
 	return out
 }
 
-// policyAppliesToAgent reports whether the policy is in force for the given
-// agent slug. Nil/empty Agents means everyone (legacy + human-feedback
-// default); a non-empty list scopes the policy to exactly those agents.
-func policyAppliesToAgent(p officePolicy, slug string) bool {
-	if len(p.Agents) == 0 {
+// policyAppliesToBot reports whether the policy is in force for the given
+// bot slug. Nil/empty Bots means everyone (legacy + human-feedback
+// default); a non-empty list scopes the policy to exactly those bots.
+func policyAppliesToBot(p officePolicy, slug string) bool {
+	if len(p.Bots) == 0 {
 		return true
 	}
 	slug = strings.ToLower(strings.TrimSpace(slug))
-	for _, a := range p.Agents {
+	for _, a := range p.Bots {
 		if a == slug {
 			return true
 		}

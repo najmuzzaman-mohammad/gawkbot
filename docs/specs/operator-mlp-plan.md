@@ -22,7 +22,7 @@ routes hot ones to an AE in Slack — 90 minutes a day, and it stops when she's 
 
 The loop we must deliver:
 1. Maya opens a screen-share call, narrates "here's how I triage these," clicking through
-   her inbox and CRM while a voice agent asks "what makes one hot?"
+   her inbox and CRM while a voice bot asks "what makes one hot?"
 2. An **Internal Tool** appears: a **UI** tab (table of incoming requests + fit score +
    status) and a **Workflow** tab (trigger on new request → enrich from CRM → AI fit-score →
    if score ≥ threshold route to AE Slack, else nurture).
@@ -66,7 +66,7 @@ feature work.
    integration bridge + approval + audit, the message/run/integration bus.
 2. **Delete the office cruft** (engine + UI, not feature-flag): notebooks, skills (`skill_*`,
    SkillsApp), policies, promotion/review queue, channels/DMs surface,
-   lifecycle/inbox-as-decision-queue UI, multi-agent roster + agent subspaces, company/team
+   lifecycle/inbox-as-decision-queue UI, multi-bot roster + bot subspaces, company/team
    onboarding wizard. (The old messy wiki authoring/notebooks/promotion is already removed on
    `feat/karpathy-wiki`; the clean Knowledge reader stays.)
 3. **gbrain for it all (Knowledge + context).** Stand up gbrain as an **MCP server** the broker
@@ -74,7 +74,7 @@ feature work.
    (sources, compile, index, graph, retrieval, self-maintenance). Migrate retrieval off
    `internal/embedding` + `wiki_index_*` + `broker_entity_graph`/`facts` + Nex graph, AND retire
    the karpathy-wiki S1-S5 Go compile backend. Wire office activity → gbrain `put_page`/ingestion;
-   brain-first `search`/`query` in workflow AI-steps + the build agent. (Confirm gbrain covers our
+   brain-first `search`/`query` in workflow AI-steps + the build bot. (Confirm gbrain covers our
    retrieval + page shapes before deleting the old paths — Spike 1 proved retrieval.)
 4. **Collapse to one assistant persona.** One "your AI" identity backed by the provider layer.
 5. **Stand up the thin operator shell** (stub OK): **Chats · Internal Tools · Knowledge ·
@@ -123,7 +123,7 @@ including the morning digest.
 1. **Build chat** → AI drafts the workflow spec + UI from a described process; compiles via
    the kernel; shipcheck must pass before publish (reuse the build gate).
 2. **Chat-to-edit** on a live tool: rebuild the edit panel against the Internal Tool object
-   (not the App-Builder-agent flow). "Lower the threshold to 70," "also notify me on misses."
+   (not the App-Builder-bot flow). "Lower the threshold to 70," "also notify me on misses."
 3. **Publish** = freeze + version. Edits after publish = overlays (leaf) or refreeze
    (structural), version+1, visible in history.
 4. **Detection as a third authoring path** (repointed): the detector watches the operator's
@@ -157,7 +157,7 @@ the operator's eyes. **This is the demo bar — nothing ships externally until i
      `get_active_title`/`get_application_windows` (which browser/app) — verified in its API;
      **add CDP Network capture** for the network-request signal (cua's gap), since the API
      behind a click is the strongest deterministic step (replay the API, don't puppet the UI).
-3. **Realtime free-voice agent** (OpenAI Realtime): genuine back-and-forth — the operator
+3. **Realtime free-voice bot** (OpenAI Realtime): genuine back-and-forth — the operator
    talks naturally, the AI asks "what makes one hot? where does it go then?" Latency and
    turn-taking are the experience; proven ~620ms server-side (Spike 2).
 4. **Capture → workflow draft**: the CDP network trace is a HAR; run it through **lifted
@@ -177,7 +177,7 @@ the operator's eyes. **This is the demo bar — nothing ships externally until i
      sessions, no re-auth, no embedded webview.
    - **Native-app path:** cua / OS accessibility (`get_accessibility_tree` + URL + window) for
      non-browser desktop apps.
-   - **Decided:** the build-phase **agentic explorer = Go/chromedp wired into our broker agent
+   - **Decided:** the build-phase **agentic explorer = Go/chromedp wired into our broker bot
      loop** (borrow browser-harness's techniques, build in-stack; no Python sidecar). Lift one Go
      package (`browsersniff`). Agentic at build, deterministic at execute (see one-pager §4).
      Open: cua passive-observe-real-machine validation + the macOS/Windows accessibility +
@@ -226,13 +226,13 @@ history.
   3. **Deterministic UI replay** of captured selectors/inputs via the cua-driver — no usable API.
   4. **CUA heal** (bounded re-find) when replay breaks → write the new target back as an **overlay
      (version+1)**, reusing the engine's self-healing path.
-  CUA is fallback + healing under the deterministic engine, never a free-roaming agent. **CUA is
+  CUA is fallback + healing under the deterministic engine, never a free-roaming bot. **CUA is
   dual-use: observe at capture (Phase 3), control at execution here.** Mutating actions at BOTH
   build-explore and execution hit the shared approval card (CQ1). The inbound-routing wedge is
   mostly Composio-covered (CRM + Slack), so it proves the integration path first; sniffed-API +
   UI-replay + CUA-heal are the fallback layers for apps Composio doesn't reach.
 - **Notification settings** (email/Slack, digest cadence, approval routing) in Settings.
-- **Approvals** reuse the existing gate, reskinned operator-plain (no agent vocabulary).
+- **Approvals** reuse the existing gate, reskinned operator-plain (no bot vocabulary).
 - **No new top-level concepts** surface to the operator beyond Chats / Internal Tools /
   Integrations / Settings.
 
@@ -259,8 +259,8 @@ on test data + digest. **External "this is the product" demo: Phase 3 working.**
 - **`trycua/cua` fit + licensing**; fallback observer if it doesn't hold.
 - **Realtime voice** (OpenAI Realtime): where it runs, latency/cost, turn-taking, how it hands
   structured output back. This is the make-or-break of the demo.
-- **App-builder reuse depth:** build on top vs. rewrite read-mostly/roster-agent parts.
-- **Detection input:** which operator/context signals replace agent telemetry as the source.
+- **App-builder reuse depth:** build on top vs. rewrite read-mostly/roster-bot parts.
+- **Detection input:** which operator/context signals replace bot telemetry as the source.
 - Whether one inbound-routing spec generalizes to the secondary ICPs or each needs its own
   shape (resist generalizing in v1).
 
@@ -312,7 +312,7 @@ on test data + digest. **External "this is the product" demo: Phase 3 working.**
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
-- **CROSS-MODEL:** outside voice (Claude subagent; Codex auth expired) found the section review's blind spot — wedge↔tech coherence. Resolved: capture = discovery, Composio = preferred build surface, browser/custom = fallback. CEO review then settled the 5 strategic items it surfaced.
+- **CROSS-MODEL:** outside voice (Claude subbot; Codex auth expired) found the section review's blind spot — wedge↔tech coherence. Resolved: capture = discovery, Composio = preferred build surface, browser/custom = fallback. CEO review then settled the 5 strategic items it surfaced.
 - **VERDICT:** CEO + ENG CLEARED — strategy decided, 6 eng findings folded. Ready to implement the first vertical slice; the 5 critical tests (A1-A4, CQ1) must land with it. The call-as-ship-gate is an accepted, named concentrated-risk bet.
 
 NO UNRESOLVED DECISIONS

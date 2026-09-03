@@ -25,7 +25,7 @@ includes both schema-versioned vectors and legacy unversioned vectors; parsers
 must treat an absent `schemaVersion` as `1`, serialize `1`, and reject future
 versions greater than they support.
 
-## Agent Provider Routing Vectors
+## Bot Provider Routing Vectors
 
 `agent-provider-routing-vectors.json` pins the branch-10
 `AgentProviderRouting` wire shape. Accepted vectors must parse, normalize
@@ -174,7 +174,7 @@ This is a deliberate, infrequent chore. In one PR:
 ## Cross-language verification
 
 `verifier-reference.go` is a stdlib-only Go reference implementation of the
-audit-chain, runner, agent-provider-routing, signed-approval-token,
+audit-chain, runner, bot-provider-routing, signed-approval-token,
 approval-request, route-envelope, moat-table, and frozen-NFKC wire contracts. It
 loads `audit-event-vectors.json`, `runner-vectors.json`,
 `agent-provider-routing-vectors.json`, `signed-approval-token-vectors.json`,

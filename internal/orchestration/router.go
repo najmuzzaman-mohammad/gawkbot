@@ -2,42 +2,42 @@ package orchestration
 
 import "strings"
 
-// RoutingResult pairs an agent slug with its match score for a task.
+// RoutingResult pairs a bot slug with its match score for a task.
 type RoutingResult struct {
-	AgentSlug string
-	Score     float64
+	BotSlug string
+	Score   float64
 }
 
-type agentRegistration struct {
+type botRegistration struct {
 	slug   string
 	skills []SkillDeclaration
 }
 
-// TaskRouter routes tasks to agents based on skill matching.
+// TaskRouter routes tasks to bots based on skill matching.
 type TaskRouter struct {
-	agents map[string]*agentRegistration
+	bots map[string]*botRegistration
 }
 
 // NewTaskRouter returns an empty TaskRouter.
 func NewTaskRouter() *TaskRouter {
-	return &TaskRouter{agents: make(map[string]*agentRegistration)}
+	return &TaskRouter{bots: make(map[string]*botRegistration)}
 }
 
-// RegisterAgent adds or replaces an agent's skill registration.
-func (r *TaskRouter) RegisterAgent(slug string, skills []SkillDeclaration) {
-	r.agents[slug] = &agentRegistration{slug: slug, skills: skills}
+// RegisterBot adds or replaces a bot's skill registration.
+func (r *TaskRouter) RegisterBot(slug string, skills []SkillDeclaration) {
+	r.bots[slug] = &botRegistration{slug: slug, skills: skills}
 }
 
-// UnregisterAgent removes an agent from the router.
-func (r *TaskRouter) UnregisterAgent(slug string) {
-	delete(r.agents, slug)
+// UnregisterBot removes a bot from the router.
+func (r *TaskRouter) UnregisterBot(slug string) {
+	delete(r.bots, slug)
 }
 
-// ScoreMatch returns a 0-1 score for how well agentSlug can handle task.
-// For each required skill, the best matching agent skill (sim * proficiency)
+// ScoreMatch returns a 0-1 score for how well botSlug can handle task.
+// For each required skill, the best matching bot skill (sim * proficiency)
 // is found; scores are averaged. Skills with no match above 0.3 contribute 0.
-func (r *TaskRouter) ScoreMatch(agentSlug string, task TaskDefinition) float64 {
-	reg, ok := r.agents[agentSlug]
+func (r *TaskRouter) ScoreMatch(botSlug string, task TaskDefinition) float64 {
+	reg, ok := r.bots[botSlug]
 	if !ok || len(task.RequiredSkills) == 0 {
 		return 0
 	}
@@ -59,10 +59,10 @@ func (r *TaskRouter) ScoreMatch(agentSlug string, task TaskDefinition) float64 {
 	return total / float64(len(task.RequiredSkills))
 }
 
-// FindBestAgent returns the agent with the highest score for the task,
-// or nil if no agent scores above 0.
-func (r *TaskRouter) FindBestAgent(task TaskDefinition) *RoutingResult {
-	results := r.FindCapableAgents(task)
+// FindBestBot returns the bot with the highest score for the task,
+// or nil if no bot scores above 0.
+func (r *TaskRouter) FindBestBot(task TaskDefinition) *RoutingResult {
+	results := r.FindCapableBots(task)
 	if len(results) == 0 {
 		return nil
 	}
@@ -75,13 +75,13 @@ func (r *TaskRouter) FindBestAgent(task TaskDefinition) *RoutingResult {
 	return &best
 }
 
-// FindCapableAgents returns all agents with a score > 0, sorted descending.
-func (r *TaskRouter) FindCapableAgents(task TaskDefinition) []RoutingResult {
+// FindCapableBots returns all bots with a score > 0, sorted descending.
+func (r *TaskRouter) FindCapableBots(task TaskDefinition) []RoutingResult {
 	var out []RoutingResult
-	for slug := range r.agents {
+	for slug := range r.bots {
 		score := r.ScoreMatch(slug, task)
 		if score > 0 {
-			out = append(out, RoutingResult{AgentSlug: slug, Score: score})
+			out = append(out, RoutingResult{BotSlug: slug, Score: score})
 		}
 	}
 	// Sort descending by score.

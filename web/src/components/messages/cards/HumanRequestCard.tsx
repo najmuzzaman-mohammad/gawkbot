@@ -17,7 +17,7 @@
  *     sentence and go find them somewhere else. Here the options are buttons.
  *
  *  2. It was attributed to "Office", a speaker that does not exist. The wire
- *     message really is sent by "system" (deliberately — notifyAgentsLoop
+ *     message really is sent by "system" (deliberately — notifyBotsLoop
  *     skips system senders, so attributing it to the asking bot would make the
  *     announcement wake other bots). The card reads the real asker out of the
  *     payload and renders THAT, so the byline is "@ceo asks you".
@@ -39,8 +39,8 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
-  type AgentRequest,
   answerRequest,
+  type BotRequest,
   type InterviewOption,
 } from "../../../api/client";
 import { useRequests } from "../../../hooks/useRequests";
@@ -78,7 +78,7 @@ export function parseHumanRequestRaisedPayload(
   return out;
 }
 
-/** Strip the markdown emphasis and leading list numbering agents tend to emit,
+/** Strip the markdown emphasis and leading list numbering bots tend to emit,
  *  matching how InterviewBar presents the same question text. */
 function cleanQuestion(text: string): string {
   return text.replace(/\*\*/g, "").replace(/^\s*\d+\.\s*/, "");
@@ -93,7 +93,7 @@ function RequestTextAnswer({
   onCancel,
   onSubmit,
 }: {
-  request: AgentRequest;
+  request: BotRequest;
   option: InterviewOption;
   submitting: boolean;
   onCancel: () => void;
@@ -158,7 +158,7 @@ function RequestOptions({
   submitting,
   onPick,
 }: {
-  request: AgentRequest;
+  request: BotRequest;
   options: InterviewOption[];
   submitting: boolean;
   onPick: (option: InterviewOption) => void;

@@ -164,7 +164,7 @@ func TestTelegramExternalQueueIncludesOutbound(t *testing.T) {
 }
 
 func TestFormatTelegramOutbound(t *testing.T) {
-	// Regular agent message with title
+	// Regular bot message with title
 	msg := channelMessage{
 		From:    "ceo",
 		Title:   "Update",
@@ -176,7 +176,7 @@ func TestFormatTelegramOutbound(t *testing.T) {
 		t.Fatalf("formatTelegramOutbound = %q, want %q", got, want)
 	}
 
-	// Regular agent message without title
+	// Regular bot message without title
 	msg2 := channelMessage{From: "pm", Content: "Simple msg"}
 	got2 := formatTelegramOutbound(msg2)
 	want2 := "<b>@pm</b>: Simple msg"

@@ -88,7 +88,7 @@ export function ProviderSwitcherHost() {
     if (!current || p.id === current) return;
     confirm({
       title: "Switch runtime provider?",
-      message: `Agents will be restarted on ${p.label}.`,
+      message: `Bots will be restarted on ${p.label}.`,
       confirmLabel: "Switch",
       onConfirm: async () => {
         setPending(p.id);

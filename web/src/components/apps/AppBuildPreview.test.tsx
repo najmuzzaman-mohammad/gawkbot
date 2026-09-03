@@ -25,8 +25,8 @@ function makeApp(overrides: Partial<CustomApp>): CustomApp {
 
 describe("parseAppNameFromTaskTitle", () => {
   it("parses the App Builder task title verbs", () => {
-    expect(parseAppNameFromTaskTitle("Build app: Daily Agent Digest")).toBe(
-      "Daily Agent Digest",
+    expect(parseAppNameFromTaskTitle("Build app: Daily Bot Digest")).toBe(
+      "Daily Bot Digest",
     );
     expect(parseAppNameFromTaskTitle("Improve app: Lead Scorer")).toBe(
       "Lead Scorer",
@@ -48,9 +48,9 @@ describe("resolveAppForTask", () => {
   it("matches the app by name, case-insensitively", () => {
     const apps = [
       makeApp({ id: "app_a", name: "Lead Scorer" }),
-      makeApp({ id: "app_b", name: "Daily Agent Digest" }),
+      makeApp({ id: "app_b", name: "Daily Bot Digest" }),
     ];
-    expect(resolveAppForTask(apps, "daily agent digest")?.id).toBe("app_b");
+    expect(resolveAppForTask(apps, "daily bot digest")?.id).toBe("app_b");
   });
 
   it("prefers the most recently updated app when names collide", () => {
@@ -71,7 +71,7 @@ describe("resolveAppForTask", () => {
 
   it("returns undefined when nothing matches or the name is null", () => {
     const apps = [makeApp({ name: "Lead Scorer" })];
-    expect(resolveAppForTask(apps, "Daily Agent Digest")).toBeUndefined();
+    expect(resolveAppForTask(apps, "Daily Bot Digest")).toBeUndefined();
     expect(resolveAppForTask(apps, null)).toBeUndefined();
     expect(resolveAppForTask([], "Anything")).toBeUndefined();
   });

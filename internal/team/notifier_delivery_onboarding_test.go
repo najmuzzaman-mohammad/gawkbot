@@ -7,7 +7,7 @@ import (
 )
 
 // TestIsDeterministicPhase2CEODM_GatesCEODMDuringPhase2 locks in the
-// regression that an LLM agent must not fire while the deterministic
+// regression that an LLM bot must not fire while the deterministic
 // Phase 2 onboarding conversation is driving the CEO DM. Prior to the
 // gate, deliverMessageNotification enqueued a Claude turn for every
 // human reply to a ceo_form_field / ceo_chip_row / ceo_team_trim card,

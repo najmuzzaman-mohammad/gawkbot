@@ -35,11 +35,11 @@ func LatestHumanFacingMessage(messages []BrokerMessage) *BrokerMessage {
 	return nil
 }
 
-// CountUniqueAgents counts distinct non-system / non-user senders in
+// CountUniqueBots counts distinct non-system / non-user senders in
 // messages: "you" (the human), the legacy "nex" automation slug, kind=="automation"
 // rows, and any blank/whitespace-only senders are excluded from the
-// tally so unset From values don't read as a phantom agent.
-func CountUniqueAgents(messages []BrokerMessage) int {
+// tally so unset From values don't read as a phantom bot.
+func CountUniqueBots(messages []BrokerMessage) int {
 	seen := make(map[string]bool)
 	for _, m := range messages {
 		if IsHumanSender(m.From) || m.From == "nex" || m.Kind == "automation" {

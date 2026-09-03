@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Wiki content IS the artifacts agents produce. The one thing the wiki did not
+// Wiki content IS the artifacts bots produce. The one thing the wiki did not
 // surface was WHICH task produced a given article — this resolves that link so
 // the article view can show "Produced for <task>" naturally, in both
 // directions we already record:

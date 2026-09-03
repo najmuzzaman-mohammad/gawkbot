@@ -505,7 +505,7 @@ export interface Message {
   content: string;
   /**
    * Server-assigned message kind. Empty/absent for plain chat. Known kinds:
-   *  - "agent_issue"        legacy agent-authored issue banner
+   *  - "agent_issue"        legacy bot-authored issue banner
    *  - "system_auth_error"  system-authored provider-auth failure card (#933)
    *  - "ceo_*"              onboarding cards (form_field, chip_row, etc.)
    * The SPA's MessageBubble dispatches on this field to pick a renderer.
@@ -578,7 +578,7 @@ function requireChannel(
   const trimmed = (channel ?? "").trim();
   if (!trimmed) {
     throw new Error(
-      `${op}: channel is required — there is no shared room to fall back to. Name the agent's DM.`,
+      `${op}: channel is required — there is no shared room to fall back to. Name the bot's DM.`,
     );
   }
   return trimmed;
@@ -660,18 +660,18 @@ export function fetchCommands() {
 // ── Members ──
 
 export interface ProviderBinding {
-  // kind tags the runtime or gateway for this agent. Empty string means
+  // kind tags the runtime or gateway for this bot. Empty string means
   // "inherit from global default". Use IsGatewayKind on a Kind to decide
   // whether to render the runtime picker (LLM kinds) or a "Managed by
-  // <Gateway>" badge (gateway kinds) in the agent profile.
+  // <Gateway>" badge (gateway kinds) in the bot profile.
   kind?: LLMProvider | "";
   // model is the runtime-specific model identifier. Free-form on the wire —
   // validated by each provider implementation, not at the schema layer.
   // Common shapes: "claude-3-5-sonnet-latest", "gpt-4o", "llama3.1:8b".
   model?: string;
   // openclaw is populated only when kind === "openclaw" — it carries the
-  // gateway-side session key + agent id. Set by the OpenClaw bridge bootstrap
-  // path, not by the per-agent runtime picker.
+  // gateway-side session key + bot id. Set by the OpenClaw bridge bootstrap
+  // path, not by the per-bot runtime picker.
   openclaw?: {
     session_key?: string;
     agent_id?: string;
@@ -679,7 +679,7 @@ export interface ProviderBinding {
 }
 
 // Helper for UI code: returns true when binding.kind is a gateway-controlled
-// tag. Per-agent runtime pickers and the AgentWizard should swap their UI to
+// tag. Per-bot runtime pickers and the BotWizard should swap their UI to
 // a read-only "Managed by <Gateway>" pill when this returns true.
 export function isGatewayBinding(
   binding: ProviderBinding | string | undefined,
@@ -711,7 +711,7 @@ export interface OfficeMember {
   /**
    * Transport-presence flag: true when an adapter session is currently live for
    * this member. Distinct from `status`/`activity` (which reflect "is the
-   * agent processing right now") — `online` reflects "is the adapter
+   * bot processing right now") — `online` reflects "is the adapter
    * reachable at all". Always present (no omitempty on the Go side) so
    * "false" and "missing field" cannot be confused.
    */
@@ -751,7 +751,7 @@ export function getOfficeMembers() {
   return get<OfficeMembersResponse>("/office-members");
 }
 
-export interface GeneratedAgentTemplate {
+export interface GeneratedBotTemplate {
   slug?: string;
   name?: string;
   role?: string;
@@ -762,8 +762,8 @@ export interface GeneratedAgentTemplate {
   model?: string;
 }
 
-export function generateAgent(prompt: string) {
-  return post<GeneratedAgentTemplate>("/office-members/generate", { prompt });
+export function generateBot(prompt: string) {
+  return post<GeneratedBotTemplate>("/office-members/generate", { prompt });
 }
 
 export function getMembers(channel: string) {
@@ -846,7 +846,7 @@ export interface InterviewMetadata {
   [key: string]: unknown;
 }
 
-export interface AgentRequest {
+export interface BotRequest {
   id: string;
   from: string;
   question: string;
@@ -871,7 +871,7 @@ export interface AgentRequest {
   redacted?: boolean;
   redaction_count?: number;
   redaction_reasons?: string[];
-  /** Issue/task id this request belongs to, when the owner agent
+  /** Issue/task id this request belongs to, when the owner bot
    * filed the request from inside an owned Issue. The Inbox card
    * renders a breadcrumb when set so the human sees the parent
    * Issue at a glance. */
@@ -912,7 +912,7 @@ export interface ActionApprovalPayload {
 }
 
 export function getRequests(channel: string) {
-  return get<{ requests: AgentRequest[] }>("/requests", {
+  return get<{ requests: BotRequest[] }>("/requests", {
     channel: requireChannel(channel, "getRequests"),
     viewer_slug: "human",
   });
@@ -922,7 +922,7 @@ export function getRequests(channel: string) {
 // global overlay + inline interview bar need every blocking request the human
 // can answer, not just the ones in the current channel.
 export function getAllRequests() {
-  return get<{ requests: AgentRequest[] }>("/requests", {
+  return get<{ requests: BotRequest[] }>("/requests", {
     scope: "all",
     viewer_slug: "human",
   });
@@ -967,7 +967,7 @@ export interface CreateActionGrantInput {
 }
 
 // Mints a scoped grant so the resolver auto-approves exactly this
-// (agent, platform, action_id) without re-prompting. Backs the approval
+// (bot, platform, action_id) without re-prompting. Backs the approval
 // modal's "Approve & always allow" button (deterministic-integrations slice 5b).
 export function createActionGrant(input: CreateActionGrantInput) {
   return trackOn(
@@ -1075,8 +1075,8 @@ export function setMemory(namespace: string, key: string, value: string) {
 // ── Config (Settings) ──
 
 // LLMRuntimeKind names a directly-dispatchable LLM runtime — the kinds that
-// belong in any runtime picker (Settings default-runtime, AgentProfilePanel
-// Runtime section, AgentWizard provider field). Mirrors the non-gateway
+// belong in any runtime picker (Settings default-runtime, BotProfilePanel
+// Runtime section, BotWizard provider field). Mirrors the non-gateway
 // subset returned by provider.LLMProviderKinds in the Go layer.
 export type LLMRuntimeKind =
   | "claude-code"
@@ -1087,13 +1087,13 @@ export type LLMRuntimeKind =
   | "exo";
 
 // GatewayKind names a runtime that is reached through an integration gateway
-// rather than dispatched directly. Gateway-bound agents are imported via the
+// rather than dispatched directly. Gateway-bound bots are imported via the
 // Integrations app (OpenClaw / Hermes) and never appear in runtime pickers;
-// they receive a "Managed by <Gateway>" badge on the agent profile.
+// they receive a "Managed by <Gateway>" badge on the bot profile.
 export type GatewayKind = "openclaw" | "openclaw-http" | "hermes-agent";
 
 // LLMProvider is the union of both — used wherever a value carries either an
-// LLM runtime or a gateway tag (per-agent ProviderBinding.Kind on the wire,
+// LLM runtime or a gateway tag (per-bot ProviderBinding.Kind on the wire,
 // ConfigSnapshot.llm_provider for backward compatibility). New UI code should
 // prefer LLMRuntimeKind / GatewayKind and only widen to LLMProvider at the
 // raw-wire boundary.

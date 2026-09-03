@@ -1,6 +1,6 @@
 package main
 
-// task_cmd.go is the Lane F CLI surface for the multi-agent control loop.
+// task_cmd.go is the Lane F CLI surface for the multi-bot control loop.
 //
 // Subcommands (all dispatched from main.go's `task` switch arm):
 //
@@ -68,7 +68,7 @@ func runTaskCmd(args []string) {
 }
 
 func printTaskHelp() {
-	fmt.Fprintln(os.Stderr, "gawkbot task — drive the multi-agent control loop")
+	fmt.Fprintln(os.Stderr, "gawkbot task — drive the multi-bot control loop")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Usage:")
 	fmt.Fprintln(os.Stderr, "  gawkbot task start [intent]                Walk an intent through intake → ready → running")

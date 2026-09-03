@@ -3,13 +3,13 @@ package team
 // entity_facts.go is the append-only fact log for v1.2 entity briefs.
 //
 // Facts live at team/entities/{kind}-{slug}.facts.jsonl inside the wiki
-// repo. Each line is one atomic observation recorded by an agent. The file
+// repo. Each line is one atomic observation recorded by a bot. The file
 // is append-only — wrong facts get counter-facts, not deletions (same
 // principle as git itself, see project_entity_briefs_v1_2.md).
 //
 // Writes go through the WikiWorker queue so we reuse the single-writer
 // invariant the rest of the wiki relies on. One fact = one git commit
-// authored by the recording agent. The commit message includes a short
+// authored by the recording bot. The commit message includes a short
 // preview of the fact so the audit log stays human-readable.
 //
 // Read path (List, CountSinceSHA) does NOT touch the queue — it streams
@@ -65,7 +65,7 @@ var ErrFactLogNotRunning = errors.New("entity facts: worker is not attached")
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
-// Fact is one atomic observation recorded by an agent.
+// Fact is one atomic observation recorded by a bot.
 type Fact struct {
 	ID         string     `json:"id"`
 	Kind       EntityKind `json:"kind"`
@@ -125,7 +125,7 @@ func ValidateFactInput(kind EntityKind, slug, text, sourcePath, recordedBy strin
 	}
 	if s := strings.TrimSpace(sourcePath); s != "" {
 		if !(strings.HasPrefix(s, "agents/") || strings.HasPrefix(s, "team/")) {
-			return fmt.Errorf("source_path must start with agents/ or team/; got %q", sourcePath)
+			return fmt.Errorf("source_path must start with bots/ or team/; got %q", sourcePath)
 		}
 	}
 	return nil

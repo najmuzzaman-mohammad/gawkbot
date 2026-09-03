@@ -15,7 +15,7 @@ type fakeTurnSinks struct {
 	logs   []string
 }
 
-func (f *fakeTurnSinks) pushAgentStream(s string) { f.pushed = append(f.pushed, s) }
+func (f *fakeTurnSinks) pushBotStream(s string) { f.pushed = append(f.pushed, s) }
 func (f *fakeTurnSinks) updateProgressLabel(s string) {
 	f.labels = append(f.labels, s)
 }

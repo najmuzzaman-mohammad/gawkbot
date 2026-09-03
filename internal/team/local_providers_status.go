@@ -114,22 +114,22 @@ var localProviderSpecs = []localProviderSpec{
 		},
 	},
 	{
-		kind:        provider.KindHermesAgent,
+		kind:        provider.KindHermesBot,
 		binaryName:  "hermes",
 		versionArgs: []string{"--version"},
 		platformAllowed: func(goos, _ string) bool {
 			return goos == "darwin" || goos == "linux"
 		},
 		install: map[string]string{
-			"macos": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash",
-			"linux": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash",
+			"macos": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-bot/main/scripts/install.sh | bash",
+			"linux": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-bot/main/scripts/install.sh | bash",
 		},
 		start: map[string]string{
 			"macos": "hermes gateway",
 			"linux": "hermes gateway",
 		},
 		notes: []string{
-			"Hermes Agent is reached through its OpenAI-compatible API server on port 8642. If you set API_SERVER_KEY for Hermes, set the same value as WUPHF_HERMES_AGENT_API_KEY before starting WUPHF.",
+			"Hermes Bot is reached through its OpenAI-compatible API server on port 8642. If you set API_SERVER_KEY for Hermes, set the same value as WUPHF_HERMES_AGENT_API_KEY before starting WUPHF.",
 		},
 	},
 	{

@@ -4,7 +4,7 @@
 
 ## 1. Purpose
 
-The receipt module defines the central evidence artifact for a multi-step agent action: source reads, tool calls, approvals, writes, file changes, commits, and durable memory write references. It belongs in `@wuphf/protocol` so every package shares one no-I/O schema, codec, brand boundary, budget path, and validator. Removing it would make audit evidence stringly typed and would split cross-field approval/write invariants across callers.
+The receipt module defines the central evidence artifact for a multi-step bot action: source reads, tool calls, approvals, writes, file changes, commits, and durable memory write references. It belongs in `@wuphf/protocol` so every package shares one no-I/O schema, codec, brand boundary, budget path, and validator. Removing it would make audit evidence stringly typed and would split cross-field approval/write invariants across callers.
 
 ## 2. Public API surface
 

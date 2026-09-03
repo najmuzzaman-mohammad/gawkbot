@@ -1,6 +1,6 @@
 import { get } from "./client";
 
-// Article ↔ task attribution. Wiki content is the artifacts agents produce;
+// Article ↔ task attribution. Wiki content is the artifacts bots produce;
 // this resolves which task produced a given article so the article view can
 // show it. Served by GET /article-attribution (snake_case wire).
 

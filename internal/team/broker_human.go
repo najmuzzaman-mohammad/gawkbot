@@ -59,7 +59,7 @@ func setHumanIdentityRegistry(r *HumanIdentityRegistry) {
 // client. When HEAD has moved, the handler returns 409 with the current
 // SHA and the current article bytes so the editor can prompt re-apply.
 //
-// Agents never reach this endpoint — it is HTTP-only (not exposed via
+// Bots never reach this endpoint — it is HTTP-only (not exposed via
 // MCP) and gated by the existing broker bearer token (held by the web
 // UI). The identity stamped on the commit is resolved server-side from
 // the HumanIdentityRegistry; clients cannot forge attribution.
@@ -243,9 +243,9 @@ func (b *Broker) HasBlockingRequest() bool {
 	return false
 }
 
-// HasRecentlyTaggedAgents returns true if any agent was @mentioned within
+// HasRecentlyTaggedBots returns true if any bot was @mentioned within
 // the given duration and has not yet replied (i.e. is presumably "typing").
-func (b *Broker) HasRecentlyTaggedAgents(within time.Duration) bool {
+func (b *Broker) HasRecentlyTaggedBots(within time.Duration) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if len(b.lastTaggedAt) == 0 {

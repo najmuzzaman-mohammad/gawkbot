@@ -151,10 +151,10 @@ type conversationContext struct {
 }
 
 type TeamBroadcastArgs struct {
-	Channel   string   `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general. For a private 1:1 consult with one teammate, use the pair DM slug '<agent-a>__<agent-b>' (the two agent slugs, alphabetical); it is auto-created, wakes only that teammate, and the human sees quiet consult markers in their own DMs with a read-only view of the thread. Keep task work in task channels; pair DMs are for short side consultations."`
+	Channel   string   `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general. For a private 1:1 consult with one teammate, use the pair DM slug '<bot-a>__<bot-b>' (the two bot slugs, alphabetical); it is auto-created, wakes only that teammate, and the human sees quiet consult markers in their own DMs with a read-only view of the thread. Keep task work in task channels; pair DMs are for short side consultations."`
 	Content   string   `json:"content" jsonschema:"Message to post to the shared team channel. If you created an HTML visual artifact, include visual-artifact:ra_0123456789abcdef on its own line so chat renders a compact artifact card."`
-	MySlug    string   `json:"my_slug,omitempty" jsonschema:"Agent slug sending the message. Defaults to WUPHF_AGENT_SLUG."`
-	Tagged    []string `json:"tagged,omitempty" jsonschema:"Optional list of tagged agent slugs who should respond"`
+	MySlug    string   `json:"my_slug,omitempty" jsonschema:"Bot slug sending the message. Defaults to WUPHF_AGENT_SLUG."`
+	Tagged    []string `json:"tagged,omitempty" jsonschema:"Optional list of tagged bot slugs who should respond"`
 	ReplyToID string   `json:"reply_to_id,omitempty" jsonschema:"Reply in-thread to a specific message ID when continuing a narrow discussion"`
 	NewTopic  bool     `json:"new_topic,omitempty" jsonschema:"Set true only when this genuinely needs to start a new top-level thread"`
 }
@@ -162,21 +162,21 @@ type TeamBroadcastArgs struct {
 type TeamReactArgs struct {
 	MessageID string `json:"message_id" jsonschema:"The message ID to react to"`
 	Emoji     string `json:"emoji" jsonschema:"Emoji reaction (e.g. 👍, 💯, 🔥, 👀, ✅)"`
-	MySlug    string `json:"my_slug,omitempty" jsonschema:"Agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug    string `json:"my_slug,omitempty" jsonschema:"Bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamPollArgs struct {
-	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
-	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your agent slug so tagged_count can be computed. Defaults to WUPHF_AGENT_SLUG."`
+	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
+	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your bot slug so tagged_count can be computed. Defaults to WUPHF_AGENT_SLUG."`
 	SinceID string `json:"since_id,omitempty" jsonschema:"Only return messages after this message ID"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum messages to return (default 10, max 100)"`
-	Scope   string `json:"scope,omitempty" jsonschema:"Transcript scope: all, agent, inbox, or outbox. Defaults to agent-scoped for non-Chief of Staff office agents."`
+	Scope   string `json:"scope,omitempty" jsonschema:"Transcript scope: all, bot, inbox, or outbox. Defaults to bot-scoped for non-Chief of Staff office bots."`
 }
 
 type TeamStatusArgs struct {
-	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
+	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	Status  string `json:"status" jsonschema:"Short status like 'reviewing onboarding flow' or 'implementing search index'"`
-	MySlug  string `json:"my_slug,omitempty" jsonschema:"Agent slug sending the status. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug  string `json:"my_slug,omitempty" jsonschema:"Bot slug sending the status. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type HumanInterviewOption struct {
@@ -188,10 +188,10 @@ type HumanInterviewOption struct {
 }
 
 type HumanInterviewArgs struct {
-	Channel             string                 `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
+	Channel             string                 `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	Question            string                 `json:"question" jsonschema:"The specific decision or clarification needed from the human"`
 	Context             string                 `json:"context,omitempty" jsonschema:"Short context explaining why the team is asking now"`
-	MySlug              string                 `json:"my_slug,omitempty" jsonschema:"Agent slug asking the question. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug              string                 `json:"my_slug,omitempty" jsonschema:"Bot slug asking the question. Defaults to WUPHF_AGENT_SLUG."`
 	Options             []HumanInterviewOption `json:"options,omitempty" jsonschema:"Suggested answer options to show the human"`
 	RecommendedOptionID string                 `json:"recommended_option_id,omitempty" jsonschema:"Which option you recommend, if any"`
 	IssueID             string                 `json:"issue_id,omitempty" jsonschema:"Issue/task id this interview belongs to. Required when you are the owner of an active Issue — links the Inbox card back to the Issue so the human sees the breadcrumb."`
@@ -199,26 +199,26 @@ type HumanInterviewArgs struct {
 
 type HumanMessageArgs struct {
 	Kind      string `json:"kind,omitempty" jsonschema:"One of: report, decision, action. Defaults to report."`
-	Channel   string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel, or the active direct session in 1:1 mode."`
+	Channel   string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel, or the active direct session in 1:1 mode."`
 	Title     string `json:"title,omitempty" jsonschema:"Short human-facing headline like 'Frontend ready for review' or 'Need your call on pricing'"`
 	Content   string `json:"content" jsonschema:"What you want to tell the human directly: completion update, recommendation, decision framing, or next action."`
-	MySlug    string `json:"my_slug,omitempty" jsonschema:"Agent slug speaking to the human. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug    string `json:"my_slug,omitempty" jsonschema:"Bot slug speaking to the human. Defaults to WUPHF_AGENT_SLUG."`
 	ReplyToID string `json:"reply_to_id,omitempty" jsonschema:"Optional message ID this human-facing note belongs to."`
 }
 
 type TeamRequestsArgs struct {
-	Channel         string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
+	Channel         string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	IncludeResolved bool   `json:"include_resolved,omitempty" jsonschema:"Include already answered or canceled requests."`
-	MySlug          string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug          string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamRequestArgs struct {
 	Kind                string                 `json:"kind,omitempty" jsonschema:"One of: choice, confirm, freeform, approval, secret. Defaults to choice."`
-	Channel             string                 `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
+	Channel             string                 `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	Title               string                 `json:"title,omitempty" jsonschema:"Short request title"`
 	Question            string                 `json:"question" jsonschema:"The actual question or approval the human needs to respond to"`
 	Context             string                 `json:"context,omitempty" jsonschema:"Short context for why the request exists"`
-	MySlug              string                 `json:"my_slug,omitempty" jsonschema:"Agent slug asking the question. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug              string                 `json:"my_slug,omitempty" jsonschema:"Bot slug asking the question. Defaults to WUPHF_AGENT_SLUG."`
 	Options             []HumanInterviewOption `json:"options,omitempty" jsonschema:"Suggested answer options for choice-style requests"`
 	RecommendedOptionID string                 `json:"recommended_option_id,omitempty" jsonschema:"Which option you recommend, if any"`
 	Blocking            bool                   `json:"blocking,omitempty" jsonschema:"Whether this request should pause channel work until answered"`
@@ -229,14 +229,14 @@ type TeamRequestArgs struct {
 }
 
 type TeamTasksArgs struct {
-	Channel     string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
-	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	Channel     string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
+	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 	IncludeDone bool   `json:"include_done,omitempty" jsonschema:"Include completed tasks as well"`
 }
 
 type TeamRuntimeStateArgs struct {
-	Channel      string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
-	MySlug       string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	Channel      string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
+	MySlug       string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 	MessageLimit int    `json:"message_limit,omitempty" jsonschema:"How many recent messages to include when building the recovery summary (default 12, max 40)."`
 }
 
@@ -248,8 +248,8 @@ type TeamTaskDeliverable struct {
 }
 
 type TeamTaskArgs struct {
-	Action               string   `json:"action" jsonschema:"One of: create, define, claim, assign, submit_for_review, comment, request_changes, approve, reject, complete, block, resume, release, reopen. claim takes the task for yourself; assign hands it to the owner slug you name, moving it off whoever had it. define (Chief of Staff/human only) sets the structured task definition — goal, deliverables, success_criteria, access_needed — call it on a task BEFORE assigning owners or creating subtasks. submit_for_review hands an in-progress task to its reviewer. comment leaves a PR-style note with no state change. request_changes (reviewer only) bounces the task back to its owner for revision — non-terminal. approve marks reviewed work as canonical and unblocks dependents. reject (reviewer only) marks the work as permanently un-landable; downstream dependents stay blocked. complete is for tasks that do not need structured review. reopen (Chief of Staff/human only) reverses a terminal close (done/approved/rejected/cancelled/archived): a task with a real owner lands back in running and re-engages that owner — use it when work was closed wrongly instead of creating a duplicate task. NOTE: while a HUMAN's request_changes objection is open on a task, approve/complete by any agent is refused; only the human can clear it."`
-	Channel              string   `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
+	Action               string   `json:"action" jsonschema:"One of: create, define, claim, assign, submit_for_review, comment, request_changes, approve, reject, complete, block, resume, release, reopen. claim takes the task for yourself; assign hands it to the owner slug you name, moving it off whoever had it. define (Chief of Staff/human only) sets the structured task definition — goal, deliverables, success_criteria, access_needed — call it on a task BEFORE assigning owners or creating subtasks. submit_for_review hands an in-progress task to its reviewer. comment leaves a PR-style note with no state change. request_changes (reviewer only) bounces the task back to its owner for revision — non-terminal. approve marks reviewed work as canonical and unblocks dependents. reject (reviewer only) marks the work as permanently un-landable; downstream dependents stay blocked. complete is for tasks that do not need structured review. reopen (Chief of Staff/human only) reverses a terminal close (done/approved/rejected/cancelled/archived): a task with a real owner lands back in running and re-engages that owner — use it when work was closed wrongly instead of creating a duplicate task. NOTE: while a HUMAN's request_changes objection is open on a task, approve/complete by any bot is refused; only the human can clear it."`
+	Channel              string   `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	ID                   string   `json:"id,omitempty" jsonschema:"Task ID for non-create actions"`
 	Title                string   `json:"title,omitempty" jsonschema:"Task title when creating a task"`
 	Details              string   `json:"details,omitempty" jsonschema:"Optional detail or update"`
@@ -258,7 +258,7 @@ type TeamTaskArgs struct {
 	TaskType             string   `json:"task_type,omitempty" jsonschema:"Use \"issue\" for any work scoped from a human request — that is what the Issues board renders (RULE ZERO). Other values (research, feature, launch, follow_up, bugfix, incident) are for sub-tasks created INSIDE an existing Issue, not for the Issue itself. When in doubt, pick \"issue\"."`
 	ExecutionMode        string   `json:"execution_mode,omitempty" jsonschema:"Optional execution mode such as office or local_worktree"`
 	Effort               string   `json:"effort,omitempty" jsonschema:"Optional model-specific reasoning-effort level (e.g. \"high\" or \"max\" for claude, \"minimal\" or \"medium\" for codex). Applied at dispatch. Omit for the runtime default."`
-	Provider             string   `json:"provider,omitempty" jsonschema:"Optional per-task LLM runtime kind (claude-code, codex, opencode, …). The model/provider is a property of the task, not the agent; dispatch prefers it over the owner's binding. Omit to inherit the owner's runtime."`
+	Provider             string   `json:"provider,omitempty" jsonschema:"Optional per-task LLM runtime kind (claude-code, codex, opencode, …). The model/provider is a property of the task, not the bot; dispatch prefers it over the owner's binding. Omit to inherit the owner's runtime."`
 	Model                string   `json:"model,omitempty" jsonschema:"Optional per-task model id for the chosen provider (e.g. claude-opus-4-8, gpt-5.5). Omit to inherit the owner's binding or the install default."`
 	DependsOn            []string `json:"depends_on,omitempty" jsonschema:"Task IDs this task must wait for before starting (create action only)"`
 	VerificationKind     string   `json:"verification_kind,omitempty" jsonschema:"Machine-checkable definition of done (create and define actions). One of: command (shell command that must exit 0), artifact (file path or glob that must exist non-empty in the task worktree), url (http(s) URL that must answer 2xx), none. Set this on every task whose outcome can be checked mechanically — a test command for code, an artifact path for documents."`
@@ -272,14 +272,14 @@ type TeamTaskArgs struct {
 	Deliverables    []TeamTaskDeliverable `json:"deliverables,omitempty" jsonschema:"For the define action only: the concrete artifacts the task must produce, each with its exact format."`
 	SuccessCriteria []string              `json:"success_criteria,omitempty" jsonschema:"For the define action only: observable conditions that decide done; entries must be non-empty. Prefer machine-checkable criteria. When a criterion is machine-checkable AND the task has no verification yet, ALSO pass verification_kind/verification_spec/verification_required in the SAME define call — the broker enforces the check, it does NOT parse criteria text into commands."`
 	AccessNeeded    []string              `json:"access_needed,omitempty" jsonschema:"For the define action only: tool/context access the work needs (accounts, credentials, files, connected systems) gathered from the human during intake."`
-	MySlug          string                `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug          string                `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamChannelsArgs struct{}
 
 type TeamMembersArgs struct {
-	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
-	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
+	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamChannelArgs struct {
@@ -288,27 +288,27 @@ type TeamChannelArgs struct {
 	Name        string   `json:"name,omitempty" jsonschema:"Optional channel display name on create"`
 	Description string   `json:"description,omitempty" jsonschema:"One-sentence explanation of what the channel is for. Required in practice when creating channels."`
 	Members     []string `json:"members,omitempty" jsonschema:"Optional initial member slugs to add when creating the channel. Chief of Staff is always included."`
-	MySlug      string   `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug      string   `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamDMOpenArgs struct {
-	Members []string `json:"members" jsonschema:"Array of member slugs. Must include 'human'. For 1:1 DMs: ['human', 'agent-slug']. Agent-to-agent DMs are not allowed."`
+	Members []string `json:"members" jsonschema:"Array of member slugs. Must include 'human'. For 1:1 DMs: ['human', 'bot-slug']. Bot-to-bot DMs are not allowed."`
 	Type    string   `json:"type,omitempty" jsonschema:"Channel type: 'direct' (default, 1:1) or 'group' (multi-member). Defaults to direct."`
 }
 
 type TeamChannelMemberArgs struct {
 	Action     string `json:"action" jsonschema:"One of: add, remove, disable, enable"`
 	Channel    string `json:"channel" jsonschema:"Channel slug"`
-	MemberSlug string `json:"member_slug" jsonschema:"Agent slug to modify"`
-	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MemberSlug string `json:"member_slug" jsonschema:"Bot slug to modify"`
+	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamBridgeArgs struct {
 	SourceChannel string   `json:"source_channel" jsonschema:"Channel slug the context is coming from"`
 	TargetChannel string   `json:"target_channel" jsonschema:"Channel slug the context should be carried into"`
 	Summary       string   `json:"summary" jsonschema:"Concise bridged context to carry across channels"`
-	Tagged        []string `json:"tagged,omitempty" jsonschema:"Optional agents to wake in the target channel after the bridge lands"`
-	MySlug        string   `json:"my_slug,omitempty" jsonschema:"Agent slug performing the bridge. Defaults to WUPHF_AGENT_SLUG."`
+	Tagged        []string `json:"tagged,omitempty" jsonschema:"Optional bots to wake in the target channel after the bridge lands"`
+	MySlug        string   `json:"my_slug,omitempty" jsonschema:"Bot slug performing the bridge. Defaults to WUPHF_AGENT_SLUG."`
 	ReplyToID     string   `json:"reply_to_id,omitempty" jsonschema:"Optional target-channel message ID this bridge belongs to"`
 }
 
@@ -316,27 +316,27 @@ type TeamOfficeMembersArgs struct{}
 
 type TeamMemberArgs struct {
 	Action      string   `json:"action" jsonschema:"One of: create, remove"`
-	Slug        string   `json:"slug" jsonschema:"Stable agent slug like growthops or research-lead"`
+	Slug        string   `json:"slug" jsonschema:"Stable bot slug like growthops or research-lead"`
 	Name        string   `json:"name,omitempty" jsonschema:"Display name for the team member"`
 	Role        string   `json:"role,omitempty" jsonschema:"Role/job title"`
 	Expertise   []string `json:"expertise,omitempty" jsonschema:"Optional expertise list"`
 	Personality string   `json:"personality,omitempty" jsonschema:"Optional short personality description"`
-	// Per-agent provider selection. Empty Provider means the agent inherits the
+	// Per-bot provider selection. Empty Provider means the bot inherits the
 	// install-wide default runtime. Set Provider to pick a specific runtime and
-	// (optionally) model for this agent: one team can mix Claude, Codex,
-	// Hermes, and OpenClaw agents, each on its own provider.
-	Provider           string `json:"provider,omitempty" jsonschema:"LLM runtime for this agent. One of: claude-code, codex, opencode, hermes-agent, openclaw-http, openclaw, ollama. Empty = install default."`
-	Model              string `json:"model,omitempty" jsonschema:"Model name passed to the runtime (e.g. claude-sonnet-4.6, gpt-5.4, hermes-agent, openclaw/default, openai-codex/gpt-5.4). Free-form; runtime validates."`
+	// (optionally) model for this bot: one team can mix Claude, Codex,
+	// Hermes, and OpenClaw bots, each on its own provider.
+	Provider           string `json:"provider,omitempty" jsonschema:"LLM runtime for this bot. One of: claude-code, codex, opencode, hermes-bot, openclaw-http, openclaw, ollama. Empty = install default."`
+	Model              string `json:"model,omitempty" jsonschema:"Model name passed to the runtime (e.g. claude-sonnet-4.6, gpt-5.4, hermes-bot, openclaw/default, openai-codex/gpt-5.4). Free-form; runtime validates."`
 	OpenclawSessionKey string `json:"openclaw_session_key,omitempty" jsonschema:"Optional: attach to an existing OpenClaw session key (e.g. after WUPHF reinstall). Leave empty to auto-create a new session."`
-	OpenclawAgentID    string `json:"openclaw_agent_id,omitempty" jsonschema:"Optional: OpenClaw agent config name (defaults to 'main')."`
-	MySlug             string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	OpenclawBotID      string `json:"openclaw_agent_id,omitempty" jsonschema:"Optional: OpenClaw bot config name (defaults to 'main')."`
+	MySlug             string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamPlanArgs struct {
-	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
+	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	Tasks   []struct {
 		Title         string   `json:"title" jsonschema:"Task title"`
-		Assignee      string   `json:"assignee" jsonschema:"Agent slug to own this task"`
+		Assignee      string   `json:"assignee" jsonschema:"Bot slug to own this task"`
 		Details       string   `json:"details,omitempty" jsonschema:"Optional task details"`
 		TaskType      string   `json:"task_type,omitempty" jsonschema:"Optional task type such as research, feature, launch, follow_up, bugfix, or incident"`
 		ExecutionMode string   `json:"execution_mode,omitempty" jsonschema:"Optional execution mode such as office or local_worktree"`
@@ -345,14 +345,14 @@ type TeamPlanArgs struct {
 		Model         string   `json:"model,omitempty" jsonschema:"Optional per-task model id for the chosen provider. Omit to inherit the owner's binding or the install default."`
 		DependsOn     []string `json:"depends_on,omitempty" jsonschema:"Titles or IDs of tasks this depends on"`
 	} `json:"tasks" jsonschema:"List of tasks to create in dependency order"`
-	MySlug string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamMemoryQueryArgs struct {
 	Query  string `json:"query" jsonschema:"What you want to look up in memory"`
 	Scope  string `json:"scope,omitempty" jsonschema:"One of: auto, private, shared. Defaults to auto."`
 	Limit  int    `json:"limit,omitempty" jsonschema:"Maximum hits to return per scope (default 5)"`
-	MySlug string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamMemoryWriteArgs struct {
@@ -360,23 +360,23 @@ type TeamMemoryWriteArgs struct {
 	Title      string `json:"title,omitempty" jsonschema:"Optional short title for the note"`
 	Content    string `json:"content" jsonschema:"Note content to store"`
 	Visibility string `json:"visibility,omitempty" jsonschema:"One of: private, shared. Defaults to private."`
-	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamMemoryPromoteArgs struct {
 	Key    string `json:"key" jsonschema:"Private note key to promote into shared durable memory"`
 	Title  string `json:"title,omitempty" jsonschema:"Optional override title for the promoted shared note"`
-	MySlug string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 // TeamWikiWriteArgs is the contract for the team_wiki_write MCP tool.
 type TeamWikiWriteArgs struct {
-	MySlug       string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug       string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	ArticlePath  string `json:"article_path" jsonschema:"Path within wiki root, e.g. team/people/nazz.md"`
 	Mode         string `json:"mode" jsonschema:"One of: create | replace | append_section"`
 	Content      string `json:"content" jsonschema:"Full article content (create/replace) or new section text (append_section)"`
 	CommitMsg    string `json:"commit_message" jsonschema:"Why this change — becomes the git commit message"`
-	HumanRequest string `json:"human_request,omitempty" jsonschema:"Broker message ID for the recent human-authored request explicitly authorizing this direct wiki write. Required unless WUPHF_ENABLE_AGENT_WIKI_WRITE=true. For agent-authored knowledge not explicitly requested by the human, use notebook_write then notebook_promote instead."`
+	HumanRequest string `json:"human_request,omitempty" jsonschema:"Broker message ID for the recent human-authored request explicitly authorizing this direct wiki write. Required unless WUPHF_ENABLE_AGENT_WIKI_WRITE=true. For bot-authored knowledge not explicitly requested by the human, use notebook_write then notebook_promote instead."`
 }
 
 // TeamWikiReadArgs is the contract for team_wiki_read.
@@ -400,10 +400,10 @@ type TeamWikiLookupArgs struct {
 
 type TeamTaskAckArgs struct {
 	ID      string `json:"id" jsonschema:"Task ID to acknowledge"`
-	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the agent's current channel or general."`
-	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	Channel string `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
+	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type TeamTaskStatusArgs struct {
-	MySlug string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 }

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -32,13 +32,13 @@ type SlashCommand struct {
 
 // SlashContext provides services and UI callbacks to command implementations.
 type SlashContext struct {
-	AgentService *agent.AgentService
-	Config       *config.Config
-	AddMessage   func(role, content string)
-	SetLoading   func(bool)
-	ShowPicker   func(title string, options []PickerOption)
-	ShowConfirm  func(question string)
-	SendResult   func(output string, err error)
+	BotService  *bot.BotService
+	Config      *config.Config
+	AddMessage  func(role, content string)
+	SetLoading  func(bool)
+	ShowPicker  func(title string, options []PickerOption)
+	ShowConfirm func(question string)
+	SendResult  func(output string, err error)
 }
 
 // Registry holds registered slash commands keyed by name.

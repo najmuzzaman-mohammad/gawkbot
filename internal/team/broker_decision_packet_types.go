@@ -2,15 +2,15 @@ package team
 
 // broker_decision_packet_types.go owns the wire-shape Go structs for the
 // task-level Decision Packet — the single human-facing artifact the
-// multi-agent control loop produces per task. The packet aggregates input
+// multi-bot control loop produces per task. The packet aggregates input
 // from three writer roles:
 //
 //   - intake driver (Lane B) → Spec
-//   - owner agent (later lane) → SessionReport + ChangedFiles
-//   - reviewer agents (Lane D) → ReviewerGrades
+//   - owner bot (later lane) → SessionReport + ChangedFiles
+//   - reviewer bots (Lane D) → ReviewerGrades
 //
 // Aggregation is deterministic field rollup (per design doc P3 revision):
-// agents do not synthesise the packet; they populate fields. The human
+// bots do not synthesise the packet; they populate fields. The human
 // reads the result.
 //
 // Coordination notes (Lane C is the canonical home for these shapes):
@@ -30,7 +30,7 @@ package team
 //
 // At integration time, this file replaces the stubs in both
 // broker_reviewer_routing_types.go (Severity + ReviewerGrade) and
-// broker_inbox_packet_types.go (the rest). The integration agent
+// broker_inbox_packet_types.go (the rest). The integration bot
 // must:
 //
 //  1. Drop `Severity` and `ReviewerGrade` from
@@ -65,7 +65,7 @@ package team
 
 import "time"
 
-// Severity is the typed string constant used by reviewer agent grades.
+// Severity is the typed string constant used by reviewer bot grades.
 // Mirrors the CodeRabbit five-tier convention so v1 reviewer routing
 // can fan grades to the same UI without per-tier translation logic.
 type Severity string
@@ -123,7 +123,7 @@ func (s Severity) IsCanonical() bool {
 // magnitude string the UI renders in the leftmost column ("+128 LOC",
 // "x3.2 faster", "-10 deps") so a reader can scan deltas without
 // parsing the description. Description is the prose. Both fields are
-// agent-authored; the broker never synthesises them.
+// bot-authored; the broker never synthesises them.
 type Win struct {
 	Delta       string `json:"delta"`
 	Description string `json:"description"`
@@ -132,14 +132,14 @@ type Win struct {
 // DeadEnd is one tried-and-discarded approach. The session report
 // surfaces these explicitly so future runs (and the human reading the
 // packet) can see what was attempted, not just what shipped — Karpathy
-// autoresearch pattern. Reason is the agent's recorded rationale for
+// autoresearch pattern. Reason is the bot's recorded rationale for
 // abandoning the path.
 type DeadEnd struct {
 	Tried  string `json:"tried"`
 	Reason string `json:"reason"`
 }
 
-// DiffSummary is one row in ChangedFiles. Lane B/C and the owner agent
+// DiffSummary is one row in ChangedFiles. Lane B/C and the owner bot
 // hand the broker the populated structure; the broker does not run git
 // itself in v1 to compute the diff.
 //
@@ -157,7 +157,7 @@ type DiffSummary struct {
 	RenamedFrom string `json:"renamedFrom,omitempty"`
 }
 
-// SessionReport is the owner-agent-authored summary that appears in the
+// SessionReport is the owner-bot-authored summary that appears in the
 // Decision Packet center column. Highlights renders as the lead summary
 // paragraph; TopWins as the labelled-delta list; DeadEnds as the
 // tried-and-discarded section.
@@ -173,12 +173,12 @@ type SessionReport struct {
 	Metadata   map[string]string `json:"metadata"`
 }
 
-// ReviewerGrade is one reviewer agent's CodeRabbit-style structured
-// grade. Severity is typed (compile-time) so a typo by the agent
+// ReviewerGrade is one reviewer bot's CodeRabbit-style structured
+// grade. Severity is typed (compile-time) so a typo by the bot
 // produces a build-time failure rather than a silently mis-tier'd
 // grade. FilePath and Line are optional (for grades targeting overall
 // behaviour rather than a specific code site). SubmittedAt is when the
-// broker recorded the grade, not when the agent's process started.
+// broker recorded the grade, not when the bot's process started.
 //
 // SubmittedAt is `time.Time` (matches the design doc and Lane E's
 // stub). Lane D's pre-integration stub used `string` (RFC3339) for the

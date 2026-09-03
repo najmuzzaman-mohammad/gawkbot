@@ -125,8 +125,8 @@ func (f *fakeMemberTransport) Health() Health {
 
 // CreateSession satisfies MemberBoundTransport. The fake returns a deterministic
 // key so tests can assert routing without real upstream calls.
-func (f *fakeMemberTransport) CreateSession(_ context.Context, agentID, label string) (string, error) {
-	key := "fake-session-" + agentID + "-" + label
+func (f *fakeMemberTransport) CreateSession(_ context.Context, botID, label string) (string, error) {
+	key := "fake-session-" + botID + "-" + label
 	return key, nil
 }
 

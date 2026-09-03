@@ -3,8 +3,8 @@ package team
 // broker_presence.go owns per-member presence state derived from
 // transport.Host calls. UpsertParticipant flips a slug online; DetachParticipant
 // flips it offline. The /office-members handler reads this map to render a live
-// connection indicator next to each member, distinct from agentActivitySnapshot
-// (which tracks "is the agent processing right now"); presence tracks "does the
+// connection indicator next to each member, distinct from botActivitySnapshot
+// (which tracks "is the bot processing right now"); presence tracks "does the
 // adapter still have a live session for this slug".
 //
 // Two maps are kept in lockstep under b.mu:

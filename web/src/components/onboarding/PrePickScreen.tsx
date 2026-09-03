@@ -86,7 +86,7 @@ function cardStatusLabel({
   // Issue #932: when the runtime supports a session probe and we got a
   // definite "not signed in", surface that as the primary status. The user
   // would otherwise complete onboarding believing they were connected,
-  // then hit "Not logged in" on the agent loop's first call.
+  // then hit "Not logged in" on the bot loop's first call.
   if (signedIn === false) {
     return version ? `Not signed in · ${version}` : "Not signed in";
   }
@@ -163,7 +163,7 @@ function RuntimeCard({
           // Auth gate: when the runtime probed and reported NOT signed in,
           // never fall through to onPick — even if sign_in_command is
           // missing/empty. Falling through would advance onboarding to an
-          // un-authed runtime, which the agent loop's first LLM call would
+          // un-authed runtime, which the bot loop's first LLM call would
           // immediately reject. Copy the command when we have it; otherwise
           // just no-op (the inline "not signed in" hint stays visible).
           if (isUnauthed) {
@@ -638,7 +638,7 @@ export function PrePickScreen({ onComplete }: PrePickScreenProps) {
       }
       // Hand off to the visual onboarding wizard. We deliberately do NOT POST
       // /onboarding/transition {phase:"greet"} here: that starts the legacy
-      // CEO-chat phase machine (and a greet agent turn), which the wizard
+      // CEO-chat phase machine (and a greet bot turn), which the wizard
       // replaces. The wizard collects answers across its steps and seeds the
       // office in one shot via POST /onboarding/complete at finish, so no
       // phase-machine transition is needed (or wanted — the greet turn could

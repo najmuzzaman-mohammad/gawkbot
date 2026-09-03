@@ -29,7 +29,7 @@ const AUTO_ASSIGN = "";
 export interface TaskCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pre-select an assignee — used when opened from an agent subspace. */
+  /** Pre-select an assignee — used when opened from a bot subspace. */
   defaultAssignee?: string;
   /** Navigate to the new task's detail page on success. Default: true. */
   navigateOnCreate?: boolean;

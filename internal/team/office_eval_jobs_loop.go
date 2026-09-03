@@ -192,7 +192,7 @@ func evalJobCompletionHook(fx *officeEvalFixture, r *OfficeEvalReport) error {
 //	    notification content, not as a bare "changes requested" flag
 //	    ([00:55]: "The feedback isn't visible in the packet").
 //	(b) open objection hard-blocks terminal transitions — while the
-//	    human's objection stands, approve/complete by ANY agent (the
+//	    human's objection stands, approve/complete by ANY bot (the
 //	    lead included, on both the team_task path and the
 //	    /tasks/{id}/decision path) is refused with an error naming the
 //	    objection; a HUMAN approve clears it and lands the task
@@ -242,7 +242,7 @@ func evalJobHumanSovereignty(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		strings.Contains(wake, "CHANGES REQUESTED by @human") && strings.Contains(wake, feedback),
 		fmt.Sprintf("wake=%d chars", len(wake)), "")
 
-	// (b) Every agent path to a terminal transition is refused while the
+	// (b) Every bot path to a terminal transition is refused while the
 	// human's objection is open — the error names the objection.
 	_, ceoApproveErr := fx.broker.MutateTask(TaskPostRequest{Action: "approve", ID: taskID, Channel: "general", CreatedBy: "ceo"})
 	var mutationErr *TaskMutationError
@@ -256,7 +256,7 @@ func evalJobHumanSovereignty(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		fmt.Sprintf("err=%v", ownerCompleteErr), "")
 	decisionErr := fx.broker.RecordTaskDecision(taskID, "approve", "ceo")
 	notDone := fx.broker.TaskByID(taskID) != nil && !strings.EqualFold(strings.TrimSpace(fx.broker.TaskByID(taskID).status), "done")
-	r.add(job, "decision-endpoint agent approve is blocked while the human objection is open",
+	r.add(job, "decision-endpoint bot approve is blocked while the human objection is open",
 		errors.Is(decisionErr, ErrHumanObjectionOpen) && notDone,
 		fmt.Sprintf("err=%v", decisionErr), "")
 
@@ -486,9 +486,9 @@ func (evalPlaybookFastPathProvider) AskIsSkill(_ context.Context, _, articleCont
 // artifact citations; (b) a second similar task UPDATES the same playbook
 // (worked example appended, no duplicate file); (c) a playbook with a
 // "## Rules" section, run through the compile funnel, yields a skill AND
-// atomic policies carrying the skill's agent assignment; (d) duplicate rule
-// text does not mint a second policy; (e) an agent's system prompt carries
-// its assigned policies and NOT one assigned exclusively to another agent —
+// atomic policies carrying the skill's bot assignment; (d) duplicate rule
+// text does not mint a second policy; (e) a bot's system prompt carries
+// its assigned policies and NOT one assigned exclusively to another bot —
 // and carries its assigned compiled skill (the step-8 always-loaded check).
 func evalJobPlaybookCompilation(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	const job = "playbook-compilation"
@@ -617,7 +617,7 @@ func evalJobPlaybookCompilation(fx *officeEvalFixture, r *OfficeEvalReport) erro
 		fmt.Sprintf("files=%d len=%dB", playbookFiles, len(updated)), "")
 
 	// (c) A playbook with a ## Rules section through the compile funnel
-	// yields a skill AND atomic policies with the skill's agent assignment.
+	// yields a skill AND atomic policies with the skill's bot assignment.
 	// The fixture scanner promotes explicit-frontmatter articles only — no
 	// LLM — mirroring defaultLLMProvider's fast path.
 	fx.broker.SetSkillScanner(NewSkillScanner(fx.broker, evalPlaybookFastPathProvider{}, 10))
@@ -657,7 +657,7 @@ description: Qualify inbound leads before routing them to sales.
 		}
 	}
 	r.add(job, "compile funnel yields the playbook's skill, roster-assigned",
-		compiledSkill != nil && len(compiledSkill.OwnerAgents) == 2,
+		compiledSkill != nil && len(compiledSkill.OwnerBots) == 2,
 		fmt.Sprintf("skills=%d", len(skills)), "")
 
 	findPolicy := func(rule string) *officePolicy {
@@ -670,9 +670,9 @@ description: Qualify inbound leads before routing them to sales.
 		return nil
 	}
 	p1, p2 := findPolicy(ruleOne), findPolicy(ruleTwo)
-	r.add(job, "compile funnel yields atomic policies with the skill's agent assignment",
+	r.add(job, "compile funnel yields atomic policies with the skill's bot assignment",
 		p1 != nil && p2 != nil &&
-			len(p1.Agents) == 2 && policyAppliesToAgent(*p1, "eng") && policyAppliesToAgent(*p1, "ceo"),
+			len(p1.Bots) == 2 && policyAppliesToBot(*p1, "eng") && policyAppliesToBot(*p1, "ceo"),
 		fmt.Sprintf("policies=%d", len(fx.broker.ListPolicies())), "")
 
 	// (d) Duplicate rule text (different casing, second playbook) does not
@@ -710,9 +710,9 @@ description: Send renewal outreach emails to existing customers.
 	r.add(job, "duplicate rule text does not create a second policy", dupCount == 1,
 		fmt.Sprintf("matching policies=%d", dupCount), "")
 
-	// (e) Always-loaded (core-loop step 8): an agent's prompt carries its
+	// (e) Always-loaded (core-loop step 8): a bot's prompt carries its
 	// assigned policies + skills and NOT a policy assigned exclusively to
-	// another agent.
+	// another bot.
 	const engOnlyRule = "Run the deploy checklist before every release"
 	const ceoOnlyRule = "Review specialist hiring proposals within one day"
 	if _, err := fx.broker.RecordPolicyScoped("human_directed", engOnlyRule, []string{"eng"}); err != nil {
@@ -722,11 +722,11 @@ description: Send renewal outreach emails to existing customers.
 		return err
 	}
 	engPrompt := fx.launcher.buildPrompt("eng")
-	r.add(job, "agent prompt carries its assigned policy and not another agent's",
+	r.add(job, "bot prompt carries its assigned policy and not another bot's",
 		strings.Contains(engPrompt, engOnlyRule) && !strings.Contains(engPrompt, ceoOnlyRule) &&
 			strings.Contains(engPrompt, ruleOne),
 		fmt.Sprintf("prompt=%d chars", len(engPrompt)), "")
-	r.add(job, "agent prompt carries its assigned compiled skill (always loaded)",
+	r.add(job, "bot prompt carries its assigned compiled skill (always loaded)",
 		strings.Contains(engPrompt, "qualify-inbound-leads"),
 		"", "")
 	return nil
@@ -932,7 +932,7 @@ func evalJobGrounding(fx *officeEvalFixture, r *OfficeEvalReport) error {
 
 	_, blockedErr := fx.broker.MutateTask(TaskPostRequest{Action: "complete", ID: stopTask.ID, Channel: "general", CreatedBy: "eng"})
 	var mutationErr *TaskMutationError
-	r.add(job, "leading stop blocks agent complete until a packet consumed the note",
+	r.add(job, "leading stop blocks bot complete until a packet consumed the note",
 		errors.As(blockedErr, &mutationErr) && mutationErr.Kind == TaskMutationForbidden &&
 			strings.Contains(mutationErr.Message, "stop order"),
 		fmt.Sprintf("err=%v", blockedErr), "")
@@ -993,7 +993,7 @@ func evalJobGrounding(fx *officeEvalFixture, r *OfficeEvalReport) error {
 //	    required command check (with the action-log stamp), the done claim
 //	    is blocked while the file is missing, and succeeds once it exists.
 //	(b) artifact delta on resubmission — after a human request_changes on a
-//	    task with a readable artifact, an agent resubmission with a
+//	    task with a readable artifact, a bot resubmission with a
 //	    byte-identical artifact is refused; modifying the artifact clears
 //	    the gate. An unverifiable artifact degrades to an audit stamp.
 //	(c) post-done routing — a human message in a delivered task's channel

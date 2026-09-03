@@ -2,7 +2,7 @@
  * Wire shapes for Phase 2 deterministic CEO conversation cards.
  *
  * These types mirror the Go-side `Suggestion` struct in
- * internal/onboarding/state.go. The backend agent is responsible for
+ * internal/onboarding/state.go. The backend bot is responsible for
  * sanitizing payload strings through sanitizeContextValue before writing;
  * the frontend treats every string field as plain text (never innerHTML).
  *
@@ -154,7 +154,7 @@ export interface CeoChecklistPayload {
 
 /** Alias of checklist with team-specific framing. Same wire shape. */
 export interface CeoTeamTrimPayload extends CeoChecklistPayload {
-  /** Agent slugs that are currently in the blueprint team roster */
+  /** Bot slugs that are currently in the blueprint team roster */
   team_agents?: string[];
 }
 
@@ -162,20 +162,20 @@ export type ScanStatus = "scanning" | "done" | "failed";
 
 // ── Execution lineup payload ───────────────────────────────────────────────
 
-export interface ExecutionLineupAgent {
-  /** Agent slug, e.g. "engineer". Rendered as plain text. */
+export interface ExecutionLineupBot {
+  /** Bot slug, e.g. "engineer". Rendered as plain text. */
   slug: string;
   /** Human-readable role, e.g. "Founding Engineer". Plain text. */
   role: string;
-  /** One-sentence reason for this agent's inclusion. Plain text. */
+  /** One-sentence reason for this bot's inclusion. Plain text. */
   reason: string;
 }
 
 export interface CeoExecutionLineupPayload {
   /** Stable suggestion ID for idempotent dedup. */
   suggestion_id: string;
-  /** Agents proposed for the execution roster. */
-  agents: ExecutionLineupAgent[];
+  /** Bots proposed for the execution roster. */
+  agents: ExecutionLineupBot[];
 }
 
 export interface CeoScanChipPayload {

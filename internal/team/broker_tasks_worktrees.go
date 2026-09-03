@@ -81,7 +81,7 @@ func rejectFalseLocalWorktreeBlock(task *teamTask, reason string) error {
 //     path (see laneForTurn), so two worktree turns run in parallel only when
 //     their worktrees differ and serialize the moment they share a tree.
 //   - office / live_external: no shared worktree; concurrent turns are the same
-//     concurrency the system already runs across different agents (broker
+//     concurrency the system already runs across different bots (broker
 //     mediates shared state). If two external actions must be ordered, the
 //     caller declares a dependency.
 //
@@ -105,8 +105,8 @@ func (b *Broker) syncTaskWorktreeLocked(task *teamTask) error {
 	if task == nil {
 		return nil
 	}
-	// Automatically assign local_worktree mode when a coding agent claims a task.
-	if task.ExecutionMode == "" && codingAgentSlugs[strings.TrimSpace(task.Owner)] {
+	// Automatically assign local_worktree mode when a coding bot claims a task.
+	if task.ExecutionMode == "" && codingBotSlugs[strings.TrimSpace(task.Owner)] {
 		switch strings.TrimSpace(task.status) {
 		case "", "open", "done":
 			// not yet in-progress; leave mode unset
@@ -282,7 +282,7 @@ func (b *Broker) preferredTaskChannelLocked(requestedChannel, createdBy, owner, 
 		return b.reHomeTaskOutOfHumanDMLocked(normalizeChannelSlug(raw), owner)
 	}
 	// The owner's DM, but only if the CREATOR may post in it. A DM has exactly
-	// two participants, so a task one agent opens for another would otherwise
+	// two participants, so a task one bot opens for another would otherwise
 	// resolve to a private conversation the creator cannot write to, and the
 	// caller's own access check would then reject the whole plan with 403. The
 	// human passes every check, so a human-planned task still lands on its
@@ -310,7 +310,7 @@ func (b *Broker) preferredTaskChannelLocked(requestedChannel, createdBy, owner, 
 //
 // A sub-issue (ParentIssueID!="") that clears those two guards mints its OWN
 // task-<childID> channel, separate from the parent. The channel handed to a
-// sub-issue create is the creating agent's current conversation — almost
+// sub-issue create is the creating bot's current conversation — almost
 // always the parent task's channel — so we mint regardless of whether it
 // resolved to "general". Without this, every child posts its working chatter
 // into the parent's chat and the two tasks share one timeline. A sub-issue
@@ -319,7 +319,7 @@ func (b *Broker) preferredTaskChannelLocked(requestedChannel, createdBy, owner, 
 //
 // A top-level task that clears those guards mints when the resolved channel
 // is "general" OR is another task's per-task channel
-// (incomingChannelOwnedByAnotherTask). The creating agent's conversation is
+// (incomingChannelOwnedByAnotherTask). The creating bot's conversation is
 // usually inside some existing task's chat, so a new top-level Issue created
 // from there arrives carrying that task's channel; without this it would
 // silently share the other task's timeline (every new Issue piling into the

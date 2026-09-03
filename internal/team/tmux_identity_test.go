@@ -10,7 +10,7 @@ import (
 // init based on the broker port. When two WUPHF instances ran on the same
 // machine they used to share "wuphf" and "wuphf-team" and race each other's
 // kill-session / new-session / split-window calls, which surfaced as
-// "spawn first agent: exit status 1" when the server was torn down
+// "spawn first bot: exit status 1" when the server was torn down
 // mid-launch. These tests pin the rule so the isolation can't regress
 // silently.
 

@@ -1,7 +1,7 @@
 package team
 
 // broker_computer.go owns the broker side of "every bot gets a computer":
-// one computerService per broker that resolves an agent's destination
+// one computerService per broker that resolves a bot's destination
 // (sandbox on this machine, cloud box, or off), composes the ComputerStatus
 // the web UI renders, applies lifecycle actions, fans `computer` events out
 // over SSE, and hands turns their MCP mount (broker_computer_turn.go). The
@@ -92,7 +92,7 @@ type computerRuntimePayload struct {
 // it off (worktree_guard_test.go, DisableRealTaskWorktreeForTests) so a
 // turn under `go test` can never create a container on the developer's
 // Docker; the 2026-09-02 fresh-office run found two containers left by the
-// suite and refused the one whose name matched its own agent.
+// suite and refused the one whose name matched its own bot.
 var computerRuntimeAllowed atomic.Bool
 
 func init() { computerRuntimeAllowed.Store(true) }
@@ -391,7 +391,7 @@ func (s *computerService) member(slug string) (officeMember, bool) {
 	return cloneOfficeMemberForRead(*m), true
 }
 
-func (s *computerService) agentBusy(slug string) bool {
+func (s *computerService) botBusy(slug string) bool {
 	b := s.b
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -429,7 +429,7 @@ func (s *computerService) statusFor(ctx context.Context, slug string) (computerS
 		Slug:         slug,
 		Destination:  dest,
 		CloudBackend: "box",
-		Busy:         s.agentBusy(slug),
+		Busy:         s.botBusy(slug),
 		Control:      computerControlView{Held: snap.Held, HelpReason: snap.HelpReason},
 	}
 	s.mu.Lock()
@@ -594,7 +594,7 @@ func (s *computerService) apply(ctx context.Context, slug string, action compute
 	rt := s.runtimeStatus(ctx, true)
 	target := s.target(slug)
 	if action == computer.ActionStop || action == computer.ActionRemove {
-		if cur := s.leases.For(target.Key).Current(s.agentBusy, time.Now()); cur != nil {
+		if cur := s.leases.For(target.Key).Current(s.botBusy, time.Now()); cur != nil {
 			return &computer.LifecycleError{Status: 409, Message: "this bot is using its computer — stop the turn first"}
 		}
 	}
@@ -678,7 +678,7 @@ func (s *computerService) idleFor(slug string) *computer.IdleTimer {
 	defer s.mu.Unlock()
 	t, ok := s.idle[slug]
 	if !ok {
-		t = computer.NewIdleTimer(computerIdleTimeout, func() bool { return s.agentBusy(slug) }, func() error {
+		t = computer.NewIdleTimer(computerIdleTimeout, func() bool { return s.botBusy(slug) }, func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), computer.LifecycleTimeout+10*time.Second)
 			defer cancel()
 			err := s.apply(ctx, slug, computer.ActionStop)

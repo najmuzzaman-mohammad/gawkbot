@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import type { AgentRequest } from "../../api/client";
+import type { BotRequest } from "../../api/client";
 import { ConnectIntegrationCard } from "./ConnectIntegrationCard";
 
-function CardSurface({ request }: { request: AgentRequest }) {
+function CardSurface({ request }: { request: BotRequest }) {
   const qc = new QueryClient();
   return (
     <QueryClientProvider client={qc}>
@@ -42,7 +42,7 @@ const meta: Meta<typeof CardSurface> = {
 export default meta;
 type Story = StoryObj<typeof CardSurface>;
 
-const base: AgentRequest = {
+const base: BotRequest = {
   id: "request-9",
   from: "growthops",
   kind: "connect",

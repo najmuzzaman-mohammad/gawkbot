@@ -11,7 +11,7 @@ import (
 // when context relevant to channel B exists in channel A, the CEO
 // can carry a summarized version into B with a recorded signal +
 // decision + action trail. Restricted to actor="ceo" because a
-// bridge writes to a channel the bridging agent may not be a Member
+// bridge writes to a channel the bridging bot may not be a Member
 // of (canAccessChannelLocked would otherwise reject the post).
 //
 // Wire shape:

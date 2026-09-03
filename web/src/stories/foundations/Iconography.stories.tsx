@@ -113,7 +113,7 @@ export const Custom: StoryObj = {
       </Section>
       <Section
         title="HarnessBadge"
-        description="Identity glyph for each agent harness. Lobster + caduceus + monogram marks. See UI / HarnessBadge for variants."
+        description="Identity glyph for each bot harness. Lobster + caduceus + monogram marks. See UI / HarnessBadge for variants."
       >
         <Grid cols={5}>
           {(
@@ -133,7 +133,7 @@ export const Custom: StoryObj = {
       </Section>
       <Section
         title="PixelAvatar"
-        description="Procedural agent portrait, drawn on a canvas. Deterministic per slug — same slug ⇒ same face."
+        description="Procedural bot portrait, drawn on a canvas. Deterministic per slug — same slug ⇒ same face."
       >
         <Grid cols={6}>
           {["alex", "lina", "ops", "scout", "sage", "echo"].map((slug) => (

@@ -203,8 +203,8 @@
     var WIN_ASSET = "gawkbot-windows-setup.exe";
 
     // Detect OS to highlight the matching card + relabel the hero button.
-    var ua = navigator.userAgent || "";
-    var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+    var ua = navigator.userBot || "";
+    var plat = (navigator.userBotData && navigator.userBotData.platform) || navigator.platform || "";
     var isMac = /Mac/i.test(plat) || /Mac OS X/i.test(ua);
     var isWin = /Win/i.test(plat) || /Windows/i.test(ua);
 

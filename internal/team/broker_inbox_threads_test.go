@@ -1,7 +1,7 @@
 package team
 
 // broker_inbox_threads_test.go exercises Phase 3 thread grouping:
-// per-agent buckets, preview enrichment from DM messages, and the
+// per-bot buckets, preview enrichment from DM messages, and the
 // interleaved event stream returned by /inbox/threads/{slug}.
 
 import (
@@ -45,25 +45,25 @@ func TestInboxThreads_GroupsItemsByAgent(t *testing.T) {
 		t.Fatalf("threads = %d, want 2 (mira + ada); got %+v", len(payload.Threads), payload.Threads)
 	}
 
-	byAgent := map[string]InboxThread{}
+	byBot := map[string]InboxThread{}
 	for _, th := range payload.Threads {
-		byAgent[th.AgentSlug] = th
+		byBot[th.BotSlug] = th
 	}
-	mira, ok := byAgent["mira"]
+	mira, ok := byBot["mira"]
 	if !ok {
 		t.Fatal("expected thread for mira")
 	}
 	if mira.PendingCount != 2 || len(mira.Items) != 2 {
 		t.Fatalf("mira: pending=%d items=%d, want 2/2", mira.PendingCount, len(mira.Items))
 	}
-	if mira.AgentName != "Mira" {
-		t.Fatalf("mira AgentName = %q, want %q", mira.AgentName, "Mira")
+	if mira.BotName != "Mira" {
+		t.Fatalf("mira BotName = %q, want %q", mira.BotName, "Mira")
 	}
 	if mira.DMChannel == "" {
 		t.Fatal("mira DMChannel should be populated for non-system threads")
 	}
 
-	ada, ok := byAgent["ada"]
+	ada, ok := byBot["ada"]
 	if !ok {
 		t.Fatal("expected thread for ada")
 	}
@@ -183,7 +183,7 @@ func TestHandleInboxThreads_Owner(t *testing.T) {
 	if len(payload.Threads) != 1 {
 		t.Fatalf("threads = %d, want 1", len(payload.Threads))
 	}
-	if !strings.EqualFold(payload.Threads[0].AgentSlug, "mira") {
-		t.Fatalf("thread slug = %q, want %q", payload.Threads[0].AgentSlug, "mira")
+	if !strings.EqualFold(payload.Threads[0].BotSlug, "mira") {
+		t.Fatalf("thread slug = %q, want %q", payload.Threads[0].BotSlug, "mira")
 	}
 }

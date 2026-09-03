@@ -75,7 +75,7 @@ export interface BuildPreviewPlaceholder {
  *
  * "building" promises a preview, so it is only used when the title actually
  * names an app that is on its way. A task that identifies no app at all — a
- * chat-born build, where an agent minted the task with a prose title and the
+ * chat-born build, where a bot minted the task with a prose title and the
  * broker therefore never pre-scaffolded an app — has nothing coming, and must
  * not keep promising a first version that already shipped somewhere else.
  */
@@ -120,7 +120,7 @@ interface AppBuildPreviewProps {
 
 /**
  * AppBuildPreview is the live preview pane shown beside the chat on an App
- * Builder task. It stacks a live build-activity feed (what the agent is doing,
+ * Builder task. It stacks a live build-activity feed (what the bot is doing,
  * resolving ✓/✗) above a live preview of the app being built — the app is
  * resolved by name and rendered in the same hardened sandbox as the full app
  * surface, refreshing as new versions are published. Until the first version

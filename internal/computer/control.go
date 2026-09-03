@@ -8,7 +8,7 @@ import (
 )
 
 // Who is driving a bot's computer: the person or the bot. One record per
-// agent, in memory on purpose. A hold is a live fact about who is at the
+// bot, in memory on purpose. A hold is a live fact about who is at the
 // screen right now; surviving a broker restart would mean a stale hold
 // silently refusing every action of a bot nobody is watching.
 //
@@ -21,7 +21,7 @@ import (
 //   - Releasing control also settles any open help request, so a bot waiting
 //     in RequestHelp wakes from the same state change the person made.
 
-// Snapshot is the panel's and the bridge's view of one agent's control.
+// Snapshot is the panel's and the bridge's view of one bot's control.
 type Snapshot struct {
 	Held bool `json:"held"`
 	// HelpReason is the bot's open plea, or nil when none is open.
@@ -75,7 +75,7 @@ func (r *controlRecord) snapshot() Snapshot {
 	return s
 }
 
-// Snapshot reads one agent's control without changing it.
+// Snapshot reads one bot's control without changing it.
 func (c *Control) Snapshot(slug string) Snapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -161,7 +161,7 @@ func (c *Control) ExpireHelp(slug, id string) Snapshot {
 	})
 }
 
-// Forget drops an agent's record, for example when the agent is deleted.
+// Forget drops a bot's record, for example when the bot is deleted.
 func (c *Control) Forget(slug string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

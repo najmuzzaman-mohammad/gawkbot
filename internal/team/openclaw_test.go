@@ -17,7 +17,7 @@ type fakeOCClient struct {
 	sentKeys      []string
 	subscribed    []string
 	unsubscribed  []string
-	createdAgents []string // agentID values passed to SessionsCreate
+	createdBots   []string // botID values passed to SessionsCreate
 	createdLabels []string
 	createNextKey string // key returned by the next SessionsCreate call; auto-incremented if empty
 	createCounter int
@@ -72,13 +72,13 @@ func (f *fakeOCClient) SessionsMessagesUnsubscribe(ctx context.Context, key stri
 	return nil
 }
 
-func (f *fakeOCClient) SessionsCreate(ctx context.Context, agentID, label string) (string, error) {
+func (f *fakeOCClient) SessionsCreate(ctx context.Context, botID, label string) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.createErr != nil {
 		return "", f.createErr
 	}
-	f.createdAgents = append(f.createdAgents, agentID)
+	f.createdBots = append(f.createdBots, botID)
 	f.createdLabels = append(f.createdLabels, label)
 	if f.createNextKey != "" {
 		key := f.createNextKey
@@ -182,7 +182,7 @@ func TestHandleClientEventForwardsAssistantMessage(t *testing.T) {
 
 // TestHandleClientEventSkipsUserRole confirms the bridge does NOT re-post
 // user-role echoes — otherwise every message the user sends via OnOfficeMessage
-// would boomerang back into #general as though the bridged agent had spoken.
+// would boomerang back into #general as though the bridged bot had spoken.
 //
 // We snapshot the broker state before emitting the event and assert the delta
 // is zero rather than asserting openclaw-a never appears at all — newTestBroker(t)
@@ -527,7 +527,7 @@ func TestRouteOpenclawMentionsLoopForwardsDMPost(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	fake := newFakeOC()
 	broker := newTestBroker(t)
-	// Register the bridged agent as a real office member so a DM channel can
+	// Register the bridged bot as a real office member so a DM channel can
 	// be opened against its slug.
 	if err := broker.EnsureBridgedMember("openclaw-dm", "DM Bot", "openclaw"); err != nil {
 		t.Fatalf("ensure bridged member: %v", err)

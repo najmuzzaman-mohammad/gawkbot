@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // Bug reproduced by scripts/debug-tagging/run.sh with HIRE_SLUG=qa-spec:
@@ -29,13 +29,13 @@ import (
 // PR #218 fixed reads (notification targeting). This test covers the write
 // side (reply posting) which is still broken on main.
 
-func newBrokerWithPackChannels(t *testing.T, packAgents []agent.AgentConfig) *Broker {
+func newBrokerWithPackChannels(t *testing.T, packBots []bot.BotConfig) *Broker {
 	t.Helper()
 	b := newBrokerWithTeamRoom(filepath.Join(t.TempDir(), "broker-state.json"))
 	b.mu.Lock()
 	// Seed pack-like roster.
-	members := make([]officeMember, 0, len(packAgents))
-	for _, cfg := range packAgents {
+	members := make([]officeMember, 0, len(packBots))
+	for _, cfg := range packBots {
 		members = append(members, officeMember{Slug: cfg.Slug, Name: cfg.Name, Role: cfg.Name})
 	}
 	b.members = members
@@ -68,11 +68,11 @@ func newBrokerWithPackChannels(t *testing.T, packAgents []agent.AgentConfig) *Br
 
 // Bug A — state-level: after POST /office-members action=create, the new
 // slug MUST be a member of every non-DM channel. Skips DM channels: those
-// encode the target agent in the slug and have their own membership gate.
+// encode the target bot in the slug and have their own membership gate.
 // Also asserts UpdatedAt moved forward so SSE-refreshing UIs see the roster
 // change, and asserts a channel_updated event fires per mutated channel.
 func TestWizardHire_AddsNewMemberToAllNonDMChannels(t *testing.T) {
-	b := newBrokerWithPackChannels(t, []agent.AgentConfig{
+	b := newBrokerWithPackChannels(t, []bot.BotConfig{
 		{Slug: "ceo", Name: "CEO"},
 		{Slug: "pm", Name: "Product Manager"},
 	})
@@ -187,7 +187,7 @@ drain:
 // Disabled, so this is defensive. The test pins the invariant so a future
 // state-rebuild path that forgets it doesn't silently leave a new hire muted.
 func TestWizardHire_ClearsStaleDisabledEntryFromPriorLifecycle(t *testing.T) {
-	b := newBrokerWithPackChannels(t, []agent.AgentConfig{{Slug: "ceo", Name: "CEO"}})
+	b := newBrokerWithPackChannels(t, []bot.BotConfig{{Slug: "ceo", Name: "CEO"}})
 	b.mu.Lock()
 	b.token = "test-token"
 	// Simulate a leftover disabled entry for the slug we're about to hire.
@@ -236,7 +236,7 @@ func TestWizardHire_ClearsStaleDisabledEntryFromPriorLifecycle(t *testing.T) {
 // member on state reload. The existing remove branch already handles this
 // but we pin it so a future refactor of the create side can't break it.
 func TestWizardHire_RemoveReversesChannelMembership(t *testing.T) {
-	b := newBrokerWithPackChannels(t, []agent.AgentConfig{{Slug: "ceo", Name: "CEO"}})
+	b := newBrokerWithPackChannels(t, []bot.BotConfig{{Slug: "ceo", Name: "CEO"}})
 	b.mu.Lock()
 	b.token = "test-token"
 	b.mu.Unlock()
@@ -285,7 +285,7 @@ func TestWizardHire_RemoveReversesChannelMembership(t *testing.T) {
 //     Today: 403 "channel access denied".
 //     Expected: 200 with a message id.
 func TestBug_WizardHiredSpecialist_ReplyEndToEnd_HTTPFlow(t *testing.T) {
-	b := newBrokerWithPackChannels(t, []agent.AgentConfig{
+	b := newBrokerWithPackChannels(t, []bot.BotConfig{
 		{Slug: "ceo", Name: "CEO"},
 		{Slug: "pm", Name: "Product Manager"},
 	})

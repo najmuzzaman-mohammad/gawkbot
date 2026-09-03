@@ -11,7 +11,7 @@ package team
 // absorbed into it (scope widened, never narrowed) instead of minting a
 // duplicate.
 //
-// Assignment: compiled policies get the SAME relevant-agent assignment the
+// Assignment: compiled policies get the SAME relevant-bot assignment the
 // compiled skill gets (today: the office roster at creation; the human/CEO
 // narrows afterwards via /policies/{id}/assign|unassign).
 
@@ -74,20 +74,20 @@ func extractPlaybookPolicyRules(content string) []string {
 }
 
 // recordPlaybookPolicies compiles a playbook article's "## Rules" /
-// "## Policies" bullets into officePolicy records with per-agent
-// assignment. articlePath gates the call to the playbooks subtree; agents
-// is the compiled skill's OwnerAgents (the same relevant-agent assignment).
+// "## Policies" bullets into officePolicy records with per-bot
+// assignment. articlePath gates the call to the playbooks subtree; bots
+// is the compiled skill's OwnerBots (the same relevant-bot assignment).
 // Existing policies with the same normalized rule text are reactivated and
 // widened, never duplicated. Failures are logged, never fatal — policy
 // compilation is additive intelligence riding the skill compile pass.
-func (b *Broker) recordPlaybookPolicies(articlePath, content string, agents []string) int {
+func (b *Broker) recordPlaybookPolicies(articlePath, content string, bots []string) int {
 	if !strings.HasPrefix(articlePath, playbooksDirPrefix) {
 		return 0
 	}
 	rules := extractPlaybookPolicyRules(content)
 	recorded := 0
 	for _, rule := range rules {
-		if _, err := b.RecordPolicyScoped("auto_detected", rule, agents); err != nil {
+		if _, err := b.RecordPolicyScoped("auto_detected", rule, bots); err != nil {
 			slog.Warn("policy_compile: record policy failed",
 				"article", articlePath, "err", err)
 			continue
@@ -96,7 +96,7 @@ func (b *Broker) recordPlaybookPolicies(articlePath, content string, agents []st
 	}
 	if recorded > 0 {
 		slog.Info("policy_compile: compiled playbook rules into policies",
-			"article", articlePath, "rules", recorded, "agents", len(agents))
+			"article", articlePath, "rules", recorded, "agents", len(bots))
 	}
 	return recorded
 }

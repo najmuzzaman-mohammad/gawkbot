@@ -107,7 +107,7 @@ var installCommands = map[string]string{
 //
 // auth_required is only emitted when the session probe definitively reported
 // not-signed-in. A runtime with no session probe (cursor, windsurf) is treated
-// as pass once it is on PATH, matching the "we don't know, let the agent loop
+// as pass once it is on PATH, matching the "we don't know, let the bot loop
 // teach" stance the detection layer already takes.
 func VerifyRuntime(ctx context.Context, name string) VerifyResult {
 	r := CheckOne(ctx, name)
@@ -213,7 +213,7 @@ func InstallSteps(name string) []InstallStep {
 			},
 			{
 				Title:   "Sign in to Claude",
-				Detail:  "Sign in once and your agents run on your account.",
+				Detail:  "Sign in once and your bots run on your account.",
 				Command: signInCmd,
 			},
 			{

@@ -172,8 +172,8 @@ describe("useBrokerEvents unread counts", () => {
     expect(useAppStore.getState().unreadByChannel.general).toBe(1);
   });
 
-  it("suppresses unread for the canonical DM channel slug while viewing /dm/<agent>", () => {
-    // The hook hashes /dm/<agent> through directChannelSlug to get the
+  it("suppresses unread for the canonical DM channel slug while viewing /dm/<bot>", () => {
+    // The hook hashes /dm/<bot> through directChannelSlug to get the
     // broker's canonical "<lower>__<higher>" pairing — matching what
     // the broker emits on `message`. This regression-pins that mapping
     // for both ordering directions.
@@ -190,7 +190,7 @@ describe("useBrokerEvents unread counts", () => {
     expect(useAppStore.getState().unreadByChannel.human__pm ?? 0).toBe(0);
   });
 
-  it("suppresses unread for /dm/<agent> when the agent slug sorts after `human`", () => {
+  it("suppresses unread for /dm/<bot> when the bot slug sorts after `human`", () => {
     navigateRouter("/dm/ceo");
     renderHarness();
     const [source] = FakeEventSource.created;
@@ -271,7 +271,7 @@ describe("useBrokerEvents activity stream", () => {
     (globalThis as { EventSource: unknown }).EventSource =
       FakeEventSource as unknown as typeof EventSource;
     useAppStore.setState({
-      agentActivitySnapshots: {},
+      botActivitySnapshots: {},
       isReconnecting: false,
     });
     navigateRouter("/channels/general");
@@ -280,7 +280,7 @@ describe("useBrokerEvents activity stream", () => {
   afterEach(() => {
     (globalThis as { EventSource: unknown }).EventSource = originalEventSource;
     useAppStore.setState({
-      agentActivitySnapshots: {},
+      botActivitySnapshots: {},
       isReconnecting: false,
       brokerConnected: false,
     });
@@ -318,7 +318,7 @@ describe("useBrokerEvents activity stream", () => {
     expect(invalidatedKeys).toContain("office-members");
     expect(invalidatedKeys).toContain("channel-members");
 
-    const snap = useAppStore.getState().agentActivitySnapshots.tess;
+    const snap = useAppStore.getState().botActivitySnapshots.tess;
     expect(snap).toBeDefined();
     expect(snap.activity).toBe("drafting reply");
     expect(snap.kind).toBe("routine");
@@ -350,7 +350,7 @@ describe("useBrokerEvents activity stream", () => {
       (call) => (call[0] as { queryKey?: unknown[] }).queryKey?.[0],
     );
     expect(keys).toContain("office-members");
-    expect(useAppStore.getState().agentActivitySnapshots).toEqual({});
+    expect(useAppStore.getState().botActivitySnapshots).toEqual({});
     warnSpy.mockRestore();
   });
 });

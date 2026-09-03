@@ -2,7 +2,7 @@ package team
 
 // wiki_gbrain_adapter.go — re-backs the broker's wiki READ/SEARCH/LIST/CATALOG
 // surface with gbrain (via the MCP client) while preserving the existing HTTP
-// response shapes so the frontend and the agent MCP proxy tools keep working
+// response shapes so the frontend and the bot MCP proxy tools keep working
 // unchanged.
 //
 // Routing contract (see wiki_handlers.go / wiki_lookup.go):
@@ -46,7 +46,7 @@ const (
 )
 
 // wikiEmptyIndexMarkdown mirrors readIndexAll's empty fallback so the gbrain
-// list path returns the same shape agents already expect.
+// list path returns the same shape bots already expect.
 const wikiEmptyIndexMarkdown = "# Team wiki index\n\n_No articles yet._\n"
 
 // wikiBackendHeader is set to wikiBackendUnavailable on degraded responses so a
@@ -197,9 +197,9 @@ func gbrainPageMetaToCatalogEntry(pm gbrain.PageMeta) CatalogEntry {
 	}
 }
 
-// renderGBrainIndexMarkdown builds the markdown index body agents read from
+// renderGBrainIndexMarkdown builds the markdown index body bots read from
 // /wiki/list out of gbrain page metadata. Mirrors the index/all.md shape
-// (heading + bulleted wikilinks) closely enough for downstream agent parsing.
+// (heading + bulleted wikilinks) closely enough for downstream bot parsing.
 func renderGBrainIndexMarkdown(pages []gbrain.PageMeta) string {
 	if len(pages) == 0 {
 		return wikiEmptyIndexMarkdown
@@ -265,7 +265,7 @@ func (b *Broker) serveWikiReadFromGBrain(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Reader tracking, mirroring handleWikiRead. The reserved human reader is
-	// rejected; valid agent readers are appended when a read log exists (it does
+	// rejected; valid bot readers are appended when a read log exists (it does
 	// not in a gbrain-only deployment, so the append is nil-guarded).
 	if raw := r.URL.Query().Get("reader"); raw == ReaderHuman {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": `reader "web" is reserved for human browser access`})

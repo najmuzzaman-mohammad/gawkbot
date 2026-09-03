@@ -19,15 +19,15 @@ const proxyTarget =
 
 const proxyEntry = { target: proxyTarget, changeOrigin: true };
 
-// The pi-mono build agent (agent/ service). Its /tools/build endpoint authors the
+// The pi-mono build bot (bot/ service). Its /tools/build endpoint authors the
 // tools the app's chat calls. Overridable so a worktree can point at its own
-// agent; defaults to the agent dev port (8820). The /agent prefix is stripped so
+// bot; defaults to the bot dev port (8820). The /bot prefix is stripped so
 // the service sees /tools/build.
-const agentTarget =
+const botTarget =
   process.env.WUPHF_AGENT_TARGET ||
   `http://127.0.0.1:${process.env.WUPHF_AGENT_PORT || "8820"}`;
-const agentEntry = {
-  target: agentTarget,
+const botEntry = {
+  target: botTarget,
   changeOrigin: true,
   rewrite: (p: string) => p.replace(/^\/agent/, ""),
 };
@@ -47,15 +47,15 @@ export default defineConfig({
       "/api": proxyEntry,
       "/api-token": proxyEntry,
       "/onboarding": proxyEntry,
-      // Anchored regex, NOT the bare "/agent" string. Vite proxy keys are
-      // prefix matches, so "/agent" also swallowed "/agents" — the app's
-      // own route — and hitting http://localhost:PORT/agents in dev
-      // returned the agent service's {"error":"not found"} instead of the
+      // Anchored regex, NOT the bare "/bot" string. Vite proxy keys are
+      // prefix matches, so "/bot" also swallowed "/bots" — the app's
+      // own route — and hitting http://localhost:PORT/bots in dev
+      // returned the bot service's {"error":"not found"} instead of the
       // SPA. Production was always fine (the Go server serves the SPA for
       // unknown paths), so this only ever broke dev, quietly.
-      // The lookahead keeps /agent and /agent/... matching while leaving
-      // /agents, /agent-logs and friends to the SPA fallback.
-      "^/agent(?=/|$)": agentEntry,
+      // The lookahead keeps /bot and /bot/... matching while leaving
+      // /bots, /bot-logs and friends to the SPA fallback.
+      "^/agent(?=/|$)": botEntry,
     },
   },
   build: {

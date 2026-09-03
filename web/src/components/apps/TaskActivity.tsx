@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useAgentStream } from "../../hooks/useAgentStream";
+import { useBotStream } from "../../hooks/useBotStream";
 import {
   type BuildActivityItem,
   extractBuildEvents,
@@ -10,7 +10,7 @@ import {
 interface TaskActivityProps {
   taskId: string;
   /**
-   * The agent doing the work — the task's owner. Null/empty (e.g. an unstaffed
+   * The bot doing the work — the task's owner. Null/empty (e.g. an unstaffed
    * task still being triaged) renders nothing; the pane appears once an owner is
    * streaming tool activity.
    */
@@ -18,8 +18,8 @@ interface TaskActivityProps {
 }
 
 /**
- * TaskActivity is the live "what the agent is doing" feed for ANY task. It
- * subscribes to the owner agent's typed HeadlessEvent stream (scoped to this
+ * TaskActivity is the live "what the bot is doing" feed for ANY task. It
+ * subscribes to the owner bot's typed HeadlessEvent stream (scoped to this
  * task) and renders each tool call as a single row that resolves running → ✓ /
  * ✗ — so the human watches concrete progress (reading files, running commands,
  * writing, building) in real time, not a wall of prose or a spinner that never
@@ -32,7 +32,7 @@ interface TaskActivityProps {
  */
 export function TaskActivity({ taskId, agentSlug }: TaskActivityProps) {
   const slug = agentSlug?.trim() ? agentSlug.trim() : null;
-  const { lines, connected } = useAgentStream(slug, taskId, {
+  const { lines, connected } = useBotStream(slug, taskId, {
     keepAlive: true,
     // The activity feed reduces the FULL ordered event log (pairing
     // tool_use→tool_result across the whole build), so it must keep every

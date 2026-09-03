@@ -10,7 +10,7 @@ package team
 //   - Path shape: wiki/artifacts/{source}/{sha}.md where {source} is one of
 //     chat | meeting | email | manual | linkedin.
 //   - One commit per artifact; author slug is the recording identity (the
-//     agent that produced the message, or `archivist` for system-filed
+//     bot that produced the message, or `archivist` for system-filed
 //     artifacts). The commit triggers the async extractor hook in
 //     wiki_worker.go.
 //

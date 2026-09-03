@@ -1,6 +1,6 @@
 import { expect, type Page, type Route, test } from "@playwright/test";
 
-// Wizard-phase e2e for the new "Run agents on a local model instead?"
+// Wizard-phase e2e for the new "Run bots on a local model instead?"
 // subsection inside the Setup step. Stubs /status/local-providers so
 // the test asserts on UI behavior without depending on what the dev box
 // has installed. Setup-step tile selection / submit flow itself isn't
@@ -153,15 +153,15 @@ test.describe("Onboarding → Run a local model", () => {
 
     // ollama is not installed → tile is disabled (selecting a runtime
     // that isn't installed lands the user in a broken shell where
-    // every agent turn fails connection-refused). Status copy nudges
+    // every bot turn fails connection-refused). Status copy nudges
     // them to Settings for install commands.
     const ollamaTile = page.getByTestId("onboarding-local-llm-tile-ollama");
     await expect(ollamaTile.getByText(/Not installed.*Settings/)).toBeVisible();
     await expect(ollamaTile).toBeDisabled();
 
-    // Hermes Agent and OpenClaw Gateway used to render here as local runtime
+    // Hermes Bot and OpenClaw Gateway used to render here as local runtime
     // tiles. They were moved to the Integrations app because they are
-    // gateways for importing existing agents, not LLM runtimes for new
+    // gateways for importing existing bots, not LLM runtimes for new
     // ones. The onboarding picker now only lists directly-dispatchable
     // local LLMs (mlx-lm, ollama, exo).
     await expect(
@@ -359,7 +359,7 @@ test.describe("Onboarding → Run a local model", () => {
     // tile-disable logic was keying on `installed=Boolean(undefined)`
     // and disabling every tile. After this fix, an unreachable status
     // endpoint must NOT trap the user — tiles render selectable, the
-    // banner is honest, and the agent-turn surface (or the doctor
+    // banner is honest, and the bot-turn surface (or the doctor
     // card in Settings) will catch a real install gap later.
     page.route("**/status/local-providers*", (route: Route) =>
       route.fulfill({

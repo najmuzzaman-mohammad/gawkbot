@@ -251,7 +251,7 @@ func (b *Broker) handleEntityFact(w http.ResponseWriter, r *http.Request) {
 	}
 	recordedBy := strings.TrimSpace(body.RecordedBy)
 	if recordedBy == "" {
-		recordedBy = strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
+		recordedBy = strings.TrimSpace(r.Header.Get(botRateLimitHeader))
 	}
 	if recordedBy == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "recorded_by or X-WUPHF-Agent header is required"})
@@ -302,7 +302,7 @@ func (b *Broker) handleEntityFact(w http.ResponseWriter, r *http.Request) {
 
 	// In Auto mode: enqueue synthesis when the threshold is crossed.
 	// In Demand mode: synthesis fires on first BuildArticle call for the ghost brief,
-	// not here, so the LLM call is only triggered when a human or agent actually
+	// not here, so the LLM call is only triggered when a human or bot actually
 	// opens the article.
 	if thresholdCrossed && synth.Mode() == SynthesisModeAuto {
 		if _, enqueueErr := synth.EnqueueSynthesis(kind, slug, ArchivistAuthor); enqueueErr != nil && !errors.Is(enqueueErr, ErrSynthesisQueueSaturated) {
@@ -360,7 +360,7 @@ func (b *Broker) handleEntityBriefSynthesize(w http.ResponseWriter, r *http.Requ
 	}
 	actor := strings.TrimSpace(body.ActorSlug)
 	if actor == "" {
-		actor = strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
+		actor = strings.TrimSpace(r.Header.Get(botRateLimitHeader))
 	}
 	if actor == "" {
 		actor = "human"

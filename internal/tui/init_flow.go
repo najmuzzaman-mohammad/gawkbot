@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 	"github.com/nex-crm/wuphf/internal/gbrain"
 	"github.com/nex-crm/wuphf/internal/operations"
@@ -407,7 +407,7 @@ func MemoryOptions() []PickerOption {
 		{
 			Label:       "No shared memory",
 			Value:       config.MemoryBackendNone,
-			Description: "Skip the memory layer. Agents only know what's in the current conversation.",
+			Description: "Skip the memory layer. Bots only know what's in the current conversation.",
 		},
 	}
 }
@@ -442,7 +442,7 @@ func BlueprintOptions() []PickerOption {
 func PackOptions() []PickerOption { return BlueprintOptions() }
 
 func legacyPackOptions() []PickerOption {
-	packs := agent.ListLegacyPacks()
+	packs := bot.ListLegacyPacks()
 	options := make([]PickerOption, len(packs))
 	for i, p := range packs {
 		label := p.Name
@@ -667,7 +667,7 @@ func memoryReadinessDetail(backend string) string {
 	case config.MemoryBackendGBrain:
 		return "Local knowledge graph via GBrain CLI."
 	case config.MemoryBackendNone:
-		return "No shared memory. Agents only know what's in the current conversation."
+		return "No shared memory. Bots only know what's in the current conversation."
 	default:
 		return "Pick a memory backend so the team can remember what it learns."
 	}

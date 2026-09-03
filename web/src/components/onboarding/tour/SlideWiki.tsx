@@ -4,7 +4,7 @@
  * Shows the seeded getting-started wiki as a small file tree where each page
  * "lights up" one after another (staggered entrance + a green read tick), so
  * the founder sees the office already has a populated shared brain. A reader
- * row beneath the tree makes the load-bearing point explicit: agents read the
+ * row beneath the tree makes the load-bearing point explicit: bots read the
  * wiki as first-class consumers, the same as humans do.
  *
  * The page titles are the real seeded pages from spec section 5; they live
@@ -23,7 +23,7 @@ const COPY = OFFICE_TOUR_COPY.wiki;
 /** The seeded getting-started pages (spec section 5), in reading order. */
 const SEEDED_PAGES = [
   "How your team works",
-  "Working with agents",
+  "Working with bots",
   "The company brain",
   "Channels",
   "Skills and runtimes",
@@ -58,8 +58,8 @@ export function SlideWiki({ active }: OfficeTourSlideProps) {
         <h2 className="office-tour-slide-headline">{COPY.headline}</h2>
         <p className="office-tour-slide-body">{COPY.body}</p>
         <p className="office-tour-slide-caption">
-          Your office ships with these pages already written, and your agents
-          read them before they touch your work.
+          Your office ships with these pages already written, and your bots read
+          them before they touch your work.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export function SlideWiki({ active }: OfficeTourSlideProps) {
         <div className="tour-wiki-readers" aria-hidden="true">
           <span className="tour-wiki-reader-dot" />
           <span className="tour-wiki-reader-text">
-            Humans and agents read the same pages.
+            Humans and bots read the same pages.
           </span>
         </div>
       </div>

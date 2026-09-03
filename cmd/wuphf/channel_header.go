@@ -16,22 +16,22 @@ import (
 
 func (m channelModel) currentHeaderTitle() string {
 	if m.isOneOnOne() && m.activeApp != channelui.OfficeAppRecovery && m.activeApp != channelui.OfficeAppInbox && m.activeApp != channelui.OfficeAppOutbox {
-		return "1:1 with " + m.oneOnOneAgentName()
+		return "1:1 with " + m.oneOnOneBotName()
 	}
 	switch m.activeApp {
 	case channelui.OfficeAppRecovery:
 		if m.isOneOnOne() {
-			return "1:1 with " + m.oneOnOneAgentName() + " · Recovery"
+			return "1:1 with " + m.oneOnOneBotName() + " · Recovery"
 		}
 		return "# " + m.activeChannel + " · Recovery"
 	case channelui.OfficeAppInbox:
 		if m.isOneOnOne() {
-			return "1:1 with " + m.oneOnOneAgentName() + " · Inbox"
+			return "1:1 with " + m.oneOnOneBotName() + " · Inbox"
 		}
 		return "# " + m.activeChannel + " · Inbox"
 	case channelui.OfficeAppOutbox:
 		if m.isOneOnOne() {
-			return "1:1 with " + m.oneOnOneAgentName() + " · Outbox"
+			return "1:1 with " + m.oneOnOneBotName() + " · Outbox"
 		}
 		return "# " + m.activeChannel + " · Outbox"
 	case channelui.OfficeAppArtifacts:
@@ -56,7 +56,7 @@ func (m channelModel) currentHeaderMeta() string {
 	if m.activeApp == channelui.OfficeAppRecovery {
 		snapshot := workspace.Runtime
 		if m.isOneOnOne() {
-			return fmt.Sprintf("  Re-entry summary for %s · %d running tasks · %d open requests · %d new since you looked", m.oneOnOneAgentName(), workspace.RunningTasks, workspace.OpenRequests, workspace.UnreadCount)
+			return fmt.Sprintf("  Re-entry summary for %s · %d running tasks · %d open requests · %d new since you looked", m.oneOnOneBotName(), workspace.RunningTasks, workspace.OpenRequests, workspace.UnreadCount)
 		}
 		parts := []string{
 			fmt.Sprintf("Re-entry summary for #%s", channelui.FallbackString(snapshot.Channel, m.activeChannel)),
@@ -74,9 +74,9 @@ func (m channelModel) currentHeaderMeta() string {
 		if m.activeApp == channelui.OfficeAppOutbox {
 			scopeLabel = "outbox"
 		}
-		scopeCount := len(channelui.FilterMessagesForViewerScope(m.messages, m.oneOnOneAgentSlug(), scopeLabel))
+		scopeCount := len(channelui.FilterMessagesForViewerScope(m.messages, m.oneOnOneBotSlug(), scopeLabel))
 		parts := []string{
-			fmt.Sprintf("%s lane for %s", titleCaser.String(scopeLabel), m.oneOnOneAgentName()),
+			fmt.Sprintf("%s lane for %s", titleCaser.String(scopeLabel), m.oneOnOneBotName()),
 			fmt.Sprintf("%d visible messages", scopeCount),
 		}
 		if workspace.RunningTasks > 0 {

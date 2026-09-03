@@ -90,7 +90,7 @@ describe("ToolIntegrations", () => {
       usedNames: ["GitHub"],
       usedHeading: "Connected for your workspace",
     });
-    // The agent-app path relabels the chips honestly.
+    // The bot-app path relabels the chips honestly.
     expect(await findByText("Connected for your workspace")).toBeTruthy();
     expect(await findByText("GitHub")).toBeTruthy();
     // …and drops the misleading "Used by this tool" framing.

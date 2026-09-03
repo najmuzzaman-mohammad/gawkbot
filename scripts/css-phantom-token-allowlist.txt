@@ -51,7 +51,7 @@ web/src/components/apps/routines/routineModel.ts --cyan 1
 web/src/components/apps/routines/routineModel.ts --magenta 1
 web/src/components/apps/routines/routineModel.ts --orange 1
 
-# Owned by another agent's in-flight work (components/lifecycle/**), which
+# Owned by another bot's in-flight work (components/lifecycle/**), which
 # this sweep was scoped out of. Straightforward once that lands: these are
 # the same --green-500 / --orange-500 / --red-500 already mapped to
 # --green / --yellow / --red everywhere in the stylesheets.
@@ -62,9 +62,9 @@ web/src/components/lifecycle/LifecycleStatePill.tsx --red-500 1
 # Storybook and test fixtures, not shipped surfaces. Real but lowest value.
 web/src/components/messages/ArtifactSkeleton.stories.tsx --font-base 1
 web/src/components/rich-artifacts/RichArtifactEmbed.test.tsx --paper 1
-web/src/components/sidebar/AgentEventPill.stories.tsx --surface-2 1
+web/src/components/sidebar/BotEventPill.stories.tsx --surface-2 1
 
-# Dirty in the worktree under another agent right now. Both are the
+# Dirty in the worktree under another bot right now. Both are the
 # already-renders-correctly nested shape — var(--danger-200,
 # var(--warning-200)) — so the fix is to drop the phantom wrapper.
 web/src/lib/types/lifecycle.ts --danger-200 1

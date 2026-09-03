@@ -139,7 +139,7 @@ func TestNewBrokerSeedsDefaultOfficeRosterOnFreshState(t *testing.T) {
 		t.Fatalf("expected ceo to be present in default office roster, got %+v", members)
 	}
 	// This used to assert that #general existed and held the whole roster.
-	// With #general retired the equivalent property is that every agent on
+	// With #general retired the equivalent property is that every bot on
 	// the roster is REACHABLE -- which now means a DM each, not one shared
 	// room. The point of the old assertion was "nobody is stranded off the
 	// only conversation", and that is what is checked here.
@@ -153,7 +153,7 @@ func TestNewBrokerSeedsDefaultOfficeRosterOnFreshState(t *testing.T) {
 			continue
 		}
 		if b.findChannelLocked(channel.DirectSlug("human", m.Slug)) == nil {
-			t.Errorf("agent %q has no DM: it is on the roster and unreachable", m.Slug)
+			t.Errorf("bot %q has no DM: it is on the roster and unreachable", m.Slug)
 		}
 	}
 }
@@ -246,7 +246,7 @@ func TestChannelMembersRejectUnknownOfficeMember(t *testing.T) {
 }
 
 // TestChannelMembersRejectDisableOrRemoveOfLead verifies that /channel-members
-// refuses to disable or remove a BuiltIn member (lead agent) from any
+// refuses to disable or remove a BuiltIn member (lead bot) from any
 // channel. Before this guard was generalized, only the hardcoded "ceo"
 // slug was protected — blueprint teams whose lead is something else (e.g.
 // niche-crm uses "operator") could silently lose their lead from #general.
@@ -468,7 +468,7 @@ func TestChannelDescriptionsAreVisibleButContentStaysRestricted(t *testing.T) {
 // "you", "human") as universally trusted senders. A user-created channel
 // sharing one of those slugs would let every trusted-sender slug read + post
 // in it without an explicit Members entry. "ceo", the Librarian and the App
-// Builder are reserved for a second reason — a channel that shadows an agent
+// Builder are reserved for a second reason — a channel that shadows a bot
 // slug breaks DM slug resolution and @-mention routing.
 //
 // This used to drive POST /channels. Named channels are retired, so that
@@ -754,7 +754,7 @@ func TestLoadDoesNotAppendDefaultsAfterBlueprintSeed(t *testing.T) {
 	// This assertion used to carry two exceptions: the Librarian and the App
 	// Builder, "the universal built-ins added to every roster on load". Those
 	// two exceptions were the load-time back-fill, and the back-fill was how
-	// the founder's removal of both agents kept undoing itself — the seed edit
+	// the founder's removal of both bots kept undoing itself — the seed edit
 	// landed, and the next boot appended them again. The back-fill is deleted,
 	// so the exceptions are too, and this test now fails if either one comes
 	// back.

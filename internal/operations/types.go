@@ -21,7 +21,7 @@ type Blueprint struct {
 	WikiSchema         *BlueprintWikiSchema    `json:"wiki_schema,omitempty" yaml:"wiki_schema,omitempty"`
 
 	// PackPreview metadata. Surfaced by the onboarding wizard's pack
-	// library so a new user can see the agents, channels, skills, wiki
+	// library so a new user can see the bots, channels, skills, wiki
 	// scaffold, first tasks, and provider requirements for a pack
 	// before committing. Optional — older blueprints without these
 	// fields still load and degrade gracefully in the UI.
@@ -42,12 +42,12 @@ type Blueprint struct {
 	EstimatedSetupMinutes int                     `json:"estimated_setup_minutes,omitempty" yaml:"estimated_setup_minutes,omitempty"`
 	ExampleArtifacts      []BlueprintExampleAsset `json:"example_artifacts,omitempty" yaml:"example_artifacts,omitempty"`
 
-	// DefaultReviewer is the agent slug that approves promotions by default.
-	// The sentinel value "human-only" disables agent approval entirely and
+	// DefaultReviewer is the bot slug that approves promotions by default.
+	// The sentinel value "human-only" disables bot approval entirely and
 	// forces a human click in the web UI. Falls back to "ceo" if empty.
 	DefaultReviewer string `json:"default_reviewer,omitempty" yaml:"default_reviewer,omitempty"`
 
-	// ReviewerPaths maps glob patterns (relative to the wiki root) to agent
+	// ReviewerPaths maps glob patterns (relative to the wiki root) to bot
 	// slugs. First match wins; iteration follows declaration order. Falls
 	// through to DefaultReviewer on no match. Supported glob syntax: "*"
 	// for a single path segment wildcard, "**" for recursive segments.
@@ -84,7 +84,7 @@ type BlueprintFirstTask struct {
 }
 
 // BlueprintSkill names a skill the pack expects to use. The wizard
-// surfaces these so users see what the agents will know how to do
+// surfaces these so users see what the bots will know how to do
 // before they commit; skill discovery and binding happens later.
 type BlueprintSkill struct {
 	Name    string `json:"name" yaml:"name"`
@@ -112,7 +112,7 @@ type StarterPlan struct {
 	LeadSlug                  string           `json:"lead_slug,omitempty" yaml:"lead_slug,omitempty"`
 	GeneralChannelDescription string           `json:"general_channel_description,omitempty" yaml:"general_channel_description,omitempty"`
 	KickoffPrompt             string           `json:"kickoff_prompt,omitempty" yaml:"kickoff_prompt,omitempty"`
-	Agents                    []StarterAgent   `json:"agents,omitempty" yaml:"agents,omitempty"`
+	Bots                      []StarterBot     `json:"agents,omitempty" yaml:"agents,omitempty"`
 	Channels                  []StarterChannel `json:"channels,omitempty" yaml:"channels,omitempty"`
 	Tasks                     []StarterTask    `json:"tasks,omitempty" yaml:"tasks,omitempty"`
 }
@@ -170,7 +170,7 @@ type QueueItem struct {
 	State        string `json:"state,omitempty" yaml:"state,omitempty"`
 }
 
-type StarterAgent struct {
+type StarterBot struct {
 	Slug              string   `json:"slug" yaml:"slug"`
 	Emoji             string   `json:"emoji,omitempty" yaml:"emoji,omitempty"`
 	Name              string   `json:"name" yaml:"name"`

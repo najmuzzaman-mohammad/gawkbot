@@ -2,23 +2,23 @@
 
 Every gap standing between the v3 grade (6/10) and 10/10, compiled from all three grading reports (v1 5/10, v2 5.5/10, v3 6/10 — `.icp-eval/`). Doctrine: fix ALL of it, each fix with a live-path regression test (eval check at the layer the bug lived), THEN re-run the eval once. No more half-point iterations.
 
-Already covered by round-2 (fix-1 `live-paths`, fix-2 `utterance-routing`, fix-3 `workspace-isolation` — landed/in flight) and excluded here: state machine + dead verbs + zero-work approvals + dependency release + board/page split; request-changes text + thread replies + waiting-state wakes + interview wedge + loud interviews; agent cwd isolation + destructive-op discipline + the J3 DoD chain.
+Already covered by round-2 (fix-1 `live-paths`, fix-2 `utterance-routing`, fix-3 `workspace-isolation` — landed/in flight) and excluded here: state machine + dead verbs + zero-work approvals + dependency release + board/page split; request-changes text + thread replies + waiting-state wakes + interview wedge + loud interviews; bot cwd isolation + destructive-op discipline + the J3 DoD chain.
 
 ## Wave A — task-model integrity (broker mutation/notify)
 | ID | Gap (evidence) | Fix direction |
 |----|----|----|
 | A1 | Self-heal lanes duplicate/steal primary work; deliverables ship from OFFICE-295 while primaries sit empty (V3-N8) | Self-heal tasks are SUB-tasks of the stalled parent; before creating, dedupe vs existing open lanes for the same work; when a self-heal lane delivers, the artifact + done attach to the PARENT (primary) task |
 | A2 | Pack lanes self-started despite "queued… whenever you want"; task simultaneously "delivered" and "waiting on you to start" (V3-N9) | Pack/auto-created lanes obey the same drafting→human-activation gate as composer tasks; states must be mutually exclusive — derive the chip and the hint from the one lifecycle state |
-| A3 | Title truncation STILL fed one agent pass → second conflicting Corti brief (v3 [17:41:35]) | Find the remaining truncated-title→context feed (subtask creation copying clipped parent title into details, or CEO echo) and kill it: agent-facing content always from Details/Definition |
+| A3 | Title truncation STILL fed one bot pass → second conflicting Corti brief (v3 [17:41:35]) | Find the remaining truncated-title→context feed (subtask creation copying clipped parent title into details, or CEO echo) and kill it: bot-facing content always from Details/Definition |
 | A4 | 6× repeated done-messages; triple identical commits (v3 [18:05–18:10], [20:15]) | Idempotency: done-post per (task, terminal transition) exactly once; wiki commit dedupe for identical content writes |
-| A5 | Approve card named the wrong agent (v3 [18:44:21]) | Decision card actor = the task owner/submitting agent, from the task record not the packet's last actor |
+| A5 | Approve card named the wrong bot (v3 [18:44:21]) | Decision card actor = the task owner/submitting bot, from the task record not the packet's last actor |
 
 ## Wave B — knowledge layer (wiki worker / entity / git)
 | ID | Gap | Fix direction |
 |----|----|----|
 | B1 | Entity graph EMPTY of customers after 2 full journeys, 3 runs in a row: 4 nodes 0 edges, People-only (V2-N7, v3 [20:14]) | Trace why B1-extraction never fired live (distill gated on verified-done? terminal paths skipping queueTaskDistillation? extraction finding no entities in real Definitions?) — bind extraction to EVERY terminal-done path; ensure company-kind extraction from goal/deliverables; ensure RecordFactRefs writes edges; live-path eval: HTTP-driven task done → graph has the company nodes + co-occurrence edge |
-| B2 | Duplicates compound into the knowledge base: two Corti briefs on disk, "Playbook: X" + "X", 4 review paths double-submitted (v3 [17:39:51], [18:19:45], [20:15]) | Update-first enforcement at the wiki WRITE boundary: slug-similarity check (reuse Jaro-Winkler tier) on agent article writes → route to update/append instead of new file; review submission dedupe per path+content-hash |
-| B3 | Git history attributes agent writes to "human · wiki: external edit" — 3 runs (v1#8, v3 [20:15], [17:41:21]) | Find the bulk/external-edit commit path and attribute the acting agent (author identity exists — Librarian commits correctly); Recent-changes rows show the real author |
+| B2 | Duplicates compound into the knowledge base: two Corti briefs on disk, "Playbook: X" + "X", 4 review paths double-submitted (v3 [17:39:51], [18:19:45], [20:15]) | Update-first enforcement at the wiki WRITE boundary: slug-similarity check (reuse Jaro-Winkler tier) on bot article writes → route to update/append instead of new file; review submission dedupe per path+content-hash |
+| B3 | Git history attributes bot writes to "human · wiki: external edit" — 3 runs (v1#8, v3 [20:15], [17:41:21]) | Find the bulk/external-edit commit path and attribute the acting bot (author identity exists — Librarian commits correctly); Recent-changes rows show the real author |
 | B4 | "173 revisions" on a minutes-old article; commit storms | Coalesce identical/rapid successive writes per path (the worker queue can fold) |
 | B5 | Deliverables shipped chat-only, never wiki'd (QBR one-pager = msg-303 only; V3-N10) | The artifact gate already blocks defined tasks; close the leak: when a deliverable-shaped completion happens on ANY lane (incl. self-heal → parent attach from A1), the done path requires the wiki artifact; CEO prompt line: deliverables land in the wiki first, chat carries the link |
 
@@ -34,7 +34,7 @@ Already covered by round-2 (fix-1 `live-paths`, fix-2 `utterance-routing`, fix-3
 ## Wave D — scheduler truth
 | ID | Gap | Fix direction |
 |----|----|----|
-| D1 | Standing automations are ghosts, 3 runs: agent-registered crons session-scoped, invisible in Scheduled Tasks, 7-day death, TWO crons for one ask (v1#11, v3 [18:30–18:36]) | Agent cron registration goes through the persistent broker scheduler (visible+editable in Scheduled Tasks); dedupe by normalized purpose/schedule; kill or mirror the session-scoped path; live-path eval: MCP cron-create → GET scheduler shows it |
+| D1 | Standing automations are ghosts, 3 runs: bot-registered crons session-scoped, invisible in Scheduled Tasks, 7-day death, TWO crons for one ask (v1#11, v3 [18:30–18:36]) | Bot cron registration goes through the persistent broker scheduler (visible+editable in Scheduled Tasks); dedupe by normalized purpose/schedule; kill or mirror the session-scoped path; live-path eval: MCP cron-create → GET scheduler shows it |
 
 ## Wave E — language at the human boundary (prompts + copy)
 | ID | Gap | Fix direction |

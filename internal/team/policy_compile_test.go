@@ -62,7 +62,7 @@ func TestRecordPlaybookPolicies_GatesAndDedupes(t *testing.T) {
 	}
 	policies := b.ListPolicies()
 	if len(policies) != 1 || policies[0].Source != "auto_detected" ||
-		len(policies[0].Agents) != 1 || policies[0].Agents[0] != "eng" {
+		len(policies[0].Bots) != 1 || policies[0].Bots[0] != "eng" {
 		t.Fatalf("unexpected compiled policy: %+v", policies)
 	}
 
@@ -75,7 +75,7 @@ func TestRecordPlaybookPolicies_GatesAndDedupes(t *testing.T) {
 	if len(policies) != 1 {
 		t.Fatalf("expected 1 policy after dedupe, got %d", len(policies))
 	}
-	if len(policies[0].Agents) != 2 {
-		t.Fatalf("expected widened scope [ae eng], got %v", policies[0].Agents)
+	if len(policies[0].Bots) != 2 {
+		t.Fatalf("expected widened scope [ae eng], got %v", policies[0].Bots)
 	}
 }

@@ -77,8 +77,8 @@ func must(err error, where string) {
 func seedTutorial1(b *team.Broker, channel string) (string, error) {
 	t, _, err := b.EnsureTask(
 		channel,
-		"Refactor agent rail to use shared severity tokens",
-		"Three reviewers all graded the agent-rail refactor; the changes look tight but tess flagged one issue worth a look before merge.",
+		"Refactor bot rail to use shared severity tokens",
+		"Three reviewers all graded the bot-rail refactor; the changes look tight but tess flagged one issue worth a look before merge.",
 		"tess",
 		"sam",
 		"",
@@ -88,14 +88,14 @@ func seedTutorial1(b *team.Broker, channel string) (string, error) {
 	}
 	id := t.ID
 	must(b.SetSpec(id, team.Spec{
-		Problem:       "Agent rail in /apps/tasks duplicates the severity-token logic from lifecycle.css",
+		Problem:       "Bot rail in /apps/tasks duplicates the severity-token logic from lifecycle.css",
 		TargetOutcome: "One source of truth for severity tokens; no visual drift between surfaces",
 		AcceptanceCriteria: []team.ACItem{
 			{Statement: "All severity badges use STATE_PILL_TOKENS from lifecycle.ts", Done: true},
-			{Statement: "Vitest snapshot tests pass on agent rail + decision inbox + packet view", Done: true},
+			{Statement: "Vitest snapshot tests pass on bot rail + decision inbox + packet view", Done: true},
 			{Statement: "lifecycle.css's local severity vars removed", Done: false},
 		},
-		Assignment: "Refactor agent rail to import severity tokens from lifecycle.ts. Keep all visual states identical.",
+		Assignment: "Refactor bot rail to import severity tokens from lifecycle.ts. Keep all visual states identical.",
 		AutoAssign: "tess,nico,wren",
 	}), "tutorial 1 SetSpec")
 	must(b.TransitionLifecycle(id, team.LifecycleStateRunning, "tutorial 1: implementation started"), "tutorial 1 → running")
@@ -146,13 +146,13 @@ func seedTutorial2(b *team.Broker, channel string) (string, error) {
 	id := t.ID
 	must(b.SetSpec(id, team.Spec{
 		Problem:       "Notebook review queue overlaps with the wiki Reviews tab. One surface should win.",
-		TargetOutcome: "Drop the notebook-specific review queue; fold per-agent filter into /reviews.",
+		TargetOutcome: "Drop the notebook-specific review queue; fold per-bot filter into /reviews.",
 		AcceptanceCriteria: []team.ACItem{
-			{Statement: "Single /reviews surface with per-agent filter via query param", Done: true},
+			{Statement: "Single /reviews surface with per-bot filter via query param", Done: true},
 			{Statement: "Existing notebook review API redirects to /reviews", Done: true},
 			{Statement: "Vitest E2E covers the consolidated flow", Done: false},
 		},
-		Assignment: "Migrate notebook review queue into /reviews. Add the per-agent filter as a search param. Deprecate the notebook-specific API.",
+		Assignment: "Migrate notebook review queue into /reviews. Add the per-bot filter as a search param. Deprecate the notebook-specific API.",
 		AutoAssign: "tess,wren,kit",
 	}), "tutorial 2 SetSpec")
 	must(b.TransitionLifecycle(id, team.LifecycleStateRunning, "tutorial 2: implementation started"), "tutorial 2 → running")
@@ -170,7 +170,7 @@ func seedTutorial2(b *team.Broker, channel string) (string, error) {
 	must(b.AppendReviewerGrade(id, team.ReviewerGrade{
 		ReviewerSlug: "wren",
 		Severity:     team.SeverityMinor,
-		Suggestion:   "The query param name should match the existing wiki convention (?agent=<slug>)",
+		Suggestion:   "The query param name should match the existing wiki convention (?bot=<slug>)",
 		Reasoning:    "Consistency with the wiki search params",
 		FilePath:     "web/src/routes/reviewsRoute.tsx",
 		Line:         48,

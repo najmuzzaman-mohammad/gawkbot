@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 func (b *Broker) handleTasks(w http.ResponseWriter, r *http.Request) {
@@ -22,17 +22,17 @@ func (b *Broker) handleTasks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (b *Broker) handleAgentLogs(w http.ResponseWriter, r *http.Request) {
+func (b *Broker) handleBotLogs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	b.mu.Lock()
-	root := b.agentLogRoot
+	root := b.botLogRoot
 	b.mu.Unlock()
 	if root == "" {
-		root = agent.DefaultTaskLogRoot()
+		root = bot.DefaultTaskLogRoot()
 	}
 
 	task := strings.TrimSpace(r.URL.Query().Get("task"))
@@ -42,7 +42,7 @@ func (b *Broker) handleAgentLogs(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid task id", http.StatusBadRequest)
 			return
 		}
-		entries, err := agent.ReadTaskLog(root, task)
+		entries, err := bot.ReadTaskLog(root, task)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				http.Error(w, "task not found", http.StatusNotFound)
@@ -52,7 +52,7 @@ func (b *Broker) handleAgentLogs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(AgentLogEntriesResponse{Task: task, Entries: entries})
+		_ = json.NewEncoder(w).Encode(BotLogEntriesResponse{Task: task, Entries: entries})
 		return
 	}
 
@@ -62,24 +62,24 @@ func (b *Broker) handleAgentLogs(w http.ResponseWriter, r *http.Request) {
 			limit = n
 		}
 	}
-	agentFilter := strings.TrimSpace(r.URL.Query().Get("agent"))
+	botFilter := strings.TrimSpace(r.URL.Query().Get("agent"))
 
-	// When filtering by agent we over-fetch so the limit applies after the
-	// filter, not before — otherwise a busy office with many other agents can
-	// exhaust the window before the requested agent's runs appear.
+	// When filtering by bot we over-fetch so the limit applies after the
+	// filter, not before — otherwise a busy office with many other bots can
+	// exhaust the window before the requested bot's runs appear.
 	scanLimit := limit
-	if agentFilter != "" {
+	if botFilter != "" {
 		scanLimit = 500
 	}
-	tasks, err := agent.ListRecentTasks(root, scanLimit)
+	tasks, err := bot.ListRecentTasks(root, scanLimit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if agentFilter != "" {
+	if botFilter != "" {
 		filtered := tasks[:0]
 		for _, t := range tasks {
-			if t.AgentSlug == agentFilter {
+			if t.BotSlug == botFilter {
 				filtered = append(filtered, t)
 				if len(filtered) == limit {
 					break
@@ -89,7 +89,7 @@ func (b *Broker) handleAgentLogs(w http.ResponseWriter, r *http.Request) {
 		tasks = filtered
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(AgentLogTasksResponse{Tasks: tasks})
+	_ = json.NewEncoder(w).Encode(BotLogTasksResponse{Tasks: tasks})
 }
 
 func (b *Broker) handleGetTasks(w http.ResponseWriter, r *http.Request) {

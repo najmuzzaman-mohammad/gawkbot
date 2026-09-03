@@ -191,12 +191,12 @@ export const Neutrals: StoryObj = {
   ),
 };
 
-export const AgentBubbleStates: StoryObj = {
-  name: "Agent bubble states",
+export const BotBubbleStates: StoryObj = {
+  name: "Bot bubble states",
   render: () => (
     <Section
-      title="Agent event bubble states"
-      description="Per-state colors that drive `.sidebar-agent-pill`. Used by AgentEventPill — see Sidebar / AgentEventPill stories."
+      title="Bot event bubble states"
+      description="Per-state colors that drive `.sidebar-bot-pill`. Used by BotEventPill — see Sidebar / BotEventPill stories."
     >
       <Grid cols={5}>
         {BUBBLE_STATES.map((token) => (

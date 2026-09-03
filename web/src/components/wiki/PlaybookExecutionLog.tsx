@@ -9,7 +9,7 @@ import {
   subscribePlaybookSynthesizedEvents,
   synthesizeNow,
 } from "../../api/playbook";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 
 interface PlaybookExecutionLogProps {
   slug: string;
@@ -135,7 +135,7 @@ export default function PlaybookExecutionLog({
             </p>
           ) : entries.length === 0 ? (
             <p className="wk-playbook-executions__empty">
-              No executions recorded yet. Agents will log outcomes here as they
+              No executions recorded yet. Bots will log outcomes here as they
               run the playbook.
             </p>
           ) : (
@@ -161,7 +161,7 @@ export default function PlaybookExecutionLog({
                         </p>
                       ) : null}
                       <span className="wk-playbook-execution__meta">
-                        {formatAgentName(e.recorded_by)}
+                        {formatBotName(e.recorded_by)}
                         {" · "}
                         <time dateTime={e.created_at}>
                           {formatShortTs(e.created_at)}

@@ -86,7 +86,7 @@ const STATIC_ACTIONS: Omit<CommandItem, "run">[] = [
     group: "Actions",
     icon: "⚡",
     label: "Open skills",
-    desc: "Browse and manage agent skills",
+    desc: "Browse and manage bot skills",
     aliases: ["skills", "automation"],
   },
   {
@@ -94,7 +94,7 @@ const STATIC_ACTIONS: Omit<CommandItem, "run">[] = [
     group: "Actions",
     icon: "🔁",
     label: "Open routines",
-    desc: "View scheduled routines and their owning agents",
+    desc: "View scheduled routines and their owning bots",
     aliases: ["routines", "calendar", "schedule"],
   },
   {
@@ -102,7 +102,7 @@ const STATIC_ACTIONS: Omit<CommandItem, "run">[] = [
     group: "Actions",
     icon: "📜",
     label: "Open policies",
-    desc: "Review agent delegation and approval policies",
+    desc: "Review bot delegation and approval policies",
     aliases: ["policies", "rules", "guardrails"],
   },
   {
@@ -205,7 +205,7 @@ export function useCommandItems({
   const { data: channels = [] } = useChannels();
   const { data: members = [] } = useOfficeMembers();
   const setSearchOpen = useAppStore((s) => s.setSearchOpen);
-  const setActiveAgentSlug = useAppStore((s) => s.setActiveAgentSlug);
+  const setActiveBotSlug = useAppStore((s) => s.setActiveBotSlug);
 
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Item builder covers all palette categories in a single pass; each branch is a simple navigation or action call.
   return useMemo(() => {
@@ -289,7 +289,7 @@ export function useCommandItems({
       list.push({ ...action, run });
     }
 
-    // ── Agents ─────────────────────────────────────────────────────────
+    // ── Bots ─────────────────────────────────────────────────────────
     for (const m of members) {
       if (
         !m.slug ||
@@ -302,13 +302,13 @@ export function useCommandItems({
       if (q && !hay.includes(q.replace(/^@/, ""))) continue;
       list.push({
         id: `ag:${m.slug}`,
-        group: "Agents",
+        group: "Bots",
         icon: m.emoji || "🤖",
         label: m.name || m.slug,
         desc: m.role,
         meta: `@${m.slug}`,
         run: () => {
-          setActiveAgentSlug(m.slug);
+          setActiveBotSlug(m.slug);
           onClose();
         },
       });
@@ -363,7 +363,7 @@ export function useCommandItems({
     members,
     wikiCatalog,
     onClose,
-    setActiveAgentSlug,
+    setActiveBotSlug,
     setSearchOpen,
   ]);
 }

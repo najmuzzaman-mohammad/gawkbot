@@ -146,7 +146,7 @@ func TestBuildRuntimeSnapshotFormatsRecoveryAndCapabilities(t *testing.T) {
 	snapshot := BuildRuntimeSnapshot(RuntimeSnapshotInput{
 		Channel:     "team",
 		SessionMode: SessionModeOneOnOne,
-		DirectAgent: "pm",
+		DirectBot:   "pm",
 		Tasks: []RuntimeTask{{
 			ID:             "task-1",
 			Title:          "Polish launch checklist",

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { fetchTeamLearnings, type TeamLearning } from "../../api/learning";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 
 interface TeamLearningPanelProps {
   playbookSlug?: string;
@@ -104,7 +104,7 @@ export default function TeamLearningPanel({
               <span>
                 {entry.effective_confidence ?? entry.confidence}/10 confidence
               </span>
-              <span>{formatAgentName(entry.created_by)}</span>
+              <span>{formatBotName(entry.created_by)}</span>
             </div>
           </li>
         ))}

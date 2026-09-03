@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
@@ -22,7 +22,7 @@ func TestIsOpenAICompatKind(t *testing.T) {
 		provider.KindMLXLM,
 		provider.KindOllama,
 		provider.KindExo,
-		provider.KindHermesAgent,
+		provider.KindHermesBot,
 		provider.KindOpenclawHTTP,
 	} {
 		if !isOpenAICompatKind(kind) {
@@ -115,7 +115,7 @@ func TestLooksUnparsedToolCall(t *testing.T) {
 // matching what the parser dispatches when the model leaves arguments
 // off (`"arguments":{}`).
 func TestOpenAICompatPromptedToolsPrompt_NilSchema(t *testing.T) {
-	tools := []agent.AgentTool{
+	tools := []bot.BotTool{
 		{Name: "no_schema_tool", Description: "A tool that has no schema.", Schema: nil},
 		{Name: "with_schema_tool", Description: "A tool with a real schema.", Schema: map[string]any{
 			"type":       "object",
@@ -179,7 +179,7 @@ func TestOpenAICompatToolLoop_OnToolResultFiresPerInvocation(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{
 						Type:       "tool_use",
 						ToolName:   "team_broadcast",
@@ -189,13 +189,13 @@ func TestOpenAICompatToolLoop_OnToolResultFiresPerInvocation(t *testing.T) {
 				},
 			},
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "Posted."},
 				},
 			},
 		},
 	}
-	tool := agent.AgentTool{
+	tool := bot.BotTool{
 		Name: "team_broadcast",
 		Execute: func(_ map[string]any, _ context.Context, _ func(string)) (string, error) {
 			return "Posted to #human__planner as @planner", nil
@@ -207,8 +207,8 @@ func TestOpenAICompatToolLoop_OnToolResultFiresPerInvocation(t *testing.T) {
 	)
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		tools:       []agent.AgentTool{tool},
-		toolByName:  map[string]agent.AgentTool{"team_broadcast": tool},
+		tools:       []bot.BotTool{tool},
+		toolByName:  map[string]bot.BotTool{"team_broadcast": tool},
 		maxIters:    4,
 		toolTimeout: time.Second,
 		onToolResult: func(name, _ string, err error) {
@@ -225,7 +225,7 @@ func TestOpenAICompatToolLoop_OnToolResultFiresPerInvocation(t *testing.T) {
 		},
 	}
 	final, _, _, streamErr, err := loop.run(context.Background(),
-		[]agent.Message{{Role: "user", Content: "x"}})
+		[]bot.Message{{Role: "user", Content: "x"}})
 	if err != nil || streamErr != "" {
 		t.Fatalf("unexpected: err=%v streamErr=%q", err, streamErr)
 	}
@@ -242,24 +242,24 @@ func TestOpenAICompatToolLoop_OnToolResultFiresPerInvocation(t *testing.T) {
 
 // TestOpenAICompatToolLoop_OnToolResultDoesNotFlipForReadOnlyTools is
 // the negative case: a tool that doesn't post (run_lint, team_wiki_*)
-// must NOT flip broadcastedThisTurn, otherwise a turn where the agent
+// must NOT flip broadcastedThisTurn, otherwise a turn where the bot
 // only ran a wiki-read would silently swallow its final reply.
 func TestOpenAICompatToolLoop_OnToolResultDoesNotFlipForReadOnlyTools(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "tool_use", ToolName: "team_wiki_read", ToolParams: map[string]any{"slug": "x"}, ToolInput: `{"slug":"x"}`},
 				},
 			},
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "Here's what I found: …"},
 				},
 			},
 		},
 	}
-	tool := agent.AgentTool{
+	tool := bot.BotTool{
 		Name: "team_wiki_read",
 		Execute: func(_ map[string]any, _ context.Context, _ func(string)) (string, error) {
 			return "wiki body", nil
@@ -268,8 +268,8 @@ func TestOpenAICompatToolLoop_OnToolResultDoesNotFlipForReadOnlyTools(t *testing
 	var broadcasted bool
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		tools:       []agent.AgentTool{tool},
-		toolByName:  map[string]agent.AgentTool{"team_wiki_read": tool},
+		tools:       []bot.BotTool{tool},
+		toolByName:  map[string]bot.BotTool{"team_wiki_read": tool},
 		maxIters:    4,
 		toolTimeout: time.Second,
 		onToolResult: func(name, _ string, err error) {
@@ -279,9 +279,9 @@ func TestOpenAICompatToolLoop_OnToolResultDoesNotFlipForReadOnlyTools(t *testing
 		},
 	}
 	final, _, _, _, _ := loop.run(context.Background(),
-		[]agent.Message{{Role: "user", Content: "x"}})
+		[]bot.Message{{Role: "user", Content: "x"}})
 	if broadcasted {
-		t.Fatal("broadcastedThisTurn flipped for a read-only wiki tool — runner will silently drop the agent's reply")
+		t.Fatal("broadcastedThisTurn flipped for a read-only wiki tool — runner will silently drop the bot's reply")
 	}
 	if final == "" {
 		t.Error("loop did not return final text")
@@ -297,13 +297,13 @@ func TestOpenAICompatToolLoop_OnToolResultDoesNotFlipForReadOnlyTools(t *testing
 func TestOpenAICompatToolLoop_OnToolResultErrorDoesNotFlipBroadcasted(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "tool_use", ToolName: "team_broadcast", ToolParams: map[string]any{}, ToolInput: "{}"},
 			}},
-			{chunks: []agent.StreamChunk{{Type: "text", Content: "Sorry, that failed."}}},
+			{chunks: []bot.StreamChunk{{Type: "text", Content: "Sorry, that failed."}}},
 		},
 	}
-	broken := agent.AgentTool{
+	broken := bot.BotTool{
 		Name: "team_broadcast",
 		Execute: func(_ map[string]any, _ context.Context, _ func(string)) (string, error) {
 			return "", errors.New("broker offline")
@@ -312,8 +312,8 @@ func TestOpenAICompatToolLoop_OnToolResultErrorDoesNotFlipBroadcasted(t *testing
 	var broadcasted bool
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		tools:       []agent.AgentTool{broken},
-		toolByName:  map[string]agent.AgentTool{"team_broadcast": broken},
+		tools:       []bot.BotTool{broken},
+		toolByName:  map[string]bot.BotTool{"team_broadcast": broken},
 		maxIters:    4,
 		toolTimeout: time.Second,
 		onToolResult: func(name, _ string, err error) {
@@ -323,7 +323,7 @@ func TestOpenAICompatToolLoop_OnToolResultErrorDoesNotFlipBroadcasted(t *testing
 		},
 	}
 	final, _, _, _, _ := loop.run(context.Background(),
-		[]agent.Message{{Role: "user", Content: "x"}})
+		[]bot.Message{{Role: "user", Content: "x"}})
 	if broadcasted {
 		t.Error("broadcastedThisTurn flipped on tool error — user would see no reply at all")
 	}

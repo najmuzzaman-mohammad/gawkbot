@@ -38,7 +38,7 @@ function knownMentionSet(knownSlugs: readonly string[]): Set<string> {
 
 /**
  * Parse human input into a mix of plain strings and mention tokens,
- * recognising only slugs that match a known agent. Unknown `@foo` stays
+ * recognising only slugs that match a known bot. Unknown `@foo` stays
  * plain text so conversational `@joedoe` references don't light up the
  * wrong slug.
  *
@@ -75,8 +75,8 @@ export function parseMentions(
 }
 
 /**
- * Extract the agent slugs that should be sent in the broker's `tagged`
- * payload. `@all` expands to every known agent slug because the HTTP
+ * Extract the bot slugs that should be sent in the broker's `tagged`
+ * payload. `@all` expands to every known bot slug because the HTTP
  * message endpoint validates tagged members individually.
  */
 export function extractTaggedMentions(

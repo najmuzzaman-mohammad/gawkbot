@@ -18,7 +18,7 @@ import (
 type HealthResponse struct {
 	Status              string         `json:"status"`
 	SessionMode         string         `json:"session_mode"`
-	OneOnOneAgent       string         `json:"one_on_one_agent"`
+	OneOnOneBot         string         `json:"one_on_one_agent"`
 	FocusMode           bool           `json:"focus_mode"`
 	Provider            string         `json:"provider"`
 	ProviderModel       string         `json:"provider_model"`
@@ -31,7 +31,7 @@ type HealthResponse struct {
 func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
 	b.mu.Lock()
 	mode := b.sessionMode
-	agent := b.oneOnOneAgent
+	bot := b.oneOnOneBot
 	focus := b.focusMode
 	provider := b.runtimeProvider
 	b.mu.Unlock()
@@ -53,7 +53,7 @@ func (b *Broker) handleHealth(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(HealthResponse{
 		Status:              "ok",
 		SessionMode:         mode,
-		OneOnOneAgent:       agent,
+		OneOnOneBot:         bot,
 		FocusMode:           focus,
 		Provider:            provider,
 		ProviderModel:       resolveProviderModel(provider),
@@ -86,30 +86,30 @@ func resolveProviderModel(provider string) string {
 func (b *Broker) handleSessionMode(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		mode, agent := b.SessionModeState()
+		mode, bot := b.SessionModeState()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"session_mode":     mode,
-			"one_on_one_agent": agent,
+			"one_on_one_agent": bot,
 		})
 	case http.MethodPost:
 		var body struct {
-			Mode  string `json:"mode"`
-			Agent string `json:"agent"`
+			Mode string `json:"mode"`
+			Bot  string `json:"agent"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "invalid json", http.StatusBadRequest)
 			return
 		}
-		if err := b.SetSessionMode(body.Mode, body.Agent); err != nil {
+		if err := b.SetSessionMode(body.Mode, body.Bot); err != nil {
 			http.Error(w, "failed to persist broker state", http.StatusInternalServerError)
 			return
 		}
-		mode, agent := b.SessionModeState()
+		mode, bot := b.SessionModeState()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"session_mode":     mode,
-			"one_on_one_agent": agent,
+			"one_on_one_agent": bot,
 		})
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -160,18 +160,18 @@ func (b *Broker) handleResetDM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Agent   string `json:"agent"`
+		Bot     string `json:"agent"`
 		Channel string `json:"channel"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	agent := strings.TrimSpace(body.Agent)
+	bot := strings.TrimSpace(body.Bot)
 	// Raw emptiness first: normalizeChannelSlug("") is "general", so a missing
 	// channel used to be silently laundered into the shared room. Resolve a real
 	// home instead — while #general is enabled this still answers "general", so
-	// today is unchanged; once it is off this is the agent's DM, or a refusal.
+	// today is unchanged; once it is off this is the bot's DM, or a refusal.
 	//
 	// homeChannelFor is the correct variant HERE specifically: b.mu is
 	// NOT held at this point. The other variant would
@@ -181,26 +181,26 @@ func (b *Broker) handleResetDM(w http.ResponseWriter, r *http.Request) {
 		channel = normalizeChannelSlug(raw)
 	}
 	if channel == "" {
-		home, err := b.homeChannelFor(body.Agent)
+		home, err := b.homeChannelFor(body.Bot)
 		if err != nil {
 			http.Error(w, `channel is required: there is no default room to fall back to. Name a channel, or set a member slug so the message can go to that agent's DM.`, http.StatusBadRequest)
 			return
 		}
 		channel = home
 	}
-	// agent is required: an empty agent would otherwise cause this handler
+	// bot is required: an empty bot would otherwise cause this handler
 	// to wipe every human-authored message in the channel, even ones that
-	// belong to other agents' threads.
-	if agent == "" {
-		http.Error(w, "agent is required", http.StatusBadRequest)
+	// belong to other bots' threads.
+	if bot == "" {
+		http.Error(w, "bot is required", http.StatusBadRequest)
 		return
 	}
 
 	b.mu.Lock()
 	// Keep only messages that are NOT direct exchanges between human and the
-	// SPECIFIED agent. Human messages must explicitly tag the agent, and
-	// agent messages must come from that agent — anything else (other
-	// agents' threads, broadcasts, etc.) is preserved.
+	// SPECIFIED bot. Human messages must explicitly tag the bot, and
+	// bot messages must come from that bot — anything else (other
+	// bots' threads, broadcasts, etc.) is preserved.
 	filtered := make([]channelMessage, 0, len(b.messages))
 	removed := 0
 	for _, msg := range b.messages {
@@ -209,29 +209,29 @@ func (b *Broker) handleResetDM(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		isHuman := isHumanMessageSender(msg.From)
-		isAgent := msg.From == agent
+		isBot := msg.From == bot
 		if isHuman {
-			// Only drop human messages that are part of THIS agent's thread:
-			// either tagged at the agent, or replying inside that thread.
-			taggedAgent := false
+			// Only drop human messages that are part of THIS bot's thread:
+			// either tagged at the bot, or replying inside that thread.
+			taggedBot := false
 			for _, t := range msg.Tagged {
-				if t == agent {
-					taggedAgent = true
+				if t == bot {
+					taggedBot = true
 					break
 				}
 			}
-			if !taggedAgent {
+			if !taggedBot {
 				filtered = append(filtered, msg)
 				continue
 			}
 			removed++
 			continue
 		}
-		if isAgent {
-			// Drop agent->human DMs: messages where the agent explicitly
+		if isBot {
+			// Drop bot->human DMs: messages where the bot explicitly
 			// tagged the human. Anything else (untagged broadcasts,
-			// messages tagged at other agents, channel-wide replies) is
-			// preserved — only the human↔agent thread is being reset.
+			// messages tagged at other bots, channel-wide replies) is
+			// preserved — only the human↔bot thread is being reset.
 			taggedHuman := false
 			for _, t := range msg.Tagged {
 				if isHumanMessageSender(t) {
@@ -249,7 +249,7 @@ func (b *Broker) handleResetDM(w http.ResponseWriter, r *http.Request) {
 		filtered = append(filtered, msg)
 	}
 	b.messages = filtered
-	b.pruneIncidentsByChannelAndAgentLocked(channel, agent)
+	b.pruneIncidentsByChannelAndBotLocked(channel, bot)
 	if err := b.saveLocked(); err != nil {
 		// Roll forward: snapshot save failed, but the in-memory mutation
 		// already applied. Surface the error rather than reporting success.
@@ -259,23 +259,23 @@ func (b *Broker) handleResetDM(w http.ResponseWriter, r *http.Request) {
 	}
 	b.mu.Unlock()
 
-	// Respawn the agent's Claude Code session to clear its context
-	go respawnAgentPane(agent)
+	// Respawn the bot's Claude Code session to clear its context
+	go respawnBotPane(bot)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "removed": removed})
 }
 
-// respawnAgentPane restarts an agent's Claude Code session in its tmux pane.
-func respawnAgentPane(slug string) {
+// respawnBotPane restarts a bot's Claude Code session in its tmux pane.
+func respawnBotPane(slug string) {
 	manifest := company.DefaultManifest()
 	loaded, err := company.LoadManifest()
 	if err == nil && len(loaded.Members) > 0 {
 		manifest = loaded
 	}
 
-	for i, agent := range manifest.Members {
-		if agent.Slug == slug {
+	for i, bot := range manifest.Members {
+		if bot.Slug == slug {
 			paneIdx := i + 1 // pane 0 is channel view
 			target := fmt.Sprintf("wuphf-team:team.%d", paneIdx)
 			// Bound each tmux call so a stalled socket can't strand the

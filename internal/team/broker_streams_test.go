@@ -17,7 +17,7 @@ import (
 // either grow the buffer unboundedly (memory leak) or drop too
 // aggressively (lose visible history).
 func TestAgentStreamBuffer_RecentReturnsBoundedHistory(t *testing.T) {
-	s := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	s := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	for i := 0; i < 2100; i++ {
 		s.Push(fmt.Sprintf("line-%d", i))
 	}
@@ -42,7 +42,7 @@ func TestAgentStreamBuffer_RecentReturnsBoundedHistory(t *testing.T) {
 }
 
 func TestAgentStreamBuffer_TaskScopedHistoryAndSubscribers(t *testing.T) {
-	s := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	s := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	s.PushTask("task-1", "one")
 	s.PushTask("task-2", "two")
 	s.Push("global")
@@ -70,22 +70,22 @@ func TestAgentStreamBuffer_TaskScopedHistoryAndSubscribers(t *testing.T) {
 }
 
 func TestAgentStreamBuffer_TaskHistorySurvivesGlobalEviction(t *testing.T) {
-	s := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	s := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	s.PushTask("task-1", "one")
-	for i := 0; i < agentStreamHistoryLimit+1; i++ {
+	for i := 0; i < botStreamHistoryLimit+1; i++ {
 		s.PushTask("task-2", fmt.Sprintf("two-%d", i))
 	}
 
 	if got := strings.Join(s.recentTask("task-1"), ","); got != "one" {
 		t.Fatalf("task-1 recent = %q, want one", got)
 	}
-	if got := s.recent(); len(got) != agentStreamHistoryLimit {
-		t.Fatalf("global recent length = %d, want %d", len(got), agentStreamHistoryLimit)
+	if got := s.recent(); len(got) != botStreamHistoryLimit {
+		t.Fatalf("global recent length = %d, want %d", len(got), botStreamHistoryLimit)
 	}
 }
 
 func TestAgentStreamBuffer_SubscribeTaskWithRecentHasNoReplayGap(t *testing.T) {
-	s := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	s := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	s.PushTask("task-1", "history\n")
 
 	history, live, cancel := s.subscribeTaskWithRecent("task-1")
@@ -113,12 +113,12 @@ func TestHandleAgentToolEvent_ScopesLineToActiveTask(t *testing.T) {
 		strings.NewReader(`{"slug":"ceo","phase":"call","tool":"team_broadcast","args":"{\"text\":\"hi\"}"}`),
 	)
 	rec := httptest.NewRecorder()
-	b.handleAgentToolEvent(rec, req)
+	b.handleBotToolEvent(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
 
-	got := strings.Join(b.AgentStream("ceo").recentTask(task.ID), "\n")
+	got := strings.Join(b.BotStream("ceo").recentTask(task.ID), "\n")
 	if !strings.Contains(got, `"tool":"team_broadcast"`) {
 		t.Fatalf("task-scoped stream missing tool event: %q", got)
 	}
@@ -220,7 +220,7 @@ func TestReapStaleActivityLocked(t *testing.T) {
 	stale := now.Add(-10 * time.Minute).Format(time.RFC3339)
 	fresh := now.Add(-1 * time.Minute).Format(time.RFC3339)
 
-	b.activity = map[string]agentActivitySnapshot{
+	b.activity = map[string]botActivitySnapshot{
 		"stale-active":   {Slug: "stale-active", Status: "active", Activity: "tool_use", LastTime: stale},
 		"stale-thinking": {Slug: "stale-thinking", Status: "thinking", Activity: "thinking", LastTime: stale},
 		"fresh-active":   {Slug: "fresh-active", Status: "active", Activity: "tool_use", LastTime: fresh},
@@ -234,11 +234,11 @@ func TestReapStaleActivityLocked(t *testing.T) {
 	b.mu.Unlock()
 
 	if len(reset) != 2 {
-		t.Fatalf("expected 2 stale agents reaped, got %d: %+v", len(reset), reset)
+		t.Fatalf("expected 2 stale bots reaped, got %d: %+v", len(reset), reset)
 	}
 	for _, snap := range reset {
 		if snap.Status != "idle" {
-			t.Errorf("reaped agent %q should be idle, got %q", snap.Slug, snap.Status)
+			t.Errorf("reaped bot %q should be idle, got %q", snap.Slug, snap.Status)
 		}
 		if snap.Slug != "stale-active" && snap.Slug != "stale-thinking" {
 			t.Errorf("unexpected reaped slug: %q", snap.Slug)
@@ -270,11 +270,11 @@ func TestReapStaleActivityLocked(t *testing.T) {
 }
 
 // TestReapStaleActivityLocked_StuckEmissionForActiveAgent locks the new
-// stuck-while-active path: an active agent that has gone quiet for >=
+// stuck-while-active path: an active bot that has gone quiet for >=
 // stuckThresholdSeconds (90s) but less than the safety reset (5m) gets a
 // Kind="stuck" snapshot without losing its current Status/Activity/Detail.
 // CRITICAL REGRESSION coverage: the existing "stale -> idle" path must still
-// fire for agents past staleActivityThreshold even after the stuck branch
+// fire for bots past staleActivityThreshold even after the stuck branch
 // landed.
 func TestReapStaleActivityLocked_StuckEmissionForActiveAgent(t *testing.T) {
 	b := newTestBroker(t)
@@ -283,7 +283,7 @@ func TestReapStaleActivityLocked_StuckEmissionForActiveAgent(t *testing.T) {
 	stale := now.Add(-10 * time.Minute).Format(time.RFC3339)
 	fresh := now.Add(-1 * time.Second).Format(time.RFC3339)
 
-	b.activity = map[string]agentActivitySnapshot{
+	b.activity = map[string]botActivitySnapshot{
 		"stuck-rita": {
 			Slug: "stuck-rita", Status: "active", Activity: "tool_use",
 			Detail: "planning compute module", LastTime: stuckCandidate,
@@ -340,7 +340,7 @@ func TestReapStaleActivityLocked_StuckEmissionForActiveAgent(t *testing.T) {
 	resetAgain := b.reapStaleActivityLocked(now)
 	b.mu.Unlock()
 	if len(resetAgain) != 0 {
-		t.Errorf("second reaper tick should be quiet for already-stuck agent, got %d emissions", len(resetAgain))
+		t.Errorf("second reaper tick should be quiet for already-stuck bot, got %d emissions", len(resetAgain))
 	}
 }
 
@@ -349,7 +349,7 @@ func TestBrokerActivitySubscribersReceiveUpdates(t *testing.T) {
 	updates, unsubscribe := b.SubscribeActivity(4)
 	defer unsubscribe()
 
-	b.UpdateAgentActivity(agentActivitySnapshot{
+	b.UpdateBotActivity(botActivitySnapshot{
 		Slug:     "ceo",
 		Status:   "active",
 		Activity: "tool_use",

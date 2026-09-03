@@ -136,7 +136,7 @@ func TestMaterialize_Idempotent(t *testing.T) {
 }
 
 // TestMaterialize_PreservesExisting simulates a user who has already let
-// their agents write into the wiki. Re-picking the blueprint must not
+// their bots write into the wiki. Re-picking the blueprint must not
 // clobber their work — only missing articles get the skeleton bytes.
 func TestMaterialize_PreservesExisting(t *testing.T) {
 	wikiRoot := t.TempDir()

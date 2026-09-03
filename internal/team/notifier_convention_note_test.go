@@ -1,7 +1,7 @@
 package team
 
 // notifier_convention_note_test.go pins the Slack-channel authoring rules
-// appended to agent notifications. These exist because the bridged channel
+// appended to bot notifications. These exist because the bridged channel
 // contains real people: tags ping, the office speaks with one voice, and
 // acknowledgement-only chatter is spam (observed live as six near-identical
 // "no action needed" posts in two minutes).
@@ -26,7 +26,7 @@ func TestSlackChannelConventionNote(t *testing.T) {
 	note := l.slackChannelConventionNote("slack-office")
 	for _, want := range []string{
 		"NEVER @-tag",
-		"START your message with @agent-slug",
+		"START your message with @bot-slug",
 		"ONE coordinating presence",
 		"post NOTHING",
 		"acknowledgement-only",

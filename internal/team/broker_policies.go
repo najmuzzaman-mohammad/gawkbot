@@ -18,23 +18,23 @@ var ErrPolicyRuleEmpty = errors.New("rule cannot be empty")
 // Deduplicates by case-insensitive rule text — re-recording the same
 // rule (any casing) returns the original record with Active flipped
 // back on rather than minting a duplicate. The policy applies to ALL
-// agents; use RecordPolicyScoped for per-agent assignment.
+// bots; use RecordPolicyScoped for per-bot assignment.
 func (b *Broker) RecordPolicy(source, rule string) (officePolicy, error) {
 	return b.RecordPolicyScoped(source, rule, nil)
 }
 
-// RecordPolicyScoped is RecordPolicy with per-agent assignment (B3).
-// agents nil/empty means the policy applies to every agent. When the rule
+// RecordPolicyScoped is RecordPolicy with per-bot assignment (B3).
+// bots nil/empty means the policy applies to every bot. When the rule
 // text matches an existing policy (normalized whitespace, case-insensitive),
 // the existing record is reactivated and its scope is WIDENED: nil on
-// either side wins (all agents), otherwise the union of both lists. A
+// either side wins (all bots), otherwise the union of both lists. A
 // re-compiled or re-stated rule must never silently narrow who it governs.
-func (b *Broker) RecordPolicyScoped(source, rule string, agents []string) (officePolicy, error) {
+func (b *Broker) RecordPolicyScoped(source, rule string, bots []string) (officePolicy, error) {
 	rule = strings.TrimSpace(rule)
 	if rule == "" {
 		return officePolicy{}, ErrPolicyRuleEmpty
 	}
-	agents = normalizePolicyAgents(agents)
+	bots = normalizePolicyBots(bots)
 	normalized := normalizePolicyRuleText(rule)
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -42,21 +42,21 @@ func (b *Broker) RecordPolicyScoped(source, rule string, agents []string) (offic
 	for i, p := range b.policies {
 		if normalizePolicyRuleText(p.Rule) == normalized {
 			prevActive := b.policies[i].Active
-			prevAgents := b.policies[i].Agents
+			prevBots := b.policies[i].Bots
 			b.policies[i].Active = true
-			b.policies[i].Agents = mergePolicyAgents(prevAgents, agents)
+			b.policies[i].Bots = mergePolicyBots(prevBots, bots)
 			if err := b.saveLocked(); err != nil {
 				// Roll back the flips so the in-memory state stays
 				// consistent with what's persisted on disk.
 				b.policies[i].Active = prevActive
-				b.policies[i].Agents = prevAgents
+				b.policies[i].Bots = prevBots
 				return officePolicy{}, fmt.Errorf("persist policy: %w", err)
 			}
 			return b.policies[i], nil
 		}
 	}
 	p := newOfficePolicy(source, rule)
-	p.Agents = agents
+	p.Bots = bots
 	b.policies = append(b.policies, p)
 	if err := b.saveLocked(); err != nil {
 		// Roll back the in-memory append so the caller doesn't see a
@@ -67,13 +67,13 @@ func (b *Broker) RecordPolicyScoped(source, rule string, agents []string) (offic
 	return p, nil
 }
 
-// mergePolicyAgents widens two assignment scopes. Nil means "all agents",
+// mergePolicyBots widens two assignment scopes. Nil means "all bots",
 // so nil on either side dominates; otherwise the union, normalized.
-func mergePolicyAgents(a, b []string) []string {
+func mergePolicyBots(a, b []string) []string {
 	if len(a) == 0 || len(b) == 0 {
 		return nil
 	}
-	return normalizePolicyAgents(append(append([]string(nil), a...), b...))
+	return normalizePolicyBots(append(append([]string(nil), a...), b...))
 }
 
 // ListPolicies returns all active policies.
@@ -126,10 +126,10 @@ func (b *Broker) handlePolicies(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Source string `json:"source"`
 			Rule   string `json:"rule"`
-			// Agents optionally scopes the policy to specific agent
-			// slugs. Empty/omitted = all agents — the default for
+			// Bots optionally scopes the policy to specific bot
+			// slugs. Empty/omitted = all bots — the default for
 			// human chat feedback (core-loop step 11).
-			Agents []string `json:"agents"`
+			Bots []string `json:"agents"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			var maxErr *http.MaxBytesError
@@ -144,7 +144,7 @@ func (b *Broker) handlePolicies(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "rule is required", http.StatusBadRequest)
 			return
 		}
-		p, err := b.RecordPolicyScoped(body.Source, body.Rule, body.Agents)
+		p, err := b.RecordPolicyScoped(body.Source, body.Rule, body.Bots)
 		if err != nil {
 			// Validation vs persistence: ErrPolicyRuleEmpty is the only
 			// validation-class error; anything else is a persistence
@@ -203,17 +203,17 @@ func (b *Broker) handlePolicies(w http.ResponseWriter, r *http.Request) {
 // handlePoliciesSubpath routes /policies/{id}[/verb]. Supported:
 //
 //	DELETE /policies/{id}          — deactivate (delegates to handlePolicies)
-//	POST   /policies/{id}/assign   — add an agent slug to the policy's scope
-//	POST   /policies/{id}/unassign — remove an agent slug from the scope
+//	POST   /policies/{id}/assign   — add a bot slug to the policy's scope
+//	POST   /policies/{id}/unassign — remove a bot slug from the scope
 //
 // assign/unassign mirror the skills enable-for/disable-for pattern
 // (skill_crud_endpoints.go). Scope semantics differ from skills in one
-// deliberate way: nil/empty Agents means ALL agents, so
-//   - assign on an all-agents policy is a no-op (it already applies);
-//   - unassign on an all-agents policy materializes the current roster
-//     minus that agent (the "disable for X" intent);
-//   - unassigning the LAST agent is rejected — an empty list would flip
-//     the policy back to all-agents silently. Deactivate it instead.
+// deliberate way: nil/empty Bots means ALL bots, so
+//   - assign on an all-bots policy is a no-op (it already applies);
+//   - unassign on an all-bots policy materializes the current roster
+//     minus that bot (the "disable for X" intent);
+//   - unassigning the LAST bot is rejected — an empty list would flip
+//     the policy back to all-bots silently. Deactivate it instead.
 func (b *Broker) handlePoliciesSubpath(w http.ResponseWriter, r *http.Request) {
 	rest := strings.TrimPrefix(r.URL.Path, "/policies/")
 	rest = strings.Trim(rest, "/")
@@ -246,15 +246,15 @@ func (b *Broker) handlePoliciesSubpath(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, policyRequestMaxBodyBytes)
 	defer r.Body.Close()
 	var body struct {
-		Agent string `json:"agent"`
+		Bot string `json:"agent"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	agent := strings.ToLower(strings.TrimSpace(body.Agent))
-	if agent == "" {
-		http.Error(w, "agent required", http.StatusBadRequest)
+	bot := strings.ToLower(strings.TrimSpace(body.Bot))
+	if bot == "" {
+		http.Error(w, "bot required", http.StatusBadRequest)
 		return
 	}
 
@@ -265,43 +265,43 @@ func (b *Broker) handlePoliciesSubpath(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "policy not found", http.StatusNotFound)
 		return
 	}
-	prevAgents := p.Agents
+	prevBots := p.Bots
 	switch verb {
 	case "assign":
-		if b.findMemberLocked(agent) == nil {
+		if b.findMemberLocked(bot) == nil {
 			b.mu.Unlock()
-			http.Error(w, "agent not in roster", http.StatusBadRequest)
+			http.Error(w, "bot not in roster", http.StatusBadRequest)
 			return
 		}
-		if len(p.Agents) > 0 {
-			p.Agents = normalizePolicyAgents(append(append([]string(nil), p.Agents...), agent))
+		if len(p.Bots) > 0 {
+			p.Bots = normalizePolicyBots(append(append([]string(nil), p.Bots...), bot))
 		}
-		// len==0 → already applies to all agents; idempotent no-op.
+		// len==0 → already applies to all bots; idempotent no-op.
 	case "unassign":
-		scope := p.Agents
+		scope := p.Bots
 		if len(scope) == 0 {
-			// All-agents policy: materialize the roster so "everyone
-			// except this agent" is representable.
+			// All-bots policy: materialize the roster so "everyone
+			// except this bot" is representable.
 			scope = b.allMemberSlugsLocked()
 		}
 		filtered := make([]string, 0, len(scope))
 		for _, slug := range scope {
-			if slug != agent {
+			if slug != bot {
 				filtered = append(filtered, slug)
 			}
 		}
 		if len(filtered) == 0 {
 			b.mu.Unlock()
-			http.Error(w, "unassigning the last agent would re-broadcast the policy to everyone; deactivate the policy instead", http.StatusConflict)
+			http.Error(w, "unassigning the last bot would re-broadcast the policy to everyone; deactivate the policy instead", http.StatusConflict)
 			return
 		}
-		p.Agents = normalizePolicyAgents(filtered)
+		p.Bots = normalizePolicyBots(filtered)
 	}
 	out := *p
 	var saveErr error
-	if !policyAgentsEqual(prevAgents, p.Agents) {
+	if !policyBotsEqual(prevBots, p.Bots) {
 		if saveErr = b.saveLocked(); saveErr != nil {
-			p.Agents = prevAgents
+			p.Bots = prevBots
 		}
 	}
 	b.mu.Unlock()
@@ -313,8 +313,8 @@ func (b *Broker) handlePoliciesSubpath(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(out)
 }
 
-// policyAgentsEqual reports element-wise equality (both already normalized).
-func policyAgentsEqual(a, b []string) bool {
+// policyBotsEqual reports element-wise equality (both already normalized).
+func policyBotsEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}

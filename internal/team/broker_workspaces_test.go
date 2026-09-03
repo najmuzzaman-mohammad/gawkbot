@@ -1033,7 +1033,7 @@ func TestBrokerMuxAuthCoverage(t *testing.T) {
 		"/channels/generate",
 		"/channel-members",
 		"/members",
-		// tasks + agent
+		// tasks + bot
 		"/tasks",
 		"/tasks/ack",
 		"/agent-logs",
@@ -1126,7 +1126,7 @@ func TestBrokerMuxAuthCoverage(t *testing.T) {
 		"/v1/logs",
 		// events stream — inline auth in handler
 		"/events",
-		// agent stream + tool event
+		// bot stream + tool event
 		"/agent-stream/anything",
 		"/agent-tool-event",
 		// multi-workspace + admin pause

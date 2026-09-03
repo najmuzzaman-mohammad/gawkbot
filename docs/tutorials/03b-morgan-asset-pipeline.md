@@ -4,12 +4,12 @@
 
 **Persona:** Morgan Lee, agency founder, six-person team. They have
 been burned by tools that look great in the demo and fall apart on the
-second day. The pattern Morgan is testing is "an agent escalates a
+second day. The pattern Morgan is testing is "a bot escalates a
 blocker without me being in the room". In Morgan's agency, this
 question — the one that should take two minutes — sits in someone's
 DMs for six hours every time.
 
-**Outcome they came for:** ENG (or DSG, or any non-CEO agent) posts an
+**Outcome they came for:** ENG (or DSG, or any non-CEO bot) posts an
 escalation in `#general` while Morgan is in a meeting, and CEO routes
 it correctly without Morgan intervening.
 
@@ -26,7 +26,7 @@ writes the copy, ENG hosts it at /client/<slug>.
 
 #### Verify
 
-- All three named agents pick up subtasks in the thread within 2 min.
+- All three named bots pick up subtasks in the thread within 2 min.
 
 ### 2. Walk away for 30 minutes
 
@@ -36,8 +36,8 @@ Literally — open another window, attend a meeting, do anything else.
 
 #### Verify
 
-- At least one of the agents posted an escalation or a clarifying
-  message in `#general` (not just in a private agent-to-agent thread).
+- At least one of the bots posted an escalation or a clarifying
+  message in `#general` (not just in a private bot-to-bot thread).
 - The escalation names a specific blocker — for example "CMO copy
   references the old pricing table" or "DSG layout exports require a
   CSS grid polyfill on the production stack".

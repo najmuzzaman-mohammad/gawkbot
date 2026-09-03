@@ -146,8 +146,8 @@ func TestFactLog_ConcurrentAppendsAllLand(t *testing.T) {
 		i := i
 		go func() {
 			defer wg.Done()
-			agent := []string{"pm", "eng", "sales", "cs", "ceo"}[i%5]
-			_, err := log.Append(ctx, EntityKindCustomers, "northstar", "fact-"+string(rune('A'+i)), "", agent)
+			bot := []string{"pm", "eng", "sales", "cs", "ceo"}[i%5]
+			_, err := log.Append(ctx, EntityKindCustomers, "northstar", "fact-"+string(rune('A'+i)), "", bot)
 			if err != nil {
 				t.Errorf("concurrent append %d: %v", i, err)
 			}

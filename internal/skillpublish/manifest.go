@@ -1,5 +1,5 @@
 // Package skillpublish carries the pure logic for turning a compiled WUPHF
-// skill into a publishable manifest for one of the public agent-skill hubs
+// skill into a publishable manifest for one of the public bot-skill hubs
 // (anthropics/skills, lobehub, or any github:owner/repo[@branch] fork).
 //
 // All identifiers and URL templates live in this package so adding a new hub
@@ -88,7 +88,7 @@ type FrontmatterLike struct {
 	License     string
 }
 
-// validSkillName matches the kebab slug shape Anthropic Agent Skills accept.
+// validSkillName matches the kebab slug shape Anthropic Bot Skills accept.
 // Mirrors stageBGenericNameRegex in internal/team. We enforce it here because
 // Name reaches both filepath.Join (HubFilePath) and the broker payload, so a
 // path-traversal-shaped name (e.g. "../../etc/x") could escape the hub

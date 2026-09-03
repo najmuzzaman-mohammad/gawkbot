@@ -4,7 +4,7 @@ package team
 // task gets its own thread root at creation, and the thread-scoped context
 // excludes other tasks' messages. This is the regression for the live
 // hallucination where a fresh task's CEO turn pulled in a PRIOR task's
-// rate-limit chatter from raw channel scrollback and invented that the agent
+// rate-limit chatter from raw channel scrollback and invented that the bot
 // was rate-limited.
 
 import (

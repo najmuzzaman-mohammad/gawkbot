@@ -8,9 +8,9 @@ import { formatTokens, formatUSD } from "../../lib/format";
  * Poll cadence for the usage aggregate. The popover refreshes faster
  * while open (the user is watching the meter); the collapsed pill still
  * refreshes on its own so it can NEVER sit on a stale $0.0000 while
- * agents burn tokens (v1#9: pill showed $0.0000 for 75 minutes while
+ * bots burn tokens (v1#9: pill showed $0.0000 for 75 minutes while
  * the popover knew $45.74). useBrokerEvents additionally invalidates
- * the ["usage"] query on agent-activity SSE events, so the pill tracks
+ * the ["usage"] query on bot-activity SSE events, so the pill tracks
  * spend with turn activity rather than waiting out the interval.
  */
 export const USAGE_REFETCH_OPEN_MS = 5_000;
@@ -83,7 +83,7 @@ export function UsagePanel() {
               <table className="usage-table">
                 <thead>
                   <tr>
-                    {["Agent", "In", "Out", "Cache", "Cost"].map((h) => (
+                    {["Bot", "In", "Out", "Cache", "Cost"].map((h) => (
                       <th key={h}>{h}</th>
                     ))}
                   </tr>

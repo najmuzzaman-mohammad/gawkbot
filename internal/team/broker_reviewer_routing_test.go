@@ -3,7 +3,7 @@ package team
 // broker_reviewer_routing_test.go covers Lane D's reviewer-routing
 // scope: the intersection-routing function and the three convergence
 // paths (all-graded / timeout / process-exit) called out in
-// success-criteria gate #4 of the multi-agent control loop design.
+// success-criteria gate #4 of the multi-bot control loop design.
 //
 // Tests deliberately avoid spinning a worktree, an HTTP server, or a
 // real headless launcher — every signal is constructed in-memory so
@@ -57,11 +57,11 @@ func seedTaskInReview(t *testing.T, b *Broker, taskID string, reviewers []string
 }
 
 // pushManifestLine simulates a HeadlessEvent manifest line landing on
-// the agent stream's task-scoped buffer. Used by the process-exit and
+// the bot stream's task-scoped buffer. Used by the process-exit and
 // tool-name routing tests.
 func pushManifestLine(t *testing.T, b *Broker, slug, taskID, status string, toolNames []string) {
 	t.Helper()
-	stream := b.AgentStream(slug)
+	stream := b.BotStream(slug)
 	calls := make([]HeadlessManifestEntry, 0, len(toolNames))
 	for _, name := range toolNames {
 		calls = append(calls, HeadlessManifestEntry{ToolName: name, Count: 1})
@@ -70,7 +70,7 @@ func pushManifestLine(t *testing.T, b *Broker, slug, taskID, status string, tool
 		Kind:      HeadlessEventKind,
 		Type:      HeadlessEventTypeManifest,
 		Provider:  HeadlessProviderClaude,
-		Agent:     slug,
+		Bot:       slug,
 		TaskID:    taskID,
 		Status:    status,
 		ToolCalls: calls,
@@ -179,7 +179,7 @@ func TestReviewerConvergenceTimeoutFillsSkipped(t *testing.T) {
 		t.Fatalf("expected 3 grades after timeout fill; got %d", len(grades))
 	}
 
-	// The agent-c slot must be the skipped filler.
+	// The bot-c slot must be the skipped filler.
 	var filler *ReviewerGrade
 	for i := range grades {
 		if grades[i].ReviewerSlug == "agent-c" {
@@ -187,7 +187,7 @@ func TestReviewerConvergenceTimeoutFillsSkipped(t *testing.T) {
 		}
 	}
 	if filler == nil {
-		t.Fatal("expected agent-c filler grade; not found")
+		t.Fatal("expected bot-c filler grade; not found")
 	}
 	if filler.Severity != SeveritySkipped {
 		t.Errorf("filler severity: got %q, want %q", filler.Severity, SeveritySkipped)
@@ -204,7 +204,7 @@ func TestReviewerConvergenceTimeoutFillsSkipped(t *testing.T) {
 		t.Fatalf("sweep was not idempotent: before=%v after=%v", bucketBefore, bucketAfter)
 	}
 
-	// agent.review.timeout banner posted.
+	// bot.review.timeout banner posted.
 	b.mu.Lock()
 	var banner *channelMessage
 	for i := range b.messages {
@@ -215,7 +215,7 @@ func TestReviewerConvergenceTimeoutFillsSkipped(t *testing.T) {
 	}
 	b.mu.Unlock()
 	if banner == nil {
-		t.Fatal("expected agent.review.timeout banner; none posted")
+		t.Fatal("expected bot.review.timeout banner; none posted")
 	}
 }
 
@@ -243,7 +243,7 @@ func TestReviewerConvergenceProcessExitFillsSkipped(t *testing.T) {
 		}
 	}
 
-	// agent-c emits a terminal manifest event without grading.
+	// bot-c emits a terminal manifest event without grading.
 	pushManifestLine(t, b, "agent-c", "task-3", "error", []string{"Read", "Edit"})
 
 	clk.Advance(11 * time.Minute)
@@ -260,7 +260,7 @@ func TestReviewerConvergenceProcessExitFillsSkipped(t *testing.T) {
 		}
 	}
 	if filler == nil {
-		t.Fatal("expected agent-c filler grade; not found")
+		t.Fatal("expected bot-c filler grade; not found")
 	}
 	if filler.Severity != SeveritySkipped {
 		t.Errorf("filler severity: got %q, want %q", filler.Severity, SeveritySkipped)
@@ -287,9 +287,9 @@ func TestReviewerConvergenceProcessExitFillsSkipped(t *testing.T) {
 }
 
 // TestResolveReviewersIntersection is the routing test required by the
-// Lane D scope: 3 agents with overlapping Watching sets, simulate a
+// Lane D scope: 3 bots with overlapping Watching sets, simulate a
 // task touching specific files / tools / wiki paths, assert exactly
-// the right intersection of agents is returned and tunnel humans are
+// the right intersection of bots is returned and tunnel humans are
 // not auto-assigned.
 func TestResolveReviewersIntersection(t *testing.T) {
 	b := newTestBroker(t)
@@ -321,8 +321,8 @@ func TestResolveReviewersIntersection(t *testing.T) {
 			Slug: "agent-untagged",
 		},
 	}
-	// Pre-populate agent stream with manifest events so ToolNames
-	// extraction picks up "go-test" for the backend agent.
+	// Pre-populate bot stream with manifest events so ToolNames
+	// extraction picks up "go-test" for the backend bot.
 	b.tasks = append(b.tasks, teamTask{
 		ID:             "task-route",
 		Title:          "routing test",
@@ -337,7 +337,7 @@ func TestResolveReviewersIntersection(t *testing.T) {
 	// We can't run a real `git diff` in this unit test, so synthesize
 	// signals directly through a thin wrapper that bypasses
 	// taskWorktreeDiffLocked. The simplest path: stamp a worktree
-	// path that does not exist, then assert that file-glob agents
+	// path that does not exist, then assert that file-glob bots
 	// are NOT matched (because the diff returns nothing). Wiki and
 	// tool routing still fire from the in-memory signals.
 	slugs, err := b.ResolveReviewers("task-route")
@@ -355,10 +355,10 @@ func TestResolveReviewersIntersection(t *testing.T) {
 	// path: write a Watching-Files match by simulating a populated
 	// Files signal. We do this by inserting a fake filepath glob the
 	// extractor will see when called via a tagged path. Simplest:
-	// re-run with a task tag that intersects agent-frontend's Files
+	// re-run with a task tag that intersects bot-frontend's Files
 	// glob via a separate test path. Since we cannot inject Files
 	// without a real worktree, the assertion above already proves the
-	// negative case (no Files match → no agent-frontend). The full
+	// negative case (no Files match → no bot-frontend). The full
 	// Files-glob match is exercised by TestWatchingMatchesSignals
 	// below, which calls watchingMatchesSignals directly.
 }
@@ -442,7 +442,7 @@ func TestWatchingMatchesSignals(t *testing.T) {
 }
 
 // TestExtractRoutingSignalsToolNames exercises the manifest-event
-// walker that builds the ToolNames signal from agent streams. Asserts
+// walker that builds the ToolNames signal from bot streams. Asserts
 // dedupe, sorted output, and that non-manifest events are ignored.
 func TestExtractRoutingSignalsToolNames(t *testing.T) {
 	b := newTestBroker(t)
@@ -454,7 +454,7 @@ func TestExtractRoutingSignalsToolNames(t *testing.T) {
 	pushManifestLine(t, b, "agent-1", "task-tools", "idle", []string{"Read", "Edit"})
 	pushManifestLine(t, b, "agent-2", "task-tools", "idle", []string{"Edit", "go-test"})
 	// Non-manifest line that must be ignored.
-	stream := b.AgentStream("agent-3")
+	stream := b.BotStream("agent-3")
 	stream.PushTask("task-tools", `{"kind":"headless_event","type":"text","tool_name":"NotAManifestTool"}`+"\n")
 
 	b.mu.Lock()

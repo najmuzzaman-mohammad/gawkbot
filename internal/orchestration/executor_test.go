@@ -12,7 +12,7 @@ func makeTask(id string) TaskDefinition {
 }
 
 func TestExecutor_SubmitAndCheckout(t *testing.T) {
-	e := NewExecutor(OrchestratorConfig{MaxConcurrentAgents: 5})
+	e := NewExecutor(OrchestratorConfig{MaxConcurrentBots: 5})
 	if err := e.Submit(makeTask("t1")); err != nil {
 		t.Fatalf("submit failed: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestExecutor_SubmitAndCheckout(t *testing.T) {
 }
 
 func TestExecutor_DuplicateCheckoutPrevented(t *testing.T) {
-	e := NewExecutor(OrchestratorConfig{MaxConcurrentAgents: 5})
+	e := NewExecutor(OrchestratorConfig{MaxConcurrentBots: 5})
 	_ = e.Submit(makeTask("t1"))
 	ok, _ := e.Checkout("t1", "alice")
 	if !ok {
@@ -43,7 +43,7 @@ func TestExecutor_DuplicateCheckoutPrevented(t *testing.T) {
 }
 
 func TestExecutor_ConcurrencyLimit(t *testing.T) {
-	e := NewExecutor(OrchestratorConfig{MaxConcurrentAgents: 1})
+	e := NewExecutor(OrchestratorConfig{MaxConcurrentBots: 1})
 	_ = e.Submit(makeTask("t1"))
 	_ = e.Submit(makeTask("t2"))
 
@@ -61,7 +61,7 @@ func TestExecutor_Release_Complete(t *testing.T) {
 	var events []ExecutorEvent
 	var mu sync.Mutex
 
-	e := NewExecutor(OrchestratorConfig{MaxConcurrentAgents: 2})
+	e := NewExecutor(OrchestratorConfig{MaxConcurrentBots: 2})
 	e.OnEvent(func(ev ExecutorEvent) {
 		mu.Lock()
 		events = append(events, ev)
@@ -98,7 +98,7 @@ func TestExecutor_Release_Fail(t *testing.T) {
 	var events []ExecutorEvent
 	var mu sync.Mutex
 
-	e := NewExecutor(OrchestratorConfig{MaxConcurrentAgents: 2})
+	e := NewExecutor(OrchestratorConfig{MaxConcurrentBots: 2})
 	e.OnEvent(func(ev ExecutorEvent) {
 		mu.Lock()
 		events = append(events, ev)
@@ -132,8 +132,8 @@ func TestExecutor_Timeout(t *testing.T) {
 	var timedOut atomic.Bool
 
 	e := NewExecutor(OrchestratorConfig{
-		MaxConcurrentAgents: 5,
-		TaskTimeout:         50 * time.Millisecond,
+		MaxConcurrentBots: 5,
+		TaskTimeout:       50 * time.Millisecond,
 	})
 	e.OnEvent(func(ev ExecutorEvent) {
 		if ev.Type == "task:timeout" {
@@ -154,7 +154,7 @@ func TestExecutor_StopAll(t *testing.T) {
 	var events []ExecutorEvent
 	var mu sync.Mutex
 
-	e := NewExecutor(OrchestratorConfig{MaxConcurrentAgents: 5})
+	e := NewExecutor(OrchestratorConfig{MaxConcurrentBots: 5})
 	e.OnEvent(func(ev ExecutorEvent) {
 		mu.Lock()
 		events = append(events, ev)
@@ -186,7 +186,7 @@ func TestExecutor_StopAll(t *testing.T) {
 }
 
 func TestExecutor_OnEvent_Unsubscribe(t *testing.T) {
-	e := NewExecutor(OrchestratorConfig{MaxConcurrentAgents: 2})
+	e := NewExecutor(OrchestratorConfig{MaxConcurrentBots: 2})
 	var count atomic.Int32
 	unsub := e.OnEvent(func(_ ExecutorEvent) { count.Add(1) })
 	unsub() // unsubscribe before any events

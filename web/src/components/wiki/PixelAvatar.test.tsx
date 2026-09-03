@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import PixelAvatar from "./PixelAvatar";
 
 describe("<PixelAvatar> (wiki wrapper)", () => {
-  it("renders a canvas element for the underlying agent sprite", () => {
+  it("renders a canvas element for the underlying bot sprite", () => {
     // Arrange / Act
     const { container } = render(<PixelAvatar slug="pm" size={22} />);
 

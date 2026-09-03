@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -35,20 +35,20 @@ func init() {
 
 // CreateCodexCLIStreamFn returns a StreamFn that runs Codex CLI non-interactively.
 // WUPHF keeps the conversation history, so each invocation is intentionally ephemeral.
-func CreateCodexCLIStreamFn(agentSlug string) agent.StreamFn {
-	return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-		ch := make(chan agent.StreamChunk, 64)
+func CreateCodexCLIStreamFn(botSlug string) bot.StreamFn {
+	return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+		ch := make(chan bot.StreamChunk, 64)
 		go func() {
 			defer close(ch)
 
 			if _, err := codexLookPath("codex"); err != nil {
-				ch <- agent.StreamChunk{Type: "error", Content: "Codex CLI not found. Run `codex login` or use /provider to choose a different provider."}
+				ch <- bot.StreamChunk{Type: "error", Content: "Codex CLI not found. Run `codex login` or use /provider to choose a different provider."}
 				return
 			}
 
 			cwd, err := codexGetwd()
 			if err != nil {
-				ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("resolve working directory: %v", err)}
+				ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("resolve working directory: %v", err)}
 				return
 			}
 
@@ -73,19 +73,19 @@ func CreateCodexCLIStreamFn(agentSlug string) agent.StreamFn {
 					if firstTextAt.IsZero() {
 						firstTextAt = time.Now()
 					}
-					ch <- agent.StreamChunk{Type: "text", Content: event.Text}
+					ch <- bot.StreamChunk{Type: "text", Content: event.Text}
 				case "tool_use":
 					if firstToolAt.IsZero() {
 						firstToolAt = time.Now()
 					}
-					ch <- agent.StreamChunk{
+					ch <- bot.StreamChunk{
 						Type:      "tool_use",
 						ToolName:  event.ToolName,
 						ToolUseID: event.ToolUseID,
 						ToolInput: event.ToolInput,
 					}
 				case "tool_result":
-					ch <- agent.StreamChunk{
+					ch <- bot.StreamChunk{
 						Type:      "tool_result",
 						ToolUseID: event.ToolUseID,
 						Content:   event.Text,
@@ -93,17 +93,17 @@ func CreateCodexCLIStreamFn(agentSlug string) agent.StreamFn {
 				}
 			})
 			if err != nil {
-				appendCodexLatencyLog(agentSlug, fmt.Sprintf("status=error total_ms=%d first_event_ms=%d first_text_ms=%d first_tool_ms=%d detail=%q",
+				appendCodexLatencyLog(botSlug, fmt.Sprintf("status=error total_ms=%d first_event_ms=%d first_text_ms=%d first_tool_ms=%d detail=%q",
 					time.Since(startedAt).Milliseconds(),
 					durationMillis(startedAt, firstEventAt),
 					durationMillis(startedAt, firstTextAt),
 					durationMillis(startedAt, firstToolAt),
 					err.Error(),
 				))
-				ch <- agent.StreamChunk{Type: "error", Content: describeCodexFailure(err)}
+				ch <- bot.StreamChunk{Type: "error", Content: describeCodexFailure(err)}
 				return
 			}
-			appendCodexLatencyLog(agentSlug, fmt.Sprintf("status=ok total_ms=%d first_event_ms=%d first_text_ms=%d first_tool_ms=%d final_chars=%d",
+			appendCodexLatencyLog(botSlug, fmt.Sprintf("status=ok total_ms=%d first_event_ms=%d first_text_ms=%d first_tool_ms=%d final_chars=%d",
 				time.Since(startedAt).Milliseconds(),
 				durationMillis(startedAt, firstEventAt),
 				durationMillis(startedAt, firstTextAt),
@@ -237,7 +237,7 @@ func describeCodexFailure(err error) string {
 	return fmt.Sprintf("codex exited with error: %v", err)
 }
 
-func appendCodexLatencyLog(agentSlug string, line string) {
+func appendCodexLatencyLog(botSlug string, line string) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return
@@ -252,7 +252,7 @@ func appendCodexLatencyLog(agentSlug string, line string) {
 		return
 	}
 	defer func() { _ = f.Close() }()
-	_, _ = fmt.Fprintf(f, "[%s] agent=%s %s\n", time.Now().Format(time.RFC3339), strings.TrimSpace(agentSlug), strings.TrimSpace(line))
+	_, _ = fmt.Fprintf(f, "[%s] bot=%s %s\n", time.Now().Format(time.RFC3339), strings.TrimSpace(botSlug), strings.TrimSpace(line))
 }
 
 func durationMillis(start, mark time.Time) int64 {

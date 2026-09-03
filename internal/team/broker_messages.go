@@ -95,7 +95,7 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	// Raw emptiness first: normalizeChannelSlug("") is "general", so a missing
 	// channel used to be silently laundered into the shared room. Resolve a real
 	// home instead — while #general is enabled this still answers "general", so
-	// today is unchanged; once it is off this is the agent's DM, or a refusal.
+	// today is unchanged; once it is off this is the bot's DM, or a refusal.
 	//
 	// homeChannelForLocked is the correct variant HERE specifically: b.mu is
 	// held at this point. The other variant would
@@ -143,29 +143,29 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "channel access denied", http.StatusForbidden)
 		return
 	}
-	// Agent↔agent DMs are writable only by their two members; the human
+	// Bot↔bot DMs are writable only by their two members; the human
 	// observes through the consult markers' read-only thread view.
-	if reason := b.guardAgentDMPostLocked(channel, body.From); reason != "" {
+	if reason := b.guardBotDMPostLocked(channel, body.From); reason != "" {
 		b.mu.Unlock()
 		http.Error(w, reason, http.StatusForbidden)
 		return
 	}
 	// Auto-promote @slug mentions in the body into the tagged array. If a
-	// user or agent typed `@pm`, treat it as a tag — `extractMentionedSlugs`
-	// already restricts to registered agent slugs, so conversational use of
-	// an @ that doesn't match an agent is untouched. Previously this ran for
-	// agent posts only, on the theory that humans might want @ to be merely
-	// conversational. In practice humans expect every @agent to notify, and
+	// user or bot typed `@pm`, treat it as a tag — `extractMentionedSlugs`
+	// already restricts to registered bot slugs, so conversational use of
+	// an @ that doesn't match a bot is untouched. Previously this ran for
+	// bot posts only, on the theory that humans might want @ to be merely
+	// conversational. In practice humans expect every @bot to notify, and
 	// the web composer does not always commit typed @-text into an explicit
 	// tag chip.
 	//
 	// Senders allowed to auto-promote: empty / "you" / "human" (humans) and
-	// any registered agent slug. Everything else — "system", "nex", future
+	// any registered bot slug. Everything else — "system", "nex", future
 	// synthetic senders — is excluded by default so automation posts do not
-	// accidentally wake agents on every @-reference they quote.
+	// accidentally wake bots on every @-reference they quote.
 	//
 	// Exception: when the human explicitly tags the lead (CEO), do not
-	// auto-promote OTHER agents mentioned in the body. Example:
+	// auto-promote OTHER bots mentioned in the body. Example:
 	// "@ceo ask @reviewer to ..." — the human's intent is for CEO to route,
 	// not for the broker to fan out in parallel. Without this guard the
 	// reviewer gets notified twice (by auto-promote AND later by CEO's
@@ -206,11 +206,11 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Thread auto-tagging: when a HUMAN replies in a thread, notify all
-	// other agents who have already participated. This keeps the team
+	// other bots who have already participated. This keeps the team
 	// aligned without requiring the human to re-tag on every reply.
-	// Agent-to-agent auto-tagging is intentionally skipped: focus mode
+	// Bot-to-bot auto-tagging is intentionally skipped: focus mode
 	// routing (specialist → lead only) already handles that path, and
-	// auto-tagging agent replies causes broadcast loops.
+	// auto-tagging bot replies causes broadcast loops.
 	replyTo := strings.TrimSpace(body.ReplyTo)
 	isHumanSender := isHumanMessageSender(sender)
 	if replyTo != "" && isHumanSender {
@@ -219,7 +219,7 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		for _, existing := range b.messages {
 			inThread := existing.ID == threadRoot || existing.ReplyTo == threadRoot
 			if inThread && existing.From != body.From {
-				// Include agents; humans see via the web UI poll.
+				// Include bots; humans see via the web UI poll.
 				if !isHumanMessageSender(existing.From) && b.findMemberLocked(existing.From) != nil {
 					threadParticipants = append(threadParticipants, existing.From)
 				}
@@ -228,16 +228,16 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		tagged = uniqueSlugs(append(tagged, threadParticipants...))
 	}
 
-	// Dedup near-identical consecutive broadcasts from the same agent in the
+	// Dedup near-identical consecutive broadcasts from the same bot in the
 	// same channel + thread within a short window. Observed symptom: a single
 	// CEO turn emits 2-3 team_broadcast calls with the same content in
 	// slightly different wording, each costing a full round-trip downstream.
 	// The prompt tells the model "at most one broadcast per turn", but that
 	// rule is routinely ignored; this is the broker-side safety net.
 	//
-	// Humans and system senders are exempt — this only fires for agent posts.
+	// Humans and system senders are exempt — this only fires for bot posts.
 	if !isHuman && sender != "" && sender != "system" && sender != "nex" {
-		if b.isDuplicateAgentBroadcastLocked(sender, channel, replyTo, body.Content) {
+		if b.isDuplicateBotBroadcastLocked(sender, channel, replyTo, body.Content) {
 			b.counter--
 			b.mu.Unlock()
 			w.Header().Set("Content-Type", "application/json")
@@ -245,7 +245,7 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 				"id":         "",
 				"deduped":    true,
 				"total":      len(b.messages),
-				"suppressed": "duplicate broadcast from the same agent in the same thread within the dedup window",
+				"suppressed": "duplicate broadcast from the same bot in the same thread within the dedup window",
 			})
 			return
 		}
@@ -267,12 +267,12 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 
 	// Human utterance routing (v3 fix family #2), in priority order:
 	//  1. A thread reply anchored to an active interview IS the interview
-	//     answer — the requesting agent's poll returns it ([19:24:53]: the
+	//     answer — the requesting bot's poll returns it ([19:24:53]: the
 	//     reply box was a dead letter). This must run BEFORE the legacy
 	//     cancel below, which used to cancel the very interview the human
 	//     was answering.
 	//  2. Otherwise a fresh human message cancels a stale same-channel
-	//     interview (the agent re-reads the chat instead).
+	//     interview (the bot re-reads the chat instead).
 	//  3. Stop-order backstop + waiting-task follow-up: the message is
 	//     stamped on this channel's tasks so the owner's next packet leads
 	//     with it; tasks with no natural next turn (review/decision/
@@ -288,7 +288,7 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		b.markHumanNoteOnChannelTasksLocked(msg)
 	}
 
-	// Track which agents were tagged — they should show "typing" immediately
+	// Track which bots were tagged — they should show "typing" immediately
 	if len(msg.Tagged) > 0 && isHumanMessageSender(msg.From) {
 		if b.lastTaggedAt == nil {
 			b.lastTaggedAt = make(map[string]time.Time)
@@ -298,14 +298,14 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Clear typing indicator when an agent posts a reply
+	// Clear typing indicator when a bot posts a reply
 	if !isHumanMessageSender(msg.From) && b.lastTaggedAt != nil {
 		delete(b.lastTaggedAt, msg.From)
 	}
 
 	// Snapshot-then-write: prepare the state write (prune + marshal) under
 	// the lock, but perform the DISK write after releasing b.mu. Message
-	// posting is the broker's hottest mutation (agent relays, system posts,
+	// posting is the broker's hottest mutation (bot relays, system posts,
 	// human chat); holding the big lock across file I/O here serialized
 	// every other endpoint behind disk latency (F1, ten-out-of-ten Wave F).
 	// The seq guard in writeBrokerState drops this write if a newer state
@@ -366,7 +366,7 @@ func (b *Broker) handleReactions(w http.ResponseWriter, r *http.Request) {
 	found := false
 	for i := range b.messages {
 		if b.messages[i].ID == body.MessageID {
-			// Don't duplicate: same emoji from same agent
+			// Don't duplicate: same emoji from same bot
 			for _, r := range b.messages[i].Reactions {
 				if r.Emoji == body.Emoji && r.From == body.From {
 					b.mu.Unlock()
@@ -529,7 +529,7 @@ func (b *Broker) PostMessage(from, channel, content string, tagged []string, rep
 	if !b.canAccessChannelLocked(from, channel) {
 		return channelMessage{}, fmt.Errorf("channel access denied")
 	}
-	if reason := b.guardAgentDMPostLocked(channel, from); reason != "" {
+	if reason := b.guardBotDMPostLocked(channel, from); reason != "" {
 		return channelMessage{}, fmt.Errorf("%s", reason)
 	}
 	b.counter++
@@ -559,7 +559,7 @@ func (b *Broker) PostMessage(from, channel, content string, tagged []string, rep
 		}
 		b.markHumanNoteOnChannelTasksLocked(msg)
 	}
-	// Clear typing indicator — agent has replied
+	// Clear typing indicator — bot has replied
 	if b.lastTaggedAt != nil {
 		delete(b.lastTaggedAt, msg.From)
 	}
@@ -571,7 +571,7 @@ func (b *Broker) PostMessage(from, channel, content string, tagged []string, rep
 	// PostMessage intentionally does NOT auto-write notebook entries.
 	// Notebooks are for properly drafted working notes and learnings
 	// authored via the notebook_write MCP tool. Auto-writing every
-	// agent message into the shelf turned notebooks into noisy event
+	// bot message into the shelf turned notebooks into noisy event
 	// logs and even fed unrelated chatter into the wiki review queue.
 	//
 	// PR 2: when a human posts via PostMessage (non-HTTP entry points such as
@@ -641,9 +641,9 @@ func (b *Broker) PostAutomationMessage(from, channel, title, content, eventID, s
 func (b *Broker) CreateRequest(req humanInterview) (humanInterview, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	// The requesting agent's DM. A request card laundered into "general" is a
+	// The requesting bot's DM. A request card laundered into "general" is a
 	// card the human can never see — and for a blocking request that means the
-	// agent waits on an answer that cannot be given.
+	// bot waits on an answer that cannot be given.
 	channel := normalizeChannelSlug(req.Channel)
 	if strings.TrimSpace(req.Channel) == "" {
 		if home, err := b.homeChannelForLocked(req.From); err == nil {
@@ -761,8 +761,8 @@ func (b *Broker) handleGetMessages(w http.ResponseWriter, r *http.Request) {
 		}
 		messages = append(messages, msg)
 	}
-	// Consult relay markers: response-only rows showing that this agent
-	// messaged a peer, or heard back. Derived from the real agent-to-agent
+	// Consult relay markers: response-only rows showing that this bot
+	// messaged a peer, or heard back. Derived from the real bot-to-bot
 	// messages (see broker_consult_relay.go), never stored. Only on the main
 	// flow — inside a thread view they would be noise, and they belong to no
 	// thread. Merged by timestamp so they interleave where they happened.
@@ -909,27 +909,27 @@ func messageRepliesToViewerThread(msg channelMessage, viewerSlug string, message
 }
 
 // isOneOnOneDMMessage returns true if msg belongs in the 1:1 DM conversation.
-// Only messages exclusively between the human and the 1:1 agent pass through.
+// Only messages exclusively between the human and the 1:1 bot pass through.
 // Caller must hold b.mu.
 func (b *Broker) isOneOnOneDMMessage(msg channelMessage) bool {
-	agent := b.oneOnOneAgent
+	bot := b.oneOnOneBot
 
 	switch {
 	case isHumanMessageSender(msg.From):
 		// Human messages: only if untagged (direct conversation) or
-		// explicitly tagging the 1:1 agent.
+		// explicitly tagging the 1:1 bot.
 		if len(msg.Tagged) == 0 {
 			return true
 		}
 		for _, t := range msg.Tagged {
-			if t == agent {
+			if t == bot {
 				return true
 			}
 		}
 		return false
 
-	case msg.From == agent:
-		// Agent messages: only if untagged (direct reply to human) or
+	case msg.From == bot:
+		// Bot messages: only if untagged (direct reply to human) or
 		// explicitly tagging the human.
 		if len(msg.Tagged) == 0 {
 			return true
@@ -942,7 +942,7 @@ func (b *Broker) isOneOnOneDMMessage(msg channelMessage) bool {
 		return false
 
 	case msg.From == "system":
-		// System messages: only if they mention the 1:1 agent or human,
+		// System messages: only if they mention the 1:1 bot or human,
 		// or are general system announcements (no routing indicators).
 		if msg.Kind == "routing" {
 			return false
@@ -950,7 +950,7 @@ func (b *Broker) isOneOnOneDMMessage(msg channelMessage) bool {
 		return true
 
 	default:
-		// Messages from any other agent do not belong in this DM.
+		// Messages from any other bot do not belong in this DM.
 		return false
 	}
 }

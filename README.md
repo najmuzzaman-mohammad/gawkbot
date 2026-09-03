@@ -16,7 +16,7 @@ https://github.com/user-attachments/assets/84c4b8cf-fb5d-4e9b-b720-213648c2e20b
 
 gawkbot lets anyone turn their manual workflows into microapps across 1200+
 integrations in minutes. Describe the job in one sentence — or demo it once on
-a call — and your AI builds the agent that runs it: its own screen, its own
+a call — and your AI builds the bot that runs it: its own screen, its own
 schedule, its own tools, with a human approval gate on everything it sends.
 Runs local, on your machine, on your account.
 
@@ -32,7 +32,7 @@ You are the one with the dashboard open.
 ## The open source Grok Bot
 
 gawkbot is an open source Grok Bot: always-on AI bots on your own machine
-instead of xAI's cloud, free, on the coding agent you already pay for, with
+instead of xAI's cloud, free, on the coding bot you already pay for, with
 an approval gate on every external action. The honest version, row by row:
 
 | | Grok Bot (xAI) | gawkbot |
@@ -51,7 +51,7 @@ Website: [gawk.bot](https://gawk.bot).
 
 ## Get Started
 
-**Prerequisites:** one agent CLI, signed in — [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+**Prerequisites:** one bot CLI, signed in — [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 by default, or [Codex CLI](https://github.com/openai/codex) / [Opencode](https://opencode.ai).
 The first-run screen verifies your runtime before anything else happens.
 
@@ -60,7 +60,7 @@ npx gawkbot
 ```
 
 That's it. The browser opens, you verify your runtime, name your office, and
-hand off your first workflow — you land on your first agent being built, live.
+hand off your first workflow — you land on your first bot being built, live.
 
 Prefer a global install?
 
@@ -85,24 +85,24 @@ yourself).
 
 ## What you get
 
-Every agent ships with all six. Not a chatbot in a trench coat.
+Every bot ships with all six. Not a chatbot in a trench coat.
 
 | Part | What it is |
 |---|---|
 | **The app** | A real screen, built live in front of you. Reads and writes real workspace data. |
-| **Routines** | "Every Monday 9:00." Versioned prompts, run history, a transcript per run. New agents get a starter weekly routine from the workflow you described. |
-| **Tools** | Self-authored. "Score a lead." "Post to #ae-handoffs." Teach more in the agent's chat. |
-| **Knowledge** | Wikipedia-style pages about the agent, every claim cited back to its source. |
-| **Data + integrations** | Its own typed tables, plus 1200+ integrations. Connect once; every agent shares it. |
+| **Routines** | "Every Monday 9:00." Versioned prompts, run history, a transcript per run. New bots get a starter weekly routine from the workflow you described. |
+| **Tools** | Self-authored. "Score a lead." "Post to #ae-handoffs." Teach more in the bot's chat. |
+| **Knowledge** | Wikipedia-style pages about the bot, every claim cited back to its source. |
+| **Data + integrations** | Its own typed tables, plus 1200+ integrations. Connect once; every bot shares it. |
 | **Approval gate** | Reads are free. Writes are held until you tap approve. Then it runs 24x7. |
 
 If your workflow names a system that is not connected yet ("audit our
 HubSpot"), gawkbot asks before building — build against live workspace data
 now, or hold while you connect. It never silently re-scopes your job.
 
-## Setup prompt (for AI agents)
+## Setup prompt (for AI bots)
 
-Paste this into Claude Code, Codex, or Cursor and let your agent drive the install:
+Paste this into Claude Code, Codex, or Cursor and let your bot drive the install:
 
 ```text
 Set up https://github.com/najmuzzaman-mohammad/gawkbot for me. Read `README.md`
@@ -125,7 +125,7 @@ for forking read `FORKING.md`.
 | `--no-open` | Don't auto-open the browser |
 | `--web-port <n>` | Change the web UI port (default 7891) |
 | `--workspace <name>` | Use a specific workspace for one command (does not change the active workspace) |
-| `--unsafe` | Bypass agent permission checks (local dev only) |
+| `--unsafe` | Bypass bot permission checks (local dev only) |
 
 ### Local models and custom endpoints
 
@@ -142,8 +142,8 @@ Ollama can be set up from the first-run screen with no cloud key at all.
 
 ### Other runtimes
 
-Already running [Hermes Agent](https://github.com/NousResearch/hermes-agent)
-or an [OpenClaw](https://openclaw.ai) gateway? Point agents at them with
+Already running [Hermes Bot](https://github.com/NousResearch/hermes-bot)
+or an [OpenClaw](https://openclaw.ai) gateway? Point bots at them with
 `--provider hermes-agent` (default `http://127.0.0.1:8642/v1`) or
 `--provider openclaw-http` (default `http://127.0.0.1:18789/v1`). Endpoints,
 models, and auth are overridable via `WUPHF_HERMES_AGENT_*` /
@@ -152,10 +152,10 @@ models, and auth are overridable via `WUPHF_HERMES_AGENT_*` /
 ## Memory: the company brain
 
 gawkbot ships with built-in memory — no backend choice, no API key. Your
-workspace state lives in local files you can `cat`: agent knowledge, run
+workspace state lives in local files you can `cat`: bot knowledge, run
 transcripts, and the company brain under `~/.wuphf/`. Knowledge pages are
 synthesized with citations back to their sources, so you can check the
-receipts on anything an agent claims.
+receipts on anything a bot claims.
 
 ## Other Commands
 
@@ -191,12 +191,12 @@ For the full walkthrough, see
 
 ## External Actions
 
-Agents act through two providers — pick whichever fits:
+Bots act through two providers — pick whichever fits:
 
 - **One CLI** (default, local-first): actions execute through a local CLI on
   your machine; credentials never leave it.
 - **Composio** (cloud-hosted OAuth): connect Gmail, Slack, HubSpot, and the
-  rest of the 1200+ catalog from any agent's **Integrations** tab. Connections
+  rest of the 1200+ catalog from any bot's **Integrations** tab. Connections
   are shared across the office.
 
 Either way, the approval gate holds every external write until you approve it.
@@ -227,12 +227,12 @@ leave the key unset to keep gawkbot fully dormant. Full taxonomy and policy:
 
 | | |
 |---|---|
-| **One agent per workflow** | Small enough to read in a minute, real enough to do the whole job — instead of one giant assistant that does everything badly. |
+| **One bot per workflow** | Small enough to read in a minute, real enough to do the whole job — instead of one giant assistant that does everything badly. |
 | **You watch it get built** | The build streams live: the screen, the routine, the tools, assembling in front of you. |
 | **Honest by default** | No connected data → the app says "simulated" in plain text. Missing integration → it asks before building. Every knowledge claim carries a citation. |
 | **Approval gate** | No email, Slack post, or CRM write leaves without a human tap. |
 | **Local** | Runs on your machine, on your keys. Workspace state is files you can `cat`. |
-| **Cost you can see** | Settings shows exactly what your agents have spent — dollars, tokens, runs. A typical agent build lands in the $1–2 range on Claude Code. |
+| **Cost you can see** | Settings shows exactly what your bots have spent — dollars, tokens, runs. A typical bot build lands in the $1–2 range on Claude Code. |
 | **Price** | Free to self-host (Sustainable Use License, your API keys). |
 
 ## Claim Status
@@ -241,9 +241,9 @@ Every claim in this README, grounded to the code that makes it true.
 
 | Claim | Status | Where it lives |
 |---|---|---|
-| Describe a workflow → agent builds live with a streaming activity feed | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx`, `web/src/components/apps/AppActivity.tsx` |
+| Describe a workflow → bot builds live with a streaming activity feed | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx`, `web/src/components/apps/AppActivity.tsx` |
 | Onboarding hands the first workflow straight into the build | ✅ shipped | `web/src/operator/firstWorkflowSeed.ts`, `web/src/operator/OperatorApp.tsx` |
-| New agents get a starter weekly routine from the described workflow | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx` |
+| New bots get a starter weekly routine from the described workflow | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx` |
 | Routines: broker-owned cron, versioned prompts, per-run transcripts | ✅ shipped | `internal/team/scheduler_operator_routines.go`, `web/src/operator/routines/RoutinesTab.tsx` |
 | The broker spawns and supervises the routine runner | ✅ shipped | `internal/team/agent_service_supervisor.go` |
 | Ask-before-building when a referenced integration is not connected | ✅ shipped | `web/src/operator/builder/describedIntegrations.ts` |
@@ -251,10 +251,10 @@ Every claim in this README, grounded to the code that makes it true.
 | Knowledge pages with inline citations | ✅ shipped | `web/src/operator/surfaces/KnowledgeSurface.tsx` |
 | Usage readout — cost, tokens, runs | ✅ shipped | `web/src/operator/surfaces/SettingsSurface.tsx` (GET `/usage`) |
 | Operator is the only front door; legacy office routes redirect | ✅ shipped | `web/src/routes/RootRoute.tsx`, `web/e2e/tests/route-matrix.spec.ts` |
-| Per-agent typed tables (Data tab) | ✅ shipped | `web/src/operator/surfaces/AppDataTab.tsx` |
+| Per-bot typed tables (Data tab) | ✅ shipped | `web/src/operator/surfaces/AppDataTab.tsx` |
 | Mix runtimes: Claude Code, Codex, Opencode, local models, Hermes, OpenClaw | ✅ shipped | `internal/provider/`, first-run pre-pick screen |
 | Multi-workspace, share, and public-tunnel invites | ✅ shipped | `cmd/wuphf/workspace.go`, `cmd/wuphf/tunnel.go`, `internal/workspaces/` |
-| Pixel-art agent portraits (every agent has a face) | ✅ shipped | `web/src/components/ui/PixelAvatar.tsx` |
+| Pixel-art bot portraits (every bot has a face) | ✅ shipped | `web/src/components/ui/PixelAvatar.tsx` |
 | Routine runner packaged into the npx/desktop installs | 🔜 planned | supervisor adopts it the moment it ships |
 
 Legend: ✅ shipped · 🟡 partial · 🔜 planned. If a claim and a status disagree, the code wins — file an issue.
@@ -281,7 +281,7 @@ intuitively. That is a confident name. It promises you a machine that gets it.
 
 gawkbot is named for a verb that means to stare at something openly, at
 length, and without taking in any of it. That is the honest name for what
-actually happens once the agents are running. The work is done. You are
+actually happens once the bots are running. The work is done. You are
 looking at a dashboard about it.
 
 We are a parody of a bot company. We also ship, which is the part they did

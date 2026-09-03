@@ -14,7 +14,7 @@ import (
 
 // TestScaffoldCreatesBuildingDraft locks the instant-preview contract: Scaffold
 // materializes a real editable project (so the dev server can boot it in
-// seconds) and records a "building" draft BEFORE the agent writes any code.
+// seconds) and records a "building" draft BEFORE the bot writes any code.
 func TestScaffoldCreatesBuildingDraft(t *testing.T) {
 	store := newCustomAppStore(t.TempDir())
 	now := time.Unix(1_700_000_000, 0).UTC()

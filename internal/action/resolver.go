@@ -94,7 +94,7 @@ type ClassifyInput struct {
 	// State is the resolved connection state for the platform the action needs.
 	State ConnectionState
 	// HasGrant reports whether a live, in-scope, non-revoked grant already
-	// authorizes this (agent, platform, action) so the modal can be skipped.
+	// authorizes this (bot, platform, action) so the modal can be skipped.
 	HasGrant bool
 }
 

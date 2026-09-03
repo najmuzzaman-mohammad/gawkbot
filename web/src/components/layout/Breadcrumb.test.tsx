@@ -63,9 +63,7 @@ describe("Breadcrumb", () => {
   });
 
   it("copy-link button is present on the leaf segment", () => {
-    render(
-      <Breadcrumb items={[{ label: "Agent: gaia", href: "#/dm/gaia" }]} />,
-    );
+    render(<Breadcrumb items={[{ label: "Bot: gaia", href: "#/dm/gaia" }]} />);
     const copyBtn = screen.getByRole("button", { name: /copy deep link/i });
     expect(copyBtn).toBeInTheDocument();
   });
@@ -102,9 +100,7 @@ describe("Breadcrumb", () => {
       configurable: true,
     });
 
-    render(
-      <Breadcrumb items={[{ label: "Agent: gaia", href: "#/dm/gaia" }]} />,
-    );
+    render(<Breadcrumb items={[{ label: "Bot: gaia", href: "#/dm/gaia" }]} />);
     fireEvent.click(screen.getByRole("button", { name: /copy deep link/i }));
 
     await waitFor(() =>

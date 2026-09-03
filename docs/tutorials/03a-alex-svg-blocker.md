@@ -4,7 +4,7 @@
 
 **Persona:** Alex Chen, solo dev, ex-Stripe. They have already seen the
 goal-decomposition scene and now they want to test the magic-moment
-claim: agents surface a real blocker on their own without the human in
+claim: bots surface a real blocker on their own without the human in
 the loop.
 
 **Outcome they came for:** close the tab, come back in 20 minutes, see
@@ -33,7 +33,7 @@ Literally close the tab. Do not stop the wuphf CLI.
 
 ### 3. Wait 20 minutes
 
-Make coffee. Read the news. Do not interrupt the agents.
+Make coffee. Read the news. Do not interrupt the bots.
 
 ### 4. Re-open `http://localhost:7891`
 
@@ -52,7 +52,7 @@ Sidebar → **Inbox**.
 #### Verify
 
 - The Task row for the hero work shows state `running` or `decision`,
-  not `intake`. (The agents made forward progress.)
+  not `intake`. (The bots made forward progress.)
 - The detail pane shows a "Dead ends" section or a "Blocked on" with
   the specific format mismatch named.
 

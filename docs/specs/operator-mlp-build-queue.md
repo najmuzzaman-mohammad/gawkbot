@@ -9,17 +9,17 @@ See memory `feedback_frontend_first_mock_data`.
 
 > **⚑ BACKEND REWRITE DECISION (founder, 2026-06-27) — NOTE, not yet started.**
 > This is a pivot stage; the backend is being rewritten clean.
-> - **deepagents (LangChain) is the native core agentic harness** — one fast,
->   optimized agent that quickly builds a workflow. Agentic-build /
+> - **deepbots (LangChain) is the native core agentic harness** — one fast,
+>   optimized bot that quickly builds a workflow. Agentic-build /
 >   deterministic-execute still holds.
-> - **Move off multi-agents; the Go broker goes** (no office, channels,
+> - **Move off multi-bots; the Go broker goes** (no office, channels,
 >   lifecycle, coordination kernel).
 > - **Keep only** provider detection (multi-provider inference + BYOK), settings,
 >   and product scaffolding (build/install, Electron shell, the operator FE).
 > - **New repo authorized** if cleaner; this product eventually replaces wuphf.
-> - Supersedes most of the in-flight LangGraph multi-agent migration
+> - Supersedes most of the in-flight LangGraph multi-bot migration
 >   (`docs/specs/deepagents-migration-plan.md`); salvage the seam only (Python↔
->   tools over MCP, FastAPI service, Claude Agent SDK wiring, provider config).
+>   tools over MCP, FastAPI service, Claude Bot SDK wiring, provider config).
 > - The backend slices below are **rewritten under this lens** when BE starts;
 >   the FE prototype is unaffected and remains the product UI. Hand-off spec:
 >   `operator-mlp-prototype-brief.md` §10.

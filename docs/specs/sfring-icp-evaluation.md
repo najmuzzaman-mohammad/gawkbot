@@ -1,6 +1,6 @@
 # SFring — ICP evaluation scenarios
 
-The persona and the three runs the evaluator agent walks in a browser, as a
+The persona and the three runs the evaluator bot walks in a browser, as a
 human, judging functionality, quality, and experience. Issues get fixed as they
 are found rather than collected into a report nobody actions.
 
@@ -73,7 +73,7 @@ Dani has just installed it and knows nothing.
 5. Change the owner and the status in the modal. Expect the change to be
    announced back in the DM and for the owner to react to it.
 
-WATCH FOR: an agent narrating its plan instead of acting; a task with no
+WATCH FOR: a bot narrating its plan instead of acting; a task with no
 conversation home rendering as an error; any message from a sender called
 "system"; "Pam" rather than "Pam the librarian".
 
@@ -86,12 +86,12 @@ The one that exercises the DM-first model directly.
 2. Expect the researcher NOT to appear in this conversation.
 3. Expect a relay marker: "Messaged researcher", then "Message from researcher",
    with the answer folded into the writer's own reply.
-4. Click the marker. Expect a read-only view of what the two agents actually
+4. Click the marker. Expect a read-only view of what the two bots actually
    said to each other. Confirm there is no way to post into it.
 5. Judge the honesty: does the writer's summary match what the researcher
    actually said? This is the whole point of the marker being clickable.
 
-WATCH FOR: the tagged agent barging into the DM; a consult claimed but no
+WATCH FOR: the tagged bot barging into the DM; a consult claimed but no
 marker; a marker whose conversation does not support the summary.
 
 ## Run 3 — Ops that outlive the conversation
@@ -101,14 +101,14 @@ Where a newsletter operator's real work lives.
 1. Ask for something to track sponsor leads. Expect an app to get built, and
    expect to be asked before anything irreversible.
 2. Put SFring's voice rules in the wiki: no listicles, always name the
-   neighbourhood, never bury the address. Then ask a different agent to draft a
+   neighbourhood, never bury the address. Then ask a different bot to draft a
    section and check whether it used them.
 3. Set up a recurring routine: every Monday morning, gather what is happening in
    SF that week.
 4. Come back to the Tasks board and ask the question Dani actually asks:
    *what is in flight, what is stuck, and what needs me?*
 
-WATCH FOR: a built app that cannot be edited; knowledge that no agent reads;
+WATCH FOR: a built app that cannot be edited; knowledge that no bot reads;
 a routine that silently never fires; a board that cannot answer the question.
 
 ## Cross-cutting, checked throughout
@@ -116,7 +116,7 @@ a routine that silently never fires; a board that cannot answer the question.
 - All four themes: nex-shell (default), nex, nex-dark, noir-gold. The founder
   has reported dark-mode defects twice; look rather than assume.
 - Nothing says "WUPHF" if the rename has landed by then.
-- No agent claims work it did not do. Honesty defects outrank cosmetic ones.
+- No bot claims work it did not do. Honesty defects outrank cosmetic ones.
 - Time from asking to something real happening. Dani has a newsletter to write.
 
 ## Grading

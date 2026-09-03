@@ -35,7 +35,7 @@ top of cua ourselves, which was always the spec's plan.
   ```
   It exposes screenshot/click/type-style tools over MCP. This is how we drive the
   operator's **real** desktop and Chrome.
-- **cua agent SDK** — the computer-use loop (screenshot → model → action →
+- **cua bot SDK** — the computer-use loop (screenshot → model → action →
   execute), model-agnostic (Claude, OpenAI `computer-use-preview`, others), with
   **custom computer handlers** so the loop can drive any "computer" — including
   cua-driver on the real machine. cua has **no default model**; you pass one
@@ -74,7 +74,7 @@ top of cua ourselves, which was always the spec's plan.
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Why a Python sidecar (not Go talking MCP directly):** the cua **agent SDK** is
+**Why a Python sidecar (not Go talking MCP directly):** the cua **bot SDK** is
 Python and already implements the loop + cua-driver computer handler. A thin
 Python runner is the cua-idiomatic integration and far less code than
 reimplementing the loop in Go. The broker stays the single FE entry point: it
@@ -194,6 +194,6 @@ to accomplish one step → every action streams live into the Run modal, gated.
    (newline-JSON) → SSE. Confirm packaging (uv/venv) and how the desktop shell
    ships Python (or a frozen binary).
 3. **Real Chrome vs a dedicated profile:** drive the operator's main Chrome, or a
-   cua-managed Chrome profile they log into once (cleaner, isolates the agent from
+   cua-managed Chrome profile they log into once (cleaner, isolates the bot from
    their personal tabs). Decide at C1.
 4. **cua-driver licensing/bundling** for the shipped desktop app (C4).

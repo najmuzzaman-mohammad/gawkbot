@@ -58,7 +58,7 @@ type opencodeRawPart struct {
 //
 // Lines that do not decode as JSON (banners, warnings printed before the
 // stream opens, fallbacks from older opencode builds) are surfaced as plain
-// "text" events so no agent output is silently dropped.
+// "text" events so no bot output is silently dropped.
 //
 // Drained via DrainStreamLines so a single oversized JSONL line never wedges
 // the cmd's stdout pipe and never aborts parsing of subsequent lines.

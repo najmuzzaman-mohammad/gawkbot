@@ -9,7 +9,7 @@ import (
 )
 
 // searchArticles walks team/ and returns every line that contains the literal
-// pattern. This is intentionally not a regex — agents never get to inject
+// pattern. This is intentionally not a regex — bots never get to inject
 // patterns that could DoS the search. Limit 100 hits per query.
 func searchArticles(repo *Repo, pattern string) ([]WikiSearchHit, error) {
 	pattern = strings.TrimSpace(pattern)

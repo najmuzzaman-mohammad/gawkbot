@@ -49,9 +49,9 @@ func TestShouldDraftPlaybook(t *testing.T) {
 func TestBuildPlaybookDraftArticle_SkeletonAndCitations(t *testing.T) {
 	task := draftableTask("task-7", "Send the weekly investor update")
 	task.Ledger = []TaskLedgerEntry{
-		{Agent: "eng", Said: "Pulled the metrics and drafted the update."},
-		{Agent: "eng", Said: ""},
-		{Agent: "eng", Said: "Sent via the approved mailing list."},
+		{Bot: "eng", Said: "Pulled the metrics and drafted the update."},
+		{Bot: "eng", Said: ""},
+		{Bot: "eng", Said: "Sent via the approved mailing list."},
 	}
 	got := buildPlaybookDraftArticle(task, "send-the-weekly-investor-update")
 

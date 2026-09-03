@@ -1,6 +1,6 @@
 package team
 
-// broker_apps.go owns the HTTP surface for agent-generated internal tools
+// broker_apps.go owns the HTTP surface for bot-generated internal tools
 // ("Apps"). Routes are reached only via the /api proxy (ServeWebUI strips /api
 // and forwards to this mux), so they never collide with the SPA's client-side
 // /apps/<id> route — the browser navigation hits the SPA fallback, the data
@@ -49,14 +49,14 @@ func (b *Broker) handleApps(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Resolve the writer the same way rich artifacts do: prefer the
-		// authenticated agent slug, fall back to the human session identity.
+		// authenticated bot slug, fall back to the human session identity.
 		actor, status, err := richArtifactAuthenticatedSlug(r, body.Actor, "actor")
 		if err != nil {
 			writeJSON(w, status, map[string]string{"error": err.Error()})
 			return
 		}
-		// Only the App Builder (the lone agent with register_app) or a human
-		// session may write app bytes. A random agent holding the broker token
+		// Only the App Builder (the lone bot with register_app) or a human
+		// session may write app bytes. A random bot holding the broker token
 		// must not register apps directly and bypass the build path.
 		if !b.appWriterAllowed(r, actor) {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "only the App Builder may register apps"})
@@ -150,7 +150,7 @@ func (b *Broker) handleAppByID(w http.ResponseWriter, r *http.Request) {
 // handleAppActivity streams the app's live build/edit activity (the App
 // Builder's thinking + tool calls) as SSE, scoped to THIS app. It resolves the
 // app's backing app-builder run from its EditChannel and delegates to the shared
-// agent-stream writer, so the operator surface subscribes by app id alone and
+// bot-stream writer, so the operator surface subscribes by app id alone and
 // never threads a task id. An app whose run has not started yet streams an empty
 // (replay-end + heartbeat) connection rather than erroring, so the FE can attach
 // the feed the instant a build begins.
@@ -174,7 +174,7 @@ func (b *Broker) handleAppActivity(w http.ResponseWriter, r *http.Request, id st
 	if scope == "" {
 		scope = id
 	}
-	b.streamAgentTaskSSE(w, r, appBuilderSlug, scope)
+	b.streamBotTaskSSE(w, r, appBuilderSlug, scope)
 }
 
 // appBuilderRunTaskID resolves an app's persistent edit channel to the id of the
@@ -353,7 +353,7 @@ func (b *Broker) handleAppRoot(w http.ResponseWriter, r *http.Request, id string
 		// ?source=1 includes the app's source project — only the App Builder
 		// needs it (to edit), so the FE view never asks for it. Alongside the raw
 		// source we attach a deterministic capability summary (data model, APIs,
-		// office writes, UI) so the agent edits from the app's REAL shape instead
+		// office writes, UI) so the bot edits from the app's REAL shape instead
 		// of guessing or inventing capabilities it lacks.
 		if r.URL.Query().Get("source") == "1" {
 			source, err := b.appStore().Source(id)
@@ -367,7 +367,7 @@ func (b *Broker) handleAppRoot(w http.ResponseWriter, r *http.Request, id string
 		writeJSON(w, http.StatusOK, out)
 	case http.MethodPatch:
 		// Rename: the one metadata mutation on an app. Gated like delete/rollback
-		// (a human session or the App Builder) so a random agent holding the
+		// (a human session or the App Builder) so a random bot holding the
 		// broker token cannot rewrite app names. The FE's client-side rename
 		// store is a cache of this.
 		actor, _, _ := richArtifactAuthenticatedSlug(r, "", "actor")
@@ -526,7 +526,7 @@ func (b *Broker) ensureAppEditChannel(id string) (string, error) {
 		return "", fmt.Errorf("could not open an edit thread for app %s", id)
 	}
 	// Ground the edit thread in the app's REAL shape (data model, APIs, writes,
-	// UI), derived from its source, so the agent never invents capabilities.
+	// UI), derived from its source, so the bot never invents capabilities.
 	capsSummary := ""
 	if source, serr := b.appStore().Source(id); serr == nil {
 		capsSummary = renderAppCapabilities(introspectAppSource(source))
@@ -553,12 +553,12 @@ func (b *Broker) ensureAppEditChannel(id string) (string, error) {
 //	POST /apps/{id}/improve  { "change": "add a CSV export button" }  -> { channel }
 //
 // It is the robust, explicit edit path. Rather than minting a NEW "Improve app"
-// task (which is created already Running but with no agent turn attending it —
+// task (which is created already Running but with no bot turn attending it —
 // so the change has nothing to ride and hangs), it ensures the app's settled
 // edit-channel and posts the change there as a human message. That post drives
 // the proven task_followup wake, which re-engages the App Builder on its OWN
 // task (read get_app -> apply -> republish a new version). Completion is observed
-// by the app's version bump, not by parsing the agent's narration.
+// by the app's version bump, not by parsing the bot's narration.
 func (b *Broker) handleAppImprove(w http.ResponseWriter, r *http.Request, id string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -597,12 +597,12 @@ func (b *Broker) handleAppImprove(w http.ResponseWriter, r *http.Request, id str
 		writeAppError(w, err)
 		return
 	}
-	// Dispatch the App Builder DIRECTLY for this edit — one agent, one job, no
+	// Dispatch the App Builder DIRECTLY for this edit — one bot, one job, no
 	// CEO/lead hop. The lead route (a human post that wakes the orchestrator) can
 	// hit the lead's own turn cap and drop the edit, leaving it silently undone.
 	// If no direct enqueuer is wired (e.g. unit tests), fall back to the
 	// message-wake path.
-	if !b.dispatchAgentTurn(appBuilderSlug, buildAppImprovePrompt(app, change), channel) {
+	if !b.dispatchBotTurn(appBuilderSlug, buildAppImprovePrompt(app, change), channel) {
 		if _, err := b.PostMessage("human", channel, change, nil, ""); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -626,12 +626,12 @@ func buildAppImprovePrompt(app CustomApp, change string) string {
 }
 
 // appWriterAllowed reports whether the request may write/delete app bytes:
-// the authenticated agent is the App Builder, the caller is an invited human
-// session, or the caller is the OWNER — bare token auth with no agent
-// identity claimed. Agents always claim their slug via the agent header (and
+// the authenticated bot is the App Builder, the caller is an invited human
+// session, or the caller is the OWNER — bare token auth with no bot
+// identity claimed. Bots always claim their slug via the bot header (and
 // any non-app-builder slug is rejected above), so a header-less token caller
-// is the human driving the web UI, not an agent sidestepping the gate: the
-// header is cooperative, and an agent omitting it gains nothing it could not
+// is the human driving the web UI, not a bot sidestepping the gate: the
+// header is cooperative, and a bot omitting it gains nothing it could not
 // already do with the token it holds. Without the owner lane the operator
 // UI's own edit path (submitAppEdit → POST /apps/{id}/improve) 403'd for the
 // only human in a single-owner workspace.

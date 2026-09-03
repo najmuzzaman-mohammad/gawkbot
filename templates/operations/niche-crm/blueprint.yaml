@@ -30,11 +30,11 @@ requirements:
   - kind: api-key
     name: "ANTHROPIC_API_KEY or OPENAI_API_KEY"
     required: true
-    detail: "Powers the founder, builder, growth, and reviewer agents."
+    detail: "Powers the founder, builder, growth, and reviewer bots."
   - kind: runtime
     name: "Claude Code or Codex CLI"
     required: true
-    detail: "Runs the agent loops locally and edits the codebase."
+    detail: "Runs the bot loops locally and edits the codebase."
 example_artifacts:
   - kind: brief
     title: "Positioning brief"

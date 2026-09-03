@@ -21,23 +21,23 @@ import (
 
 // TeamEntityFactRecordArgs is the contract for entity_fact_record.
 type TeamEntityFactRecordArgs struct {
-	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	EntityKind string `json:"entity_kind" jsonschema:"One of: people | companies | customers"`
 	EntitySlug string `json:"entity_slug" jsonschema:"Kebab-case slug matching the canonical wiki file (e.g. team/people/nazz.md -> nazz)"`
 	Fact       string `json:"fact" jsonschema:"One atomic observation. Max 4000 chars. Never invent or generalise — record only what you directly observed."`
-	SourcePath string `json:"source_path,omitempty" jsonschema:"Optional wiki/notebook path this fact came from (must start with agents/ or team/)."`
+	SourcePath string `json:"source_path,omitempty" jsonschema:"Optional wiki/notebook path this fact came from (must start with bots/ or team/)."`
 }
 
 // TeamEntityBriefSynthesizeArgs is the contract for entity_brief_synthesize.
 type TeamEntityBriefSynthesizeArgs struct {
-	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	EntityKind string `json:"entity_kind" jsonschema:"One of: people | companies | customers"`
 	EntitySlug string `json:"entity_slug" jsonschema:"Kebab-case slug."`
 }
 
 // TeamEntityGraphQueryArgs is the contract for entity_graph_query.
 type TeamEntityGraphQueryArgs struct {
-	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug     string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	EntityKind string `json:"entity_kind" jsonschema:"One of: people | companies | customers"`
 	EntitySlug string `json:"entity_slug" jsonschema:"Kebab-case slug."`
 	Direction  string `json:"direction,omitempty" jsonschema:"One of: out | in | both. Defaults to 'out' (who this entity mentions)."`
@@ -53,7 +53,7 @@ func registerEntityTools(server *mcp.Server) {
 	), handleEntityFactRecord)
 	mcp.AddTool(server, officeWriteTool(
 		"entity_brief_synthesize",
-		"Explicitly request a fresh synthesis of an entity brief. Runs as a broker-level background job (no agent turn consumed). Use this when you've just recorded several facts and want the canonical brief updated now instead of at the next threshold.",
+		"Explicitly request a fresh synthesis of an entity brief. Runs as a broker-level background job (no bot turn consumed). Use this when you've just recorded several facts and want the canonical brief updated now instead of at the next threshold.",
 	), handleEntityBriefSynthesize)
 	mcp.AddTool(server, readOnlyTool(
 		"entity_graph_query",
@@ -80,7 +80,7 @@ func handleEntityFactRecord(ctx context.Context, _ *mcp.CallToolRequest, args Te
 	}
 	source := strings.TrimSpace(args.SourcePath)
 	if source != "" && !(strings.HasPrefix(source, "agents/") || strings.HasPrefix(source, "team/")) {
-		return toolError(fmt.Errorf("source_path must start with agents/ or team/ when provided; got %q", source)), nil, nil
+		return toolError(fmt.Errorf("source_path must start with bots/ or team/ when provided; got %q", source)), nil, nil
 	}
 
 	var result struct {

@@ -1,9 +1,9 @@
 /**
  * SlideIntro — tour slide 1, "This is your team."
  *
- * Sets the metaphor: gawkbot is an office, and a team of agents lives in it.
+ * Sets the metaphor: gawkbot is an office, and a team of bots lives in it.
  * The visual is the `TourMockupSidebar` materializing piece by piece — the
- * workspace label, then the channels, then the agents staggering in — so the
+ * workspace label, then the channels, then the bots staggering in — so the
  * very first thing the founder sees is their (mock) office assembling itself.
  *
  * Copy is pulled from `OFFICE_TOUR_COPY.intro` (the single source of truth);

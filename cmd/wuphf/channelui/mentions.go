@@ -14,16 +14,16 @@ import (
 var mentionPattern = regexp.MustCompile(`@([A-Za-z0-9_-]+)`)
 
 // HighlightMentions wraps every "@slug" mention in text with a
-// bold-foreground style colored after agentColors[slug]. Slugs are
-// looked up case-insensitively against agentColors so callers don't
+// bold-foreground style colored after botColors[slug]. Slugs are
+// looked up case-insensitively against botColors so callers don't
 // need to normalize the map themselves. Mentions whose slug isn't in
 // the map are returned unchanged.
-func HighlightMentions(text string, agentColors map[string]string) string {
-	if len(agentColors) == 0 {
+func HighlightMentions(text string, botColors map[string]string) string {
+	if len(botColors) == 0 {
 		return text
 	}
-	lowerColors := make(map[string]string, len(agentColors))
-	for k, v := range agentColors {
+	lowerColors := make(map[string]string, len(botColors))
+	for k, v := range botColors {
 		lowerColors[strings.ToLower(k)] = v
 	}
 	return mentionPattern.ReplaceAllStringFunc(text, func(match string) string {

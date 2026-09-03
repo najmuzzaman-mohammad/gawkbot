@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
-// agent is used by the routing tests to construct legacy compatibility packs.
-var _ = agent.LookupLegacyPack
+// bot is used by the routing tests to construct legacy compatibility packs.
+var _ = bot.LookupLegacyPack
 
 func TestFindUnansweredMessagesAllAnswered(t *testing.T) {
 	humanMsgs := []channelMessage{
@@ -73,8 +73,8 @@ func TestFindUnansweredMessagesEmptyInputs(t *testing.T) {
 	}
 }
 
-func TestFindUnansweredMessagesHumanThreadReplyDoesNotCountAsAgentAnswer(t *testing.T) {
-	// Spec: only AGENT replies should mark a message as answered.
+func TestFindUnansweredMessagesHumanThreadReplyDoesNotCountAsBotAnswer(t *testing.T) {
+	// Spec: only BOT replies should mark a message as answered.
 	// A human following up in a thread (ReplyTo pointing at another human message)
 	// must NOT cause the original message to be treated as answered.
 	humanMsgs := []channelMessage{
@@ -82,22 +82,22 @@ func TestFindUnansweredMessagesHumanThreadReplyDoesNotCountAsAgentAnswer(t *test
 	}
 	allMessages := []channelMessage{
 		{ID: "h1", From: "you", Content: "Can you build the login page?", Timestamp: "2026-04-14T10:00:00Z"},
-		// Human follow-up reply — NOT an agent answer
+		// Human follow-up reply — NOT a bot answer
 		{ID: "h2", From: "human", Content: "Adding more context here", ReplyTo: "h1", Timestamp: "2026-04-14T10:01:00Z"},
 	}
 
 	got := findUnansweredMessages(humanMsgs, allMessages)
-	// h1 should still be unanswered — h2 is a human reply, not an agent reply.
+	// h1 should still be unanswered — h2 is a human reply, not a bot reply.
 	if len(got) != 1 {
-		t.Fatalf("expected h1 to remain unanswered (human thread reply is not an agent answer), got %d: %+v", len(got), got)
+		t.Fatalf("expected h1 to remain unanswered (human thread reply is not a bot answer), got %d: %+v", len(got), got)
 	}
 	if got[0].ID != "h1" {
 		t.Errorf("expected unanswered message h1, got %q", got[0].ID)
 	}
 }
 
-func TestFindUnansweredMessagesNexReplyDoesNotCountAsAgentAnswer(t *testing.T) {
-	// Nex automation messages (kind=automation) are not agent replies.
+func TestFindUnansweredMessagesNexReplyDoesNotCountAsBotAnswer(t *testing.T) {
+	// Nex automation messages (kind=automation) are not bot replies.
 	humanMsgs := []channelMessage{
 		{ID: "h1", From: "you", Content: "What is the status?", Timestamp: "2026-04-14T10:00:00Z"},
 	}
@@ -107,9 +107,9 @@ func TestFindUnansweredMessagesNexReplyDoesNotCountAsAgentAnswer(t *testing.T) {
 	}
 
 	got := findUnansweredMessages(humanMsgs, allMessages)
-	// h1 should still be unanswered — nex reply is not an agent answer.
+	// h1 should still be unanswered — nex reply is not a bot answer.
 	if len(got) != 1 {
-		t.Fatalf("expected h1 to remain unanswered (nex reply is not an agent answer), got %d: %+v", len(got), got)
+		t.Fatalf("expected h1 to remain unanswered (nex reply is not a bot answer), got %d: %+v", len(got), got)
 	}
 }
 
@@ -125,9 +125,9 @@ func TestBuildResumePacketWithTasksAndMessages(t *testing.T) {
 
 	packet := buildResumePacket("fe", tasks, msgs)
 
-	// Should contain the agent slug.
+	// Should contain the bot slug.
 	if !strings.Contains(packet, "fe") {
-		t.Error("expected packet to reference agent slug 'fe'")
+		t.Error("expected packet to reference bot slug 'fe'")
 	}
 	// Should contain task titles.
 	if !strings.Contains(packet, "Build the login page") {
@@ -178,7 +178,7 @@ func TestBuildResumePacketMessagesOnly(t *testing.T) {
 
 // --- Tests for Launcher.buildResumePackets ---
 
-func TestBuildResumePacketsTaggedMessageRoutesToTaggedAgent(t *testing.T) {
+func TestBuildResumePacketsTaggedMessageRoutesToTaggedBot(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.messages = []channelMessage{
@@ -188,10 +188,10 @@ func TestBuildResumePacketsTaggedMessageRoutesToTaggedAgent(t *testing.T) {
 
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -238,10 +238,10 @@ func TestBuildResumePacketsIncludesDynamicBrokerMembersOutsideLaunchPack(t *test
 
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "blank-slate",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "executor", Name: "Executor"},
 			},
@@ -264,10 +264,10 @@ func TestBuildResumePacketsUntaggedMessageRoutesToLead(t *testing.T) {
 
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -295,10 +295,10 @@ func TestBuildResumePacketsInFlightTasksIncluded(t *testing.T) {
 
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -320,7 +320,7 @@ func TestBuildResumePacketsEmptyWhenNothingInFlight(t *testing.T) {
 	// No tasks, no messages.
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
 		},
@@ -369,10 +369,10 @@ func TestBuildResumePacketsUnansweredRoutesToLead(t *testing.T) {
 
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -394,7 +394,7 @@ func TestBuildResumePacketsUnansweredRoutesToLead(t *testing.T) {
 	}
 }
 
-func TestBuildResumePacketsSkipsAgentsNotInPack(t *testing.T) {
+func TestBuildResumePacketsSkipsBotsNotInPack(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.tasks = []teamTask{
@@ -407,10 +407,10 @@ func TestBuildResumePacketsSkipsAgentsNotInPack(t *testing.T) {
 
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "coding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -432,21 +432,21 @@ func TestBuildResumePacketsSkipsAgentsNotInPack(t *testing.T) {
 	}
 }
 
-func TestBuildResumePacketsSkipsTaggedAgentsNotInPack(t *testing.T) {
+func TestBuildResumePacketsSkipsTaggedBotsNotInPack(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.messages = []channelMessage{
-		// Tagged @old-agent who is no longer in the pack.
-		{ID: "h1", From: "you", Content: "hey @old-agent can you help?", Tagged: []string{"old-agent"}, Timestamp: "2026-04-14T10:00:00Z"},
+		// Tagged @old-bot who is no longer in the pack.
+		{ID: "h1", From: "you", Content: "hey @old-bot can you help?", Tagged: []string{"old-agent"}, Timestamp: "2026-04-14T10:00:00Z"},
 	}
 	b.mu.Unlock()
 
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "coding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -455,9 +455,9 @@ func TestBuildResumePacketsSkipsTaggedAgentsNotInPack(t *testing.T) {
 
 	packets := l.buildResumePackets()
 
-	// "old-agent" is not in the pack → no packet should be generated for them.
+	// "old-bot" is not in the pack → no packet should be generated for them.
 	if _, ok := packets["old-agent"]; ok {
-		t.Error("expected no resume packet for 'old-agent' (not in current pack)")
+		t.Error("expected no resume packet for 'old-bot' (not in current pack)")
 	}
 }
 
@@ -484,7 +484,7 @@ func TestBuildResumePacketIncludesReplyToInstructions(t *testing.T) {
 	}
 	packet := buildResumePacket("ceo", nil, msgs)
 
-	// Spec: packet must include channel and reply_to_id so agent knows how to thread their response.
+	// Spec: packet must include channel and reply_to_id so bot knows how to thread their response.
 	if !strings.Contains(packet, "team") {
 		t.Error("expected packet to include channel 'general' for reply routing")
 	}
@@ -502,9 +502,9 @@ func TestBuildResumePacketReplyInstructionsMentionsSlug(t *testing.T) {
 	}
 	packet := buildResumePacket("be", nil, msgs)
 
-	// Agent slug must appear in the routing instructions so the agent knows my_slug.
+	// Bot slug must appear in the routing instructions so the bot knows my_slug.
 	if !strings.Contains(packet, "be") {
-		t.Error("expected packet to reference agent slug 'be' in reply instructions")
+		t.Error("expected packet to reference bot slug 'be' in reply instructions")
 	}
 	if !strings.Contains(packet, "engineering") {
 		t.Error("expected packet to include channel 'engineering'")
@@ -539,10 +539,10 @@ func TestResumeInFlightWorkHeadlessEnqueuesLeadEvenWhenSpecialistsPresent(t *tes
 	l := &Launcher{
 		provider: "codex", // headless path
 		broker:   b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -634,10 +634,10 @@ func TestBuildResumePacketSpecSectionMessagesLabel(t *testing.T) {
 }
 
 // TestResumeInFlightWorkTUIClaudeRoutesHeadless pins the invariant that TUI
-// mode with claude-code runtime and no pane-backed agents routes resumption
+// mode with claude-code runtime and no pane-backed bots routes resumption
 // through the headless queue, not the tmux pane branch. Before this guard,
 // resumeInFlightWork branched on webMode alone — TUI has webMode=false, so it
-// fell through to agentPaneTargets() which computes pane addresses without
+// fell through to botPaneTargets() which computes pane addresses without
 // verifying they exist, and the resulting tmux send-keys commands silently
 // failed. Users restarting `wuphf --legacy-tui` with in-flight work lost resumption.
 func TestResumeInFlightWorkTUIClaudeRoutesHeadless(t *testing.T) {
@@ -661,14 +661,14 @@ func TestResumeInFlightWorkTUIClaudeRoutesHeadless(t *testing.T) {
 
 	l := &Launcher{
 		// TUI mode: webMode=false, claude-code provider, no panes spawned.
-		provider:         "claude-code",
-		webMode:          false,
-		paneBackedAgents: false,
-		broker:           b,
-		pack: &agent.PackDefinition{
+		provider:       "claude-code",
+		webMode:        false,
+		paneBackedBots: false,
+		broker:         b,
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},
@@ -690,14 +690,14 @@ func TestResumeInFlightWorkTUIClaudeRoutesHeadless(t *testing.T) {
 	}
 
 	if !present("ceo") {
-		t.Error("TUI+claude: CEO resume packet dropped — TUI must route through headless queue when paneBackedAgents=false")
+		t.Error("TUI+claude: CEO resume packet dropped — TUI must route through headless queue when paneBackedBots=false")
 	}
 	if !present("fe") {
-		t.Error("TUI+claude: fe specialist resume packet dropped — TUI must route through headless queue when paneBackedAgents=false")
+		t.Error("TUI+claude: fe specialist resume packet dropped — TUI must route through headless queue when paneBackedBots=false")
 	}
 }
 
-func TestResumeInFlightWorkRoutesPerAgentProviderBinding(t *testing.T) {
+func TestResumeInFlightWorkRoutesPerBotProviderBinding(t *testing.T) {
 	setHeadlessWakeLeadFn(t, func(_ *Launcher, _ string) {})
 	// Stub the per-turn runner so spawned workers don't shell out to a real
 	// codex binary while the test asserts queue state.
@@ -726,14 +726,14 @@ func TestResumeInFlightWorkRoutesPerAgentProviderBinding(t *testing.T) {
 	b.mu.Unlock()
 
 	l := &Launcher{
-		provider:         provider.KindCodex,
-		paneBackedAgents: true,
-		sessionName:      "test-session",
-		broker:           b,
-		pack: &agent.PackDefinition{
+		provider:       provider.KindCodex,
+		paneBackedBots: true,
+		sessionName:    "test-session",
+		broker:         b,
+		pack: &bot.PackDefinition{
 			Slug:     "founding-team",
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},

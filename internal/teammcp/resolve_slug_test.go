@@ -3,7 +3,7 @@ package teammcp
 import "testing"
 
 // resolve_slug_test.go covers the impersonation guard on the model-supplied
-// my_slug argument (multi-agent security review CRITICAL): an agent must not
+// my_slug argument (multi-bot security review CRITICAL): a bot must not
 // be able to claim a reserved human/system identity (→ forge created_by=human
 // to clear the Plan-mode gate) or a privileged built-in slug it was not
 // launched as (→ my_slug=librarian for direct wiki-write authority). The

@@ -159,11 +159,11 @@ func TestScheduleCRUD(t *testing.T) {
 	if len(schedules) != 2 {
 		t.Fatalf("ListSchedules: got %d, want 2", len(schedules))
 	}
-	if schedules[0].AgentSlug != "ceo" {
-		t.Errorf("ListSchedules[0]: got %s, want ceo", schedules[0].AgentSlug)
+	if schedules[0].BotSlug != "ceo" {
+		t.Errorf("ListSchedules[0]: got %s, want ceo", schedules[0].BotSlug)
 	}
-	if schedules[1].AgentSlug != "cto" {
-		t.Errorf("ListSchedules[1]: got %s, want cto", schedules[1].AgentSlug)
+	if schedules[1].BotSlug != "cto" {
+		t.Errorf("ListSchedules[1]: got %s, want cto", schedules[1].BotSlug)
 	}
 
 	// Verify persistence
@@ -178,8 +178,8 @@ func TestScheduleCRUD(t *testing.T) {
 	if len(schedules) != 1 {
 		t.Fatalf("after remove: got %d, want 1", len(schedules))
 	}
-	if schedules[0].AgentSlug != "cto" {
-		t.Errorf("remaining schedule: got %s, want cto", schedules[0].AgentSlug)
+	if schedules[0].BotSlug != "cto" {
+		t.Errorf("remaining schedule: got %s, want cto", schedules[0].BotSlug)
 	}
 
 	// Replace (AddSchedule for existing slug)
@@ -213,8 +213,8 @@ func TestGetEventsForWeek(t *testing.T) {
 	}
 
 	for i, ev := range events {
-		if ev.AgentSlug != "ceo" {
-			t.Errorf("event[%d] agent: got %s, want ceo", i, ev.AgentSlug)
+		if ev.BotSlug != "ceo" {
+			t.Errorf("event[%d] bot: got %s, want ceo", i, ev.BotSlug)
 		}
 		if ev.ScheduledAt.Hour() != 9 || ev.ScheduledAt.Minute() != 0 {
 			t.Errorf("event[%d] time: got %s, want 09:00", i, ev.ScheduledAt.Format("15:04"))

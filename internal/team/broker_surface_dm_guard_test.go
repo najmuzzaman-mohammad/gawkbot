@@ -33,8 +33,8 @@ func TestSurfaceMessageToUnresolvableDMFailsInsteadOfPersisting(t *testing.T) {
 	t.Parallel()
 	b := newTestBroker(t)
 
-	// The bare "dm-" is a DM slug by prefix but names no agent, so
-	// DMTargetAgent is "" and ensureDMConversationLocked gives up.
+	// The bare "dm-" is a DM slug by prefix but names no bot, so
+	// DMTargetBot is "" and ensureDMConversationLocked gives up.
 	_, err := b.PostInboundSurfaceMessage("human", "dm-", "hello nobody", "slack")
 
 	if err == nil {
@@ -69,7 +69,7 @@ func TestSurfaceMessageToResolvableDMStillAutoCreatesAndPosts(t *testing.T) {
 	b := newTestBroker(t)
 
 	// The happy path the guard must not break: a DM slug that names a real
-	// agent is created on first message and the message lands in it.
+	// bot is created on first message and the message lands in it.
 	msg, err := b.PostInboundSurfaceMessage("human", "dm-eng", "ship it", "slack")
 	if err != nil {
 		t.Fatalf("resolvable DM must still auto-create: %v", err)

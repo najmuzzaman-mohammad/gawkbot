@@ -26,7 +26,7 @@ var (
 )
 
 // handleTeamWikiWrite posts the article to the broker's wiki worker queue.
-// Queue saturation surfaces as a tool error so the agent sees it and retries
+// Queue saturation surfaces as a tool error so the bot sees it and retries
 // on the next turn — no hidden retries.
 func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamWikiWriteArgs) (*mcp.CallToolResult, any, error) {
 	slug, err := resolveSlug(args.MySlug)
@@ -38,7 +38,7 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 	}
 	// The Librarian owns the wiki (Phase 4): writing, formatting, and organizing
 	// canonical articles is its job, so it writes directly without the per-write
-	// human-delegation gate that other agents need. Other agents still go
+	// human-delegation gate that other bots need. Other bots still go
 	// through notebook_write -> notebook_promote -> @librarian review, or pass a
 	// human_request for a one-off direct write.
 	if !adminDirectWikiWriteBypassEnabled() && !strings.EqualFold(strings.TrimSpace(slug), team.LibrarianSlug) {
@@ -88,11 +88,11 @@ func handleTeamWikiWrite(ctx context.Context, _ *mcp.CallToolRequest, args TeamW
 func verifyHumanWikiWriteDelegation(ctx context.Context, slug, humanRequestID string) error {
 	humanRequestID = strings.TrimSpace(humanRequestID)
 	if humanRequestID == "" {
-		// Human-boundary copy (ten-out-of-ten E1b): agents relay tool errors
+		// Human-boundary copy (ten-out-of-ten E1b): bots relay tool errors
 		// verbatim, and "the broker requires a direct human message ID" read
 		// as raw jargon to a real operator (ICP-eval v3 [18:07]). Lead with
-		// words safe to repeat to the human; keep the mechanics for the agent.
-		return fmt.Errorf("this wiki update needs the human's direct go-ahead. Ask them in plain words (e.g. \"want me to update the wiki with this?\") — never mention broker internals or message IDs to them. When they reply asking for the write, retry with human_request set to that human message's id. For agent-authored knowledge, use notebook_write then notebook_promote for review instead")
+		// words safe to repeat to the human; keep the mechanics for the bot.
+		return fmt.Errorf("this wiki update needs the human's direct go-ahead. Ask them in plain words (e.g. \"want me to update the wiki with this?\") — never mention broker internals or message IDs to them. When they reply asking for the write, retry with human_request set to that human message's id. For bot-authored knowledge, use notebook_write then notebook_promote for review instead")
 	}
 
 	channels := fetchAccessibleChannels(ctx, slug)
@@ -198,7 +198,7 @@ func handleTeamWikiRead(ctx context.Context, _ *mcp.CallToolRequest, args TeamWi
 		return toolError(fmt.Errorf("article_path is required")), nil, nil
 	}
 	brokerPath := "/wiki/read?path=" + url.QueryEscape(path)
-	// Pass agent slug so the broker can record this read in the attention log.
+	// Pass bot slug so the broker can record this read in the attention log.
 	// Fall back to the legacy-prefixed spelling for environments still setting it.
 	if slug := strings.TrimSpace(os.Getenv("WUPHF_AGENT_SLUG")); slug != "" {
 		brokerPath += "&reader=" + url.QueryEscape(slug)
@@ -213,17 +213,17 @@ func handleTeamWikiRead(ctx context.Context, _ *mcp.CallToolRequest, args TeamWi
 }
 
 // handleTeamWikiSearch runs a literal substring search across the team
-// wiki AND the calling agent's own notebook shelf (B4: one retrieval call
+// wiki AND the calling bot's own notebook shelf (B4: one retrieval call
 // spans wiki + private notes). The reader identity comes from the trusted
 // launcher-set WUPHF_AGENT_SLUG env — never from a model-supplied arg — so
-// an agent can only widen the search into its OWN notebooks.
+// a bot can only widen the search into its OWN notebooks.
 func handleTeamWikiSearch(ctx context.Context, _ *mcp.CallToolRequest, args TeamWikiSearchArgs) (*mcp.CallToolResult, any, error) {
 	pattern := strings.TrimSpace(args.Pattern)
 	if pattern == "" {
 		return toolError(fmt.Errorf("pattern is required")), nil, nil
 	}
 	path := "/wiki/search?pattern=" + url.QueryEscape(pattern)
-	if slug := strings.TrimSpace(trustedEnvAgentSlug()); slug != "" {
+	if slug := strings.TrimSpace(trustedEnvBotSlug()); slug != "" {
 		path += "&reader=" + url.QueryEscape(slug)
 	}
 	var result struct {
@@ -248,7 +248,7 @@ func handleTeamWikiList(ctx context.Context, _ *mcp.CallToolRequest, _ TeamWikiL
 // handleTeamWikiLookup answers a natural-language question with a cited
 // response assembled from the team wiki. The broker's /wiki/lookup endpoint
 // runs the full QueryHandler pipeline: classify → search → prompt → parse.
-// Returns the raw QueryAnswer JSON so the calling agent can render citations.
+// Returns the raw QueryAnswer JSON so the calling bot can render citations.
 func handleTeamWikiLookup(ctx context.Context, _ *mcp.CallToolRequest, args TeamWikiLookupArgs) (*mcp.CallToolResult, any, error) {
 	q := strings.TrimSpace(args.Query)
 	if q == "" {

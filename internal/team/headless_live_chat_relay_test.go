@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // TestHeadlessRunnersWireLiveChatRelay guards against the regression where
 // headlessLiveChatRelay exists but no production runner actually constructs
-// one. Symptom: agents stay silent during a turn — only the end-of-turn
+// one. Symptom: bots stay silent during a turn — only the end-of-turn
 // final message lands in the channel, so the room sees a multi-minute gap
 // followed by a single summary post. The relay infrastructure was added
 // but its wire-up to the four runners regressed once before; this test
@@ -33,7 +33,7 @@ func TestHeadlessRunnersWireLiveChatRelay(t *testing.T) {
 			t.Fatalf("read %s: %v", file, err)
 		}
 		if !strings.Contains(string(data), "newHeadlessLiveChatRelay") {
-			t.Errorf("%s: missing newHeadlessLiveChatRelay wiring — without it the agent goes silent during a turn and only the final summary lands in-channel", file)
+			t.Errorf("%s: missing newHeadlessLiveChatRelay wiring — without it the bot goes silent during a turn and only the final summary lands in-channel", file)
 		}
 	}
 }
@@ -59,7 +59,7 @@ func TestHeadlessLiveChatRelayPostsStreamedTextToChannel(t *testing.T) {
 
 	msgs := b.ChannelMessages("team")
 	if len(msgs) != 2 {
-		t.Fatalf("expected human root + streamed agent message, got %d: %+v", len(msgs), msgs)
+		t.Fatalf("expected human root + streamed bot message, got %d: %+v", len(msgs), msgs)
 	}
 	got := msgs[1]
 	if got.From != "ceo" || got.Content != "I will check the live stream now." || got.ReplyTo != root.ID {
@@ -121,7 +121,7 @@ func TestHeadlessLiveChatRelayReportsIssueImmediately(t *testing.T) {
 		t.Fatalf("expected issue to post immediately, got %+v", msgs)
 	}
 	got := msgs[1]
-	if got.From != "ceo" || got.Kind != agentIssueMessageKind || got.ReplyTo != root.ID || got.Content != "Incident: browser access is not available" {
+	if got.From != "ceo" || got.Kind != botIssueMessageKind || got.ReplyTo != root.ID || got.Content != "Incident: browser access is not available" {
 		t.Fatalf("unexpected issue message: %+v", got)
 	}
 	if approval := msgs[2]; approval.From != "system" || approval.Kind != "approval" || approval.EventID == "" || approval.Content == "" {
@@ -151,7 +151,7 @@ func TestHeadlessLiveChatRelayFlushesBufferedTextBeforeIssue(t *testing.T) {
 	if got := msgs[0].Content; got != "I found context and will continue" {
 		t.Fatalf("expected buffered prose to post first, got %q", got)
 	}
-	if msgs[1].Kind != agentIssueMessageKind {
+	if msgs[1].Kind != botIssueMessageKind {
 		t.Fatalf("expected issue second, got %+v", msgs)
 	}
 }
@@ -193,7 +193,7 @@ func TestOpenAICompatToolErrorReportsIssueToChat(t *testing.T) {
 	if got := msgs[1].Content; got != "Incident: ERROR: browser access is not available" {
 		t.Fatalf("unexpected issue content: %q", got)
 	}
-	if msgs[1].Kind != agentIssueMessageKind {
+	if msgs[1].Kind != botIssueMessageKind {
 		t.Fatalf("expected agent_issue kind, got %+v", msgs[1])
 	}
 }
@@ -314,10 +314,10 @@ func TestApprovedIncidentCreatesSelfHealTask(t *testing.T) {
 	}
 
 	// The incident carries no parent TaskID, so the title falls through to the
-	// `"[@<slug>] <verb> — agent couldn't continue"` form. Match on
-	// recognition primitive + agent attribution rather than a hardcoded
+	// `"[@<slug>] <verb> — bot couldn't continue"` form. Match on
+	// recognition primitive + bot attribution rather than a hardcoded
 	// title so this stays robust to future copy edits.
-	wantTitle := selfHealingTaskTitle("eng", "", "", agent.EscalationCapabilityGap)
+	wantTitle := selfHealingTaskTitle("eng", "", "", bot.EscalationCapabilityGap)
 	var found bool
 	for _, task := range b.AllTasks() {
 		if isSelfHealingTask(&task) && task.Title == wantTitle {
@@ -354,7 +354,7 @@ func TestAnsweredIncidentApprovalDoesNotCreateDuplicateRequest(t *testing.T) {
 	})
 	b.incidents = append(b.incidents, incidentRecord{
 		ID:                "issue-1",
-		Agent:             "eng",
+		Bot:               "eng",
 		Channel:           "team",
 		Detail:            "browser access is not available",
 		NormalizedKey:     normalizedIncidentKey("eng", "team", "browser access is not available"),
@@ -420,7 +420,7 @@ func TestApprovedIncidentSelfHealFailureSurfacesToChat(t *testing.T) {
 	})
 	b.incidents = append(b.incidents, incidentRecord{
 		ID:                "issue-1",
-		Agent:             "eng",
+		Bot:               "eng",
 		Channel:           "team",
 		Detail:            "browser access is not available",
 		NormalizedKey:     normalizedIncidentKey("eng", "team", "browser access is not available"),
@@ -441,13 +441,13 @@ func TestApprovedIncidentSelfHealFailureSurfacesToChat(t *testing.T) {
 	if len(msgs) != 1 {
 		t.Fatalf("expected one surfaced failure message, got %+v", msgs)
 	}
-	if got := msgs[0]; got.From != "system" || got.Kind != agentIssueMessageKind || !strings.Contains(got.Content, "could not be created") {
+	if got := msgs[0]; got.From != "system" || got.Kind != botIssueMessageKind || !strings.Contains(got.Content, "could not be created") {
 		t.Fatalf("unexpected surfaced failure message: %+v", got)
 	}
 }
 
 // TestMaybeCreateApprovedSelfHealTask_OverflowMarksError guards that when an
-// approved self-heal request lands at the per-agent cap and merges into
+// approved self-heal request lands at the per-bot cap and merges into
 // another self-heal lane, the incident records the divergence in
 // SelfHealError. Without this marker, the incident would silently link to a
 // task whose original TaskID is unrelated, with no observable signal of the
@@ -460,11 +460,11 @@ func TestMaybeCreateApprovedSelfHealTask_OverflowMarksError(t *testing.T) {
 	// Pin @eng at the cap with self-heal tasks for taskIDs the incident does
 	// not match. The approved request below carries a fresh TaskID, so the
 	// exact-reuse path misses and we fall into overflow merge.
-	for i := 0; i < maxActiveSelfHealsPerAgent; i++ {
-		l.postEscalation("eng", fmt.Sprintf("eng-pre-%d", i), agent.EscalationStuck, "earlier")
+	for i := 0; i < maxActiveSelfHealsPerBot; i++ {
+		l.postEscalation("eng", fmt.Sprintf("eng-pre-%d", i), bot.EscalationStuck, "earlier")
 	}
-	if got := countActiveSelfHealsForAgent(b, "eng"); got != maxActiveSelfHealsPerAgent {
-		t.Fatalf("setup: expected @eng pinned at cap (%d), got %d", maxActiveSelfHealsPerAgent, got)
+	if got := countActiveSelfHealsForBot(b, "eng"); got != maxActiveSelfHealsPerBot {
+		t.Fatalf("setup: expected @eng pinned at cap (%d), got %d", maxActiveSelfHealsPerBot, got)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -483,7 +483,7 @@ func TestMaybeCreateApprovedSelfHealTask_OverflowMarksError(t *testing.T) {
 	})
 	b.incidents = append(b.incidents, incidentRecord{
 		ID:                "issue-overflow-1",
-		Agent:             "eng",
+		Bot:               "eng",
 		Channel:           "team",
 		TaskID:            "eng-fresh-1",
 		Detail:            "browser access is not available",
@@ -496,7 +496,7 @@ func TestMaybeCreateApprovedSelfHealTask_OverflowMarksError(t *testing.T) {
 	b.maybeCreateApprovedSelfHealTaskLocked(b.requests[len(b.requests)-1])
 	b.mu.Unlock()
 
-	if got := countActiveSelfHealsForAgent(b, "eng"); got != maxActiveSelfHealsPerAgent {
+	if got := countActiveSelfHealsForBot(b, "eng"); got != maxActiveSelfHealsPerBot {
 		t.Fatalf("active count must stay at cap after overflow merge, got %d", got)
 	}
 	incidents := b.Incidents()
@@ -507,12 +507,12 @@ func TestMaybeCreateApprovedSelfHealTask_OverflowMarksError(t *testing.T) {
 	if got.SelfHealTaskID == "" {
 		t.Fatalf("expected SelfHealTaskID to bind to the overflow lane, got empty")
 	}
-	if !strings.Contains(got.SelfHealError, "merged into agent self-heal overflow lane") {
+	if !strings.Contains(got.SelfHealError, "merged into bot self-heal overflow lane") {
 		t.Fatalf("expected SelfHealError to record overflow merge, got %q", got.SelfHealError)
 	}
 	// The bound task must NOT be the incident's own would-be title — it is the
 	// overflow target.
-	expectedTitle := selfHealingTaskTitle("eng", "eng-fresh-1", "", agent.EscalationCapabilityGap)
+	expectedTitle := selfHealingTaskTitle("eng", "eng-fresh-1", "", bot.EscalationCapabilityGap)
 	for _, task := range b.AllTasks() {
 		if task.ID == got.SelfHealTaskID && task.Title == expectedTitle {
 			t.Fatalf("overflow case must not bind to the incident's own self-heal title, got task=%+v", task)
@@ -528,14 +528,14 @@ func TestIncidentDoesNotCountAsSubstantiveProgress(t *testing.T) {
 	if _, _, posted, err := b.ReportIncident("ceo", "team", "", "browser access is not available"); err != nil || !posted {
 		t.Fatalf("report incident: posted=%v err=%v", posted, err)
 	}
-	if l.agentPostedSubstantiveMessageSince("ceo", startedAt) {
+	if l.botPostedSubstantiveMessageSince("ceo", startedAt) {
 		t.Fatal("agent_issue should not count as substantive progress")
 	}
 
 	if _, err := b.PostMessage("ceo", "team", "I can continue with the code inspection.", nil, ""); err != nil {
 		t.Fatalf("post normal message: %v", err)
 	}
-	if !l.agentPostedSubstantiveMessageSince("ceo", startedAt) {
+	if !l.botPostedSubstantiveMessageSince("ceo", startedAt) {
 		t.Fatal("normal streamed prose should count as substantive progress")
 	}
 }

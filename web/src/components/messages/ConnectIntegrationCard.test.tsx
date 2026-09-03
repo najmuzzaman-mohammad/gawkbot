@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AgentRequest } from "../../api/client";
+import type { BotRequest } from "../../api/client";
 
 const startConnect = vi.fn();
 const getStatus = vi.fn();
@@ -36,9 +36,7 @@ function wrap(ui: ReactNode) {
   return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
 }
 
-function makeConnectRequest(
-  overrides: Partial<AgentRequest> = {},
-): AgentRequest {
+function makeConnectRequest(overrides: Partial<BotRequest> = {}): BotRequest {
   return {
     id: "request-9",
     from: "growthops",

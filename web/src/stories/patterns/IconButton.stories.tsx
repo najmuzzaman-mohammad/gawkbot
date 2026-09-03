@@ -66,7 +66,7 @@ export const InContext: StoryObj = {
           #architecture
         </span>
         <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
-          12 agents, 3 humans
+          12 bots, 3 humans
         </span>
       </div>
       <div style={{ display: "flex", gap: 4 }}>

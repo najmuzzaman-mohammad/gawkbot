@@ -97,26 +97,26 @@ export function fetchInstallSteps(
 // ── Wizard: blueprints + answers + complete ────────────────────────────────
 
 /**
- * One agent row in a blueprint roster. Mirrors `blueprintAgentSummary` in
+ * One bot row in a blueprint roster. Mirrors `blueprintBotSummary` in
  * internal/onboarding/handlers.go. `built_in` marks the blueprint's lead
- * agent — the wizard must keep it checked because the broker refuses to seed
+ * bot — the wizard must keep it checked because the broker refuses to seed
  * an office without its lead.
  */
-export interface BlueprintAgentSummary {
+export interface BlueprintBotSummary {
   slug: string;
   name: string;
   role?: string;
   emoji?: string;
-  /** Whether the agent is checked (kept) by default. */
+  /** Whether the bot is checked (kept) by default. */
   checked: boolean;
-  /** The lead agent; cannot be unchecked. */
+  /** The lead bot; cannot be unchecked. */
   built_in?: boolean;
 }
 
 /**
  * One blueprint (starter roster) returned by GET /onboarding/blueprints.
  * Mirrors the additive `blueprintSummary` Go shape; the wizard only consumes
- * the id/name/description/emoji/agents subset, so every other field is
+ * the id/name/description/emoji/bots subset, so every other field is
  * optional and ignored here.
  */
 export interface BlueprintSummary {
@@ -126,7 +126,7 @@ export interface BlueprintSummary {
   emoji?: string;
   outcome?: string;
   category?: string;
-  agents?: BlueprintAgentSummary[];
+  agents?: BlueprintBotSummary[];
 }
 
 interface BlueprintsResponse {
@@ -176,7 +176,7 @@ export function postOnboardingProgress(
 
 /**
  * Request body for POST /onboarding/complete. Mirrors the Go HandleComplete
- * struct. `blueprint` is empty for the scratch path; `agents` filters the
+ * struct. `blueprint` is empty for the scratch path; `bots` filters the
  * blueprint roster (empty array = user unchecked everyone but the lead, which
  * the broker still keeps).
  */

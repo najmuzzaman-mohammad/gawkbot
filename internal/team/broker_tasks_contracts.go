@@ -1,6 +1,6 @@
 package team
 
-import "github.com/nex-crm/wuphf/internal/agent"
+import "github.com/nex-crm/wuphf/internal/bot"
 
 type TaskListRequest struct {
 	StatusFilter string `json:"status,omitempty"`
@@ -89,7 +89,7 @@ type TaskPlanInput struct {
 	Effort string `json:"effort"`
 	// Provider and Model are the optional per-task LLM runtime override
 	// (runtime kind + model id). Stored on the task; dispatch prefers them
-	// over the owner agent's binding. Empty means inherit the binding/default.
+	// over the owner bot's binding. Empty means inherit the binding/default.
 	Provider string `json:"provider"`
 	Model    string `json:"model"`
 	// Park, when true, creates the task ASSIGNED but parked in the backlog
@@ -129,11 +129,11 @@ type TaskMemoryWorkflowReconcileResponse struct {
 	Report MemoryWorkflowReconcileReport `json:"report"`
 }
 
-type AgentLogTasksResponse struct {
-	Tasks []agent.TaskLogSummary `json:"tasks"`
+type BotLogTasksResponse struct {
+	Tasks []bot.TaskLogSummary `json:"tasks"`
 }
 
-type AgentLogEntriesResponse struct {
-	Task    string               `json:"task"`
-	Entries []agent.TaskLogEntry `json:"entries"`
+type BotLogEntriesResponse struct {
+	Task    string             `json:"task"`
+	Entries []bot.TaskLogEntry `json:"entries"`
 }

@@ -13,10 +13,10 @@ import (
 // subjects). For opaque shapes, we fall back to a pretty-printed
 // excerpt clipped to a budget so chat stays readable.
 //
-// The agent is still prompted to post a richer human_message right
+// The bot is still prompted to post a richer human_message right
 // after — that's where the interpretation lives. This preview just
 // guarantees the raw signal is visible immediately, even before the
-// agent's followup lands.
+// bot's followup lands.
 func summarizeActionResult(result any) string {
 	if result == nil {
 		return ""
@@ -31,7 +31,7 @@ func summarizeActionResult(result any) string {
 	}
 	const maxPreviewBytes = 600
 	if len(raw) > maxPreviewBytes {
-		raw = raw[:maxPreviewBytes] + "\n… (truncated; agent will summarize next)"
+		raw = raw[:maxPreviewBytes] + "\n… (truncated; bot will summarize next)"
 	}
 	return "```\n" + raw + "\n```"
 }

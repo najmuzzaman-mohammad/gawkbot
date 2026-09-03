@@ -115,7 +115,7 @@ describe("<CosignPrompt>", () => {
     );
   });
 
-  it("shows a non-leaky wrong-agent error", async () => {
+  it("shows a non-leaky wrong-bot error", async () => {
     const { claim, scope } = approvalPair();
     requestChallengeMock.mockResolvedValue(
       challengeResponse("challenge-3", claim, scope),
@@ -131,7 +131,7 @@ describe("<CosignPrompt>", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "rejected this approval for the current agent",
+      "rejected this approval for the current bot",
     );
   });
 

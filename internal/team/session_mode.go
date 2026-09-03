@@ -6,7 +6,7 @@ const (
 	SessionModeOffice   = "office"
 	SessionModeOneOnOne = "1o1"
 
-	DefaultOneOnOneAgent = "ceo"
+	DefaultOneOnOneBot = "ceo"
 )
 
 func NormalizeSessionMode(mode string) string {
@@ -18,12 +18,12 @@ func NormalizeSessionMode(mode string) string {
 	}
 }
 
-func NormalizeOneOnOneAgent(slug string) string {
+func NormalizeOneOnOneBot(slug string) string {
 	slug = strings.ToLower(strings.TrimSpace(slug))
 	slug = strings.ReplaceAll(slug, " ", "-")
 	slug = strings.ReplaceAll(slug, "_", "-")
 	if slug == "" {
-		return DefaultOneOnOneAgent
+		return DefaultOneOnOneBot
 	}
 	return slug
 }

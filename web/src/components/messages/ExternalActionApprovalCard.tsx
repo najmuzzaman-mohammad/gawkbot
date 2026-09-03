@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { ActionEnvelope, AgentRequest } from "../../api/client";
+import type { ActionEnvelope, BotRequest } from "../../api/client";
 import {
   type ApprovalContext,
   parseApprovalContext,
@@ -13,8 +13,8 @@ import {
 // ExternalActionApprovalCard is the dedicated approval surface for a mutating
 // integration action the deterministic resolver classified as `approve`
 // (connected, no standing grant). It answers the one question the human is
-// here to answer — "should this agent really send THIS, through THIS account?"
-// — by showing the integration it acts on, the exact action, the agent's
+// here to answer — "should this bot really send THIS, through THIS account?"
+// — by showing the integration it acts on, the exact action, the bot's
 // reason, and the full (secret-masked) payload, with a raw view one tap away.
 //
 // Phase 4a reads the legacy approval context string (parseApprovalContext); the
@@ -23,7 +23,7 @@ import {
 // envelope behind the raw toggle — same layout, richer source.
 
 interface ExternalActionApprovalCardProps {
-  request: AgentRequest;
+  request: BotRequest;
   submitting: boolean;
   /** Answer with a plain choice id (e.g. "approve", "reject"). */
   onAnswer: (choiceId: string) => void;
@@ -57,7 +57,7 @@ interface ActionIdentity {
 // as "Send Email via Gmail", with the platform slug also derivable from the
 // action id prefix.
 export function deriveActionIdentity(
-  request: AgentRequest,
+  request: BotRequest,
   parsed: ApprovalContext | null,
 ): ActionIdentity {
   const structured = request.action;
@@ -124,10 +124,10 @@ function titleCaseTokens(raw: string): string {
 }
 
 // canGrant guards the "always allow" escalation: a grant must be scoped to a
-// concrete (agent, platform, action_id), so the button is suppressed when any
+// concrete (bot, platform, action_id), so the button is suppressed when any
 // of those cannot be determined rather than minting a malformed grant.
 function grantTarget(
-  request: AgentRequest,
+  request: BotRequest,
   identity: ActionIdentity,
 ): ApprovalGrantTarget | null {
   const agentSlug = (request.from ?? "").trim();

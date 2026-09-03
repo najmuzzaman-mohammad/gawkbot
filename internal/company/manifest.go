@@ -15,13 +15,13 @@ import (
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
-// The lead agent is the Chief of Staff. The SLUG stays "ceo" on purpose.
+// The lead bot is the Chief of Staff. The SLUG stays "ceo" on purpose.
 //
 // The slug is an identifier, not a label: it appears in DM slugs
 // ("ceo__human"), task owners, channel membership, and saved rosters on
 // users' disks. Renaming it would orphan every one of those rows for anyone
 // with an existing workspace, in exchange for changing a string nobody sees.
-// The same reasoning applies to the other agent slugs.
+// The same reasoning applies to the other bot slugs.
 //
 // So the identifier is frozen and the display name is free to change. Anything
 // a person reads comes from Name/Role; anything the system keys on uses Slug.
@@ -213,7 +213,7 @@ func backfillFromConfig(manifest Manifest) Manifest {
 		if desc := strings.TrimSpace(cfg.CompanyDescription); desc != "" {
 			manifest.Description = desc
 		} else {
-			manifest.Description = "Autonomous agent team runtime."
+			manifest.Description = "Autonomous bot team runtime."
 		}
 	}
 	if len(normalizeBlueprintRefs(manifest.BlueprintRefs)) == 0 {
@@ -243,7 +243,7 @@ func SaveManifest(manifest Manifest) error {
 	return os.WriteFile(path, data, 0o600)
 }
 
-// AppBuilderSlug is the canonical slug of the built-in App Builder agent — the
+// AppBuilderSlug is the canonical slug of the built-in App Builder bot — the
 // special teammate that turns repeatable workflows into Apps (internal tools).
 // It is seeded into every office (see ensureAppBuilderMember) and is immutable
 // like the CEO.
@@ -258,7 +258,7 @@ func DefaultManifest() Manifest {
 	blueprintID := normalizeSlug(cfg.ActiveBlueprint())
 	manifest := Manifest{
 		Name:        "Your gawkbot team",
-		Description: "Autonomous agent team runtime.",
+		Description: "Autonomous bot team runtime.",
 		Lead:        "ceo",
 		UpdatedAt:   now,
 	}
@@ -278,10 +278,10 @@ func DefaultManifest() Manifest {
 	// trio. The founder retired all five as defaults — "that concept should
 	// now be gone with those bots as default. their defintions also shouldn't
 	// exist" — because a new user's first run should show the smallest system
-	// that produces a trustworthy output: one agent that introduces itself,
+	// that produces a trustworthy output: one bot that introduces itself,
 	// asks the goal, and plans the first thing. Specialists are created on
 	// demand, not preinstalled. App building and wiki contribution are system
-	// skills every agent carries, not agents of their own.
+	// skills every bot carries, not bots of their own.
 	manifest.Members = []MemberSpec{
 		{Slug: "ceo", Name: chiefOfStaffName, Role: chiefOfStaffRole, System: true},
 	}

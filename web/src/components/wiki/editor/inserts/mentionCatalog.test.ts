@@ -43,7 +43,7 @@ describe("toMentionItem", () => {
     expect(item?.title).toBe("Alex");
   });
 
-  it("classifies legacy agents/ paths as agents even when group is empty", () => {
+  it("classifies legacy bots/ paths as bots even when group is empty", () => {
     const item = toMentionItem(
       entry({ path: "agents/operator/notebook/index.md", group: "" }),
     );

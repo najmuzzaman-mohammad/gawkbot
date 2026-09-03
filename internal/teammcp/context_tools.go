@@ -37,23 +37,23 @@ type ContextLookupArgs struct {
 	IncludePrivate bool   `json:"include_private,omitempty" jsonschema:"Include notebook/private working context when the backend supports it. Defaults to true when both include flags are omitted."`
 	IncludeShared  bool   `json:"include_shared,omitempty" jsonschema:"Include shared wiki/org context when the backend supports it. Defaults to true when both include flags are omitted."`
 	TimeoutMS      int    `json:"timeout_ms,omitempty" jsonschema:"Total lookup deadline in milliseconds (default 5000, max 30000)"`
-	MySlug         string `json:"my_slug,omitempty" jsonschema:"Agent slug for task workflow attribution. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug         string `json:"my_slug,omitempty" jsonschema:"Bot slug for task workflow attribution. Defaults to WUPHF_AGENT_SLUG."`
 }
 
 type ContextCaptureArgs struct {
 	TaskID       string `json:"task_id,omitempty" jsonschema:"Optional office task ID whose memory workflow should record this capture"`
-	MySlug       string `json:"my_slug,omitempty" jsonschema:"Agent slug writing the notebook entry. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug       string `json:"my_slug,omitempty" jsonschema:"Bot slug writing the notebook entry. Defaults to WUPHF_AGENT_SLUG."`
 	Title        string `json:"title,omitempty" jsonschema:"Short title for the captured note"`
 	Content      string `json:"content,omitempty" jsonschema:"Markdown note content to save to the caller's notebook"`
-	NotebookPath string `json:"notebook_path,omitempty" jsonschema:"Optional notebook path. Defaults to agents/{my_slug}/notebook/{date}-{title}.md"`
+	NotebookPath string `json:"notebook_path,omitempty" jsonschema:"Optional notebook path. Defaults to bots/{my_slug}/notebook/{date}-{title}.md"`
 	Mode         string `json:"mode,omitempty" jsonschema:"Notebook write mode: create, replace, or append_section. Defaults to create."`
 	SkipReason   string `json:"skip_reason,omitempty" jsonschema:"Explicit reason no notebook capture is needed for this task"`
 }
 
 type ContextPromoteArgs struct {
 	TaskID         string `json:"task_id,omitempty" jsonschema:"Optional office task ID whose memory workflow should record this promotion decision"`
-	MySlug         string `json:"my_slug,omitempty" jsonschema:"Agent slug submitting the promotion. Defaults to WUPHF_AGENT_SLUG."`
-	SourcePath     string `json:"source_path,omitempty" jsonschema:"Notebook source path, e.g. agents/{my_slug}/notebook/process.md"`
+	MySlug         string `json:"my_slug,omitempty" jsonschema:"Bot slug submitting the promotion. Defaults to WUPHF_AGENT_SLUG."`
+	SourcePath     string `json:"source_path,omitempty" jsonschema:"Notebook source path, e.g. bots/{my_slug}/notebook/process.md"`
 	TargetWikiPath string `json:"target_wiki_path,omitempty" jsonschema:"Proposed wiki path, e.g. team/processes/passport.md"`
 	Rationale      string `json:"rationale,omitempty" jsonschema:"Why this notebook entry is ready for shared wiki promotion"`
 	ReviewerSlug   string `json:"reviewer_slug,omitempty" jsonschema:"Optional reviewer override"`
@@ -484,17 +484,17 @@ func lookupMarkdownWiki(ctx context.Context, query string, limit int) ([]Context
 
 func lookupMarkdownNotebooks(ctx context.Context, query string, limit int) ([]ContextCitation, []ContextPartialError) {
 	var catalog struct {
-		Agents []struct {
-			AgentSlug string `json:"agent_slug"`
+		Bots []struct {
+			BotSlug string `json:"agent_slug"`
 		} `json:"agents"`
 	}
 	if err := brokerGetJSON(ctx, "/notebook/catalog", &catalog); err != nil {
 		return nil, []ContextPartialError{partialError("notebook", config.MemoryBackendMarkdown, contextErrorCode(err), err, true)}
 	}
-	slugs := make([]string, 0, len(catalog.Agents))
+	slugs := make([]string, 0, len(catalog.Bots))
 	seen := map[string]bool{}
-	for _, agent := range catalog.Agents {
-		slug := strings.TrimSpace(agent.AgentSlug)
+	for _, bot := range catalog.Bots {
+		slug := strings.TrimSpace(bot.BotSlug)
 		if slug == "" || seen[slug] {
 			continue
 		}

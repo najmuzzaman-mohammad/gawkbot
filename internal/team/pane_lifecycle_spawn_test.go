@@ -1,11 +1,11 @@
 package team
 
 // Tests for the C5d migration: spawn-side tmux helpers added to
-// paneLifecycle (SplitFirstAgent, SplitAdditionalAgent, NewOverflowWindow,
+// paneLifecycle (SplitFirstBot, SplitAdditionalBot, NewOverflowWindow,
 // NewSession, SetSessionOption, SetTeamWindowOption,
 // ApplyMainVerticalLayout, SetPaneTitle, SelectTeamWindow, FocusPane,
 // IsPaneDead, CapturePaneHistory, SendEnter). High-level spawn
-// orchestration (spawnVisibleAgents/etc.) is not covered here — those
+// orchestration (spawnVisibleBots/etc.) is not covered here — those
 // methods need callbacks for claudeCommand/buildPrompt/broker access
 // that come in a follow-up ownership PR. The helper tests pin the exact
 // tmux args every spawn path emits, which is the value those tests
@@ -21,9 +21,9 @@ func TestPaneLifecycle_SplitFirstAgentArgs(t *testing.T) {
 	fake.outputs["split-window"] = []byte("ok")
 	setTmuxRunnerForTest(t, fake)
 
-	out, err := newPaneLifecycle("wuphf-team").SplitFirstAgent("/repo", "claude --print")
+	out, err := newPaneLifecycle("wuphf-team").SplitFirstBot("/repo", "claude --print")
 	if err != nil {
-		t.Fatalf("SplitFirstAgent err = %v", err)
+		t.Fatalf("SplitFirstBot err = %v", err)
 	}
 	if string(out) != "ok" {
 		t.Errorf("output = %q, want ok", out)
@@ -42,15 +42,15 @@ func TestPaneLifecycle_SplitAdditionalAgentArgs(t *testing.T) {
 	fake := newFakeTmuxRunner()
 	setTmuxRunnerForTest(t, fake)
 
-	if _, err := newPaneLifecycle("wuphf-team").SplitAdditionalAgent("/repo", "claude"); err != nil {
-		t.Fatalf("SplitAdditionalAgent err = %v", err)
+	if _, err := newPaneLifecycle("wuphf-team").SplitAdditionalBot("/repo", "claude"); err != nil {
+		t.Fatalf("SplitAdditionalBot err = %v", err)
 	}
 	calls := fake.callsFor("split-window")
 	if len(calls) != 1 {
 		t.Fatalf("split-window calls = %d, want 1", len(calls))
 	}
-	// Note: no -h flag — additional agents tile vertically on the right.
-	// Note: no -p flag — additional agents take whatever default split
+	// Note: no -h flag — additional bots tile vertically on the right.
+	// Note: no -p flag — additional bots take whatever default split
 	// percentage tmux gives them, then ApplyMainVerticalLayout normalizes.
 	want := []string{"split-window", "-t", "wuphf-team:team.1", "-c", "/repo", "claude"}
 	if !equalStrings(calls[0], want) {

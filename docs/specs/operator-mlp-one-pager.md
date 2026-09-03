@@ -19,7 +19,7 @@ asks you when it's genuinely stuck, and proactively suggests improvements as you
 changes. This is what Convey.dev does. We do it self-hosted, on top of an engine we've
 already built.
 
-**The operator never sees:** agents, multi-agent teams, skills, heartbeats, notebooks,
+**The operator never sees:** bots, multi-bot teams, skills, heartbeats, notebooks,
 channels, lifecycle states, promotion/review queues. Those concepts are ours, not theirs.
 (They *do* see a clean **Knowledge** wiki — but never the messy authoring machinery behind it;
 an LLM writes and organizes it.)
@@ -90,7 +90,7 @@ For steps with no API, it does **deterministic UI replay** — replaying the *ca
 selectors/inputs against the live app via a computer-use driver (CUA). Only when replay
 breaks (selector moved, layout changed) does CUA *heal* — bounded, to re-find the target —
 and the new target is written back as an overlay (version+1), surfaced to the operator. CUA
-is the fallback + healing layer under a deterministic engine, **never** a free-roaming agent
+is the fallback + healing layer under a deterministic engine, **never** a free-roaming bot
 deciding each run. Sensitive actions stay behind the approval gate.
 
 Every run is recorded. Every workflow change is versioned with the context behind it.
@@ -100,7 +100,7 @@ Every learning from a clarification is folded back into the workflow and **visib
 
 ## 5. Keep & build on, replace, delete
 
-Every existing piece was built for the *multi-agent office* product. Each passes one test:
+Every existing piece was built for the *multi-bot office* product. Each passes one test:
 **does an inbound-routing operator need this?** Three outcomes — keep and build on, replace,
 or delete. The net codebase gets *lighter*, but we do not throw away what genuinely fits.
 
@@ -109,9 +109,9 @@ or delete. The net codebase gets *lighter*, but we do not throw away what genuin
 | Capability | What we keep | What we repoint for the new goal |
 |---|---|---|
 | Deterministic workflow engine | contract, runner, `shipcheck`, Inngest adapter, run-audit JSONL, overlays, refreeze (`internal/workflowpress`, `internal/workflow`) | nothing — kernel fits as-is |
-| **Workflow detection — now core** | the detector (`workflow_detect.go`) | input changes: observe the **operator's** activity + context changes + integration events (not a roster of agents). It *proposes* workflows. |
+| **Workflow detection — now core** | the detector (`workflow_detect.go`) | input changes: observe the **operator's** activity + context changes + integration events (not a roster of bots). It *proposes* workflows. |
 | **App builder — the Internal Tool UI tab (production-grade, lift intact)** | the whole build-with-you-via-chat experience: refine+Mantine single-file, build gate, server-side build ownership, build-time guards, live hot-reload preview, persistent edit chat, select-to-edit, source introspection (anti-hallucination), version snapshots, Bridge v2 | **minimal repoint** (Spike 6): structural-singleton + human-gated proposal already fit one operator; the "narrate to a watching human" persona *fits the magical call*; read-mostly stays for the UI tab. Bridge v2 complements the workflow engine (UI reads/reasons; engine executes; shared approval card). |
-| Integrations + approval-on-mutation | Bridge v2 (reads run, writes gated), Composio | shed per-agent/roster metering assumptions |
+| Integrations + approval-on-mutation | Bridge v2 (reads run, writes gated), Composio | shed per-bot/roster metering assumptions |
 | **Knowledge surface — the karpathy-wiki reader (lift S6 only)** | from **`feat/karpathy-wiki`**: the Wikipedia-shaped reader + design + IA + lint view + schema (entity/concept/process pages, categories) | keep the **reader/surface**; **retire the S1-S5 Go compile backend → gbrain owns it** (Spike 7). Point the reader at gbrain's pages. |
 
 ### Replace
@@ -128,9 +128,9 @@ or delete. The net codebase gets *lighter*, but we do not throw away what genuin
 ### Delete — remove, don't hide. Stay light.
 
 Removed from the codebase, not flagged off. The bar: if it only existed to serve the
-multi-agent office, it goes.
+multi-bot office, it goes.
 
-- Multi-agent team, agent roster, agent subspaces → one assistant persona remains.
+- Multi-bot team, bot roster, bot subspaces → one assistant persona remains.
 - **The OLD messy wiki authoring** — notebooks, promotion/review queue, Pam-curation (already
   removed on `feat/karpathy-wiki`). The clean Karpathy **Knowledge** wiki replaces it; gbrain
   is the retrieval brain.
@@ -140,7 +140,7 @@ multi-agent office, it goes.
 - Company/team onboarding wizard → replaced by **"what do you want to automate?"**.
 
 The broker shrinks to a message + run + integration + approval bus for one operator and their
-tools. The operator never meets the words "broker," "agent," or "wiki."
+tools. The operator never meets the words "broker," "bot," or "wiki."
 
 ---
 
@@ -148,7 +148,7 @@ tools. The operator never meets the words "broker," "agent," or "wiki."
 
 1. **The magical capture call (the demo bar)** — **screen-share video call with your AI**,
    free back-and-forth voice. Operator narrates their workflow live; CUA-style observation
-   watches the screen; a realtime voice agent (ElevenLabs / GPT realtime) talks back and asks
+   watches the screen; a realtime voice bot (ElevenLabs / GPT realtime) talks back and asks
    clarifying questions. Output is a structured workflow draft the engine compiles. **Runs in
    the Electron desktop renderer** (`apps/desktop` — Chromium does screen capture +
    WebRTC voice natively; Wails/oswails stays for OS verbs). This is the experience —
@@ -182,7 +182,7 @@ tools. The operator never meets the words "broker," "agent," or "wiki."
 4. **Context: replace our engine with gbrain.** One semantic context store for all
    workflow/tool context, retrieval, runs, and learnings.
 5. **App builder: build on top.** Keep the render/build/edit foundation; rewrite only the
-   read-mostly + roster-agent assumptions; from-scratch only where it clearly wins.
+   read-mostly + roster-bot assumptions; from-scratch only where it clearly wins.
 6. **Data Model: DEFERRED to v1.1.** The MLP Internal Tool ships **2 tabs (UI · Workflow)**;
    per-request entity state and the digest counts are covered by run-records + gbrain for the
    first wedge, so no owned data layer is required to hit the acceptance scenario. Operator-
@@ -191,7 +191,7 @@ tools. The operator never meets the words "broker," "agent," or "wiki."
    live worklist that run-records can't express.
 7. **Build strategy: simplify in place** in this worktree. Keep & build on the engine,
    detection, and app builder; replace context with gbrain; delete the office cruft (wiki
-   product, skills, notebooks, agent roster, channels, lifecycle/review). Net codebase lighter.
+   product, skills, notebooks, bot roster, channels, lifecycle/review). Net codebase lighter.
 8. **Naming: "Internal Tool"** (Bubble-style tabs).
 9. **Activation + voice economics (CEO review).** The **call is the primary activation + ship
     gate** (the magic; chat is post-call iteration) — founder decision, with the concentrated-risk
@@ -215,9 +215,9 @@ tools. The operator never meets the words "broker," "agent," or "wiki."
 
 - Marketplace / templates gallery, team collaboration, role permissions.
 - Multi-tenant hosting (that's Nex cloud, not this OSS repo).
-- **Free-roaming autonomous agent execution** — CUA controls the computer at execution, but
+- **Free-roaming autonomous bot execution** — CUA controls the computer at execution, but
   only as deterministic UI replay + bounded healing under the workflow engine (see §4), never
-  an agent improvising the whole task each run.
+  a bot improvising the whole task each run.
 
 ---
 
@@ -225,5 +225,5 @@ tools. The operator never meets the words "broker," "agent," or "wiki."
 
 An operator goes from "here's how I do X" to a **published tool that ran on real data and
 emailed them a digest** — without writing code, and without learning a single internal
-concept (agent/wiki/skill). If we can't get one real operator through that loop, nothing
+concept (bot/wiki/skill). If we can't get one real operator through that loop, nothing
 else matters.

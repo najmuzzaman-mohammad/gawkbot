@@ -2,9 +2,9 @@ package team
 
 // launcher_options.go owns the user-facing config knob surface: the
 // CLI-bound Set* methods, the small derived predicates that read
-// those knobs back (isOneOnOne, oneOnOneAgent, usesCodexRuntime,
+// those knobs back (isOneOnOne, oneOnOneBot, usesCodexRuntime,
 // usesOpencodeRuntime, UsesTmuxRuntime), and the exported accessors
-// the channel TUI / cmd/wuphf use (BrokerToken, OneOnOneAgent).
+// the channel TUI / cmd/wuphf use (BrokerToken, OneOnOneBot).
 // isBlankSlateLaunchSlug is the literal-form recognizer used by the
 // blank-slate path. Together these are the Launcher's "what mode am
 // I in?" surface — separate from construction (NewLauncher),
@@ -14,10 +14,10 @@ import (
 	"strings"
 )
 
-// SetUnsafe enables unrestricted permissions for all agents (CLI-only flag).
+// SetUnsafe enables unrestricted permissions for all bots (CLI-only flag).
 func (l *Launcher) SetUnsafe(v bool) { l.unsafe = v }
 
-// SetOpusCEO upgrades the CEO agent from Sonnet to Opus.
+// SetOpusCEO upgrades the CEO bot from Sonnet to Opus.
 func (l *Launcher) SetOpusCEO(v bool) { l.opusCEO = v }
 
 // SetFocusMode enables CEO-routed delegation mode.
@@ -38,7 +38,7 @@ func (l *Launcher) SetBrokerConfigurator(fn func(*Broker)) {
 
 func (l *Launcher) SetOneOnOne(slug string) {
 	l.sessionMode = SessionModeOneOnOne
-	l.oneOnOne = NormalizeOneOnOneAgent(slug)
+	l.oneOnOne = NormalizeOneOnOneBot(slug)
 }
 
 func isBlankSlateLaunchSlug(value string) bool {
@@ -58,12 +58,12 @@ func (l *Launcher) isOneOnOne() bool {
 	return NormalizeSessionMode(l.sessionMode) == SessionModeOneOnOne
 }
 
-func (l *Launcher) oneOnOneAgent() string {
+func (l *Launcher) oneOnOneBot() string {
 	if l.broker != nil {
-		_, agent := l.broker.SessionModeState()
-		return NormalizeOneOnOneAgent(agent)
+		_, bot := l.broker.SessionModeState()
+		return NormalizeOneOnOneBot(bot)
 	}
-	return NormalizeOneOnOneAgent(l.oneOnOne)
+	return NormalizeOneOnOneBot(l.oneOnOne)
 }
 
 // usesCodexRuntime reports whether the active install-wide provider uses the
@@ -88,7 +88,7 @@ func (l *Launcher) usesOpencodeRuntime() bool {
 	return strings.EqualFold(strings.TrimSpace(l.provider), "opencode")
 }
 
-// UsesTmuxRuntime reports whether agents run in tmux panes. Exported
+// UsesTmuxRuntime reports whether bots run in tmux panes. Exported
 // for cmd/wuphf/main.go and tests; thin delegator over the targeter.
 func (l *Launcher) UsesTmuxRuntime() bool {
 	return l.targeter().UsesPaneRuntime()
@@ -110,7 +110,7 @@ func (l *Launcher) Broker() *Broker {
 	return l.broker
 }
 
-// OneOnOneAgent returns the active direct-session agent slug, if any.
-func (l *Launcher) OneOnOneAgent() string {
-	return l.oneOnOneAgent()
+// OneOnOneBot returns the active direct-session bot slug, if any.
+func (l *Launcher) OneOnOneBot() string {
+	return l.oneOnOneBot()
 }

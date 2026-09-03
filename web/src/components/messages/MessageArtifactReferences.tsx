@@ -16,7 +16,7 @@ interface MessageArtifactReferencesProps {
 // summary, trust pill, and an "Open article →" action that navigates to
 // the full-screen ArticleView. The article body is NOT inlined in the
 // chat bubble — that breaks the chat reading rhythm and made it look
-// like the agent had given the answer in chat when the actual article
+// like the bot had given the answer in chat when the actual article
 // (with embedded figures) lives elsewhere.
 export default function MessageArtifactReferences({
   artifactIds,

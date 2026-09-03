@@ -1,9 +1,9 @@
 # Design System — WUPHF Pixel Office Website
 
 ## Product Context
-- **What this is:** The marketing/landing website for WUPHF — a source-available AI agent office tool where an AI team (CEO, PM, engineers, designer) works visibly in a shared office, claimable via one terminal command.
+- **What this is:** The marketing/landing website for WUPHF — a source-available AI bot office tool where an AI team (CEO, PM, engineers, designer) works visibly in a shared office, claimable via one terminal command.
 - **Who it's for:** Developers and technical founders who want an AI team that works in the open rather than behind an API.
-- **Space/industry:** AI developer tools / agent frameworks.
+- **Space/industry:** AI developer tools / bot frameworks.
 - **Project type:** Isometric pixel-art marketing site. The website IS the product experience — not a description of it.
 
 ---
@@ -11,8 +11,8 @@
 ## Aesthetic Direction
 - **Direction:** Pixel-Retro / The Office (US TV show) workplace — isometric top-down 3D view
 - **Decoration level:** Expressive — 100% pixel art, no smooth vectors, no photos, no gradients
-- **Mood:** A dark office where something is always happening. AI agents and The Office cast sharing the floor. Dim fluorescent lights, golden WUPHF sign glowing on the back wall, everything quietly animated. You discover the product by exploring the environment, not by reading bullet points.
-- **EUREKA:** Every AI agent platform uses dark mode + gradient hero + "your AI team" headline. This site IS the office. The product concept and the website experience are unified. You don't read about WUPHF — you live in it for 30 seconds on the landing page.
+- **Mood:** A dark office where something is always happening. AI bots and The Office cast sharing the floor. Dim fluorescent lights, golden WUPHF sign glowing on the back wall, everything quietly animated. You discover the product by exploring the environment, not by reading bullet points.
+- **EUREKA:** Every AI bot platform uses dark mode + gradient hero + "your AI team" headline. This site IS the office. The product concept and the website experience are unified. You don't read about WUPHF — you live in it for 30 seconds on the landing page.
 
 ---
 
@@ -30,8 +30,8 @@
 | `--yellow` | `#ECB22E` | WUPHF amber/gold — primary accent, sign, nav logo, CTAs |
 | `--yellow-dark` | `#C49020` | Button offset shadows, active borders |
 | `--yellow-glow` | `rgba(236,178,46,0.15)` | Subtle ambient glow behind the sign |
-| `--blue` | `#5A9AC8` | Secondary accent, links, engineer agent (brighter for dark bg) |
-| `--green` | `#5AAA7A` | CMO agent nameplate |
+| `--blue` | `#5A9AC8` | Secondary accent, links, engineer bot (brighter for dark bg) |
+| `--green` | `#5AAA7A` | CMO bot nameplate |
 
 **Implementation aliases:** The live page may keep legacy CSS variable names while using this token system: `--bg2` maps to `--surface`, `--bg3` maps to `--surface-high`, `--text-dim` maps to `--text-muted`, and `--accent-lime` maps to `--green`. These aliases must not reintroduce purple/violet accents.
 
@@ -150,9 +150,9 @@ Where `TW=60`, `TH=30`, `OX=420`, `OY=100`.
 | Jim Halpert | (3, 3) | At his desk, center — looks at viewer |
 | Kevin Malone | (5.5, 4) | Near snack jar, wide sprite |
 | Creed Bratton | (0.5, 5) | Far corner, doing something unexplained |
-| CEO Agent | (5.5, 2) | Amber nameplate (#ECB22E) |
-| Engineer Agent | (2.5, 4) | Blue nameplate (#5A9AC8) |
-| CMO Agent | (4.2, 3.2) | Green nameplate (#5AAA7A) |
+| CEO Bot | (5.5, 2) | Amber nameplate (#ECB22E) |
+| Engineer Bot | (2.5, 4) | Blue nameplate (#5A9AC8) |
+| CMO Bot | (4.2, 3.2) | Green nameplate (#5AAA7A) |
 
 ### Interactivity
 1. **Flashing drawer:** First desk item (reception desk, right side). Pulses amber. Carries "Click Me!" tooltip above it (amber background, dark text). On click: reveals `"One command. One office. ./wuphf"` in an amber-bordered panel.
@@ -165,8 +165,8 @@ Where `TW=60`, `TH=30`, `OX=420`, `OY=100`.
 |----------|----------------|
 | Reception drawer (first, flashes) | `"One command. One office. ./wuphf"` |
 | Paper on Pam's desk | `"CEO, PM, engineers — all visible, all working."` |
-| Conference room whiteboard | Architecture diagram — agent routing + broker |
-| Agent monitor screen | `"Source available. Fair-code license. go build -o wuphf"` |
+| Conference room whiteboard | Architecture diagram — bot routing + broker |
+| Bot monitor screen | `"Source available. Fair-code license. go build -o wuphf"` |
 | Plant by window | `"Unlike Ryan Howard's WUPHF, this one works."` |
 | Break room fridge | Full install command |
 | Stapler in jello (Dwight area) | Easter egg — Dwight rage quit message |
@@ -182,9 +182,9 @@ Where `TW=60`, `TH=30`, `OX=420`, `OY=100`.
 | Jim Halpert | "How the turntables..." |
 | Kevin Malone | "... (stares at snacks)" |
 | Creed Bratton | "Nobody steals from Creed Bratton and gets away with it. The website is fine." |
-| CEO Agent | "Routing task to engineering team. ETA: 3 minutes." |
-| Engineer Agent | "Implementing feature... 47% complete." |
-| CMO Agent | "Drafting launch post. You will not believe this lede." |
+| CEO Bot | "Routing task to engineering team. ETA: 3 minutes." |
+| Engineer Bot | "Implementing feature... 47% complete." |
+| CMO Bot | "Drafting launch post. You will not believe this lede." |
 
 ---
 
@@ -237,10 +237,10 @@ border-bottom: 3px solid #C49020;
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-04-15 | Dark mode instead of beige/light | Amber (#ECB22E) pops on dark. On beige it washes out. Dark also fits "AI agents working late" narrative and differentiates from every SaaS site using white + blue. |
+| 2026-04-15 | Dark mode instead of beige/light | Amber (#ECB22E) pops on dark. On beige it washes out. Dark also fits "AI bots working late" narrative and differentiates from every SaaS site using white + blue. |
 | 2026-04-15 | WUPHF Yellow (#ECB22E) as primary accent | Picked up from existing app `--yellow` token. Consistent with product branding. |
 | 2026-04-15 | Press Start 2P + VT323 + DM Mono | Three-font system: pixel UI, in-world dialogue, functional prose. Each has a distinct register. |
 | 2026-04-15 | Zero hero copy in first viewport | All messaging is environmental. The product concept (visible AI team) IS the website experience. |
 | 2026-04-15 | steps() animations only — hard rule | Smooth CSS transitions break the pixel art illusion. 16-bit game feel requires discrete frames. |
 | 2026-04-15 | Isometric 3D view as hero layout | Isometric is unmistakable and distinctive. No other AI tool website does this. The product IS an office, so the website IS an office. |
-| 2026-04-15 | The Office cast + WUPHF agents on same floor | Office cast provides instant recognition and humor. AI agents demonstrate the product inline. The joke writes itself — they coexist. |
+| 2026-04-15 | The Office cast + WUPHF bots on same floor | Office cast provides instant recognition and humor. AI bots demonstrate the product inline. The joke writes itself — they coexist. |

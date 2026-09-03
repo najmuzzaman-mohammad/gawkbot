@@ -30,11 +30,11 @@ requirements:
   - kind: api-key
     name: "ANTHROPIC_API_KEY or OPENAI_API_KEY"
     required: true
-    detail: "Powers the bookkeeper, invoicing, and reviewer agents."
+    detail: "Powers the bookkeeper, invoicing, and reviewer bots."
   - kind: runtime
     name: "Claude Code or Codex CLI"
     required: true
-    detail: "Runs the agent loops locally on your machine."
+    detail: "Runs the bot loops locally on your machine."
 example_artifacts:
   - kind: checklist
     title: "Monthly close checklist"
@@ -529,7 +529,7 @@ wiki_schema:
       skeleton: |
         # Who can approve adjustments
 
-        _(Decision log for authority rules: which categories of journal entries need human review, which can the agents post, what triggers a client-facing question. Add a dated entry every time the rule changes.)_
+        _(Decision log for authority rules: which categories of journal entries need human review, which can the bots post, what triggers a client-facing question. Add a dated entry every time the rule changes.)_
     - path: team/pricing/engagement-tiers.md
       title: "Engagement tiers and scope"
       skeleton: |

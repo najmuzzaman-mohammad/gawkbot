@@ -1,7 +1,7 @@
 package team
 
 // gbrain_cycle_it_test.go is a live integration test for the compounding
-// loop: office chat -> capture into gbrain -> retrieved as agent context with
+// loop: office chat -> capture into gbrain -> retrieved as bot context with
 // NO prompting. It drives the real production code paths (the gbrainSourceWriter
 // capture path from G4 and gbrainMemoryBackend.FetchBrief, which headless_claude
 // injects into every turn), not fakes.

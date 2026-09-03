@@ -1,16 +1,16 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AgentRequest } from "../../api/client";
+import type { BotRequest } from "../../api/client";
 import { RequestItem } from "./RequestItem";
 
 describe("<RequestItem>", () => {
   function makeInterviewRequest(
     id: string,
-    options: AgentRequest["options"] = [
+    options: BotRequest["options"] = [
       { id: "answer_directly", label: "Answer directly" },
     ],
-  ): AgentRequest {
+  ): BotRequest {
     return {
       id,
       from: "research",

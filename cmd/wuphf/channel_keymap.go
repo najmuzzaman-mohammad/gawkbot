@@ -154,7 +154,7 @@ func (m channelModel) handleKeyMsg(msg tea.KeyMsg) (channelModel, tea.Cmd) {
 			m.memberDraft = nil
 			m.input = nil
 			m.inputPos = 0
-			m.notice = "Agent setup canceled."
+			m.notice = "Bot setup canceled."
 			return m, nil
 		case contextDoctor:
 			m.doctor = nil
@@ -269,14 +269,14 @@ func (m channelModel) handleKeyMsg(msg tea.KeyMsg) (channelModel, tea.Cmd) {
 			m.notice = "Calendar now shows this week."
 			return m, nil
 		case "f":
-			options := m.buildCalendarAgentPickerOptions()
+			options := m.buildCalendarBotPickerOptions()
 			if len(options) == 0 {
 				m.notice = "No teammate filters available."
 				return m, nil
 			}
 			m.picker = tui.NewPicker("Filter Calendar", options)
 			m.picker.SetActive(true)
-			m.pickerMode = channelPickerCalendarAgent
+			m.pickerMode = channelPickerCalendarBot
 			return m, nil
 		case "a":
 			m.calendarFilter = ""

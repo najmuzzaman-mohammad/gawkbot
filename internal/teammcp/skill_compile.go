@@ -1,7 +1,7 @@
 package teammcp
 
 // skill_compile.go exposes the broker's Stage A wiki→skill compile pipeline
-// as a single MCP tool (team_skill_compile). Agents can call this when they
+// as a single MCP tool (team_skill_compile). Bots can call this when they
 // notice a wiki article that looks like a reusable skill but hasn't been
 // promoted yet — the broker handles the LLM gate, dedup, and tombstone
 // checks.

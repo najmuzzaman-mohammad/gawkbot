@@ -382,7 +382,7 @@ describe("CeoChecklist", () => {
     expect(designerBox).toBeChecked();
   });
 
-  it("calls onSubmit with selected agent IDs", () => {
+  it("calls onSubmit with selected bot IDs", () => {
     const onSubmit = vi.fn();
     render(
       <CeoChecklist
@@ -1006,7 +1006,7 @@ describe("InterviewBar", () => {
     expect(screen.getByTestId("ceo-card-section")).toBeInTheDocument();
     expect(screen.getByTestId("ceo-form-field")).toBeInTheDocument();
     expect(
-      screen.queryByRole("region", { name: "Pending agent request" }),
+      screen.queryByRole("region", { name: "Pending bot request" }),
     ).not.toBeInTheDocument();
   });
 });

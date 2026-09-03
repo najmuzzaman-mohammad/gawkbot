@@ -10,7 +10,7 @@ import (
 )
 
 // TestLiveContainerLifecycle drives a real runtime end to end: create a
-// desktop for a throwaway agent, wait until Cua Driver answers, take a
+// desktop for a throwaway bot, wait until Cua Driver answers, take a
 // screenshot, put it to sleep, wake it, verify it is ready again, and remove
 // it. It needs the managed image already prepared and is opt-in:
 //

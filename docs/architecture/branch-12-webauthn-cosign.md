@@ -51,8 +51,8 @@ credential id inside the assertion.
 - `endpoint_allowlist_extension`: approves adding an `openai-compat` endpoint
   at runtime. Fields: `claimId`, `agentId`, `providerKind`, `endpointOrigin`,
   `reason`.
-- `credential_grant_to_agent`: approves binding a credential handle to an
-  agent. Fields: `claimId`, `granteeAgentId`, `credentialHandleId`,
+- `credential_grant_to_agent`: approves binding a credential handle to a
+  bot. Fields: `claimId`, `granteeAgentId`, `credentialHandleId`,
   `credentialScope`.
 - `receipt_co_sign`: approves a receipt or write. Fields: `claimId`,
   `receiptId`, optional `writeId`, `frozenArgsHash`, and `riskClass`.
@@ -65,7 +65,7 @@ harder before the broker has durable token-consumption plumbing. `ApprovalScope`
 therefore carries `mode: "single_use"`, the matching `claimId`, `claimKind`,
 `role`, `maxUses: 1`, and the narrow target fields needed by that claim kind.
 The broker consumes `tokenId` atomically after successful verification.
-Expired, already-consumed, wrong-agent, wrong-role, wrong-claim, or
+Expired, already-consumed, wrong-bot, wrong-role, wrong-claim, or
 wrong-target submissions fail closed.
 
 ## Threshold Model
@@ -141,7 +141,7 @@ stateDiagram-v2
 - Challenge expired, unknown, reused, or not bound to the canonical claim/scope.
 - Assertion origin, RP ID, credential id, sign count, user presence, or user
   verification fails broker policy.
-- Token is presented by an agent other than `issuedTo`.
+- Token is presented by a bot other than `issuedTo`.
 - Threshold has too few distinct trusted credentials.
 - Broker crashes after verification but before consumption; idempotent replay
   returns the same outcome for the same `tokenId` only inside the challenge
@@ -151,7 +151,7 @@ stateDiagram-v2
 ## Threat Model
 
 - Malicious renderer mutates claim JSON after the human sees it.
-- Agent replays a valid token against another receipt, write, endpoint, or
+- Bot replays a valid token against another receipt, write, endpoint, or
   credential grant.
 - Compromised local process submits stale tokens after the review context has
   changed.
@@ -162,7 +162,7 @@ stateDiagram-v2
 
 1. Resolved for v1: renderer settings may start WebAuthn registration without
    a pending high-stakes claim. The broker registration routes are standalone
-   and bind the credential to the bearer-mapped agent plus requested role.
+   and bind the credential to the bearer-mapped bot plus requested role.
 2. Resolved for v1: RP ID and allowed origins are broker config, with dev
    defaults (`localhost`, `http://localhost:5173`, and
    `http://127.0.0.1:5173`). Packaged desktop and future cloud-backed bridge

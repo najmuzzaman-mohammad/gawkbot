@@ -15,7 +15,7 @@ Two open-source references were read end to end:
 
 | | OpenMausBot (milind-soni) | Rakazo (elie222) |
 |---|---|---|
-| Agent process | Local `claude`/`codex` CLI on the host, computer = one MCP server | Pi agent inside the API server, computer tools are built-in Pi tools |
+| Bot process | Local `claude`/`codex` CLI on the host, computer = one MCP server | Pi bot inside the API server, computer tools are built-in Pi tools |
 | Local sandbox | Docker/Podman/Apple `container` per bot, pinned `trycua/xfce-cua` base plus Cua Driver 0.20.0 | Docker per computer via a supervisor service, custom slim Debian image: Xvfb, fluxbox, Chromium, x11vnc, noVNC, Python control server, native capture lib |
 | Model tools | Cua Driver, 20+ tools incl. accessibility tree, `docker exec -i … cua-driver mcp` | `computer_observe`, batched `computer_act` (xdotool, coordinates only), shell, files |
 | Watching | Poll a JPEG every 6 s while a turn runs, poke after each tool call, settle the last frame into the transcript | Embedded noVNC iframe proxied by the API with a signed view/control capability URL, real live video |
@@ -23,7 +23,7 @@ Two open-source references were read end to end:
 | Cloud | ascii.dev Box (persistent disk, REST commands), BYO VPS over `docker -H ssh://` | E2B, Daytona, Box, with a provider-neutral workspace checkpoint so providers can be swapped |
 | Persistence | Per-bot workspace bind mount | Portable home checkpointed into DATA_DIR at run end, idle, stop |
 
-gawkbot spawns `claude` and `codex` CLIs, so the agent must stay on the host and the
+gawkbot spawns `claude` and `codex` CLIs, so the bot must stay on the host and the
 computer must be an MCP server. That rules out Rakazo's in-process tool design and makes
 OpenMausBot's infra the right base: pinned Cua image, Cua Driver as the one tool surface,
 hardened per-bot container, ascii.dev Box for cloud, BYO VPS free. Rakazo wins on one thing
@@ -38,7 +38,7 @@ XFCE via `xstartup.sh`, supervisord as PID 1, resolution 1280x900.
 
 ## The shape in one paragraph
 
-The agent process never moves. `claude` and `codex` keep running on the
+The bot process never moves. `claude` and `codex` keep running on the
 user's machine exactly as today. A bot's "computer" is one MCP server named
 `computer` that the broker mounts into that turn's `--mcp-config` (Claude) or
 `mcp_servers.*` overrides (Codex). Behind that one entry sits a Linux desktop
@@ -91,7 +91,7 @@ its own computer".
 
 ## Data model
 
-On the agent record:
+On the bot record:
 
 ```
 computer:        "off" | "sandbox" | "cloud" | "selfhosted"   (default per D8)
@@ -99,7 +99,7 @@ cloudBackend:    "box"                                        (room for "cua", "
 autoStartCloud:  bool                                         (default false, external spend)
 ```
 
-Broker-side, keyed by sha256 of the agent id, never by slug or display name:
+Broker-side, keyed by sha256 of the bot id, never by slug or display name:
 
 ```
 container name   gawkbot-computer-<sha16>
@@ -113,7 +113,7 @@ cloud box name   gb-<agentid8>-<sha6>
 Three surfaces, all driven by one SSE event family `computer` with
 `{agentSlug, state, frame?, held?, helpReason?}`.
 
-1. **Computer tab** in the agent subspace, next to Chat, App, Notebooks,
+1. **Computer tab** in the bot subspace, next to Chat, App, Notebooks,
    Calendar, Settings. Header: state pill (`off`, `building image`,
    `starting`, `ready`, `asleep`, `bot needs hands`), destination selector,
    three buttons (`Take control` / `Give it back`, `Sleep`, `Console`).
@@ -122,10 +122,10 @@ Three surfaces, all driven by one SSE event family `computer` with
    control the frame is replaced by the noVNC iframe on the loopback
    viewer port (local, self-hosted) or the provider desktop URL (cloud).
 2. **Frames in chat.** Every `computer` tool call in a turn produces a
-   small screen pill in the thread, using the existing agent-event pill
+   small screen pill in the thread, using the existing bot-event pill
    component. Click expands to the full frame. A held-control interval
    renders as a system line "Sam took control for 42 s".
-3. **Sidebar hands-on dot.** The agent avatar gets a small monitor glyph
+3. **Sidebar hands-on dot.** The bot avatar gets a small monitor glyph
    while its computer is `ready` and a turn is running.
 
 Storybook stories for all three states, including the empty state with
@@ -139,7 +139,7 @@ New package `internal/computer` (a distinct subsystem, not a helper).
 - `image.go`: Dockerfile string with pinned base digest, driver wheel
   URL and SHA per arch, labels for driver version and layer version;
   `Prepare()` pulls and builds, streams progress lines to SSE.
-- `target.go`: per-bot names and dirs from the sha256 of the agent id.
+- `target.go`: per-bot names and dirs from the sha256 of the bot id.
 - `lifecycle.go`: provision, start, sleep, remove; per-target mutex; a
   lease per target claimed synchronously at turn start and touched by
   runtime events; idle timer that sleeps the container when no turn owns it.
@@ -148,7 +148,7 @@ New package `internal/computer` (a distinct subsystem, not a helper).
   wrong image labels, or missing hardening. Refuse, never repair.
 - `screenshot.go`: JPEG frame via the driver over `exec`, cached 10 s,
   scaled to 1024 wide.
-- `control.go`: one in-memory record per agent. Only the person takes or
+- `control.go`: one in-memory record per bot. Only the person takes or
   releases; the bot can only `computer_request_help`. While held, the
   tool proxy refuses actions rather than queueing them.
 - `viewer.go`: ephemeral loopback port for noVNC with a per-boot password
@@ -208,7 +208,7 @@ gets the mount.
 
 All broker routes are bearer-protected and reached by the web UI through the `/api` proxy.
 
-### Agent record
+### Bot record
 
 `officeMember` gains two fields, both optional on the wire:
 
@@ -232,7 +232,7 @@ GET  /computer/runtime
 POST /computer/runtime/prepare   body {}   -> 202 { building: true }   (progress arrives as SSE)
 ```
 
-### Per-agent computer
+### Per-bot computer
 
 ```
 GET  /computer/{slug}
@@ -271,7 +271,7 @@ Every mutation requires `content-type: application/json`.
   held?: bool, help_reason?: string|null }
 ```
 
-### Agent stream lines (per-agent `/agent-stream/{slug}`)
+### Bot stream lines (per-bot `/agent-stream/{slug}`)
 
 Turn end appends one settled frame when the turn touched the screen:
 

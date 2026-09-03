@@ -9,9 +9,9 @@ import (
 
 // TestSkipTaskSeedsWelcomeOnly asserts the post-R6 onboarding invariant:
 // when the wizard finishes with skip_task=true, the human lands with the
-// system welcome and NO staged agent presence line. The demo_seed
+// system welcome and NO staged bot presence line. The demo_seed
 // machinery was removed (core-loop R6) — the loop wants a real first
-// paint, so any reappearance of a synthetic agent post here is a
+// paint, so any reappearance of a synthetic bot post here is a
 // regression.
 //
 // The welcome now lands in the LEAD's DM rather than #general. That is the

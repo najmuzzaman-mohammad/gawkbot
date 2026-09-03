@@ -6,7 +6,7 @@
  *  1. It reads as what the app IS. An `app_9f3c1d…` id in a sentence tells a
  *     human nothing, so the pill resolves to the app's NAME and keeps the id
  *     only as the hover title. (A task pill shows id AND title because the id
- *     is the handle people quote back to agents; an app id is a hash nobody
+ *     is the handle people quote back to bots; an app id is a hash nobody
  *     quotes, so the name carries it alone.)
  *  2. Clicking opens the app, rather than leaving the reader to hunt the
  *     sidebar for something they were just told about.
@@ -73,7 +73,7 @@ export function AppRefLink({ appId, children }: AppRefLinkProps) {
       className="msg-app-link"
       href={`#/apps/${appId}`}
       data-app-id={appId}
-      // The id stays reachable on hover: it is what an agent will have been
+      // The id stays reachable on hover: it is what a bot will have been
       // given, so a human occasionally needs to read it back.
       title={name ? `${name} · ${appId}` : appId}
       aria-label={name ? `Open app ${name}` : `Open app ${appId}`}

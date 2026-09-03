@@ -108,17 +108,17 @@ func TestHumanWikiIntent_PostMessage_LandsInTeamWiki(t *testing.T) {
 	}
 }
 
-// Agent senders must NOT trigger a human-wiki write — the hook is human-only.
+// Bot senders must NOT trigger a human-wiki write — the hook is human-only.
 func TestHumanWikiIntent_AgentSenderProducesNoWrite(t *testing.T) {
 	b, _, teardown := brokerWithHumanWikiWriter(t)
 	defer teardown()
 
-	if !b.IsAgentMemberSlug("ceo") {
-		t.Skip("default manifest missing 'ceo'; cannot exercise agent-sender path")
+	if !b.IsBotMemberSlug("ceo") {
+		t.Skip("default manifest missing 'ceo'; cannot exercise bot-sender path")
 	}
 
 	if _, err := b.PostMessage("ceo", "team",
-		"remember this: agents must not trigger this path", nil, ""); err != nil {
+		"remember this: bots must not trigger this path", nil, ""); err != nil {
 		t.Fatalf("PostMessage: %v", err)
 	}
 
@@ -137,7 +137,7 @@ func TestHumanWikiIntent_AgentSenderProducesNoWrite(t *testing.T) {
 	}
 
 	// Exactly one Written — from the sentinel only. Enqueued must also be 1
-	// because the agent message was filtered at the hook site, never reaching
+	// because the bot message was filtered at the hook site, never reaching
 	// Handle.
 	c := b.humanWikiWriter.Counters()
 	if c.Written != 1 {
@@ -145,7 +145,7 @@ func TestHumanWikiIntent_AgentSenderProducesNoWrite(t *testing.T) {
 			c.Written, c)
 	}
 	if c.Enqueued != 1 {
-		t.Fatalf("expected Enqueued=1 (agent filtered at hook); got %d", c.Enqueued)
+		t.Fatalf("expected Enqueued=1 (bot filtered at hook); got %d", c.Enqueued)
 	}
 }
 

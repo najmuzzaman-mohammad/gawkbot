@@ -73,10 +73,10 @@ func RecentExternalActions(actions []Action, limit int) []Action {
 	return out
 }
 
-// AgentSlugForDisplay returns the slug of the member whose Name or
+// BotSlugForDisplay returns the slug of the member whose Name or
 // resolved display-name matches the given name. Returns "" when no
 // member matches.
-func AgentSlugForDisplay(name string, members []Member) string {
+func BotSlugForDisplay(name string, members []Member) string {
 	for _, member := range members {
 		if member.Name == name || DisplayName(member.Slug) == name {
 			return member.Slug

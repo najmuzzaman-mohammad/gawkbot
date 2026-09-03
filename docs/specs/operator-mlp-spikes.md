@@ -222,7 +222,7 @@ screenshots, `http_get`.
 
 **Findings vs our needs:**
 - **Don't lift the code.** It's Python (our broker is Go) and it's an *agentic-freedom* harness —
-  the opposite of our deterministic goal. Its "API detection" is an agent watching network +
+  the opposite of our deterministic goal. Its "API detection" is a bot watching network +
   hand-writing per-site skill notes; it has **no deterministic HAR→spec synthesizer**. For spec
   synthesis, `browsersniff` (Spike 4) is strictly better.
 - **Lift the technique:** attach to the operator's **existing, logged-in Chrome** over CDP and
@@ -248,7 +248,7 @@ exploration is the **right tool for the build/discover phase**, not a rejected p
   (except bounded CUA-heal).
 
 **DECIDED (founder):** the build-phase agentic explorer = **Go/chromedp wired into our existing
-broker agent loop**. We borrow browser-harness's techniques (real-browser CDP attach, Network-domain
+broker bot loop**. We borrow browser-harness's techniques (real-browser CDP attach, Network-domain
 capture, per-site helper accretion) but build them as browser tools in-stack — no Python sidecar.
 The agentic build phase runs under our existing gating + audit; `browsersniff` (Go/chromedp) is the
 deterministic synthesizer; our engine is the deterministic executor. One stack, two modes.
@@ -267,7 +267,7 @@ app creation exists. (The detector itself lives on the workflow-detection branch
 
 **Creation — production-grade, not a POC:** host pre-scaffolds → App Builder implements
 refine+Mantine single-file → **build gate** (`bun run verify`) → `register_app(html_path,
-source_path)` → **host runs the build server-side** (agent can't paste bundles; host overwrites
+source_path)` → **host runs the build server-side** (bot can't paste bundles; host overwrites
 protected files: bridge/CSP/config) → validates (sandbox policy + deterministic **build-time
 guards**: efficiency, stack conformance, theme depth, card-pile) → version snapshot. Plus **live
 preview** (per-app Vite dev server + broker reverse proxy + HMR), **persistent edit chat** bound to
@@ -354,14 +354,14 @@ The karpathy-wiki author confirmed gbrain materially exceeds what that branch bu
 4. gbrain's full federation/OAuth-scoping is **team-scale** (Nex cloud); the single-operator MLP uses
    gbrain's brain (sources/compile/graph/retrieval/self-heal), not the org-chart layer yet.
 
-**How the broker connects (from gbrain's connect-coding-agent tutorial):** gbrain is an **MCP server**
+**How the broker connects (from gbrain's connect-coding-bot tutorial):** gbrain is an **MCP server**
 — local stdio (`gbrain serve` subprocess) or remote HTTP (bearer token). Our broker already speaks MCP
-(teammcp), so it connects as an MCP client. Agent tool surface: **`search`** / **`query`** (synthesized
+(teammcp), so it connects as an MCP client. Bot tool surface: **`search`** / **`query`** (synthesized
 + citations) for reads, **`put_page`** for writes, **`find_experts`**, `get_brain_identity`, `list_skills`.
 Two patterns map exactly to our needs:
-- **Brain-first read:** workflow AI-steps, the build/capture agent, and the assistant call `search`/`query`
+- **Brain-first read:** workflow AI-steps, the build/capture bot, and the assistant call `search`/`query`
   *before* answering — this is "knowledge powers workflows day-to-day."
-- **Ambient capture (write):** agents `put_page` decisions/entities back; office activity feeds gbrain
+- **Ambient capture (write):** bots `put_page` decisions/entities back; office activity feeds gbrain
   ingestion. Knowledge compounds without manual filing.
 
 **Lift verdict:** **Knowledge backend = gbrain entirely** (MCP: search/query/put_page); **Knowledge

@@ -23,7 +23,7 @@ func (b *Broker) registerComputerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/computer/box/signin/cancel", b.requireAuth(b.handleBoxSigninCancel))
 	mux.HandleFunc("/computer/box/signout", b.requireAuth(b.handleBoxSignout))
 	mux.HandleFunc("/computer/box/account", b.requireAuth(b.handleBoxAccount))
-	mux.HandleFunc("/computer/", b.requireAuth(b.handleComputerAgent))
+	mux.HandleFunc("/computer/", b.requireAuth(b.handleComputerBot))
 	mux.HandleFunc("/computer-control/", b.requireAuth(b.handleComputerControl))
 }
 
@@ -69,8 +69,8 @@ func (b *Broker) handleComputerRuntimePrepare(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusAccepted, map[string]bool{"building": true})
 }
 
-// handleComputerAgent serves /computer/{slug} and /computer/{slug}/{action}.
-func (b *Broker) handleComputerAgent(w http.ResponseWriter, r *http.Request) {
+// handleComputerBot serves /computer/{slug} and /computer/{slug}/{action}.
+func (b *Broker) handleComputerBot(w http.ResponseWriter, r *http.Request) {
 	rest := strings.TrimPrefix(r.URL.Path, "/computer/")
 	slug, action, _ := strings.Cut(rest, "/")
 	slug = strings.TrimSpace(slug)
@@ -80,7 +80,7 @@ func (b *Broker) handleComputerAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	svc := b.computers()
 	if _, ok := svc.member(slug); !ok {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such agent"})
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such bot"})
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)

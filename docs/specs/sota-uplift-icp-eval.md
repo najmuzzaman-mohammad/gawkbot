@@ -1,8 +1,8 @@
 # ICP Live Evaluation — Three Full Journeys (Sam)
 
-**Status:** Evaluation protocol — run live against `feat/sota-uplift-phase0`, observed as a human, graded by an independent sub-agent.
+**Status:** Evaluation protocol — run live against `feat/sota-uplift-phase0`, observed as a human, graded by an independent sub-bot.
 **Personas (per founder direction 2026-06-10: Maya primary, Sam secondary):**
-- **Maya (PRIMARY, per persona memory)** — RevOps operator at a Series B B2B SaaS. Owns CRM hygiene, lead routing, forecasting; runs renewal motions, pipeline cleanup, sales enablement. Operates a fleet of agents; does not write code. Her secondary buyer is the CRO, who approves renewal after walking the audit trail — so legibility of WHO did WHAT and WHY is purchase-critical, not nice-to-have. Natural pack: revops. Journeys 1–2 are hers.
+- **Maya (PRIMARY, per persona memory)** — RevOps operator at a Series B B2B SaaS. Owns CRM hygiene, lead routing, forecasting; runs renewal motions, pipeline cleanup, sales enablement. Operates a fleet of bots; does not write code. Her secondary buyer is the CRO, who approves renewal after walking the audit trail — so legibility of WHO did WHAT and WHY is purchase-critical, not nice-to-have. Natural pack: revops. Journeys 1–2 are hers.
 - **Sam (secondary)** — founder of a 3-person startup; wants a team that takes initiative and produces visible artifacts, approves the right thing in 30 seconds. Journey 3 is his (the buildable-artifact + definition-of-done path).
 
 Both are actively deciding whether to keep this software — every step is also an evaluation of whether WUPHF earns a place in their stack.
@@ -14,7 +14,7 @@ Both are actively deciding whether to keep this software — every step is also 
 - **Control** — could I steer, veto, or correct without fighting the system?
 - **Feel** — moments of delight vs. moments of jank/confusion (copy, layout, dead ends, jargon).
 
-The runner records raw observations only (what was on screen, what was clicked, what was read, waits, reactions). The grader — a separate agent — assigns scores and the keep/churn verdict.
+The runner records raw observations only (what was on screen, what was clicked, what was read, waits, reactions). The grader — a separate bot — assigns scores and the keep/churn verdict.
 
 ---
 
@@ -28,7 +28,7 @@ Maya heard about WUPHF from a founder friend. She gives it one hour to prove it 
    > "We have three renewals coming up: Acme Corp (Q3, $48k, champion left in May), Brightline (Q3, $22k, usage up 40%), and Corti Labs (Q4, $61k, two unresolved support escalations). Draft a tailored renewal email for each, capture a per-account brief on the wiki, and write a renewal-outreach playbook we can reuse every quarter."
 4. **Watch the machine think.** Does the CEO acknowledge fast? Does it ask a smart question or just run? Does an Issue/task appear somewhere Sam can find? Is the spec it wrote faithful to the ask?
 5. **Approval moment.** If an approval/plan gate appears: is it clear what he's approving, and why this needs him?
-6. **Work happens.** Watch agents work: can Sam tell who is doing what right now? Are status signals honest (not "reviewing work packet" forever)? Does anything visibly collaborate?
+6. **Work happens.** Watch bots work: can Sam tell who is doing what right now? Are status signals honest (not "reviewing work packet" forever)? Does anything visibly collaborate?
 7. **The deliverable.** When the office says done: where is the one-pager? Is it readable, good, and findable without help? Did the wiki actually get competitor articles? Is "done" marked verified or unverified — and does Sam understand the difference (VerificationBadge)?
 8. **Standing automation.** Maya asks: "Every Monday, check which renewals are within 60 days and post a risk summary in #general." Does the office create a visible scheduled/recurring task she can find and trust?
 9. **The hour verdict.** Could Maya forward an artifact to her VP saying "my AI office drafted these"?
@@ -66,4 +66,4 @@ Sam's run (separate lens, same workspace mechanics): can the office produce a wo
 - Fresh scratch workspace (isolated HOME), source build of the branch, dev ports (79xx — never 7890/7891), real `claude-code` provider, real LLM turns.
 - Runner drives the actual web UI in a browser, reads every screen, and appends raw timestamped observations (+ screenshots) to the run log. No scoring, no benefit-of-the-doubt: if a thing is confusing, the log says so in Sam's voice.
 - Time-boxing honesty: waits are recorded in wall-clock minutes. If a step dead-ends, the log records what Sam would have done (given up / asked support / poked around) before the runner works around it.
-- After all three journeys, a **separate grader sub-agent** receives: this spec, the full observation log, and screenshots. It scores every step (Speed/Legibility/Trust/Control/Feel, 1–5), lists happy points and disappointment points, and renders the verdict: does Sam keep WUPHF? It also separates "design flaw" from "missing feature" from "bug".
+- After all three journeys, a **separate grader sub-bot** receives: this spec, the full observation log, and screenshots. It scores every step (Speed/Legibility/Trust/Control/Feel, 1–5), lists happy points and disappointment points, and renders the verdict: does Sam keep WUPHF? It also separates "design flaw" from "missing feature" from "bug".

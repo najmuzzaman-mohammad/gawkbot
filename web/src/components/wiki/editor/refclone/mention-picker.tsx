@@ -118,7 +118,7 @@ export function EditorMentionPicker({
     icon: React.ComponentType<{ className?: string }>;
     list: MentionItem[];
   }[] = [
-    { title: "Agents", icon: Bot, list: agents },
+    { title: "Bots", icon: Bot, list: agents },
     { title: "Pages", icon: FileText, list: pages },
   ];
 

@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 import ArticleStatusBanner from "./ArticleStatusBanner";
 
 describe("<ArticleStatusBanner>", () => {
-  it("renders the Live prefix when a liveAgent is set", () => {
+  it("renders the Live prefix when a liveBot is set", () => {
     render(
       <ArticleStatusBanner
         message="CEO is editing this article."
-        liveAgent="ceo"
+        liveBot="ceo"
         revisions={47}
         contributors={6}
         wordCount={2347}
@@ -21,7 +21,7 @@ describe("<ArticleStatusBanner>", () => {
     expect(screen.getByText(/2,347 words/)).toBeInTheDocument();
   });
 
-  it("falls back to Status: when no liveAgent is set and omits meta when empty", () => {
+  it("falls back to Status: when no liveBot is set and omits meta when empty", () => {
     render(<ArticleStatusBanner message="Everything is fine." />);
     expect(screen.getByText(/Status:/)).toBeInTheDocument();
   });

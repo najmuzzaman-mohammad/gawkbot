@@ -170,7 +170,7 @@ func (b *Broker) archivedChannelDescriptorLocked(slug string) (title, details st
 	if isDirectChannelSlug(slug) {
 		who := humanizeSlug(dmCounterpartSlug(slug))
 		if strings.TrimSpace(who) == "" {
-			who = "an agent"
+			who = "a bot"
 		}
 		return "Chat with " + who,
 			"Archived on upgrade: preserves your earlier 1:1 messages with " + who +
@@ -181,7 +181,7 @@ func (b *Broker) archivedChannelDescriptorLocked(slug string) (title, details st
 		name = strings.TrimSpace(ch.Name)
 	}
 	// ch.Name is a user-supplied display string. It is interpolated into the
-	// archived task's Title + Details, which are delivered verbatim in agent
+	// archived task's Title + Details, which are delivered verbatim in bot
 	// execution packets — so a name containing newlines or instruction-like
 	// markers would be a stored prompt-injection vector. Strip control
 	// characters, collapse whitespace, and bound the length.
@@ -193,7 +193,7 @@ func (b *Broker) archivedChannelDescriptorLocked(slug string) (title, details st
 }
 
 // dmCounterpartSlug extracts the non-human participant from a DM channel slug
-// (`<agent>__human`, `human__<agent>`, or the legacy `dm-<agent>` shape).
+// (`<bot>__human`, `human__<bot>`, or the legacy `dm-<bot>` shape).
 func dmCounterpartSlug(slug string) string {
 	s := strings.TrimSpace(slug)
 	if rest, ok := strings.CutPrefix(s, "dm-"); ok {
@@ -250,10 +250,10 @@ func sanitizeIDSegment(s string) string {
 }
 
 // sanitizeChannelDisplayName makes a user-supplied channel name safe to embed
-// in an archived task's Title/Details (which reach agents verbatim). It drops
+// in an archived task's Title/Details (which reach bots verbatim). It drops
 // control characters, turns tabs/newlines into spaces, collapses whitespace
 // runs, and bounds the length so a crafted name cannot inject newlines or
-// instruction-like markers into an agent's execution packet.
+// instruction-like markers into a bot's execution packet.
 func sanitizeChannelDisplayName(name string) string {
 	cleaned := strings.Map(func(r rune) rune {
 		switch r {

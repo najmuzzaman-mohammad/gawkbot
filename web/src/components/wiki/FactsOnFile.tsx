@@ -7,7 +7,7 @@ import {
   fetchFacts,
   subscribeEntityEvents,
 } from "../../api/entity";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 import PixelAvatar from "./PixelAvatar";
 
 interface FactsOnFileProps {
@@ -100,7 +100,7 @@ export default function FactsOnFile({ kind, slug }: FactsOnFileProps) {
         <p className="wk-facts-error">{error}</p>
       ) : facts.length === 0 ? (
         <p className="wk-facts-empty">
-          0 facts recorded yet. Agents will add facts as they work.
+          0 facts recorded yet. Bots will add facts as they work.
         </p>
       ) : (
         <>
@@ -148,7 +148,7 @@ export default function FactsOnFile({ kind, slug }: FactsOnFileProps) {
                       {f.type || typeof f.confidence === "number"
                         ? " · "
                         : null}
-                      {formatAgentName(f.recorded_by)}
+                      {formatBotName(f.recorded_by)}
                       {" · "}
                       <time dateTime={f.created_at}>
                         {formatShortTs(f.created_at)}
@@ -220,7 +220,7 @@ export default function FactsOnFile({ kind, slug }: FactsOnFileProps) {
  *  Schema §3 three-layer architecture: wiki/artifacts/ (Layer 1, raw),
  *  team/ (Layer 2, briefs), wiki/facts/ (Layer 2, fact log),
  *  wiki/insights/ (Layer 2, insights), wiki/playbooks/ (Layer 2, playbooks).
- *  agents/ is the legacy v1.2 per-agent notebook path and is retained for
+ *  bots/ is the legacy v1.2 per-bot notebook path and is retained for
  *  backwards compatibility with existing fact rows. */
 function isWikiSource(path?: string): path is string {
   if (!path) return false;
@@ -230,7 +230,7 @@ function isWikiSource(path?: string): path is string {
     path.startsWith("wiki/facts/") ||
     path.startsWith("wiki/insights/") ||
     path.startsWith("wiki/playbooks/") ||
-    path.startsWith("agents/") // legacy v1.2 per-agent notebook path
+    path.startsWith("agents/") // legacy v1.2 per-bot notebook path
   );
 }
 

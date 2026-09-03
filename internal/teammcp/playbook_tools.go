@@ -2,7 +2,7 @@ package teammcp
 
 // playbook_tools.go defines the three v1.3 playbook MCP tools:
 //
-//   playbook_list               — list compiled playbooks agents can invoke
+//   playbook_list               — list compiled playbooks bots can invoke
 //   playbook_compile            — manually recompile a specific playbook
 //   playbook_execution_record   — record the outcome of a playbook run
 //
@@ -21,24 +21,24 @@ import (
 
 // TeamPlaybookListArgs is the contract for playbook_list (no inputs).
 type TeamPlaybookListArgs struct {
-	MySlug string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 }
 
 // TeamPlaybookCompileArgs is the contract for playbook_compile.
 type TeamPlaybookCompileArgs struct {
-	MySlug string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	Slug   string `json:"slug" jsonschema:"Kebab-case playbook slug matching team/playbooks/{slug}.md."`
 }
 
 // TeamPlaybookSynthesizeNowArgs is the contract for playbook_synthesize_now.
 type TeamPlaybookSynthesizeNowArgs struct {
-	MySlug string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	Slug   string `json:"slug" jsonschema:"Kebab-case playbook slug matching team/playbooks/{slug}.md."`
 }
 
 // TeamPlaybookExecutionRecordArgs is the contract for playbook_execution_record.
 type TeamPlaybookExecutionRecordArgs struct {
-	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug  string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	Slug    string `json:"slug" jsonschema:"Kebab-case playbook slug (matches team/playbooks/{slug}.md)."`
 	Outcome string `json:"outcome" jsonschema:"One of: success | partial | aborted"`
 	Summary string `json:"summary" jsonschema:"One paragraph describing what actually happened and what you changed. Required."`
@@ -59,7 +59,7 @@ func registerPlaybookTools(server *mcp.Server) {
 	), handlePlaybookCompileTool)
 	mcp.AddTool(server, officeWriteTool(
 		"playbook_execution_record",
-		"Record the outcome of a playbook run. Any agent that invokes a compiled playbook skill is expected to call this when the run finishes (success, partial, or aborted). The log is append-only — wrong outcomes are corrected by adding a new entry, never by editing.",
+		"Record the outcome of a playbook run. Any bot that invokes a compiled playbook skill is expected to call this when the run finishes (success, partial, or aborted). The log is append-only — wrong outcomes are corrected by adding a new entry, never by editing.",
 	), handlePlaybookExecutionRecord)
 	mcp.AddTool(server, officeWriteTool(
 		"playbook_synthesize_now",

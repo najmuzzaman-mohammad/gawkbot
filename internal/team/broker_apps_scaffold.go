@@ -10,7 +10,7 @@ package team
 //     maybeSpawnAppBuilderTaskFromProposal)
 // Both format the title as "Build app: <name>" / "Create app: <name>", so a
 // single hook covers them. "Improve"/"Update" titles are skipped — they already
-// target an existing app the agent reads with get_app.
+// target an existing app the bot reads with get_app.
 
 import (
 	"fmt"
@@ -71,11 +71,11 @@ func (b *Broker) maybePrescaffoldAppForCreate(action, channel string, body TaskP
 		slug = "app"
 	}
 	id := customAppID(slug, name, channel)
-	// A PUBLISHED agent must never be handed to a new build. Identity is
+	// A PUBLISHED bot must never be handed to a new build. Identity is
 	// (name, channel) and channel is still "general" at create time, so a
-	// second workflow whose derived name matches an existing agent would be
+	// second workflow whose derived name matches an existing bot would be
 	// told to publish OVER it (2026-08-16 VP-RevOps QA: the discount-desk
-	// build was briefed to republish the live Pipeline Agent). Salt the id
+	// build was briefed to republish the live Pipeline Bot). Salt the id
 	// until it is free or points at a resumable building leftover — that
 	// keeps retry-of-the-same-build semantics without the hijack.
 	for n := 2; ; n++ {
@@ -113,7 +113,7 @@ func (b *Broker) maybePrescaffoldAppForCreate(action, channel string, body TaskP
 //     "Improve the existing app `app_xxxx`" (composeAppBrief / appBuilderTaskBrief)
 //
 // We match the register_app form (optional space + optional quotes) because it
-// is present in every app-builder task and is the canonical id the agent
+// is present in every app-builder task and is the canonical id the bot
 // publishes under. The capture is the validated 16-hex app id shape.
 var appBuilderTaskAppIDRe = regexp.MustCompile(`register_app\s*\(\s*app_id\s*=\s*["'` + "`" + `]?(app_[0-9a-f]{16})`)
 
@@ -136,7 +136,7 @@ func parseAppBuilderTaskAppID(details string) (string, bool) {
 // other. That is worth stating plainly, because the product is moving the other
 // way. #general is being retired and so are group DMs — the founder's reasoning
 // is that a group DM is just a channel — leaving one human-visible surface: a
-// 1:1 DM with a single agent. This thread is therefore the last multi-party room
+// 1:1 DM with a single bot. This thread is therefore the last multi-party room
 // in the product, and it survives only because it is not a room anyone can find:
 //
 //   - It is INVISIBLE. It must never appear in a sidebar, channel list, picker,
@@ -149,7 +149,7 @@ func parseAppBuilderTaskAppID(details string) (string, bool) {
 //     conversation and give the Edit panel something to wake on. It is not
 //     somewhere a human browses to.
 //   - Its membership is MINIMAL by design: the App Builder, plus the CEO that
-//     createChannelLocked prepends. Do not add more. The moment three agents are
+//     createChannelLocked prepends. Do not add more. The moment three bots are
 //     talking in it, it is a channel in behaviour as well as in structure, and
 //     it will be retired with the rest.
 //
@@ -192,7 +192,7 @@ func appEditChannelSlug(appID string) string {
 // channel is reused and SetEditChannel no-ops when the value is unchanged, so a
 // retried create never churns either side.
 //
-// Members are the App Builder (the only agent that works an app) plus the CEO,
+// Members are the App Builder (the only bot that works an app) plus the CEO,
 // which createChannelLocked prepends. The Librarian is deliberately NOT seeded:
 // an app's build log is machinery, not team knowledge.
 //

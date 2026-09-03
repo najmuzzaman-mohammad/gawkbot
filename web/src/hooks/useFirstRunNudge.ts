@@ -5,7 +5,7 @@ interface FirstRunNudgeResult {
 }
 
 /**
- * Drives the first-run "→ tag @<agent>" nudge under the FIRST agent row.
+ * Drives the first-run "→ tag @<bot>" nudge under the FIRST bot row.
  * Source of truth lives on the broker (`/office-members.meta.humanHasPosted`,
  * eng decision A5) — no localStorage, no client-side persistence. The nudge
  * survives reinstall, browser change, and cache clear.

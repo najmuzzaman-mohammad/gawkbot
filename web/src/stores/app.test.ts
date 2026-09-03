@@ -4,7 +4,7 @@ import {
   directChannelSlug,
   MAX_AGENT_HISTORY,
   MAX_COMPUTER_BUILD_LINES,
-  selectAgentPeek,
+  selectBotPeek,
   selectPillState,
   useAppStore,
 } from "./app";
@@ -15,15 +15,15 @@ afterEach(() => {
     lastMessageId: null,
     clearedMessageIdsByChannel: {},
     unreadByChannel: {},
-    activeAgentSlug: null,
+    activeBotSlug: null,
     lastConversationalChannel: null,
     searchOpen: false,
     composerSearchInitialQuery: "",
     pendingComposerDraft: null,
     composerHelpOpen: false,
     onboardingComplete: false,
-    agentActivitySnapshots: {},
-    agentActivityHistory: {},
+    botActivitySnapshots: {},
+    botActivityHistory: {},
     isReconnecting: false,
     computerStates: {},
     computerRuntimeBuild: { building: false, problem: null, lines: [] },
@@ -44,7 +44,7 @@ describe("DM channel helpers", () => {
       activeThread: { id: "thread-1", channelSlug: "engineering" },
       lastMessageId: "msg-1",
       clearedMessageIdsByChannel: { general: "msg-0" },
-      activeAgentSlug: "ceo",
+      activeBotSlug: "ceo",
       lastConversationalChannel: "engineering",
       searchOpen: true,
       composerSearchInitialQuery: "stuck task",
@@ -58,7 +58,7 @@ describe("DM channel helpers", () => {
       activeThread: null,
       lastMessageId: null,
       clearedMessageIdsByChannel: {},
-      activeAgentSlug: null,
+      activeBotSlug: null,
       lastConversationalChannel: null,
       searchOpen: false,
       composerSearchInitialQuery: "",
@@ -144,7 +144,7 @@ describe("recordActivitySnapshot", () => {
       kind: "routine",
     });
 
-    const snap = useAppStore.getState().agentActivitySnapshots.tess;
+    const snap = useAppStore.getState().botActivitySnapshots.tess;
     expect(snap.activity).toBe("drafting reply");
     expect(snap.kind).toBe("routine");
     expect(snap.haloUntilMs - snap.receivedAtMs).toBe(600);
@@ -154,14 +154,12 @@ describe("recordActivitySnapshot", () => {
     useAppStore
       .getState()
       .recordActivitySnapshot({ slug: "tess", kind: "routine" });
-    const first =
-      useAppStore.getState().agentActivitySnapshots.tess.haloUntilMs;
+    const first = useAppStore.getState().botActivitySnapshots.tess.haloUntilMs;
 
     useAppStore
       .getState()
       .recordActivitySnapshot({ slug: "tess", kind: "routine" });
-    const second =
-      useAppStore.getState().agentActivitySnapshots.tess.haloUntilMs;
+    const second = useAppStore.getState().botActivitySnapshots.tess.haloUntilMs;
 
     expect(second).toBeGreaterThan(first);
   });
@@ -171,7 +169,7 @@ describe("recordActivitySnapshot", () => {
       .getState()
       .recordActivitySnapshot({ slug: "rita", kind: "routine" });
     const beforeStuck =
-      useAppStore.getState().agentActivitySnapshots.rita.haloUntilMs;
+      useAppStore.getState().botActivitySnapshots.rita.haloUntilMs;
 
     useAppStore.getState().recordActivitySnapshot({
       slug: "rita",
@@ -179,7 +177,7 @@ describe("recordActivitySnapshot", () => {
       activity: "stuck on terraform lock",
     });
 
-    const afterStuck = useAppStore.getState().agentActivitySnapshots.rita;
+    const afterStuck = useAppStore.getState().botActivitySnapshots.rita;
     expect(afterStuck.haloUntilMs).toBe(beforeStuck);
     expect(afterStuck.kind).toBe("stuck");
     expect(afterStuck.activity).toBe("stuck on terraform lock");
@@ -190,7 +188,7 @@ describe("recordActivitySnapshot", () => {
       slug: "",
       activity: "noise",
     });
-    expect(useAppStore.getState().agentActivitySnapshots).toEqual({});
+    expect(useAppStore.getState().botActivitySnapshots).toEqual({});
   });
 
   it("first event for a slug leaves history empty (nothing displaced yet)", () => {
@@ -200,8 +198,8 @@ describe("recordActivitySnapshot", () => {
       kind: "routine",
     });
 
-    expect(useAppStore.getState().agentActivityHistory.tess ?? []).toEqual([]);
-    expect(useAppStore.getState().agentActivitySnapshots.tess.activity).toBe(
+    expect(useAppStore.getState().botActivityHistory.tess ?? []).toEqual([]);
+    expect(useAppStore.getState().botActivitySnapshots.tess.activity).toBe(
       "merging branch",
     );
   });
@@ -212,9 +210,9 @@ describe("recordActivitySnapshot", () => {
     store.recordActivitySnapshot({ slug: "tess", activity: "second" });
     store.recordActivitySnapshot({ slug: "tess", activity: "third" });
 
-    const history = useAppStore.getState().agentActivityHistory.tess;
+    const history = useAppStore.getState().botActivityHistory.tess;
     expect(history.map((h) => h.activity)).toEqual(["second", "first"]);
-    expect(useAppStore.getState().agentActivitySnapshots.tess.activity).toBe(
+    expect(useAppStore.getState().botActivitySnapshots.tess.activity).toBe(
       "third",
     );
   });
@@ -222,7 +220,7 @@ describe("recordActivitySnapshot", () => {
   it("caps history at MAX_AGENT_HISTORY entries (oldest evicted)", () => {
     const store = useAppStore.getState();
     // Fire MAX_AGENT_HISTORY + 3 events. After event N, the current is in
-    // agentActivitySnapshots and the previous N-1 sit in history capped at
+    // botActivitySnapshots and the previous N-1 sit in history capped at
     // MAX_AGENT_HISTORY.
     for (let i = 0; i < MAX_AGENT_HISTORY + 3; i += 1) {
       store.recordActivitySnapshot({
@@ -232,7 +230,7 @@ describe("recordActivitySnapshot", () => {
       });
     }
 
-    const history = useAppStore.getState().agentActivityHistory.ava;
+    const history = useAppStore.getState().botActivityHistory.ava;
     expect(history.length).toBe(MAX_AGENT_HISTORY);
     // Newest displaced is the most recent prior current — evt-(N-2) where
     // N = MAX_AGENT_HISTORY + 3 (the still-current value is evt-(N-1)).
@@ -244,14 +242,14 @@ describe("recordActivitySnapshot", () => {
     expect(history[history.length - 1].activity).toBe("evt-2");
   });
 
-  it("history is per-slug and does not leak between agents", () => {
+  it("history is per-slug and does not leak between bots", () => {
     const store = useAppStore.getState();
     store.recordActivitySnapshot({ slug: "tess", activity: "tess-1" });
     store.recordActivitySnapshot({ slug: "ava", activity: "ava-1" });
     store.recordActivitySnapshot({ slug: "tess", activity: "tess-2" });
 
-    const tessHistory = useAppStore.getState().agentActivityHistory.tess;
-    const avaHistory = useAppStore.getState().agentActivityHistory.ava ?? [];
+    const tessHistory = useAppStore.getState().botActivityHistory.tess;
+    const avaHistory = useAppStore.getState().botActivityHistory.ava ?? [];
     expect(tessHistory.map((h) => h.activity)).toEqual(["tess-1"]);
     expect(avaHistory).toEqual([]);
   });
@@ -259,10 +257,10 @@ describe("recordActivitySnapshot", () => {
   it("history records the full StoredActivitySnapshot (with receivedAtMs/haloUntilMs preserved)", () => {
     const store = useAppStore.getState();
     store.recordActivitySnapshot({ slug: "sam", activity: "first" });
-    const firstStamped = useAppStore.getState().agentActivitySnapshots.sam;
+    const firstStamped = useAppStore.getState().botActivitySnapshots.sam;
     store.recordActivitySnapshot({ slug: "sam", activity: "second" });
 
-    const [displaced] = useAppStore.getState().agentActivityHistory.sam;
+    const [displaced] = useAppStore.getState().botActivityHistory.sam;
     expect(displaced.activity).toBe("first");
     expect(displaced.receivedAtMs).toBe(firstStamped.receivedAtMs);
     expect(displaced.haloUntilMs).toBe(firstStamped.haloUntilMs);
@@ -271,8 +269,8 @@ describe("recordActivitySnapshot", () => {
 
 describe("selectAgentPeek", () => {
   it("returns undefined current and empty history for an unknown slug", () => {
-    const result = selectAgentPeek(
-      { agentActivitySnapshots: {}, agentActivityHistory: {} },
+    const result = selectBotPeek(
+      { botActivitySnapshots: {}, botActivityHistory: {} },
       "ghost",
     );
     expect(result).toEqual({ current: undefined, history: [] });
@@ -281,7 +279,7 @@ describe("selectAgentPeek", () => {
   it("returns the current snapshot plus its newest-first history", () => {
     const now = 1_700_000_000_000;
     const state = {
-      agentActivitySnapshots: {
+      botActivitySnapshots: {
         tess: {
           slug: "tess",
           activity: "now",
@@ -289,7 +287,7 @@ describe("selectAgentPeek", () => {
           haloUntilMs: now + 600,
         },
       },
-      agentActivityHistory: {
+      botActivityHistory: {
         tess: [
           {
             slug: "tess",
@@ -300,9 +298,9 @@ describe("selectAgentPeek", () => {
         ],
       },
     };
-    expect(selectAgentPeek(state, "tess")).toEqual({
-      current: state.agentActivitySnapshots.tess,
-      history: state.agentActivityHistory.tess,
+    expect(selectBotPeek(state, "tess")).toEqual({
+      current: state.botActivitySnapshots.tess,
+      history: state.botActivityHistory.tess,
     });
   });
 });
@@ -310,14 +308,14 @@ describe("selectAgentPeek", () => {
 describe("selectPillState", () => {
   it("returns idle when no snapshot exists for the slug", () => {
     expect(
-      selectPillState({ agentActivitySnapshots: {} }, "ghost", Date.now()),
+      selectPillState({ botActivitySnapshots: {} }, "ghost", Date.now()),
     ).toBe("idle");
   });
 
   it("returns stuck when the snapshot kind is stuck", () => {
     const now = 1_700_000_000_000;
     const state = {
-      agentActivitySnapshots: {
+      botActivitySnapshots: {
         rita: {
           slug: "rita",
           kind: "stuck" as const,

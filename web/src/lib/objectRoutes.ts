@@ -77,7 +77,7 @@ export function resolveObjectRoute(ref: ObjectRef): ObjectRouteResolution {
       if (!ref.slug) return missingIdFallback("slug", "agent");
       return {
         href: `#/agents/${encodeURIComponent(ref.slug)}`,
-        label: `Agent: ${ref.slug}`,
+        label: `Bot: ${ref.slug}`,
         appAction: { app: "agents", channel: ref.slug },
       };
     }

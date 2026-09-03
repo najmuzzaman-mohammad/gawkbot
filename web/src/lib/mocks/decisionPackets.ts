@@ -1,7 +1,7 @@
 /**
  * Decision Packet + Inbox mock fixtures.
  *
- * Lanes A/B/C/D/E (broker-side state machine, intake agent, packet
+ * Lanes A/B/C/D/E (broker-side state machine, intake bot, packet
  * persistence, reviewer routing, indexed lifecycle lookup) are still in
  * flight. Until those merge, the web routes consume the deterministic
  * fixtures here so the UI can render fully populated states + state
@@ -38,9 +38,9 @@ const NOW = "2026-05-09T22:00:00Z";
 
 const ROW_REFACTOR_AGENT_RAIL: InboxRow = {
   taskId: "task-2741",
-  title: "Refactor agent-rail event pill state machine",
+  title: "Refactor bot-rail event pill state machine",
   assignment:
-    "Owner agent finished. Merge or request changes — owner committed broker_actor.go + 3 tests.",
+    "Owner bot finished. Merge or request changes — owner committed broker_actor.go + 3 tests.",
   state: "decision",
   severityCounts: counts({ critical: 1, major: 2, minor: 4 }),
   lastChangedAt: "2026-05-09T21:52:00Z",
@@ -75,7 +75,7 @@ const ROW_SEVERITY_TOKEN: InboxRow = {
 const ROW_RUNNING_INTAKE: InboxRow = {
   taskId: "task-2744",
   title: "Telegram dispatcher session ack on send",
-  assignment: "Owner agent still working. ACK roundtrip in progress.",
+  assignment: "Owner bot still working. ACK roundtrip in progress.",
   state: "running",
   severityCounts: counts({}),
   lastChangedAt: "2026-05-09T21:45:00Z",
@@ -108,7 +108,7 @@ const ROW_MERGED: InboxRow = {
 const ROW_CHANGES_REQUESTED: InboxRow = {
   taskId: "task-2746",
   title: "Skill compile dedup gate raises threshold to 0.82",
-  assignment: "Sent back yesterday. Owner agent is re-resuming.",
+  assignment: "Sent back yesterday. Owner bot is re-resuming.",
   state: "changes_requested",
   severityCounts: counts({ minor: 2 }),
   lastChangedAt: "2026-05-08T18:00:00Z",
@@ -193,7 +193,7 @@ const GRADE_SAM_SKIPPED: ReviewerGrade = {
 
 export const POPULATED_PACKET: DecisionPacket = {
   taskId: "task-2741",
-  title: "Refactor agent-rail event pill state machine",
+  title: "Refactor bot-rail event pill state machine",
   lifecycleState: "decision",
   ownerSlug: "tess",
   worktreePath: ".worktrees/refactor-agent-pill-2741",
@@ -203,7 +203,7 @@ export const POPULATED_PACKET: DecisionPacket = {
     problem:
       "Replace the timer-driven state machine in broker_actor.go with one driven by SSE-event watermarks so the dim/idle transitions match what the user sees.",
     targetOutcome:
-      "Agent-rail pill state derives from arrival watermarks rather than wall-clock timers, eliminating the three known race conditions.",
+      "Bot-rail pill state derives from arrival watermarks rather than wall-clock timers, eliminating the three known race conditions.",
     acceptanceCriteria: [
       {
         statement: "Halo decay matches DESIGN.md token --bubble-halo-duration",
@@ -211,7 +211,7 @@ export const POPULATED_PACKET: DecisionPacket = {
       },
       { statement: "Reduced-motion path snaps state instantly", done: true },
       {
-        statement: "No agent rail row reflow during state change",
+        statement: "No bot rail row reflow during state change",
         done: true,
       },
       {
@@ -225,7 +225,7 @@ export const POPULATED_PACKET: DecisionPacket = {
       { statement: "E2E test for the full state lifecycle", done: false },
     ],
     assignment:
-      "Owner agent committed the refactor. 1 critical, 2 major, 4 minor grades. Merge if you accept the critical, or send back with feedback.",
+      "Owner bot committed the refactor. 1 critical, 2 major, 4 minor grades. Merge if you accept the critical, or send back with feedback.",
     constraints: ["Local-first only", "No new dependencies"],
     autoAssign: "tess",
     feedback: [],

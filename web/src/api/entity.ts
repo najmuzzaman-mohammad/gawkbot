@@ -262,7 +262,7 @@ export async function fetchEntityGraphAll(): Promise<GraphAllResponse> {
  *
  * Each caller opens its own EventSource — EntityBriefBar + FactsOnFile on
  * the same page will hold two connections. That matches how the rest of
- * the app consumes broker events today (useAgentStream, subscribeEditLog)
+ * the app consumes broker events today (useBotStream, subscribeEditLog)
  * and avoids a shared singleton that would race between articles.
  *
  * Failure is silent — if EventSource is undefined (tests, non-SSE envs)

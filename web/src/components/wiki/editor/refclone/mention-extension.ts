@@ -79,12 +79,12 @@ function queryItems(query: string): MentionItem[] {
       sublabel: p.path,
     }));
 
-  // TODO: wire up agents cache once a shared agents store is introduced.
-  // For now agents are fetched per-workspace component; we return [] to avoid
+  // TODO: wire up bots cache once a shared bots store is introduced.
+  // For now bots are fetched per-workspace component; we return [] to avoid
   // a fetch side-effect inside an extension.
-  const agentItems: MentionItem[] = [];
+  const botItems: MentionItem[] = [];
 
-  return [...agentItems, ...pageItems];
+  return [...botItems, ...pageItems];
 }
 
 // ──────────────────────────────────────────────

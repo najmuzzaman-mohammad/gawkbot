@@ -8,7 +8,7 @@ import (
 
 // "Auto" owner triage.
 //
-// A task can be assigned to the "auto" sentinel instead of a concrete agent
+// A task can be assigned to the "auto" sentinel instead of a concrete bot
 // slug — the floor assignment when the user does not want to pick an owner
 // themselves. "auto" is never a registered member; it means "the Chief of Staff should
 // pick the best specialist." Resolution reuses the normal chat→notify→CEO loop:
@@ -17,7 +17,7 @@ import (
 // tool. No bespoke dispatch wiring.
 
 // isAutoOwner reports whether an owner/assignee value is the "auto" triage
-// sentinel rather than a concrete agent slug.
+// sentinel rather than a concrete bot slug.
 func isAutoOwner(owner string) bool {
 	return strings.EqualFold(strings.TrimSpace(owner), "auto")
 }
@@ -28,7 +28,7 @@ func isAutoOwner(owner string) bool {
 // then reassigns the task to a specialist (setting a real owner → the task
 // dispatches and runs). Caller must hold b.mu. `actor` is the task creator; a
 // non-human / empty / auto actor falls back to "human" so the message routes
-// (notifyAgentsLoop drops From=system posts).
+// (notifyBotsLoop drops From=system posts).
 func (b *Broker) requestAutoAssignmentLocked(task *teamTask, actor string) {
 	if b == nil || task == nil {
 		return

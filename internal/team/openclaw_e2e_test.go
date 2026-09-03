@@ -59,19 +59,19 @@ func TestOpenclawBridgeFullPipeline_E2E(t *testing.T) {
 	defer cancel()
 
 	// Outbound: bridge → gateway sessions.send
-	if err := bridge.OnOfficeMessage(ctx, "openclaw-demo-e2e", "team", "hello agent"); err != nil {
+	if err := bridge.OnOfficeMessage(ctx, "openclaw-demo-e2e", "team", "hello bot"); err != nil {
 		t.Fatalf("OnOfficeMessage: %v", err)
 	}
 	waitForE2E(t, 2*time.Second, func() bool {
-		return gw.lastSendForKey("agent:e2e:demo") == "hello agent"
-	}, "gateway never received hello agent")
+		return gw.lastSendForKey("agent:e2e:demo") == "hello bot"
+	}, "gateway never received hello bot")
 
 	// Inbound user echo: gateway pushes our own message back. Bridge MUST NOT
 	// re-post it (otherwise every outbound turn double-fires in #general).
-	beforeEchoes := countMessagesFrom(broker, "openclaw-demo-e2e", "hello agent")
-	gw.pushUserMessage("agent:e2e:demo", "hello agent")
+	beforeEchoes := countMessagesFrom(broker, "openclaw-demo-e2e", "hello bot")
+	gw.pushUserMessage("agent:e2e:demo", "hello bot")
 	time.Sleep(150 * time.Millisecond)
-	if got := countMessagesFrom(broker, "openclaw-demo-e2e", "hello agent"); got != beforeEchoes {
+	if got := countMessagesFrom(broker, "openclaw-demo-e2e", "hello bot"); got != beforeEchoes {
 		t.Fatalf("bridge re-posted a user-role echo; before=%d after=%d", beforeEchoes, got)
 	}
 
@@ -204,7 +204,7 @@ func (g *fakeOpenclawGatewayE2E) serve(fc *fakeOCGwConn) {
 		switch r.Method {
 		case "sessions.list":
 			g.respond(fc, r.ID, true, map[string]any{"sessions": []any{
-				map[string]any{"key": "agent:e2e:demo", "label": "Demo", "displayName": "Demo Agent", "kind": "direct"},
+				map[string]any{"key": "agent:e2e:demo", "label": "Demo", "displayName": "Demo Bot", "kind": "direct"},
 			}, "path": "/tmp/fake", "count": 1}, nil)
 		case "sessions.send":
 			var p struct {
@@ -261,7 +261,7 @@ func (g *fakeOpenclawGatewayE2E) lastSendForKey(key string) string {
 	return g.sentMessages[key]
 }
 
-// pushAssistantMessage emits the real-daemon shape for an agent reply: role
+// pushAssistantMessage emits the real-daemon shape for a bot reply: role
 // "assistant" with content as an array of {type,text} parts.
 func (g *fakeOpenclawGatewayE2E) pushAssistantMessage(sessionKey, text string) {
 	g.pushEvent(sessionKey, map[string]any{

@@ -54,7 +54,7 @@ is a compiled, audited, repeatable spec, not an open-ended AI tool-call chain.
 ## 3. The five surfaces
 
 The product is deliberately small. A left sidebar with five nav items, an
-identity block, and the two build CTAs. No agents, channels, skills, or wiki
+identity block, and the two build CTAs. No bots, channels, skills, or wiki
 vocabulary.
 
 1. **Chats** — talk to Nex. Tune existing tools, or start a new one. Entry to the
@@ -280,24 +280,24 @@ deterministic workflow engine, the teach-by-voice capture call (screen-share +
 voice -> API discovery), and integration auth. Those come after the founder
 validates this shape. Keep the prototype mock and honest about it.
 
-**Harness decision (BE, founder, 2026-06-27): clean deepagents-native rewrite.**
+**Harness decision (BE, founder, 2026-06-27): clean deepbots-native rewrite.**
 This is a pivot stage; the software is being rewritten. The directive:
 
-- **deepagents (LangChain) is the NATIVE core agentic harness.** One well-built,
-  optimized, fast agent that quickly builds a workflow. No bolt-on.
-- **Move off multi-agents entirely. The Go broker goes** (no office, channels,
+- **deepbots (LangChain) is the NATIVE core agentic harness.** One well-built,
+  optimized, fast bot that quickly builds a workflow. No bolt-on.
+- **Move off multi-bots entirely. The Go broker goes** (no office, channels,
   lifecycle, coordination, sub-task kernel). It no longer fits the product.
 - **Keep only:** provider detection (multi-provider inference + BYOK), settings,
   and scaffolding that genuinely support the product (build/install, the Electron
   shell, the operator FE).
 - **A new repo is authorized** if it is the cleaner start. This new product
   eventually replaces wuphf entirely.
-- The agentic-build / deterministic-execute principle still holds: the deep agent
+- The agentic-build / deterministic-execute principle still holds: the deep bot
   FIGURES OUT the workflow; a deterministic executor RUNS the compiled spec.
-- This supersedes most of the in-flight LangGraph multi-agent migration (the
+- This supersedes most of the in-flight LangGraph multi-bot migration (the
   goal/coordinate/decompose kernel and broker re-hydrate are moot). Salvage the
   seam only: Python reaching tools over MCP, the FastAPI service pattern, the
-  Claude Agent SDK wiring, and provider config.
+  Claude Bot SDK wiring, and provider config.
 
 The prototype does not depend on any of this; the mock `planWorkflow` compiler
 stands in for the agentic build until the harness is built. This is a recorded

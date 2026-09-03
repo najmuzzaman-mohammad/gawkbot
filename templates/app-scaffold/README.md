@@ -1,7 +1,7 @@
 # WUPHF App scaffold
 
 A Vite + React + TypeScript **refine** project that builds to a single
-self-contained `index.html`. The built-in **App Builder** agent copies this
+self-contained `index.html`. The built-in **App Builder** bot copies this
 scaffold to build internal tools ("Apps") for an office.
 
 The stack is fixed: **refine** (`@refinedev/core`) for the headless data layer,

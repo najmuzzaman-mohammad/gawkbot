@@ -106,7 +106,7 @@ func inferAppDBColumnType(v any) string {
 }
 
 // inferAppDBColumns derives a column set from sample rows for a table an authored
-// tool upserts into WITHOUT a prior define — the "just works" path so an agent
+// tool upserts into WITHOUT a prior define — the "just works" path so a bot
 // can CREATE its own data (a Briefings log, a daily digest) instead of failing
 // because the schema was never declared. Column order is deterministic: "id"
 // first when present, then the remaining keys alphabetically. A column's type is
@@ -319,7 +319,7 @@ func (s *customAppStore) UpsertAppDBRows(id, table string, rows []map[string]any
 		// Auto-define from the incoming rows so an authored tool can CREATE a new
 		// table (a Briefings log, a digest) without a separate define step — the
 		// "save this" the operator described just works, instead of a 400 the
-		// agent has no capability to recover from (2026-08-18 output-quality pass).
+		// bot has no capability to recover from (2026-08-18 output-quality pass).
 		if len(db.Tables) >= appDBTableLimit {
 			return AppDBTable{}, newCustomAppCallerError("app db: too many tables (max %d)", appDBTableLimit)
 		}

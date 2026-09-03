@@ -9,10 +9,10 @@ export function routineLabel(job: SchedulerJob): string {
 }
 
 /**
- * Resolve the owning agent for a routine.
+ * Resolve the owning bot for a routine.
  *
- * Returns the agent slug when the routine targets an agent (or runs as an
- * agent loop). System-managed crons that don't bind to a single agent are
+ * Returns the bot slug when the routine targets a bot (or runs as an
+ * bot loop). System-managed crons that don't bind to a single bot are
  * reported as "system" so the UI can render a neutral badge instead of
  * leaving the owner column blank.
  */
@@ -24,10 +24,10 @@ export function routineOwner(job: SchedulerJob): {
   if (job.target_type === "agent" && job.target_id) {
     return { slug: job.target_id, kind: "agent" };
   }
-  // The owning agent is the office agent that scheduled the job (e.g. "ceo").
+  // The owning bot is the office bot that scheduled the job (e.g. "ceo").
   // This is NOT job.provider, which is the integration vendor ("composio" /
-  // "one"). A workflow job carries both, so resolve the agent first and never
-  // fall back to the vendor as if it were an agent.
+  // "one"). A workflow job carries both, so resolve the bot first and never
+  // fall back to the vendor as if it were a bot.
   if (job.agent) {
     return { slug: job.agent, kind: "agent" };
   }
@@ -38,15 +38,15 @@ export function routineOwner(job: SchedulerJob): {
   ) {
     return { slug: null, kind: "workflow" };
   }
-  // Legacy fallback: some older jobs stored an agent slug in `provider`.
-  // Known integration vendors are NOT agents, so exclude them.
+  // Legacy fallback: some older jobs stored a bot slug in `provider`.
+  // Known integration vendors are NOT bots, so exclude them.
   if (job.provider && !isVendorProvider(job.provider)) {
     return { slug: job.provider, kind: "agent" };
   }
   return { slug: null, kind: "unassigned" };
 }
 
-/** Integration vendors that may appear in `job.provider` but are never agents. */
+/** Integration vendors that may appear in `job.provider` but are never bots. */
 const VENDOR_PROVIDERS = new Set(["composio", "one", "system"]);
 
 function isVendorProvider(provider: string): boolean {

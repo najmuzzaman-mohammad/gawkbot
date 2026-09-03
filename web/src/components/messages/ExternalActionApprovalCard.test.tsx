@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AgentRequest } from "../../api/client";
+import type { BotRequest } from "../../api/client";
 import { parseApprovalContext } from "../../lib/parseApprovalContext";
 import {
   deriveActionIdentity,
@@ -21,9 +21,7 @@ const GMAIL_CONTEXT = [
   "Channel: #general",
 ].join("\n");
 
-function makeApprovalRequest(
-  overrides: Partial<AgentRequest> = {},
-): AgentRequest {
+function makeApprovalRequest(overrides: Partial<BotRequest> = {}): BotRequest {
   return {
     id: "req-1",
     from: "growthops",
@@ -41,7 +39,7 @@ function makeApprovalRequest(
   };
 }
 
-function renderCard(overrides: Partial<AgentRequest> = {}) {
+function renderCard(overrides: Partial<BotRequest> = {}) {
   const onAnswer = vi.fn();
   const onApproveAlways = vi.fn();
   const onDismiss = vi.fn();

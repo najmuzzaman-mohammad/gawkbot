@@ -30,7 +30,7 @@ func BuildOpenclawBridgeFromConfig(broker *Broker) (*OpenclawBridge, error) {
 	}
 
 	// Migration: any legacy config.OpenclawBridges entries are converted into
-	// per-agent ProviderBindings on matching members. After this runs, the
+	// per-bot ProviderBindings on matching members. After this runs, the
 	// source of truth for bridged sessions is the office member roster.
 	legacy, _, err := config.MigrateOpenclawBridgesFromConfig()
 	if err != nil {
@@ -65,7 +65,7 @@ func BuildOpenclawBridgeFromConfig(broker *Broker) (*OpenclawBridge, error) {
 	// Decide whether to build the bridge. We build it when EITHER there are
 	// already openclaw members (the classic case) OR the gateway is reachable
 	// via configured URL + token (so /office-members POST can live-hire a new
-	// openclaw agent without requiring a pre-existing one). Without this, the
+	// openclaw bot without requiring a pre-existing one). Without this, the
 	// first openclaw hire on a fresh install would fail with "bridge not
 	// active," which is exactly the chicken-and-egg we want to avoid.
 	cfg, _ := config.Load()
@@ -125,7 +125,7 @@ func StartOpenclawRouter(ctx context.Context, broker *Broker, bridge *OpenclawBr
 //  1. Channel posts that @mention a bridged slug (one forward per mention).
 //  2. 1:1 DM posts whose partner slug is bridged (no @mention required).
 //
-// Agent-to-agent mentions are intentionally skipped to prevent broadcast loops
+// Bot-to-bot mentions are intentionally skipped to prevent broadcast loops
 // (mirroring the thread auto-tag decision in broker.go). The loop exits when
 // ctx is cancelled and the subscriber channel drains.
 func routeOpenclawMentionsLoop(ctx context.Context, broker *Broker, bridge *OpenclawBridge) {
@@ -146,16 +146,16 @@ func routeOpenclawMentionsLoop(ctx context.Context, broker *Broker, bridge *Open
 			if msg.From == "system" {
 				continue
 			}
-			// Only route human-authored messages; agent cross-talk flows
+			// Only route human-authored messages; bot cross-talk flows
 			// through the bridge via explicit sends from handler code, not
-			// by re-dispatching every agent message to the gateway.
+			// by re-dispatching every bot message to the gateway.
 			if !isHumanMessageSender(msg.From) {
 				continue
 			}
 
 			// Collect the set of bridged slugs to forward this message to.
 			// Mentions and DM partner can both apply; dedupe so a DM that
-			// also happens to @mention the same agent isn't double-fired.
+			// also happens to @mention the same bot isn't double-fired.
 			targets := make(map[string]struct{})
 			for _, slug := range msg.Tagged {
 				if bridge.HasSlug(slug) {

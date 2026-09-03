@@ -1,7 +1,7 @@
 // Integrations a Work Tool uses, in the operator's own styling. We reuse the
 // REAL data + logos + connect flow (listIntegrations, the toolkit brand logos,
 // and the human-interview ConnectIntegrationCard), but render them with operator
-// tokens and operator copy — no main-app chrome, no "agents"/"channels"
+// tokens and operator copy — no main-app chrome, no "bots"/"channels"
 // vocabulary. Connected once for the workspace; shown scoped under each tool.
 //
 // First run: the whole catalog is powered by Composio, so when no Composio key
@@ -11,7 +11,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { type AgentRequest, getConfig } from "../../api/client";
+import { type BotRequest, getConfig } from "../../api/client";
 import {
   type IntegrationCatalogItem,
   listIntegrations,
@@ -26,15 +26,15 @@ import { Eyebrow } from "../components/primitives";
 
 interface ToolIntegrationsProps {
   /** Integration names shown as scoped chips above the full catalog. For a tool
-   * these are the integrations its workflow steps reference; for an agent app
-   * they are the workspace's connected integrations the agent can use. */
+   * these are the integrations its workflow steps reference; for a bot app
+   * they are the workspace's connected integrations the bot can use. */
   /** Per-tool chip strip ("Used by this tool"). Omit on surfaces where the
    * catalog's own Connected section already shows the same set — rendering
    * both was a duplicate (2026-08-15 audit). */
   usedNames?: string[];
-  /** Heading over the scoped chips. Defaults to the tool framing; the agent-app
+  /** Heading over the scoped chips. Defaults to the tool framing; the bot-app
    * path passes an honest workspace-connected framing instead (the chips are
-   * NOT "used by this tool" — they are what the agent CAN use). */
+   * NOT "used by this tool" — they are what the bot CAN use). */
   usedHeading?: string;
   /** Note shown in place of the chips when there are no scoped names. */
   usedEmptyNote?: string;
@@ -266,7 +266,7 @@ function IntegrationCard({
   );
 }
 
-function toConnectRequest(item: IntegrationCatalogItem): AgentRequest {
+function toConnectRequest(item: IntegrationCatalogItem): BotRequest {
   return {
     id: `operator-connect-${item.platform.toLowerCase()}`,
     from: "your AI",

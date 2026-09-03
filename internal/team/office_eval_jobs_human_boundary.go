@@ -1,7 +1,7 @@
 package team
 
 // office_eval_jobs_human_boundary.go — the Wave E "human-boundary" eval job
-// (docs/specs/ten-out-of-ten.md). Two contracts at the human↔agent boundary:
+// (docs/specs/ten-out-of-ten.md). Two contracts at the human↔bot boundary:
 //
 //	(a) E5 define-time interview enforcement: a Definition that lands with
 //	    placeholder markers ("[CONTACT NAME]", "NEEDS CONFIRMATION", "TBD")
@@ -9,7 +9,7 @@ package team
 //	    task deterministically — v3's CEO wrote around the holes without
 //	    asking (v3 [17:33:18]: "NO interview so far ... it wrote angles
 //	    around the gaps instead").
-//	(b) Human messages reach agents IN FULL: the 800-char poll clip and the
+//	(b) Human messages reach bots IN FULL: the 800-char poll clip and the
 //	    2000-char packet thread clip no longer apply to human-authored
 //	    content (v3 [18:05–18:10]: "half the message read, half dropped").
 //
@@ -120,10 +120,10 @@ func evalJobHumanBoundary(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	n, _ = countGapInterviews(cleanTask.Task.ID)
 	r.add(job, "complete definition raises no interview", n == 0, fmt.Sprintf("interviews=%d", n), "")
 
-	// --- (b) human content reaches the agent in full ---
+	// --- (b) human content reaches the bot in full ---
 	// A human redline message far past both the old 800-char poll clip and
 	// the 2000-char packet thread clip; the tail marker must survive into
-	// the agent's work packet verbatim.
+	// the bot's work packet verbatim.
 	tail := "FINAL-REDLINE-OMEGA: sender name is Maya, send window closes Friday."
 	long := strings.Repeat("Redline detail about contacts, dates, and per-account corrections. ", 40) + tail // ~2.7k chars
 	if len(long) <= 2000 {

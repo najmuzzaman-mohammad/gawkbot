@@ -23,7 +23,7 @@ func (l *Launcher) updateHeadlessProgress(slug string, status string, activity s
 	// fall through as "routine" — they're not user-visible noise to highlight,
 	// just state changes.
 	kind := classifyActivityKind(activity, status, detail)
-	l.broker.UpdateAgentActivity(agentActivitySnapshot{
+	l.broker.UpdateBotActivity(botActivitySnapshot{
 		Slug:         slug,
 		Status:       strings.TrimSpace(status),
 		Activity:     strings.TrimSpace(activity),

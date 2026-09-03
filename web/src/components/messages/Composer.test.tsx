@@ -79,7 +79,7 @@ describe("team-lead resolution for /ask", () => {
     expect(resolveLeadSlug("coo", [])).toBe("coo");
   });
 
-  it("falls back to the first built-in agent", () => {
+  it("falls back to the first built-in bot", () => {
     expect(
       resolveLeadSlug("", [
         { slug: "pm", built_in: false },

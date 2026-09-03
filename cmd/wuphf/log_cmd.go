@@ -8,41 +8,41 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
-// runLogCmd prints task receipts from the local agent log directory.
+// runLogCmd prints task receipts from the local bot log directory.
 // No server required — reads directly from ~/.wuphf/office/tasks/.
 //
 // Usage:
 //
 //	gawkbot log              — list the 20 most recent tasks
 //	gawkbot log <taskID>     — dump the full JSONL for a single task as pretty lines
-//	gawkbot log --agent eng  — list recent tasks for a specific agent
+//	gawkbot log --bot eng  — list recent tasks for a specific bot
 //	gawkbot log --limit 50   — override the default list size
 func runLogCmd(args []string) {
 	fs := flag.NewFlagSet("log", flag.ExitOnError)
-	agentFilter := fs.String("agent", "", "Filter the list by agent slug (e.g. eng, ceo)")
+	botFilter := fs.String("agent", "", "Filter the list by bot slug (e.g. eng, ceo)")
 	limit := fs.Int("limit", 20, "Maximum number of tasks to list")
 	jsonOut := fs.Bool("json", false, "Emit raw JSON instead of the pretty table")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "gawkbot log — show agent task receipts")
+		fmt.Fprintln(os.Stderr, "gawkbot log — show bot task receipts")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Usage:")
-		fmt.Fprintln(os.Stderr, "  gawkbot log                 List recent tasks across all agents")
+		fmt.Fprintln(os.Stderr, "  gawkbot log                 List recent tasks across all bots")
 		fmt.Fprintln(os.Stderr, "  gawkbot log <taskID>        Dump one task's full tool-call history")
-		fmt.Fprintln(os.Stderr, "  gawkbot log --agent eng     Filter the list to one agent")
+		fmt.Fprintln(os.Stderr, "  gawkbot log --bot eng     Filter the list to one bot")
 		fmt.Fprintln(os.Stderr, "  gawkbot log --limit 50      Override default list size")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Reads from ~/.wuphf/office/tasks/{taskID}/output.log.")
 	}
 	_ = fs.Parse(args)
 
-	root := agent.DefaultTaskLogRoot()
+	root := bot.DefaultTaskLogRoot()
 	positional := fs.Args()
 	if len(positional) > 0 {
 		taskID := positional[0]
-		entries, err := agent.ReadTaskLog(root, taskID)
+		entries, err := bot.ReadTaskLog(root, taskID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
@@ -57,15 +57,15 @@ func runLogCmd(args []string) {
 		return
 	}
 
-	tasks, err := agent.ListRecentTasks(root, *limit)
+	tasks, err := bot.ListRecentTasks(root, *limit)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	if slug := strings.TrimSpace(*agentFilter); slug != "" {
+	if slug := strings.TrimSpace(*botFilter); slug != "" {
 		filtered := tasks[:0]
 		for _, t := range tasks {
-			if t.AgentSlug == slug {
+			if t.BotSlug == slug {
 				filtered = append(filtered, t)
 			}
 		}
@@ -80,9 +80,9 @@ func runLogCmd(args []string) {
 	printTaskList(tasks, root)
 }
 
-func printTaskList(tasks []agent.TaskLogSummary, root string) {
+func printTaskList(tasks []bot.TaskLogSummary, root string) {
 	if len(tasks) == 0 {
-		fmt.Println("No task receipts yet. (Logs land in " + root + " after agents run.)")
+		fmt.Println("No task receipts yet. (Logs land in " + root + " after bots run.)")
 		return
 	}
 	fmt.Printf("%-20s  %-8s  %-6s  %-16s  %s\n", "TASK", "AGENT", "TOOLS", "LAST", "FLAGS")
@@ -95,13 +95,13 @@ func printTaskList(tasks []agent.TaskLogSummary, root string) {
 		if t.HasError {
 			flag = "error"
 		}
-		fmt.Printf("%-20s  %-8s  %6d  %-16s  %s\n", t.TaskID, t.AgentSlug, t.ToolCallCount, last, flag)
+		fmt.Printf("%-20s  %-8s  %6d  %-16s  %s\n", t.TaskID, t.BotSlug, t.ToolCallCount, last, flag)
 	}
 	fmt.Println("")
 	fmt.Println("Dig into one with: gawkbot log <taskID>")
 }
 
-func printTaskEntries(taskID string, entries []agent.TaskLogEntry) {
+func printTaskEntries(taskID string, entries []bot.TaskLogEntry) {
 	fmt.Printf("== %s (%d tool calls) ==\n\n", taskID, len(entries))
 	for i, e := range entries {
 		when := "-"

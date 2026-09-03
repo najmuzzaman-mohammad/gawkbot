@@ -1,11 +1,11 @@
 package team
 
 // mcp_config.go owns the MCP server-config assembly used to wire the
-// office broker's MCP endpoint into each agent's claude session
+// office broker's MCP endpoint into each bot's claude session
 // (PLAN.md §C13). buildMCPServerMap composes the server entry,
 // ensureMCPConfig writes the team-wide config file (with optional
-// per-agent override via ensureAgentMCPConfig), and agentMCPServers
-// maps slugs to allowed-server slugs. codingAgentSlugs is the
+// per-bot override via ensureBotMCPConfig), and botMCPServers
+// maps slugs to allowed-server slugs. codingBotSlugs is the
 // hardcoded "these slugs are coders, give them the broker MCP"
 // allowlist.
 
@@ -18,9 +18,9 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
-// codingAgentSlugs lists agents that default to a minimal coding-focused MCP set.
+// codingBotSlugs lists bots that default to a minimal coding-focused MCP set.
 // Task-level local_worktree isolation is driven by execution_mode, not this list.
-var codingAgentSlugs = map[string]bool{
+var codingBotSlugs = map[string]bool{
 	"eng":       true,
 	"fe":        true,
 	"be":        true,
@@ -29,13 +29,13 @@ var codingAgentSlugs = map[string]bool{
 	"tech-lead": true,
 }
 
-// agentMCPServers returns the MCP server keys that a given agent should receive.
-func agentMCPServers(_ string) []string {
+// botMCPServers returns the MCP server keys that a given bot should receive.
+func botMCPServers(_ string) []string {
 	return ServerKeys()
 }
 
 // buildMCPServerMap constructs the full set of MCP server entries.
-// This is the shared helper used by both ensureMCPConfig and ensureAgentMCPConfig.
+// This is the shared helper used by both ensureMCPConfig and ensureBotMCPConfig.
 func (l *Launcher) buildMCPServerMap() (map[string]any, error) {
 	servers := map[string]any{}
 	wuphfBinary, err := os.Executable()
@@ -126,23 +126,23 @@ func (l *Launcher) ensureMCPConfig() (string, error) {
 	return path, nil
 }
 
-// ensureAgentMCPConfig writes a per-agent MCP config containing only the servers
-// that agent needs. Returns the config file path. The file lives under the
-// per-launch temp directory (see writeAgentPromptFile) so two offices can
+// ensureBotMCPConfig writes a per-bot MCP config containing only the servers
+// that bot needs. Returns the config file path. The file lives under the
+// per-launch temp directory (see writeBotPromptFile) so two offices can
 // run the same slug without one clobbering the other's broker token.
-func (l *Launcher) ensureAgentMCPConfig(slug string) (string, error) {
-	return l.ensureAgentMCPConfigWith(slug, nil)
+func (l *Launcher) ensureBotMCPConfig(slug string) (string, error) {
+	return l.ensureBotMCPConfigWith(slug, nil)
 }
 
-// ensureAgentMCPConfigWith adds per-turn servers (today: the bot's
+// ensureBotMCPConfigWith adds per-turn servers (today: the bot's
 // "computer", see broker_computer_turn.go) on top of the office set.
-func (l *Launcher) ensureAgentMCPConfigWith(slug string, extra map[string]any) (string, error) {
+func (l *Launcher) ensureBotMCPConfigWith(slug string, extra map[string]any) (string, error) {
 	allServers, err := l.buildMCPServerMap()
 	if err != nil {
 		return "", err
 	}
 
-	allowed := agentMCPServers(slug)
+	allowed := botMCPServers(slug)
 	filtered := make(map[string]any, len(allowed)+len(extra))
 	for _, key := range allowed {
 		if srv, ok := allServers[key]; ok {
@@ -166,7 +166,7 @@ func (l *Launcher) ensureAgentMCPConfigWith(slug string, extra map[string]any) (
 		return "", err
 	}
 	path := filepath.Join(dir, "wuphf-mcp-"+slug+".json")
-	// Atomic write (temp + rename): an agent can now run several turns at once
+	// Atomic write (temp + rename): a bot can now run several turns at once
 	// (parallel instances), and they all target this one per-slug path. A plain
 	// truncating WriteFile would let a concurrent turn's spawned process read a
 	// half-written config. The content is identical per slug, so the rename just

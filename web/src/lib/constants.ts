@@ -19,7 +19,7 @@ export function appTitle(app: string): string {
 }
 
 /**
- * Roster slug of the built-in App Builder agent (mirrors
+ * Roster slug of the built-in App Builder bot (mirrors
  * company.AppBuilderSlug / team's appBuilderSlug on the Go side). Tasks owned
  * by this slug get the live app-build preview surface.
  */
@@ -36,10 +36,10 @@ export const CHIEF_OF_STAFF_SLUG = "ceo";
 export const ONBOARDING_COPY = {
   step1_headline: "AI employees with a shared brain",
   step1_subhead:
-    "A collaborative office where AI agents like Claude Code, Codex, and Opencode learn your work playbooks, build personalized skills, and execute, 24x7.\nEach agent is backed by its own knowledge graph.",
+    "A collaborative office where AI bots like Claude Code, Codex, and Opencode learn your work playbooks, build personalized skills, and execute, 24x7.\nEach bot is backed by its own knowledge graph.",
   step1_cta: "Continue",
   step2_headline: "Name your team",
-  step2_subhead: "This becomes the workspace your agents call home.",
+  step2_subhead: "This becomes the workspace your bots call home.",
   step2_cta: "Continue",
   step3_headline: "Pick a blueprint",
   step3_subhead: "Pre-built teams and workflows. Start here, customize later.",
@@ -50,7 +50,7 @@ export const ONBOARDING_COPY = {
   step4_cta: "Continue",
   step5_headline: "Connect a provider",
   step5_subhead:
-    "Pick one or more providers your agents can use. Drag to set fallback order.",
+    "Pick one or more providers your bots can use. Drag to set fallback order.",
   step5_cta: "Continue",
   step6_headline: "Power up with Nex",
   step6_subhead:
@@ -74,7 +74,7 @@ export const REQUEST_POLL_INTERVAL = 3000;
 /**
  * Named-channel retirement, web half.
  *
- * Conversations are moving to per-agent DMs, so ordinary named rooms (#product,
+ * Conversations are moving to per-bot DMs, so ordinary named rooms (#product,
  * #planning, anything a human creates) are switched off. This constant hides
  * the affordance; the broker independently 409s the create call, so the two are
  * belt and braces rather than one guard split across a wire.

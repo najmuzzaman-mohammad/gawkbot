@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ImageEmbedProps {
-  /** Absolute URL the agent embedded in markdown. */
+  /** Absolute URL the bot embedded in markdown. */
   src: string;
   alt?: string;
   width?: number;

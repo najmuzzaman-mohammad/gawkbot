@@ -3,7 +3,7 @@ package team
 // launcher_session.go owns the user-facing session state-change
 // methods (PLAN.md §C20): Attach (re-attach the user's terminal to
 // the running tmux session), Kill (graceful drain + tear-down), and
-// ResetSession (clear broker state + manifest + per-agent temp files
+// ResetSession (clear broker state + manifest + per-bot temp files
 // for a fresh-start). Each is small (15-30 lines) but together they
 // form the "user can drive the running team" surface — separate from
 // boot (Launch) and reconfigure (ReconfigureSession).
@@ -37,8 +37,8 @@ func (l *Launcher) Attach() error {
 	return cmd.Run()
 }
 
-// Kill destroys the tmux session, all agent processes, and the broker. Also
-// removes per-agent temp files (MCP config + system prompt) so the broker
+// Kill destroys the tmux session, all bot processes, and the broker. Also
+// removes per-bot temp files (MCP config + system prompt) so the broker
 // token and prompt content do not linger in $TMPDIR.
 //
 // Drains every long-lived goroutine before broker.Stop and the
@@ -47,7 +47,7 @@ func (l *Launcher) Attach() error {
 // headless workers were only context-cancelled — cancel kicks the
 // subprocess but the worker goroutine takes a tick to unwind, and
 // it can race os.RemoveAll(launchTempDirPath) inside
-// cleanupAgentTempFiles by writing a fresh per-agent prompt/MCP
+// cleanupBotTempFiles by writing a fresh per-bot prompt/MCP
 // file into a directory the cleanup is removing.
 //
 // Sequence:
@@ -55,7 +55,7 @@ func (l *Launcher) Attach() error {
 //  2. headless.cancel()         — kick subprocess
 //  3. stopHeadlessWorkers()     — wait on workerWg
 //  4. broker.Stop()             — listener teardown
-//  5. cleanupAgentTempFiles()   — rm -rf launch dir
+//  5. cleanupBotTempFiles()   — rm -rf launch dir
 func (l *Launcher) Kill() error {
 	if l.schedulerWorker != nil {
 		l.schedulerWorker.Stop()
@@ -70,7 +70,7 @@ func (l *Launcher) Kill() error {
 	// Clean temp files before tearing down tmux so the claude processes are
 	// still alive to release any open handles (harmless, but principle of
 	// least surprise).
-	l.cleanupAgentTempFiles()
+	l.cleanupBotTempFiles()
 	// Clear the office.json attach sidecar on every shutdown path (both the
 	// headless-web and pane runtimes) so a clean exit never leaves a front-end
 	// pointing at a dead URL. (office.pid clearing stays runtime-specific below.)

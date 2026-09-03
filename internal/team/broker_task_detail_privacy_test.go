@@ -15,10 +15,10 @@ import (
 // it. teamTask is both the persisted struct and the wire struct, so that text
 // shipped to anyone who could call GET /tasks/{id} — and taskAccessAllowed
 // returns true unconditionally for any broker-token holder, which is every
-// agent. The endpoint carries no agent identity, so it cannot tell one from
+// bot. The endpoint carries no bot identity, so it cannot tell one from
 // another.
 //
-// The result: an agent barred from reading a conversation could read that
+// The result: a bot barred from reading a conversation could read that
 // conversation's messages back, word for word, off any task in it. The
 // Librarian's wiki-link tool calls this exact endpoint. Closing the channel
 // bypasses without closing this would have moved the leak, not fixed it.

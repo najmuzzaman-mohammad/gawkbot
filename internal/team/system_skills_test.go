@@ -115,19 +115,19 @@ func TestSystemSkillMutationVerbsRefuse(t *testing.T) {
 	}
 }
 
-func TestSystemSkillPerAgentToggle(t *testing.T) {
+func TestSystemSkillPerBotToggle(t *testing.T) {
 	b := newSystemSkillsTestBroker(t)
 
-	// disable-for records the switch-off without touching OwnerAgents.
+	// disable-for records the switch-off without touching OwnerBots.
 	req := httptest.NewRequest("POST", "/skills/app-building/disable-for", strings.NewReader(`{"agent":"writer"}`))
 	rec := httptest.NewRecorder()
-	b.handleSkillDisableForAgent(rec, req, "app-building")
+	b.handleSkillDisableForBot(rec, req, "app-building")
 	if rec.Code != 200 {
 		t.Fatalf("disable-for: code = %d, body %s", rec.Code, rec.Body.String())
 	}
 	sk := findSystemSkill(t, b, systemSkillAppBuilding)
-	if len(sk.DisabledAgents) != 1 || sk.DisabledAgents[0] != "writer" {
-		t.Fatalf("DisabledAgents = %v, want [writer]", sk.DisabledAgents)
+	if len(sk.DisabledBots) != 1 || sk.DisabledBots[0] != "writer" {
+		t.Fatalf("DisabledBots = %v, want [writer]", sk.DisabledBots)
 	}
 	if b.SystemSkillEnabledFor(systemSkillAppBuilding, "writer") {
 		t.Error("writer should be disabled for app-building")
@@ -143,7 +143,7 @@ func TestSystemSkillPerAgentToggle(t *testing.T) {
 	owners := map[string]bool{}
 	for _, summary := range b.ListActiveSkillSummaries() {
 		if summary.Slug == systemSkillAppBuilding {
-			for _, slug := range summary.OwnerAgents {
+			for _, slug := range summary.OwnerBots {
 				owners[slug] = true
 			}
 		}
@@ -155,7 +155,7 @@ func TestSystemSkillPerAgentToggle(t *testing.T) {
 	// enable-for lifts the switch-off.
 	req = httptest.NewRequest("POST", "/skills/app-building/enable-for", strings.NewReader(`{"agent":"writer"}`))
 	rec = httptest.NewRecorder()
-	b.handleSkillEnableForAgent(rec, req, "app-building")
+	b.handleSkillEnableForBot(rec, req, "app-building")
 	if rec.Code != 200 {
 		t.Fatalf("enable-for: code = %d, body %s", rec.Code, rec.Body.String())
 	}

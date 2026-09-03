@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // RunClaudeOneShot runs Claude once with the given system prompt and user prompt
 // and returns the final plain-text result.
 func RunClaudeOneShot(systemPrompt, prompt, cwd string) (string, error) {
-	return runClaudeOneShotWithAttempt(systemPrompt, prompt, cwd, func(ch chan<- agent.StreamChunk, prompt string, systemPrompt string, cwd string) claudeAttemptResult {
+	return runClaudeOneShotWithAttempt(systemPrompt, prompt, cwd, func(ch chan<- bot.StreamChunk, prompt string, systemPrompt string, cwd string) claudeAttemptResult {
 		return runClaudeAttempt(ch, prompt, systemPrompt, cwd, "", true)
 	})
 }
@@ -24,12 +24,12 @@ func RunClaudeOneShotCtx(ctx context.Context, systemPrompt, prompt, cwd string) 
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	return runClaudeOneShotWithAttempt(systemPrompt, prompt, cwd, func(ch chan<- agent.StreamChunk, prompt string, systemPrompt string, cwd string) claudeAttemptResult {
+	return runClaudeOneShotWithAttempt(systemPrompt, prompt, cwd, func(ch chan<- bot.StreamChunk, prompt string, systemPrompt string, cwd string) claudeAttemptResult {
 		return runClaudeAttemptCtx(ctx, ch, prompt, systemPrompt, cwd, "", true)
 	})
 }
 
-func runClaudeOneShotWithAttempt(systemPrompt, prompt, cwd string, attempt func(ch chan<- agent.StreamChunk, prompt string, systemPrompt string, cwd string) claudeAttemptResult) (string, error) {
+func runClaudeOneShotWithAttempt(systemPrompt, prompt, cwd string, attempt func(ch chan<- bot.StreamChunk, prompt string, systemPrompt string, cwd string) claudeAttemptResult) (string, error) {
 	if cwd == "" {
 		var err error
 		cwd, err = os.Getwd()
@@ -37,7 +37,7 @@ func runClaudeOneShotWithAttempt(systemPrompt, prompt, cwd string, attempt func(
 			return "", err
 		}
 	}
-	ch := make(chan agent.StreamChunk, 128)
+	ch := make(chan bot.StreamChunk, 128)
 	result := attempt(ch, prompt, systemPrompt, cwd)
 	close(ch)
 	if result.exitErr != nil {

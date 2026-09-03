@@ -1,15 +1,15 @@
 package team
 
 // broker_decision_packet_events.go owns the five net-new manifest events
-// the multi-agent control loop emits across the lifecycle. They register
+// the multi-bot control loop emits across the lifecycle. They register
 // in the existing PR #729 HeadlessEvent taxonomy (manifest type) so the
 // frontend's existing event-stream consumer renders them without a
 // parallel pipeline.
 //
 // Events in this file:
 //
-//   - artifact.ready    — owner agent committed a session report (running → review)
-//   - review.submitted  — one reviewer agent recorded a grade
+//   - artifact.ready    — owner bot committed a session report (running → review)
+//   - review.submitted  — one reviewer bot recorded a grade
 //   - decision.required — convergence rule fired (review → decision)
 //   - decision.recorded — human merge / request-changes / block / defer
 //   - spec.created      — emitted by Lane B's intake driver when SetSpec lands
@@ -56,15 +56,15 @@ type lifecycleManifestPayload struct {
 	EmittedAt      time.Time                `json:"emittedAt"`
 }
 
-// lifecycleManifestStreamSlug is the synthetic agent slug used for
-// stream-bucket attribution of lifecycle manifests. Real agent streams
+// lifecycleManifestStreamSlug is the synthetic bot slug used for
+// stream-bucket attribution of lifecycle manifests. Real bot streams
 // are keyed by member slug; lifecycle events are broker-authored, so we
 // pick a stable reserved slug the frontend can filter on.
 const lifecycleManifestStreamSlug = "system.lifecycle"
 
 // emitLifecycleManifestLocked stamps a HeadlessEventTypeManifest event
-// into the per-task agent stream buffer (if one exists for the task).
-// Caller must hold b.mu — the agentStreams map is broker-shared state.
+// into the per-task bot stream buffer (if one exists for the task).
+// Caller must hold b.mu — the botStreams map is broker-shared state.
 //
 // The event is best-effort: a missing stream (test broker without an
 // allocated buffer for the task) is a silent no-op so unit tests that do
@@ -90,7 +90,7 @@ func (b *Broker) emitLifecycleManifestLocked(payload lifecycleManifestPayload) {
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:      HeadlessEventTypeManifest,
 		Provider:  "wuphf",
-		Agent:     lifecycleManifestStreamSlug,
+		Bot:       lifecycleManifestStreamSlug,
 		TaskID:    strings.TrimSpace(payload.TaskID),
 		Status:    "idle",
 		Detail:    string(body),
@@ -105,19 +105,19 @@ func (b *Broker) emitLifecycleManifestLocked(payload lifecycleManifestPayload) {
 //
 // The synthetic slug is stable (lifecycleManifestStreamSlug) so the
 // frontend can subscribe by slug. SSE fan-out treats it like any other
-// agent slug; the activity sidebar filters it out by checking for the
+// bot slug; the activity sidebar filters it out by checking for the
 // "system." prefix.
-func (b *Broker) lifecycleManifestStreamLocked(taskID string) *agentStreamBuffer {
+func (b *Broker) lifecycleManifestStreamLocked(taskID string) *botStreamBuffer {
 	if b == nil {
 		return nil
 	}
-	if b.agentStreams == nil {
-		b.agentStreams = make(map[string]*agentStreamBuffer)
+	if b.botStreams == nil {
+		b.botStreams = make(map[string]*botStreamBuffer)
 	}
-	stream, ok := b.agentStreams[lifecycleManifestStreamSlug]
+	stream, ok := b.botStreams[lifecycleManifestStreamSlug]
 	if !ok {
-		stream = &agentStreamBuffer{}
-		b.agentStreams[lifecycleManifestStreamSlug] = stream
+		stream = &botStreamBuffer{}
+		b.botStreams[lifecycleManifestStreamSlug] = stream
 	}
 	return stream
 }

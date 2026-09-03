@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // helper: drain a StreamFn channel into a slice of chunks.
-func drainChunks(t *testing.T, ch <-chan agent.StreamChunk) []agent.StreamChunk {
+func drainChunks(t *testing.T, ch <-chan bot.StreamChunk) []bot.StreamChunk {
 	t.Helper()
-	var out []agent.StreamChunk
+	var out []bot.StreamChunk
 	for c := range ch {
 		out = append(out, c)
 	}
@@ -45,7 +45,7 @@ func TestParseOpenAISSEStream_TextDeltas(t *testing.T) {
 		`{"choices":[{"delta":{"content":"!"}, "finish_reason":"stop"}]}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
@@ -76,7 +76,7 @@ func TestParseOpenAISSEStream_ToolCallAcrossDeltas(t *testing.T) {
 		`{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
@@ -114,7 +114,7 @@ func TestParseOpenAISSEStream_MixedTextAndToolCall(t *testing.T) {
 		`{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
@@ -142,7 +142,7 @@ func TestParseOpenAISSEStream_ParallelToolCalls(t *testing.T) {
 		`{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
@@ -164,7 +164,7 @@ func TestParseOpenAISSEStream_MalformedToolArgs(t *testing.T) {
 		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"oops","arguments":"{not-json"}}]}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -191,7 +191,7 @@ func TestParseOpenAISSEStream_JSONInContentToolCallFallback(t *testing.T) {
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -224,7 +224,7 @@ func TestParseOpenAISSEStream_JSONInContentFallback_OnlyWhenWholeContentIsJSON(t
 		`{"choices":[{"delta":{"content":"I would call get_weather but I won't right now."}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -251,7 +251,7 @@ func TestParseOpenAISSEStream_QwenToolsTagFallback(t *testing.T) {
 		`{"choices":[{"delta":{"content":"<tools>\n{\"name\": \"echo_phrase\", \"arguments\": {\"phrase\": \"unified-steele\"}}\n</tools>\n"}}]}`,
 		`{"choices":[{"delta":{"content":"\nThe function returned the phrase 'unified-steele'."}, "finish_reason":"stop"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -277,7 +277,7 @@ func TestParseOpenAISSEStream_QwenToolsTagFallback(t *testing.T) {
 // TestParseOpenAISSEStream_QwenImEndFallback locks in the Qwen-style
 // `{json}<|im_end|>` shape mlx_lm.server actually emits (no <tools>
 // wrapper, just bare JSON followed by the chat-template terminator).
-// This was the failure mode in screenshot bug "agent reply is the raw
+// This was the failure mode in screenshot bug "bot reply is the raw
 // tool-call JSON" — the trailing `<|im_end|>` made the previous
 // HasSuffix("}") check bail out, and the JSON got streamed back to
 // the user verbatim.
@@ -286,7 +286,7 @@ func TestParseOpenAISSEStream_QwenImEndFallback(t *testing.T) {
 		`{"choices":[{"delta":{"content":"{\"name\": \"team_broadcast\", \"arguments\": {\"channel\": \"ceo__human\", \"content\": \"hi team\"}}<|im_end|>"}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -305,14 +305,14 @@ func TestParseOpenAISSEStream_QwenImEndFallback(t *testing.T) {
 		}
 	}
 	if !sawToolUse {
-		t.Fatal("Qwen <|im_end|> dialect did not surface as tool_use — agent reply will be the raw JSON")
+		t.Fatal("Qwen <|im_end|> dialect did not surface as tool_use — bot reply will be the raw JSON")
 	}
 }
 
 // TestParseOpenAISSEStream_QwenMarkdownFenceFallback covers the
-// REAL Qwen2.5-Coder dialect captured in the agent log: model wraps
+// REAL Qwen2.5-Coder dialect captured in the bot log: model wraps
 // the tool-call JSON in a markdown code fence and adds the chat-
-// template terminator. Caught a user-visible bug where the agent
+// template terminator. Caught a user-visible bug where the bot
 // reply rendered as a JSON code block instead of executing the tool.
 //
 // Sample raw stream from the headless-codex-planner.log:
@@ -329,7 +329,7 @@ func TestParseOpenAISSEStream_QwenMarkdownFenceFallback(t *testing.T) {
 			`"}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -344,7 +344,7 @@ func TestParseOpenAISSEStream_QwenMarkdownFenceFallback(t *testing.T) {
 		}
 	}
 	if !sawToolUse {
-		t.Fatal("Markdown-fenced Qwen tool call did not surface as tool_use — agent reply will be the raw JSON code block")
+		t.Fatal("Markdown-fenced Qwen tool call did not surface as tool_use — bot reply will be the raw JSON code block")
 	}
 }
 
@@ -352,7 +352,7 @@ func TestParseOpenAISSEStream_QwenMarkdownFenceFallback(t *testing.T) {
 // suffix stripper directly. The helper underpins both the markdown-
 // fence dialect and the bare-JSON dialect — a regression here lets a
 // trailing chat-template marker break the HasSuffix("}") check
-// downstream and the agent reply silently regresses to raw JSON.
+// downstream and the bot reply silently regresses to raw JSON.
 func TestStripChatTemplateTerminators(t *testing.T) {
 	cases := []struct{ in, want string }{
 		// Each known terminator stripped individually.
@@ -515,7 +515,7 @@ func TestParseOpenAISSEStream_BalancedJSONIgnoresProseSummary(t *testing.T) {
 		`{"choices":[{"delta":{"content":"{\"name\": \"team_broadcast\", \"arguments\": {\"channel\": \"general\", \"content\": \"x\"}}\n\nDone."}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -540,7 +540,7 @@ func TestParseOpenAISSEStream_BalancedJSONRejectsProsePrecedingJSON(t *testing.T
 		`{"choices":[{"delta":{"content":"Here is an example: {\"name\":\"do\",\"arguments\":{}}"}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -561,7 +561,7 @@ func TestParseOpenAISSEStream_QwenToolsTagFallback_OnlyOneBlock(t *testing.T) {
 		`{"choices":[{"delta":{"content":"thinking...\n<tools>{\"name\":\"a\",\"arguments\":{}}</tools>\nor maybe\n<tools>{\"name\":\"b\",\"arguments\":{}}</tools>"}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
@@ -582,12 +582,12 @@ func TestParseOpenAISSEStream_StructuredToolCallsBeatFallback(t *testing.T) {
 		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"real_tool","arguments":"{}"}}]}}]}`,
 		`{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}`,
 	)
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "mlx-lm", strings.NewReader(body))
 	}()
-	var toolUses []agent.StreamChunk
+	var toolUses []bot.StreamChunk
 	for _, c := range drainChunks(t, ch) {
 		if c.Type == "tool_use" {
 			toolUses = append(toolUses, c)
@@ -613,7 +613,7 @@ func TestParseOpenAISSEStream_IgnoresEmptyDataFrames(t *testing.T) {
 		"data: \n\n" + // also exercise the trailing-space variant
 		"data: {\"choices\":[{\"delta\":{\"content\":\"b\"},\"finish_reason\":\"stop\"}]}\n\n" +
 		"data: [DONE]\n\n"
-	ch := make(chan agent.StreamChunk, 8)
+	ch := make(chan bot.StreamChunk, 8)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "ollama", strings.NewReader(body))
@@ -711,7 +711,7 @@ func TestParseOpenAISSEStream_IgnoresCommentLines(t *testing.T) {
 		"data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n" +
 		": another\n\n" +
 		"data: [DONE]\n\n"
-	ch := make(chan agent.StreamChunk, 4)
+	ch := make(chan bot.StreamChunk, 4)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
@@ -737,7 +737,7 @@ func TestOpenAICompatStreamFn_HTTP500SurfacesAsError(t *testing.T) {
 	factory := NewOpenAICompatStreamFn(KindMLXLM, "http://unused", "default-model")
 	stream := factory("agent-1")
 	chunks := drainChunks(t, stream(
-		[]agent.Message{{Role: "user", Content: "hi"}},
+		[]bot.Message{{Role: "user", Content: "hi"}},
 		nil,
 	))
 
@@ -782,7 +782,7 @@ func TestOpenAICompatStreamFn_TextStream_EndToEnd(t *testing.T) {
 
 	factory := NewOpenAICompatStreamFn(KindOllama, "http://unused", "default-model")
 	chunks := drainChunks(t, factory("a")(
-		[]agent.Message{{Role: "user", Content: "say alpha"}},
+		[]bot.Message{{Role: "user", Content: "say alpha"}},
 		nil,
 	))
 
@@ -813,8 +813,8 @@ func TestOpenAICompatStreamFn_RequestBodyShape(t *testing.T) {
 	factory := NewOpenAICompatStreamFn(KindExo, "http://unused", "unused-default")
 	stream := factory("a")
 	for range stream(
-		[]agent.Message{{Role: "system", Content: "be brief"}, {Role: "user", Content: "ping"}},
-		[]agent.AgentTool{{Name: "t1", Description: "d", Schema: map[string]any{"type": "object"}}},
+		[]bot.Message{{Role: "system", Content: "be brief"}, {Role: "user", Content: "ping"}},
+		[]bot.BotTool{{Name: "t1", Description: "d", Schema: map[string]any{"type": "object"}}},
 	) {
 	}
 
@@ -849,15 +849,15 @@ func TestOpenAICompatStreamFn_HermesHeadersWhenAuthenticated(t *testing.T) {
 	t.Setenv("WUPHF_HERMES_AGENT_BASE_URL", srv.URL+"/v1")
 	t.Setenv("WUPHF_HERMES_AGENT_API_KEY", "test-hermes-key")
 
-	factory := NewOpenAICompatStreamFn(KindHermesAgent, "http://unused", "hermes-agent")
-	for range factory("Agent One!")([]agent.Message{{Role: "user", Content: "ping"}}, nil) {
+	factory := NewOpenAICompatStreamFn(KindHermesBot, "http://unused", "hermes-agent")
+	for range factory("Bot One!")([]bot.Message{{Role: "user", Content: "ping"}}, nil) {
 	}
 
 	if gotAuth != "Bearer test-hermes-key" {
 		t.Fatalf("Authorization = %q, want bearer key", gotAuth)
 	}
-	if gotSessionID != "wuphf-agent-one" {
-		t.Fatalf("X-Hermes-Session-Id = %q, want wuphf-agent-one", gotSessionID)
+	if gotSessionID != "wuphf-bot-one" {
+		t.Fatalf("X-Hermes-Session-Id = %q, want wuphf-bot-one", gotSessionID)
 	}
 	if gotSessionKey != gotSessionID {
 		t.Fatalf("X-Hermes-Session-Key = %q, want %q", gotSessionKey, gotSessionID)
@@ -879,8 +879,8 @@ func TestOpenAICompatStreamFn_HermesOmitsSessionHeadersWithoutAuth(t *testing.T)
 	t.Setenv("WUPHF_HERMES_AGENT_API_KEY", "")
 	t.Setenv("API_SERVER_KEY", "")
 
-	factory := NewOpenAICompatStreamFn(KindHermesAgent, "http://unused", "hermes-agent")
-	for range factory("agent-one")([]agent.Message{{Role: "user", Content: "ping"}}, nil) {
+	factory := NewOpenAICompatStreamFn(KindHermesBot, "http://unused", "hermes-agent")
+	for range factory("bot-one")([]bot.Message{{Role: "user", Content: "ping"}}, nil) {
 	}
 
 	if gotAuth != "" {
@@ -909,7 +909,7 @@ func TestOpenAICompatStreamFn_OpenclawHTTPUsesGatewayToken(t *testing.T) {
 	t.Setenv("WUPHF_OPENCLAW_TOKEN", "")
 
 	factory := NewOpenAICompatStreamFn(KindOpenclawHTTP, "http://unused", "openclaw/default")
-	for range factory("agent-one")([]agent.Message{{Role: "user", Content: "ping"}}, nil) {
+	for range factory("bot-one")([]bot.Message{{Role: "user", Content: "ping"}}, nil) {
 	}
 
 	if gotAuth != "Bearer gateway-token" {
@@ -918,8 +918,8 @@ func TestOpenAICompatStreamFn_OpenclawHTTPUsesGatewayToken(t *testing.T) {
 	if !strings.Contains(gotBody, `"model":"openclaw/default"`) {
 		t.Fatalf("request model = %s, want openclaw/default", gotBody)
 	}
-	if !strings.Contains(gotBody, `"user":"wuphf-agent-one"`) {
-		t.Fatalf("request user = %s, want stable WUPHF agent user", gotBody)
+	if !strings.Contains(gotBody, `"user":"wuphf-bot-one"`) {
+		t.Fatalf("request user = %s, want stable WUPHF bot user", gotBody)
 	}
 }
 
@@ -934,14 +934,14 @@ func TestParseOpenAISSEStream_TrailingUsageFrame(t *testing.T) {
 		`{"choices":[],"usage":{"prompt_tokens":42,"completion_tokens":7,"total_tokens":49}}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
 	}()
 
 	chunks := drainChunks(t, ch)
-	var usage *agent.StreamChunk
+	var usage *bot.StreamChunk
 	for i := range chunks {
 		if chunks[i].Type == "usage" {
 			usage = &chunks[i]
@@ -974,7 +974,7 @@ func TestParseOpenAISSEStream_TrailingUsageFrame(t *testing.T) {
 // server doesn't emit a usage frame (e.g. older mlx_lm.server, servers that
 // don't implement stream_options.include_usage), the parser does NOT
 // fabricate a zero-valued usage chunk. The headless runner relies on
-// "no usage chunk → don't call RecordAgentUsage" to avoid recording empty
+// "no usage chunk → don't call RecordBotUsage" to avoid recording empty
 // rows.
 func TestParseOpenAISSEStream_NoUsageFrameStaysSilent(t *testing.T) {
 	body := sseBody(
@@ -982,7 +982,7 @@ func TestParseOpenAISSEStream_NoUsageFrameStaysSilent(t *testing.T) {
 		`{"choices":[{"delta":{},"finish_reason":"stop"}]}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
@@ -1010,7 +1010,7 @@ func TestParseOpenAISSEStream_AllZeroUsageDoesNotLatch(t *testing.T) {
 		`{"choices":[],"usage":{"prompt_tokens":0,"completion_tokens":0,"total_tokens":0}}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
@@ -1037,13 +1037,13 @@ func TestParseOpenAISSEStream_LaterPartialUsageDoesNotClobber(t *testing.T) {
 		`{"choices":[],"usage":{"prompt_tokens":42,"completion_tokens":0,"total_tokens":42}}`,
 	)
 
-	ch := make(chan agent.StreamChunk, 16)
+	ch := make(chan bot.StreamChunk, 16)
 	go func() {
 		defer close(ch)
 		parseOpenAISSEStream(ch, "test", strings.NewReader(body))
 	}()
 
-	var usage *agent.StreamChunk
+	var usage *bot.StreamChunk
 	for _, c := range drainChunks(t, ch) {
 		c := c
 		if c.Type == "usage" {

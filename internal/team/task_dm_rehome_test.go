@@ -8,8 +8,8 @@ import (
 
 // Regression for the screenshot bug: a task the Chief of Staff opened inside
 // the human's DM for @prospect-scout dragged the scout's working narration
-// into that private thread. Tasks owned by someone other than the DM's agent
-// re-home to the agent pair DM, and owner promotion never touches a 1:1 DM.
+// into that private thread. Tasks owned by someone other than the DM's bot
+// re-home to the bot pair DM, and owner promotion never touches a 1:1 DM.
 
 func newRehomeTestBroker(t *testing.T) *Broker {
 	t.Helper()
@@ -25,14 +25,14 @@ func newRehomeTestBroker(t *testing.T) *Broker {
 	return b
 }
 
-func TestTaskInHumanDMReHomesToAgentPairDM(t *testing.T) {
+func TestTaskInHumanDMReHomesToBotPairDM(t *testing.T) {
 	b := newRehomeTestBroker(t)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	got := b.preferredTaskChannelLocked("ceo__human", "ceo", "prospect-scout", "Find prospects", "")
 	if got != "ceo__prospect-scout" {
-		t.Fatalf("task for another agent inside the human DM: channel = %q, want ceo__prospect-scout", got)
+		t.Fatalf("task for another bot inside the human DM: channel = %q, want ceo__prospect-scout", got)
 	}
 	pair := b.findChannelLocked("ceo__prospect-scout")
 	if pair == nil {
@@ -42,9 +42,9 @@ func TestTaskInHumanDMReHomesToAgentPairDM(t *testing.T) {
 		t.Fatalf("pair DM members = %v", pair.Members)
 	}
 
-	// The DM's own agent keeps its task where the conversation is.
+	// The DM's own bot keeps its task where the conversation is.
 	if got := b.preferredTaskChannelLocked("ceo__human", "ceo", "ceo", "Plan the week", ""); got != "ceo__human" {
-		t.Fatalf("task owned by the DM's agent moved to %q", got)
+		t.Fatalf("task owned by the DM's bot moved to %q", got)
 	}
 	// Non-DM channels are untouched.
 	if got := b.preferredTaskChannelLocked(testTeamRoom, "ceo", "prospect-scout", "x", ""); got != testTeamRoom {
@@ -63,23 +63,23 @@ func TestTaskOwnerPromotionNeverEntersHumanDM(t *testing.T) {
 		t.Fatal("human DM missing")
 	}
 	if containsString(dm.Members, "prospect-scout") {
-		t.Fatalf("third agent promoted into the human's DM: %v", dm.Members)
+		t.Fatalf("third bot promoted into the human's DM: %v", dm.Members)
 	}
-	// The DM's own agent is still a legitimate owner there.
+	// The DM's own bot is still a legitimate owner there.
 	b.ensureTaskOwnerChannelMembershipLocked("ceo__human", "ceo")
 	if !containsString(b.findChannelLocked("ceo__human").Members, "ceo") {
-		t.Fatal("the DM's own agent lost membership")
+		t.Fatal("the DM's own bot lost membership")
 	}
 }
 
 // A DM admits exactly the two participants its slug names — even when the
-// stored member list has drifted to include a third agent.
+// stored member list has drifted to include a third bot.
 func TestDMAdmitsOnlyItsSlugParticipants(t *testing.T) {
 	b := newRehomeTestBroker(t)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Simulate membership drift: a third agent in the stored roster row.
+	// Simulate membership drift: a third bot in the stored roster row.
 	dm := b.findChannelLocked("ceo__human")
 	dm.Members = append(dm.Members, "prospect-scout")
 
@@ -100,15 +100,15 @@ func TestDMAdmitsOnlyItsSlugParticipants(t *testing.T) {
 		}
 	}
 
-	// Agent pair DMs admit their two agents and nobody else.
-	b.ensureAgentPairDMLocked("ceo__prospect-scout")
+	// Bot pair DMs admit their two bots and nobody else.
+	b.ensureBotPairDMLocked("ceo__prospect-scout")
 	b.members = append(b.members, officeMember{Slug: "designer", Name: "Designer"})
 	b.rebuildMemberIndexLocked()
 	if !b.canAccessChannelLocked("ceo", "ceo__prospect-scout") || !b.canAccessChannelLocked("prospect-scout", "ceo__prospect-scout") {
 		t.Error("pair DM participants must be admitted")
 	}
 	if b.canAccessChannelLocked("designer", "ceo__prospect-scout") {
-		t.Error("third agent admitted into a pair DM")
+		t.Error("third bot admitted into a pair DM")
 	}
 }
 
@@ -124,6 +124,6 @@ func TestDMParticipantsCannotBeEditedViaChannelAPI(t *testing.T) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if containsString(b.findChannelLocked("ceo__human").Members, "prospect-scout") {
-		t.Fatal("third agent written into the DM member list")
+		t.Fatal("third bot written into the DM member list")
 	}
 }

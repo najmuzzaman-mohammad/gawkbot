@@ -11,8 +11,8 @@ import (
 // atMentionPattern matches @slug patterns in messages.
 var atMentionPattern = regexp.MustCompile(`@(\S+)`)
 
-// AgentInfo describes an available agent for message routing.
-type AgentInfo struct {
+// BotInfo describes an available bot for message routing.
+type BotInfo struct {
 	Slug      string
 	Expertise []string
 	RoleTerms []string
@@ -20,18 +20,18 @@ type AgentInfo struct {
 
 // MessageRoutingResult is the output of a Route call.
 type MessageRoutingResult struct {
-	Primary       string // agent slug
+	Primary       string // bot slug
 	Collaborators []string
 	IsFollowUp    bool
 	TeamLeadAware bool
 }
 
 type threadContext struct {
-	agentSlug    string
+	botSlug      string
 	lastActivity time.Time
 }
 
-// MessageRouter routes free-text messages to the most appropriate agent.
+// MessageRouter routes free-text messages to the most appropriate bot.
 type MessageRouter struct {
 	router         *TaskRouter
 	recentThreads  map[string]*threadContext
@@ -49,7 +49,7 @@ func NewMessageRouter() *MessageRouter {
 	}
 }
 
-// SetTeamLeadSlug configures which agent slug acts as the team lead.
+// SetTeamLeadSlug configures which bot slug acts as the team lead.
 func (m *MessageRouter) SetTeamLeadSlug(slug string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -65,39 +65,39 @@ func (m *MessageRouter) getTeamLeadSlug() string {
 	return "team-lead"
 }
 
-// RegisterAgent registers an agent's expertise with the underlying TaskRouter.
-func (m *MessageRouter) RegisterAgent(slug string, expertise []string) {
+// RegisterBot registers a bot's expertise with the underlying TaskRouter.
+func (m *MessageRouter) RegisterBot(slug string, expertise []string) {
 	skills := make([]SkillDeclaration, len(expertise))
 	for i, e := range expertise {
 		skills[i] = SkillDeclaration{Name: e, Description: e, Proficiency: 1.0}
 	}
-	m.router.RegisterAgent(slug, skills)
+	m.router.RegisterBot(slug, skills)
 }
 
-// UnregisterAgent removes an agent from the message router.
-func (m *MessageRouter) UnregisterAgent(slug string) {
+// UnregisterBot removes a bot from the message router.
+func (m *MessageRouter) UnregisterBot(slug string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.router.UnregisterAgent(slug)
+	m.router.UnregisterBot(slug)
 	delete(m.recentThreads, slug)
 }
 
-// RecordAgentActivity marks an agent as recently active.
-func (m *MessageRouter) RecordAgentActivity(agentSlug string) {
+// RecordBotActivity marks a bot as recently active.
+func (m *MessageRouter) RecordBotActivity(botSlug string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if tc, ok := m.recentThreads[agentSlug]; ok {
+	if tc, ok := m.recentThreads[botSlug]; ok {
 		tc.lastActivity = time.Now()
 	} else {
-		m.recentThreads[agentSlug] = &threadContext{
-			agentSlug:    agentSlug,
+		m.recentThreads[botSlug] = &threadContext{
+			botSlug:      botSlug,
 			lastActivity: time.Now(),
 		}
 	}
 }
 
-// Route decides which agent(s) should handle a message.
-func (m *MessageRouter) Route(message string, availableAgents []AgentInfo) MessageRoutingResult {
+// Route decides which bot(s) should handle a message.
+func (m *MessageRouter) Route(message string, availableBots []BotInfo) MessageRoutingResult {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -106,13 +106,13 @@ func (m *MessageRouter) Route(message string, availableAgents []AgentInfo) Messa
 	teamLead := m.getTeamLeadSlug()
 
 	// 1. Check for explicit @slug mention — highest priority, outranks follow-up.
-	if slug := m.detectAtMention(message, availableAgents); slug != "" {
+	if slug := m.detectAtMention(message, availableBots); slug != "" {
 		result.Primary = slug
 		result.TeamLeadAware = slug == teamLead
 		return result
 	}
 
-	// 2. Check follow-up — route to the recently active agent.
+	// 2. Check follow-up — route to the recently active bot.
 	if followUpSlug := m.detectFollowUp(message); followUpSlug != "" {
 		result.Primary = followUpSlug
 		result.IsFollowUp = true
@@ -125,7 +125,7 @@ func (m *MessageRouter) Route(message string, availableAgents []AgentInfo) Messa
 	result.Primary = teamLead
 	result.TeamLeadAware = true
 
-	result.Collaborators = m.inferCollaborators(message, availableAgents, teamLead)
+	result.Collaborators = m.inferCollaborators(message, availableBots, teamLead)
 	return result
 }
 
@@ -133,7 +133,7 @@ var followUpPattern = regexp.MustCompile(
 	`(?i)^(also|and |too |that |it |the results|those |these |this |what about|how about|can you also)`,
 )
 
-// detectFollowUp returns the most recently active agent slug if the message
+// detectFollowUp returns the most recently active bot slug if the message
 // looks like a follow-up and was within the follow-up window.
 func (m *MessageRouter) detectFollowUp(message string) string {
 	if !followUpPattern.MatchString(strings.TrimSpace(message)) {
@@ -148,20 +148,20 @@ func (m *MessageRouter) detectFollowUp(message string) string {
 		}
 	}
 	if best != nil {
-		return best.agentSlug
+		return best.botSlug
 	}
 	return ""
 }
 
-// detectAtMention returns the slug of an explicitly @mentioned agent, if any.
+// detectAtMention returns the slug of an explicitly @mentioned bot, if any.
 // Caller must hold m.mu.
-func (m *MessageRouter) detectAtMention(message string, agents []AgentInfo) string {
+func (m *MessageRouter) detectAtMention(message string, bots []BotInfo) string {
 	matches := atMentionPattern.FindAllStringSubmatch(message, -1)
 	if len(matches) == 0 {
 		return ""
 	}
-	known := make(map[string]bool, len(agents))
-	for _, a := range agents {
+	known := make(map[string]bool, len(bots))
+	for _, a := range bots {
 		known[a.Slug] = true
 	}
 	for _, match := range matches {
@@ -195,25 +195,25 @@ var routingStopWords = map[string]struct{}{
 	"we": {}, "with": {}, "you": {}, "your": {},
 }
 
-func (m *MessageRouter) inferCollaborators(message string, availableAgents []AgentInfo, teamLead string) []string {
+func (m *MessageRouter) inferCollaborators(message string, availableBots []BotInfo, teamLead string) []string {
 	messageTerms := extractRoutingTerms(message)
 	if len(messageTerms) == 0 {
 		return nil
 	}
 
-	type scoredAgent struct {
+	type scoredBot struct {
 		slug  string
 		score float64
 	}
 
-	var scored []scoredAgent
-	for _, agent := range availableAgents {
-		if agent.Slug == teamLead {
+	var scored []scoredBot
+	for _, bot := range availableBots {
+		if bot.Slug == teamLead {
 			continue
 		}
-		score := scoreAgentAgainstMessage(messageTerms, agentRoutingTerms(agent))
+		score := scoreBotAgainstMessage(messageTerms, botRoutingTerms(bot))
 		if score >= 0.28 {
-			scored = append(scored, scoredAgent{slug: agent.Slug, score: score})
+			scored = append(scored, scoredBot{slug: bot.Slug, score: score})
 		}
 	}
 
@@ -231,12 +231,12 @@ func (m *MessageRouter) inferCollaborators(message string, availableAgents []Age
 	return result
 }
 
-func agentRoutingTerms(agent AgentInfo) []string {
-	return RoutingTerms(agent.Slug, agent.Expertise, agent.RoleTerms, nil)
+func botRoutingTerms(bot BotInfo) []string {
+	return RoutingTerms(bot.Slug, bot.Expertise, bot.RoleTerms, nil)
 }
 
-// AgentRoutingTerms returns normalized routing terms for a slug plus its metadata.
-func AgentRoutingTerms(slug string, expertise []string, roleTerms []string) []string {
+// BotRoutingTerms returns normalized routing terms for a slug plus its metadata.
+func BotRoutingTerms(slug string, expertise []string, roleTerms []string) []string {
 	return RoutingTerms(slug, expertise, roleTerms, nil)
 }
 
@@ -250,16 +250,16 @@ func RoutingTerms(slug string, expertise []string, roleTerms []string, extraTerm
 	return dedupeTerms(normalizeRoutingTerms(terms))
 }
 
-func scoreAgentAgainstMessage(messageTerms, agentTerms []string) float64 {
-	if len(messageTerms) == 0 || len(agentTerms) == 0 {
+func scoreBotAgainstMessage(messageTerms, botTerms []string) float64 {
+	if len(messageTerms) == 0 || len(botTerms) == 0 {
 		return 0
 	}
 
 	bestScores := make([]float64, 0, len(messageTerms))
 	for _, messageTerm := range messageTerms {
 		best := 0.0
-		for _, agentTerm := range agentTerms {
-			if score := similarity(messageTerm, agentTerm); score > best {
+		for _, botTerm := range botTerms {
+			if score := similarity(messageTerm, botTerm); score > best {
 				best = score
 			}
 		}
@@ -284,15 +284,15 @@ func scoreAgentAgainstMessage(messageTerms, agentTerms []string) float64 {
 	return sum / float64(top)
 }
 
-// ScoreMessageAgainstAgent returns the metadata routing score for a message.
-func ScoreMessageAgainstAgent(message string, slug string, expertise []string, roleTerms []string) float64 {
-	return ScoreMessageAgainstTerms(message, AgentRoutingTerms(slug, expertise, roleTerms))
+// ScoreMessageAgainstBot returns the metadata routing score for a message.
+func ScoreMessageAgainstBot(message string, slug string, expertise []string, roleTerms []string) float64 {
+	return ScoreMessageAgainstTerms(message, BotRoutingTerms(slug, expertise, roleTerms))
 }
 
 // ScoreMessageAgainstTerms returns the metadata routing score for message text
 // against a precomputed set of routing terms.
 func ScoreMessageAgainstTerms(message string, terms []string) float64 {
-	return scoreAgentAgainstMessage(ExtractRoutingTerms(message), dedupeTerms(normalizeRoutingTerms(terms)))
+	return scoreBotAgainstMessage(ExtractRoutingTerms(message), dedupeTerms(normalizeRoutingTerms(terms)))
 }
 
 func extractRoutingTerms(message string) []string {

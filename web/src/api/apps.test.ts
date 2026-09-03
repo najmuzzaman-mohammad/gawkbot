@@ -40,7 +40,7 @@ describe("requestAppBuild", () => {
   // Regression: this sent the literal "general". Once the shared room was
   // retired the broker's create path could not find that channel and the
   // whole Edit App flow died with "channel not found". The task must be
-  // addressed to the agent that will do the work.
+  // addressed to the bot that will do the work.
   it("addresses the build task to the Chief of Staff's DM, never a shared room", async () => {
     await requestAppBuild({ name: "Pipeline", description: "a board" });
 

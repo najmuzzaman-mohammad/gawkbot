@@ -6,7 +6,7 @@ import (
 )
 
 // TestHumanReadablePlanSummary pins the approval card's contract with the
-// person reading it: keep the substance, drop what only the agent needs, and
+// person reading it: keep the substance, drop what only the bot needs, and
 // never publish where files live on the operator's machine.
 func TestHumanReadablePlanSummary(t *testing.T) {
 	raw := "DUNDE-72 Smoke Check Plan\n\n1. Baseline — snapshot before anything is created\n2. Canary — create a minimal test task\n\nThe plan file is at `/Users/najmuzzaman/.claude/plans/runtime-this-office.md`. Approve to run."

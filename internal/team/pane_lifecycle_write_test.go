@@ -1,8 +1,8 @@
 package team
 
 // Tests for the C5c migration: write-side / destructive paneLifecycle
-// methods (ClearAgentPanes, ClearOverflowAgentWindows, KillSession,
-// RespawnAgentPane, RespawnChannelPane, CaptureDeadChannelPane). All
+// methods (ClearBotPanes, ClearOverflowBotWindows, KillSession,
+// RespawnBotPane, RespawnChannelPane, CaptureDeadChannelPane). All
 // driven through fakeTmuxRunner via setTmuxRunnerForTest — no real
 // tmux server required, no time.Sleep in any of them.
 
@@ -18,14 +18,14 @@ func TestPaneLifecycle_ClearAgentPanesKillsHigherIndicesFirst(t *testing.T) {
 	// Reverse-order kill matters: tmux renumbers panes after a kill, so
 	// killing pane 1 before pane 3 leaves the original pane 3 sitting at
 	// index 2 — and the next kill-pane targets the wrong process.
-	// ClearAgentPanes sorts descending to avoid that. This test pins the
+	// ClearBotPanes sorts descending to avoid that. This test pins the
 	// invariant.
 	fake := newFakeTmuxRunner()
 	fake.outputs["list-panes"] = []byte("0 channel\n1 ceo\n2 fe\n3 be\n")
 	setTmuxRunnerForTest(t, fake)
 
-	if err := newPaneLifecycle("wuphf-team").ClearAgentPanes(); err != nil {
-		t.Fatalf("ClearAgentPanes err = %v", err)
+	if err := newPaneLifecycle("wuphf-team").ClearBotPanes(); err != nil {
+		t.Fatalf("ClearBotPanes err = %v", err)
 	}
 
 	kills := fake.callsFor("kill-pane")
@@ -47,8 +47,8 @@ func TestPaneLifecycle_ClearAgentPanesNoSessionIsNoOp(t *testing.T) {
 	fake.errors["list-panes"] = fmt.Errorf("exit 1")
 	setTmuxRunnerForTest(t, fake)
 
-	if err := newPaneLifecycle("wuphf-team").ClearAgentPanes(); err != nil {
-		t.Fatalf("ClearAgentPanes(no session) err = %v, want nil", err)
+	if err := newPaneLifecycle("wuphf-team").ClearBotPanes(); err != nil {
+		t.Fatalf("ClearBotPanes(no session) err = %v, want nil", err)
 	}
 	if got := fake.callsFor("kill-pane"); len(got) != 0 {
 		t.Fatalf("expected zero kill-pane calls when session missing, got %d", len(got))
@@ -60,11 +60,11 @@ func TestPaneLifecycle_ClearOverflowAgentWindowsFiltersByPrefix(t *testing.T) {
 	fake.outputs["list-windows"] = []byte("team\nagent-fe\nlogs\nagent-be\n")
 	setTmuxRunnerForTest(t, fake)
 
-	newPaneLifecycle("wuphf-team").ClearOverflowAgentWindows()
+	newPaneLifecycle("wuphf-team").ClearOverflowBotWindows()
 
 	kills := fake.callsFor("kill-window")
 	if len(kills) != 2 {
-		t.Fatalf("kill-window calls = %d, want 2 (agent-fe, agent-be)", len(kills))
+		t.Fatalf("kill-window calls = %d, want 2 (bot-fe, bot-be)", len(kills))
 	}
 	wantTargets := []string{"wuphf-team:agent-fe", "wuphf-team:agent-be"}
 	for i, call := range kills {
@@ -79,7 +79,7 @@ func TestPaneLifecycle_ClearOverflowAgentWindowsListErrorIsNoOp(t *testing.T) {
 	fake.errors["list-windows"] = fmt.Errorf("no server")
 	setTmuxRunnerForTest(t, fake)
 
-	newPaneLifecycle("wuphf-team").ClearOverflowAgentWindows()
+	newPaneLifecycle("wuphf-team").ClearOverflowBotWindows()
 
 	if got := fake.callsFor("kill-window"); len(got) != 0 {
 		t.Fatalf("expected zero kill-window calls on list error, got %d", len(got))
@@ -108,12 +108,12 @@ func TestPaneLifecycle_RespawnAgentPaneSurfacesTmuxOutput(t *testing.T) {
 	fake.errors["respawn-pane"] = fmt.Errorf("exit 1")
 	setTmuxRunnerForTest(t, fake)
 
-	out, err := newPaneLifecycle("wuphf-team").RespawnAgentPane(2, "/tmp/cwd", "claude --print")
+	out, err := newPaneLifecycle("wuphf-team").RespawnBotPane(2, "/tmp/cwd", "claude --print")
 	if err == nil {
-		t.Fatalf("RespawnAgentPane err = nil, want non-nil")
+		t.Fatalf("RespawnBotPane err = nil, want non-nil")
 	}
 	if string(out) != "tmux: pane locked\n" {
-		t.Errorf("RespawnAgentPane out = %q, want tmux stderr text", out)
+		t.Errorf("RespawnBotPane out = %q, want tmux stderr text", out)
 	}
 	calls := fake.callsFor("respawn-pane")
 	if len(calls) != 1 {
@@ -159,7 +159,7 @@ func TestPaneLifecycle_CaptureDeadChannelPaneWritesSnapshot(t *testing.T) {
 	t.Setenv("WUPHF_RUNTIME_HOME", tmp)
 
 	fake := newFakeTmuxRunner()
-	fake.outputs["capture-pane"] = []byte("agent: ready\nagent: dead\n")
+	fake.outputs["capture-pane"] = []byte("bot: ready\nbot: dead\n")
 	setTmuxRunnerForTest(t, fake)
 
 	if err := newPaneLifecycle("wuphf-team").CaptureDeadChannelPane("1 0 claude"); err != nil {
@@ -175,7 +175,7 @@ func TestPaneLifecycle_CaptureDeadChannelPaneWritesSnapshot(t *testing.T) {
 	if !strings.Contains(got, "status=1 0 claude") {
 		t.Errorf("snapshot missing status header: %q", got)
 	}
-	if !strings.Contains(got, "agent: ready") || !strings.Contains(got, "agent: dead") {
+	if !strings.Contains(got, "bot: ready") || !strings.Contains(got, "bot: dead") {
 		t.Errorf("snapshot missing capture-pane content: %q", got)
 	}
 }

@@ -1,6 +1,6 @@
 package team
 
-// skill_frontmatter.go implements the Anthropic Agent Skills frontmatter schema
+// skill_frontmatter.go implements the Anthropic Bot Skills frontmatter schema
 // used by the wiki-skill-compile pipeline. Canonical format matches the
 // anthropics/skills spec so compiled skills are publishable to external hubs
 // without re-formatting. WUPHF-specific provenance lives under metadata.wuphf.
@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// SkillFrontmatter represents the top-level Anthropic Agent Skills frontmatter.
+// SkillFrontmatter represents the top-level Anthropic Bot Skills frontmatter.
 // Name and Description are mandatory; all other fields are optional.
 type SkillFrontmatter struct {
 	// Name is the skill slug (e.g. "daily-digest"). Mandatory.
@@ -46,7 +46,7 @@ type SkillWuphfMeta struct {
 	SourceArticles []string `yaml:"source_articles,omitempty"`
 	// SourceSignals lists notebook citations (Stage B+ only).
 	SourceSignals []string `yaml:"source_signals,omitempty"`
-	// CreatedBy is the identity that wrote this proposal ("archivist", agent slug, etc.).
+	// CreatedBy is the identity that wrote this proposal ("archivist", bot slug, etc.).
 	CreatedBy string `yaml:"created_by,omitempty"`
 	// Status is one of proposed | active | disabled | archived.
 	Status string `yaml:"status,omitempty"`
@@ -67,13 +67,13 @@ type SkillWuphfMeta struct {
 	RelatedSkills []string `yaml:"related_skills,omitempty"`
 	// RenamedTo is set on archived stub skills left behind when an existing
 	// skill is renamed to a broader slug. Acts as a redirect for humans and
-	// agents that resolve the old slug. Always paired with status=archived.
+	// bots that resolve the old slug. Always paired with status=archived.
 	RenamedTo string `yaml:"renamed_to,omitempty"`
-	// OwnerAgents lists the agent slugs the skill is assigned to.
-	// Mirrors teamSkill.OwnerAgents in broker state so the on-disk
-	// SKILL.md stays in sync with per-agent assignment. Empty means the
-	// skill is loaded into no agent's prompt until explicitly assigned.
-	OwnerAgents []string `yaml:"owner_agents,omitempty"`
+	// OwnerBots lists the bot slugs the skill is assigned to.
+	// Mirrors teamSkill.OwnerBots in broker state so the on-disk
+	// SKILL.md stays in sync with per-bot assignment. Empty means the
+	// skill is loaded into no bot's prompt until explicitly assigned.
+	OwnerBots []string `yaml:"owner_agents,omitempty"`
 	// WorkflowProvider is the provider for workflow-backed skills.
 	WorkflowProvider string `yaml:"workflow_provider,omitempty"`
 	// WorkflowKey identifies the workflow within the provider.
@@ -194,7 +194,7 @@ func teamSkillToFrontmatter(sk teamSkill) SkillFrontmatter {
 				DisabledFromStatus: sk.DisabledFromStatus,
 				Tags:               append([]string(nil), sk.Tags...),
 				RelatedSkills:      append([]string(nil), sk.RelatedSkills...),
-				OwnerAgents:        append([]string(nil), sk.OwnerAgents...),
+				OwnerBots:          append([]string(nil), sk.OwnerBots...),
 				WorkflowProvider:   sk.WorkflowProvider,
 				WorkflowKey:        sk.WorkflowKey,
 				WorkflowDefinition: sk.WorkflowDefinition,

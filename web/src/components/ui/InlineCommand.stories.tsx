@@ -40,7 +40,7 @@ export const Destructive: Story = {
     destructive: {
       title: "Shred this office?",
       intro:
-        "This permanently deletes the team, agents, history, and saved workflows.",
+        "This permanently deletes the team, bots, history, and saved workflows.",
       confirmLabel: "Shred office",
       severity: "critical",
     },

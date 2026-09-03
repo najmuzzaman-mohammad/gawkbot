@@ -16,7 +16,7 @@ import (
 
 	"go.uber.org/goleak"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/gitexec"
 )
 
@@ -364,9 +364,9 @@ func TestBrokerBridgeEndpointRecordsVisibleBridge(t *testing.T) {
 
 func TestHeadlessQueue_EmptyBeforePush(t *testing.T) {
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "eng", Name: "Engineer"},
 			},
@@ -392,7 +392,7 @@ func TestHeadlessQueue_EmptyBeforePush(t *testing.T) {
 }
 
 // TestHeadlessQueue_PopulatedAfterEnqueue verifies that enqueueHeadlessCodexTurn
-// adds exactly one turn to the target agent's queue.
+// adds exactly one turn to the target bot's queue.
 func TestHeadlessQueue_PopulatedAfterEnqueue(t *testing.T) {
 	// Override headlessCodexRunTurn to be a no-op so no real process is started.
 	setHeadlessCodexRunTurnForTest(t, func(l *Launcher, ctx context.Context, slug, notification string, channel ...string) error {
@@ -403,9 +403,9 @@ func TestHeadlessQueue_PopulatedAfterEnqueue(t *testing.T) {
 	})
 
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "eng", Name: "Engineer"},
 			},
@@ -444,13 +444,13 @@ func TestHeadlessQueue_PopulatedAfterEnqueue(t *testing.T) {
 }
 
 // TestHeadlessQueue_NoTimerDrivenWakeup verifies that creating a Launcher and
-// waiting briefly does not populate any agent's queue — agents wake only on
+// waiting briefly does not populate any bot's queue — bots wake only on
 // explicit push (enqueue), never on a background timer.
 func TestHeadlessQueue_NoTimerDrivenWakeup(t *testing.T) {
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "eng", Name: "Engineer"},
 			},

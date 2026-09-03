@@ -19,7 +19,7 @@ Constants:
 | Export | File:line | Bound and rationale |
 |---|---:|---|
 | `MAX_RECEIPT_BYTES` | `src/budgets.ts:13` | 10 MiB serialized receipt. 10x risks verifier/OOM pressure; 0.1x would reject legitimate large task records. Failure stops parse/canonicalization. |
-| `MAX_TOOL_CALLS_PER_RECEIPT` | `src/budgets.ts:20` | 1,024 calls. 10x permits runaway loops; 0.1x breaks broad but valid agent runs. Failure stops per-call validation. |
+| `MAX_TOOL_CALLS_PER_RECEIPT` | `src/budgets.ts:20` | 1,024 calls. 10x permits runaway loops; 0.1x breaks broad but valid bot runs. Failure stops per-call validation. |
 | `MAX_FROZEN_ARGS_BYTES` | `src/budgets.ts:27` | 1 MiB canonical args. 10x stalls JCS/hash work; 0.1x rejects useful structured diffs. Failure stops canonicalization/hash comparison. |
 | `MAX_SANITIZED_STRING_BYTES` | `src/budgets.ts:34` | 1 MiB UTF-8 text. 10x overwhelms normalization/UI rendering; 0.1x rejects long logs. Failure stops sanitization or rendering. |
 | `MAX_AUDIT_CHAIN_BATCH_SIZE` | `src/budgets.ts:41` | 10,000 records per verifier step. 10x forces huge materialized batches; 0.1x adds avoidable I/O overhead. Failure rejects the batch before record serialization. |

@@ -2,8 +2,8 @@
 // WUPHF install with TWO OpenClaw bridge bindings behaves like a real pack:
 //
 //   - Both bridged sessions register as office members (@mentionable in #general).
-//   - A channel post that @mentions both agents fans out and each replies.
-//   - A 1:1 DM to either bridged slug is routed and the agent replies,
+//   - A channel post that @mentions both bots fans out and each replies.
+//   - A 1:1 DM to either bridged slug is routed and the bot replies,
 //     without an @mention (DM partner is inferred from the channel members).
 //
 // Run with:
@@ -45,8 +45,8 @@ func main() {
 	}
 
 	// Create two fresh OpenClaw sessions — each gets its own conversation
-	// history, so the two bridged slugs behave as distinct agents from the
-	// user's perspective even though they share the same model/agent.
+	// history, so the two bridged slugs behave as distinct bots from the
+	// user's perspective even though they share the same model/bot.
 	conn, err := openclaw.Dial(ctx, openclaw.Config{URL: "ws://127.0.0.1:18789", Token: token, Identity: identity})
 	if err != nil {
 		die("dial openclaw: %v", err)
@@ -135,7 +135,7 @@ func main() {
 		}
 	}
 
-	// 1. Office-member registration check (both agents must show up in the
+	// 1. Office-member registration check (both bots must show up in the
 	// sidebar + @mention autocomplete).
 	gotMembers := map[string]bool{}
 	for _, om := range broker.OfficeMembers() {
@@ -152,7 +152,7 @@ func main() {
 		}
 	}
 
-	// 2. Channel test: post to #general tagging both agents. Both must reply.
+	// 2. Channel test: post to #general tagging both bots. Both must reply.
 	channelPrompt := "hello both of you — reply with exactly the single word: pong"
 	before := len(broker.AllMessages())
 	if _, err := broker.PostMessage("human", "general", channelPrompt, []string{members[0].slug, members[1].slug}, ""); err != nil {
@@ -164,7 +164,7 @@ func main() {
 		fmt.Printf("  RECV #general from %s: %q\n", slug, truncate(reply, 140))
 	}
 
-	// 3. DM test: open a 1:1 DM per agent, post a distinct question, expect a
+	// 3. DM test: open a 1:1 DM per bot, post a distinct question, expect a
 	// distinct reply. No @mentions — DM partner resolution must do the work.
 	dmPrompts := map[string]string{
 		members[0].slug: "reply with exactly the single word: alpha",
@@ -231,9 +231,9 @@ func main() {
 		fmt.Printf("  RECV dm-turn-%d from %s: %q\n", i+1, members[1].slug, truncate(r[members[1].slug], 160))
 	}
 
-	// 6. "Pick up a task" test — give one agent a multi-step task in a single
+	// 6. "Pick up a task" test — give one bot a multi-step task in a single
 	// DM message and verify the deterministic final answer. This is the
-	// closest smoke for "can this agent actually do work" short of wiring
+	// closest smoke for "can this bot actually do work" short of wiring
 	// MCP tools, files, or shell access.
 	fmt.Println("\n--- DM task handoff (pm-bot) ---")
 	pmDM, err := broker.EnsureDirectChannel(members[0].slug)

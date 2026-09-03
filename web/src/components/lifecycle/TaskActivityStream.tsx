@@ -6,7 +6,7 @@ import { useAppStore } from "../../stores/app";
 /**
  * TaskActivityStream — surfaces the per-owner live activity snapshot on
  * the Issue detail page so the human sees, in real time, what the owning
- * agent is doing right now. Pairs with the StatusDot which encodes the
+ * bot is doing right now. Pairs with the StatusDot which encodes the
  * Issue's overall state at a glance:
  *
  *   • green-blink — RUNNING (owner is actively working)
@@ -14,8 +14,8 @@ import { useAppStore } from "../../stores/app";
  *   • orange      — NEEDS_INPUT (waiting on a human decision/review)
  *   • grey        — IDLE (drafting, ready, terminal, etc.)
  *
- * Snapshot data flows from broker SSE → useAppStore.agentActivitySnapshots
- * already (consumed by AgentEventPill on the sidebar). This component
+ * Snapshot data flows from broker SSE → useAppStore.botActivitySnapshots
+ * already (consumed by BotEventPill on the sidebar). This component
  * subscribes to the same map keyed by ownerSlug — no new wire shape.
  */
 
@@ -79,13 +79,13 @@ export function TaskActivityStream({
   lifecycleState,
 }: TaskActivityStreamProps) {
   const snapshot = useAppStore((s) =>
-    ownerSlug ? s.agentActivitySnapshots[ownerSlug] : undefined,
+    ownerSlug ? s.botActivitySnapshots[ownerSlug] : undefined,
   );
   const dot = dotKindForLifecycleState(lifecycleState);
   const isLive = dot === "running" && Boolean(snapshot?.activity);
 
   // 1Hz tick for "X seconds ago" — local instead of the shared
-  // AgentEventTickProvider so this component is mountable without the
+  // BotEventTickProvider so this component is mountable without the
   // sidebar's provider in scope (tests, alternative shells).
   const [, setTick] = useState(0);
   useEffect(() => {

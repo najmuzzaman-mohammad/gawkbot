@@ -7,7 +7,7 @@
  */
 export type CommandGroup =
   | "Actions"
-  | "Agents"
+  | "Bots"
   | "Channels"
   | "Tasks"
   | "Wiki"

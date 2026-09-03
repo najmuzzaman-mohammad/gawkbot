@@ -22,7 +22,7 @@ export interface BreadcrumbItem {
 /**
  * Derive up to two breadcrumb segments from the current route:
  *   [section, object]
- * e.g. ["Wiki", "Wiki: people/nazz"] or ["Agents", "Agent: gaia"].
+ * e.g. ["Wiki", "Wiki: people/nazz"] or ["Bots", "Bot: gaia"].
  *
  * Returns an empty array for conversation routes (channels) and unknown.
  * Pure function so tests can call it without a React context.
@@ -114,11 +114,11 @@ export function deriveBreadcrumbs(
         { label: "New task", href: "#/tasks/new" },
       ];
     case "agents":
-      return [{ label: "Agents", href: "#/agents" }];
+      return [{ label: "Bots", href: "#/agents" }];
     case "agent-detail": {
       const res = resolveObjectRoute({ kind: "agent", slug: route.agentSlug });
       return [
-        { label: "Agents", href: "#/agents" },
+        { label: "Bots", href: "#/agents" },
         breadcrumbItem(res, `@${route.agentSlug}`),
       ];
     }

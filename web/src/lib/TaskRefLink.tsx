@@ -84,7 +84,7 @@ export function TaskRefLink({ taskId, children }: TaskRefLinkProps) {
       onClick={() => openTaskModal(taskId)}
       data-task-id={taskId}
       // The id stays discoverable even when the label is the title, so a
-      // human can still quote "DUNDE-72" back to an agent.
+      // human can still quote "DUNDE-72" back to a bot.
       title={title ? `${taskId} · ${title}` : taskId}
       aria-label={
         title ? `Open task ${taskId}: ${title}` : `Open task ${taskId}`
@@ -93,8 +93,8 @@ export function TaskRefLink({ taskId, children }: TaskRefLinkProps) {
     >
       {/* ALWAYS the id AND the title, in that order.
           The id alone tells a reader nothing ("DUNDE-5" — what is that?),
-          and the title alone loses the handle they need to quote back to an
-          agent. Showing both is what makes the pill self-explanatory in the
+          and the title alone loses the handle they need to quote back to a
+          bot. Showing both is what makes the pill self-explanatory in the
           middle of a sentence. Falls back to the id when the task is not in
           the board cache yet, which is the case for a task created seconds
           ago in this very message. */}

@@ -513,7 +513,7 @@ func TestSlackFormatOutbound(t *testing.T) {
 	if !ok {
 		t.Fatal("expected ok=true for mapped channel")
 	}
-	// Internal agents carry NO sender attribution — WUPHF is one coordinating
+	// Internal bots carry NO sender attribution — WUPHF is one coordinating
 	// bot in Slack, and Slack already shows the bot as the speaker.
 	if out.Text != "[Update] All good" {
 		t.Fatalf("text = %q", out.Text)

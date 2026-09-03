@@ -30,7 +30,7 @@ interface DecisionPacketRouteProps {
    * Inbox-row fallback used when the broker has not yet written a packet to
    * disk. Renders the task's basic metadata instead of the cold "details
    * aren't ready yet" placeholder, so the human at least sees what the task
-   * is about while the owner agent is still working.
+   * is about while the owner bot is still working.
    */
   fallbackItem?: Extract<InboxItem, { kind: "task" }>;
 }
@@ -247,19 +247,19 @@ function pendingStateExplainer(state: string, details?: string): string {
   const trimmed = (details ?? "").trim();
   switch (state) {
     case "decision":
-      return "Waiting on a packet write. The owner agent has flagged this for a human call.";
+      return "Waiting on a packet write. The owner bot has flagged this for a human call.";
     case "review":
       return "Reviewers are grading the work. Detail surfaces once enough grades land.";
     case "changes_requested":
-      return "Changes were requested. The owner agent is iterating on the spec.";
+      return "Changes were requested. The owner bot is iterating on the spec.";
     case "blocked":
-      // The lifecycle state name is historical — most real blocks are agent
-      // timeouts, agent errors, or cross-task dependencies, not actual PR
+      // The lifecycle state name is historical — most real blocks are bot
+      // timeouts, bot errors, or cross-task dependencies, not actual PR
       // merges. Prefer the broker's own reason when present so the human
       // sees the real "why" instead of the generic framing.
       return (
         trimmed ||
-        "The owner agent is paused. Resume to retry, or reject to drop the task."
+        "The owner bot is paused. Resume to retry, or reject to drop the task."
       );
     case "approved":
       return "Approved. The packet write is still in flight.";
@@ -268,7 +268,7 @@ function pendingStateExplainer(state: string, details?: string): string {
     default:
       return (
         trimmed ||
-        "The owner agent is still working. Full decision packet will surface here once it lands."
+        "The owner bot is still working. Full decision packet will surface here once it lands."
       );
   }
 }
@@ -436,7 +436,7 @@ function PacketError({
     ? "Decision details aren't ready yet."
     : "Couldn't load this decision.";
   const body = isNotReadyYet
-    ? "The owner agent is still working. This task will surface a full decision packet once it transitions to review."
+    ? "The owner bot is still working. This task will surface a full decision packet once it transitions to review."
     : message;
   return (
     <div

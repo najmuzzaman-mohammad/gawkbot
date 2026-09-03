@@ -40,7 +40,7 @@ export const Intro: StoryObj = {
         }}
       >
         Tokens, atoms, molecules, organisms, and patterns for the gawkbot web
-        app — a context graph platform for AI agents.
+        app — a context graph platform for AI bots.
       </p>
 
       <Section title="Foundations">
@@ -105,12 +105,12 @@ export const Intro: StoryObj = {
         <Item
           href="?path=/story/design-system-atoms-status-dot--variants"
           label="Status dot"
-          desc="6px presence + agent activity states"
+          desc="6px presence + bot activity states"
         />
         <Item
           href="?path=/story/design-system-atoms-harnessbadge--default"
           label="HarnessBadge"
-          desc="Agent provider identity glyph"
+          desc="Bot provider identity glyph"
         />
         <Item
           href="?path=/story/design-system-atoms-redactedbadge--default"
@@ -125,7 +125,7 @@ export const Intro: StoryObj = {
         <Item
           href="?path=/story/design-system-atoms-pixelavatar--default"
           label="PixelAvatar"
-          desc="Procedural agent portrait"
+          desc="Procedural bot portrait"
         />
       </Section>
 
@@ -222,7 +222,7 @@ export const Intro: StoryObj = {
         <Item
           href="?path=/story/sidebar-modules--inbox-module"
           label="Modules"
-          desc="Each section in isolation — inbox, agents, channels, issues, apps, usage, color picker"
+          desc="Each section in isolation — inbox, bots, channels, issues, apps, usage, color picker"
         />
         <Item
           href="?path=/story/sidebar-full-view--expanded"
@@ -234,7 +234,7 @@ export const Intro: StoryObj = {
       <Section title="Features">
         <Item
           href="?path=/story/features-agents-agenteventpill--halo"
-          label="Agents / AgentEventPill"
+          label="Bots / BotEventPill"
           desc="Activity pill with halo / holding / idle / stuck"
         />
         <Item
@@ -275,8 +275,8 @@ export const Intro: StoryObj = {
         </Note>
         <Note>
           For store- or data-driven components, seed Zustand inside the story
-          (see <code>Features / Agents / AgentEventPill</code>) rather than
-          mounting the full app shell.
+          (see <code>Features / Bots / BotEventPill</code>) rather than mounting
+          the full app shell.
         </Note>
       </Section>
     </div>

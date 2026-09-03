@@ -24,9 +24,9 @@ package team
 //   → response formatted as wiki-shape chat message
 //
 // MCP tool flow (wuphf_wiki_lookup):
-//   agent calls wuphf_wiki_lookup({query, top_k})
+//   bot calls wuphf_wiki_lookup({query, top_k})
 //   → MCP handler POSTs to /wiki/lookup
-//   → JSON QueryAnswer returned to agent
+//   → JSON QueryAnswer returned to bot
 
 import (
 	"context"
@@ -55,9 +55,9 @@ func (brokerQueryProvider) RunPrompt(ctx context.Context, systemPrompt, userProm
 // The endpoint is gated behind the wiki worker (same as /wiki/search).
 // It is also gated behind requireAuth in StartOnPort.
 //
-// When channel is provided the formatted answer is also published as an agent
+// When channel is provided the formatted answer is also published as a bot
 // message in that channel — this is how the web /lookup slash command gets
-// the response into the chat stream without an agent round-trip.
+// the response into the chat stream without a bot round-trip.
 func (b *Broker) handleWikiLookup(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -119,7 +119,7 @@ func (b *Broker) handleWikiLookup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// When the web slash command supplies a channel, publish the formatted
-	// answer as an agent message so the SSE stream delivers it naturally.
+	// answer as a bot message so the SSE stream delivers it naturally.
 	if channel != "" {
 		formatted := FormatLookupMessage(ans)
 		if _, pubErr := b.PostMessage("wiki", channel, formatted, nil, ""); pubErr != nil {

@@ -59,8 +59,8 @@ var allowedFiles = map[string]string{
 	// Codex runner carve-outs — HOME passthrough to subprocess + codex auth path + global home resolver.
 	"internal/team/headless_codex_runner.go": "HOME passthrough + headlessCodexHomeDir (~/.codex auth) + headlessCodexGlobalHomeDir",
 
-	// Opencode MCP config — base opencode.json is user-global (read-only); agent config writes use RuntimeHomeDir.
-	"internal/team/headless_opencode_mcp.go": "base opencode config read from real user HOME (user-global); agent config write uses RuntimeHomeDir",
+	// Opencode MCP config — base opencode.json is user-global (read-only); bot config writes use RuntimeHomeDir.
+	"internal/team/headless_opencode_mcp.go": "base opencode config read from real user HOME (user-global); bot config write uses RuntimeHomeDir",
 
 	// OpenClaw probe utility — device-bound identity credentials.
 	"cmd/wuphf-oc-probe/main.go": "OpenClaw identity is device-bound credentials, not workspace state",

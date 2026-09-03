@@ -1,11 +1,11 @@
-// multi-provider-http is a pure HTTP orchestrator for testing per-agent
+// multi-provider-http is a pure HTTP orchestrator for testing per-bot
 // providers. It does NOT spawn a launcher — the caller must start a real
 // `wuphf` binary in the background (e.g. via tmux) and point the orchestrator
 // at its broker via BROKER_URL + BROKER_TOKEN env. This keeps MCP server
 // resolution (os.Executable) pointing at the real wuphf, so claude/codex
 // subprocesses can actually connect.
 //
-// Hire matrix: 2 claude-code + 2 codex + 2 openclaw = 6 agents. Then run
+// Hire matrix: 2 claude-code + 2 codex + 2 openclaw = 6 bots. Then run
 // channel + DM conversations, CEO-assigned tasks, and record everything.
 package main
 
@@ -21,19 +21,19 @@ import (
 	"time"
 )
 
-type agentSpec struct {
+type botSpec struct {
 	slug         string
 	name, role   string
 	providerKind string
 	model        string
 }
 
-type testAgent struct {
-	spec      agentSpec
+type testBot struct {
+	spec      botSpec
 	sessionID string // for openclaw
 }
 
-var testAgents = []agentSpec{
+var testBots = []botSpec{
 	{slug: "pm-alpha", name: "PM Alpha", role: "Senior PM", providerKind: "claude-code"},
 	{slug: "pm-beta", name: "PM Beta", role: "PM Launch", providerKind: "claude-code"},
 	{slug: "eng-alpha", name: "Eng Alpha", role: "Staff Engineer", providerKind: "codex", model: "gpt-5.4"},
@@ -59,13 +59,13 @@ func main() {
 	waitHealth(30 * time.Second)
 	fmt.Printf("orchestrator connected to %s\n", brokerURL)
 
-	// Stream broker messages so we see all agent activity in real time.
+	// Stream broker messages so we see all bot activity in real time.
 	go streamMessageLog()
 
 	// ─── phase 1: hire + add to #general ─────────────────────────────
 	fmt.Println("\n═══ PHASE 1: Hire 2× claude-code + 2× codex + 2× openclaw ═══")
-	var live []testAgent
-	for _, spec := range testAgents {
+	var live []testBot
+	for _, spec := range testBots {
 		body := map[string]any{
 			"action":   "create",
 			"slug":     spec.slug,
@@ -84,13 +84,13 @@ func main() {
 		}); err != nil {
 			fmt.Printf("    WARN add to #general: %v\n", err)
 		}
-		live = append(live, testAgent{spec: spec, sessionID: extractSessionKey(resp)})
+		live = append(live, testBot{spec: spec, sessionID: extractSessionKey(resp)})
 	}
 
 	time.Sleep(3 * time.Second) // let office changes propagate
 
 	if len(live) == 0 {
-		die("no agents hired; aborting")
+		die("no bots hired; aborting")
 	}
 
 	// ─── phase 2: channel fan-out ────────────────────────────────────
@@ -111,8 +111,8 @@ func main() {
 	channelReplies := waitForReplies(beforeCh, slugsToSet(tagged), "general", 180*time.Second)
 	reportReplies("channel", channelReplies)
 
-	// ─── phase 3: DM each hired agent ────────────────────────────────
-	fmt.Println("\n═══ PHASE 3: DM each agent ═══")
+	// ─── phase 3: DM each hired bot ────────────────────────────────
+	fmt.Println("\n═══ PHASE 3: DM each bot ═══")
 	dmPrompts := map[string]string{
 		"pm-alpha":     "(DM) Name one KPI a new startup should obsess over. One sentence.",
 		"pm-beta":      "(DM) What's a common launch pitfall? One sentence.",
@@ -136,7 +136,7 @@ func main() {
 
 	// ─── phase 4: CEO-assigns-work ───────────────────────────────────
 	// CEO is baked into the office; we ask CEO to route a user request to a
-	// specific agent by @mention. This exercises two-hop reasoning: human →
+	// specific bot by @mention. This exercises two-hop reasoning: human →
 	// CEO → specialist. Watch for CEO's routing message followed by the
 	// specialist's reply, both in #general.
 	fmt.Println("\n═══ PHASE 4: Chief of Staff assigns work ═══")
@@ -171,7 +171,7 @@ func main() {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-func providerBlock(spec agentSpec) map[string]any {
+func providerBlock(spec botSpec) map[string]any {
 	p := map[string]any{"kind": spec.providerKind, "model": spec.model}
 	if spec.providerKind == "openclaw" {
 		p["openclaw"] = map[string]any{} // auto-create session

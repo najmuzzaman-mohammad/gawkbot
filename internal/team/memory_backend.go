@@ -95,7 +95,7 @@ type gbrainMemoryClient interface {
 // gbrainSharedMemorySourceKind labels shared-memory writes for provenance on
 // the gbrain side. The legacy CLI put_page call did not set source_kind; the
 // MCP client carries it so gbrain can attribute these pages to WUPHF's
-// agent-authored shared memory rather than human-curated wiki content.
+// bot-authored shared memory rather than human-curated wiki content.
 const gbrainSharedMemorySourceKind = "wuphf_shared_memory"
 
 // sharedGBrainClientMu guards the process-wide gbrain MCP client the broker
@@ -320,7 +320,7 @@ func ResolveMemoryBackendStatus() MemoryBackendStatus {
 		// ErrGitUnavailable at launch, so we don't need to guard here.
 		status.ActiveKind = config.MemoryBackendMarkdown
 		status.ActiveLabel = config.MemoryBackendLabel(config.MemoryBackendMarkdown)
-		status.Detail = "Markdown-backed team wiki at ~/.wuphf/wiki is configured. Every edit commits to git with per-agent authorship."
+		status.Detail = "Markdown-backed team wiki at ~/.wuphf/wiki is configured. Every edit commits to git with per-bot authorship."
 	case config.MemoryBackendGBrain:
 		if !gbrain.EmbeddingAvailable() {
 			// gbrain needs an embedding provider for semantic retrieval.
@@ -441,7 +441,7 @@ func gbrainMCPEnvVars() []string {
 func directMemoryPromptBlock() string {
 	switch activeMemoryBackendKind() {
 	case config.MemoryBackendGBrain:
-		return "Memory scopes:\n- team_memory_query: Read your private notes (`scope=private`) or shared org memory backed by GBrain (`scope=shared`)\n- team_memory_write: Store private notes by default; only write shared memory after a durable outcome is real\n- team_memory_promote: Copy one of your private notes into shared GBrain memory when it becomes canonical\n- If shared memory points at another agent, ask them on the team for fresher working detail instead of guessing\n\n"
+		return "Memory scopes:\n- team_memory_query: Read your private notes (`scope=private`) or shared org memory backed by GBrain (`scope=shared`)\n- team_memory_write: Store private notes by default; only write shared memory after a durable outcome is real\n- team_memory_promote: Copy one of your private notes into shared GBrain memory when it becomes canonical\n- If shared memory points at another bot, ask them on the team for fresher working detail instead of guessing\n\n"
 	default:
 		return "Memory scopes:\n- team_memory_query: Your private notes still work with `scope=private`\n- team_memory_write: Store private notes for yourself\n- Shared org memory is not active for this run, so `scope=shared` and team_memory_promote are unavailable\n\n"
 	}
@@ -459,7 +459,7 @@ func directMemoryStorageRule() string {
 func leadMemoryPromptBlock() string {
 	switch activeMemoryBackendKind() {
 	case config.MemoryBackendGBrain:
-		return "Memory scopes: use team_memory_query with scope=shared for org memory backed by GBrain, scope=private for your own notes, and team_memory_promote when a private note becomes durable shared knowledge. If shared memory points at another agent, ask them on the team for the freshest working context. Keep task coordination on the team, not in shared memory.\n\n"
+		return "Memory scopes: use team_memory_query with scope=shared for org memory backed by GBrain, scope=private for your own notes, and team_memory_promote when a private note becomes durable shared knowledge. If shared memory points at another bot, ask them on the team for the freshest working context. Keep task coordination on the team, not in shared memory.\n\n"
 	default:
 		return "Shared org memory is not active for this run. You can still use private notes with team_memory_query/team_memory_write scope=private.\n\n"
 	}
@@ -495,7 +495,7 @@ func leadMemoryFinalWarning() string {
 func specialistMemoryPromptBlock() string {
 	switch activeMemoryBackendKind() {
 	case config.MemoryBackendGBrain:
-		return "Memory scopes: use team_memory_query with scope=shared for org memory backed by GBrain, scope=private for your own notes, and team_memory_promote when a private note becomes durable shared knowledge. If shared memory points at another agent, ask them on the team for the freshest working context.\n\n"
+		return "Memory scopes: use team_memory_query with scope=shared for org memory backed by GBrain, scope=private for your own notes, and team_memory_promote when a private note becomes durable shared knowledge. If shared memory points at another bot, ask them on the team for the freshest working context.\n\n"
 	default:
 		return "Shared org memory is not active for this run. You can still use private notes with team_memory_query/team_memory_write scope=private.\n\n"
 	}

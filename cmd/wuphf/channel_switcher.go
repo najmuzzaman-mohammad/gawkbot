@@ -26,12 +26,12 @@ func (m channelModel) buildWorkspaceSwitcherOptions() []tui.PickerOption {
 			tui.PickerOption{
 				Label:       "Inbox",
 				Value:       "app:inbox",
-				Description: "Only the messages that currently belong in @" + m.oneOnOneAgentSlug() + "'s inbox",
+				Description: "Only the messages that currently belong in @" + m.oneOnOneBotSlug() + "'s inbox",
 			},
 			tui.PickerOption{
 				Label:       "Outbox",
 				Value:       "app:outbox",
-				Description: "Only the messages currently authored by @" + m.oneOnOneAgentSlug(),
+				Description: "Only the messages currently authored by @" + m.oneOnOneBotSlug(),
 			},
 			tui.PickerOption{
 				Label:       "Recovery",
@@ -147,19 +147,19 @@ func fallbackChannelDescription(ch channelui.ChannelInfo) string {
 func (m *channelModel) applyWorkspaceSwitcherSelection(value string) tea.Cmd {
 	switch {
 	case value == "mode:office":
-		m.confirm = confirmationForSessionSwitch(team.SessionModeOffice, team.DefaultOneOnOneAgent)
+		m.confirm = confirmationForSessionSwitch(team.SessionModeOffice, team.DefaultOneOnOneBot)
 		m.notice = "Confirm returning to the full office."
 		return nil
 	case strings.HasPrefix(value, "dm:"):
-		agent := strings.TrimSpace(strings.TrimPrefix(value, "dm:"))
-		if agent == "" {
-			agent = team.DefaultOneOnOneAgent
+		bot := strings.TrimSpace(strings.TrimPrefix(value, "dm:"))
+		if bot == "" {
+			bot = team.DefaultOneOnOneBot
 		}
-		if m.isOneOnOne() && team.NormalizeOneOnOneAgent(m.oneOnOneAgent) == team.NormalizeOneOnOneAgent(agent) {
+		if m.isOneOnOne() && team.NormalizeOneOnOneBot(m.oneOnOneBot) == team.NormalizeOneOnOneBot(bot) {
 			m.notice = "Already viewing that direct session."
 			return nil
 		}
-		m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, agent)
+		m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, bot)
 		m.notice = "Confirm the direct session switch."
 		return nil
 	case strings.HasPrefix(value, "channel:"):

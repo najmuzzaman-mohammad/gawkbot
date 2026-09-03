@@ -7,15 +7,15 @@ import {
 } from "./avatarSprites.generated";
 import {
   baseSpriteID,
-  getAgentColor,
-  getAgentEyeColor,
+  getBotColor,
+  getBotEyeColor,
   paintPixelAvatarData,
   resolvePortraitSprite,
   SPRITE_EYE_CELLS,
 } from "./pixelAvatar";
 
 describe("pixel avatar sprite resolution", () => {
-  it("maps operation-created agent slugs into the generated avatar catalog", () => {
+  it("maps operation-created bot slugs into the generated avatar catalog", () => {
     const mappings = new Map([
       ["planner", "hybridPm"],
       ["builder", "hybridEng"],
@@ -32,8 +32,8 @@ describe("pixel avatar sprite resolution", () => {
   it("normalizes slugs before resolving portraits", () => {
     expect(resolvePortraitSprite(" Planner ")?.id).toBe("hybridPm");
 
-    const mixedCase = resolvePortraitSprite("Custom-Ops-Agent");
-    const normalized = resolvePortraitSprite(" custom-ops-agent ");
+    const mixedCase = resolvePortraitSprite("Custom-Ops-Bot");
+    const normalized = resolvePortraitSprite(" custom-ops-bot ");
     expect(mixedCase.id).toBe(normalized.id);
     expect(mixedCase.palette).toEqual(normalized.palette);
   });
@@ -63,12 +63,12 @@ describe("pixel avatar sprite resolution", () => {
     }
   });
 
-  it("keeps arbitrary new-agent slugs on generated office sprites", () => {
-    const avatar = resolvePortraitSprite("custom-ops-agent");
+  it("keeps arbitrary new-bot slugs on generated office sprites", () => {
+    const avatar = resolvePortraitSprite("custom-ops-bot");
     const idParts = avatar.id.split(":");
     const baseID = idParts[idParts.length - 1];
 
-    expect(avatar.id).toMatch(/^procedural:custom-ops-agent:hybrid/);
+    expect(avatar.id).toMatch(/^procedural:custom-ops-bot:hybrid/);
     expect([
       "hybridCeo",
       "hybridGeneric",
@@ -81,8 +81,8 @@ describe("pixel avatar sprite resolution", () => {
   });
 
   it("procedurally varies generated office palettes by slug", () => {
-    const first = resolvePortraitSprite("custom-ops-agent");
-    const again = resolvePortraitSprite("custom-ops-agent");
+    const first = resolvePortraitSprite("custom-ops-bot");
+    const again = resolvePortraitSprite("custom-ops-bot");
     const second = resolvePortraitSprite("custom-sales-agent");
 
     expect(first.id).toBe(again.id);
@@ -92,29 +92,27 @@ describe("pixel avatar sprite resolution", () => {
     );
   });
 
-  it("keeps procedural agent colors stable and accent-like", () => {
-    expect(getAgentColor("ceo")).toBe("#E8A838");
-    expect(getAgentColor("jim")).toBe("#8FB3D1");
-    expect(getAgentColor("custom-ops-agent")).toMatch(/^#[0-9A-F]{6}$/i);
-    expect(getAgentColor("custom-ops-agent")).toBe(
-      getAgentColor("custom-ops-agent"),
-    );
+  it("keeps procedural bot colors stable and accent-like", () => {
+    expect(getBotColor("ceo")).toBe("#E8A838");
+    expect(getBotColor("jim")).toBe("#8FB3D1");
+    expect(getBotColor("custom-ops-bot")).toMatch(/^#[0-9A-F]{6}$/i);
+    expect(getBotColor("custom-ops-bot")).toBe(getBotColor("custom-ops-bot"));
   });
 
   it("keeps known role aliases on canonical role colors", () => {
-    expect(getAgentColor("planner")).toBe(getAgentColor("pm"));
-    expect(getAgentColor("builder")).toBe(getAgentColor("eng"));
-    expect(getAgentColor("growth")).toBe(getAgentColor("gtm"));
-    expect(getAgentColor("halpert")).toBe(getAgentColor("jim"));
-    expect(getAgentColor("jim-halpert")).toBe(getAgentColor("jim"));
-    expect(getAgentColor("archivist")).toBe(getAgentColor("pam"));
-    expect(getAgentColor("librarian")).toBe(getAgentColor("pam"));
-    expect(getAgentColor("operator")).toBe(getAgentColor("nex"));
+    expect(getBotColor("planner")).toBe(getBotColor("pm"));
+    expect(getBotColor("builder")).toBe(getBotColor("eng"));
+    expect(getBotColor("growth")).toBe(getBotColor("gtm"));
+    expect(getBotColor("halpert")).toBe(getBotColor("jim"));
+    expect(getBotColor("jim-halpert")).toBe(getBotColor("jim"));
+    expect(getBotColor("archivist")).toBe(getBotColor("pam"));
+    expect(getBotColor("librarian")).toBe(getBotColor("pam"));
+    expect(getBotColor("operator")).toBe(getBotColor("nex"));
   });
 
-  it("has gawk eye cells for every sprite an agent can actually render", () => {
+  it("has gawk eye cells for every sprite a bot can actually render", () => {
     // The whole point of the explicit table: if someone adds a sprite to the
-    // catalog, or repoints a slug, this fails loudly instead of that agent
+    // catalog, or repoints a slug, this fails loudly instead of that bot
     // quietly rendering with no eyes while everyone else has them.
     const reachable = new Set<string>(Object.values(KNOWN_AVATAR_SLUG_MAP));
     for (const slug of [
@@ -157,17 +155,17 @@ describe("pixel avatar sprite resolution", () => {
   });
 
   it("derives eye colour from the slug so it is stable and roster-independent", () => {
-    expect(getAgentEyeColor("ceo")).toBe(getAgentEyeColor("ceo"));
-    expect(getAgentEyeColor(" CEO ")).toBe(getAgentEyeColor("ceo"));
+    expect(getBotEyeColor("ceo")).toBe(getBotEyeColor("ceo"));
+    expect(getBotEyeColor(" CEO ")).toBe(getBotEyeColor("ceo"));
     // Aliases are the same teammate, so they must wear the same eyes.
-    expect(getAgentEyeColor("planner")).toBe(getAgentEyeColor("pm"));
-    expect(getAgentEyeColor("archivist")).toBe(getAgentEyeColor("pam"));
-    expect(getAgentEyeColor("custom-ops-agent")).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(getBotEyeColor("planner")).toBe(getBotEyeColor("pm"));
+    expect(getBotEyeColor("archivist")).toBe(getBotEyeColor("pam"));
+    expect(getBotEyeColor("custom-ops-bot")).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
   it("keeps eye colours clear of the accent, the danger colour, and the skin/brow bands", () => {
     const seen = new Set<string>();
-    for (let i = 0; i < 300; i++) seen.add(getAgentEyeColor(`agent-${i}`));
+    for (let i = 0; i < 300; i++) seen.add(getBotEyeColor(`agent-${i}`));
 
     for (const hex of seen) {
       const [r, g, b] = [1, 3, 5].map((o) =>
@@ -194,7 +192,7 @@ describe("pixel avatar sprite resolution", () => {
   });
 
   it("spreads eye colours across a roster instead of collapsing onto a few", () => {
-    // A fixed ten-swatch palette collided four ways on a ten-agent roster,
+    // A fixed ten-swatch palette collided four ways on a ten-bot roster,
     // which is exactly the failure that makes the feature pointless. Distinct
     // teammates must be distinctly coloured.
     const roster = [
@@ -211,7 +209,7 @@ describe("pixel avatar sprite resolution", () => {
       "cmo",
       "ai",
     ];
-    const colours = new Set(roster.map(getAgentEyeColor));
+    const colours = new Set(roster.map(getBotEyeColor));
     expect(colours.size).toBe(roster.length);
   });
 

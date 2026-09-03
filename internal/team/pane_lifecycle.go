@@ -2,7 +2,7 @@ package team
 
 // pane_lifecycle.go owns the pane-lifecycle helpers extracted from
 // launcher.go (PLAN.md §C5). The first wave (C5a) was the pure helpers
-// (parseAgentPaneIndices, shouldPrimeClaudePane, etc.). The second wave
+// (parseBotPaneIndices, shouldPrimeClaudePane, etc.). The second wave
 // (C5b) adds the paneLifecycle type and migrates the read-only tmux
 // methods (HasLiveSession, ListTeamPanes, ChannelPaneStatus, capture*)
 // onto it through the tmuxRunner seam (tmux_runner.go). Spawn/clear/
@@ -21,8 +21,8 @@ import (
 )
 
 // paneLifecycleDeps wires the Launcher state and methods that the spawn
-// orchestration methods (SpawnVisibleAgents/SpawnOverflowAgents/
-// DetectDeadPanesAfterSpawn/TrySpawnWebAgentPanes/PrimeVisibleAgents)
+// orchestration methods (SpawnVisibleBots/SpawnOverflowBots/
+// DetectDeadPanesAfterSpawn/TrySpawnWebBotPanes/PrimeVisibleBots)
 // need to consult. All fields are optional — read-only operations that
 // don't touch a particular dependency leave it nil. The deps struct is
 // captured at paneLifecycle construction time so callers (tests + the
@@ -35,31 +35,31 @@ import (
 // shared map — the targeter still reads from the same map, so its
 // view is unchanged.
 type paneLifecycleDeps struct {
-	// cwd is the working directory tmux uses when spawning agent
+	// cwd is the working directory tmux uses when spawning bot
 	// processes. Empty in nil-safe / read-only paths.
 	cwd string
-	// isOneOnOne / oneOnOneAgent gate the one-on-one spawn shape.
-	isOneOnOne    func() bool
-	oneOnOneAgent func() string
-	// usesPaneRuntime gates TrySpawnWebAgentPanes. Headless runtimes
+	// isOneOnOne / oneOnOneBot gate the one-on-one spawn shape.
+	isOneOnOne  func() bool
+	oneOnOneBot func() string
+	// usesPaneRuntime gates TrySpawnWebBotPanes. Headless runtimes
 	// short-circuit to nil-op without consulting tmux.
 	usesPaneRuntime func() bool
-	// visibleOfficeMembers / overflowOfficeMembers / agentPaneTargets
+	// visibleOfficeMembers / overflowOfficeMembers / botPaneTargets
 	// come from the targeter (PLAN.md §C2). The targeter already owns
 	// the pane-eligible members + slug→target map; paneLifecycle
 	// reads them through these closures.
 	visibleOfficeMembers  func() []officeMember
 	overflowOfficeMembers func() []officeMember
-	agentPaneTargets      func() map[string]notificationTarget
+	botPaneTargets        func() map[string]notificationTarget
 	// memberUsesHeadlessOneShotRuntime distinguishes Codex/Opencode
-	// agents (no claude pane) from claude agents inside the spawn loop.
+	// bots (no claude pane) from claude bots inside the spawn loop.
 	memberUsesHeadlessOneShotRuntime func(slug string) bool
-	// claudeCommand / buildPrompt / agentName are Launcher methods
-	// that the spawn loop needs per agent. Wired as callbacks so the
+	// claudeCommand / buildPrompt / botName are Launcher methods
+	// that the spawn loop needs per bot. Wired as callbacks so the
 	// promptBuilder / officeTargeter ownership stays on Launcher.
 	claudeCommand func(slug, prompt string) (string, error)
 	buildPrompt   func(slug string) string
-	agentName     func(slug string) string
+	botName       func(slug string) string
 	// recordFailure writes into Launcher.failedPaneSlugs (PLAN.md
 	// trap §1: shared map between targeter and paneLifecycle). Keeping
 	// the write as a callback preserves the targeter's existing read
@@ -69,8 +69,8 @@ type paneLifecycleDeps struct {
 	// broker is set. Nil = no broker available; spawn methods skip
 	// the broker-side notification.
 	postSystemMessage func(channel, body, kind string)
-	// paneBackedFlag is a back-pointer to Launcher.paneBackedAgents.
-	// TrySpawnWebAgentPanes flips it true on success; the targeter
+	// paneBackedFlag is a back-pointer to Launcher.paneBackedBots.
+	// TrySpawnWebBotPanes flips it true on success; the targeter
 	// reads it via its own paneBackedFlag *bool to decide routing.
 	paneBackedFlag *bool
 }
@@ -80,7 +80,7 @@ type paneLifecycleDeps struct {
 // realTmuxRunner via newTmuxRunner. The clock field is the test seam
 // for time.Sleep — production gets realClock{}, tests inject a
 // manualClock via withClock so the sleep-heavy spawn orchestration
-// methods (DetectDeadPanesAfterSpawn, PrimeVisibleAgents) can be
+// methods (DetectDeadPanesAfterSpawn, PrimeVisibleBots) can be
 // driven without real wall-clock waits.
 type paneLifecycle struct {
 	runner      tmuxRunner
@@ -152,9 +152,9 @@ func (p *paneLifecycle) CapturePaneContent(paneIdx int) (string, error) {
 	return p.CapturePaneTargetContent(target)
 }
 
-// ListTeamPanes returns the agent-pane indices in the "team" window.
+// ListTeamPanes returns the bot-pane indices in the "team" window.
 // Pane 0 (the channel observer) and any pane whose title contains
-// "channel" are filtered out by parseAgentPaneIndices. When the session
+// "channel" are filtered out by parseBotPaneIndices. When the session
 // isn't up, returns (nil, nil) — callers treat that as "nothing to
 // clean up" rather than an error.
 func (p *paneLifecycle) ListTeamPanes() ([]int, error) {
@@ -168,7 +168,7 @@ func (p *paneLifecycle) ListTeamPanes() ([]int, error) {
 		}
 		return nil, fmt.Errorf("list panes: %w", err)
 	}
-	return parseAgentPaneIndices(string(out)), nil
+	return parseBotPaneIndices(string(out)), nil
 }
 
 // ChannelPaneStatus returns the tmux display-message status for pane 0
@@ -188,15 +188,15 @@ func (p *paneLifecycle) ChannelPaneStatus() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// ClearAgentPanes kills every agent pane in the "team" window
+// ClearBotPanes kills every bot pane in the "team" window
 // (preserving pane 0, the channel observer). The list is sorted in
 // reverse so kill-pane on a higher index doesn't reshuffle the lower
 // ones we still need to address. Errors from individual kill-pane calls
-// are intentionally swallowed — the caller (reconfigureVisibleAgents)
-// follows up with spawnVisibleAgents which is where actual failures
+// are intentionally swallowed — the caller (reconfigureVisibleBots)
+// follows up with spawnVisibleBots which is where actual failures
 // surface; here, the worst case is a pane that won't die which becomes
 // visible at next list-panes anyway.
-func (p *paneLifecycle) ClearAgentPanes() error {
+func (p *paneLifecycle) ClearBotPanes() error {
 	panes, err := p.ListTeamPanes()
 	if err != nil {
 		return err
@@ -212,13 +212,13 @@ func (p *paneLifecycle) ClearAgentPanes() error {
 	return nil
 }
 
-// ClearOverflowAgentWindows enumerates the tmux windows in the session
-// and kills any whose name starts with "agent-" — the prefix used by
-// spawnOverflowAgents for agents that don't fit in the visible "team"
+// ClearOverflowBotWindows enumerates the tmux windows in the session
+// and kills any whose name starts with "bot-" — the prefix used by
+// spawnOverflowBots for bots that don't fit in the visible "team"
 // grid. A list-windows failure is treated as "nothing to clean up"
-// (tmux is probably down). Like ClearAgentPanes, individual kill-window
+// (tmux is probably down). Like ClearBotPanes, individual kill-window
 // errors are swallowed — overflow windows are best-effort housekeeping.
-func (p *paneLifecycle) ClearOverflowAgentWindows() {
+func (p *paneLifecycle) ClearOverflowBotWindows() {
 	out, err := p.runner.Combined("list-windows",
 		"-t", p.sessionName,
 		"-F", "#{window_name}",
@@ -238,7 +238,7 @@ func (p *paneLifecycle) ClearOverflowAgentWindows() {
 }
 
 // KillSession terminates the entire wuphf-team tmux session. Used by
-// reconfigureVisibleAgents when the runtime no longer needs panes (the
+// reconfigureVisibleBots when the runtime no longer needs panes (the
 // user switched to headless mid-session). Errors are intentionally
 // dropped — if the session is already gone, kill-session returns a "no
 // such session" error that's the desired post-condition.
@@ -246,13 +246,13 @@ func (p *paneLifecycle) KillSession() {
 	_ = p.runner.Run("kill-session", "-t", p.sessionName)
 }
 
-// RespawnAgentPane runs `respawn-pane -k` against pane <idx> in the
+// RespawnBotPane runs `respawn-pane -k` against pane <idx> in the
 // "team" window, replacing the running process with cmd executed in
 // cwd. Returns the combined stdout/stderr so callers can surface the
 // tmux error text in their own error messages. Used by
-// reconfigureVisibleAgents to restart agent processes in place,
+// reconfigureVisibleBots to restart bot processes in place,
 // preserving pane sizes and positions.
-func (p *paneLifecycle) RespawnAgentPane(idx int, cwd, cmd string) ([]byte, error) {
+func (p *paneLifecycle) RespawnBotPane(idx int, cwd, cmd string) ([]byte, error) {
 	target := fmt.Sprintf("%s:team.%d", p.sessionName, idx)
 	return p.runner.Combined("respawn-pane", "-k",
 		"-t", target,
@@ -280,12 +280,12 @@ func (p *paneLifecycle) RespawnChannelPane(channelCmd, cwd string) {
 	)
 }
 
-// SplitFirstAgent runs `tmux split-window -h -t session:team -p 65 -c
+// SplitFirstBot runs `tmux split-window -h -t session:team -p 65 -c
 // cwd cmd` — the layout primitive that creates pane 1 (the first
-// agent) to the right of the channel pane (pane 0). Combined output is
+// bot) to the right of the channel pane (pane 0). Combined output is
 // returned so callers can surface tmux's stderr in their own error
 // messages.
-func (p *paneLifecycle) SplitFirstAgent(cwd, cmd string) ([]byte, error) {
+func (p *paneLifecycle) SplitFirstBot(cwd, cmd string) ([]byte, error) {
 	return p.runner.Combined("split-window", "-h",
 		"-t", p.sessionName+":team",
 		"-p", "65",
@@ -294,11 +294,11 @@ func (p *paneLifecycle) SplitFirstAgent(cwd, cmd string) ([]byte, error) {
 	)
 }
 
-// SplitAdditionalAgent runs `tmux split-window -t session:team.1 -c cwd
+// SplitAdditionalBot runs `tmux split-window -t session:team.1 -c cwd
 // cmd` — adds a pane that the subsequent main-vertical layout will
-// arrange next to the existing agent panes. Combined output is returned
+// arrange next to the existing bot panes. Combined output is returned
 // so callers can surface tmux's error text.
-func (p *paneLifecycle) SplitAdditionalAgent(cwd, cmd string) ([]byte, error) {
+func (p *paneLifecycle) SplitAdditionalBot(cwd, cmd string) ([]byte, error) {
 	return p.runner.Combined("split-window",
 		"-t", p.sessionName+":team.1",
 		"-c", cwd,
@@ -307,7 +307,7 @@ func (p *paneLifecycle) SplitAdditionalAgent(cwd, cmd string) ([]byte, error) {
 }
 
 // NewOverflowWindow runs `tmux new-window -d -t session -n name -c cwd
-// cmd` — creates a hidden ("-d") window for an overflow agent that
+// cmd` — creates a hidden ("-d") window for an overflow bot that
 // doesn't fit in the visible team grid. Combined output is returned so
 // callers can surface tmux's error text in failure messages.
 func (p *paneLifecycle) NewOverflowWindow(windowName, cwd, cmd string) ([]byte, error) {
@@ -321,7 +321,7 @@ func (p *paneLifecycle) NewOverflowWindow(windowName, cwd, cmd string) ([]byte, 
 
 // NewSession runs `tmux new-session -d -s session -n team -c cwd cmd`
 // to create the detached session that hosts the team window. Returns
-// the exec error directly because the calling code (trySpawnWebAgentPanes)
+// the exec error directly because the calling code (trySpawnWebBotPanes)
 // converts a non-nil result into a "tmux new-session failed" fallback.
 func (p *paneLifecycle) NewSession(cwd, placeholderCmd string) error {
 	return p.runner.Run("new-session", "-d",
@@ -356,7 +356,7 @@ func (p *paneLifecycle) SetTeamWindowOption(name, value string) {
 
 // ApplyMainVerticalLayout selects the `main-vertical` tmux layout for
 // the team window. Re-applied after each pane add so the channel
-// (pane 0) stays on the left and agent panes tile vertically on the
+// (pane 0) stays on the left and bot panes tile vertically on the
 // right. Errors dropped — layout failures aren't recoverable here, and
 // retrying on the next pane add usually fixes them.
 func (p *paneLifecycle) ApplyMainVerticalLayout() {
@@ -387,7 +387,7 @@ func (p *paneLifecycle) SelectTeamWindow() {
 
 // FocusPane runs `tmux select-pane -t target` (without -T). Used to
 // focus the channel pane after the spawn flow so the user lands there
-// instead of in an agent pane. Errors dropped.
+// instead of in a bot pane. Errors dropped.
 func (p *paneLifecycle) FocusPane(target string) {
 	_ = p.runner.Run("select-pane",
 		"-t", target,
@@ -397,7 +397,7 @@ func (p *paneLifecycle) FocusPane(target string) {
 // IsPaneDead reads `#{pane_dead}` for target via display-message.
 // Returns (true, nil) when tmux reports "1", (false, nil) when "0", and
 // the parse-or-exec error otherwise. Used by detectDeadPanesAfterSpawn
-// to decide whether a freshly-spawned agent pane crashed at startup.
+// to decide whether a freshly-spawned bot pane crashed at startup.
 func (p *paneLifecycle) IsPaneDead(target string) (bool, error) {
 	out, err := p.runner.Combined("display-message",
 		"-t", target,
@@ -426,7 +426,7 @@ func (p *paneLifecycle) CapturePaneHistory(target string, lines int) (string, er
 }
 
 // SendEnter sends a single Enter keypress to the target pane via
-// `send-keys -t target Enter`. Used by primeVisibleAgents to clear
+// `send-keys -t target Enter`. Used by primeVisibleBots to clear
 // claude's startup confirmation prompts so dispatch can type into the
 // pane.
 func (p *paneLifecycle) SendEnter(target string) {
@@ -513,11 +513,11 @@ func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
 }
 
-// parseAgentPaneIndices parses tmux list-panes output (one pane per line,
-// "<index> <title>") and returns the integer indices that point at agent
+// parseBotPaneIndices parses tmux list-panes output (one pane per line,
+// "<index> <title>") and returns the integer indices that point at bot
 // panes. Pane 0 (the channel/observer) and any pane whose title contains
-// "channel" are skipped — those are infrastructure, not agents.
-func parseAgentPaneIndices(output string) []int {
+// "channel" are skipped — those are infrastructure, not bots.
+func parseBotPaneIndices(output string) []int {
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	var panes []int
 	for _, line := range lines {
@@ -565,10 +565,10 @@ func shouldPrimeClaudePane(content string) bool {
 // broker. Keep in sync with reportPaneFallback in launcher.go.
 func paneFallbackMessages(tmuxInstalled bool, detail string) (stderrMsg, brokerMsg string) {
 	const headlessBlurb = "Continuing with the default headless path (`claude --print` per turn on your normal subscription)."
-	const brokerBlurb = "Running in headless mode (%s). Agent turns dispatch as `claude --print` on your normal subscription."
+	const brokerBlurb = "Running in headless mode (%s). Bot turns dispatch as `claude --print` on your normal subscription."
 	if !tmuxInstalled {
 		stderrMsg = fmt.Sprintf(
-			"  Agents:  pane-backed fallback attempted but tmux not found (%s). %s Install tmux if you want the fallback to be available.\n",
+			"  Bots:  pane-backed fallback attempted but tmux not found (%s). %s Install tmux if you want the fallback to be available.\n",
 			detail, headlessBlurb,
 		)
 		brokerMsg = fmt.Sprintf(
@@ -578,7 +578,7 @@ func paneFallbackMessages(tmuxInstalled bool, detail string) (stderrMsg, brokerM
 		return
 	}
 	stderrMsg = fmt.Sprintf(
-		"  Agents:  pane-backed fallback attempted but unavailable (%s). %s tmux IS installed but rejected the launch command; please file a bug with the detail above at https://github.com/nex-crm/wuphf/issues.\n",
+		"  Bots:  pane-backed fallback attempted but unavailable (%s). %s tmux IS installed but rejected the launch command; please file a bug with the detail above at https://github.com/nex-crm/wuphf/issues.\n",
 		detail, headlessBlurb,
 	)
 	brokerMsg = fmt.Sprintf(

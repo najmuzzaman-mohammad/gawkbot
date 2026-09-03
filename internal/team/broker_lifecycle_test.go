@@ -26,7 +26,7 @@ func TestLifecycleForwardMapAllStates(t *testing.T) {
 		status        string
 		blocked       bool
 	}{
-		// Phase 3 — Drafting: pre-Intake mode where agents comment but cannot
+		// Phase 3 — Drafting: pre-Intake mode where bots comment but cannot
 		// dispatch. PipelineStage="draft" matches the spec's draft phase name.
 		// Status="open" keeps it visible in the open-tasks view. Blocked=false.
 		{LifecycleStateDrafting, "draft", "pending_review", "open", false},
@@ -94,7 +94,7 @@ func TestLifecycleTransitionRejectsNonCanonicalState(t *testing.T) {
 	// Acceptance: passing a non-canonical state (e.g. "garbage" or the
 	// migration fallback "unknown") to the transition layer must error
 	// instead of silently writing junk into the inbox index. This is the
-	// build-time guarantee that no agent or future event handler can
+	// build-time guarantee that no bot or future event handler can
 	// stamp a task into a state that has no forward-map row.
 	b := newTestBroker(t)
 	b.mu.Lock()

@@ -151,7 +151,7 @@ func (b *Broker) handleCreateDM(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "at least 2 members required", http.StatusBadRequest)
 		return
 	}
-	// Validate: at least one member must be "human" (no agent-to-agent DMs).
+	// Validate: at least one member must be "human" (no bot-to-bot DMs).
 	hasHuman := false
 	for _, m := range body.Members {
 		if isHumanMessageSender(m) {
@@ -160,7 +160,7 @@ func (b *Broker) handleCreateDM(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !hasHuman {
-		http.Error(w, "DM must include a human member; agent-to-agent DMs are not allowed", http.StatusBadRequest)
+		http.Error(w, "DM must include a human member; bot-to-bot DMs are not allowed", http.StatusBadRequest)
 		return
 	}
 
@@ -203,7 +203,7 @@ func (b *Broker) handleCreateDM(w http.ResponseWriter, r *http.Request) {
 	wantsGroup := len(body.Members) > 2
 	if wantsGroup && !groupDMsEnabled() && !groupAlreadyExists(body.Members) {
 		http.Error(w,
-			"group DMs are retired: a group DM is a channel by another name, and every conversation is now 1:1 with a single agent. Open a DM with one agent and tag the others in it.",
+			"group DMs are retired: a group DM is a channel by another name, and every conversation is now 1:1 with a single bot. Open a DM with one bot and tag the others in it.",
 			http.StatusConflict)
 		return
 	}
@@ -218,20 +218,20 @@ func (b *Broker) handleCreateDM(w http.ResponseWriter, r *http.Request) {
 			ch, err = b.channelStore.GetOrCreateGroup(body.Members, "human")
 		} else {
 			// Normalize: find the non-human member for the slug.
-			agentSlug := ""
+			botSlug := ""
 			for _, m := range body.Members {
 				if !isHumanMessageSender(m) {
-					agentSlug = m
+					botSlug = m
 					break
 				}
 			}
-			if agentSlug == "" {
-				http.Error(w, "could not determine agent member", http.StatusBadRequest)
+			if botSlug == "" {
+				http.Error(w, "could not determine bot member", http.StatusBadRequest)
 				return
 			}
-			_, exists := b.channelStore.FindDirectByMembers("human", agentSlug)
+			_, exists := b.channelStore.FindDirectByMembers("human", botSlug)
 			created = !exists
-			ch, err = b.channelStore.GetOrCreateDirect("human", agentSlug)
+			ch, err = b.channelStore.GetOrCreateDirect("human", botSlug)
 		}
 	}
 	if err != nil {
@@ -242,7 +242,7 @@ func (b *Broker) handleCreateDM(w http.ResponseWriter, r *http.Request) {
 	b.mu.Lock()
 	if b.findChannelLocked(ch.Slug) == nil {
 		now := time.Now().UTC().Format(time.RFC3339)
-		target := DMTargetAgent(ch.Slug)
+		target := DMTargetBot(ch.Slug)
 		description := "Group direct messages"
 		memberSlugs := append([]string(nil), body.Members...)
 		if target != "" {

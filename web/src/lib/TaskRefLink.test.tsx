@@ -78,10 +78,10 @@ describe("<TaskRefLink>", () => {
 
   it("strips the self-heal provenance prefix from the label", () => {
     const { container } = renderWithTasks("see DUNDE-72", [
-      makeTask({ id: "DUNDE-72", title: "[@ceo] Agent stuck on: VC outreach" }),
+      makeTask({ id: "DUNDE-72", title: "[@ceo] Bot stuck on: VC outreach" }),
     ]);
     expect(container.querySelector(".msg-task-link")).toHaveTextContent(
-      "Agent stuck on: VC outreach",
+      "Bot stuck on: VC outreach",
     );
   });
 

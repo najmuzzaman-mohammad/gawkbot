@@ -3,7 +3,7 @@
  * no MIME, no decoding). A bright three-note ascending arpeggio (A major:
  * A5 · C#6 · E6) with a soft octave overtone per note for a bell-like body.
  *
- * It is deliberately loud. Now that agent questions and blocking approvals
+ * It is deliberately loud. Now that bot questions and blocking approvals
  * stay in their origin chat instead of popping a modal on every surface,
  * this chime is the human's main office-wide "something needs you" signal —
  * so it leans attention-grabbing rather than polite.

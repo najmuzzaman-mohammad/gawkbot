@@ -9,7 +9,7 @@ package team
 //     unit-testable without spinning up a worktree.
 //
 //  2. Computing the intersection between a task's signals and every
-//     officeMember's Watching set, returning the auto-assigned agent
+//     officeMember's Watching set, returning the auto-assigned bot
 //     slug list (ResolveReviewers / AssignReviewers).
 //
 //  3. Driving the review → decision convergence rule: a task transitions
@@ -24,10 +24,10 @@ package team
 //
 // Reviewer Concern #1 resolution (process-watch hook for crash detection):
 // The design doc lists scheduleTaskLifecycleLocked and the launcher_loops
-// goroutines as candidates. Neither fires reliably as a typed "agent X
+// goroutines as candidates. Neither fires reliably as a typed "bot X
 // exited without grading task Y" callback in the current broker — they
 // are pane-status / scheduler-driven loops that operate on tasks, not on
-// per-agent session lifetimes.
+// per-bot session lifetimes.
 //
 // What DOES fire reliably is the headless manifest event (emitHeadlessManifest
 // in headless_event.go). It is emitted unconditionally at the end of every
@@ -45,7 +45,7 @@ package team
 // elapsed (default: full timeout), it fills the slot with the
 // "reviewer process exited" reasoning instead of "reviewer timed out". This
 // preserves the design's user-visible distinction without coupling Lane D
-// to per-agent-session lifetimes the broker does not currently expose.
+// to per-bot-session lifetimes the broker does not currently expose.
 //
 // All locked helpers require b.mu held by the caller; the public wrappers
 // acquire b.mu themselves.
@@ -71,13 +71,13 @@ var reviewerConvergenceManifestTerminalStatuses = map[string]struct{}{
 	"error": {},
 }
 
-// ResolveReviewers returns the set of agent slugs whose Watching set
+// ResolveReviewers returns the set of bot slugs whose Watching set
 // intersects with the task's current signals. Order is stable
 // (lexicographic) so callers can assert on the slice in tests.
 //
 // Tunnel-invited humans are not auto-assigned by this function — they
 // are appended manually via the CLI (`wuphf task review --invite <slug>`)
-// and stored on teamTask.Reviewers alongside the agent slugs.
+// and stored on teamTask.Reviewers alongside the bot slugs.
 func (b *Broker) ResolveReviewers(taskID string) ([]string, error) {
 	if b == nil {
 		return nil, fmt.Errorf("resolve reviewers: nil broker")
@@ -343,7 +343,7 @@ func (b *Broker) evaluateConvergenceLocked(taskID string) error {
 
 	// Timeout elapsed. Fill each missing slot. Differentiate "process
 	// exited" from "timed out" by checking the most-recent terminal
-	// manifest status on the reviewer's task-scoped agent stream.
+	// manifest status on the reviewer's task-scoped bot stream.
 	terminalStatuses := b.observedTerminalStatusByReviewerLocked(taskID, missing)
 	now := b.reviewerNow().UTC()
 	if b.reviewerGradesByTask == nil {
@@ -479,21 +479,21 @@ func (b *Broker) reviewerNow() time.Time {
 }
 
 // observedTerminalStatusByReviewerLocked walks the most-recent manifest
-// HeadlessEvent recorded for each reviewer on the task's agent stream
+// HeadlessEvent recorded for each reviewer on the task's bot stream
 // and returns the latest Status (idle/error) per reviewer. Reviewers
 // without any manifest events on this task are absent from the map.
 //
 // Cheap because each reviewer's stream is bounded by
-// agentStreamTaskHistoryLimit. We do not parse non-manifest events
+// botStreamTaskHistoryLimit. We do not parse non-manifest events
 // (status/text/tool_use/tool_result) — only manifest, which carries
 // the terminal Status.
 func (b *Broker) observedTerminalStatusByReviewerLocked(taskID string, slugs []string) map[string]string {
 	out := make(map[string]string, len(slugs))
-	if b.agentStreams == nil {
+	if b.botStreams == nil {
 		return out
 	}
 	for _, slug := range slugs {
-		stream, ok := b.agentStreams[slug]
+		stream, ok := b.botStreams[slug]
 		if !ok {
 			continue
 		}
@@ -531,7 +531,7 @@ func (b *Broker) observedTerminalStatusByReviewerLocked(taskID string, slugs []s
 //     signals is preferable to gating the entire convergence path.
 //
 //   - ToolNames: union of HeadlessEvent.ToolCalls from manifest events
-//     across every agent stream that has lines for this task.
+//     across every bot stream that has lines for this task.
 //
 //   - TaskTags: verbatim teamTask.Tags.
 func (b *Broker) extractRoutingSignalsLocked(task *teamTask) ReviewerRoutingSignals {
@@ -549,7 +549,7 @@ func (b *Broker) extractRoutingSignalsLocked(task *teamTask) ReviewerRoutingSign
 // extractRoutingSignalsLockedWithFiles is the locked half of the
 // signals build: it consumes a Files slice that the caller has already
 // produced outside b.mu, then attaches the in-memory pieces (ToolNames
-// from the agent stream, TaskTags from the task). Splitting the build
+// from the bot stream, TaskTags from the task). Splitting the build
 // this way is what lets ResolveReviewers run the slow git diff outside
 // b.mu without losing the lock invariant for the in-memory reads.
 func (b *Broker) extractRoutingSignalsLockedWithFiles(task *teamTask, files []string) ReviewerRoutingSignals {
@@ -600,18 +600,18 @@ func taskWorktreeDiff(worktreePath, worktreeBranch, taskID string) []string {
 }
 
 // taskManifestToolNamesLocked returns the union of distinct
-// HeadlessEvent.ToolCalls.ToolName values observed across every agent
+// HeadlessEvent.ToolCalls.ToolName values observed across every bot
 // stream's task-scoped buffer for taskID. Order is lexicographic.
 func (b *Broker) taskManifestToolNamesLocked(taskID string) []string {
 	taskID = strings.TrimSpace(taskID)
 	if taskID == "" {
 		return nil
 	}
-	if b.agentStreams == nil {
+	if b.botStreams == nil {
 		return nil
 	}
 	seen := make(map[string]struct{})
-	for _, stream := range b.agentStreams {
+	for _, stream := range b.botStreams {
 		stream.mu.Lock()
 		lines := stream.taskLines[taskID]
 		// Copy to drop the lock fast.
@@ -665,7 +665,7 @@ func filterWikiPaths(paths []string) []string {
 // category has at least one entry that matches the task's signals.
 // Empty categories are skipped (an empty Files list does not auto-match
 // every diff). At least one Watching category must be non-empty for
-// any match to be reported — caller filters out IsEmpty agents earlier.
+// any match to be reported — caller filters out IsEmpty bots earlier.
 func watchingMatchesSignals(w Watching, s ReviewerRoutingSignals) bool {
 	if len(w.Files) > 0 && anyGlobMatches(w.Files, s.Files) {
 		return true
@@ -685,7 +685,7 @@ func watchingMatchesSignals(w Watching, s ReviewerRoutingSignals) bool {
 // anyGlobMatches reports whether any pattern in patterns matches any
 // candidate in candidates under filepath.Match semantics. Invalid
 // glob patterns are logged and skipped — the routing layer must not
-// fail an entire convergence because one agent's Watching set carries a
+// fail an entire convergence because one bot's Watching set carries a
 // malformed entry.
 func anyGlobMatches(patterns, candidates []string) bool {
 	for _, pattern := range patterns {
@@ -751,9 +751,9 @@ func (b *Broker) taskByIDLocked(taskID string) *teamTask {
 	return nil
 }
 
-// postReviewTimeoutChannelMessageLocked posts the agent.review.timeout
+// postReviewTimeoutChannelMessageLocked posts the bot.review.timeout
 // banner to the team channel. Caller must hold b.mu. The message is
-// kind=agent.review.timeout so the frontend can render a distinct
+// kind=bot.review.timeout so the frontend can render a distinct
 // banner without sniffing message text.
 func (b *Broker) postReviewTimeoutChannelMessageLocked(task *teamTask, reviewerSlug, reasoning string) {
 	if task == nil {

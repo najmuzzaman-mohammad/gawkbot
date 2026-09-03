@@ -9,10 +9,10 @@ experience. Nothing here is implemented yet.
 
 | Axis | OpenMausBot | gawkbot |
 |---|---|---|
-| Primary surface | 1:1 bot chats + rooms/channels | Task channels + human↔agent DMs |
+| Primary surface | 1:1 bot chats + rooms/channels | Task channels + human↔bot DMs |
 | Bot↔bot talk | `ask_bot` / `delegate_bot` tools, mirrored into an auto-created `A ⇄ B` pair channel | @mention in a shared channel auto-promotes to a tag and wakes the peer (`broker_messages.go:118`) |
 | Bot↔bot DMs | Yes, as observable pair channels the human can open and join | None, by design; DM slugs always pair with `human` (`broker_dm.go:36`) |
-| Loop protection | Structural: `MAX_COMMS_DEPTH = 1`, peer turns get no agents tools | Prompt-level plus self-heal cap; no structural hop cap |
+| Loop protection | Structural: `MAX_COMMS_DEPTH = 1`, peer turns get no bots tools | Prompt-level plus self-heal cap; no structural hop cap |
 | Team runs | Bounded goal runs, 13 turns, coordinator owns completion | CoS routes freely; no turn budget or terminal statuses |
 | Busy peers | Woken later, never skipped; visible wait chips; bounded retries | Per-slug queues exist (`headless_codex_queue.go`), but no visible wait state |
 | Concurrency | Serialized per bot, decided in a written record | Serialized per slug, undocumented as a contract |
@@ -24,7 +24,7 @@ crash-safe handoffs.
 
 ## Learnings worth adopting
 
-### 1. Make every agent-to-agent wake observable where the human is looking
+### 1. Make every bot-to-bot wake observable where the human is looking
 
 `server/comms-visibility.ts` mirrors every peer exchange three ways: the
 full text into the `A ⇄ B` pair channel, a "Messaged @B" activity chip
@@ -34,11 +34,11 @@ peer turns cost the user tokens, and "a hidden exchange is exactly the
 kind of mistake peer coordination is supposed to avoid." Terminal states
 of async handoffs are mirrored too, citing A2A and MCP Tasks prior art.
 
-gawkbot gap: a tag-wake between agents is visible only if you are looking
+gawkbot gap: a tag-wake between bots is visible only if you are looking
 at that channel. Nothing in the human's DM or inbox says "Writer asked
 Editor for a pass in WAVE-22."
 
-Proposal: when an agent's tag wakes another agent, append a small system
+Proposal: when a bot's tag wakes another bot, append a small system
 chip to the human-facing surface (inbox or the CoS DM) linking to the
 channel and message. No new channel primitive needed; our task channels
 already hold the exchange itself.
@@ -56,9 +56,9 @@ use ask_bot only for a short consultation whose reply is required in your
 current answer."
 
 gawkbot gap: one mechanism (tagged message) for both intents, and the
-delegating agent has no way to read back the outcome later.
+delegating bot has no way to read back the outcome later.
 
-Proposal: add a delegation receipt: when agent A tags agent B with an
+Proposal: add a delegation receipt: when bot A tags bot B with an
 assignment inside a task, record a receipt row (target, status
 done/failed/denied/busy_gave_up, bounded result) that A's later turns can
 query. OpenMausBot bounds the drawer at 100 receipts, 48 hours, 4k chars
@@ -67,16 +67,16 @@ per result; do the same.
 ### 3. Structural loop protection, not prompt-level hope
 
 `MAX_COMMS_DEPTH = 1`: a peer turn spawned by another bot runs at depth 1
-and receives no agents tools at all, so A→B→C chains and ping-pong loops
+and receives no bots tools at all, so A→B→C chains and ping-pong loops
 are structurally impossible. Delegation retries against a busy target are
 bounded (`MAX_BUSY_ATTEMPTS = 3`), and peer wakes draw from a
 `DelegationWakeBudget`.
 
-gawkbot gap: agent-originated tags auto-promote like human ones
-(`senderMayAutoPromoteLocked` allows any registered agent), so nothing
-structural stops two agents from re-waking each other.
+gawkbot gap: bot-originated tags auto-promote like human ones
+(`senderMayAutoPromoteLocked` allows any registered bot), so nothing
+structural stops two bots from re-waking each other.
 
-Proposal: carry a hop count on agent-originated wakes. A turn at hop 1
+Proposal: carry a hop count on bot-originated wakes. A turn at hop 1
 still posts freely, but its @mentions do not auto-promote to tags; the
 lead relays if a further wake is genuinely needed. One integer on the
 message record, one guard in the auto-promote loop.
@@ -94,11 +94,11 @@ transcript until the turn settles, "so the current responder cannot
 appear to answer words it never saw."
 
 gawkbot gap: per-slug queues handle the mechanics, but the channel shows
-nothing while a tagged agent is busy elsewhere, and a human message
+nothing while a tagged bot is busy elsewhere, and a human message
 posted mid-turn lands on the transcript immediately even though the
 running turn never saw it.
 
-Proposal: (a) post a broker chip when a tag lands on a busy agent, and
+Proposal: (a) post a broker chip when a tag lands on a busy bot, and
 patch it when the turn starts or the wake is dropped; (b) consider the
 transcript-visibility rule for mid-turn human messages in task channels.
 
@@ -115,7 +115,7 @@ the wait cap) are fed to the coordinator as data so the lead decides to
 reassign or report blocked; the harness never silently kills the run.
 
 gawkbot gap: CoS fans out work but nothing bounds an objective, and
-"completed" is whatever an agent last said. The known approve-loop bug
+"completed" is whatever a bot last said. The known approve-loop bug
 (hires approved, CoS never creates the teammates) is precisely a missing
 honest-completion check.
 
@@ -124,7 +124,7 @@ objective, lead takes the last turn, and needs-input / blocked are
 first-class terminal states that land in the human inbox instead of
 silence.
 
-### 6. Optional per-agent gate on waking peers
+### 6. Optional per-bot gate on waking peers
 
 `peer-approval.ts`: a bot flagged `approvePeerComms` cannot contact a
 peer without a human approving that specific contact via the existing
@@ -134,8 +134,8 @@ for an ask carries over when the ask degrades into a delegation, so the
 user is never asked twice for the same action; and cards always settle so
 a dangling card can never wedge the composer.
 
-Proposal: a per-agent "ask before waking teammates" toggle on expensive
-or external-facing agents, reusing our approval-card machinery (and its
+Proposal: a per-bot "ask before waking teammates" toggle on expensive
+or external-facing bots, reusing our approval-card machinery (and its
 sanitizer pattern).
 
 ### 7. Crash-safe handoffs
@@ -164,13 +164,13 @@ their `room-chat-wait.e2e` and `group-goal-wait-cap.e2e` suites do.
 
 ## Suggested order
 
-1. Hop cap on agent-originated tag promotion (small, structural, closes
+1. Hop cap on bot-originated tag promotion (small, structural, closes
    the loop risk). Learning 3.
 2. Busy-wait chips plus wake-drop honesty in task channels. Learning 4.
 3. Bounded objective runs with lead-owned completion. Learning 5. This is
    also the fix shape for the approve-loop bug.
-4. Delegation receipts readable by the delegating agent. Learning 2.
-5. Observability chips for cross-agent wakes in the human surface.
+4. Delegation receipts readable by the delegating bot. Learning 2.
+5. Observability chips for cross-bot wakes in the human surface.
    Learning 1.
 6. Peer-comms approval toggle, queue persistence, and the concurrency
    decision record. Learnings 6, 7, and 8.
@@ -186,8 +186,8 @@ busy-wait chip, both of which read well on camera.
 
 Main's consult relay (internal/team/broker_consult_relay.go) landed
 learning 1 in parallel, with a stronger design than proposed here: relay
-markers are DERIVED on read from the agent-to-agent messages themselves,
-so an agent cannot fabricate a consult it never had, and clicking a
+markers are DERIVED on read from the bot-to-bot messages themselves,
+so a bot cannot fabricate a consult it never had, and clicking a
 marker opens the pair thread read-only. The hardening commit that
 accompanies this note adds the pieces the relay still lacked: the
 server-side human write-block, the per-DM wake cap (learning 3), the

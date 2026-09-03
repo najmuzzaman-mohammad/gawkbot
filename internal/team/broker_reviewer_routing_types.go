@@ -24,10 +24,10 @@ package team
 
 // Watching captures the four glob/tag categories an officeMember can
 // declare interest in. Used by the broker's reviewer-routing logic to
-// auto-assign agents to a task entering review.
+// auto-assign bots to a task entering review.
 //
 // Each list is matched independently — an empty list means "do not
-// match on this category", not "match everything". An agent is
+// match on this category", not "match everything". A bot is
 // auto-assigned when ANY of its non-empty categories intersects with
 // the task's signals; this matches CODEOWNERS-style "any line touching
 // my path" semantics rather than requiring all categories to overlap
@@ -47,7 +47,7 @@ type Watching struct {
 	WikiPaths []string `json:"wiki_paths,omitempty"`
 
 	// ToolNames is matched against the union of HeadlessEvent.ToolCalls
-	// observed for the task across all manifest events on its agent
+	// observed for the task across all manifest events on its bot
 	// stream. Comparison is exact-match on the tool name (no globs);
 	// tool names are short canonical identifiers.
 	//
@@ -58,20 +58,20 @@ type Watching struct {
 
 	// TaskTags is matched against teamTask.Tags. Comparison is
 	// exact-match (no globs); tags are short canonical identifiers
-	// that the spec author or owner agent attaches to a task.
+	// that the spec author or owner bot attaches to a task.
 	TaskTags []string `json:"task_tags,omitempty"`
 }
 
 // IsEmpty reports whether the watching set has no patterns at all. Used
-// to skip agents that haven't declared any interest.
+// to skip bots that haven't declared any interest.
 func (w Watching) IsEmpty() bool {
 	return len(w.Files) == 0 && len(w.WikiPaths) == 0 && len(w.ToolNames) == 0 && len(w.TaskTags) == 0
 }
 
 // ReviewerRoutingSignals is the deterministic snapshot of a task's
-// state that the routing logic intersects against each agent's
+// state that the routing logic intersects against each bot's
 // Watching set. Built by extractRoutingSignalsLocked from on-disk diff
-// output, agent-stream manifest events, and the task's own Tags field.
+// output, bot-stream manifest events, and the task's own Tags field.
 //
 // Kept as an explicit struct (rather than passing four slices) so the
 // test surface can construct a synthetic signal set without spinning up

@@ -96,7 +96,7 @@ After submitting, WUPHF redirects them to:
 #/channels/general
 ```
 
-They should see the shared office, the channel list, and the same agents. A system message appears in `#general`, for example:
+They should see the shared office, the channel list, and the same bots. A system message appears in `#general`, for example:
 
 ```text
 Tara joined the office.
@@ -109,7 +109,7 @@ The team member session can:
 - Read shared office channels.
 - Send messages as their team-member identity.
 - Answer requests.
-- Work with the same agents in shared channels.
+- Work with the same bots in shared channels.
 - See shared context surfaces exposed to team-member sessions.
 
 The team member session cannot:

@@ -261,7 +261,7 @@ graph TB
 12. Runtime TS surface is camelCase: [ipc](modules/ipc.md), [receipt](modules/receipt.md).
 13. Dates mark time only: [receipt](modules/receipt.md), [audit-event](modules/audit-event.md).
 14. Coverage ratchets upward: every module's tests, especially [receipt](modules/receipt.md) and [audit-event](modules/audit-event.md), must keep the gate green.
-15. Delegated agents must carry these rules: dispatch prompts point to the owning [moat](modules/moat-primitives.md), [receipt](modules/receipt.md), [ipc](modules/ipc.md), [audit](modules/audit-event.md), [thread](modules/thread.md), or [budget](modules/budgets.md) docs.
+15. Delegated bots must carry these rules: dispatch prompts point to the owning [moat](modules/moat-primitives.md), [receipt](modules/receipt.md), [ipc](modules/ipc.md), [audit](modules/audit-event.md), [thread](modules/thread.md), or [budget](modules/budgets.md) docs.
 16. ReceiptSnapshot is a V1/V2 discriminated union: V1 rejects `threadId`, V2 allows optional `threadId`, and serializers/deserializers are version-aware.
 
 ## 8. Test taxonomy
@@ -308,7 +308,7 @@ MEDIUM:
   of `apiBootstrapFromJson`.
 - [ipc](modules/ipc.md): SSE and WebSocket unions lack runtime validators.
 - [receipt](modules/receipt.md): `approvedAt === issuedAt` currently validates.
-- [budgets](modules/budgets.md): AGENTS hard rule omits the plain-data-only
+- [budgets](modules/budgets.md): BOTS hard rule omits the plain-data-only
   contract for `validateReceiptBudget`.
 
 LOW:

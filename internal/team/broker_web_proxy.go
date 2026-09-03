@@ -92,14 +92,14 @@ func (b *Broker) ServeWebUI(port int) error {
 	mux.Handle("/api/broker/restart", webUIRebindGuard(http.HandlerFunc(b.handleWebBrokerRestart)))
 	mux.Handle("/api/", webUIRebindGuard(b.webUIProxyHandler(brokerURL, "/api")))
 	mux.Handle("/onboarding/", webUIRebindGuard(b.webUIProxyHandler(brokerURL, "")))
-	// The pi agent service (tool authoring, routine chat sessions). The broker
+	// The pi bot service (tool authoring, routine chat sessions). The broker
 	// already supervises the service (agent_service_supervisor.go); this proxy
 	// completes the loop for the SHIPPED bundle. Until now only the vite dev
-	// server proxied /agent, so in production the teach-a-tool flow 404'd and
+	// server proxied /bot, so in production the teach-a-tool flow 404'd and
 	// silently fell back to a fabricated mock tool (2026-08-15 QA). Same
 	// rebind guard as the API proxy; no bearer is attached — the service is
 	// loopback-only and unauthenticated, exactly as under the dev proxy.
-	mux.Handle("/agent/", webUIRebindGuard(b.agentServiceProxyHandler()))
+	mux.Handle("/agent/", webUIRebindGuard(b.botServiceProxyHandler()))
 	// Token endpoint — no auth needed, but we require a same-origin loopback request.
 	// Otherwise this endpoint leaks the broker bearer to any browser page that
 	// can reach the web UI port via DNS rebinding.
@@ -281,11 +281,11 @@ func (b *Broker) webUIProxyHandler(brokerURL, stripPrefix string) http.Handler {
 		proxyReq.Header.Set("Authorization", "Bearer "+b.token)
 		proxyReq.Header.Set("Content-Type", r.Header.Get("Content-Type"))
 		// The operator's own web UI sometimes acts on the App Builder writer
-		// path: removing a failed app build sends X-WUPHF-Agent: app-builder,
+		// path: removing a failed app build sends X-WUPHF-Bot: app-builder,
 		// which the app-writer gate (appWriterAllowed) honors. The proxy
 		// attaches the broker token for transport auth, which the broker
 		// classifies as broker-kind — a kind the gate deliberately rejects so
-		// other agents (all of which hold the broker token) cannot register or
+		// other bots (all of which hold the broker token) cannot register or
 		// delete apps outside the build path.
 		//
 		// That makes the App Builder identity privileged, so it must NOT be
@@ -294,12 +294,12 @@ func (b *Broker) webUIProxyHandler(brokerURL, stripPrefix string) http.Handler {
 		// client value: Sec-Fetch-Site is set by the browser and cannot be
 		// forged from script, and a cross-site page that reached this port reads
 		// "cross-site"/"same-site", not "same-origin". We also pin the value to
-		// the App Builder slug — the proxy never relays an arbitrary agent
+		// the App Builder slug — the proxy never relays an arbitrary bot
 		// identity. Anything else is dropped (proxyReq starts with no inbound
 		// headers), leaving the broker to treat the caller as broker-kind.
 		if r.Header.Get("Sec-Fetch-Site") == "same-origin" &&
-			isAppBuilderSlug(r.Header.Get(agentRateLimitHeader)) {
-			proxyReq.Header.Set(agentRateLimitHeader, appBuilderSlug)
+			isAppBuilderSlug(r.Header.Get(botRateLimitHeader)) {
+			proxyReq.Header.Set(botRateLimitHeader, appBuilderSlug)
 		}
 
 		client := http.DefaultClient
@@ -359,19 +359,19 @@ func responseHeadersToSkip(header http.Header) map[string]struct{} {
 	return skip
 }
 
-// agentServiceProxyHandler forwards /agent/* to the pi agent service the
+// botServiceProxyHandler forwards /bot/* to the pi bot service the
 // broker supervises (agent_service_supervisor.go — WUPHF_AGENT_URL override,
-// default 127.0.0.1:8820), stripping the /agent prefix exactly as the vite
+// default 127.0.0.1:8820), stripping the /bot prefix exactly as the vite
 // dev proxy does. No bearer is attached: the service is loopback-only and
 // its own contract is unauthenticated (the rebind guard on the mux entry is
 // the browser-origin gate). Long-lived streaming responses are allowed.
-func (b *Broker) agentServiceProxyHandler() http.Handler {
+func (b *Broker) botServiceProxyHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		targetPath := strings.TrimPrefix(r.URL.Path, "/agent")
 		if targetPath == "" {
 			targetPath = "/"
 		}
-		target := operatorAgentBaseURL() + targetPath
+		target := operatorBotBaseURL() + targetPath
 		if r.URL.RawQuery != "" {
 			target += "?" + r.URL.RawQuery
 		}
@@ -390,7 +390,7 @@ func (b *Broker) agentServiceProxyHandler() http.Handler {
 		}
 		resp, err := client.Do(proxyReq)
 		if err != nil {
-			http.Error(w, "agent service unreachable", http.StatusBadGateway)
+			http.Error(w, "bot service unreachable", http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()

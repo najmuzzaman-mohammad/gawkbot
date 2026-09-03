@@ -1,7 +1,7 @@
 package team
 
 // broker_lifecycle_transition.go is the single chokepoint for writes to the
-// multi-agent harness lifecycle state machine on a teamTask. It owns:
+// multi-bot harness lifecycle state machine on a teamTask. It owns:
 //
 //   - The LifecycleState typed string and its canonical values plus
 //     the "unknown" migration fallback.
@@ -60,7 +60,7 @@ func isExecutableTeamTaskStatus(s LifecycleState) bool {
 }
 
 // isPreExecutionLifecycleState reports whether a task has not yet entered
-// execution: no agent turn has legitimately run for it and no work product
+// execution: no bot turn has legitimately run for it and no work product
 // can exist. An "approve" on a task in one of these states means "start the
 // work" (activation), NEVER "accept the delivered work" (terminal) — the
 // ICP-eval v3 J2 failure was Approve & Start resolving to terminal
@@ -86,7 +86,7 @@ func isPreExecutionLifecycleState(s LifecycleState) bool {
 // than a field on Broker so brokers stay zero-value usable.
 var lifecycleMigrationOnce sync.Map // *Broker -> *sync.Once
 
-// LifecycleState is the typed source of truth for the multi-agent control
+// LifecycleState is the typed source of truth for the multi-bot control
 // loop. The canonical values plus LifecycleStateUnknown (migration
 // fallback) form a closed enum; new states require updating both the
 // forward-map (lifecycleDerivedFields) and the migration shim.
@@ -106,7 +106,7 @@ const (
 	LifecycleStateDecision LifecycleState = "decision"
 	// LifecycleStateBlocked is the generic "this task is paused" state: it is
 	// recoverable and waiting on something — an upstream dependency to finish,
-	// or an owner agent that stopped (timed out / errored) before durable
+	// or an owner bot that stopped (timed out / errored) before durable
 	// progress. The unblock cascade (unblockDependentsLocked) moves it back to
 	// review when its blocker resolves. The legacy value was
 	// "blocked_on_pr_merge", a holdover from the retired PR-style review/merge
@@ -126,7 +126,7 @@ const (
 	// LifecycleStateDrafting marks a task the human EXPLICITLY parked
 	// (the composer's Backlog/park path, or a legacy persisted draft).
 	// Nothing lands here by default — creation IS the authorization, so
-	// new tasks land Running (owner set) or Ready (ownerless). Agents can
+	// new tasks land Running (owner set) or Ready (ownerless). Bots can
 	// post comments on a parked task; they CANNOT dispatch tool calls or
 	// execution work — isExecutableTeamTaskStatus is the dispatch gate
 	// that refuses execution turns in this state (tested in
@@ -241,7 +241,7 @@ type lifecycleDerivedFieldsRow struct {
 // once the rest of the harness is in place. The lifecycle index and the
 // LifecycleState field still source-of-truth correctly.
 var lifecycleDerivedFields = map[LifecycleState]lifecycleDerivedFieldsRow{
-	// Drafting: explicitly parked — agents comment but cannot dispatch.
+	// Drafting: explicitly parked — bots comment but cannot dispatch.
 	// PipelineStage="draft" matches the spec's draft phase name. Status="open"
 	// keeps the task visible in the open-tasks view; Blocked=false so it is
 	// not confused with a waiting-on-upstream state. isExecutableTeamTaskStatus

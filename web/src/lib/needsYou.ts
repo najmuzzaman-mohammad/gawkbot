@@ -47,7 +47,7 @@ export function isNoticeRequest(item: InboxItemRequest): boolean {
  *
  *   - tasks parked in a decision lifecycle state (the cards the Needs-human
  *     lane renders), and
- *   - pending requests that are blocking or required — an agent that cannot
+ *   - pending requests that are blocking or required — a bot that cannot
  *     proceed until the human answers.
  *
  * NOTICES ARE DELIBERATELY EXCLUDED. A notice is news, not a decision: the

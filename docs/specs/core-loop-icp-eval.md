@@ -2,7 +2,7 @@
 
 **Status:** Re-run protocol. Supersedes `sota-uplift-icp-eval.md` (the 2026-06-10 morning run that graded **5/10**; its observation log and grading report live in `.icp-eval/`). This run grades the rebuilt system **against the 9-step core loop** (`core-loop.md`) — every journey walks the loop's stages explicitly, and the grader scores each stage's delivery.
 **Personas:** Maya (PRIMARY — RevOps operator, Series B B2B SaaS; CRO is her secondary buyer, audit-walkability is purchase-critical) runs Journeys 1–2. Sam (secondary — technical founder, artifact + definition-of-done lens) runs Journey 3.
-**Method:** runner drives the real web UI in a browser as a human, reads every screen, records raw timestamped observations + screenshots, never grades. A separate grader agent scores afterward.
+**Method:** runner drives the real web UI in a browser as a human, reads every screen, records raw timestamped observations + screenshots, never grades. A separate grader bot scores afterward.
 
 ## The rubric: the 9 loop steps (grader scores each, per journey, 1–5 + evidence)
 
@@ -12,10 +12,10 @@
 | 2 | Define the task clearly | CEO infers goal/deliverables+format/success criteria; ONE batched interview only for genuine gaps; a structured Definition appears on the task (rail + packets) — no spec ceremony, no plan gate |
 | 3 | Gather context + tool access with human help | Interview lands in task chat AND Inbox; access needs asked up front; answers absorbed into the work |
 | 4 | Spin up the team | Owner assigned, subtasks where warranted, dependency edges visible and truthful |
-| 5 | Agents execute with focused context | Pre-task notebook note exists (Definition + retrieved context); turn activity shows **context: learning:X, wiki:Y** lines; agents cite what they used; no keyhole amnesia between turns |
+| 5 | Bots execute with focused context | Pre-task notebook note exists (Definition + retrieved context); turn activity shows **context: learning:X, wiki:Y** lines; bots cite what they used; no keyhole amnesia between turns |
 | 6 | Deliver an artifact | Task cannot claim done without a wiki artifact; done-post in chat + Inbox notice with the artifact LINK (readable, not [REDACTED], not buried); Verified badge state honest |
 | 7 | Deterministic learning hook | After done: entity facts in the graph; entity wiki articles exist — cited (footnotes→tasks/artifacts), [[linked]], infobox; playbook draft appears for repeatable work; updates not duplicates |
-| 8 | Skills & policies activated for relevant agents | Playbook compiles to a skill + atomic policies assigned to the right agents (visible in Skills/Policies surfaces); human chat feedback can mint a policy instantly |
+| 8 | Skills & policies activated for relevant bots | Playbook compiles to a skill + atomic policies assigned to the right bots (visible in Skills/Policies surfaces); human chat feedback can mint a policy instantly |
 | 9 | Repeat with retrieval + dedupe | The NEXT similar task visibly uses accumulated knowledge (named names, playbook steps), and the system UPDATES existing articles/playbooks instead of duplicating |
 
 Secondary dimensions per step (same as v1, kept): Speed, Legibility, Trust, Control, Feel.
@@ -51,7 +51,7 @@ Secondary dimensions per step (same as v1, kept): Speed, Legibility, Trust, Cont
 
 ---
 
-## Grader contract (separate agent; the runner never grades)
+## Grader contract (separate bot; the runner never grades)
 
 Inputs: this spec, the raw observation log, screenshots, AND the v1 baseline artifacts (`.icp-eval/observations.md` + grading report, grade 5/10).
 Outputs:

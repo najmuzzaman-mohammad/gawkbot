@@ -6,7 +6,7 @@
 // Critical paths covered here (from the test plan):
 //   - First-run materialization produces skeleton articles that resolve via
 //     GET /wiki/article once a git repo exists and articles are committed.
-//   - Agent writes via POST /wiki/write → SSE event fires on the wiki event
+//   - Bot writes via POST /wiki/write → SSE event fires on the wiki event
 //     channel → article is readable via GET /wiki/read + GET /wiki/article.
 //   - Cross-article backlinks: A links to B, B links back after write, the
 //     /wiki/article endpoint for B returns A as a backlink with the correct
@@ -83,7 +83,7 @@ func (c *capturePublisher) PublishWikiEvent(ev wikiWriteEvent) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// E2E: agent write → SSE event → article readable
+// E2E: bot write → SSE event → article readable
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestE2EWikiWriteReadAndEvent(t *testing.T) {
@@ -229,11 +229,11 @@ func TestE2EWikiArticleBacklinks(t *testing.T) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// E2E: five agents write concurrently through the HTTP stack;
-// all articles land and git log preserves per-agent authorship.
+// E2E: five bots write concurrently through the HTTP stack;
+// all articles land and git log preserves per-bot authorship.
 // ─────────────────────────────────────────────────────────────────────────────
 
-func TestE2EWikiConcurrentAgents(t *testing.T) {
+func TestE2EWikiConcurrentBots(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -241,7 +241,7 @@ func TestE2EWikiConcurrentAgents(t *testing.T) {
 	baseURL, worker, cleanup := newWikiTestServer(t)
 	defer cleanup()
 
-	agents := []struct{ slug, path string }{
+	bots := []struct{ slug, path string }{
 		{"ceo", "team/people/alice.md"},
 		{"pm", "team/people/bob.md"},
 		{"cro", "team/people/carol.md"},
@@ -250,8 +250,8 @@ func TestE2EWikiConcurrentAgents(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	errs := make(chan error, len(agents))
-	for _, a := range agents {
+	errs := make(chan error, len(bots))
+	for _, a := range bots {
 		wg.Add(1)
 		go func(slug, path string) {
 			defer wg.Done()
@@ -274,8 +274,8 @@ func TestE2EWikiConcurrentAgents(t *testing.T) {
 		t.Errorf("concurrent write error: %v", err)
 	}
 
-	// Every article is committed and readable; per-agent authorship preserved.
-	for _, a := range agents {
+	// Every article is committed and readable; per-bot authorship preserved.
+	for _, a := range bots {
 		refs, err := worker.Repo().Log(context.Background(), a.path)
 		if err != nil {
 			t.Errorf("Log(%s): %v", a.path, err)

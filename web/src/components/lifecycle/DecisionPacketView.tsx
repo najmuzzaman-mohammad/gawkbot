@@ -13,7 +13,7 @@ import { SeverityGradeCard } from "./SeverityGradeCard";
 
 interface DecisionPacketViewProps {
   packet: DecisionPacket;
-  /** Streaming state: owner agent still working. Locks decision buttons. */
+  /** Streaming state: owner bot still working. Locks decision buttons. */
   isStreaming?: boolean;
   /** Persistence-error banner shown above everything else. */
   hasPersistenceError?: boolean;
@@ -146,8 +146,7 @@ export function DecisionPacketView({
           </h3>
           {isStreaming ? (
             <p className="packet-streaming-hint">
-              Owner agent still working… acceptance criteria can update
-              mid-view.
+              Owner bot still working… acceptance criteria can update mid-view.
             </p>
           ) : null}
           <div className="packet-report">

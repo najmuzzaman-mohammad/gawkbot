@@ -8,7 +8,7 @@ import (
 
 const officeRoutingMatchThreshold = 0.28
 
-func (l *Launcher) scoreMessageForAgent(msg channelMessage, slug string) float64 {
+func (l *Launcher) scoreMessageForBot(msg channelMessage, slug string) float64 {
 	member := l.officeMemberBySlug(slug)
 	if strings.TrimSpace(member.Slug) == "" {
 		return 0
@@ -16,8 +16,8 @@ func (l *Launcher) scoreMessageForAgent(msg channelMessage, slug string) float64
 	return orchestration.ScoreMessageAgainstTerms(messageRoutingText(msg), officeMemberRoutingTerms(member))
 }
 
-func (l *Launcher) messageTargetsAgent(msg channelMessage, slug string) bool {
-	return l.scoreMessageForAgent(msg, slug) >= officeRoutingMatchThreshold
+func (l *Launcher) messageTargetsBot(msg channelMessage, slug string) bool {
+	return l.scoreMessageForBot(msg, slug) >= officeRoutingMatchThreshold
 }
 
 func (l *Launcher) taskOwnerForMessage(msg channelMessage) string {
@@ -53,7 +53,7 @@ func (l *Launcher) taskOwnerForMessage(msg channelMessage) string {
 				normalizeChannelSlug(rawTaskCh) == msgChannel {
 				// Accumulate matches instead of returning the first one: a
 				// legacy shared channel can hold tasks owned by DIFFERENT
-				// agents, and binding to whichever was scanned first wakes the
+				// bots, and binding to whichever was scanned first wakes the
 				// wrong owner. Trust the channel binding only when every match
 				// resolves to the same owner; otherwise mark it ambiguous and
 				// fall through to content-scoring below.
@@ -119,7 +119,7 @@ func (l *Launcher) scoreMessageForTask(msg channelMessage, task teamTask) float6
 
 func (l *Launcher) scoreMessageForTaskCandidate(msg channelMessage, task teamTask) float64 {
 	score := l.scoreMessageForTask(msg, task)
-	if ownerScore := l.scoreMessageForAgent(msg, strings.TrimSpace(task.Owner)); ownerScore > score {
+	if ownerScore := l.scoreMessageForBot(msg, strings.TrimSpace(task.Owner)); ownerScore > score {
 		return ownerScore
 	}
 	return score

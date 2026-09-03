@@ -20,8 +20,8 @@ interface TaskContextRailProps {
   /** Structured intake contract (R4); leads the Details section. */
   definition?: TaskDefinition;
   /**
-   * The task's owner agent. Drives the live "Task activity" feed (what the
-   * agent is doing right now). Null/unstaffed renders no feed.
+   * The task's owner bot. Drives the live "Task activity" feed (what the
+   * bot is doing right now). Null/unstaffed renders no feed.
    */
   ownerSlug?: string | null;
 }
@@ -96,7 +96,7 @@ export function TaskContextRail({
       >
         <ChannelParticipants channelSlug={channel} />
       </div>
-      {/* Live "Task activity": the owner agent's tool-call stream for this task
+      {/* Live "Task activity": the owner bot's tool-call stream for this task
        *  (reading, running, writing) — the same feed App Builder tasks show,
        *  now on every task. Self-collapsing; renders nothing until the owner
        *  streams activity. */}

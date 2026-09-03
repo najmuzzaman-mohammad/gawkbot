@@ -81,7 +81,7 @@ export function CreateAppDialog() {
         noteAppBuilding(req.name);
       }
       close();
-      // Open the task chat so the human lands with the App Builder agent and
+      // Open the task chat so the human lands with the App Builder bot and
       // watches the build happen live (the task carries a live preview pane),
       // rather than being left with a fire-and-forget toast.
       if (task?.id) {
@@ -190,7 +190,7 @@ export function CreateAppDialog() {
               placeholder={
                 isUpdate
                   ? "e.g. add a CSV export button to the table"
-                  : "e.g. a daily digest listing each agent's open tasks grouped by status"
+                  : "e.g. a daily digest listing each bot's open tasks grouped by status"
               }
             />
           </label>

@@ -99,10 +99,10 @@ func (l *Launcher) targeter() *officeTargeter {
 			pack:               l.pack,
 			cwd:                l.cwd,
 			provider:           l.provider,
-			paneBackedFlag:     &l.paneBackedAgents,
+			paneBackedFlag:     &l.paneBackedBots,
 			failedPaneSlugs:    l.isFailedPaneSlug,
 			isOneOnOne:         l.isOneOnOne,
-			oneOnOneSlug:       l.oneOnOneAgent,
+			oneOnOneSlug:       l.oneOnOneBot,
 			isChannelDM:        l.isChannelDMRaw,
 			snapshotMembers:    l.officeMembersSnapshot,
 			memberProviderKind: l.brokerMemberProviderKind,
@@ -155,8 +155,8 @@ func newNotifyCtx(l *Launcher) *notificationContextBuilder {
 			}
 			return l.broker.ChannelStore()
 		},
-		scoreTaskCandidate:   l.scoreMessageForTaskCandidate,
-		activeHeadlessAgents: l.activeHeadlessSlugs,
+		scoreTaskCandidate: l.scoreMessageForTaskCandidate,
+		activeHeadlessBots: l.activeHeadlessSlugs,
 		taskByID: func(id string) *teamTask {
 			if l.broker == nil {
 				return nil
@@ -232,7 +232,7 @@ func (l *Launcher) paneDispatch() *paneDispatcher {
 //
 // Spawn orchestration (PLAN.md §C5e) requires the full paneLifecycleDeps
 // callbacks. Building those closures here means Launcher state (broker,
-// failedPaneSlugs, paneBackedAgents flag, targeter delegates) flows
+// failedPaneSlugs, paneBackedBots flag, targeter delegates) flows
 // into paneLifecycle without paneLifecycle reaching back into the
 // Launcher type.
 func (l *Launcher) panes() *paneLifecycle {
@@ -247,17 +247,17 @@ func (l *Launcher) panes() *paneLifecycle {
 		deps := paneLifecycleDeps{
 			cwd:                              l.cwd,
 			isOneOnOne:                       l.isOneOnOne,
-			oneOnOneAgent:                    l.oneOnOneAgent,
+			oneOnOneBot:                      l.oneOnOneBot,
 			usesPaneRuntime:                  l.targeter().UsesPaneRuntime,
 			visibleOfficeMembers:             l.targeter().VisibleMembers,
 			overflowOfficeMembers:            l.targeter().OverflowMembers,
-			agentPaneTargets:                 l.targeter().PaneTargets,
+			botPaneTargets:                   l.targeter().PaneTargets,
 			memberUsesHeadlessOneShotRuntime: l.targeter().MemberUsesHeadlessOneShotRuntime,
 			claudeCommand:                    l.claudeCommand,
 			buildPrompt:                      l.buildPrompt,
-			agentName:                        l.targeter().NameFor,
+			botName:                          l.targeter().NameFor,
 			recordFailure:                    l.recordPaneSpawnFailure,
-			paneBackedFlag:                   &l.paneBackedAgents,
+			paneBackedFlag:                   &l.paneBackedBots,
 		}
 		if l.broker != nil {
 			// Capture the pointer at construction so the deps closure

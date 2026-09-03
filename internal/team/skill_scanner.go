@@ -4,7 +4,7 @@ package team
 // skills from team/**/*.md playbook articles — the ONLY skill-creation path
 // (core-loop R5). This is NOT a heuristic — every candidate article is sent
 // to an LLM provider with the skill-creator.md system prompt and the LLM
-// decides whether the article is a reusable, agent-callable skill. Accepted
+// decides whether the article is a reusable, bot-callable skill. Accepted
 // skills are written through writeCompiledSkillLocked as ACTIVE and
 // auto-assigned to the office roster.
 
@@ -47,14 +47,14 @@ var scanSkippedDirs = []string{
 	"team/playbooks/.compiled/",
 }
 
-// scanAgentNotebookSegment is the path segment that identifies per-agent
-// notebooks (team/agents/*/notebook/). Notebook articles are scratch space —
+// scanBotNotebookSegment is the path segment that identifies per-bot
+// notebooks (team/bots/*/notebook/). Notebook articles are scratch space —
 // scanning them would create noise. Promotion is gated by the notebook→wiki
 // review flow, not the scanner.
-const scanAgentNotebookSegment = "/notebook/"
+const scanBotNotebookSegment = "/notebook/"
 
-// agentsDirPrefix is the prefix under which per-agent notebooks live.
-const agentsDirPrefix = "team/agents/"
+// botsDirPrefix is the prefix under which per-bot notebooks live.
+const botsDirPrefix = "team/agents/"
 
 // llmProvider is the small interface the scanner uses to ask an LLM whether
 // an article describes a reusable skill, and if so, what the skill's slug,
@@ -284,7 +284,7 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 			enhanced, enhErr := s.broker.enhanceSkillLocked(enhanceSlug, body, fm.Description, skillSlug(fm.Name))
 			var enhancedOwners []string
 			if enhErr == nil && enhanced != nil {
-				enhancedOwners = append([]string(nil), enhanced.OwnerAgents...)
+				enhancedOwners = append([]string(nil), enhanced.OwnerBots...)
 			}
 			s.broker.mu.Unlock()
 			if enhErr != nil {
@@ -296,7 +296,7 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 					"slug", enhanceSlug, "source", c.relPath)
 				// B3 policy compilation: a playbook's ## Rules / ## Policies
 				// bullets ride the same compile pass, assigned to the same
-				// agents as the (enhanced) skill.
+				// bots as the (enhanced) skill.
 				s.broker.recordPlaybookPolicies(c.relPath, c.content, enhancedOwners)
 				res.Proposed++
 				continue
@@ -319,7 +319,7 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 		compiled, writeErr := s.broker.writeCompiledSkillLocked(spec)
 		var compiledOwners []string
 		if writeErr == nil && compiled != nil {
-			compiledOwners = append([]string(nil), compiled.OwnerAgents...)
+			compiledOwners = append([]string(nil), compiled.OwnerBots...)
 		}
 		s.broker.mu.Unlock()
 		if writeErr != nil {
@@ -335,7 +335,7 @@ func (s *SkillScanner) Scan(ctx context.Context, scopePath string, dryRun bool, 
 		}
 		// B3 policy compilation (core-loop step 7.3): when the compiled
 		// article is a playbook, its ## Rules / ## Policies bullets become
-		// atomic officePolicy records with the SAME agent assignment the
+		// atomic officePolicy records with the SAME bot assignment the
 		// compiled skill got. Dedup by normalized rule text absorbs
 		// re-compiles of the same playbook.
 		s.broker.recordPlaybookPolicies(c.relPath, c.content, compiledOwners)
@@ -420,12 +420,12 @@ func shouldSkipDir(rel string) bool {
 			return true
 		}
 	}
-	// Per-agent notebooks: team/agents/<slug>/notebook/...
-	if strings.HasPrefix(rel, agentsDirPrefix) && strings.Contains(rel, scanAgentNotebookSegment) {
+	// Per-bot notebooks: team/bots/<slug>/notebook/...
+	if strings.HasPrefix(rel, botsDirPrefix) && strings.Contains(rel, scanBotNotebookSegment) {
 		return true
 	}
-	// Hide team/agents/<slug>/notebook entirely.
-	if strings.HasPrefix(rel, agentsDirPrefix) && strings.HasSuffix(rel, "/notebook") {
+	// Hide team/bots/<slug>/notebook entirely.
+	if strings.HasPrefix(rel, botsDirPrefix) && strings.HasSuffix(rel, "/notebook") {
 		return true
 	}
 	return false
@@ -439,7 +439,7 @@ func shouldSkipPath(rel string) bool {
 			return true
 		}
 	}
-	if strings.HasPrefix(rel, agentsDirPrefix) && strings.Contains(rel, scanAgentNotebookSegment) {
+	if strings.HasPrefix(rel, botsDirPrefix) && strings.Contains(rel, scanBotNotebookSegment) {
 		return true
 	}
 	if strings.HasSuffix(rel, ".executions.jsonl") {
@@ -492,7 +492,7 @@ func (s *SkillScanner) loadTombstone() (slugs, sources map[string]bool) {
 // sourceArticle threads the wiki-relative path of the article that drove the
 // proposal so the wiki provenance chain (notebook → wiki → skill) survives
 // onto the in-memory record and the rendered SKILL.md frontmatter. Per the
-// "archivist is a commit-author name, not an agent" decision (see
+// "archivist is a commit-author name, not a bot" decision (see
 // project_entity_briefs_v1_2.md) we leave CreatedBy = archivist on the
 // Stage A path. Drift detection, the UI source link, and read-based
 // staleness all key off SourceArticle.
@@ -586,7 +586,7 @@ func skillLLMTimeout() time.Duration {
 // in order:
 //
 //  1. Explicit-frontmatter fast path: articles already carrying valid Anthropic
-//     Agent Skills frontmatter are promoted immediately without an LLM call.
+//     Bot Skills frontmatter are promoted immediately without an LLM call.
 //     This is the demo-friendly path and is never removed.
 //
 //  2. Live LLM round-trip: for articles without explicit frontmatter the
@@ -648,7 +648,7 @@ func (p *defaultLLMProvider) SystemPrompt() (string, error) {
 // AskIsSkill classifies an article as a skill or not.
 //
 //  1. Explicit-frontmatter fast path: if the article already carries valid
-//     Anthropic Agent Skills frontmatter (name + description), the author has
+//     Anthropic Bot Skills frontmatter (name + description), the author has
 //     opted in explicitly. We promote without an LLM call.
 //
 //  2. Live LLM round-trip: for articles without explicit frontmatter we call

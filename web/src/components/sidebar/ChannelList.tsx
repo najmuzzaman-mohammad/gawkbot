@@ -65,7 +65,7 @@ function ChannelRow({
 
 export function ChannelList() {
   const { data: channels = [] } = useChannels();
-  // Rooms only. A DM belongs to the agent it is with, and `task-<id>` channels
+  // Rooms only. A DM belongs to the bot it is with, and `task-<id>` channels
   // are legacy: tasks now live in the channel they were created from, so a task
   // is never a place you navigate to. Showing either here would put a per-task
   // room back in the sidebar the moment an old workspace loads.

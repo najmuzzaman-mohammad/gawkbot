@@ -24,7 +24,7 @@ export const RUNTIME_PROVIDER_OPTIONS: readonly RuntimeProviderOption[] = [
   {
     id: "codex",
     label: "Codex",
-    desc: "OpenAI Codex CLI agent",
+    desc: "OpenAI Codex CLI bot",
     kind: "cli",
     binary: "codex",
   },

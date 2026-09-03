@@ -16,12 +16,12 @@ Every step lists the exact action and the exact expected output. The feature is
    showing a running scaffold within ~2s (not a multi-minute "Building…").
 2. The App Builder narrates as it works and, before publishing, runs the verify
    gate.
-   **Expected:** the agent runs `bun run verify` (`tsc --noEmit` then
-   `vite build`); if it reports a `file:line:col` type error, the agent says what
+   **Expected:** the bot runs `bun run verify` (`tsc --noEmit` then
+   `vite build`); if it reports a `file:line:col` type error, the bot says what
    broke, fixes it, and re-runs — up to ~2 rounds. It does **not** call
    `register_app` until the gate passes. A genuinely broken build is reported as a
    blocker, never published.
-3. On a clean gate the agent calls `register_app(app_id=…)`.
+3. On a clean gate the bot calls `register_app(app_id=…)`.
    **Expected:** "Lead Scorer" appears under **Apps** in the sidebar; opening it
    shows the live tool reading real office data through the bridge (no network).
 
@@ -76,5 +76,5 @@ Every step lists the exact action and the exact expected output. The feature is
   version, append-only restore, all on real endpoints with graceful degradation
   for snapshots that predate the metadata.
 - **Phase 5:** click→source resolution that works on the project's React version,
-  survives the agent rewriting the entry file, is tree-shaken from the sealed
+  survives the bot rewriting the entry file, is tree-shaken from the sealed
   build, adds no exfiltration surface, and opens a human-gated prefilled edit.

@@ -16,7 +16,7 @@ import (
 	"github.com/nex-crm/wuphf/internal/runtimebin"
 )
 
-// The MCP bridge is the process an agent CLI spawns as its "computer"
+// The MCP bridge is the process a bot CLI spawns as its "computer"
 // server. It pipes stdio into `docker exec -i … cua-driver mcp` inside the
 // bot's container and defines almost nothing itself: bytes in, bytes out.
 //
@@ -24,7 +24,7 @@ import (
 // a person holding the wheel:
 //
 //  1. The who-is-driving gate. While the person holds control in the app, a
-//     tools/call from the agent is answered with a refusal here and never
+//     tools/call from the bot is answered with a refusal here and never
 //     forwarded.
 //  2. One extra tool, computer_request_help, which lets the bot ask for
 //     hands (a login, a CAPTCHA, a judgment call) and wait until the person
@@ -156,7 +156,7 @@ type BridgeConfig struct {
 	Stderr  io.Writer
 }
 
-// RunBridge spawns the far end and pumps frames until the agent closes
+// RunBridge spawns the far end and pumps frames until the bot closes
 // stdin or the child exits. It returns the child's exit error, if any.
 func RunBridge(ctx context.Context, cfg BridgeConfig) error {
 	path, err := runtimebin.LookPath(cfg.Command)
@@ -186,7 +186,7 @@ func RunBridge(ctx context.Context, cfg BridgeConfig) error {
 		_, _ = io.WriteString(childIn, line+"\n")
 	}, emit: emit, listIDs: map[string]bool{}}
 
-	// Child stdout → agent, at line granularity, so an injected refusal
+	// Child stdout → bot, at line granularity, so an injected refusal
 	// never lands inside a half-written frame.
 	outDone := make(chan struct{})
 	go func() {
@@ -202,7 +202,7 @@ func RunBridge(ctx context.Context, cfg BridgeConfig) error {
 			}
 		}
 	}()
-	// Agent stdin → child, through the gate.
+	// Bot stdin → child, through the gate.
 	inDone := make(chan struct{})
 	go func() {
 		defer close(inDone)
@@ -211,7 +211,7 @@ func RunBridge(ctx context.Context, cfg BridgeConfig) error {
 		for {
 			line, err := reader.ReadString('\n')
 			if line != "" {
-				interceptor.fromAgent(ctx, strings.TrimRight(line, "\r\n"))
+				interceptor.fromBot(ctx, strings.TrimRight(line, "\r\n"))
 			}
 			if err != nil {
 				return
@@ -240,7 +240,7 @@ type gateInterceptor struct {
 	listIDs map[string]bool
 }
 
-func (g *gateInterceptor) fromAgent(ctx context.Context, line string) {
+func (g *gateInterceptor) fromBot(ctx context.Context, line string) {
 	var frame rpcFrame
 	if err := json.Unmarshal([]byte(line), &frame); err != nil || frame.Method == "" {
 		g.forward(line)

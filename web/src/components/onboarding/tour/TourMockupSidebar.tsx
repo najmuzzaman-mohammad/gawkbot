@@ -5,13 +5,13 @@
  * It is NOT the real sidebar and is never wired to routing or stores: the
  * whole subtree is `aria-hidden` so assistive tech reads the slide copy, not
  * a duplicate navigation tree. Visually it mirrors `Sidebar.tsx`: a workspace
- * logo header, an Agents group (CEO orchestrator + reporting specialists), and
+ * logo header, a Bots group (CEO orchestrator + reporting specialists), and
  * a Channels group, using the same `#`/`@` language and `PixelAvatar` portraits
  * the real sidebar uses.
  *
  * Slides drive two pieces of state:
- *   - `activeAgent` highlights one agent row (e.g. the slide that explains
- *     what an agent is lights up `@analyst`).
+ *   - `activeBot` highlights one bot row (e.g. the slide that explains
+ *     what a bot is lights up `@analyst`).
  *   - `litRows` is the set of row slugs that have "completed", each earning a
  *     green tick (`--green` on `--green-bg`) so the user watches their office
  *     come to life one item at a time across slides.
@@ -32,36 +32,36 @@ interface MockChannel {
   name: string;
 }
 
-/** One agent row in the mock Agents group. */
-interface MockAgent {
+/** One bot row in the mock Bots group. */
+interface MockBot {
   /**
-   * Stable slug used for `litRows` matching, `activeAgent` matching, the `@`
+   * Stable slug used for `litRows` matching, `activeBot` matching, the `@`
    * handle, the PixelAvatar seed, and React keys.
    */
   slug: string;
   /** Display name shown above the role line. */
   name: string;
-  /** One-line role, mirrors the real sidebar's secondary agent text. */
+  /** One-line role, mirrors the real sidebar's secondary bot text. */
   role: string;
   /** CEO renders as the orchestrator; everyone else reports to it. */
   isCeo?: boolean;
 }
 
 interface TourMockupSidebarProps {
-  /** Agent slug to render in the active/highlighted state, if any. */
-  activeAgent?: string;
+  /** Bot slug to render in the active/highlighted state, if any. */
+  activeBot?: string;
   /**
-   * Row slugs (channel or agent) that have completed and should show a green
+   * Row slugs (channel or bot) that have completed and should show a green
    * tick. Defaults to none so the office starts empty and fills in per slide.
    */
   litRows?: string[];
 }
 
 /**
- * Mock agents mirror the real CEO-plus-specialists shape from `AgentList`:
+ * Mock bots mirror the real CEO-plus-specialists shape from `BotList`:
  * the CEO is the orchestrator and specialists report to it.
  */
-const MOCK_AGENTS: MockAgent[] = [
+const MOCK_AGENTS: MockBot[] = [
   { slug: "ceo", name: "Chief of Staff", role: "Orchestrator", isCeo: true },
   { slug: "analyst", name: "Analyst", role: "Watches the funnel" },
   { slug: "revops", name: "RevOps", role: "Keeps the CRM clean" },
@@ -92,7 +92,7 @@ function CompletionTick() {
 }
 
 export function TourMockupSidebar({
-  activeAgent,
+  activeBot,
   litRows = [],
 }: TourMockupSidebarProps) {
   const lit = useMemo(() => new Set(litRows), [litRows]);
@@ -104,11 +104,11 @@ export function TourMockupSidebar({
       </header>
 
       <section className="tour-mockup-section">
-        <div className="tour-mockup-section-title">Agents</div>
+        <div className="tour-mockup-section-title">Bots</div>
         <div className="tour-mockup-agents">
           {MOCK_AGENTS.map((agent) => {
             const isActive =
-              activeAgent === `@${agent.slug}` || activeAgent === agent.slug;
+              activeBot === `@${agent.slug}` || activeBot === agent.slug;
             const isLit = lit.has(agent.slug);
             return (
               <div

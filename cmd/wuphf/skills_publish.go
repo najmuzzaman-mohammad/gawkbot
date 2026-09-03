@@ -592,7 +592,7 @@ func runSkillsInstall(args []string) {
 
 	// Post to the broker's /skills endpoint. The user invoking
 	// `gawkbot skills install` IS the human approval — this is the internal
-	// seeding/install path, not an agent-reachable surface (agents get
+	// seeding/install path, not a bot-reachable surface (bots get
 	// skills only through playbook compilation).
 	createdBy := "hub:" + sanitizeHubLabel(hub)
 	payload := map[string]any{

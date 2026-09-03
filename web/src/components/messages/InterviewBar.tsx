@@ -3,8 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { NavArrowLeft, NavArrowRight, Xmark } from "iconoir-react";
 
 import {
-  type AgentRequest,
   answerRequest,
+  type BotRequest,
   cancelRequest,
   type InterviewOption,
   post,
@@ -50,10 +50,10 @@ import { StructuredMessageCard } from "./cards/StructuredMessageCard";
  */
 /**
  * Pin rank for the interview-bar queue: 0 = blocking/required asks (the
- * office is waiting on this answer), 1 = plain interviews (an agent asked
+ * office is waiting on this answer), 1 = plain interviews (a bot asked
  * a question), 2 = everything else (notices, FYIs).
  */
-export function requestPinRank(request: AgentRequest): number {
+export function requestPinRank(request: BotRequest): number {
   if (request.blocking === true || request.required === true) return 0;
   if ((request.kind ?? "").toLowerCase() === "interview") return 1;
   return 2;
@@ -73,7 +73,7 @@ export function interviewChannelSlug(value: string | null | undefined): string {
 interface InterviewBarProps {
   /**
    * Channel slug of the chat this bar belongs to. The request queue is
-   * scoped to requests that originated in this channel, so an agent's
+   * scoped to requests that originated in this channel, so a bot's
    * question only appears in the chat it was asked in — not mirrored onto
    * every surface. `null` (a non-chat surface) shows nothing; cross-channel
    * triage lives in the Inbox.
@@ -103,7 +103,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
     onboardingPhase !== "complete";
 
   // The chat this bar is anchored to. `null` means a non-chat surface
-  // (wiki, agents, settings, …) where no request should surface inline.
+  // (wiki, bots, settings, …) where no request should surface inline.
   const activeChannel =
     channelSlug === null ? null : interviewChannelSlug(channelSlug);
 
@@ -111,7 +111,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
     if (isOnboarding || activeChannel === null) return [];
     // Only show requests that originated in the chat the human is looking
     // at. The broker queue is office-wide (useRequests fetches every
-    // channel for the Inbox), so without this scope an agent's question in
+    // channel for the Inbox), so without this scope a bot's question in
     // one task channel would block the composer on every other surface.
     const scoped = pending.filter(
       (r) => interviewChannelSlug(r.channel) === activeChannel,
@@ -155,7 +155,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
     setCustomText("");
   }, [currentId]);
 
-  // An agent asked the human for input. Record that it was surfaced so we can
+  // A bot asked the human for input. Record that it was surfaced so we can
   // measure shown→answered latency and abandonment. No request content.
   useEffect(() => {
     if (currentId) track("interview_shown", { surface: "interview_bar" });
@@ -167,7 +167,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
     }
   }, [textMode]);
 
-  // When there's no agent interview request, fall back to the CEO card
+  // When there's no bot interview request, fall back to the CEO card
   // section so the deterministic onboarding chip / form-field input still
   // renders during Phase 2. CeoCardSection returns null on its own when
   // there's no pendingSuggestion either, so this is safe in non-onboarding
@@ -247,7 +247,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
   return (
     <>
       <CeoCardSection />
-      <section className="interview-bar" aria-label="Pending agent request">
+      <section className="interview-bar" aria-label="Pending bot request">
         <div className="interview-bar-head">
           <span
             className={`badge ${isNotice ? "badge-neutral" : "badge-yellow"}`}

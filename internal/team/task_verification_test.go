@@ -167,9 +167,9 @@ func TestVerificationFailureRendersInExecutionPacket(t *testing.T) {
 
 // TestVerificationGateRunsInOwnerScratchDirWhenNoWorktree pins the V3-N5
 // isolation half of the J3 chain: a task without a worktree runs its DoD
-// check in the OWNER'S agent scratch dir (where the owner's headless turns
+// check in the OWNER'S bot scratch dir (where the owner's headless turns
 // execute), never the broker process cwd — a stale host-repo file must not
-// false-pass the check, and the agent's real deliverable must be seen.
+// false-pass the check, and the bot's real deliverable must be seen.
 func TestVerificationGateRunsInOwnerScratchDirWhenNoWorktree(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("WUPHF_RUNTIME_HOME", home)
@@ -180,7 +180,7 @@ func TestVerificationGateRunsInOwnerScratchDirWhenNoWorktree(t *testing.T) {
 	}
 
 	// Plant a decoy in the process cwd: if the gate still ran there, the
-	// check would false-pass without any agent work.
+	// check would false-pass without any bot work.
 	cwd, _ := os.Getwd()
 	decoy := filepath.Join(cwd, "j3-deliverable.html")
 	if err := os.WriteFile(decoy, []byte("stale host file"), 0o644); err != nil {
@@ -193,7 +193,7 @@ func TestVerificationGateRunsInOwnerScratchDirWhenNoWorktree(t *testing.T) {
 	}
 
 	// The deliverable lands where the owner's turns actually run.
-	scratch := agentScratchDir("eng")
+	scratch := botScratchDir("eng")
 	if err := os.WriteFile(filepath.Join(scratch, "j3-deliverable.html"), []byte("real work"), 0o644); err != nil {
 		t.Fatalf("write deliverable: %v", err)
 	}
@@ -207,9 +207,9 @@ func TestVerificationGateRunsInOwnerScratchDirWhenNoWorktree(t *testing.T) {
 }
 
 // TestVerificationGateDefersToParkedGateOnDrafting pins the J3-chain
-// ordering fix on the surviving parked state: an agent complete on a PARKED
+// ordering fix on the surviving parked state: a bot complete on a PARKED
 // task must be refused by the parked-task gate, not by a premature DoD
-// check run — the verification_failed error told the agent the work just
+// check run — the verification_failed error told the bot the work just
 // needed fixing when the real blocker was that the task was never started.
 func TestVerificationGateDefersToParkedGateOnDrafting(t *testing.T) {
 	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
@@ -238,7 +238,7 @@ func TestVerificationGateDefersToParkedGateOnDrafting(t *testing.T) {
 		t.Fatalf("refusal must name the parked state; got %q", mErr.Message)
 	}
 	if got := b.TaskByID(resp.Task.ID); got.VerificationResult != nil {
-		t.Fatalf("no check may run for a parked agent complete; stamped %+v", got.VerificationResult)
+		t.Fatalf("no check may run for a parked bot complete; stamped %+v", got.VerificationResult)
 	}
 }
 

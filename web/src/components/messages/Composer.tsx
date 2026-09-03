@@ -211,7 +211,7 @@ function ChannelComposer({ channel }: { channel: string }) {
   // If the human chooses to type into the channel instead of clicking a
   // blocking interview's button, treat that as "I'm replying in chat
   // instead." Cancel the interview so the broker unblocks, and let the
-  // agent see the typed message as the new context. Channel-scoped to
+  // bot see the typed message as the new context. Channel-scoped to
   // match the broker's gate: a blocking request only parks chat in ITS
   // channel now, so typing in #general must not cancel an approval that
   // is pending in some task channel.
@@ -345,7 +345,7 @@ function ChannelComposer({ channel }: { channel: string }) {
     if (!trimmed || sendMutation.isPending || isPreSendPending) return;
 
     // If a blocking interview is pending, cancel it before sending so the
-    // broker doesn't 409 the message. The agent will see the cancellation
+    // broker doesn't 409 the message. The bot will see the cancellation
     // plus the human's free-form reply on its next turn and react to that
     // instead of the dead choice list.
     const pendingId = blockingPending?.id ?? null;

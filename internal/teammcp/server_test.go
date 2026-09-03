@@ -180,7 +180,7 @@ func TestSuppressBroadcastReasonBlocksAfterUntargetedCEOReply(t *testing.T) {
 		},
 		nil,
 	)
-	// CEO reply no longer suppresses specialists — agents collaborate, CEO takes final call
+	// CEO reply no longer suppresses specialists — bots collaborate, CEO takes final call
 	if reason != "" {
 		t.Fatalf("expected CEO reply to NOT block specialist, got %q", reason)
 	}
@@ -205,9 +205,9 @@ func TestSuppressBroadcastReasonAllowsOperatorFollowUpInActiveTaskThread(t *test
 }
 
 // TestSuppressBroadcastReasonAllowsMarketingCompetitorPricing verifies that a
-// marketing agent can broadcast about "competitor pricing" without being suppressed.
+// marketing bot can broadcast about "competitor pricing" without being suppressed.
 // Before the fix, "pricing" was a sales-only keyword so "competitor pricing findings"
-// classified as "sales" domain and a marketing agent got blocked ("outside your domain").
+// classified as "sales" domain and a marketing bot got blocked ("outside your domain").
 func TestSuppressBroadcastReasonAllowsMarketingCompetitorPricing(t *testing.T) {
 	reason := suppressBroadcastReason(
 		"marketing",
@@ -222,7 +222,7 @@ func TestSuppressBroadcastReasonAllowsMarketingCompetitorPricing(t *testing.T) {
 }
 
 // TestSuppressBroadcastReasonBlocksFEOnPureBackend ensures the suppression still
-// fires for genuine hard domain mismatches (FE agent talking about DB schemas).
+// fires for genuine hard domain mismatches (FE bot talking about DB schemas).
 func TestSuppressBroadcastReasonBlocksFEOnPureBackend(t *testing.T) {
 	reason := suppressBroadcastReason(
 		"fe",
@@ -232,7 +232,7 @@ func TestSuppressBroadcastReasonBlocksFEOnPureBackend(t *testing.T) {
 		nil,
 	)
 	if reason == "" {
-		t.Error("FE agent should be suppressed for pure backend/database content")
+		t.Error("FE bot should be suppressed for pure backend/database content")
 	}
 }
 
@@ -338,10 +338,10 @@ func TestHandleTeamMemberCreateTriggersReconfigure(t *testing.T) {
 // TestHandleTeamChannelCreateIsRefusedAndDoesNotReconfigure is the INVERSION
 // of "create triggers reconfigure".
 //
-// Named channels are retired: conversations happen in a DM with one agent, and
+// Named channels are retired: conversations happen in a DM with one bot, and
 // the broker answers POST /channels with 409. So the team_channel tool cannot
 // mint a room any more, and the two things this pins are what must follow from
-// that. The agent is told WHY, in the retirement's own words rather than a bare
+// that. The bot is told WHY, in the retirement's own words rather than a bare
 // failure — and reconfigureOfficeSession does NOT fire, because respawning
 // every interactive pane after a create that created nothing is churn charged
 // to the user for no change.
@@ -865,7 +865,7 @@ func TestHandleTeamTaskCreateDefaultsOwnerToCaller(t *testing.T) {
 		Action:  "create",
 		Channel: "general",
 		Title:   "Investigate webhook retries",
-		Details: "The agent detected this as follow-up implementation work.",
+		Details: "The bot detected this as follow-up implementation work.",
 		MySlug:  "ceo",
 	})
 	if err != nil {
@@ -1103,7 +1103,7 @@ func TestHandleTeamRequestDefaultsApprovalOptions(t *testing.T) {
 	}
 }
 
-func TestHandleTeamPollUsesAgentScopedTranscript(t *testing.T) {
+func TestHandleTeamPollUsesBotScopedTranscript(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	ctx := context.Background()
 
@@ -1165,7 +1165,7 @@ func TestHandleTeamBroadcastDefaultsToLatestTaggedChannelAndThread(t *testing.T)
 	// this tool's channel inference reads, so the room would exist and the
 	// routing would still resolve elsewhere. A bridged room is the shared
 	// surface that survives the retirement. What this test is about is
-	// unchanged: which room a reply defaults to when the agent was tagged in
+	// unchanged: which room a reply defaults to when the bot was tagged in
 	// one.
 	team.SeedBridgedRoomForTest(b, "launch", "fe", "pm")
 	if err := brokerPostJSON(ctx, "/messages", map[string]any{
@@ -1226,7 +1226,7 @@ func TestHandleTeamPollDefaultsToLatestTaggedChannel(t *testing.T) {
 	// this tool's channel inference reads, so the room would exist and the
 	// routing would still resolve elsewhere. A bridged room is the shared
 	// surface that survives the retirement. What this test is about is
-	// unchanged: which room a reply defaults to when the agent was tagged in
+	// unchanged: which room a reply defaults to when the bot was tagged in
 	// one.
 	team.SeedBridgedRoomForTest(b, "launch", "fe", "pm")
 	if err := brokerPostJSON(ctx, "/messages", map[string]any{
@@ -1272,7 +1272,7 @@ func TestHandleTeamTaskUsesTaskChannelWhenIDGiven(t *testing.T) {
 	// this tool's channel inference reads, so the room would exist and the
 	// routing would still resolve elsewhere. A bridged room is the shared
 	// surface that survives the retirement. What this test is about is
-	// unchanged: which room a reply defaults to when the agent was tagged in
+	// unchanged: which room a reply defaults to when the bot was tagged in
 	// one.
 	team.SeedBridgedRoomForTest(b, "launch", "fe", "pm")
 
@@ -1449,9 +1449,9 @@ func TestDetectUntaggedMentions(t *testing.T) {
 		t.Fatalf("expected engineering flagged, got %v", got)
 	}
 
-	// Known non-agent @-references → not flagged
-	nonAgents := []string{"you", "human", "nex", "team", "everyone"}
-	for _, na := range nonAgents {
+	// Known non-bot @-references → not flagged
+	nonBots := []string{"you", "human", "nex", "team", "everyone"}
+	for _, na := range nonBots {
 		content := fmt.Sprintf("@%s please reply", na)
 		if found := detectUntaggedMentions(content, nil); len(found) != 0 {
 			t.Fatalf("@%s should not be flagged, got %v", na, found)
@@ -1491,7 +1491,7 @@ func TestHandleTeamPlanCreatesDependentBlockedTasks(t *testing.T) {
 		MySlug:  "ceo",
 		Tasks: []struct {
 			Title         string   `json:"title" jsonschema:"Task title"`
-			Assignee      string   `json:"assignee" jsonschema:"Agent slug to own this task"`
+			Assignee      string   `json:"assignee" jsonschema:"Bot slug to own this task"`
 			Details       string   `json:"details,omitempty" jsonschema:"Optional task details"`
 			TaskType      string   `json:"task_type,omitempty" jsonschema:"Optional task type such as research, feature, launch, follow_up, bugfix, or incident"`
 			ExecutionMode string   `json:"execution_mode,omitempty" jsonschema:"Optional execution mode such as office or local_worktree"`
@@ -1548,7 +1548,7 @@ func TestHandleTeamPlanPreservesTaskMetadata(t *testing.T) {
 		MySlug:  "ceo",
 		Tasks: []struct {
 			Title         string   `json:"title" jsonschema:"Task title"`
-			Assignee      string   `json:"assignee" jsonschema:"Agent slug to own this task"`
+			Assignee      string   `json:"assignee" jsonschema:"Bot slug to own this task"`
 			Details       string   `json:"details,omitempty" jsonschema:"Optional task details"`
 			TaskType      string   `json:"task_type,omitempty" jsonschema:"Optional task type such as research, feature, launch, follow_up, bugfix, or incident"`
 			ExecutionMode string   `json:"execution_mode,omitempty" jsonschema:"Optional execution mode such as office or local_worktree"`

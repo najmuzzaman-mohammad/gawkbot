@@ -74,7 +74,7 @@ export const WithIcon: Story = {
     <div style={{ display: "flex", gap: 12 }}>
       <Button>
         <Plus className="h-4 w-4" />
-        Add agent
+        Add bot
       </Button>
       <Button variant="destructive">
         <Trash className="h-4 w-4" />

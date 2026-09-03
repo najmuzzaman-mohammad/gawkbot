@@ -60,7 +60,7 @@ describe("<WikiAudit>", () => {
     expect(screen.getByText("system")).toBeInTheDocument();
   });
 
-  it("filters to agents only via the author dropdown", async () => {
+  it("filters to bots only via the author dropdown", async () => {
     render(<WikiAudit onNavigate={() => {}} />);
     await waitFor(() =>
       expect(screen.getByText("first meridian brief")).toBeInTheDocument(),

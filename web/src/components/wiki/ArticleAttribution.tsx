@@ -10,7 +10,7 @@ interface ArticleAttributionProps {
 
 /**
  * "Produced for <task>" provenance line shown on an article. Wiki content is
- * the work agents produce; this surfaces the task that produced it, in-place.
+ * the work bots produce; this surfaces the task that produced it, in-place.
  * Renders nothing while loading or when no producing task is recorded, so it
  * is safe to drop into any article header.
  */

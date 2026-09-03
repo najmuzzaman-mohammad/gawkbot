@@ -1,10 +1,10 @@
-// Package team implements the WUPHF team launcher that starts a multi-agent
+// Package team implements the WUPHF team launcher that starts a multi-bot
 // collaborative team using tmux + Claude Code + the WUPHF office broker.
 //
 // Architecture:
-//   - Each agent is a real Claude Code session in a tmux window
-//   - the office broker provides the shared channel (all agents see all messages)
-//   - CEO has final decision authority; agents participate when relevant
+//   - Each bot is a real Claude Code session in a tmux window
+//   - the office broker provides the shared channel (all bots see all messages)
+//   - CEO has final decision authority; bots participate when relevant
 //   - Go TUI is the channel "observer" — displays the conversation
 package team
 
@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/brokeraddr"
 	"github.com/nex-crm/wuphf/internal/company"
 	"github.com/nex-crm/wuphf/internal/config"
@@ -42,7 +42,7 @@ const (
 // broker port resolved via brokeraddr. On the default port they keep their
 // historical values ("wuphf-team", "wuphf"); on any non-default port they
 // gain a "-<port>" suffix. This isolation is what prevents the
-// "spawn first agent: exit status 1" race seen when two WUPHF instances
+// "spawn first bot: exit status 1" race seen when two WUPHF instances
 // tried to share a single tmux socket + session name.
 var (
 	SessionName    = nameWithPortSuffix(baseSessionName)
@@ -60,10 +60,10 @@ func nameWithPortSuffixForPort(base string, port int) string {
 	return fmt.Sprintf("%s-%d", base, port)
 }
 
-// Launcher sets up and manages the multi-agent team.
+// Launcher sets up and manages the multi-bot team.
 type Launcher struct {
 	packSlug           string
-	pack               *agent.PackDefinition
+	pack               *bot.PackDefinition
 	operationBlueprint *operations.Blueprint
 	blankSlateLaunch   bool
 	sessionName        string
@@ -86,31 +86,31 @@ type Launcher struct {
 	// zero-value &Launcher{} in tests still gets a usable pool with
 	// sane lazy-allocated maps; PR #320's stop-channel goroutine-leak
 	// fix is preserved via the same lazy-allocate-under-mu pattern.
-	headless         headlessWorkerPool
-	webMode          bool
-	paneBackedAgents bool // web mode may spawn per-agent tmux panes; true when panes are live
-	noOpen           bool
+	headless       headlessWorkerPool
+	webMode        bool
+	paneBackedBots bool // web mode may spawn per-bot tmux panes; true when panes are live
+	noOpen         bool
 
 	// launchTempDir* hold the per-launch scratch directory used for
-	// per-agent prompt + MCP config files. Lazily initialised via
-	// launchTempDir(); cleanupAgentTempFiles rm -rf's the whole
+	// per-bot prompt + MCP config files. Lazily initialised via
+	// launchTempDir(); cleanupBotTempFiles rm -rf's the whole
 	// directory at shutdown. Without per-launch scoping two offices
 	// running the same slug clobber each other's files in $TMPDIR.
 	launchTempDirOnce sync.Once
 	launchTempDirPath string
 	launchTempDirErr  error
 
-	// failedPaneSlugs records agents whose tmux pane/window creation failed.
-	// agentPaneTargets() omits them so the pane-capture loops don't spin on
+	// failedPaneSlugs records bots whose tmux pane/window creation failed.
+	// botPaneTargets() omits them so the pane-capture loops don't spin on
 	// missing targets (which produces "stopped after 5 failures" spam). These
-	// agents fall back to the headless dispatch path automatically.
+	// bots fall back to the headless dispatch path automatically.
 	//
 	// failedPaneMu guards every read/write of failedPaneSlugs. Required
 	// because the writer (recordPaneSpawnFailure) runs from
-	// detectDeadPanesAfterSpawn — a goroutine spawned by trySpawnWebAgentPanes
-	// — concurrently with reads from notifyAgentsLoop / pane-capture
+	// detectDeadPanesAfterSpawn — a goroutine spawned by trySpawnWebBotPanes
+	// — concurrently with reads from notifyBotsLoop / pane-capture
 	// goroutines hitting officeTargeter.PaneTargets etc. Pre-mutex the race
-	// was dormant only because trySpawnWebAgentPanes was a runtime-promotion
+	// was dormant only because trySpawnWebBotPanes was a runtime-promotion
 	// fallback nothing currently invokes; landing it now closes the race
 	// regardless of whether the promotion path becomes live.
 	failedPaneMu    sync.RWMutex
@@ -124,7 +124,7 @@ type Launcher struct {
 	// just as fast as a string lookup.
 	notifyLastDelivered map[notifyDedupKey]time.Time
 
-	// notebookBookend* dedupe the per-(agent, task) pre-task notebook
+	// notebookBookend* dedupe the per-(bot, task) pre-task notebook
 	// bookend (task_notebook_bookends.go) so only the FIRST headless-turn
 	// enqueue for a pair queues the research-note write. Lazily allocated
 	// under the mutex; nil-safe for &Launcher{} test fixtures.
@@ -135,7 +135,7 @@ type Launcher struct {
 	// (PLAN.md §C2). Lazily constructed via targeter() so tests that build
 	// &Launcher{} directly stay nil-safe. The launcher field stays the
 	// authoritative source for sessionName / pack / failedPaneSlugs /
-	// paneBackedAgents — the targeter holds pointers/callbacks back into
+	// paneBackedBots — the targeter holds pointers/callbacks back into
 	// the launcher rather than copies.
 	// *Once fields below pair with each lazy sub-type pointer; see
 	// launcher_wiring.go for the sync.Once-guarded accessors.
@@ -222,9 +222,9 @@ func NewLauncher(packSlug string) (*Launcher, error) {
 			loadedBlueprint = &bp
 		}
 	}
-	var pack *agent.PackDefinition
+	var pack *bot.PackDefinition
 	if !operationTemplateExists && !blankSlateLaunch {
-		pack = agent.GetPack(packSlug)
+		pack = bot.GetPack(packSlug)
 	}
 	if pack == nil && strings.TrimSpace(packSlug) != "" && !operationTemplateExists && !blankSlateLaunch {
 		return nil, fmt.Errorf("unknown pack or operation blueprint: %s", packSlug)
@@ -267,7 +267,7 @@ func NewLauncher(packSlug string) (*Launcher, error) {
 	}, nil
 }
 
-// agentNotifyCooldown* moved to notifier_delivery.go (PLAN.md §C19)
+// botNotifyCooldown* moved to notifier_delivery.go (PLAN.md §C19)
 // next to deliverMessageNotification, the only caller.
 
 // Where to find what (post-decomposition):
@@ -298,7 +298,7 @@ func NewLauncher(packSlug string) (*Launcher, error) {
 // officeLeadSlug wrapper deleted by PLAN.md §6 sweep — callers use
 // l.targeter().LeadSlug() directly.
 
-// getAgentName wrapper deleted by PLAN.md §6 sweep — callers use
+// getBotName wrapper deleted by PLAN.md §6 sweep — callers use
 // l.targeter().NameFor(slug) directly.
 
 // Web-mode entry points (PreflightWeb, LaunchWeb,

@@ -16,14 +16,14 @@ import (
 	"github.com/nex-crm/wuphf/internal/onboarding"
 )
 
-// Notification debounce cooldowns. Prevents agent-to-agent feedback
-// loops where one agent's response triggers another agent which
+// Notification debounce cooldowns. Prevents bot-to-bot feedback
+// loops where one bot's response triggers another bot which
 // triggers a third, ad infinitum. Human/CEO messages get the shorter
-// cooldown so the user-facing pace stays snappy; agent-originated
+// cooldown so the user-facing pace stays snappy; bot-originated
 // messages get the longer cooldown to break loops at their source.
 const (
-	agentNotifyCooldown      = 1 * time.Second
-	agentNotifyCooldownAgent = 2 * time.Second
+	botNotifyCooldown    = 1 * time.Second
+	botNotifyCooldownBot = 2 * time.Second
 )
 
 // notifyDedupKey is the composite key the dedup map uses. Struct-keyed
@@ -39,7 +39,7 @@ type notifyDedupKey struct {
 func (l *Launcher) deliverMessageNotification(msg channelMessage) {
 	// Phase 2 onboarding is fully deterministic — the broker emits CEO
 	// cards from ceoDeterministicMessages and the user replies via the
-	// structured-card POST handlers. The CEO agent must NOT fire an LLM
+	// structured-card POST handlers. The CEO bot must NOT fire an LLM
 	// run in response, or the user sees a spurious "Chief of Staff is typing…"
 	// stream and the deterministic flow stalls behind a Claude turn that
 	// has nothing to add. (Spec: docs/specs/onboarding-into-office.md
@@ -51,8 +51,8 @@ func (l *Launcher) deliverMessageNotification(msg channelMessage) {
 	}
 	immediate, delayed := l.notificationTargetsForMessage(msg)
 
-	// Debounce: use shorter cooldown for human/CEO messages, longer for agent-originated
-	// to prevent agent-to-agent feedback loops (devil's advocate finding #3).
+	// Debounce: use shorter cooldown for human/CEO messages, longer for bot-originated
+	// to prevent bot-to-bot feedback loops (devil's advocate finding #3).
 	//
 	// The dedup key is (recipient slug, sender, channel) — recipient-
 	// only would silently drop an unrelated message that arrives within
@@ -60,9 +60,9 @@ func (l *Launcher) deliverMessageNotification(msg channelMessage) {
 	// channel. Per-(recipient, sender, channel) keeps the loop-breaker
 	// behaviour while letting genuinely unrelated traffic through.
 	isHumanOrCEO := isHumanMessageSender(msg.From) || msg.From == "nex" || msg.From == l.targeter().LeadSlug()
-	cooldown := agentNotifyCooldownAgent
+	cooldown := botNotifyCooldownBot
 	if isHumanOrCEO {
-		cooldown = agentNotifyCooldown
+		cooldown = botNotifyCooldown
 	}
 	now := time.Now()
 	filtered := make([]notificationTarget, 0, len(immediate))
@@ -76,7 +76,7 @@ func (l *Launcher) deliverMessageNotification(msg channelMessage) {
 	// map can't grow unbounded over a long-running session. The
 	// (slug, sender, channel) key shape grows O(slugs × senders ×
 	// channels) which is bounded but not small.
-	purgeBefore := now.Add(-2 * agentNotifyCooldownAgent)
+	purgeBefore := now.Add(-2 * botNotifyCooldownBot)
 	for k, t := range l.notifyLastDelivered {
 		if t.Before(purgeBefore) {
 			delete(l.notifyLastDelivered, k)
@@ -153,10 +153,10 @@ func (l *Launcher) taskNotificationContent(action officeActionLog, task teamTask
 }
 
 func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeActionLog, task teamTask, content string) {
-	// Approval gate (Phase 4): refuse to dispatch execution work to agents
+	// Approval gate (Phase 4): refuse to dispatch execution work to bots
 	// for tasks that are not in an executable lifecycle state. Only Running
-	// and Approved tasks may trigger agent execution turns. Drafting, Intake,
-	// Review, and ChangesRequested tasks are blocked here — agents may still
+	// and Approved tasks may trigger bot execution turns. Drafting, Intake,
+	// Review, and ChangesRequested tasks are blocked here — bots may still
 	// post comments via the comment endpoint, which does not go through this
 	// path. ErrIssueNotApproved is the sentinel; log and drop (no retry).
 	// task_followup bypasses the gate by design: it targets DELIVERED
@@ -166,17 +166,17 @@ func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeAction
 		task.LifecycleState != "" && !isExecutableTeamTaskStatus(task.LifecycleState) {
 		return
 	}
-	// Scoped interview gate (v3 fix family #2): while THIS agent waits on
+	// Scoped interview gate (v3 fix family #2): while THIS bot waits on
 	// its own human interview, its current turn is parked in the
 	// /interview/answer poll — enqueueing a new turn would duplicate work
-	// once the answer lands. Suppress only this agent; every other agent
+	// once the answer lands. Suppress only this bot; every other bot
 	// keeps working (the old office-wide drop wedged the whole office
 	// behind one buried card, [19:23:59]).
-	if l.broker != nil && l.broker.AgentAwaitingInterviewAnswer(target.Slug) {
+	if l.broker != nil && l.broker.BotAwaitingInterviewAnswer(target.Slug) {
 		return
 	}
-	// The channel this agent is told to reply in. A task with no channel used
-	// to resolve to "general", so the packet literally instructed the agent to
+	// The channel this bot is told to reply in. A task with no channel used
+	// to resolve to "general", so the packet literally instructed the bot to
 	// answer in a room that no longer exists. Its own DM is the conversation it
 	// is actually having with the human.
 	channel := normalizeChannelSlug(task.Channel)
@@ -216,7 +216,7 @@ func (l *Launcher) activeHeadlessSlugs(except string) map[string]struct{} {
 	l.headless.mu.Lock()
 	defer l.headless.mu.Unlock()
 	out := map[string]struct{}{}
-	// An agent may now span several lanes; group by lane.slug so a slug counts
+	// A bot may now span several lanes; group by lane.slug so a slug counts
 	// as active when ANY of its lanes has queued or in-flight work.
 	for workerLane, queue := range l.headless.queues {
 		if workerLane.slug == except {
@@ -271,13 +271,13 @@ func (l *Launcher) buildTaskExecutionPacket(slug string, action officeActionLog,
 
 func (l *Launcher) sendChannelUpdate(target notificationTarget, msg channelMessage) {
 	// Scoped interview gate — same contract as sendTaskUpdate: suppress
-	// new turns ONLY for the agent whose own interview is pending (its
+	// new turns ONLY for the bot whose own interview is pending (its
 	// turn is parked in the answer poll); everyone else keeps working.
-	if l.broker != nil && l.broker.AgentAwaitingInterviewAnswer(target.Slug) {
+	if l.broker != nil && l.broker.BotAwaitingInterviewAnswer(target.Slug) {
 		return
 	}
 	// Same as sendTaskUpdate: this value is interpolated straight into the
-	// prompt ("channel \"%s\"" below), so a laundered "general" told the agent
+	// prompt ("channel \"%s\"" below), so a laundered "general" told the bot
 	// to reply into the retired room.
 	channel := normalizeChannelSlug(msg.Channel)
 	if strings.TrimSpace(msg.Channel) == "" {
@@ -294,7 +294,7 @@ func (l *Launcher) sendChannelUpdate(target notificationTarget, msg channelMessa
 		// queue the request for later. The same priority semantics are
 		// enforced in the queue (FromHuman bypasses the hold/cap and forces
 		// preemption) so the model and the dispatcher stay in agreement.
-		humanPrefix = "[HUMAN-PRIORITY] A real person just messaged you. Stop, absorb this message before continuing any prior task, then decide which is appropriate: (a) abandon the prior task and address the human directly, (b) give a brief status update if they are asking what you're doing, or (c) acknowledge and queue their request for after the current task. Human messages take priority over agent-to-agent follow-ups.\n---\n"
+		humanPrefix = "[HUMAN-PRIORITY] A real person just messaged you. Stop, absorb this message before continuing any prior task, then decide which is appropriate: (a) abandon the prior task and address the human directly, (b) give a brief status update if they are asking what you're doing, or (c) acknowledge and queue their request for after the current task. Human messages take priority over bot-to-bot follow-ups.\n---\n"
 	}
 	if l.isOneOnOne() {
 		notification = fmt.Sprintf(
@@ -333,11 +333,11 @@ func (l *Launcher) sendChannelUpdate(target notificationTarget, msg channelMessa
 // In production the CEO DM lands at the canonical pair-sorted slug
 // ("ceo__human"), not the reserved CEOOnboardingDMSlug constant — that
 // constant is for the state record only. So we match on "DM whose
-// target agent is Chief of Staff" instead of a literal slug comparison.
+// target bot is Chief of Staff" instead of a literal slug comparison.
 //
 // Phase 2 covers greet → bridge (everything before the user opts into
 // the first issue). draft/approve/kickoff and complete are NOT gated —
-// those are the LLM-backed phases where the CEO agent is supposed to
+// those are the LLM-backed phases where the CEO bot is supposed to
 // drive the chat.
 //
 // Errors loading the state file fall through to "not gated" so a
@@ -351,7 +351,7 @@ func isDeterministicPhase2CEODM(channel string) bool {
 		return false
 	}
 	ch := normalizeChannelSlug(channel)
-	target := DMTargetAgent(ch)
+	target := DMTargetBot(ch)
 	if target != "ceo" && ch != onboarding.CEOOnboardingDMSlug {
 		return false
 	}
@@ -379,16 +379,16 @@ func isDeterministicPhase2CEODM(channel string) bool {
 
 // slackChannelConventionNote returns the authoring conventions appended to
 // every notification for a Slack-bridged channel, or "" elsewhere. The rules
-// exist because the channel contains REAL people and external agents:
+// exist because the channel contains REAL people and external bots:
 // @-tagging is a wire-level ping there, and WUPHF presents as one
 // coordinating bot, not a cast of internal roles.
 func (l *Launcher) slackChannelConventionNote(channel string) string {
 	if l == nil || l.broker == nil || !l.broker.ChannelHasSurface(channel, "slack") {
 		return ""
 	}
-	return "\n---\nSLACK CHANNEL CONVENTIONS (this channel is bridged to a real Slack workspace with real people and external agents): " +
-		"(1) NEVER @-tag an agent or person unless you need them to act or respond — a tag pings them and they WILL respond; for FYI/status references use the plain name with no @. " +
-		"(2) To delegate to an external agent and get a response, START your message with @agent-slug. " +
+	return "\n---\nSLACK CHANNEL CONVENTIONS (this channel is bridged to a real Slack workspace with real people and external bots): " +
+		"(1) NEVER @-tag a bot or person unless you need them to act or respond — a tag pings them and they WILL respond; for FYI/status references use the plain name with no @. " +
+		"(2) To delegate to an external bot and get a response, START your message with @bot-slug. " +
 		"(3) You are part of ONE coordinating presence (the team bot). Never introduce yourself by an internal role name like Chief of Staff or planner; speak as the team. " +
 		"(4) If a message needs no action from you, post NOTHING. Never post acknowledgement-only replies (\"noted\", \"acknowledged\", \"no action needed\") — real people read this channel, and repeating the same status is spam. Summarize once when the situation changes, not once per incoming message. " +
 		"(5) Every task lives in its OWN Slack thread (the team opens one automatically, rooted on the task card). Do all of a task's work inside that thread — never start parallel top-level messages for the same task. To quote or reference another message, paste its Slack message link; Slack renders the link as a quoted reply."

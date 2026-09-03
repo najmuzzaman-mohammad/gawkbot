@@ -29,7 +29,7 @@ const (
 	ActionHalfPageDown KeyAction = "half_page_down"
 	ActionQuit         KeyAction = "quit"
 	ActionHelp         KeyAction = "help"
-	ActionAgents       KeyAction = "agents"
+	ActionBots         KeyAction = "agents"
 	ActionChat         KeyAction = "chat"
 	ActionSearch       KeyAction = "search"
 	ActionSubmit       KeyAction = "submit"
@@ -67,7 +67,7 @@ func mapNormalKey(key tea.KeyMsg) KeyAction {
 	case "?":
 		return ActionHelp
 	case "a":
-		return ActionAgents
+		return ActionBots
 	case "c":
 		return ActionChat
 	case "q":

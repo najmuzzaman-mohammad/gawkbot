@@ -11,7 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // headlessOpenAICompatExecutablePath is overridable for tests.
@@ -19,18 +19,18 @@ var headlessOpenAICompatExecutablePath = os.Executable
 
 // connectOpenAICompatMCPBridge spawns `wuphf mcp-team` as a subprocess in the
 // same env the claude/opencode runners use, attaches an MCP client, lists the
-// registered tools, and returns each as an agent.AgentTool whose Execute
+// registered tools, and returns each as a bot.BotTool whose Execute
 // callback round-trips through the MCP session.
 //
 // This is the integration point that makes a local OpenAI-compatible runtime
-// (mlx-lm, ollama, exo) actually usable as a wuphf agent: the model sees the
+// (mlx-lm, ollama, exo) actually usable as a wuphf bot: the model sees the
 // same tools claude/opencode/codex see (claim_task, broker_post_message,
 // team_wiki_*, etc.) and can drive the office instead of just chatting.
 //
 // cleanup must be called when the turn finishes so the subprocess exits.
 func (l *Launcher) connectOpenAICompatMCPBridge(
 	ctx context.Context, slug string, channel string,
-) (tools []agent.AgentTool, cleanup func(), err error) {
+) (tools []bot.BotTool, cleanup func(), err error) {
 	wuphfBin, err := headlessOpenAICompatExecutablePath()
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolve wuphf binary: %w", err)
@@ -56,7 +56,7 @@ func (l *Launcher) connectOpenAICompatMCPBridge(
 		return nil, nil, fmt.Errorf("connect mcp client: %w", err)
 	}
 
-	tools, err = mcpSessionToAgentTools(ctx, session)
+	tools, err = mcpSessionToBotTools(ctx, session)
 	if err != nil {
 		_ = session.Close()
 		return nil, nil, err
@@ -71,21 +71,21 @@ func (l *Launcher) connectOpenAICompatMCPBridge(
 	return tools, cleanup, nil
 }
 
-// mcpSessionToAgentTools lists the tools registered on an already-connected
-// MCP session and wraps each as an agent.AgentTool whose Execute callback
+// mcpSessionToBotTools lists the tools registered on an already-connected
+// MCP session and wraps each as a bot.BotTool whose Execute callback
 // round-trips through session.CallTool. Pulled out from
 // connectOpenAICompatMCPBridge so unit tests can exercise the conversion
 // against an in-memory MCP server (mcp.NewInMemoryTransports) without
 // spawning a real subprocess.
 //
-// Lifetime invariant: the returned AgentTool slice's Execute closures
+// Lifetime invariant: the returned BotTool slice's Execute closures
 // capture session, so they remain valid only while the session is open.
 // Callers are expected to invoke the matching cleanup func returned by
-// connectOpenAICompatMCPBridge before any reference to the AgentTools
+// connectOpenAICompatMCPBridge before any reference to the BotTools
 // goes out of scope. Today the loop returns before cleanup fires; if a
 // future async tool-execution refactor changes that, this contract needs
 // an explicit guard.
-func mcpSessionToAgentTools(ctx context.Context, session *mcp.ClientSession) ([]agent.AgentTool, error) {
+func mcpSessionToBotTools(ctx context.Context, session *mcp.ClientSession) ([]bot.BotTool, error) {
 	listCtx, listCancel := context.WithTimeout(ctx, 5*time.Second)
 	listed, err := session.ListTools(listCtx, &mcp.ListToolsParams{})
 	listCancel()
@@ -93,10 +93,10 @@ func mcpSessionToAgentTools(ctx context.Context, session *mcp.ClientSession) ([]
 		return nil, fmt.Errorf("list mcp tools: %w", err)
 	}
 
-	tools := make([]agent.AgentTool, 0, len(listed.Tools))
+	tools := make([]bot.BotTool, 0, len(listed.Tools))
 	for _, t := range listed.Tools {
 		schema, _ := normalizeMCPInputSchema(t.InputSchema)
-		tools = append(tools, agent.AgentTool{
+		tools = append(tools, bot.BotTool{
 			Name:        t.Name,
 			Description: t.Description,
 			Schema:      schema,

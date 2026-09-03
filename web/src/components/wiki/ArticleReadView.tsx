@@ -107,7 +107,7 @@ export default function ArticleReadView({
   );
 
   // The body may contain standalone `visual-artifact:<id>` marker lines the
-  // agent hand-wrote. Strip them so they never render as raw text, then
+  // bot hand-wrote. Strip them so they never render as raw text, then
   // embed each referenced artifact inline. Dedupe the promoted artifact
   // against the body's inline markers (see WikiArticle for the rationale —
   // the two fetches settle independently, so we key off the synchronous

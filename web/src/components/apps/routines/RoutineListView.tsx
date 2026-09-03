@@ -24,7 +24,7 @@ interface RoutineListViewProps {
 
 /**
  * Paperclip-style flat list of routines. Each row is one routine, with a
- * coloured leading edge, label, schedule, owning agent, last-run badge,
+ * coloured leading edge, label, schedule, owning bot, last-run badge,
  * next run, run-now button, enable toggle. Clicking anywhere outside the
  * action cluster opens the detail drawer.
  */

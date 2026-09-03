@@ -16,11 +16,11 @@ var errTaskPersistFailed = errors.New("failed to persist")
 // ListActiveIssueSummariesForPrompt returns slim summaries of every open
 // Issue (not yet approved / rejected / done / cancelled) across all
 // channels. Used by promptBuilder to render the ACTIVE ISSUES catalog
-// block into agent system prompts.
+// block into bot system prompts.
 //
 // Internal accessor: no channel-access check (the prompt builder is
 // office-wide and pre-auth). Slim by design — title + state + channel +
-// owner is enough for the agent to decide "reuse via comment" vs
+// owner is enough for the bot to decide "reuse via comment" vs
 // "create new"; full body content would bloat every system prompt on
 // every spawn.
 func (b *Broker) ListActiveIssueSummariesForPrompt() []IssueSummary {
@@ -32,7 +32,7 @@ func (b *Broker) ListActiveIssueSummariesForPrompt() []IssueSummary {
 		// ACTIVE ISSUES prompt block. Empty task_type is treated as Issue
 		// to preserve legacy records that pre-date the field; everything
 		// else (feature/research/follow_up/incident/...) is internal work
-		// that would just pollute the agent's system prompt.
+		// that would just pollute the bot's system prompt.
 		taskType := strings.ToLower(strings.TrimSpace(t.TaskType))
 		if taskType != "" && taskType != "issue" {
 			continue
@@ -123,7 +123,7 @@ func (b *Broker) ListTasks(req TaskListRequest) (TaskListResponse, error) {
 			continue
 		}
 		// Specialist visibility filter (Slice 7): when the viewer is a
-		// specialist agent (not human, not CEO/lead), they only see
+		// specialist bot (not human, not CEO/lead), they only see
 		// Issues they own OR Issues where they own a sub-issue. CEO +
 		// human see everything as before. Web UI uses viewer_slug=human
 		// so the human-facing surface is unchanged.

@@ -17,7 +17,7 @@ import (
 
 // external orchestrator state types (input format — JSON file path)
 
-type legacyAgent struct {
+type legacyBot struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Role    string `json:"role"`
@@ -26,9 +26,9 @@ type legacyAgent struct {
 }
 
 type legacyCompany struct {
-	ID     string        `json:"id"`
-	Name   string        `json:"name"`
-	Agents []legacyAgent `json:"agents"`
+	ID   string      `json:"id"`
+	Name string      `json:"name"`
+	Bots []legacyBot `json:"agents"`
 }
 
 type legacyIssue struct {
@@ -107,21 +107,21 @@ func runImport(args []string) {
 	}
 
 	var state importedBrokerState
-	var agentCount, taskCount int
+	var botCount, taskCount int
 	var err error
 
 	if strings.ToLower(strings.TrimSpace(*fromPath)) == "legacy" {
-		state, agentCount, taskCount, err = importFromLegacyDB(*port)
+		state, botCount, taskCount, err = importFromLegacyDB(*port)
 	} else {
-		state, agentCount, taskCount, err = importFromJSONFile(*fromPath)
+		state, botCount, taskCount, err = importFromJSONFile(*fromPath)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 
-	if agentCount == 0 {
-		fmt.Fprintf(os.Stderr, "warning: no agents found in source, importing empty state\n")
+	if botCount == 0 {
+		fmt.Fprintf(os.Stderr, "warning: no bots found in source, importing empty state\n")
 	}
 
 	destPath := wuphfBrokerStatePath()
@@ -147,11 +147,11 @@ func runImport(args []string) {
 	if strings.ToLower(strings.TrimSpace(*fromPath)) == "legacy" {
 		source = "external orchestrator"
 	}
-	fmt.Printf("Imported %d agents, %d tasks from %s. Run gawkbot to launch.\n", agentCount, taskCount, source)
+	fmt.Printf("Imported %d bots, %d tasks from %s. Run gawkbot to launch.\n", botCount, taskCount, source)
 }
 
 // importFromLegacyDB connects to external orchestrator's embedded Postgres and reads
-// agents and issues directly. external orchestrator must be running.
+// bots and issues directly. external orchestrator must be running.
 func importFromLegacyDB(portOverride int) (importedBrokerState, int, int, error) {
 	port := 54329
 	if portOverride > 0 {
@@ -214,44 +214,44 @@ func importFromLegacyDB(portOverride int) (importedBrokerState, int, int, error)
 		return importedBrokerState{}, 0, 0, fmt.Errorf("no companies found in external orchestrator database")
 	}
 
-	// Read agents
-	type dbAgent struct {
+	// Read bots
+	type dbBot struct {
 		ID        string
 		CompanyID string
 		Name      string
 		Role      string
 		Status    string
 	}
-	agentRows, err := conn.Query(ctx,
-		"SELECT id::text, company_id::text, name, COALESCE(role, ''), COALESCE(status, 'idle') FROM agents ORDER BY created_at",
+	botRows, err := conn.Query(ctx,
+		"SELECT id::text, company_id::text, name, COALESCE(role, ''), COALESCE(status, 'idle') FROM bots ORDER BY created_at",
 	)
 	if err != nil {
-		return importedBrokerState{}, 0, 0, fmt.Errorf("query agents: %w", err)
+		return importedBrokerState{}, 0, 0, fmt.Errorf("query bots: %w", err)
 	}
-	var dbAgents []dbAgent
-	agentIDToSlug := map[string]string{}
-	for agentRows.Next() {
-		var a dbAgent
-		if err := agentRows.Scan(&a.ID, &a.CompanyID, &a.Name, &a.Role, &a.Status); err != nil {
-			fmt.Fprintf(os.Stderr, "warning: scan agent row: %v\n", err)
+	var dbBots []dbBot
+	botIDToSlug := map[string]string{}
+	for botRows.Next() {
+		var a dbBot
+		if err := botRows.Scan(&a.ID, &a.CompanyID, &a.Name, &a.Role, &a.Status); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: scan bot row: %v\n", err)
 			continue
 		}
-		dbAgents = append(dbAgents, a)
-		agentIDToSlug[a.ID] = toSlug(a.Name)
+		dbBots = append(dbBots, a)
+		botIDToSlug[a.ID] = toSlug(a.Name)
 	}
-	agentRows.Close()
-	if err := agentRows.Err(); err != nil {
-		return importedBrokerState{}, 0, 0, fmt.Errorf("iterate agents: %w", err)
+	botRows.Close()
+	if err := botRows.Err(); err != nil {
+		return importedBrokerState{}, 0, 0, fmt.Errorf("iterate bots: %w", err)
 	}
 
 	// Read issues
 	type dbIssue struct {
-		ID              string
-		Title           string
-		Status          string
-		AssigneeAgentID string
-		CreatedAt       time.Time
-		UpdatedAt       time.Time
+		ID            string
+		Title         string
+		Status        string
+		AssigneeBotID string
+		CreatedAt     time.Time
+		UpdatedAt     time.Time
 	}
 	issueRows, err := conn.Query(ctx,
 		"SELECT id::text, title, COALESCE(status, 'backlog'), COALESCE(assignee_agent_id::text, ''), created_at, updated_at FROM issues ORDER BY created_at",
@@ -262,7 +262,7 @@ func importFromLegacyDB(portOverride int) (importedBrokerState, int, int, error)
 	var dbIssues []dbIssue
 	for issueRows.Next() {
 		var i dbIssue
-		if err := issueRows.Scan(&i.ID, &i.Title, &i.Status, &i.AssigneeAgentID, &i.CreatedAt, &i.UpdatedAt); err != nil {
+		if err := issueRows.Scan(&i.ID, &i.Title, &i.Status, &i.AssigneeBotID, &i.CreatedAt, &i.UpdatedAt); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: scan issue row: %v\n", err)
 			continue
 		}
@@ -273,11 +273,11 @@ func importFromLegacyDB(portOverride int) (importedBrokerState, int, int, error)
 		return importedBrokerState{}, 0, 0, fmt.Errorf("iterate issues: %w", err)
 	}
 
-	fmt.Printf("Found %d agents, %d tasks across %d company.\n", len(dbAgents), len(dbIssues), len(companies))
+	fmt.Printf("Found %d bots, %d tasks across %d company.\n", len(dbBots), len(dbIssues), len(companies))
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	var members []importedMember
-	for _, a := range dbAgents {
+	for _, a := range dbBots {
 		members = append(members, importedMember{
 			Slug:      toSlug(a.Name),
 			Name:      a.Name,
@@ -289,7 +289,7 @@ func importFromLegacyDB(portOverride int) (importedBrokerState, int, int, error)
 
 	var tasks []importedTask
 	for i, issue := range dbIssues {
-		owner := agentIDToSlug[issue.AssigneeAgentID]
+		owner := botIDToSlug[issue.AssigneeBotID]
 		tasks = append(tasks, importedTask{
 			ID:        fmt.Sprintf("task-%d", i+1),
 			Channel:   "general",
@@ -371,8 +371,8 @@ func importFromJSONFile(path string) (importedBrokerState, int, int, error) {
 	if err := json.Unmarshal(data, &pc); err != nil {
 		return importedBrokerState{}, 0, 0, fmt.Errorf("invalid JSON in %s: %w", source, err)
 	}
-	state, agentCount, taskCount := convertToWUPHF(pc)
-	return state, agentCount, taskCount, nil
+	state, botCount, taskCount := convertToWUPHF(pc)
+	return state, botCount, taskCount, nil
 }
 
 // resolveSourcePath figures out the actual JSON file to read.
@@ -398,16 +398,16 @@ func convertToWUPHF(pc legacyState) (importedBrokerState, int, int) {
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	var members []importedMember
-	agentIDToSlug := map[string]string{}
+	botIDToSlug := map[string]string{}
 
 	for _, co := range pc.Companies {
-		for _, agent := range co.Agents {
-			slug := toSlug(agent.Name)
-			agentIDToSlug[agent.ID] = slug
+		for _, bot := range co.Bots {
+			slug := toSlug(bot.Name)
+			botIDToSlug[bot.ID] = slug
 			members = append(members, importedMember{
 				Slug:      slug,
-				Name:      agent.Name,
-				Role:      agent.Role,
+				Name:      bot.Name,
+				Role:      bot.Role,
 				CreatedBy: "import",
 				CreatedAt: now,
 			})
@@ -416,7 +416,7 @@ func convertToWUPHF(pc legacyState) (importedBrokerState, int, int) {
 
 	var tasks []importedTask
 	for i, issue := range pc.Issues {
-		owner := agentIDToSlug[issue.AssigneeID]
+		owner := botIDToSlug[issue.AssigneeID]
 		tasks = append(tasks, importedTask{
 			ID:        fmt.Sprintf("task-%d", i+1),
 			Channel:   "general",

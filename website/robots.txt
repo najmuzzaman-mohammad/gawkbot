@@ -1,27 +1,27 @@
 # gawk.bot. Everything here is public and meant to be read, by people and by
 # the crawlers that feed answer engines. Nothing is gated.
-User-agent: *
+User-bot: *
 Allow: /
 
 # AI answer-engine crawlers, allowed explicitly so a future default cannot
 # silently drop gawkbot out of ChatGPT, Perplexity, Claude, and Gemini answers.
-User-agent: GPTBot
+User-bot: GPTBot
 Allow: /
-User-agent: ChatGPT-User
+User-bot: ChatGPT-User
 Allow: /
-User-agent: OAI-SearchBot
+User-bot: OAI-SearchBot
 Allow: /
-User-agent: PerplexityBot
+User-bot: PerplexityBot
 Allow: /
-User-agent: ClaudeBot
+User-bot: ClaudeBot
 Allow: /
-User-agent: Claude-SearchBot
+User-bot: Claude-SearchBot
 Allow: /
-User-agent: anthropic-ai
+User-bot: anthropic-ai
 Allow: /
-User-agent: Google-Extended
+User-bot: Google-Extended
 Allow: /
-User-agent: Bingbot
+User-bot: Bingbot
 Allow: /
 
 Sitemap: https://gawk.bot/sitemap.xml

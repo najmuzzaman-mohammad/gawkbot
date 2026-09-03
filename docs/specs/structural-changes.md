@@ -38,7 +38,7 @@
   whatever review/PR the user wants next). Tasks are the primary primitive end to
   end: channel-per-task backend, pure task-scoped frontend, composer landing with
   per-task provider/model/effort, parallel non-dependent instances, Librarian
-  (Pam) as a built-in universal agent owning the wiki, per-task Plan-mode toggle,
+  (Pam) as a built-in universal bot owning the wiki, per-task Plan-mode toggle,
   and the one-shot persisted-state migration that loads a pre-change workspace
   clean. There is no "NEXT" phase queued — ask the user for direction (PR? review
   rhythm? follow-ups below?).
@@ -67,18 +67,18 @@
     not blocked so the owner still writes its notebook + posts; the same `plan` card is
     emitted. opencode/openai-compat have no native sandbox → `planModeDirective` stays
     their sole enforcement.
-  - Per-agent `PermissionMode` is now first-class: AgentWizard "Autonomy" selector +
-    AgentProfilePanel pill, and `handleTaskPlan` defaults Plan-first from the owner's
+  - Per-bot `PermissionMode` is now first-class: BotWizard "Autonomy" selector +
+    BotProfilePanel pill, and `handleTaskPlan` defaults Plan-first from the owner's
     PermissionMode when `plan_first` is not set explicitly.
 - **Optional follow-ups (NOT requested, not blocking):** broader Librarian
   `team_wiki_write` for reorganizing; remove internal onboarding direct-channel plumbing
   once a DM-free onboarding path exists; persist the harvested plan to the owner notebook
   for Claude plan turns (today it lands in the channel + plan card); editable
-  PermissionMode from the agent profile; live browser/screenshot pass once Chrome CDP is
+  PermissionMode from the bot profile; live browser/screenshot pass once Chrome CDP is
   restored.
 - **Branch:** `worktree-structural-changes`. **Prior HEAD:** `b08cbff0` (Phase 5). Base `origin/main` @ `46f06e54`.
 - **PHASE 4 DONE (Librarian = Pam; commits `e9b2f1d3` presence + `91180e7a` authority move).**
-  Promoted the wiki "Pam the Archivist" to a first-class built-in agent: **slug `librarian`, name
+  Promoted the wiki "Pam the Archivist" to a first-class built-in bot: **slug `librarian`, name
   "Pam", role "Librarian"** (`librarian.go`). Present in every new workspace like the CEO
   (`ensureLibrarianMember` wired into `blankSlateOfficeMembersFromBlueprint` + `defaultOfficeMembers`),
   seeded as a default member of every task channel (`createPerTaskChannelLocked`, guarded so legacy
@@ -103,29 +103,29 @@
   together: office/external own-lane + exclusive lane fully off + resume honors real deps)**. All
   green, all committed. (`ba5076c0`, a test-go.sh timeout bump, landed on the branch from the user — not
   my work, left as-is.)
-- **PARALLEL INSTANCES DONE (2026-06-03).** One agent now runs multiple tasks at once, each on its own
+- **PARALLEL INSTANCES DONE (2026-06-03).** One bot now runs multiple tasks at once, each on its own
   per-task model. **Rule (user, 2026-06-03): "if they are not dependent, do them all together" — a
   declared `depends_on` is the ONLY thing that serializes tasks; everything non-dependent runs
   concurrently, across ALL execution modes.** Design: the headless scheduler lane key
   (`headlessLane{slug, key}` + `laneForTurn` in `headless_codex_queue.go`) is the turn's **resolved
   worktree path** for worktree tasks (distinct → parallel; shared tree → one serialized lane) and
   **`"task:<id>"`** for office/live_external tasks (each its own lane → parallel); chat + lead stay on
-  the agent's default `""` lane. Admission control's synthetic exclusive-owner serialization is fully
+  the bot's default `""` lane. Admission control's synthetic exclusive-owner serialization is fully
   off (`taskRequiresExclusiveOwnerTurn` → false) — `live_external` no longer serializes by mode.
   `ResumeTask` now honors real deps explicitly (`hasUnresolvedDepsLocked`) so a dependent task stays
   blocked on resume (the removed exclusive lane used to re-block as a side effect) — preserving the
   inverse invariant: dependent tasks do NOT run together. Per-turn task identity threads via
   `context.Context` (`withHeadlessTurnTaskID` / `turnTaskForCtx` / `turnTaskIDForCtx`) so
   model/effort/provider/workspace/sandbox-bypass resolve THIS turn's task, not "first in_progress."
-  Per-agent MCP config writes atomically (torn-read guard for concurrent same-slug turns). Full Go
+  Per-bot MCP config writes atomically (torn-read guard for concurrent same-slug turns). Full Go
   (39 pkgs) + web (1738) suites green; lane/parallel/resume/recovery green under `-race`; golangci-lint
   0 issues.
 - **PHASE 3 REVISION DONE (per-task runtime + backlog/Auto):** the LLM model/provider is now a
-  property of the TASK, not the agent (teamTask gains `provider`/`model` next to `effort`; dispatch
+  property of the TASK, not the bot (teamTask gains `provider`/`model` next to `effort`; dispatch
   prefers task runtime over the owner's soft-default binding via `effectiveProviderKindForAgent`/
   `taskModelForKind`, cross-kind isolated; threaded through create paths + team_task/team_plan MCP).
   Composer sends provider/model/effort ON THE TASK (no more `POST /office-members` binding mutation;
-  agent picker stays a soft default). Every task is assigned: owner chip defaults to **Auto**
+  bot picker stays a soft default). Every task is assigned: owner chip defaults to **Auto**
   (CEO triages → `requestAutoAssignmentLocked` posts a human-authored @ceo-tagged msg → CEO reassigns
   → runs); **Backlog** create sends `park=true` → task lands in `Drafting` (Backlog stage, assigned,
   NOT dispatched), activated via the FE "Approve & Start" (Drafting→Running, wakes owner; Auto→triage
@@ -136,7 +136,7 @@
   own notebook, post a summary, no repo changes, stop) → "Approve & Start" (Planning→Running) → the
   owner executes against its plan. OFF → straight to Running. Specs live in the owner's notebook;
   the Librarian promotes to the wiki only if worth it (NOT auto to Specs/). `plan_first` wire field
-  defaults OFF for agent/CEO/internal creation (so the autonomous office isn't gated on human
+  defaults OFF for bot/CEO/internal creation (so the autonomous office isn't gated on human
   approval); the composer sends explicit true. Auto-owner (composer default) plans after the CEO
   reassigns (reassign routes a pre-execution plan-first task → Planning; reindex preserves Planning).
   Full Go (39) + web (1738) green. **NEXT: Phase 6 (migration, LAST).** Parallel instances ✅, Phase 4
@@ -154,8 +154,8 @@
   sub-tasks stay shared; verified live + the human and @ceo always retain channel access
   so the primary user is never locked out). #general is owned by the archived "Backup &
   Migration" system task; ~141 `general` refs untouched. **Frontend is pure task-scoped
-  too** (sidebar = Tasks by stage, landing → /tasks, DM + per-agent-subspace removed from
-  the navigable product, dedicated Agents tool, task detail = tabbed Channel|Spec|Activity).
+  too** (sidebar = Tasks by stage, landing → /tasks, DM + per-bot-subspace removed from
+  the navigable product, dedicated Bots tool, task detail = tabbed Channel|Spec|Activity).
 - **DECISION (2026-06-03): bundle Phases 2b + 3 + 4 + 5 into ONE build-and-test pass**
   (commit at each phase checkpoint for bisectability), then test the integrated result
   against 3 ICP tutorial scenarios. **Phase 6 (persisted-state migration) stays ISOLATED
@@ -179,7 +179,7 @@
   blocked until Chrome is restarted (don't kill the user's Chrome unprompted). Dev boot:
   `bash scripts/dev-mvp.sh --reset` (web :7891 / API :7890, API needs auth → use browser
   not curl). The :7891 broker is stale (built pre-2a) — rebuild before any live test.
-  Verify Go with `golangci-lint run ./internal/team/...` too (agents only run go vet,
+  Verify Go with `golangci-lint run ./internal/team/...` too (bots only run go vet,
   which misses gofmt + dead code).
 - **User working style:** terse, wants momentum ("do it" / "move on"); commit + brief
   check-in per phase increment. Big design forks → ask; routine → just do it.
@@ -204,14 +204,14 @@
 2. **Every channel is tied to a Task. There is no default channel.** (Today there
    is a "general"/default channel — must be removed.)
 3. **Default screen = a chatbox-style home composer** that creates a new Task. On that composer
-   the user selects **provider**, **effort**, and **agent** for the task.
-   - In our version the selected agent is the **owner agent**, and it can summon
-     other agents as needed.
-4. **2 default agents available in every Task:**
-   - **CEO agent** — always present by default.
-   - **Librarian agent** — this is our current **"Pam"** agent that maintains the wiki.
-5. **Librarian agent's expanded role:** responsible for **writing, formatting, and
-   organizing the wiki**. Notebooks are still written by the **owning agents**.
+   the user selects **provider**, **effort**, and **bot** for the task.
+   - In our version the selected bot is the **owner bot**, and it can summon
+     other bots as needed.
+4. **2 default bots available in every Task:**
+   - **CEO bot** — always present by default.
+   - **Librarian bot** — this is our current **"Pam"** bot that maintains the wiki.
+5. **Librarian bot's expanded role:** responsible for **writing, formatting, and
+   organizing the wiki**. Notebooks are still written by the **owning bots**.
    The **Librarian takes over wiki promotions and reviews from the CEO** (it has
    better context on what already exists in the wiki).
 6. **Task creation options (launcher style):** start **right away**, put in
@@ -235,7 +235,7 @@
   useCreateIssue, `/issues` route). Internally it is already a "task". So the
   rename is mostly UI/route/component-facing: `Issue*` → `Task*`, `/issues` → `/tasks`.
 - `agentIssueRecord` (`broker_types.go:75`, `agent_issue.go`, ID `issue-N`) — a
-  DIFFERENT concept: agent-reported problems / self-heal errors. The word "issue"
+  DIFFERENT concept: bot-reported problems / self-heal errors. The word "issue"
   here collides with the rename. Decision needed: rename to "incident"/"report".
 
 **A. Tasks / Issues domain (Go backend)**
@@ -249,7 +249,7 @@
   `transitionLifecycleLocked()` (line ~453); public `TransitionLifecycle()`.
   Dispatch gate `isExecutableTeamTaskStatus()` (line 46) allows only Running/Approved.
 - IDs: `fmt.Sprintf("task-%d", b.counter)` (`broker_tasks_mutation_service.go:228`);
-  agent issues `issue-%d` (`agent_issue.go:86`). (PREFIX-N is a display-layer
+  bot issues `issue-%d` (`agent_issue.go:86`). (PREFIX-N is a display-layer
   concern, not in the raw ID.)
 - Routes: `GET|POST /tasks`, `/tasks/ack`, `/task-plan` (`broker_route_contracts.go:153`);
   inbox/decision `GET /tasks/inbox`, `GET /tasks/{id}`, `POST /tasks/{id}/block|decision|comment`
@@ -279,7 +279,7 @@
 - Routing: `/channels/$channelSlug` (`router.ts:16`); index `/` redirects to
   `/agents/ceo` (`router.ts:140`), NOT #general (already demoted).
 
-**C. Agents (CEO, Pam→Librarian, owners, summoning)**
+**C. Bots (CEO, Pam→Librarian, owners, summoning)**
 - `officeMember` struct (slug, name, role, expertise, provider binding, Watching).
   Spawned into tmux panes (`pane_lifecycle_spawn.go`). Prompts built in
   `prompt_builder.go` (CEO/lead branch ~140-270; specialist ~271-371).
@@ -289,10 +289,10 @@
 - Pam (`pam.go`, slug `"pam"`, "the Archivist"): NOT a roster member; headless
   one-shot wiki-maintenance actions triggered from the wiki UI (`broker_pam.go`:
   `GET /pam/actions`, `POST /pam/action`). No prompt/channel/task. **This is the
-  agent to become "Librarian"** and absorb wiki write/format/organize + promotion/review.
-- Owner agent: `teamTask.Owner`; assigned via intake `autoAssign` (`broker_intake.go`)
+  bot to become "Librarian"** and absorb wiki write/format/organize + promotion/review.
+- Owner bot: `teamTask.Owner`; assigned via intake `autoAssign` (`broker_intake.go`)
   or `team_task(action=assign_to_me)`. Auto-joins task channel.
-- Summoning: CEO creates agents (`team_member`) + channels (`team_channel`), adds
+- Summoning: CEO creates bots (`team_member`) + channels (`team_channel`), adds
   members; `team_bridge` (CEO-only) carries context across channels. Skills via
   `team_skill_run` (`broker_skills.go`).
 - Wiki promotion authority TODAY = CEO (reviewer). Demand pipeline
@@ -300,8 +300,8 @@
   state machine `promotion_state.go` (JSONL at `~/.wuphf/wiki/.reviews/reviews.jsonl`).
 
 **D. Wiki / notebooks / specs**
-- Notebooks: per-agent drafts at `agents/{slug}/notebook/*.md`, author-only writes
-  (`internal/teammcp/notebook_tools.go`), cross-agent reads. Owning agents write them. ✅ keep.
+- Notebooks: per-bot drafts at `agents/{slug}/notebook/*.md`, author-only writes
+  (`internal/teammcp/notebook_tools.go`), cross-bot reads. Owning bots write them. ✅ keep.
 - Wiki: markdown on git + index; promotion notebook→wiki via `notebook_promote`
   → pending → reviewer approve/request-changes/reject → `Repo.ApplyPromotion()`.
   Web: `ReviewQueueKanban.tsx`, `ReviewDetail.tsx`.
@@ -315,7 +315,7 @@
 - Routes registry `routeRegistry.ts:40-75` (ROUTE_PATHS): channel, dm, app,
   `issues`, `issues/new`, `issues/$issueId`, `agents/$slug`, wiki, notebooks,
   reviews, inbox, etc. Derivation `useCurrentRoute.ts`.
-- Sidebar `Sidebar.tsx`: Agents / Channels / Tools (SIDEBAR_APPS in `constants.ts`:
+- Sidebar `Sidebar.tsx`: Bots / Channels / Tools (SIDEBAR_APPS in `constants.ts`:
   overview, issues, wiki, console, graph, policies, calendar, skills, activity,
   receipts, health-check, settings) / Recent.
 - Create entry points: `useCreateIssue.ts` → `createTasks()`; `IssueCreateDialog.tsx`
@@ -330,7 +330,7 @@
 ### Proposed decisions (confirm or override)
 
 - **D1 — Naming collision:** UI "Issue" → "Task" (routes/components/hooks). Rename
-  the unrelated `agentIssueRecord` (agent self-reported problems) to "incident" or
+  the unrelated `agentIssueRecord` (bot self-reported problems) to "incident" or
   "report" internally so "issue" disappears as a domain word. (Default: "incident".)
 - **D2 — Lifecycle collapse** to 5 user-facing stages:
   - `Backlog` ← Intake, Ready, Drafting(pre-approval), QueuedBehindOwner
@@ -345,13 +345,13 @@
   from the task. The on-task `IssueDraftSpec` stays as the draft buffer during the
   interview; on approval the Librarian materializes + links it.
 - **D4 — Home = new-task composer:** post-onboarding landing becomes the new-task
-  composer (provider/effort/owner-agent selectors + Start now / Backlog / Routine).
+  composer (provider/effort/owner-bot selectors + Start now / Backlog / Routine).
   Index `/` → `/` (composer), not `/agents/ceo`. Onboarding flow preserved.
-- **D5 — Default agents per task:** owner agent (selected) + CEO + Librarian always
+- **D5 — Default bots per task:** owner bot (selected) + CEO + Librarian always
   members of every task channel. Owner can summon more.
-- **D6 — Librarian = renamed/promoted Pam:** becomes a first-class agent that owns
+- **D6 — Librarian = renamed/promoted Pam:** becomes a first-class bot that owns
   wiki writing/formatting/organizing AND takes promotion+review from the CEO.
-  Notebooks still written by owning agents.
+  Notebooks still written by owning bots.
 - **D7 — Effort field:** add a task-level `effort` (e.g. low/medium/high) that maps
   to provider reasoning settings; persisted on the task and passed to the owner run.
 
@@ -359,13 +359,13 @@
 
 - **D8 — Interaction model: PURE TASK-SCOPED.** The only channels are task
   channels. Remove free-standing office channels (#general/#product), standalone
-  agent DMs, AND per-agent subspace pages. Every human↔agent interaction happens
+  bot DMs, AND per-bot subspace pages. Every human↔bot interaction happens
   inside a task. (User chose this over keeping DMs/subspaces.)
 - **D9 — Migration: MIGRATE EXISTING workspaces (for shipped USERS, not dev).**
   Refined 2026-06-02: the dev's own `~/.wuphf-dev-home` is disposable (blast
   freely). The concern is real users who upgrade WUPHF on their machines — their
   `~/.wuphf` must come up clean with no data loss. So Phase 6 migration is
-  PRODUCTION code: treat as irreversible, gate with a verification agent + present
+  PRODUCTION code: treat as irreversible, gate with a verification bot + present
   the fold strategy before executing. Because target is pure task-scoped,
   migration FOLDS legacy office channels + DMs into archived/done Tasks
   (preserving message history), remaps old lifecycle states → new 5-stage set, and
@@ -381,14 +381,14 @@
 
 - [x] **Phase 0 — Rename Issues → Tasks + disambiguate the duplicate surface. ✅ DONE 2026-06-02.**
   - **Result:** 61 files changed, +864/−2492 (net −1628; removed the duplicate raw
-    board). Gates ALL green (verified independently, not just by the sub-agents):
+    board). Gates ALL green (verified independently, not just by the sub-bots):
     `go build ./...` ✅, `go vet ./...` ✅, `cd web && bunx tsc --noEmit` ✅ (0 errors),
     `bash scripts/test-web.sh` ✅ (179 files / 1729 pass / 40 pre-existing skips),
     `bash scripts/test-go.sh ./internal/team` ✅.
-  - **Go side (agent):** `agentIssueRecord`→`incidentRecord`, `AgentIssues`→
+  - **Go side (bot):** `agentIssueRecord`→`incidentRecord`, `AgentIssues`→
     `Incidents` (kept `json:"agent_issues"` tag), `ReportAgentIssue`→`ReportIncident`,
     new IDs `incident-N`, `agent_issue.go`→`incident.go`. Wire tags preserved.
-  - **Web side (agent):** deleted `TasksApp.tsx`+`TaskDetailModal.tsx`(+test);
+  - **Web side (bot):** deleted `TasksApp.tsx`+`TaskDetailModal.tsx`(+test);
     renamed 22 files Issue*→Task* (lifecycle dir, issues/→tasks/ dir, 3 cards,
     useCreateIssue→useCreateTask, issueTitle→taskTitle); `/issues`→`/tasks` is now
     the live first-class surface with `/issues*`→`/tasks*` legacy redirect stubs;
@@ -478,13 +478,13 @@
     | `done` | approved (Status already = "done"/ship) |
     | `archive` | **archived (NEW)**, rejected |
     - **Blocked vs Needs human input:** Blocked = waiting on a dependency/upstream
-      (agent/system resolves it); Needs human input = waiting on the human specifically.
+      (bot/system resolves it); Needs human input = waiting on the human specifically.
     - **Scheduled** = routines, relabeled "Scheduled Tasks". Routines are scheduler
       entities, not lifecycle tasks → the Scheduled column reads the routines list, not
       `lifecycleStageFor()`. Full task↔routine unification (create-as-routine) is Phase 3.
     - Spec-draft + approval gate sits at the backlog→in_progress boundary (Drafting =
       backlog; approving to start → Running = in_progress). Matches D2.
-    - "Agent actively requests human input mid-run → needs_human" is wired in Phase 3
+    - "Bot actively requests human input mid-run → needs_human" is wired in Phase 3
       (needs the per-task channel + request flow); Phase 1 maps needs_human←decision.
   - **Build:** Go — add `LifecycleStage` type + `lifecycleStageFor()`; add
     `LifecycleStateArchived` (enum + CanonicalLifecycleStates + derivedFields +
@@ -494,7 +494,7 @@
     fallback map for safety); render the board as 5 stage columns; pill shows stage.
   - Gate: lifecycle dispatch tests still pass (gate unchanged); board renders 7
     columns; archive action round-trips; `go build/vet`, tsc, web+go tests green.
-  - **Built 2026-06-02** (two parallel agents, Go substrate + Web 7-stage board).
+  - **Built 2026-06-02** (two parallel bots, Go substrate + Web 7-stage board).
     Reviewed: Go `lifecycleStageFor` and TS `stageForState` mappings are IDENTICAL
     (verified). Fixed one consistency gap by hand: added `queued_behind_owner` to the
     TS `LifecycleState` union + pill token + `stageForState`→blocked + TaskActivityStream
@@ -503,7 +503,7 @@
     cards deep-link `/routines/$routineSlug`; board fetches `includeDone:true`.
   - **Gates ALL green (independently re-run):** `go build ./...` ✅, `go vet ./...` ✅,
     `bunx tsc --noEmit` ✅, `bash scripts/test-web.sh` ✅ (179 files / 1731 / 40 skip),
-    `test-go.sh ./internal/team` ✅ (agent run). Diff: 15 files, +496/−107.
+    `test-go.sh ./internal/team` ✅ (bot run). Diff: 15 files, +496/−107.
   - **Live build+boot ✅** — `dev-mvp.sh --reset` rebuilt web+Go and booted the
     Phase-1 broker on :7891 (pid varies) with no panic. **Browser screenshot BLOCKED**:
     browser-harness↔Chrome CDP went stale (`ws://127.0.0.1:9222` dead; daemon restart
@@ -522,8 +522,8 @@
     `defaultTeamChannels`/`ensureDefaultChannelsLocked` (broker_defaults.go:53,145),
     onboarding seeds general (broker_onboarding.go:220), all `||"general"` in
     broker_messages.go + web. Removal surfaces for DMs/subspaces: dmRoute/DMView,
-    AgentSubspaceRoute, router/routeRegistry/useCurrentRoute, slashCommands, objectRoutes,
-    Sidebar Agents/Channels sections.
+    BotSubspaceRoute, router/routeRegistry/useCurrentRoute, slashCommands, objectRoutes,
+    Sidebar Bots/Channels sections.
   - **🚨 CRITICAL DISCOVERY (2026-06-02): "general" is load-bearing plumbing, not
     just a UI surface.** 141 non-test `"general"` literals across the backend —
     decision packets (`broker_decision_packet.go:57` `decisionPacketChannel="general"`),
@@ -554,7 +554,7 @@
       green (build/vet/test-go ./internal/team/boot). The `""→"general"` fallback +
       141 refs INTENTIONALLY KEPT (they now feed the Backup & Migration task).
     - **2a-ii (backend) — channel-per-task: DEFERRED from 2a, NEXT.** Root causes the
-      agent surfaced: `findReusableTaskLocked` dedups tasks by CHANNEL (must become
+      bot surfaced: `findReusableTaskLocked` dedups tasks by CHANNEL (must become
       channel-agnostic), prompt builders hardcode `#general`, `canAccessChannelLocked`
       ordering (channel must exist before access check), ~15 tests assume tasks live in
       "general". Plan: new non-system tasks get a dedicated `task-<id>` channel
@@ -579,18 +579,18 @@
     (ParentIssueID set) currently fall back to #general instead of their parent task's
     channel — better to inherit the parent's channel; revisit in Phase 2 polish / Phase 5.
     - **2b (frontend) ✅ DONE + committed.** Implemented as designed:
-      - **Sidebar** (`Sidebar.tsx`): dropped Agents + Channels nav sections; new
+      - **Sidebar** (`Sidebar.tsx`): dropped Bots + Channels nav sections; new
         `SidebarTaskNav.tsx` = tasks grouped by the 7 stages (active stages open by
         default), `+ New` → /tasks/new, `All tasks` → board. Tools section keeps AppList
-        with **Agents** added as a first-class tool.
+        with **Bots** added as a first-class tool.
       - **Landing** (`router.ts` indexRoute + `RootRoute.tsx` onboarding redirect):
         `/agents/ceo` → `/tasks` (interim home; composer is Phase 3).
-      - **Agents tool** (`AgentsTool.tsx`, new): `/agents` roster grid of cards +
+      - **Bots tool** (`AgentsTool.tsx`, new): `/agents` roster grid of cards +
         `/agents/$agentSlug` detail (reuses `AgentProfilePanel`). `+ New agent` → wizard.
       - **DM + subspace removed from the navigable product:** deleted `dmRoute`,
         `agentSubspaceRoute`/`agentSubspaceTabRoute`, route kinds `dm`/`agent-subspace`
         (→ `agents`/`agent-detail`); deleted `AgentSubspaceRoute.tsx`. Rewired all
-        consumers (StatusBar, ChannelHeader, Shell, AgentPanel, AgentList, breadcrumbs,
+        consumers (StatusBar, ChannelHeader, Shell, BotPanel, BotList, breadcrumbs,
         objectRoutes `#/dm/`→`#/agents/`, slashCommands) + tests.
       - **Task detail = tabbed** (`TaskDetailTabs.tsx`): Channel (channel discussion) ·
         Spec (the task body) · Activity (feed) + Sub-tasks when present. Spec-first
@@ -609,17 +609,17 @@
   - **Sequencing decision (TAKEN, not asking):** Tasks board is the INTERIM home in 2b;
     the rich new-task composer is Phase 3. Keeps the app working throughout (never a
     broken no-landing state).
-  - **FORK RESOLVED (2026-06-02): agent management → a dedicated "Agents" tool**
-    (standalone surface under Tools: list roster, create agents, configure
-    provider/role/persona). Agents stay first-class, just not chat surfaces.
+  - **FORK RESOLVED (2026-06-02): bot management → a dedicated "Bots" tool**
+    (standalone surface under Tools: list roster, create bots, configure
+    provider/role/persona). Bots stay first-class, just not chat surfaces.
   - **LAYOUT FORKS LOCKED (2026-06-03):**
     1. **Task detail = TABBED** — one header (title + stage pill) over
        `Channel | Spec | Activity` tabs. Channel tab is the per-task chat;
        Spec tab renders the wiki spec + approval gate (Phase 5); Activity tab
        is the existing TaskActivity feed. Default to Channel tab.
-    2. **Agents tool = ROSTER GRID of cards** (CEO, Librarian, specialists) +
-       "+ New agent"; click a card → configure skills/role. Reuses the
-       existing card-grid pattern (AgentList/AgentPanel/AgentProfilePanel).
+    2. **Bots tool = ROSTER GRID of cards** (CEO, Librarian, specialists) +
+       "+ New bot"; click a card → configure skills/role. Reuses the
+       existing card-grid pattern (BotList/BotPanel/BotProfilePanel).
     3. **Composer = centered chatbox + chips** (see Phase 3 above).
   - **external-app naming: BANNED everywhere** (PR/wiki/docs/branch/code) —
     user hard rule 2026-06-02. My tracker scrubbed (commit 3f46f328). Pre-existing
@@ -628,7 +628,7 @@
   - Gate: new task → its own channel works; no path depends on a default channel;
     app boots to a working tasks-home with no DM/subspace surfaces.
 - [x] **Phase 3 — new-task home composer. ✅ DONE (3a+3b+3c).** Home = new-task composer with
-    provider / effort / owner-agent selectors + Start now / Backlog / Routine
+    provider / effort / owner-bot selectors + Start now / Backlog / Routine
     actions. Add `effort` field to task model + run wiring (D7). Wire Routine→
     existing scheduler; Backlog→create-without-dispatch; Start now→spec interview→
     approval→In progress. Seed each task channel with owner + CEO + Librarian (D5).
@@ -665,7 +665,7 @@
       - **3b (UI) ✅ `d5b10eb8`:** `web/src/components/tasks/TaskComposer.tsx` (centered
         chatbox + owner/provider/model/effort chips + Start/Backlog/Routine). Effort map =
         `web/src/lib/effortCatalog.ts` (mirrors the Go guardrails). Mounted as landing
-        (`/` → `{kind:"home"}`). Provider/model edits persist to the owner agent's binding;
+        (`/` → `{kind:"home"}`). Provider/model edits persist to the owner bot's binding;
         effort is per-task. Shared `web/src/lib/providerBinding.ts`.
       - **3c (wiring) ← NEXT.** See "3c PICKUP" below.
     - **3c PICKUP (start here):**
@@ -690,15 +690,15 @@
     disk, Routine prefills /routines/new). Composer is the landing (`/`); board at /tasks.
     Note: visual browser click-through still blocked by the Chrome CDP zombie (data path
     + build + full test suite are the verification surface used instead).
-- [x] **Phase 4 — Librarian agent (Pam → Librarian). DONE** (`e9b2f1d3` + `91180e7a`).
-    First-class built-in `librarian` agent (name "Pam"), default member of every task
+- [x] **Phase 4 — Librarian bot (Pam → Librarian). DONE** (`e9b2f1d3` + `91180e7a`).
+    First-class built-in `librarian` bot (name "Pam"), default member of every task
     channel + cross-channel access. Wiki promotion/review authority moved CEO→Librarian
     (reviewer resolver prefers librarian-when-present; `team_notebook_review` opened to
-    Librarian; prompts delegate). Owning agents still write notebooks. Gradual/legacy-safe.
+    Librarian; prompts delegate). Owning bots still write notebooks. Gradual/legacy-safe.
   - Gate: Librarian present in tasks ✅; promotion/review flows route to Librarian ✅.
 - [x] **Phase 5 — Plan mode DONE** (`a9aec140` backend + `8ae83e6c` frontend). (REVISED 2026-06-04; supersedes the old "spec→wiki Specs/" D3.)
     Per-task **"Plan first" toggle, default ON** (composer toggle alongside Start now/Backlog).
-    **ON →** the owner agent PLANS AUTONOMOUSLY first: a new `LifecycleStatePlanning` state
+    **ON →** the owner bot PLANS AUTONOMOUSLY first: a new `LifecycleStatePlanning` state
     dispatches the owner with a PLAN-ONLY work packet — explore, write the plan into its OWN
     notebook (notebook_write), post a summary, do NOT touch the repo, then stop and await
     approval. "Approve & Start" (Planning→Running) re-dispatches the owner to execute against

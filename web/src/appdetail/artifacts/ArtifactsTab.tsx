@@ -1,6 +1,6 @@
-// ArtifactsTab — the file-ish outcomes the agent produced (PDFs, HTML pages,
+// ArtifactsTab — the file-ish outcomes the bot produced (PDFs, HTML pages,
 // markdown docs) as a chip strip with a viewer per type below. It lives INSIDE
-// the UI tab, under the agent's one live app — the app itself is the tab, not
+// the UI tab, under the bot's one live app — the app itself is the tab, not
 // an artifact. See web/src/operator/artifacts/artifacts.ts.
 
 import { useState } from "react";

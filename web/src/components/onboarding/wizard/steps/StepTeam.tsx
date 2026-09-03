@@ -2,19 +2,19 @@
  * StepTeam — wizard step 03, "Pick a team pack."
  *
  * Full-width, roomy layout (not the 2-column slide split) so the packs and
- * their agents have space to breathe:
+ * their bots have space to breathe:
  *
- *   1. Pick a pack. Each blueprint is its own agent pack, shown as a roomy
- *      card with an icon, name, agent count, and one-line description.
+ *   1. Pick a pack. Each blueprint is its own bot pack, shown as a roomy
+ *      card with an icon, name, bot count, and one-line description.
  *   2. Picking a pack opens a real DRAWER inline, directly beneath that card's
  *      row, that slides its roster open. Reclicking the same card slides the
- *      drawer shut. Check or uncheck any non-lead agent (the lead is always
+ *      drawer shut. Check or uncheck any non-lead bot (the lead is always
  *      kept). This is the default team; doing nothing else is a valid choice.
- *   3. "Add a custom agent" is opt-in below, collapsed until asked for, so the
+ *   3. "Add a custom bot" is opt-in below, collapsed until asked for, so the
  *      step never becomes a wall of inputs.
  *
  * Company name is collected on the Meet step. The advance gate is satisfied by
- * a chosen pack (or a named custom agent); the host's "set this up later"
+ * a chosen pack (or a named custom bot); the host's "set this up later"
  * escape clears both and takes the scratch path.
  */
 
@@ -75,8 +75,8 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-/** The agent slugs a blueprint contributes when picked (default pack). */
-function defaultPickedAgents(blueprint: BlueprintOption): string[] {
+/** The bot slugs a blueprint contributes when picked (default pack). */
+function defaultPickedBots(blueprint: BlueprintOption): string[] {
   return blueprint.agents
     .filter((agent) => agent.checked || agent.builtIn)
     .map((agent) => agent.slug);
@@ -115,17 +115,17 @@ function PackDrawer({
  */
 function PackRoster({
   pack,
-  pickedAgents,
+  pickedBots,
   onToggle,
   panelRef,
 }: {
   pack: BlueprintOption;
-  pickedAgents: string[];
+  pickedBots: string[];
   onToggle: (slug: string, builtIn: boolean) => void;
   panelRef: Ref<HTMLFieldSetElement>;
 }) {
   const pickedCount = pack.agents.filter((a) =>
-    pickedAgents.includes(a.slug),
+    pickedBots.includes(a.slug),
   ).length;
   return (
     <fieldset
@@ -154,7 +154,7 @@ function PackRoster({
       </p>
       <ul className="onboarding-team-roster" data-testid="onboarding-roster">
         {pack.agents.map((agent) => {
-          const isPicked = pickedAgents.includes(agent.slug);
+          const isPicked = pickedBots.includes(agent.slug);
           return (
             <li key={agent.slug}>
               <label
@@ -223,15 +223,15 @@ export function StepTeam({
       if (blueprint.id === answers.blueprintId) {
         setAnswers({
           blueprintId: "",
-          pickedAgents: [],
+          pickedBots: [],
           startFromScratch: false,
         });
         return;
       }
-      const picked = defaultPickedAgents(blueprint);
+      const picked = defaultPickedBots(blueprint);
       setAnswers({
         blueprintId: blueprint.id,
-        pickedAgents: picked,
+        pickedBots: picked,
         startFromScratch: false,
       });
       track("onboarding_blueprint_selected", {
@@ -252,25 +252,25 @@ export function StepTeam({
     // Empty blueprint = the broker's scratch path (it synthesizes a small
     // founding team). startFromScratch records the deliberate choice so the
     // advance gate lets the user continue with no pack selected.
-    setAnswers({ blueprintId: "", pickedAgents: [], startFromScratch: true });
+    setAnswers({ blueprintId: "", pickedBots: [], startFromScratch: true });
   }, [answers.startFromScratch, setAnswers]);
 
-  const toggleAgent = useCallback(
+  const toggleBot = useCallback(
     (slug: string, builtIn: boolean) => {
       if (builtIn) return; // The lead is always kept.
-      const isPicked = answers.pickedAgents.includes(slug);
+      const isPicked = answers.pickedBots.includes(slug);
       setAnswers({
-        pickedAgents: isPicked
-          ? answers.pickedAgents.filter((s) => s !== slug)
-          : [...answers.pickedAgents, slug],
+        pickedBots: isPicked
+          ? answers.pickedBots.filter((s) => s !== slug)
+          : [...answers.pickedBots, slug],
       });
     },
-    [answers.pickedAgents, setAnswers],
+    [answers.pickedBots, setAnswers],
   );
 
   const removeCustom = useCallback(() => {
     setShowCustom(false);
-    setAnswers({ agentName: "", agentInstructions: "" });
+    setAnswers({ agentName: "", botInstructions: "" });
   }, [setAnswers]);
 
   // Drive the drawer from the open target. Opening mounts the drawer collapsed
@@ -322,7 +322,7 @@ export function StepTeam({
         >
           {blueprints.map((blueprint) => {
             const isSelected = blueprint.id === answers.blueprintId;
-            const agentCount = blueprint.agents.length;
+            const botCount = blueprint.agents.length;
             return (
               <Fragment key={blueprint.id}>
                 <button
@@ -352,7 +352,7 @@ export function StepTeam({
                       </span>
                     ) : null}
                     <span className="onboarding-pack-card-count">
-                      {agentCount} {agentCount === 1 ? "agent" : "agents"}
+                      {botCount} {botCount === 1 ? "bot" : "bots"}
                     </span>
                   </span>
                 </button>
@@ -362,8 +362,8 @@ export function StepTeam({
                   <PackDrawer id={`pack-drawer-${blueprint.id}`} open={open}>
                     <PackRoster
                       pack={blueprint}
-                      pickedAgents={answers.pickedAgents}
-                      onToggle={toggleAgent}
+                      pickedBots={answers.pickedBots}
+                      onToggle={toggleBot}
                       panelRef={rosterRef}
                     />
                   </PackDrawer>
@@ -441,7 +441,7 @@ export function StepTeam({
               >
                 <PixelAvatar slug="revops" size={28} />
               </span>
-              <span className="onboarding-agent-brief-title">Custom agent</span>
+              <span className="onboarding-agent-brief-title">Custom bot</span>
               <button
                 type="button"
                 className="onboarding-custom-remove"
@@ -458,7 +458,7 @@ export function StepTeam({
                   className="onboarding-team-label"
                   htmlFor="onboarding-agent-name"
                 >
-                  Agent name
+                  Bot name
                 </label>
                 <input
                   id="onboarding-agent-name"
@@ -483,10 +483,10 @@ export function StepTeam({
                 <textarea
                   id="onboarding-agent-instructions"
                   className="onboarding-team-textarea"
-                  value={answers.agentInstructions}
+                  value={answers.botInstructions}
                   placeholder={CUSTOM_INSTRUCTIONS_PLACEHOLDER}
                   onChange={(event) =>
-                    setAnswers({ agentInstructions: event.target.value })
+                    setAnswers({ botInstructions: event.target.value })
                   }
                   data-testid="onboarding-agent-instructions"
                 />
@@ -503,7 +503,7 @@ export function StepTeam({
             <span className="onboarding-add-custom-plus" aria-hidden="true">
               +
             </span>
-            Add a custom agent
+            Add a custom bot
           </button>
         )}
       </div>

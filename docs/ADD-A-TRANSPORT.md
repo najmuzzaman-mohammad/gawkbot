@@ -18,7 +18,7 @@ Three scopes exist:
 Pick the scope that matches how your integration behaves:
 
 - One external chat → one team channel? → **Channel-bound** (`Transport`)
-- Each bridged session becomes an agent/human member? → **Member-bound** (`MemberBoundTransport`)
+- Each bridged session becomes a bot/human member? → **Member-bound** (`MemberBoundTransport`)
 - External human joins the whole office? → **Office-bound** (`OfficeBoundTransport`)
 
 ## Package layout

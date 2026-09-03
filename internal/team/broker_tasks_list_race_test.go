@@ -36,7 +36,7 @@ func TestListTasksSnapshotIsSafeToMarshalOutsideTheLock(t *testing.T) {
 			Reviewers:      []string{"ceo"},
 			DependsOn:      []string{"OFFICE-0"},
 			Ledger: []TaskLedgerEntry{{
-				Agent: "eng", At: now, Outcome: "ok",
+				Bot: "eng", At: now, Outcome: "ok",
 				Actions: []string{"task_updated"},
 			}},
 			HumanNotePending: &TaskHumanNote{From: "human", Body: "note", At: now},

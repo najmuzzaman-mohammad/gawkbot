@@ -28,7 +28,7 @@ interface PixelAvatarProps {
    */
   eyes?: boolean;
   /**
-   * True only for the agent that is PROCESSING RIGHT NOW, not merely online.
+   * True only for the bot that is PROCESSING RIGHT NOW, not merely online.
    * This is the only thing that animates: an idle avatar paints once and then
    * does nothing, so a sidebar of a dozen teammates is a dozen static canvases
    * rather than a dozen permanent repaints.
@@ -37,7 +37,7 @@ interface PixelAvatarProps {
 }
 
 /**
- * Renders a pixel-art agent portrait on a <canvas>.
+ * Renders a pixel-art bot portrait on a <canvas>.
  * Pass a className like `pixel-avatar-sidebar` or `pixel-avatar-panel`
  * to apply theme-level sizing/treatment around the canvas.
  */
@@ -70,7 +70,7 @@ export function PixelAvatar({
       drawPixelAvatar(canvas, slug, size, { eyes: wantsEyes, openness });
     };
 
-    // Static path. Idle agents, small avatars, and reduced-motion all land
+    // Static path. Idle bots, small avatars, and reduced-motion all land
     // here: one paint, no loop, nothing scheduled. Reduced-motion still shows
     // the eyes wide open — it drops the motion, not the identity.
     //

@@ -5,9 +5,9 @@ import type {
 } from "../api/client";
 
 // Shared provider-binding helpers for surfaces that read or display an
-// agent's runtime selection (the new-task composer, agent pickers, …).
+// bot's runtime selection (the new-task composer, bot pickers, …).
 //
-// AgentProfilePanel and AgentWizard predate this module and keep their own
+// BotProfilePanel and BotWizard predate this module and keep their own
 // local copies of bindingFromMember / PROVIDER_LABELS; this is the canonical
 // home for new code, and those two are a follow-up consolidation.
 

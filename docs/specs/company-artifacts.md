@@ -4,7 +4,7 @@
 
 ## One line
 
-The wiki already *is* the artifacts agents produce. The only thing missing was
+The wiki already *is* the artifacts bots produce. The only thing missing was
 **which task produced a given article** — so each article now shows a "Produced
 for **<task>**" link, in place. No separate Artifacts surface.
 

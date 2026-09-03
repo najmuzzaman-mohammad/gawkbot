@@ -7,18 +7,18 @@ import (
 )
 
 // seedRecurringShape writes manifests so the deterministic miner yields a
-// candidate for taskID: the same multi-tool shape run by `agent` across taskID
+// candidate for taskID: the same multi-tool shape run by `bot` across taskID
 // plus `priors` sibling tasks. With >= appWorkflowRecurrenceFloor total runs the
 // read-only shape surfaces. Requires WUPHF_RUNTIME_HOME to be set so
 // EventSinkPath resolves to the test's temp dir.
-func seedRecurringShape(t *testing.T, agent, taskID string, priors []string, tools ...string) {
+func seedRecurringShape(t *testing.T, bot, taskID string, priors []string, tools ...string) {
 	t.Helper()
 	path := EventSinkPath()
 	if path == "" {
 		t.Fatal("EventSinkPath empty — set WUPHF_RUNTIME_HOME before seeding")
 	}
 	for _, id := range append(append([]string{}, priors...), taskID) {
-		if err := appendTurnManifest(path, manifestFor(id, agent, tools...)); err != nil {
+		if err := appendTurnManifest(path, manifestFor(id, bot, tools...)); err != nil {
 			t.Fatalf("seed manifest: %v", err)
 		}
 	}
@@ -26,7 +26,7 @@ func seedRecurringShape(t *testing.T, agent, taskID string, priors []string, too
 
 // TestDetectWorkflowAppRaisesProposal is the core of the post-task discovery
 // rewrite: gated on the deterministic miner (the shape must have actually
-// recurred), the BROKER (not an agent) judges the completed task and raises a
+// recurred), the BROKER (not a bot) judges the completed task and raises a
 // real, non-blocking propose_app card — so there is no "next turn" deferral and
 // no phantom card. Idempotent: a second pass dedupes onto the same card.
 func TestDetectWorkflowAppRaisesProposal(t *testing.T) {
@@ -44,7 +44,7 @@ func TestDetectWorkflowAppRaisesProposal(t *testing.T) {
 		channelMessage{From: "you", Channel: "task-1", Content: "Score these 3 leads against our ICP — I run this every Monday."},
 		channelMessage{From: "ceo", Channel: "task-1", Content: "Scored: Acme 7/10, BetaLabs 3/10, Gamma 4/10."},
 	)
-	// The shape recurred: OFFICE-1 plus a prior run by the same agent.
+	// The shape recurred: OFFICE-1 plus a prior run by the same bot.
 	seedRecurringShape(t, "ceo", "OFFICE-1", []string{"OFFICE-0"}, "crm_fetch_leads", "score_leads")
 
 	b.detectWorkflowAppForTask("OFFICE-1")
@@ -229,7 +229,7 @@ func TestDetectInlineWorkflowAppSkipsAlreadyProposedShape(t *testing.T) {
 }
 
 // TestDetectionLaneIsolation: an inline pseudo-task must NOT merge into a real
-// task's cluster (which fuzzy+cross-agent would otherwise do) — that would
+// task's cluster (which fuzzy+cross-bot would otherwise do) — that would
 // inflate the task's recurrence count and mislabel it. Each lane sees only its
 // own manifests.
 func TestDetectionLaneIsolation(t *testing.T) {

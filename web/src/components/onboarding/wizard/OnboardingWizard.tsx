@@ -14,7 +14,7 @@
  * sits top-left. There is NO skip-all affordance: this is required
  * onboarding, not a dismissible tour, so Esc does nothing here. The one
  * permitted escape is the team step's "I will set this up later", which maps
- * to the scratch path (no blueprint, default first agent) and advances.
+ * to the scratch path (no blueprint, default first bot) and advances.
  *
  * The host owns only the shell + step navigation + the finish wiring. The step
  * screens (under ./steps/*) own their own content and visuals and conform to
@@ -194,12 +194,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   }, [back]);
 
   // The team-step escape: take the scratch path (clear any picked blueprint /
-  // agent) and advance. This is the only way past the team step without a
-  // blueprint or a named agent, and it deliberately does NOT skip the rest of
+  // bot) and advance. This is the only way past the team step without a
+  // blueprint or a named bot, and it deliberately does NOT skip the rest of
   // onboarding — the user still writes a first issue.
   const skipTeam = useCallback(() => {
     track("onboarding_step_completed", { step_id: "team", step_index: index });
-    setAnswers({ blueprintId: "", pickedAgents: [], agentName: "" });
+    setAnswers({ blueprintId: "", pickedBots: [], agentName: "" });
     runWithTransition(next);
   }, [setAnswers, next, index]);
 

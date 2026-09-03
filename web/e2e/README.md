@@ -6,7 +6,7 @@ fresh-install and post-onboarding shell phases:
 | Spec | Phase | Precondition |
 |---|---|---|
 | `tests/wizard.spec.ts` | fresh install | **no** `~/.wuphf/onboarded.json` — wuphf serves the onboarding wizard |
-| `tests/smoke.spec.ts` | post-onboarding shell | `~/.wuphf/onboarded.json` is **seeded** — wuphf serves the shell, with sidebar + agent panel |
+| `tests/smoke.spec.ts` | post-onboarding shell | `~/.wuphf/onboarded.json` is **seeded** — wuphf serves the shell, with sidebar + bot panel |
 | `tests/app-routes.spec.ts` | post-onboarding shell | seeded shell; app routes must render independently without leaking into each other |
 | `tests/route-matrix.spec.ts` | post-onboarding shell | seeded shell; every canonical route and dropped legacy alias must render the expected surface |
 

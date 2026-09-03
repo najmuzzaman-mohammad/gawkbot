@@ -60,7 +60,7 @@ type actionCardPayload struct {
 }
 
 // buildActionCardPayload composes the structured approval payload from the args
-// the agent passed and the resolver's verdict (account + masked envelope).
+// the bot passed and the resolver's verdict (account + masked envelope).
 func buildActionCardPayload(args TeamActionExecuteArgs, decision actionResolveResponse) *actionCardPayload {
 	platform := strings.TrimSpace(args.Platform)
 	actionID := strings.TrimSpace(args.ActionID)
@@ -98,8 +98,8 @@ func resolveActionDecision(ctx context.Context, slug, channel string, args TeamA
 	return resp, nil
 }
 
-// actionResolveBlockMessage builds the agent-facing tool error for a resolver
-// decision that must NOT execute. RULE ZERO: the agent is told to back off,
+// actionResolveBlockMessage builds the bot-facing tool error for a resolver
+// decision that must NOT execute. RULE ZERO: the bot is told to back off,
 // connect, wait, or hand off — never to retry blindly into the same wall.
 func actionResolveBlockMessage(decision actionResolveResponse, platformLabel string) string {
 	suffix := ""

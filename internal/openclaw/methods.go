@@ -12,7 +12,7 @@ type SessionsListFilter struct {
 	Kinds              []string `json:"kinds,omitempty"`
 	IncludeLastMessage bool     `json:"includeLastMessage,omitempty"`
 	Search             string   `json:"search,omitempty"`
-	AgentID            string   `json:"agentId,omitempty"`
+	BotID              string   `json:"agentId,omitempty"`
 }
 
 // SessionRow is the subset of OpenClaw session-list-row WUPHF needs.
@@ -48,7 +48,7 @@ func (c *Client) SessionsList(ctx context.Context, f SessionsListFilter) ([]Sess
 	return res.Sessions, nil
 }
 
-// SessionsSend fires a message into an OpenClaw session. The agent's reply
+// SessionsSend fires a message into an OpenClaw session. The bot's reply
 // arrives asynchronously as session.message events.
 //
 // idempotencyKey MUST be reused across retries of the same logical send so the
@@ -77,19 +77,19 @@ func (c *Client) SessionsSend(ctx context.Context, key, message, idempotencyKey 
 }
 
 // SessionsCreate asks the gateway to spin up a new persistent session bound
-// to the given OpenClaw agent config. Returns the session key the gateway
+// to the given OpenClaw bot config. Returns the session key the gateway
 // assigned (used for subsequent sessions.send / subscribe / end calls).
 //
 // label is a human-readable name shown in OpenClaw tools. It must be unique
 // within the gateway's running sessions — duplicate labels are rejected by
 // the daemon with "label already in use." Callers typically include a nonce.
-// agentID defaults to "main" when empty.
-func (c *Client) SessionsCreate(ctx context.Context, agentID, label string) (string, error) {
-	if agentID == "" {
-		agentID = "main"
+// botID defaults to "main" when empty.
+func (c *Client) SessionsCreate(ctx context.Context, botID, label string) (string, error) {
+	if botID == "" {
+		botID = "main"
 	}
 	raw, err := c.Call(ctx, "sessions.create", map[string]any{
-		"agentId": agentID,
+		"agentId": botID,
 		"label":   label,
 	})
 	if err != nil {

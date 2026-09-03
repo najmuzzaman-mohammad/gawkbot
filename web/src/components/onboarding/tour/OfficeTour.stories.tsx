@@ -87,7 +87,7 @@ export const SlideIntro: Story = {
 };
 
 /** Slide 2, "Your team, on the clock." */
-export const SlideAgents: Story = {
+export const SlideBots: Story = {
   render: (args) => (
     <StartAtSlide
       slide="agents"

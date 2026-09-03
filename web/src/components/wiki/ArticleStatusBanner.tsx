@@ -2,7 +2,7 @@
 
 interface ArticleStatusBannerProps {
   message: string;
-  liveAgent?: string;
+  liveBot?: string;
   revisions?: number;
   contributors?: number;
   wordCount?: number;
@@ -10,7 +10,7 @@ interface ArticleStatusBannerProps {
 
 export default function ArticleStatusBanner({
   message,
-  liveAgent,
+  liveBot,
   revisions,
   contributors,
   wordCount,
@@ -25,7 +25,7 @@ export default function ArticleStatusBanner({
     <div className="wk-status-banner" data-testid="wk-status-banner">
       <span className="wk-icon" />
       <span>
-        {liveAgent ? <strong>Live: </strong> : <strong>Status: </strong>}
+        {liveBot ? <strong>Live: </strong> : <strong>Status: </strong>}
         {message}
       </span>
       {metaBits.length > 0 && (

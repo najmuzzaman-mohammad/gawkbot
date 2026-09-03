@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
-// scriptedStreamFn is a programmable agent.StreamFn for tests. Each call to
+// scriptedStreamFn is a programmable bot.StreamFn for tests. Each call to
 // the returned function pops the next script entry; the loop expects them
 // in order.
 type scriptedStreamFn struct {
@@ -19,17 +19,17 @@ type scriptedStreamFn struct {
 }
 
 type scriptedTurn struct {
-	chunks []agent.StreamChunk
+	chunks []bot.StreamChunk
 	// expectMessages, when non-nil, runs the supplied predicate against the
 	// msgs the loop passed in. Lets each turn assert the running history.
-	expectMessages func(*testing.T, []agent.Message)
+	expectMessages func(*testing.T, []bot.Message)
 	// recordedTools holds the tools slice the loop passed in for this turn.
 	// Populated for the test to inspect after run().
-	recordedTools []agent.AgentTool
+	recordedTools []bot.BotTool
 }
 
-func (s *scriptedStreamFn) fn(t *testing.T) agent.StreamFn {
-	return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
+func (s *scriptedStreamFn) fn(t *testing.T) bot.StreamFn {
+	return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
 		idx := s.calls
 		s.calls++
 		if idx >= len(s.turns) {
@@ -39,8 +39,8 @@ func (s *scriptedStreamFn) fn(t *testing.T) agent.StreamFn {
 		if turn.expectMessages != nil {
 			turn.expectMessages(t, msgs)
 		}
-		turn.recordedTools = append([]agent.AgentTool(nil), tools...)
-		ch := make(chan agent.StreamChunk, len(turn.chunks)+1)
+		turn.recordedTools = append([]bot.BotTool(nil), tools...)
+		ch := make(chan bot.StreamChunk, len(turn.chunks)+1)
 		go func() {
 			defer close(ch)
 			for _, c := range turn.chunks {
@@ -57,7 +57,7 @@ func (s *scriptedStreamFn) fn(t *testing.T) agent.StreamFn {
 func TestOpenAICompatToolLoop_TextOnlyOneShot(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "text", Content: "hello there."},
 			}},
 		},
@@ -68,7 +68,7 @@ func TestOpenAICompatToolLoop_TextOnlyOneShot(t *testing.T) {
 		maxIters:    8,
 		toolTimeout: time.Second,
 	}
-	final, iters, _, streamErr, err := loop.run(context.Background(), []agent.Message{
+	final, iters, _, streamErr, err := loop.run(context.Background(), []bot.Message{
 		{Role: "user", Content: "say hi"},
 	})
 	if err != nil {
@@ -101,28 +101,28 @@ func TestOpenAICompatToolLoop_TextOnlyOneShot(t *testing.T) {
 func TestOpenAICompatToolLoop_AccumulatesUsageAcrossIterations(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "tool_use", ToolName: "echo", ToolParams: map[string]any{"x": "1"}, ToolInput: `{"x":"1"}`},
 				{Type: "usage", InputTokens: 100, OutputTokens: 20},
 			}},
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "text", Content: "done"},
 				{Type: "usage", InputTokens: 150, OutputTokens: 5},
 			}},
 		},
 	}
-	tools := []agent.AgentTool{{
+	tools := []bot.BotTool{{
 		Name:    "echo",
 		Execute: func(_ map[string]any, _ context.Context, _ func(string)) (string, error) { return "ok", nil },
 	}}
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
 		tools:       tools,
-		toolByName:  map[string]agent.AgentTool{"echo": tools[0]},
+		toolByName:  map[string]bot.BotTool{"echo": tools[0]},
 		maxIters:    4,
 		toolTimeout: time.Second,
 	}
-	final, iters, usage, streamErr, err := loop.run(context.Background(), []agent.Message{{Role: "user", Content: "go"}})
+	final, iters, usage, streamErr, err := loop.run(context.Background(), []bot.Message{{Role: "user", Content: "go"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -142,12 +142,12 @@ func TestOpenAICompatToolLoop_AccumulatesUsageAcrossIterations(t *testing.T) {
 
 // TestOpenAICompatToolLoop_NoUsageStaysZero verifies that turns with no
 // usage chunks return a zero-valued ClaudeUsage so the headless runner can
-// gate its broker.RecordAgentUsage() call on input/output > 0 and avoid
+// gate its broker.RecordBotUsage() call on input/output > 0 and avoid
 // recording empty rows when the server doesn't emit usage frames.
 func TestOpenAICompatToolLoop_NoUsageStaysZero(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{{Type: "text", Content: "hi"}}},
+			{chunks: []bot.StreamChunk{{Type: "text", Content: "hi"}}},
 		},
 	}
 	loop := openAICompatToolLoop{
@@ -155,7 +155,7 @@ func TestOpenAICompatToolLoop_NoUsageStaysZero(t *testing.T) {
 		maxIters:    4,
 		toolTimeout: time.Second,
 	}
-	_, _, usage, _, err := loop.run(context.Background(), []agent.Message{{Role: "user", Content: "go"}})
+	_, _, usage, _, err := loop.run(context.Background(), []bot.Message{{Role: "user", Content: "go"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestOpenAICompatToolLoop_NoUsageStaysZero(t *testing.T) {
 }
 
 // TestOpenAICompatToolLoop_FullToolRoundTrip is the core e2e test for the
-// MCP bridge: model fires a tool, the loop dispatches to AgentTool.Execute,
+// MCP bridge: model fires a tool, the loop dispatches to BotTool.Execute,
 // the synthetic user-message containing the result is appended, and the
 // next streamfn turn sees the tool output and finalizes with text.
 //
@@ -178,21 +178,21 @@ func TestOpenAICompatToolLoop_FullToolRoundTrip(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "Looking it up..."},
 					{Type: "tool_use", ToolName: "lookup_weather", ToolParams: map[string]any{"city": "Lisbon"}, ToolInput: `{"city":"Lisbon"}`, ToolUseID: "c1"},
 				},
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					if len(msgs) != 1 || msgs[0].Role != "user" {
 						t.Errorf("turn 1 expected single user msg, got %+v", msgs)
 					}
 				},
 			},
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "It's 22°C and sunny in Lisbon."},
 				},
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					if len(msgs) != 3 {
 						t.Fatalf("turn 2 expected 3 msgs (user, assistant, user-with-tool-result), got %d: %+v", len(msgs), msgs)
 					}
@@ -214,7 +214,7 @@ func TestOpenAICompatToolLoop_FullToolRoundTrip(t *testing.T) {
 	}
 
 	var capturedParams map[string]any
-	weatherTool := agent.AgentTool{
+	weatherTool := bot.BotTool{
 		Name:        "lookup_weather",
 		Description: "Look up the current weather for a city.",
 		Schema:      map[string]any{"type": "object"},
@@ -230,8 +230,8 @@ func TestOpenAICompatToolLoop_FullToolRoundTrip(t *testing.T) {
 	)
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		tools:       []agent.AgentTool{weatherTool},
-		toolByName:  map[string]agent.AgentTool{"lookup_weather": weatherTool},
+		tools:       []bot.BotTool{weatherTool},
+		toolByName:  map[string]bot.BotTool{"lookup_weather": weatherTool},
 		maxIters:    4,
 		toolTimeout: 2 * time.Second,
 		onToolUse:   func(name, raw string) { toolUseHook++ },
@@ -243,7 +243,7 @@ func TestOpenAICompatToolLoop_FullToolRoundTrip(t *testing.T) {
 		},
 	}
 
-	final, iters, _, streamErr, err := loop.run(context.Background(), []agent.Message{
+	final, iters, _, streamErr, err := loop.run(context.Background(), []bot.Message{
 		{Role: "user", Content: "What's the weather in Lisbon?"},
 	})
 	if err != nil {
@@ -282,14 +282,14 @@ func TestOpenAICompatToolLoop_FullToolRoundTrip(t *testing.T) {
 func TestOpenAICompatToolLoop_UnknownToolDoesNotPanic(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "tool_use", ToolName: "made_up_tool", ToolParams: map[string]any{}, ToolInput: "{}"},
 			}},
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "Sorry — I can't actually do that."},
 				},
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					if got := msgs[len(msgs)-1].Content; !strings.Contains(got, "is not available") {
 						t.Errorf("unavailable tool message missing: %q", got)
 					}
@@ -299,11 +299,11 @@ func TestOpenAICompatToolLoop_UnknownToolDoesNotPanic(t *testing.T) {
 	}
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		toolByName:  map[string]agent.AgentTool{},
+		toolByName:  map[string]bot.BotTool{},
 		maxIters:    4,
 		toolTimeout: time.Second,
 	}
-	final, _, _, streamErr, err := loop.run(context.Background(), []agent.Message{{Role: "user", Content: "do it"}})
+	final, _, _, streamErr, err := loop.run(context.Background(), []bot.Message{{Role: "user", Content: "do it"}})
 	if err != nil || streamErr != "" {
 		t.Fatalf("unexpected: err=%v streamErr=%q", err, streamErr)
 	}
@@ -319,14 +319,14 @@ func TestOpenAICompatToolLoop_UnknownToolDoesNotPanic(t *testing.T) {
 func TestOpenAICompatToolLoop_ToolErrorPropagatesAsResult(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "tool_use", ToolName: "broken", ToolParams: map[string]any{}, ToolInput: "{}"},
 			}},
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "It looks like that tool broke."},
 				},
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					if got := msgs[len(msgs)-1].Content; !strings.Contains(got, "broken") || !strings.Contains(got, "kaboom") {
 						t.Errorf("error trailer missing: %q", got)
 					}
@@ -334,7 +334,7 @@ func TestOpenAICompatToolLoop_ToolErrorPropagatesAsResult(t *testing.T) {
 			},
 		},
 	}
-	broken := agent.AgentTool{
+	broken := bot.BotTool{
 		Name: "broken",
 		Execute: func(_ map[string]any, _ context.Context, _ func(string)) (string, error) {
 			return "", errors.New("kaboom")
@@ -342,12 +342,12 @@ func TestOpenAICompatToolLoop_ToolErrorPropagatesAsResult(t *testing.T) {
 	}
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		tools:       []agent.AgentTool{broken},
-		toolByName:  map[string]agent.AgentTool{"broken": broken},
+		tools:       []bot.BotTool{broken},
+		toolByName:  map[string]bot.BotTool{"broken": broken},
 		maxIters:    3,
 		toolTimeout: time.Second,
 	}
-	final, _, _, streamErr, err := loop.run(context.Background(), []agent.Message{{Role: "user", Content: "go"}})
+	final, _, _, streamErr, err := loop.run(context.Background(), []bot.Message{{Role: "user", Content: "go"}})
 	if err != nil || streamErr != "" {
 		t.Fatalf("unexpected: err=%v streamErr=%q", err, streamErr)
 	}
@@ -362,7 +362,7 @@ func TestOpenAICompatToolLoop_ToolErrorPropagatesAsResult(t *testing.T) {
 func TestOpenAICompatToolLoop_StreamErrorBreaksOut(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "error", Content: "rate limited"},
 			}},
 		},
@@ -372,7 +372,7 @@ func TestOpenAICompatToolLoop_StreamErrorBreaksOut(t *testing.T) {
 		maxIters:    4,
 		toolTimeout: time.Second,
 	}
-	final, _, _, streamErr, err := loop.run(context.Background(), []agent.Message{{Role: "user", Content: "x"}})
+	final, _, _, streamErr, err := loop.run(context.Background(), []bot.Message{{Role: "user", Content: "x"}})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -388,14 +388,14 @@ func TestOpenAICompatToolLoop_StreamErrorBreaksOut(t *testing.T) {
 // tool-only loops. The loop must cap and surface a clear error string
 // instead of looping forever.
 func TestOpenAICompatToolLoop_MaxIterationsCap(t *testing.T) {
-	infiniteToolTurn := scriptedTurn{chunks: []agent.StreamChunk{
+	infiniteToolTurn := scriptedTurn{chunks: []bot.StreamChunk{
 		{Type: "tool_use", ToolName: "echo", ToolParams: map[string]any{}, ToolInput: "{}"},
 	}}
 	stream := &scriptedStreamFn{turns: []scriptedTurn{
 		infiniteToolTurn, infiniteToolTurn, infiniteToolTurn, infiniteToolTurn,
 	}}
 
-	echo := agent.AgentTool{
+	echo := bot.BotTool{
 		Name: "echo",
 		Execute: func(_ map[string]any, _ context.Context, _ func(string)) (string, error) {
 			return "ok", nil
@@ -403,12 +403,12 @@ func TestOpenAICompatToolLoop_MaxIterationsCap(t *testing.T) {
 	}
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		tools:       []agent.AgentTool{echo},
-		toolByName:  map[string]agent.AgentTool{"echo": echo},
+		tools:       []bot.BotTool{echo},
+		toolByName:  map[string]bot.BotTool{"echo": echo},
 		maxIters:    4,
 		toolTimeout: time.Second,
 	}
-	finalText, iters, _, streamErr, _ := loop.run(context.Background(), []agent.Message{{Role: "user", Content: "loop"}})
+	finalText, iters, _, streamErr, _ := loop.run(context.Background(), []bot.Message{{Role: "user", Content: "loop"}})
 	if iters != 4 {
 		t.Errorf("iterations = %d, want 4 (the cap)", iters)
 	}
@@ -441,7 +441,7 @@ func TestOpenAICompatToolLoop_BridgeDiesMidCallSurfacesAsToolError(t *testing.T)
 	// brokenTool simulates a tool whose underlying transport has died:
 	// it returns a Go error instead of a result. The loop must treat
 	// this as "Tool X failed: ...".
-	brokenTool := agent.AgentTool{
+	brokenTool := bot.BotTool{
 		Name: "broker_post_message",
 		Execute: func(_ map[string]any, _ context.Context, _ func(string)) (string, error) {
 			return "", &transportClosedErr{op: "broker_post_message"}
@@ -450,14 +450,14 @@ func TestOpenAICompatToolLoop_BridgeDiesMidCallSurfacesAsToolError(t *testing.T)
 
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
-			{chunks: []agent.StreamChunk{
+			{chunks: []bot.StreamChunk{
 				{Type: "tool_use", ToolName: "broker_post_message", ToolParams: map[string]any{"channel": "team"}, ToolInput: `{"channel":"team"}`},
 			}},
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "Sorry, the broker is offline right now."},
 				},
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					last := msgs[len(msgs)-1]
 					if !strings.Contains(last.Content, "broker_post_message") {
 						t.Errorf("tool name missing from failure trailer: %q", last.Content)
@@ -472,12 +472,12 @@ func TestOpenAICompatToolLoop_BridgeDiesMidCallSurfacesAsToolError(t *testing.T)
 
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
-		tools:       []agent.AgentTool{brokenTool},
-		toolByName:  map[string]agent.AgentTool{"broker_post_message": brokenTool},
+		tools:       []bot.BotTool{brokenTool},
+		toolByName:  map[string]bot.BotTool{"broker_post_message": brokenTool},
 		maxIters:    4,
 		toolTimeout: time.Second,
 	}
-	final, _, _, streamErr, err := loop.run(context.Background(), []agent.Message{
+	final, _, _, streamErr, err := loop.run(context.Background(), []bot.Message{
 		{Role: "user", Content: "post hi to #team"},
 	})
 	if err != nil {
@@ -509,8 +509,8 @@ func (e *transportClosedErr) Error() string { return e.op + ": transport closed 
 // goroutine never returns and the test's GoroutineLeakTracker fails.
 func TestOpenAICompatToolLoop_ContextCancelStopsImmediately(t *testing.T) {
 	streamerExited := make(chan struct{})
-	streamFn := func(_ []agent.Message, _ []agent.AgentTool) <-chan agent.StreamChunk {
-		ch := make(chan agent.StreamChunk) // unbuffered: send blocks until received
+	streamFn := func(_ []bot.Message, _ []bot.BotTool) <-chan bot.StreamChunk {
+		ch := make(chan bot.StreamChunk) // unbuffered: send blocks until received
 		go func() {
 			defer close(ch)
 			defer close(streamerExited)
@@ -519,12 +519,12 @@ func TestOpenAICompatToolLoop_ContextCancelStopsImmediately(t *testing.T) {
 			// streamer goroutine wedges and the test's deadline below
 			// trips.
 			select {
-			case ch <- agent.StreamChunk{Type: "text", Content: "after-cancel-1"}:
+			case ch <- bot.StreamChunk{Type: "text", Content: "after-cancel-1"}:
 			case <-time.After(5 * time.Second):
 				return
 			}
 			select {
-			case ch <- agent.StreamChunk{Type: "text", Content: "after-cancel-2"}:
+			case ch <- bot.StreamChunk{Type: "text", Content: "after-cancel-2"}:
 			case <-time.After(5 * time.Second):
 				return
 			}
@@ -539,7 +539,7 @@ func TestOpenAICompatToolLoop_ContextCancelStopsImmediately(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel before run
-	_, _, _, _, err := loop.run(ctx, []agent.Message{{Role: "user", Content: "x"}})
+	_, _, _, _, err := loop.run(ctx, []bot.Message{{Role: "user", Content: "x"}})
 	if err == nil {
 		t.Fatal("expected context.Canceled error")
 	}

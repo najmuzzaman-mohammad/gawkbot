@@ -52,7 +52,7 @@ type RenderedLine struct {
 	ThreadID    string
 	TaskID      string
 	RequestID   string
-	AgentSlug   string
+	BotSlug     string
 	PromptValue string
 }
 
@@ -156,13 +156,13 @@ type UsageTotals struct {
 	Requests            int     `json:"requests"`
 }
 
-// UsageState aggregates per-agent and rolled-up totals for the usage
-// strip. Session is the current run; Total is lifetime; Agents holds the
-// per-agent breakdown the strip renders.
+// UsageState aggregates per-bot and rolled-up totals for the usage
+// strip. Session is the current run; Total is lifetime; Bots holds the
+// per-bot breakdown the strip renders.
 type UsageState struct {
 	Session UsageTotals            `json:"session,omitempty"`
 	Total   UsageTotals            `json:"total"`
-	Agents  map[string]UsageTotals `json:"agents"`
+	Bots    map[string]UsageTotals `json:"agents"`
 	Since   string                 `json:"since,omitempty"`
 }
 

@@ -366,7 +366,7 @@ const APPROVAL_PAIRS = [
     },
   },
   {
-    name: "credential grant to agent",
+    name: "credential grant to bot",
     claim: {
       schemaVersion: 1,
       claimId: "credential-claim",

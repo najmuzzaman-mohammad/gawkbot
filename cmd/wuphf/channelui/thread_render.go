@@ -63,10 +63,10 @@ func RenderThreadReplies(replies []ThreadedMessage, width int) []string {
 // RenderThreadReply renders a single threaded reply: a header line
 // (avatar + colored name + timestamp + meta), then the body wrapped
 // to width-4 with a depth-indented "│" or "┆" guide. Mentions in the
-// body are highlighted via HighlightMentions(AgentColorMap).
+// body are highlighted via HighlightMentions(BotColorMap).
 func RenderThreadReply(reply ThreadedMessage, width int) []string {
 	msg := reply.Message
-	color := AgentColorMap[msg.From]
+	color := BotColorMap[msg.From]
 	if color == "" {
 		color = "#9CA3AF"
 	}
@@ -97,7 +97,7 @@ func RenderThreadReply(reply ThreadedMessage, width int) []string {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("%s%s %s  %s  %s",
 		prefix,
-		AgentAvatar(msg.From),
+		BotAvatar(msg.From),
 		nameStyle.Render(name),
 		tsStyle.Render(ts),
 		metaStyle.Render(meta),
@@ -111,7 +111,7 @@ func RenderThreadReply(reply ThreadedMessage, width int) []string {
 	}
 
 	for _, paragraph := range strings.Split(msg.Content, "\n") {
-		paragraph = HighlightMentions(paragraph, AgentColorMap)
+		paragraph = HighlightMentions(paragraph, BotColorMap)
 		for _, wrappedLine := range strings.Split(ansi.Wrap(paragraph, width-4, ""), "\n") {
 			lines = append(lines, bodyPrefix+wrappedLine)
 		}
@@ -128,7 +128,7 @@ func RenderThreadReply(reply ThreadedMessage, width int) []string {
 // diverges later.
 func RenderThreadMessage(msg BrokerMessage, width int, isParent bool) []string {
 	_ = isParent
-	color := AgentColorMap[msg.From]
+	color := BotColorMap[msg.From]
 	if color == "" {
 		color = "#9CA3AF"
 	}
@@ -152,13 +152,13 @@ func RenderThreadMessage(msg BrokerMessage, width int, isParent bool) []string {
 
 	var lines []string
 	lines = append(lines, fmt.Sprintf("  %s %s%s%s",
-		AgentAvatar(msg.From), nameRendered, strings.Repeat(" ", gap), tsRendered))
+		BotAvatar(msg.From), nameRendered, strings.Repeat(" ", gap), tsRendered))
 	if usageMeta := RenderMessageUsageMeta(msg.Usage, color); usageMeta != "" {
 		lines = append(lines, "  "+usageMeta)
 	}
 
 	for _, paragraph := range strings.Split(msg.Content, "\n") {
-		paragraph = HighlightMentions(paragraph, AgentColorMap)
+		paragraph = HighlightMentions(paragraph, BotColorMap)
 		wrapped := ansi.Wrap(paragraph, width-4, "")
 		for _, wl := range strings.Split(wrapped, "\n") {
 			lines = append(lines, "  "+wl)

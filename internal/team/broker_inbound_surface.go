@@ -50,7 +50,7 @@ func (b *Broker) postInboundSurfaceMessage(from, channel, content, provider, thr
 	// Thread mapping: a reply inside a task's Slack thread is folded into that
 	// task's internal thread so the task context (and only that task) sees it.
 	// Set before appendMessageLocked, whose owner-based auto-stamp does NOT
-	// fire for non-owner foreign agents or humans — the thread is the only
+	// fire for non-owner foreign bots or humans — the thread is the only
 	// signal that ties their reply to the task.
 	// Scope the fold to Slack and to the message's own channel: the root key is
 	// a Slack thread_ts, so a non-Slack inbound (Telegram reply_to, etc.) or a
@@ -66,10 +66,10 @@ func (b *Broker) postInboundSurfaceMessage(from, channel, content, provider, thr
 		}
 	}
 	// Promote @slug mentions into tags, mirroring handlePostMessage's
-	// auto-promote: surface humans (Slack/Telegram) expect "@agent" to
+	// auto-promote: surface humans (Slack/Telegram) expect "@bot" to
 	// notify exactly like web humans do. Same lead-routing guard as the web
 	// path: when the lead is mentioned, do NOT fan out to other mentioned
-	// agents — the human's intent is for the lead to route.
+	// bots — the human's intent is for the lead to route.
 	if b.senderMayAutoPromoteLocked(from) {
 		mentioned := extractMentionedSlugs(msg.Content)
 		leadSlug := officeLeadSlugFrom(b.members)

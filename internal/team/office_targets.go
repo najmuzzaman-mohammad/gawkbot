@@ -1,20 +1,20 @@
 package team
 
-// office_targets.go owns the "which agent gets which pane / dispatch path"
+// office_targets.go owns the "which bot gets which pane / dispatch path"
 // decision tree that used to live as a dozen methods on Launcher. The split
 // (PLAN.md §C2) is justified because the logic is pure data-shape over a
 // snapshot of office membership — no goroutines, no tmux, no broker writes
 // — so it can be exercised by tests without a Launcher fixture.
 //
 // State sharing notes (PLAN.md §5 traps):
-//   - paneBackedFlag is a *bool aliased to launcher.paneBackedAgents. The
-//     pane-spawn path flips that bool deep inside trySpawnWebAgentPanes;
+//   - paneBackedFlag is a *bool aliased to launcher.paneBackedBots. The
+//     pane-spawn path flips that bool deep inside trySpawnWebBotPanes;
 //     reading via pointer keeps the targeter in sync without callbacks.
 //   - failedPaneSlugs is a per-slug lookup callback wired to
 //     Launcher.isFailedPaneSlug, which acquires l.failedPaneMu's
 //     read-lock for the duration of the check. Writers
 //     (recordPaneSpawnFailure from the detectDeadPanesAfterSpawn
-//     goroutine) take the write-lock; reconfigureVisibleAgents takes
+//     goroutine) take the write-lock; reconfigureVisibleBots takes
 //     the write-lock and clear()s in place so the same map handle
 //     stays valid across the reconfigure boundary. Read concurrency
 //     is unbounded; only a single writer ever runs at a time because
@@ -25,7 +25,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
@@ -35,11 +35,11 @@ import (
 // is package-internal; callers in package team get to it via Launcher.targets().
 type officeTargeter struct {
 	sessionName string
-	pack        *agent.PackDefinition
+	pack        *bot.PackDefinition
 	cwd         string
 	provider    string
 
-	// paneBackedFlag is a back-pointer to launcher.paneBackedAgents so the
+	// paneBackedFlag is a back-pointer to launcher.paneBackedBots so the
 	// targeter sees the live value as the spawn path flips it. Required —
 	// duplicating the flag would cause every notification to route through
 	// the headless path silently when panes were actually live (PLAN.md §5.2).
@@ -103,7 +103,7 @@ func (o *officeTargeter) LeadSlug() string {
 // without a redundant snapshotMembers call. Sorts a copy of the input
 // by slug before iterating so the answer is deterministic regardless
 // of caller-supplied order — matters for prompt-cache byte-stability
-// and for callers that iterate AgentOrder (pack-ordered) vs. raw
+// and for callers that iterate BotOrder (pack-ordered) vs. raw
 // MembersSnapshot (broker-snapshot order).
 func officeLeadSlugFrom(members []officeMember) string {
 	sorted := append([]officeMember(nil), members...)
@@ -130,7 +130,7 @@ func officeLeadSlugFrom(members []officeMember) string {
 // reordering would shuffle pane indices on every Launch.
 func (o *officeTargeter) ActiveSessionMembers() []officeMember {
 	members := o.MembersSnapshot()
-	if o == nil || o.pack == nil || len(o.pack.Agents) == 0 {
+	if o == nil || o.pack == nil || len(o.pack.Bots) == 0 {
 		return members
 	}
 	bySlug := make(map[string]officeMember, len(members))
@@ -139,7 +139,7 @@ func (o *officeTargeter) ActiveSessionMembers() []officeMember {
 	}
 	filtered := make([]officeMember, 0, len(members))
 	seen := make(map[string]struct{}, len(members))
-	for _, cfg := range o.pack.Agents {
+	for _, cfg := range o.pack.Bots {
 		if member, ok := bySlug[cfg.Slug]; ok {
 			filtered = append(filtered, member)
 			seen[cfg.Slug] = struct{}{}
@@ -179,28 +179,28 @@ func (o *officeTargeter) NameFor(slug string) string {
 	return slug
 }
 
-// AgentOrder returns the member roster with the lead slug always first.
+// BotOrder returns the member roster with the lead slug always first.
 // Used by pane spawn to guarantee the CEO pane lands at index 1. Drives
 // off ActiveSessionMembers (pack-ordered) so pane indices stay stable
 // across launches even if the broker snapshot order shifts.
-func (o *officeTargeter) AgentOrder() []officeMember {
-	var agentOrder []officeMember
+func (o *officeTargeter) BotOrder() []officeMember {
+	var botOrder []officeMember
 	lead := o.LeadSlug()
 	for _, member := range o.ActiveSessionMembers() {
 		if member.Slug == lead {
-			agentOrder = append([]officeMember{member}, agentOrder...)
+			botOrder = append([]officeMember{member}, botOrder...)
 		}
 	}
 	for _, member := range o.ActiveSessionMembers() {
 		if member.Slug != lead {
-			agentOrder = append(agentOrder, member)
+			botOrder = append(botOrder, member)
 		}
 	}
-	return agentOrder
+	return botOrder
 }
 
 // PaneSlugs returns the slug list in spawn order. In 1:1 mode it returns
-// just the active 1:1 agent. Like AgentOrder, drives off ActiveSessionMembers
+// just the active 1:1 bot. Like BotOrder, drives off ActiveSessionMembers
 // so pack order is deterministic regardless of broker snapshot order.
 func (o *officeTargeter) PaneSlugs() []string {
 	if o.isOneOnOne != nil && o.isOneOnOne() {
@@ -221,38 +221,38 @@ func (o *officeTargeter) PaneSlugs() []string {
 	return slugs
 }
 
-// VisibleMembers returns the agents that occupy the visible tmux pane grid
-// (lead first, then up to maxVisibleOfficeAgents-1 others). 1:1 mode
+// VisibleMembers returns the bots that occupy the visible tmux pane grid
+// (lead first, then up to maxVisibleOfficeBots-1 others). 1:1 mode
 // collapses to a single member.
 func (o *officeTargeter) VisibleMembers() []officeMember {
 	if o.isOneOnOne != nil && o.isOneOnOne() {
 		return []officeMember{o.MemberBySlug(o.oneOnOneSlug())}
 	}
 	ordered := o.PaneEligibleMembers()
-	if len(ordered) <= maxVisibleOfficeAgents {
+	if len(ordered) <= maxVisibleOfficeBots {
 		return ordered
 	}
-	return ordered[:maxVisibleOfficeAgents]
+	return ordered[:maxVisibleOfficeBots]
 }
 
-// OverflowMembers returns agents beyond the visible grid; each gets its
+// OverflowMembers returns bots beyond the visible grid; each gets its
 // own dedicated tmux window (named via overflowWindowName).
 func (o *officeTargeter) OverflowMembers() []officeMember {
 	if o.isOneOnOne != nil && o.isOneOnOne() {
 		return nil
 	}
 	ordered := o.PaneEligibleMembers()
-	if len(ordered) <= maxVisibleOfficeAgents {
+	if len(ordered) <= maxVisibleOfficeBots {
 		return nil
 	}
-	return ordered[maxVisibleOfficeAgents:]
+	return ordered[maxVisibleOfficeBots:]
 }
 
-// PaneEligibleMembers is AgentOrder() minus members whose runtime is not
+// PaneEligibleMembers is BotOrder() minus members whose runtime is not
 // pane-eligible (Codex, Opencode). Filtering upstream keeps visible/overflow
 // indices in sync with PaneTargets().
 func (o *officeTargeter) PaneEligibleMembers() []officeMember {
-	ordered := o.AgentOrder()
+	ordered := o.BotOrder()
 	filtered := make([]officeMember, 0, len(ordered))
 	for _, m := range ordered {
 		if o.MemberUsesHeadlessOneShotRuntime(m.Slug) {
@@ -263,7 +263,7 @@ func (o *officeTargeter) PaneEligibleMembers() []officeMember {
 	return filtered
 }
 
-// PaneTargets returns slug→pane-address for every agent that should
+// PaneTargets returns slug→pane-address for every bot that should
 // receive notifications by typing into a live tmux pane. Returns empty
 // when panes aren't live (paneBackedFlag=false) so callers consistently
 // fall through to the headless dispatcher.
@@ -304,7 +304,7 @@ func (o *officeTargeter) PaneTargets() map[string]notificationTarget {
 }
 
 // NotificationTargets layers headless fallback entries on top of the pane
-// target map. An agent without a pane target — either because pane spawn
+// target map. A bot without a pane target — either because pane spawn
 // failed or because its provider is non-pane — still gets a target entry
 // (with empty PaneTarget) so dispatch can route it through the headless
 // queue.
@@ -337,7 +337,7 @@ func (o *officeTargeter) NotificationTargets() map[string]notificationTarget {
 }
 
 // ResolvePaneTarget returns the live pane address for slug, or
-// ("", false) when slug isn't pane-backed (codex/opencode agents,
+// ("", false) when slug isn't pane-backed (codex/opencode bots,
 // failed-pane fallbacks, or empty slugs).
 func (o *officeTargeter) ResolvePaneTarget(slug string) (string, bool) {
 	if o == nil || strings.TrimSpace(slug) == "" {
@@ -437,8 +437,8 @@ func (o *officeTargeter) RequiresClaudeSessionReset() bool {
 }
 
 // MemberEffectiveProviderKind returns the provider kind that should run
-// the given agent's next turn. Lookup order: per-member override (set via
-// /agent create --provider=X or the hire-agent modal), then the
+// the given bot's next turn. Lookup order: per-member override (set via
+// /bot create --provider=X or the hire-bot modal), then the
 // install-wide provider.
 func (o *officeTargeter) MemberEffectiveProviderKind(slug string) string {
 	if o.memberProviderKind != nil {
@@ -449,7 +449,7 @@ func (o *officeTargeter) MemberEffectiveProviderKind(slug string) string {
 	return normalizeProviderKind(o.provider)
 }
 
-// MemberUsesHeadlessOneShotRuntime reports whether the given agent is bound
+// MemberUsesHeadlessOneShotRuntime reports whether the given bot is bound
 // to a non-pane-eligible runtime and therefore skips the tmux/claude pane
 // infrastructure in favor of the broker-driven headless queue.
 func (o *officeTargeter) MemberUsesHeadlessOneShotRuntime(slug string) bool {
@@ -482,4 +482,4 @@ func normalizeProviderKind(raw string) string {
 	}
 }
 
-const maxVisibleOfficeAgents = 5
+const maxVisibleOfficeBots = 5

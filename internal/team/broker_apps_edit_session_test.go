@@ -34,11 +34,11 @@ func TestAppEditSessionLazilyMintsChannel(t *testing.T) {
 
 	b := newTestBroker(t)
 	// The App Builder is hired rather than assumed. It is retired as a DEFAULT
-	// agent, and ensureAppEditChannelLocked deliberately refuses to invent a
+	// bot, and ensureAppEditChannelLocked deliberately refuses to invent a
 	// member the roster does not have — so in a lead-only office the minted
 	// thread comes back holding only the CEO, and the membership assertion
-	// below would be testing the absence of the agent instead of the minting
-	// rule. app-builder is still a legal agent, so the fixture creates one.
+	// below would be testing the absence of the bot instead of the minting
+	// rule. app-builder is still a legal bot, so the fixture creates one.
 	hireSpecialists(t, b, appBuilderSlug)
 	if err := b.StartOnPort(0); err != nil {
 		t.Fatalf("start broker: %v", err)
@@ -49,7 +49,7 @@ func TestAppEditSessionLazilyMintsChannel(t *testing.T) {
 	// Register an app the way a legacy app exists: published, but with NO edit
 	// channel — register_app never stamps one, only a task create does.
 	body, _ := json.Marshal(map[string]any{"name": "Legacy Tool", "html": validAppHTML})
-	created := postAppsAsAgent(t, base+"/apps", b.Token(), appBuilderSlug, body)
+	created := postAppsAsBot(t, base+"/apps", b.Token(), appBuilderSlug, body)
 	app, _ := created["app"].(map[string]any)
 	id, _ := app["id"].(string)
 	if id == "" {
@@ -60,7 +60,7 @@ func TestAppEditSessionLazilyMintsChannel(t *testing.T) {
 	}
 
 	// Open an edit session → mints the app's own channel and returns it.
-	session := postAppsAsAgent(t, base+"/apps/"+id+"/edit-session", b.Token(), appBuilderSlug, []byte("{}"))
+	session := postAppsAsBot(t, base+"/apps/"+id+"/edit-session", b.Token(), appBuilderSlug, []byte("{}"))
 	ch1, _ := session["channel"].(string)
 	if ch1 == "" {
 		t.Fatalf("edit-session returned no channel: %v", session)
@@ -92,7 +92,7 @@ func TestAppEditSessionLazilyMintsChannel(t *testing.T) {
 	}
 
 	// A real App Builder task backs that channel, so a human post there wakes
-	// the agent through the task_followup path (the channel is not a dangling
+	// the bot through the task_followup path (the channel is not a dangling
 	// slug pointing at nothing).
 	b.mu.Lock()
 	var backing *teamTask
@@ -111,7 +111,7 @@ func TestAppEditSessionLazilyMintsChannel(t *testing.T) {
 	}
 
 	// Idempotent: a second open returns the SAME channel and spawns no new task.
-	session2 := postAppsAsAgent(t, base+"/apps/"+id+"/edit-session", b.Token(), appBuilderSlug, []byte("{}"))
+	session2 := postAppsAsBot(t, base+"/apps/"+id+"/edit-session", b.Token(), appBuilderSlug, []byte("{}"))
 	if ch2, _ := session2["channel"].(string); ch2 != ch1 {
 		t.Fatalf("second edit-session returned %q, want the same channel %q", ch2, ch1)
 	}
@@ -128,7 +128,7 @@ func TestAppEditSessionLazilyMintsChannel(t *testing.T) {
 	}
 }
 
-// TestAppEditSessionRestrictedToWriters locks the gate: a random agent holding
+// TestAppEditSessionRestrictedToWriters locks the gate: a random bot holding
 // the broker token must not open an edit session (it spawns an App Builder
 // task); only the App Builder or a human session may.
 func TestAppEditSessionRestrictedToWriters(t *testing.T) {
@@ -142,7 +142,7 @@ func TestAppEditSessionRestrictedToWriters(t *testing.T) {
 	base := fmt.Sprintf("http://%s", b.Addr())
 
 	body, _ := json.Marshal(map[string]any{"name": "Gated Tool", "html": validAppHTML})
-	created := postAppsAsAgent(t, base+"/apps", b.Token(), appBuilderSlug, body)
+	created := postAppsAsBot(t, base+"/apps", b.Token(), appBuilderSlug, body)
 	app, _ := created["app"].(map[string]any)
 	id, _ := app["id"].(string)
 

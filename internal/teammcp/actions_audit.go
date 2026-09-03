@@ -71,7 +71,7 @@ func sanitizeOutcomeError(s string) string {
 
 // outcomeDedupeWindow is how long an identical action outcome counts
 // as "just posted" — within this window, repeated successful execs of
-// the same action by the same agent in the same channel are silenced
+// the same action by the same bot in the same channel are silenced
 // so the channel doesn't fan out into "✅ ✅ ✅" spam. Failures are
 // never deduped (silence-on-failure is the bug we never want).
 const outcomeDedupeWindow = 8 * time.Second
@@ -130,7 +130,7 @@ func brokerPostActionOutcomeMessage(ctx context.Context, channel, actor, content
 
 // brokerPostApprovalAudit ships an audit entry to the broker. Best-effort:
 // errors are swallowed because audit failures must never block the action
-// result from returning to the agent (which is already either committed or
+// result from returning to the bot (which is already either committed or
 // rolled back at this point).
 func brokerPostApprovalAudit(ctx context.Context, entry team.ApprovalAuditEntry) {
 	if strings.TrimSpace(entry.ApprovalRequestID) == "" {

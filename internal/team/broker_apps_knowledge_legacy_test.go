@@ -1,8 +1,8 @@
 package team
 
 // Legacy knowledge preservation: a workspace upgrading from the office-era
-// product keeps its wiki articles (wiki/team/**.md) and per-agent notebook
-// notes (wiki/agents/<agent>/notebook/*.md) as Knowledge pages, verbatim,
+// product keeps its wiki articles (wiki/team/**.md) and per-bot notebook
+// notes (wiki/bots/<bot>/notebook/*.md) as Knowledge pages, verbatim,
 // appended to every knowledge response.
 
 import (
@@ -116,16 +116,16 @@ func TestLoadLegacyKnowledgePages(t *testing.T) {
 		t.Fatalf("decision page = %+v ok=%v (H1 must become the title)", decision, ok)
 	}
 
-	// Notebook notes now share their id scheme with the per-agent Knowledge
-	// surface (loadAgentNotebookPages), so the "legacy-" qualifier is gone: the
+	// Notebook notes now share their id scheme with the per-bot Knowledge
+	// surface (loadBotNotebookPages), so the "legacy-" qualifier is gone: the
 	// same note is the same page whichever surface reads it.
 	note, ok := byID["notebook-"+slugifyKnowledgeID("rag-engineer-papers-survey.md")]
 	if !ok || note.Category != "Notebook · rag-engineer" || note.Title != "RAG papers survey" {
 		t.Fatalf("notebook page = %+v ok=%v", note, ok)
 	}
-	if note.Agent != "rag-engineer" || note.SourcePath != "agents/rag-engineer/notebook/papers-survey.md" {
-		t.Fatalf("notebook page provenance = agent %q source %q, want the owning agent and its note path",
-			note.Agent, note.SourcePath)
+	if note.Bot != "rag-engineer" || note.SourcePath != "agents/rag-engineer/notebook/papers-survey.md" {
+		t.Fatalf("notebook page provenance = bot %q source %q, want the owning bot and its note path",
+			note.Bot, note.SourcePath)
 	}
 
 	// The visual artifact attaches to BOTH owner pages its sidecar names —
@@ -325,7 +325,7 @@ func TestAppKnowledgeIncludesLegacyPages(t *testing.T) {
 		"name": "Upgraded App", "description": "Lives in a workspace with a legacy wiki.",
 		"html": validAppHTML,
 	})
-	created := postAppsAsAgent(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
+	created := postAppsAsBot(t, base+"/apps", b.Token(), appBuilderSlug, regBody)
 	app, _ := created["app"].(map[string]any)
 	id, _ := app["id"].(string)
 	if id == "" {

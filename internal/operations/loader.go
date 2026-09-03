@@ -69,7 +69,7 @@ func normalizeBlueprint(templateID string, blueprint Blueprint) Blueprint {
 	blueprint.Objective = strings.TrimSpace(blueprint.Objective)
 	blueprint.EmployeeBlueprints = normalizeTemplateIDs(blueprint.EmployeeBlueprints)
 	blueprint.Starter = normalizeStarterPlan(blueprint.Starter)
-	blueprint.EmployeeBlueprints = appendUniqueTemplateIDs(blueprint.EmployeeBlueprints, starterEmployeeBlueprintIDs(blueprint.Starter.Agents)...)
+	blueprint.EmployeeBlueprints = appendUniqueTemplateIDs(blueprint.EmployeeBlueprints, starterEmployeeBlueprintIDs(blueprint.Starter.Bots)...)
 	blueprint.DefaultReviewer = strings.TrimSpace(blueprint.DefaultReviewer)
 	blueprint.ReviewerPaths = normalizeReviewerPaths(blueprint.ReviewerPaths)
 	blueprint.Outcome = strings.TrimSpace(blueprint.Outcome)
@@ -166,24 +166,24 @@ func normalizeStarterPlan(plan StarterPlan) StarterPlan {
 	plan.LeadSlug = normalizeTemplateID(plan.LeadSlug)
 	plan.GeneralChannelDescription = strings.TrimSpace(plan.GeneralChannelDescription)
 	plan.KickoffPrompt = strings.TrimSpace(plan.KickoffPrompt)
-	plan.Agents = normalizeStarterAgents(plan.Agents)
+	plan.Bots = normalizeStarterBots(plan.Bots)
 	plan.Channels = normalizeStarterChannels(plan.Channels)
 	plan.Tasks = normalizeStarterTasks(plan.Tasks)
 	return plan
 }
 
-func normalizeStarterAgents(agents []StarterAgent) []StarterAgent {
-	out := make([]StarterAgent, 0, len(agents))
-	for _, agent := range agents {
-		agent.Slug = normalizeTemplateID(agent.Slug)
-		agent.Emoji = strings.TrimSpace(agent.Emoji)
-		agent.Name = strings.TrimSpace(agent.Name)
-		agent.Role = strings.TrimSpace(agent.Role)
-		agent.EmployeeBlueprint = normalizeTemplateID(agent.EmployeeBlueprint)
-		agent.Type = strings.TrimSpace(agent.Type)
-		agent.Personality = strings.TrimSpace(agent.Personality)
-		agent.Expertise = trimStringSlice(agent.Expertise)
-		out = append(out, agent)
+func normalizeStarterBots(bots []StarterBot) []StarterBot {
+	out := make([]StarterBot, 0, len(bots))
+	for _, bot := range bots {
+		bot.Slug = normalizeTemplateID(bot.Slug)
+		bot.Emoji = strings.TrimSpace(bot.Emoji)
+		bot.Name = strings.TrimSpace(bot.Name)
+		bot.Role = strings.TrimSpace(bot.Role)
+		bot.EmployeeBlueprint = normalizeTemplateID(bot.EmployeeBlueprint)
+		bot.Type = strings.TrimSpace(bot.Type)
+		bot.Personality = strings.TrimSpace(bot.Personality)
+		bot.Expertise = trimStringSlice(bot.Expertise)
+		out = append(out, bot)
 	}
 	return out
 }
@@ -245,16 +245,16 @@ func validateBlueprint(repoRoot string, blueprint Blueprint) error {
 	if strings.TrimSpace(blueprint.Name) == "" {
 		return fmt.Errorf("operation blueprint %q name required", blueprint.ID)
 	}
-	if len(blueprint.Starter.Agents) == 0 {
-		return fmt.Errorf("operation blueprint %q starter agents required", blueprint.ID)
+	if len(blueprint.Starter.Bots) == 0 {
+		return fmt.Errorf("operation blueprint %q starter bots required", blueprint.ID)
 	}
 	refs := append([]string(nil), blueprint.EmployeeBlueprints...)
-	for _, agent := range blueprint.Starter.Agents {
-		if strings.TrimSpace(agent.EmployeeBlueprint) == "" && strings.TrimSpace(agent.Name) == "" {
-			return fmt.Errorf("operation blueprint %q starter agent %q requires employee_blueprint or name", blueprint.ID, agent.Slug)
+	for _, bot := range blueprint.Starter.Bots {
+		if strings.TrimSpace(bot.EmployeeBlueprint) == "" && strings.TrimSpace(bot.Name) == "" {
+			return fmt.Errorf("operation blueprint %q starter bot %q requires employee_blueprint or name", blueprint.ID, bot.Slug)
 		}
-		if strings.TrimSpace(agent.EmployeeBlueprint) != "" {
-			refs = append(refs, agent.EmployeeBlueprint)
+		if strings.TrimSpace(bot.EmployeeBlueprint) != "" {
+			refs = append(refs, bot.EmployeeBlueprint)
 		}
 	}
 	refs = normalizeTemplateIDs(refs)
@@ -270,31 +270,31 @@ func validateBlueprint(repoRoot string, blueprint Blueprint) error {
 }
 
 // validateReviewerConfig enforces that every reviewer slug referenced by
-// DefaultReviewer or ReviewerPaths either matches a starter agent slug on
+// DefaultReviewer or ReviewerPaths either matches a starter bot slug on
 // the blueprint or is the sentinel "human-only". Invalid glob patterns in
 // ReviewerPaths keys are also rejected here so misconfigurations surface
 // at load time instead of at promotion time.
 func validateReviewerConfig(blueprint Blueprint) error {
 	file := blueprintYAMLPath(blueprint.ID)
-	agentSlugs := make(map[string]struct{}, len(blueprint.Starter.Agents))
-	for _, agent := range blueprint.Starter.Agents {
-		slug := strings.TrimSpace(agent.Slug)
+	botSlugs := make(map[string]struct{}, len(blueprint.Starter.Bots))
+	for _, bot := range blueprint.Starter.Bots {
+		slug := strings.TrimSpace(bot.Slug)
 		if slug == "" {
 			continue
 		}
-		agentSlugs[slug] = struct{}{}
+		botSlugs[slug] = struct{}{}
 	}
 	validReviewer := func(value string) bool {
 		if value == ReviewerHumanOnly {
 			return true
 		}
-		_, ok := agentSlugs[value]
+		_, ok := botSlugs[value]
 		return ok
 	}
 
 	if value := strings.TrimSpace(blueprint.DefaultReviewer); value != "" {
 		if !validReviewer(value) {
-			return fmt.Errorf("blueprint %s default_reviewer %q does not match any agent slug or %q (file: %s)", blueprint.ID, value, ReviewerHumanOnly, file)
+			return fmt.Errorf("blueprint %s default_reviewer %q does not match any bot slug or %q (file: %s)", blueprint.ID, value, ReviewerHumanOnly, file)
 		}
 	}
 
@@ -311,7 +311,7 @@ func validateReviewerConfig(blueprint Blueprint) error {
 			return fmt.Errorf("blueprint %s reviewer_paths %q has empty reviewer value (file: %s)", blueprint.ID, pattern, file)
 		}
 		if !validReviewer(reviewer) {
-			return fmt.Errorf("blueprint %s reviewer_paths %q reviewer %q does not match any agent slug or %q (file: %s)", blueprint.ID, pattern, reviewer, ReviewerHumanOnly, file)
+			return fmt.Errorf("blueprint %s reviewer_paths %q reviewer %q does not match any bot slug or %q (file: %s)", blueprint.ID, pattern, reviewer, ReviewerHumanOnly, file)
 		}
 	}
 	return nil
@@ -367,11 +367,11 @@ func appendUniqueTemplateIDs(base []string, extras ...string) []string {
 	return out
 }
 
-func starterEmployeeBlueprintIDs(agents []StarterAgent) []string {
-	out := make([]string, 0, len(agents))
-	seen := make(map[string]struct{}, len(agents))
-	for _, agent := range agents {
-		id := normalizeTemplateID(agent.EmployeeBlueprint)
+func starterEmployeeBlueprintIDs(bots []StarterBot) []string {
+	out := make([]string, 0, len(bots))
+	seen := make(map[string]struct{}, len(bots))
+	for _, bot := range bots {
+		id := normalizeTemplateID(bot.EmployeeBlueprint)
 		if id == "" {
 			continue
 		}

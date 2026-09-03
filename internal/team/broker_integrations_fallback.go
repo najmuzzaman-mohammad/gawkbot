@@ -25,13 +25,13 @@ func fallbackRequestDedupeKey(platform, actionID string) string {
 
 // ensureFallbackRequest returns the active handoff card for (platform, action),
 // creating one if none exists. Locks b.mu; callers must not already hold it.
-func (b *Broker) ensureFallbackRequest(platform, actionID, channel, agent, name, logoURL, summary string) string {
+func (b *Broker) ensureFallbackRequest(platform, actionID, channel, bot, name, logoURL, summary string) string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.ensureFallbackRequestLocked(platform, actionID, channel, agent, name, logoURL, summary)
+	return b.ensureFallbackRequestLocked(platform, actionID, channel, bot, name, logoURL, summary)
 }
 
-func (b *Broker) ensureFallbackRequestLocked(platform, actionID, channel, agent, name, logoURL, summary string) string {
+func (b *Broker) ensureFallbackRequestLocked(platform, actionID, channel, bot, name, logoURL, summary string) string {
 	platform = strings.TrimSpace(platform)
 	if platform == "" {
 		return ""
@@ -45,7 +45,7 @@ func (b *Broker) ensureFallbackRequestLocked(platform, actionID, channel, agent,
 		DedupeKey: fallbackRequestDedupeKey(platform, actionID),
 		Platform:  platform,
 		Channel:   channel,
-		Agent:     agent,
+		Bot:       bot,
 		Title:     "Handle " + display + " manually",
 		Question:  fmt.Sprintf("%s can't be automated via Composio. Please complete this manually, then mark it done.", display),
 		Context:   strings.TrimSpace(summary),

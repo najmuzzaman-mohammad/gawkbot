@@ -22,7 +22,7 @@ func (b *Broker) rateLimitMiddleware(next http.Handler) http.Handler {
 
 		// Authenticated callers bypass the IP-scoped bucket (web UI and trusted
 		// tools must not share a bucket with anonymous callers), but authenticated
-		// *agent* traffic is still subject to a separate per-agent bucket below.
+		// *bot* traffic is still subject to a separate per-bot bucket below.
 		if !authenticated {
 			retryAfter, limited := b.consumeRateLimit(clientIPFromRequest(r))
 			if limited {
@@ -33,18 +33,18 @@ func (b *Broker) rateLimitMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Authenticated — check the per-agent bucket so a prompt-injected agent
+		// Authenticated — check the per-bot bucket so a prompt-injected bot
 		// cannot loop forever on team_broadcast / team_action_execute. Operator
-		// traffic (web UI) does not set X-WUPHF-Agent and is exempt.
-		agentSlug := strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
-		if agentSlug == "" || isAgentBucketExemptPath(r.URL.Path) {
+		// traffic (web UI) does not set X-WUPHF-Bot and is exempt.
+		botSlug := strings.TrimSpace(r.Header.Get(botRateLimitHeader))
+		if botSlug == "" || isBotBucketExemptPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		retryAfter, limited := b.consumeAgentRateLimit(agentSlug)
+		retryAfter, limited := b.consumeBotRateLimit(botSlug)
 		if limited {
-			log.Printf("broker: agent %q tripped per-agent rate limit (%d req / %s) on %s — possible runaway loop", agentSlug, b.agentRateLimitRequests, b.agentRateLimitWindow, r.URL.Path)
+			log.Printf("broker: bot %q tripped per-bot rate limit (%d req / %s) on %s — possible runaway loop", botSlug, b.botRateLimitRequests, b.botRateLimitWindow, r.URL.Path)
 			writeRateLimitedResponse(w, retryAfter)
 			return
 		}
@@ -61,11 +61,11 @@ func isLivenessPath(path string) bool {
 	return path == "/health" || path == "/version"
 }
 
-// isAgentBucketExemptPath reports whether the path is an open SSE stream or
+// isBotBucketExemptPath reports whether the path is an open SSE stream or
 // otherwise doesn't represent a tool-call-shaped loopable request. These
 // connections stay open for a long time rather than spinning on request
-// count, so counting them against the agent bucket would be incorrect.
-func isAgentBucketExemptPath(path string) bool {
+// count, so counting them against the bot bucket would be incorrect.
+func isBotBucketExemptPath(path string) bool {
 	if path == "/events" {
 		return true
 	}
@@ -143,23 +143,23 @@ func (b *Broker) consumeRateLimit(clientIP string) (time.Duration, bool) {
 	return 0, false
 }
 
-// consumeAgentRateLimit counts an authenticated request against the per-agent
-// bucket keyed by the X-WUPHF-Agent header. It mirrors consumeRateLimit but
-// lives in its own bucket so agent traffic cannot starve operator traffic and
+// consumeBotRateLimit counts an authenticated request against the per-bot
+// bucket keyed by the X-WUPHF-Bot header. It mirrors consumeRateLimit but
+// lives in its own bucket so bot traffic cannot starve operator traffic and
 // vice versa.
-func (b *Broker) consumeAgentRateLimit(agentSlug string) (time.Duration, bool) {
-	agentSlug = strings.TrimSpace(agentSlug)
-	if agentSlug == "" {
+func (b *Broker) consumeBotRateLimit(botSlug string) (time.Duration, bool) {
+	botSlug = strings.TrimSpace(botSlug)
+	if botSlug == "" {
 		return 0, false
 	}
 
-	limit := b.agentRateLimitRequests
+	limit := b.botRateLimitRequests
 	if limit <= 0 {
-		limit = defaultAgentRateLimitRequestsPerWindow
+		limit = defaultBotRateLimitRequestsPerWindow
 	}
-	window := b.agentRateLimitWindow
+	window := b.botRateLimitWindow
 	if window <= 0 {
-		window = defaultAgentRateLimitWindow
+		window = defaultBotRateLimitWindow
 	}
 
 	now := b.rateLimitNow()
@@ -168,34 +168,34 @@ func (b *Broker) consumeAgentRateLimit(agentSlug string) (time.Duration, bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if b.agentRateLimitBuckets == nil {
-		b.agentRateLimitBuckets = make(map[string]ipRateLimitBucket)
+	if b.botRateLimitBuckets == nil {
+		b.botRateLimitBuckets = make(map[string]ipRateLimitBucket)
 	}
-	if b.lastAgentRateLimitPrune.IsZero() || now.Sub(b.lastAgentRateLimitPrune) >= window {
-		for slug, bucket := range b.agentRateLimitBuckets {
+	if b.lastBotRateLimitPrune.IsZero() || now.Sub(b.lastBotRateLimitPrune) >= window {
+		for slug, bucket := range b.botRateLimitBuckets {
 			bucket.timestamps = pruneRateLimitEntries(bucket.timestamps, cutoff)
 			if len(bucket.timestamps) == 0 {
-				delete(b.agentRateLimitBuckets, slug)
+				delete(b.botRateLimitBuckets, slug)
 				continue
 			}
-			b.agentRateLimitBuckets[slug] = bucket
+			b.botRateLimitBuckets[slug] = bucket
 		}
-		b.lastAgentRateLimitPrune = now
+		b.lastBotRateLimitPrune = now
 	}
 
-	bucket := b.agentRateLimitBuckets[agentSlug]
+	bucket := b.botRateLimitBuckets[botSlug]
 	bucket.timestamps = pruneRateLimitEntries(bucket.timestamps, cutoff)
 	if len(bucket.timestamps) >= limit {
 		retryAfter := bucket.timestamps[0].Add(window).Sub(now)
 		if retryAfter < time.Second {
 			retryAfter = time.Second
 		}
-		b.agentRateLimitBuckets[agentSlug] = bucket
+		b.botRateLimitBuckets[botSlug] = bucket
 		return retryAfter, true
 	}
 
 	bucket.timestamps = append(bucket.timestamps, now)
-	b.agentRateLimitBuckets[agentSlug] = bucket
+	b.botRateLimitBuckets[botSlug] = bucket
 	return 0, false
 }
 

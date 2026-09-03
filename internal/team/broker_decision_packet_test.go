@@ -739,7 +739,7 @@ func TestDecisionApproveFromDraftingTransitionsToRunning(t *testing.T) {
 // a Drafting issue must emit a task_updated office action so the
 // notifyTaskActionsLoop wakes the owner and work actually starts. Before the
 // fix, the transition only posted a From=system lifecycle card (which
-// notifyAgentsLoop drops) and no action, so the owner sat idle until the
+// notifyBotsLoop drops) and no action, so the owner sat idle until the
 // human sent a second message. The action's RelatedID must carry the task ID
 // so taskForAction can resolve the owner.
 func TestDecisionApproveFromDraftingEmitsWakeAction(t *testing.T) {

@@ -213,7 +213,7 @@ func TestIntakeTaskArrivesPreDefined(t *testing.T) {
 			{"statement": "cron entry registered"},
 			{"statement": "digest lands in #team"}
 		],
-		"assignment": "owner-agent picks up"
+		"assignment": "owner-bot picks up"
 	}`
 	provider := &fakeIntakeProvider{response: fenceJSON(body)}
 	outcome, err := b.StartIntake(context.Background(), "automate inbox triage", provider)

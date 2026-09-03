@@ -116,7 +116,7 @@ export function quietForLabel(stalledSince?: string): string | undefined {
  * Ownerless work has no other home on this board: a card reads "Unassigned"
  * one at a time, and nothing says how many there are without scanning every
  * lane. That mattered less when the CEO routed every task and held the whole
- * board in its head. Now that agents file their own work, nobody is watching
+ * board in its head. Now that bots file their own work, nobody is watching
  * for a task nobody picked up.
  *
  * Counted from the tasks the board already fetched, so this needs no field in
@@ -152,9 +152,9 @@ function UnassignedChip({
 const STAGE_HINT: Record<LifecycleStage, string> = {
   scheduled: "Recurring scheduled tasks",
   backlog: "Parked or awaiting staffing",
-  in_progress: "Owner agent working — includes revising",
+  in_progress: "Owner bot working — includes revising",
   blocked: "Waiting on an upstream task, or owner stopped",
-  needs_human: "Decisions, agent questions, and reviews waiting on you",
+  needs_human: "Decisions, bot questions, and reviews waiting on you",
   done: "Landed",
   archive: "Filed away — archived or rejected",
 };
@@ -180,7 +180,7 @@ const TaskCard = memo(function TaskCard({
   // who owns it, and what they're doing right now. Only shown while running;
   // other states are conveyed by the state pill.
   const snapshot = useAppStore((s) =>
-    ownerSlug ? s.agentActivitySnapshots[ownerSlug] : undefined,
+    ownerSlug ? s.botActivitySnapshots[ownerSlug] : undefined,
   );
   const isRunning = activityDotForLifecycleState(state) === "running";
   const activity = isRunning ? snapshot?.activity?.trim() : undefined;
@@ -351,7 +351,7 @@ function attentionSearchText(item: InboxItemRequest | InboxItemReview): string {
   return `${item.title ?? ""} ${item.review.sourceSlug ?? ""} ${item.review.targetPath ?? ""}`;
 }
 
-/** Card for a non-task attention item — a blocking agent request or a
+/** Card for a non-task attention item — a blocking bot request or a
  *  pending review — folded into the "Needs human input" lane when the
  *  standalone Inbox was consolidated into the board. Clicking a request
  *  opens the chat where its InterviewBar answers it; a review opens the

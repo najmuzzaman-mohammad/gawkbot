@@ -10,7 +10,7 @@ import { wikiFileUrl } from "../../../api/wiki";
  * Security: defense in depth. `mermaid.initialize({ securityLevel: "strict" })`
  * disables click handlers + HTML labels and sanitizes its own output, AND we
  * run the rendered SVG through DOMPurify (svg profiles, scripts/foreignObject
- * stripped) — the same posture `RichArtifactEmbed` uses for agent-emitted SVG.
+ * stripped) — the same posture `RichArtifactEmbed` uses for bot-emitted SVG.
  * The sanitized SVG is rendered through an `<img src="data:image/svg+xml,…">`
  * rather than injected as markup, so there is no raw-HTML injection and any
  * script that somehow survived sanitization still cannot execute (browsers never

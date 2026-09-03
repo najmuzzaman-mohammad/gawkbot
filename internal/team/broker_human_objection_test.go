@@ -4,13 +4,13 @@ package team
 // (core-loop grader fix family #1; ICP-eval v2 observations [00:55],
 // [01:04], [01:06]):
 //
-//  1. Request-changes feedback TEXT must reach the agent: the latest
+//  1. Request-changes feedback TEXT must reach the bot: the latest
 //     verdict is stamped on the task (teamTask.ChangesRequested) and
 //     rendered verbatim in the owner's next execution packet and wake
 //     notification — not buried in the Decision Packet feedback log,
 //     which BuildTaskExecutionPacket never reads.
 //  2. An open HUMAN objection (teamTask.HumanObjection) hard-blocks
-//     terminal transitions: approve/complete by ANY agent — the
+//     terminal transitions: approve/complete by ANY bot — the
 //     lead/CEO included, on both the team_task and the
 //     /tasks/{id}/decision paths — fails naming the objection; only a
 //     human approve/complete clears it; a human request_changes
@@ -120,7 +120,7 @@ func TestHumanObjection_AgentApproveBlockedHumanApproveClears(t *testing.T) {
 
 	// Decision-endpoint path: a non-human approve is refused too.
 	if err := b.RecordTaskDecision("task-obj-1", "approve", "ceo"); !errors.Is(err, ErrHumanObjectionOpen) {
-		t.Fatalf("decision-path agent approve: want ErrHumanObjectionOpen, got %v", err)
+		t.Fatalf("decision-path bot approve: want ErrHumanObjectionOpen, got %v", err)
 	}
 	if got := b.TaskByID("task-obj-1"); got == nil || strings.EqualFold(strings.TrimSpace(got.status), "done") {
 		t.Fatalf("task must not land done over an open human objection, got %+v", got)
@@ -170,19 +170,19 @@ func TestHumanObjection_HumanRequestChangesRefreshes(t *testing.T) {
 func TestHumanObjection_AgentRequestChangesDoesNotArmTheGate(t *testing.T) {
 	t.Parallel()
 	b := newObjectionTestBroker(t)
-	const agentFeedback = "Tighten the summary section — it repeats the intro."
+	const botFeedback = "Tighten the summary section — it repeats the intro."
 	if _, err := b.MutateTask(TaskPostRequest{
 		Action: "request_changes", ID: "task-obj-1", Channel: "team",
-		Details: agentFeedback, CreatedBy: "reviewer",
+		Details: botFeedback, CreatedBy: "reviewer",
 	}); err != nil {
-		t.Fatalf("agent request_changes: %v", err)
+		t.Fatalf("bot request_changes: %v", err)
 	}
 	task := b.TaskByID("task-obj-1")
 	if task.ChangesRequested == nil || task.ChangesRequested.Actor != "reviewer" {
-		t.Fatalf("agent verdict must stamp ChangesRequested, got %+v", task.ChangesRequested)
+		t.Fatalf("bot verdict must stamp ChangesRequested, got %+v", task.ChangesRequested)
 	}
 	if task.HumanObjection != nil {
-		t.Fatalf("agent verdict must NOT arm the human-sovereignty gate, got %+v", task.HumanObjection)
+		t.Fatalf("bot verdict must NOT arm the human-sovereignty gate, got %+v", task.HumanObjection)
 	}
 	// Without a human objection the lead can still approve — and the
 	// approve retires the now-stale feedback stamp.
@@ -209,9 +209,9 @@ func TestHumanObjection_DecisionPathStampsAndHumanApproveClears(t *testing.T) {
 	if task.HumanObjection == nil {
 		t.Fatal("decision-path human request_changes must arm the objection")
 	}
-	// Agent approve via the decision path is refused while it stands.
+	// Bot approve via the decision path is refused while it stands.
 	if err := b.RecordTaskDecision("task-obj-1", "approve", "ceo"); !errors.Is(err, ErrHumanObjectionOpen) {
-		t.Fatalf("decision-path agent approve: want ErrHumanObjectionOpen, got %v", err)
+		t.Fatalf("decision-path bot approve: want ErrHumanObjectionOpen, got %v", err)
 	}
 	// Human approve via the decision path clears it.
 	if err := b.RecordTaskDecisionWithComment("task-obj-1", "approve", "", "human"); err != nil {

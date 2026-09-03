@@ -13,21 +13,21 @@ import (
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
-// spawnPost drives POST /slack/agents/spawn directly against the handler.
+// spawnPost drives POST /slack/bots/spawn directly against the handler.
 func spawnPost(t *testing.T, b *Broker, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/slack/agents/spawn", strings.NewReader(body))
 	w := httptest.NewRecorder()
-	b.handleSlackAgentsSpawn(w, req)
+	b.handleSlackBotsSpawn(w, req)
 	return w
 }
 
-// spawnComplete drives POST /slack/agents/spawn/complete directly.
+// spawnComplete drives POST /slack/bots/spawn/complete directly.
 func spawnComplete(t *testing.T, b *Broker, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/slack/agents/spawn/complete", strings.NewReader(body))
 	w := httptest.NewRecorder()
-	b.handleSlackAgentsSpawnComplete(w, req)
+	b.handleSlackBotsSpawnComplete(w, req)
 	return w
 }
 
@@ -55,8 +55,8 @@ func TestHandleSlackAgentsSpawn_ManifestAndGuide(t *testing.T) {
 	if resp.TokenEnv != "WUPHF_SLACK_AGENT_RESEARCHER_TOKEN" {
 		t.Fatalf("token_env = %q", resp.TokenEnv)
 	}
-	// The manifest names the bot after the agent and asks for exactly the
-	// posting scopes — spawned agents only POST as themselves.
+	// The manifest names the bot after the bot and asks for exactly the
+	// posting scopes — spawned bots only POST as themselves.
 	if resp.Manifest.DisplayInformation.Name != "Ress" || resp.Manifest.Features.BotUser.DisplayName != "Ress" {
 		t.Fatalf("manifest bot name = %+v, want Ress", resp.Manifest)
 	}
@@ -87,7 +87,7 @@ func TestHandleSlackAgentsSpawn_ManifestAndGuide(t *testing.T) {
 	// GET lists the pending spawn.
 	req := httptest.NewRequest(http.MethodGet, "/slack/agents/spawn", nil)
 	get := httptest.NewRecorder()
-	b.handleSlackAgentsSpawn(get, req)
+	b.handleSlackBotsSpawn(get, req)
 	if get.Code != http.StatusOK || !strings.Contains(get.Body.String(), `"researcher"`) {
 		t.Fatalf("list = %d %s, want 200 containing researcher", get.Code, get.Body.String())
 	}
@@ -114,27 +114,27 @@ func TestHandleSlackAgentsSpawn_Validation(t *testing.T) {
 	if w := spawnPost(t, b, `{"slug":"ceo"}`); w.Code != http.StatusConflict {
 		t.Fatalf("existing member slug should 409, got %d", w.Code)
 	}
-	// Registered foreign agent → conflict (it is an office member too).
-	if _, err := b.RegisterSlackAgent("claude-bot", "Claude Bot", "U777"); err != nil {
-		t.Fatalf("RegisterSlackAgent: %v", err)
+	// Registered foreign bot → conflict (it is an office member too).
+	if _, err := b.RegisterSlackBot("claude-bot", "Claude Bot", "U777"); err != nil {
+		t.Fatalf("RegisterSlackBot: %v", err)
 	}
 	if w := spawnPost(t, b, `{"slug":"claude-bot"}`); w.Code != http.StatusConflict {
-		t.Fatalf("foreign agent slug should 409, got %d", w.Code)
+		t.Fatalf("foreign bot slug should 409, got %d", w.Code)
 	}
 	// Name-only requests derive the slug (and default the name handling).
-	if w := spawnPost(t, b, `{"name":"Research Agent"}`); w.Code != http.StatusOK {
+	if w := spawnPost(t, b, `{"name":"Research Bot"}`); w.Code != http.StatusOK {
 		t.Fatalf("name-only spawn = %d, body=%s", w.Code, w.Body.String())
 	}
-	if got := b.pendingSlackSpawns(); len(got) != 1 || got[0].Slug != "research-agent" {
-		t.Fatalf("pending = %+v, want one record with slug research-agent", got)
+	if got := b.pendingSlackSpawns(); len(got) != 1 || got[0].Slug != "research-bot" {
+		t.Fatalf("pending = %+v, want one record with slug research-bot", got)
 	}
 }
 
 func TestSlackSpawnPendingSurvivesRestart(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "broker-state.json")
 	b := NewBrokerAt(path)
-	if _, err := b.SpawnSlackAgent("researcher", "Ress", "Research"); err != nil {
-		t.Fatalf("SpawnSlackAgent: %v", err)
+	if _, err := b.SpawnSlackBot("researcher", "Ress", "Research"); err != nil {
+		t.Fatalf("SpawnSlackBot: %v", err)
 	}
 
 	b2 := NewBrokerAt(path)
@@ -156,8 +156,8 @@ func TestCompleteSlackAgentSpawn_CreatesRealOfficeAgent(t *testing.T) {
 		}
 		return "U555", "Ress", nil
 	}
-	if _, err := b.SpawnSlackAgent("researcher", "Ress", "Research"); err != nil {
-		t.Fatalf("SpawnSlackAgent: %v", err)
+	if _, err := b.SpawnSlackBot("researcher", "Ress", "Research"); err != nil {
+		t.Fatalf("SpawnSlackBot: %v", err)
 	}
 	t.Setenv("WUPHF_SLACK_AGENT_RESEARCHER_TOKEN", "bot-token-test-555")
 
@@ -169,7 +169,7 @@ func TestCompleteSlackAgentSpawn_CreatesRealOfficeAgent(t *testing.T) {
 		t.Fatalf("complete body = %s", w.Body.String())
 	}
 
-	// The member is a REAL office agent on the default runtime, carrying its
+	// The member is a REAL office bot on the default runtime, carrying its
 	// Slack identity — NOT a gateway/foreign kind.
 	var member *officeMember
 	for _, m := range b.OfficeMembers() {
@@ -194,14 +194,14 @@ func TestCompleteSlackAgentSpawn_CreatesRealOfficeAgent(t *testing.T) {
 
 	// Spawned ≠ foreign: the echo-guard lookup matches, the ingress
 	// allowlist does NOT (its posts must never re-ingress).
-	if !b.IsSpawnedSlackAgentUserID("U555") {
-		t.Fatal("IsSpawnedSlackAgentUserID(U555) should be true")
+	if !b.IsSpawnedSlackBotUserID("U555") {
+		t.Fatal("IsSpawnedSlackBotUserID(U555) should be true")
 	}
-	if got := b.SlackAgentSlugByUserID("U555"); got != "" {
-		t.Fatalf("SlackAgentSlugByUserID = %q, want empty (not a foreign agent)", got)
+	if got := b.SlackBotSlugByUserID("U555"); got != "" {
+		t.Fatalf("SlackBotSlugByUserID = %q, want empty (not a foreign bot)", got)
 	}
-	if got := b.SpawnedSlackAgentTokenEnv("researcher"); got != "WUPHF_SLACK_AGENT_RESEARCHER_TOKEN" {
-		t.Fatalf("SpawnedSlackAgentTokenEnv = %q", got)
+	if got := b.SpawnedSlackBotTokenEnv("researcher"); got != "WUPHF_SLACK_AGENT_RESEARCHER_TOKEN" {
+		t.Fatalf("SpawnedSlackBotTokenEnv = %q", got)
 	}
 
 	// Pending record is cleared; re-completing is idempotent only via a new
@@ -215,11 +215,11 @@ func TestCompleteSlackAgentSpawn_CreatesRealOfficeAgent(t *testing.T) {
 	if err := b2.loadState(); err != nil {
 		t.Fatalf("loadState: %v", err)
 	}
-	if !b2.IsSpawnedSlackAgentUserID("U555") {
+	if !b2.IsSpawnedSlackBotUserID("U555") {
 		t.Fatal("spawned binding should survive a restart")
 	}
-	if got := b2.SpawnedSlackAgentTokenEnv("researcher"); got != "WUPHF_SLACK_AGENT_RESEARCHER_TOKEN" {
-		t.Fatalf("reloaded SpawnedSlackAgentTokenEnv = %q", got)
+	if got := b2.SpawnedSlackBotTokenEnv("researcher"); got != "WUPHF_SLACK_AGENT_RESEARCHER_TOKEN" {
+		t.Fatalf("reloaded SpawnedSlackBotTokenEnv = %q", got)
 	}
 }
 
@@ -234,8 +234,8 @@ func TestCompleteSlackAgentSpawn_Errors(t *testing.T) {
 		t.Fatalf("missing slug should 400, got %d", w.Code)
 	}
 
-	if _, err := b.SpawnSlackAgent("researcher", "Ress", ""); err != nil {
-		t.Fatalf("SpawnSlackAgent: %v", err)
+	if _, err := b.SpawnSlackBot("researcher", "Ress", ""); err != nil {
+		t.Fatalf("SpawnSlackBot: %v", err)
 	}
 
 	// Env var unset → 409 naming the env var, never a token in the body.
@@ -256,10 +256,10 @@ func TestCompleteSlackAgentSpawn_Errors(t *testing.T) {
 		t.Fatal("failed complete must not create a member")
 	}
 
-	// The discovered user id colliding with a registered FOREIGN agent is
+	// The discovered user id colliding with a registered FOREIGN bot is
 	// rejected — attribution stays one-to-one across both registries.
-	if _, err := b.RegisterSlackAgent("claude-bot", "Claude Bot", "U777"); err != nil {
-		t.Fatalf("RegisterSlackAgent: %v", err)
+	if _, err := b.RegisterSlackBot("claude-bot", "Claude Bot", "U777"); err != nil {
+		t.Fatalf("RegisterSlackBot: %v", err)
 	}
 	b.slackSpawnAuthTest = func(context.Context, string) (string, string, error) {
 		return "U777", "Ress", nil
@@ -282,20 +282,20 @@ func TestRegisterSlackAgent_RejectsSpawnedIdentity(t *testing.T) {
 	b.slackSpawnAuthTest = func(context.Context, string) (string, string, error) {
 		return "U555", "Ress", nil
 	}
-	if _, err := b.SpawnSlackAgent("researcher", "Ress", ""); err != nil {
-		t.Fatalf("SpawnSlackAgent: %v", err)
+	if _, err := b.SpawnSlackBot("researcher", "Ress", ""); err != nil {
+		t.Fatalf("SpawnSlackBot: %v", err)
 	}
 	t.Setenv("WUPHF_SLACK_AGENT_RESEARCHER_TOKEN", "bot-token-test-555")
-	if _, _, err := b.CompleteSlackAgentSpawn(context.Background(), "researcher"); err != nil {
-		t.Fatalf("CompleteSlackAgentSpawn: %v", err)
+	if _, _, err := b.CompleteSlackBotSpawn(context.Background(), "researcher"); err != nil {
+		t.Fatalf("CompleteSlackBotSpawn: %v", err)
 	}
 
 	// A spawned identity cannot be re-registered as FOREIGN — that would
 	// flip its runtime to the gateway kind and break the echo guard.
-	if _, err := b.RegisterSlackAgent("researcher", "Ress", "U555"); err == nil {
+	if _, err := b.RegisterSlackBot("researcher", "Ress", "U555"); err == nil {
 		t.Fatal("registering a spawned slug+user id as foreign must error")
 	}
-	if _, err := b.RegisterSlackAgent("other-bot", "Other", "U555"); err == nil {
+	if _, err := b.RegisterSlackBot("other-bot", "Other", "U555"); err == nil {
 		t.Fatal("registering a spawned user id under another slug must error")
 	}
 	if got := b.MemberProviderKind("researcher"); got == provider.KindSlack {

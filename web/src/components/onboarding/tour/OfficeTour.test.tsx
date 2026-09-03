@@ -75,13 +75,13 @@ describe("OfficeTour navigation", () => {
 
     const primary = screen.getByTestId("office-tour-primary");
 
-    // intro -> agents
+    // intro -> bots
     await user.click(primary);
     expect(
       screen.getByRole("heading", { name: OFFICE_TOUR_COPY.agents.headline }),
     ).toBeInTheDocument();
 
-    // agents -> issues
+    // bots -> issues
     await user.click(screen.getByTestId("office-tour-primary"));
     expect(
       screen.getByRole("heading", { name: OFFICE_TOUR_COPY.issues.headline }),
@@ -101,12 +101,12 @@ describe("OfficeTour navigation", () => {
     const user = userEvent.setup();
     renderTour();
 
-    await user.click(screen.getByTestId("office-tour-primary")); // intro -> agents
+    await user.click(screen.getByTestId("office-tour-primary")); // intro -> bots
     expect(
       screen.getByRole("heading", { name: OFFICE_TOUR_COPY.agents.headline }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByTestId("office-tour-back")); // agents -> intro
+    await user.click(screen.getByTestId("office-tour-back")); // bots -> intro
     expect(
       screen.getByRole("heading", { name: OFFICE_TOUR_COPY.intro.headline }),
     ).toBeInTheDocument();

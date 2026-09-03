@@ -28,7 +28,7 @@ export const Stacked: StoryObj = {
         maxWidth: 360,
       }}
     >
-      {["Agents", "Channels", "Apps", "Tools"].map((label) => (
+      {["Bots", "Channels", "Apps", "Tools"].map((label) => (
         <section
           key={label}
           style={{ display: "flex", flexDirection: "column", gap: 6 }}

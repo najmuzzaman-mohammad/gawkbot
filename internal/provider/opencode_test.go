@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 type opencodeHelperRecord struct {
@@ -89,7 +89,7 @@ func TestCreateOpencodeCLIStreamFnStreamsPlainText(t *testing.T) {
 	defer restore()
 
 	fn := CreateOpencodeCLIStreamFn("ceo")
-	chunks := collectStreamChunks(fn([]agent.Message{
+	chunks := collectStreamChunks(fn([]bot.Message{
 		{Role: "system", Content: "You are the CEO."},
 		{Role: "user", Content: "Ship it."},
 	}, nil))
@@ -122,7 +122,7 @@ func TestCreateOpencodeCLIStreamFnSurfacesMissingBinaryError(t *testing.T) {
 	defer func() { opencodeLookPath = oldLookPath }()
 
 	fn := CreateOpencodeCLIStreamFn("ceo")
-	chunks := collectStreamChunks(fn([]agent.Message{{Role: "user", Content: "hi"}}, nil))
+	chunks := collectStreamChunks(fn([]bot.Message{{Role: "user", Content: "hi"}}, nil))
 	if !hasErrorChunkContaining(chunks, "Opencode CLI not found") {
 		t.Fatalf("expected missing binary error, got %#v", chunks)
 	}

@@ -25,7 +25,7 @@ type fakeMCPOutput struct {
 // and verifies the bridge:
 //   - lists the tool with name + description + schema
 //   - routes Execute() back through MCP CallTool
-//   - returns the tool's text content as the AgentTool's string result
+//   - returns the tool's text content as the BotTool's string result
 //
 // This is the most realistic e2e test we can run for the bridge without
 // spawning the actual `wuphf mcp-team` binary, and it would have caught
@@ -66,9 +66,9 @@ func TestMCPSessionToAgentTools_RoundTripsRealMCPCall(t *testing.T) {
 	}
 	defer session.Close()
 
-	tools, err := mcpSessionToAgentTools(ctx, session)
+	tools, err := mcpSessionToBotTools(ctx, session)
 	if err != nil {
-		t.Fatalf("mcpSessionToAgentTools: %v", err)
+		t.Fatalf("mcpSessionToBotTools: %v", err)
 	}
 	if len(tools) != 1 {
 		t.Fatalf("expected 1 tool, got %d", len(tools))
@@ -103,7 +103,7 @@ func TestMCPSessionToAgentTools_RoundTripsRealMCPCall(t *testing.T) {
 }
 
 // TestMCPSessionToAgentTools_ErrorResultSurfacesAsERROR verifies that
-// when an MCP tool returns IsError, the AgentTool wrapper surfaces the
+// when an MCP tool returns IsError, the BotTool wrapper surfaces the
 // content with an "ERROR:" prefix instead of swallowing it. This is
 // load-bearing for the openai-compat tool loop: the model needs to see
 // that the tool failed so it can self-correct.
@@ -132,7 +132,7 @@ func TestMCPSessionToAgentTools_ErrorResultSurfacesAsERROR(t *testing.T) {
 	}
 	defer session.Close()
 
-	tools, err := mcpSessionToAgentTools(ctx, session)
+	tools, err := mcpSessionToBotTools(ctx, session)
 	if err != nil || len(tools) != 1 {
 		t.Fatalf("setup: err=%v len=%d", err, len(tools))
 	}
@@ -150,7 +150,7 @@ func TestMCPSessionToAgentTools_ErrorResultSurfacesAsERROR(t *testing.T) {
 }
 
 // TestMCPSessionToAgentTools_MultiToolFanOut sanity-checks that all
-// registered tools end up in the AgentTool slice with stable identity.
+// registered tools end up in the BotTool slice with stable identity.
 // Catches any future bug where the loop short-circuits on the first
 // result page or mishandles concurrent CallTool invocations.
 func TestMCPSessionToAgentTools_MultiToolFanOut(t *testing.T) {
@@ -174,7 +174,7 @@ func TestMCPSessionToAgentTools_MultiToolFanOut(t *testing.T) {
 	}
 	defer session.Close()
 
-	tools, err := mcpSessionToAgentTools(ctx, session)
+	tools, err := mcpSessionToBotTools(ctx, session)
 	if err != nil {
 		t.Fatalf("bridge: %v", err)
 	}

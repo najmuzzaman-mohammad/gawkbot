@@ -19,10 +19,10 @@ Tutorials cover five scenarios from the demo script:
 | # | Scenario | Files |
 |---|---|---|
 | 1 | Install + first look | `01a-alex-first-install.md`, `01b-jordan-first-install.md` |
-| 2 | Drop a goal — agents coordinate | `02a-sam-onboarding-goal.md`, `02b-riley-build-flag.md` |
+| 2 | Drop a goal — bots coordinate | `02a-sam-onboarding-goal.md`, `02b-riley-build-flag.md` |
 | 3 | Autonomous work surfaces a blocker | `03a-alex-svg-blocker.md`, `03b-morgan-asset-pipeline.md` |
-| 4 | Configure agents + packs | `04a-sam-fork-and-swap.md`, `04b-morgan-custom-pack.md` |
-| 5 | Day 2 — agents remember context | `05a-alex-postmortem.md`, `05b-jordan-day-two-recall.md` |
+| 4 | Configure bots + packs | `04a-sam-fork-and-swap.md`, `04b-morgan-custom-pack.md` |
+| 5 | Day 2 — bots remember context | `05a-alex-postmortem.md`, `05b-jordan-day-two-recall.md` |
 | share | Invite a team member | `share-with-team-member.md` |
 
 The five named personas are:

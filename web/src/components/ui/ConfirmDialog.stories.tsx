@@ -47,7 +47,7 @@ export const Playground: StoryObj = {
               <ul style={{ marginTop: 8, paddingLeft: 18 }}>
                 <li>All channels and messages</li>
                 <li>All wiki entries</li>
-                <li>All agent state</li>
+                <li>All bot state</li>
               </ul>
             ),
             confirmLabel: "Delete forever",

@@ -1,7 +1,7 @@
 /**
  * Which avatar system the product draws.
  *
- * "blob" is the shipped look: a per-agent silhouette with the eyes punched out
+ * "blob" is the shipped look: a per-bot silhouette with the eyes punched out
  * of it. "sprite" is the previous pixel-character portrait system, kept whole
  * and reachable so reverting is this one constant rather than a revert commit.
  *

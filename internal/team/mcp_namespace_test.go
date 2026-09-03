@@ -136,19 +136,19 @@ func TestBuildMCPServerMapRegistersEveryLegacyKey(t *testing.T) {
 	}
 }
 
-func TestAgentMCPServersReturnsEveryLegacyKey(t *testing.T) {
+func TestBotMCPServersReturnsEveryLegacyKey(t *testing.T) {
 	const legacy = "wuphf-office-legacy-probe"
 	withLegacyKeyForTest(t, legacy)
 
-	// Both branches: the DM/coding-agent minimal set and the full set.
+	// Both branches: the DM/coding-bot minimal set and the full set.
 	t.Setenv("WUPHF_CHANNEL", DMSlugFor("ceo"))
-	dm := agentMCPServers("pm")
+	dm := botMCPServers("pm")
 	if !containsString(dm, ServerKey) || !containsString(dm, legacy) {
 		t.Errorf("DM branch returned %v, want both %q and %q", dm, ServerKey, legacy)
 	}
 
 	t.Setenv("WUPHF_CHANNEL", "product")
-	full := agentMCPServers("pm")
+	full := botMCPServers("pm")
 	if !containsString(full, ServerKey) || !containsString(full, legacy) {
 		t.Errorf("full branch returned %v, want both %q and %q", full, ServerKey, legacy)
 	}

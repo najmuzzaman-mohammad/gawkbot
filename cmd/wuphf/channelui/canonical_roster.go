@@ -1,6 +1,6 @@
 package channelui
 
-// canonicalRosterSlugs is the eight-agent office roster in display
+// canonicalRosterSlugs is the eight-bot office roster in display
 // order. It is the single source of truth for "the built-in slugs we
 // know about". Accessed via CanonicalRosterSlugs() so callers receive
 // a defensive copy and can't reorder or extend the canonical sequence
@@ -20,7 +20,7 @@ var canonicalRosterSlugs = []string{
 	"cro",
 }
 
-// CanonicalRosterSlugs returns a copy of the eight-agent built-in
+// CanonicalRosterSlugs returns a copy of the eight-bot built-in
 // roster in display order. Callers may freely mutate the returned
 // slice without affecting the canonical sequence.
 func CanonicalRosterSlugs() []string {

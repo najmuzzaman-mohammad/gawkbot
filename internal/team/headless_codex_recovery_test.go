@@ -36,7 +36,7 @@ func waitForTurnError(t *testing.T, ch <-chan error) error {
 
 // newOfficeModeTaskForTest creates a plain office-execution task owned by the
 // app-builder (the live persona the incident hit). The owner is deliberately
-// NOT a codingAgentSlugs member and the title carries no external-integration
+// NOT a codingBotSlugs member and the title carries no external-integration
 // keywords, so neither the durability guard nor the external-action rules
 // interfere with the queue behavior under test.
 func newOfficeModeTaskForTest(t *testing.T, b *Broker) teamTask {
@@ -141,7 +141,7 @@ func TestHeadlessQueueRetriesOfficeTurnAfterTransientProviderError(t *testing.T)
 	// task-scoped channel /apps/{id}/activity serves): one HeadlessEvent of
 	// type "reconnecting" — an exact wire contract with the web feed — with
 	// a turn_id and a short human note.
-	lines := b.AgentStream("app-builder").recentTask(task.ID)
+	lines := b.BotStream("app-builder").recentTask(task.ID)
 	sawReconnecting := false
 	for _, line := range lines {
 		if !strings.Contains(line, `"type":"reconnecting"`) {
@@ -207,7 +207,7 @@ func TestHeadlessQueueDoesNotRetryOfficeTurnAfterNonTransientError(t *testing.T)
 		t.Fatalf("expected non-transient failure to keep the BlockTask recovery path, got status=%s blocked=%v", updated.Status(), updated.Blocked())
 	}
 
-	for _, line := range b.AgentStream("cmo").recentTask(task.ID) {
+	for _, line := range b.BotStream("cmo").recentTask(task.ID) {
 		if strings.Contains(line, `"type":"reconnecting"`) {
 			t.Fatalf("expected no reconnecting event for a non-transient failure, got %q", line)
 		}
@@ -284,7 +284,7 @@ func TestRecoverTimedOutHeadlessTurnRequeuesAppBuilderBuild(t *testing.T) {
 	l.broker = b
 
 	turn := headlessCodexTurn{
-		Prompt:  "Build the Chase Agent app for #" + task.ID,
+		Prompt:  "Build the Chase Bot app for #" + task.ID,
 		Channel: task.Channel,
 		TaskID:  task.ID,
 	}

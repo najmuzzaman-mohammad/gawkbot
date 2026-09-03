@@ -85,7 +85,7 @@ func normalizeTaskDefinition(in *TaskDefinition, now string) (*TaskDefinition, e
 }
 
 // definitionPlaceholderRegex matches bracketed-uppercase placeholders an
-// agent left in a definition field instead of asking — "[CONTACT NAME]",
+// bot left in a definition field instead of asking — "[CONTACT NAME]",
 // "[NEEDS CONFIRMATION: ARR]", "[TBD]". Requiring an ALL-CAPS opener keeps
 // ordinary markdown links ("[Q4 brief](…)") out of the match.
 var definitionPlaceholderRegex = regexp.MustCompile(`\[[A-Z][A-Z0-9 _:,'%$.-]*`)

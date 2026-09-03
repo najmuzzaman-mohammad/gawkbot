@@ -27,7 +27,7 @@ func TestMemberSpecFromEmployeeBlueprint_DomainExpertise(t *testing.T) {
 		Tools:            []string{"spreadsheet"},
 		ExpectedResults:  []string{"balanced books"},
 	}
-	starter := operations.StarterAgent{
+	starter := operations.StarterBot{
 		Slug:      "bookkeeper",
 		Name:      "Bookkeeper",
 		Type:      "specialist",
@@ -73,7 +73,7 @@ func TestMemberSpecFromEmployeeBlueprint_DomainTools(t *testing.T) {
 		Tools:            []string{"zapier", "n8n", "make"},
 		ExpectedResults:  []string{"working automation"},
 	}
-	starter := operations.StarterAgent{
+	starter := operations.StarterBot{
 		Slug: "workflow-builder",
 		Name: "Workflow Builder",
 		Type: "specialist",
@@ -94,10 +94,10 @@ func TestMemberSpecFromEmployeeBlueprint_DomainTools(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Regression Tests: Curated blueprint agent count
+// Regression Tests: Curated blueprint bot count
 // ---------------------------------------------------------------------------
 
-func TestCuratedBlueprintAgentCount(t *testing.T) {
+func TestCuratedBlueprintBotCount(t *testing.T) {
 	repoRoot := testRepoRoot(t)
 	ids := operationFixtureIDs(t, repoRoot)
 	if len(ids) == 0 {
@@ -109,9 +109,9 @@ func TestCuratedBlueprintAgentCount(t *testing.T) {
 			if err != nil {
 				t.Skipf("blueprint %s cannot load yet (likely needs employee blueprint migration): %v", id, err)
 			}
-			// Regression: every curated blueprint should have at least 4 agents
-			if got := len(bp.Starter.Agents); got < 4 {
-				t.Fatalf("blueprint %s has only %d agents, expected >= 4", id, got)
+			// Regression: every curated blueprint should have at least 4 bots
+			if got := len(bp.Starter.Bots); got < 4 {
+				t.Fatalf("blueprint %s has only %d bots, expected >= 4", id, got)
 			}
 		})
 	}
@@ -140,31 +140,31 @@ func TestDomainBlueprintEnrichment(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Regression Tests: StarterAgent JSON roundtrip
+// Regression Tests: StarterBot JSON roundtrip
 // ---------------------------------------------------------------------------
 
 func TestOperationBootstrapProjection(t *testing.T) {
-	agent := operations.StarterAgent{
+	bot := operations.StarterBot{
 		Slug:      "test-agent",
-		Name:      "Test Agent",
+		Name:      "Test Bot",
 		Role:      "testing",
 		Type:      "specialist",
 		Checked:   true,
 		Expertise: []string{"testing", "validation"},
 	}
-	data, err := json.Marshal(agent)
+	data, err := json.Marshal(bot)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	var restored operations.StarterAgent
+	var restored operations.StarterBot
 	if err := json.Unmarshal(data, &restored); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
 	if restored.Slug != "test-agent" {
-		t.Fatalf("expected slug=test-agent after roundtrip, got %q", restored.Slug)
+		t.Fatalf("expected slug=test-bot after roundtrip, got %q", restored.Slug)
 	}
-	if restored.Name != "Test Agent" {
-		t.Fatalf("expected name=Test Agent after roundtrip, got %q", restored.Name)
+	if restored.Name != "Test Bot" {
+		t.Fatalf("expected name=Test Bot after roundtrip, got %q", restored.Name)
 	}
 	if !restored.Checked {
 		t.Fatal("expected checked=true after roundtrip")

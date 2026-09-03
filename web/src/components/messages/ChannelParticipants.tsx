@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { OfficeMember } from "../../api/client";
 import { post } from "../../api/client";
 import { useChannelMembers, useOfficeMembers } from "../../hooks/useMembers";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 import { humanizeActivity } from "../../lib/humanizeActivity";
 import { useAppStore } from "../../stores/app";
 import { PixelAvatar } from "../ui/PixelAvatar";
@@ -21,7 +21,7 @@ function isHumanMember(slug: string): boolean {
 function memberDisplayName(member: OfficeMember): string {
   const name = member.name?.trim();
   if (name) return name;
-  return formatAgentName(member.slug);
+  return formatBotName(member.slug);
 }
 
 // Live activity strings can leak raw runtime internals — MCP tool ids,
@@ -127,7 +127,7 @@ function AddParticipantMenu({
     >
       {agents.length === 0 ? (
         <div className="channel-participants-empty">
-          All agents are already here
+          All bots are already here
         </div>
       ) : (
         agents.map((member) => {
@@ -148,7 +148,7 @@ function AddParticipantMenu({
               <span className="channel-participant-body">
                 <span className="channel-participant-name">{displayName}</span>
                 <span className="channel-participant-role">
-                  {member.role || "Agent"}
+                  {member.role || "Bot"}
                 </span>
               </span>
               <span
@@ -168,14 +168,14 @@ function AddParticipantMenu({
 interface ParticipantRowProps {
   member: OfficeMember;
   pendingAction: string | null;
-  onOpenAgent: (slug: string) => void;
+  onOpenBot: (slug: string) => void;
   onUpdate: (member: OfficeMember, action: ChannelMemberAction) => void;
 }
 
 function ParticipantRow({
   member,
   pendingAction,
-  onOpenAgent,
+  onOpenBot,
   onUpdate,
 }: ParticipantRowProps) {
   const displayName = memberDisplayName(member);
@@ -192,8 +192,8 @@ function ParticipantRow({
       <button
         type="button"
         className="channel-participant-main"
-        onClick={() => onOpenAgent(member.slug)}
-        aria-label={`Open agent panel for ${displayName}`}
+        onClick={() => onOpenBot(member.slug)}
+        aria-label={`Open bot panel for ${displayName}`}
       >
         <span className="channel-participant-avatar">
           <PixelAvatar slug={member.slug} size={24} />
@@ -217,7 +217,7 @@ function ParticipantRow({
           disabled={pending || isLead}
           title={
             isLead
-              ? "Lead agents stay enabled in every channel"
+              ? "Lead bots stay enabled in every channel"
               : `${nextAction === "enable" ? "Enable" : "Disable"} ${displayName}`
           }
         >
@@ -231,7 +231,7 @@ function ParticipantRow({
           aria-label={`Remove ${displayName} from channel`}
           title={
             isLead
-              ? "Lead agents stay in every channel"
+              ? "Lead bots stay in every channel"
               : `Remove ${displayName} from this channel`
           }
         >
@@ -248,7 +248,7 @@ export function ChannelParticipants({ channelSlug }: ChannelParticipantsProps) {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const { data: members = [], isLoading } = useChannelMembers(channelSlug);
   const { data: officeMembers = [] } = useOfficeMembers();
-  const setActiveAgentSlug = useAppStore((s) => s.setActiveAgentSlug);
+  const setActiveBotSlug = useAppStore((s) => s.setActiveBotSlug);
   const profileBySlug = new Map(
     officeMembers.map((member) => [member.slug, member]),
   );
@@ -257,7 +257,7 @@ export function ChannelParticipants({ channelSlug }: ChannelParticipantsProps) {
     .filter((member) => member.slug && !isHumanMember(member.slug))
     .map((member) => mergeMemberProfile(member, profileBySlug.get(member.slug)))
     .sort(sortParticipants);
-  const availableAgents = officeMembers
+  const availableBots = officeMembers
     .filter(
       (member) =>
         member.slug &&
@@ -339,8 +339,8 @@ export function ChannelParticipants({ channelSlug }: ChannelParticipantsProps) {
           <div className="channel-participants-title">Participants</div>
           <div className="channel-participants-subtitle">
             {isLoading
-              ? "Loading agents"
-              : `${agents.length} ${agents.length === 1 ? "agent" : "agents"}`}
+              ? "Loading bots"
+              : `${agents.length} ${agents.length === 1 ? "bot" : "bots"}`}
           </div>
         </div>
         <button
@@ -358,7 +358,7 @@ export function ChannelParticipants({ channelSlug }: ChannelParticipantsProps) {
 
       {addOpen ? (
         <AddParticipantMenu
-          agents={availableAgents}
+          agents={availableBots}
           channelSlug={channelSlug}
           pendingAction={pendingAction}
           onAdd={(member) => updateChannelMember(member, "add")}
@@ -371,14 +371,14 @@ export function ChannelParticipants({ channelSlug }: ChannelParticipantsProps) {
             key={member.slug}
             member={member}
             pendingAction={pendingAction}
-            onOpenAgent={setActiveAgentSlug}
+            onOpenBot={setActiveBotSlug}
             onUpdate={updateChannelMember}
           />
         ))}
 
         {!isLoading && agents.length === 0 ? (
           <div className="channel-participants-empty">
-            No agents in this channel
+            No bots in this channel
           </div>
         ) : null}
       </div>

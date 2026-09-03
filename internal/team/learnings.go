@@ -3,7 +3,7 @@ package team
 // learnings.go is the typed, wiki-backed memory layer for reusable team
 // learnings. It complements playbooks: playbooks stay procedural, while
 // learnings are scoped, searchable observations that can be retrieved before
-// future agent work.
+// future bot work.
 
 import (
 	"bufio"
@@ -69,7 +69,7 @@ const (
 	LearningSourceInferred   LearningSource = "inferred"
 	LearningSourceExecution  LearningSource = "execution"
 	LearningSourceSynthesis  LearningSource = "synthesis"
-	LearningSourceCrossAgent LearningSource = "cross-agent"
+	LearningSourceCrossBot   LearningSource = "cross-agent"
 	LearningSourceCrossModel LearningSource = "cross-model"
 )
 
@@ -80,7 +80,7 @@ func ValidLearningSources() []LearningSource {
 		LearningSourceInferred,
 		LearningSourceExecution,
 		LearningSourceSynthesis,
-		LearningSourceCrossAgent,
+		LearningSourceCrossBot,
 		LearningSourceCrossModel,
 	}
 }
@@ -159,7 +159,7 @@ func ValidateLearningInput(rec LearningRecord) error {
 		return fmt.Errorf("confidence must be between 1 and 10; got %d", rec.Confidence)
 	}
 	if !isValidLearningSource(rec.Source) {
-		return fmt.Errorf("source must be one of user-stated|observed|inferred|execution|synthesis|cross-agent|cross-model; got %q", rec.Source)
+		return fmt.Errorf("source must be one of user-stated|observed|inferred|execution|synthesis|cross-bot|cross-model; got %q", rec.Source)
 	}
 	scope := strings.TrimSpace(rec.Scope)
 	if scope == "" {
@@ -193,7 +193,7 @@ func (l *LearningLog) Append(ctx context.Context, rec LearningRecord) (LearningR
 // AppendVerified appends a learning whose trust derives from a broker-run
 // machine verification (task_distill.go, U4.1) rather than from the
 // author's claim. In-package callers only: no MCP or HTTP surface reaches
-// this path, so agents cannot mint trusted records by asserting
+// this path, so bots cannot mint trusted records by asserting
 // source=execution — Append's source-based trust reset still governs every
 // externally reachable write.
 func (l *LearningLog) AppendVerified(ctx context.Context, rec LearningRecord) (LearningRecord, error) {

@@ -9,15 +9,15 @@ import (
 )
 
 // RenderUsageStrip renders the "Spend by teammate" strip below the
-// office feed: one pill per agent showing avatar, formatted token
-// count, and dollar cost. Agents are ordered by appearance in members
+// office feed: one pill per bot showing avatar, formatted token
+// count, and dollar cost. Bots are ordered by appearance in members
 // first (preserving channel order), then by the canonical office
-// roster, then any remaining usage.Agents entries sorted alphabetically
+// roster, then any remaining usage.Bots entries sorted alphabetically
 // (so dynamic / unrostered slugs render in stable order).
-// Returns "" when there are no agents tracked or width is below the
+// Returns "" when there are no bots tracked or width is below the
 // 40-column readability floor.
 func RenderUsageStrip(usage UsageState, members []Member, width int) string {
-	if len(usage.Agents) == 0 || width < 40 {
+	if len(usage.Bots) == 0 || width < 40 {
 		return ""
 	}
 
@@ -28,19 +28,19 @@ func RenderUsageStrip(usage UsageState, members []Member, width int) string {
 		if slug == "" {
 			continue
 		}
-		if _, ok := usage.Agents[slug]; ok && !seen[slug] {
+		if _, ok := usage.Bots[slug]; ok && !seen[slug] {
 			ordered = append(ordered, slug)
 			seen[slug] = true
 		}
 	}
 	for _, slug := range canonicalRosterSlugs {
-		if _, ok := usage.Agents[slug]; ok && !seen[slug] {
+		if _, ok := usage.Bots[slug]; ok && !seen[slug] {
 			ordered = append(ordered, slug)
 			seen[slug] = true
 		}
 	}
 	var rest []string
-	for slug := range usage.Agents {
+	for slug := range usage.Bots {
 		if strings.TrimSpace(slug) == "" || seen[slug] {
 			continue
 		}
@@ -56,11 +56,11 @@ func RenderUsageStrip(usage UsageState, members []Member, width int) string {
 
 	var pills []string
 	for _, slug := range ordered {
-		totals := usage.Agents[slug]
+		totals := usage.Bots[slug]
 		if totals.TotalTokens == 0 && totals.CostUsd == 0 {
 			continue
 		}
-		label := fmt.Sprintf("%s %s · %s", AgentAvatar(slug), FormatTokenCount(totals.TotalTokens), FormatUSD(totals.CostUsd))
+		label := fmt.Sprintf("%s %s · %s", BotAvatar(slug), FormatTokenCount(totals.TotalTokens), FormatUSD(totals.CostUsd))
 		pills = append(pills, pillStyle.Render(label))
 	}
 	if len(pills) == 0 {

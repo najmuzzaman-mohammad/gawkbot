@@ -1,6 +1,6 @@
 /**
  * SidebarSectionHeader — the title bar used by every collapsible sidebar
- * section. One shared shape for AGENTS / CHANNELS / ISSUES / TOOLS so the
+ * section. One shared shape for BOTS / CHANNELS / ISSUES / TOOLS so the
  * label styling, chevron, hit target, focus ring, and a11y semantics stay
  * identical across sections.
  *

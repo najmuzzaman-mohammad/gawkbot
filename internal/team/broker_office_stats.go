@@ -13,7 +13,7 @@ import (
 // Motivation (ten-out-of-ten C1): each surface used to derive its own
 // counts from its own list query with its own bucketing predicate —
 // "header blocked=1 vs board Blocked 0", "wiki 0 articles vs 19",
-// "6 active while every agent reads waiting". This endpoint computes
+// "6 active while every bot reads waiting". This endpoint computes
 // every number from the same indexes the list endpoints read, in one
 // b.mu lock pass for broker state, so the numbers cannot drift between
 // surfaces that consume it.
@@ -68,10 +68,10 @@ type OfficeStats struct {
 	// WikiArticles counts curated wiki articles with the same filter
 	// rules /wiki/catalog applies. Zero when the wiki worker is off.
 	WikiArticles int `json:"wiki_articles"`
-	// AgentsActive counts roster agents whose live activity snapshot
+	// BotsActive counts roster bots whose live activity snapshot
 	// reports a working status (same derivation /office-members uses).
-	AgentsActive int    `json:"agents_active"`
-	GeneratedAt  string `json:"generated_at"`
+	BotsActive  int    `json:"agents_active"`
+	GeneratedAt string `json:"generated_at"`
 }
 
 // isBoardSpecTask mirrors the frontend board filter
@@ -179,12 +179,12 @@ func inboxItemNeedsAttention(item InboxItem) bool {
 }
 
 // computeOfficeTaskAndRequestStats fills the task buckets, request
-// split, and active-agent count in a single b.mu pass over the same
+// split, and active-bot count in a single b.mu pass over the same
 // slices /tasks, /requests, and /office-members serve.
 func (b *Broker) computeOfficeTaskAndRequestStats(viewerSlug string) (OfficeStatsTasks, OfficeStatsRequests, int) {
 	var tasks OfficeStatsTasks
 	var requests OfficeStatsRequests
-	agentsActive := 0
+	botsActive := 0
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -255,11 +255,11 @@ func (b *Broker) computeOfficeTaskAndRequestStats(viewerSlug string) (OfficeStat
 		}
 		status := strings.ToLower(b.memberLiveStatusLocked(member.Slug, now))
 		if status != "" && status != "idle" && status != "offline" {
-			agentsActive++
+			botsActive++
 		}
 	}
 
-	return tasks, requests, agentsActive
+	return tasks, requests, botsActive
 }
 
 // handleOfficeStats serves GET /office/stats.
@@ -279,7 +279,7 @@ func (b *Broker) handleOfficeStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var stats OfficeStats
-	stats.Tasks, stats.Requests, stats.AgentsActive = b.computeOfficeTaskAndRequestStats(viewerSlug)
+	stats.Tasks, stats.Requests, stats.BotsActive = b.computeOfficeTaskAndRequestStats(viewerSlug)
 
 	// Inbox attention rides the same fan-out /inbox/items serves (the
 	// helpers take their own short b.mu passes). Errors degrade to zero

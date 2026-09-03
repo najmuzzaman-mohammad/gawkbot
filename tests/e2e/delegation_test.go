@@ -3,71 +3,71 @@ package e2e
 import (
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/orchestration"
 )
 
-// fakeResolver returns a StreamFnResolver that maps agent slugs to canned responses.
-func fakeResolver(responses map[string]string) agent.StreamFnResolver {
-	return func(slug string) agent.StreamFn {
-		return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-			ch := make(chan agent.StreamChunk, 2)
+// fakeResolver returns a StreamFnResolver that maps bot slugs to canned responses.
+func fakeResolver(responses map[string]string) bot.StreamFnResolver {
+	return func(slug string) bot.StreamFn {
+		return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+			ch := make(chan bot.StreamChunk, 2)
 			go func() {
 				defer close(ch)
 				resp := responses[slug]
 				if resp == "" {
 					resp = "done"
 				}
-				ch <- agent.StreamChunk{Type: "text", Content: resp}
+				ch <- bot.StreamChunk{Type: "text", Content: resp}
 			}()
 			return ch
 		}
 	}
 }
 
-// fakeErrorResolver returns a StreamFnResolver where every agent gets an error chunk.
-func fakeErrorResolver(errMsg string) agent.StreamFnResolver {
-	return func(slug string) agent.StreamFn {
-		return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-			ch := make(chan agent.StreamChunk, 1)
+// fakeErrorResolver returns a StreamFnResolver where every bot gets an error chunk.
+func fakeErrorResolver(errMsg string) bot.StreamFnResolver {
+	return func(slug string) bot.StreamFn {
+		return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+			ch := make(chan bot.StreamChunk, 1)
 			go func() {
 				defer close(ch)
-				ch <- agent.StreamChunk{Type: "error", Content: errMsg}
+				ch <- bot.StreamChunk{Type: "error", Content: errMsg}
 			}()
 			return ch
 		}
 	}
 }
 
-// newTestAgentService creates an AgentService with fake resolver and temp session store,
-// bootstraps agents from the founding-team pack, and returns the service + pack.
-func newTestAgentService(t *testing.T, resolver agent.StreamFnResolver) (*agent.AgentService, *agent.PackDefinition) {
-	return newTestAgentServiceWithStart(t, resolver, true)
+// newTestBotService creates a BotService with fake resolver and temp session store,
+// bootstraps bots from the founding-team pack, and returns the service + pack.
+func newTestBotService(t *testing.T, resolver bot.StreamFnResolver) (*bot.BotService, *bot.PackDefinition) {
+	return newTestBotServiceWithStart(t, resolver, true)
 }
 
-func newTestAgentServiceWithStart(t *testing.T, resolver agent.StreamFnResolver, start bool) (*agent.AgentService, *agent.PackDefinition) {
+func newTestBotServiceWithStart(t *testing.T, resolver bot.StreamFnResolver, start bool) (*bot.BotService, *bot.PackDefinition) {
 	t.Helper()
 	dir := t.TempDir()
-	sessions := agent.NewSessionStoreAt(dir)
+	sessions := bot.NewSessionStoreAt(dir)
 
-	svc := agent.NewAgentService(
-		agent.WithStreamFnResolver(resolver),
-		agent.WithSessionStore(sessions),
+	svc := bot.NewBotService(
+		bot.WithStreamFnResolver(resolver),
+		bot.WithSessionStore(sessions),
 	)
 
-	pack := agent.GetPack("founding-team")
+	pack := bot.GetPack("founding-team")
 	if pack == nil {
 		t.Fatal("founding-team pack not found")
 		return nil, nil
 	}
 
-	for _, cfg := range pack.Agents {
+	for _, cfg := range pack.Bots {
 		if _, err := svc.Create(cfg); err != nil {
-			t.Fatalf("create agent %s: %v", cfg.Slug, err)
+			t.Fatalf("create bot %s: %v", cfg.Slug, err)
 		}
 		if start {
 			if err := svc.Start(cfg.Slug); err != nil {
-				t.Fatalf("start agent %s: %v", cfg.Slug, err)
+				t.Fatalf("start bot %s: %v", cfg.Slug, err)
 			}
 		}
 	}
@@ -85,7 +85,7 @@ func TestFullDelegationFlow(t *testing.T) {
 		"be":  "API endpoints created.",
 	}
 
-	svc, pack := newTestAgentService(t, fakeResolver(responses))
+	svc, pack := newTestBotService(t, fakeResolver(responses))
 	delegator := orchestration.NewDelegator(3)
 
 	// Steer team-lead (ceo) with a directive.
@@ -93,10 +93,10 @@ func TestFullDelegationFlow(t *testing.T) {
 		t.Fatalf("steer ceo: %v", err)
 	}
 
-	// Tick the CEO agent through its full cycle: idle → build_context → stream_llm → done.
-	ceoAgent, ok := svc.Get("ceo")
+	// Tick the CEO bot through its full cycle: idle → build_context → stream_llm → done.
+	ceoBot, ok := svc.Get("ceo")
 	if !ok {
-		t.Fatal("ceo agent not found")
+		t.Fatal("ceo bot not found")
 	}
 
 	// We also need a follow-up so the loop has user content to process.
@@ -106,23 +106,23 @@ func TestFullDelegationFlow(t *testing.T) {
 
 	// Tick until done or error (max 10 ticks to avoid infinite loop).
 	for i := 0; i < 10; i++ {
-		if err := ceoAgent.Loop.Tick(); err != nil {
+		if err := ceoBot.Loop.Tick(); err != nil {
 			t.Fatalf("ceo tick %d: %v", i, err)
 		}
-		state := ceoAgent.Loop.GetState()
-		if state.Phase == agent.PhaseDone || state.Phase == agent.PhaseError {
+		state := ceoBot.Loop.GetState()
+		if state.Phase == bot.PhaseDone || state.Phase == bot.PhaseError {
 			break
 		}
 	}
 
-	ceoState := ceoAgent.Loop.GetState()
-	if ceoState.Phase != agent.PhaseDone {
+	ceoState := ceoBot.Loop.GetState()
+	if ceoState.Phase != bot.PhaseDone {
 		t.Fatalf("expected ceo phase done, got %s (error: %s)", ceoState.Phase, ceoState.Error)
 	}
 
 	// Extract delegations from the team-lead response.
-	knownSlugs := make([]string, 0, len(pack.Agents))
-	for _, cfg := range pack.Agents {
+	knownSlugs := make([]string, 0, len(pack.Bots))
+	for _, cfg := range pack.Bots {
 		if cfg.Slug != pack.LeadSlug {
 			knownSlugs = append(knownSlugs, cfg.Slug)
 		}
@@ -133,10 +133,10 @@ func TestFullDelegationFlow(t *testing.T) {
 		t.Fatalf("expected 2 delegations, got %d: %+v", len(delegations), delegations)
 	}
 
-	// Verify the correct agents were mentioned.
+	// Verify the correct bots were mentioned.
 	slugs := map[string]bool{}
 	for _, d := range delegations {
-		slugs[d.AgentSlug] = true
+		slugs[d.BotSlug] = true
 	}
 	if !slugs["fe"] {
 		t.Error("expected delegation to @fe")
@@ -148,47 +148,47 @@ func TestFullDelegationFlow(t *testing.T) {
 	// Steer specialists with delegation messages and tick them to completion.
 	for _, d := range delegations {
 		msg := orchestration.FormatSteerMessage(d)
-		if err := svc.Steer(d.AgentSlug, msg); err != nil {
-			t.Errorf("steer %s: %v", d.AgentSlug, err)
+		if err := svc.Steer(d.BotSlug, msg); err != nil {
+			t.Errorf("steer %s: %v", d.BotSlug, err)
 		}
-		if err := svc.FollowUp(d.AgentSlug, d.Task); err != nil {
-			t.Errorf("follow-up %s: %v", d.AgentSlug, err)
+		if err := svc.FollowUp(d.BotSlug, d.Task); err != nil {
+			t.Errorf("follow-up %s: %v", d.BotSlug, err)
 		}
 
-		ma, ok := svc.Get(d.AgentSlug)
+		ma, ok := svc.Get(d.BotSlug)
 		if !ok {
-			t.Errorf("agent %s not found", d.AgentSlug)
+			t.Errorf("bot %s not found", d.BotSlug)
 			continue
 		}
 
 		for i := 0; i < 10; i++ {
 			if err := ma.Loop.Tick(); err != nil {
-				t.Fatalf("%s tick %d: %v", d.AgentSlug, i, err)
+				t.Fatalf("%s tick %d: %v", d.BotSlug, i, err)
 			}
 			state := ma.Loop.GetState()
-			if state.Phase == agent.PhaseDone || state.Phase == agent.PhaseError {
+			if state.Phase == bot.PhaseDone || state.Phase == bot.PhaseError {
 				break
 			}
 		}
 
 		state := ma.Loop.GetState()
-		if state.Phase != agent.PhaseDone {
-			t.Errorf("expected %s phase done, got %s (error: %s)", d.AgentSlug, state.Phase, state.Error)
+		if state.Phase != bot.PhaseDone {
+			t.Errorf("expected %s phase done, got %s (error: %s)", d.BotSlug, state.Phase, state.Error)
 		}
 	}
 }
 
 func TestProviderErrorSurfaces(t *testing.T) {
-	svc, _ := newTestAgentServiceWithStart(t, fakeErrorResolver("provider failed"), false)
+	svc, _ := newTestBotServiceWithStart(t, fakeErrorResolver("provider failed"), false)
 
-	// Give the agent something to process.
+	// Give the bot something to process.
 	if err := svc.FollowUp("ceo", "do something"); err != nil {
 		t.Fatalf("follow-up: %v", err)
 	}
 
 	ma, ok := svc.Get("ceo")
 	if !ok {
-		t.Fatal("ceo agent not found")
+		t.Fatal("ceo bot not found")
 	}
 	ma.Loop.Start()
 
@@ -198,7 +198,7 @@ func TestProviderErrorSurfaces(t *testing.T) {
 		if tickErr != nil {
 			break
 		}
-		if state := ma.Loop.GetState(); state.Phase == agent.PhaseError {
+		if state := ma.Loop.GetState(); state.Phase == bot.PhaseError {
 			break
 		}
 	}
@@ -207,7 +207,7 @@ func TestProviderErrorSurfaces(t *testing.T) {
 	}
 
 	state := ma.Loop.GetState()
-	if state.Phase != agent.PhaseError {
+	if state.Phase != bot.PhaseError {
 		t.Fatalf("expected phase error, got %s", state.Phase)
 	}
 	if state.Error != "provider failed" {
@@ -218,18 +218,18 @@ func TestProviderErrorSurfaces(t *testing.T) {
 func TestTeamLeadFirstRouting(t *testing.T) {
 	router := orchestration.NewMessageRouter()
 
-	agents := []orchestration.AgentInfo{
+	bots := []orchestration.BotInfo{
 		{Slug: "ceo", Expertise: []string{"strategy", "delegation"}},
 		{Slug: "fe", Expertise: []string{"frontend", "React", "CSS"}},
 		{Slug: "be", Expertise: []string{"backend", "APIs", "databases"}},
 	}
-	for _, a := range agents {
-		router.RegisterAgent(a.Slug, a.Expertise)
+	for _, a := range bots {
+		router.RegisterBot(a.Slug, a.Expertise)
 	}
 	router.SetTeamLeadSlug("ceo")
 
 	// A generic directive should route to team-lead first.
-	result := router.Route("Build a new dashboard for analytics", agents)
+	result := router.Route("Build a new dashboard for analytics", bots)
 	if result.Primary != "ceo" {
 		t.Fatalf("expected primary=ceo, got %s", result.Primary)
 	}
@@ -238,7 +238,7 @@ func TestTeamLeadFirstRouting(t *testing.T) {
 	}
 
 	// An explicit @fe mention should route directly to fe.
-	result = router.Route("@fe fix the button styles", agents)
+	result = router.Route("@fe fix the button styles", bots)
 	if result.Primary != "fe" {
 		t.Fatalf("expected primary=fe for @mention, got %s", result.Primary)
 	}
@@ -264,25 +264,25 @@ func TestConcurrencyEnforced(t *testing.T) {
 	}
 
 	// Verify the first delegation is the immediate one.
-	if immediate[0].AgentSlug != delegations[0].AgentSlug {
-		t.Errorf("expected immediate[0] to be %s, got %s", delegations[0].AgentSlug, immediate[0].AgentSlug)
+	if immediate[0].BotSlug != delegations[0].BotSlug {
+		t.Errorf("expected immediate[0] to be %s, got %s", delegations[0].BotSlug, immediate[0].BotSlug)
 	}
 }
 
 // --- Parser-level tests (preserved from original) ---
 
 func TestDelegationParsing(t *testing.T) {
-	svc := agent.NewAgentService()
-	pack := agent.GetPack("founding-team")
+	svc := bot.NewBotService()
+	pack := bot.GetPack("founding-team")
 	if pack == nil {
 		t.Fatal("founding-team pack not found")
 		return
 	}
 
-	for _, cfg := range pack.Agents {
+	for _, cfg := range pack.Bots {
 		_, err := svc.Create(cfg)
 		if err != nil {
-			t.Fatalf("failed to create agent %s: %v", cfg.Slug, err)
+			t.Fatalf("failed to create bot %s: %v", cfg.Slug, err)
 		}
 	}
 
@@ -298,9 +298,9 @@ func TestDelegationParsing(t *testing.T) {
 
 	for _, del := range delegations {
 		msg := orchestration.FormatSteerMessage(del)
-		err := svc.Steer(del.AgentSlug, msg)
+		err := svc.Steer(del.BotSlug, msg)
 		if err != nil {
-			t.Errorf("failed to steer %s: %v", del.AgentSlug, err)
+			t.Errorf("failed to steer %s: %v", del.BotSlug, err)
 		}
 	}
 }
@@ -318,24 +318,24 @@ func TestDelegationFlowNoDelegation(t *testing.T) {
 }
 
 func TestPackBootstrap(t *testing.T) {
-	pack := agent.GetPack("founding-team")
+	pack := bot.GetPack("founding-team")
 	if pack == nil {
 		t.Fatal("founding-team pack not found")
 		return
 	}
 
-	svc := agent.NewAgentService()
-	for _, cfg := range pack.Agents {
+	svc := bot.NewBotService()
+	for _, cfg := range pack.Bots {
 		_, err := svc.Create(cfg)
 		if err != nil {
-			t.Fatalf("failed to create agent %s: %v", cfg.Slug, err)
+			t.Fatalf("failed to create bot %s: %v", cfg.Slug, err)
 		}
 	}
 
-	for _, cfg := range pack.Agents {
+	for _, cfg := range pack.Bots {
 		ma, ok := svc.Get(cfg.Slug)
 		if !ok {
-			t.Errorf("agent %s not found in service", cfg.Slug)
+			t.Errorf("bot %s not found in service", cfg.Slug)
 			continue
 		}
 		if ma.Config.Slug != cfg.Slug {
@@ -345,6 +345,6 @@ func TestPackBootstrap(t *testing.T) {
 
 	list := svc.List()
 	if len(list) != 8 {
-		t.Errorf("expected 8 agents from List(), got %d", len(list))
+		t.Errorf("expected 8 bots from List(), got %d", len(list))
 	}
 }

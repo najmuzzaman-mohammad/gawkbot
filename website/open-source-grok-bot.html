@@ -68,7 +68,7 @@
         {
           "@type": "Question",
           "name": "Does gawkbot need a Grok or xAI subscription?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No. gawkbot has no account and no cloud. It runs on your machine using an agent CLI you already have signed in: Claude Code by default, or Codex CLI, Opencode, Hermes, OpenClaw, or a local model. Your keys never leave your machine." }
+          "acceptedAnswer": { "@type": "Answer", "text": "No. gawkbot has no account and no cloud. It runs on your machine using a bot CLI you already have signed in: Claude Code by default, or Codex CLI, Opencode, Hermes, OpenClaw, or a local model. Your keys never leave your machine." }
         },
         {
           "@type": "Question",
@@ -78,7 +78,7 @@
         {
           "@type": "Question",
           "name": "How is gawkbot different from Rakazo, OpenBot, and OpenMausBot?",
-          "acceptedAnswer": { "@type": "Answer", "text": "All four are open source answers to Grok Bot. Rakazo and OpenMausBot focus on giving bots a sandbox or virtual machine; CopilotKit's OpenBot focuses on governance for any AG-UI agent. gawkbot focuses on the outcome: one bot per workflow, running on the coding agent you already pay for, that builds you a microapp to review what it did, with an approval gate on every external action." }
+          "acceptedAnswer": { "@type": "Answer", "text": "All four are open source answers to Grok Bot. Rakazo and OpenMausBot focus on giving bots a sandbox or virtual machine; CopilotKit's OpenBot focuses on governance for any AG-UI bot. gawkbot focuses on the outcome: one bot per workflow, running on the coding bot you already pay for, that builds you a microapp to review what it did, with an approval gate on every external action." }
         },
         {
           "@type": "Question",
@@ -210,10 +210,10 @@
     <nav class="crumbs" aria-label="Breadcrumb"><a href="/">gawkbot</a> / Open source Grok Bot</nav>
     <div class="eyebrow">OPEN SOURCE GROK BOT</div>
     <h1>gawkbot is the open source Grok Bot. Here is how it compares.</h1>
-    <p class="lead">Grok Bot gives you always-on AI teammates in xAI's cloud. gawkbot gives you the same idea on your own machine, for free, on the agent you already pay for, with the honest caveats written down.</p>
+    <p class="lead">Grok Bot gives you always-on AI teammates in xAI's cloud. gawkbot gives you the same idea on your own machine, for free, on the bot you already pay for, with the honest caveats written down.</p>
     <p class="updated">Last updated 1 September 2026. Maintained by the gawkbot team. Corrections: <a href="https://github.com/najmuzzaman-mohammad/gawkbot/issues">file an issue</a>.</p>
 
-    <p class="definition"><strong>gawkbot</strong> is an open source Grok Bot: a team of always-on AI bots that runs on your own machine instead of a vendor's cloud. It is free, it uses the coding agent you already have signed in (Claude Code, Codex, or a local model), every external action waits for your approval, and it builds you a microapp so you have something to look at while the work is already done.</p>
+    <p class="definition"><strong>gawkbot</strong> is an open source Grok Bot: a team of always-on AI bots that runs on your own machine instead of a vendor's cloud. It is free, it uses the coding bot you already have signed in (Claude Code, Codex, or a local model), every external action waits for your approval, and it builds you a microapp so you have something to look at while the work is already done.</p>
 
     <h2>gawkbot vs Grok Bot</h2>
     <div class="compare-wrap">
@@ -226,36 +226,36 @@
           <tr><th scope="row">Price</th><td>Bundled with SuperGrok, SuperGrok Heavy, and Cursor Pro, Pro+, Ultra, and Teams plans. Enterprise is waitlisted.</td><td>Free. No account, no seats, no usage fees. You pay your model provider directly, or nothing with a local model.</td></tr>
           <tr><th scope="row">Source</th><td>Closed.</td><td>Public on GitHub under the Sustainable Use License. Read it, modify it, self-host it.</td></tr>
           <tr><th scope="row">Runs on</th><td>xAI's cloud. Bots keep working after you close your laptop.</td><td>Your machine, with your keys. Bots keep working while your machine is on.</td></tr>
-          <tr><th scope="row">Models</th><td>Grok, chosen for you.</td><td>Claude Code by default; Codex CLI, Opencode, local models, Hermes Agent, OpenClaw. Mix them per bot.</td></tr>
+          <tr><th scope="row">Models</th><td>Grok, chosen for you.</td><td>Claude Code by default; Codex CLI, Opencode, local models, Hermes Bot, OpenClaw. Mix them per bot.</td></tr>
           <tr><th scope="row">Bot computers</th><td>Each bot has a computer in the cloud with a browser, files, and signed-in tools.</td><td>Not yet. Each bot works in its own directory with its own tool allowlist on your machine. Per-bot sandboxes are planned and will be listed here only once they ship.</td></tr>
           <tr><th scope="row">Approvals</th><td>Bots act on your accounts around the clock.</td><td>Every send, commit, purchase, and delete waits for your click. Per action, never a blanket grant.</td></tr>
           <tr><th scope="row">Output</th><td>Finished work, delivered in chat.</td><td>Finished work, plus a microapp built to review it, with its own data tab and integrations.</td></tr>
           <tr><th scope="row">Audit trail</th><td>In xAI's product.</td><td>Every tool call is a line in a local log you can <code>cat</code>.</td></tr>
           <tr><th scope="row">Platforms</th><td>macOS and iOS apps.</td><td>macOS and Windows desktop apps; Linux via the CLI.</td></tr>
-          <tr><th scope="row">Integrations</th><td>Signs into websites and apps directly, no API needed.</td><td>1200+ integrations through connected accounts, plus whatever the agent CLI can reach.</td></tr>
+          <tr><th scope="row">Integrations</th><td>Signs into websites and apps directly, no API needed.</td><td>1200+ integrations through connected accounts, plus whatever the bot CLI can reach.</td></tr>
         </tbody>
       </table>
     </div>
     <p class="note">Sources: <a href="https://x.ai/news/introducing-grok-bot" rel="nofollow noopener" target="_blank">xAI, Introducing Grok Bot</a> (11 August 2026); <a href="https://news.ycombinator.com/item?id=49261514" rel="nofollow noopener" target="_blank">Grok Bot on Hacker News</a>; <a href="https://natesnewsletter.substack.com/p/grok-bot-review" rel="nofollow noopener" target="_blank">Nate's early-beta review</a>, which notes all of his bots shared one cloud computer.</p>
 
     <h2>Where Grok Bot is better</h2>
-    <p>Being honest about this is the whole point of the name. Grok Bot bots run in a cloud that never sleeps, so a job started on Friday is done on Monday without your laptop open. They also sign into websites with a real browser on their own computer, which is a cleaner story than an agent CLI on your desk. If you want zero setup and do not mind a subscription, xAI's product is the easier first hour.</p>
+    <p>Being honest about this is the whole point of the name. Grok Bot bots run in a cloud that never sleeps, so a job started on Friday is done on Monday without your laptop open. They also sign into websites with a real browser on their own computer, which is a cleaner story than a bot CLI on your desk. If you want zero setup and do not mind a subscription, xAI's product is the easier first hour.</p>
 
     <h2>Where gawkbot is better</h2>
     <ul class="plain">
       <li><strong>It is free and it is yours.</strong> No subscription, no account, and no vendor in the path between you and the model. Point it at a local model and nothing leaves the machine.</li>
-      <li><strong>It uses the agent you already pay for.</strong> If you have Claude Code or Codex, you have gawkbot's brain. There is no second bill.</li>
-      <li><strong>Approval is per action.</strong> An agent with your credentials is a real risk. gawkbot's posture is to grant it as little as possible for as long as possible, and to shrink grants that go unused.</li>
+      <li><strong>It uses the bot you already pay for.</strong> If you have Claude Code or Codex, you have gawkbot's brain. There is no second bill.</li>
+      <li><strong>Approval is per action.</strong> A bot with your credentials is a real risk. gawkbot's posture is to grant it as little as possible for as long as possible, and to shrink grants that go unused.</li>
       <li><strong>You get a microapp, not a chat log.</strong> Each workflow becomes a small app with a screen, a schedule, and typed data, so reviewing the outcome takes a glance.</li>
       <li><strong>You can read the code.</strong> Every claim on this page maps to a file in the repository, and the README keeps a claim-status table so the copy cannot drift from the product.</li>
     </ul>
 
     <h2>Other open source Grok Bot alternatives</h2>
-    <p>gawkbot is not the only one, and you should pick on fit. <a href="https://github.com/elie222/rakazo" rel="noopener" target="_blank">Rakazo</a> lets you choose any model and any sandbox and ships web, desktop, and mobile clients. <a href="https://github.com/milind-soni/OpenMausBot" rel="noopener" target="_blank">OpenMausBot</a> gives each bot a virtual machine, local-first. <a href="https://github.com/CopilotKit/OpenBot" rel="noopener" target="_blank">CopilotKit's OpenBot</a> is governance-first and works with any AG-UI agent harness. gawkbot's angle is narrower: one bot per manual workflow, on the coding agent you already have, with a microapp at the end.</p>
+    <p>gawkbot is not the only one, and you should pick on fit. <a href="https://github.com/elie222/rakazo" rel="noopener" target="_blank">Rakazo</a> lets you choose any model and any sandbox and ships web, desktop, and mobile clients. <a href="https://github.com/milind-soni/OpenMausBot" rel="noopener" target="_blank">OpenMausBot</a> gives each bot a virtual machine, local-first. <a href="https://github.com/CopilotKit/OpenBot" rel="noopener" target="_blank">CopilotKit's OpenBot</a> is governance-first and works with any AG-UI bot harness. gawkbot's angle is narrower: one bot per manual workflow, on the coding bot you already have, with a microapp at the end.</p>
 
     <h2>Install the open source Grok Bot</h2>
     <ol class="steps">
-      <li>Sign in to one agent CLI: <a href="https://docs.anthropic.com/en/docs/claude-code" rel="noopener" target="_blank">Claude Code</a>, <a href="https://github.com/openai/codex" rel="noopener" target="_blank">Codex CLI</a>, or <a href="https://opencode.ai" rel="noopener" target="_blank">Opencode</a>.</li>
+      <li>Sign in to one bot CLI: <a href="https://docs.anthropic.com/en/docs/claude-code" rel="noopener" target="_blank">Claude Code</a>, <a href="https://github.com/openai/codex" rel="noopener" target="_blank">Codex CLI</a>, or <a href="https://opencode.ai" rel="noopener" target="_blank">Opencode</a>.</li>
       <li>Run the command below. The browser opens and verifies your runtime before anything else happens.</li>
       <li>Name your office, describe one manual workflow in a sentence, and watch the first bot get built.</li>
     </ol>
@@ -277,7 +277,7 @@
       </details>
       <details>
         <summary>Does gawkbot need a Grok or xAI subscription?</summary>
-        <p>No. gawkbot has no account and no cloud. It runs on your machine using an agent CLI you already have signed in: Claude Code by default, or Codex CLI, Opencode, Hermes, OpenClaw, or a local model. Your keys never leave your machine.</p>
+        <p>No. gawkbot has no account and no cloud. It runs on your machine using a bot CLI you already have signed in: Claude Code by default, or Codex CLI, Opencode, Hermes, OpenClaw, or a local model. Your keys never leave your machine.</p>
       </details>
       <details>
         <summary>Do gawkbots get their own computer like Grok Bots do?</summary>
@@ -285,7 +285,7 @@
       </details>
       <details>
         <summary>How is gawkbot different from Rakazo, OpenBot, and OpenMausBot?</summary>
-        <p>All four are open source answers to Grok Bot. Rakazo and OpenMausBot focus on giving bots a sandbox or virtual machine; CopilotKit's OpenBot focuses on governance for any AG-UI agent. gawkbot focuses on the outcome: one bot per workflow, running on the coding agent you already pay for, that builds you a microapp to review what it did, with an approval gate on every external action.</p>
+        <p>All four are open source answers to Grok Bot. Rakazo and OpenMausBot focus on giving bots a sandbox or virtual machine; CopilotKit's OpenBot focuses on governance for any AG-UI bot. gawkbot focuses on the outcome: one bot per workflow, running on the coding bot you already pay for, that builds you a microapp to review what it did, with an approval gate on every external action.</p>
       </details>
       <details>
         <summary>How do I install gawkbot?</summary>

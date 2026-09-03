@@ -6,8 +6,8 @@ import { InboxRow } from "./InboxRow";
 
 const row: InboxRowType = {
   taskId: "task-2741",
-  title: "Refactor agent-rail event pill state machine",
-  assignment: "Owner agent finished. Merge or request changes.",
+  title: "Refactor bot-rail event pill state machine",
+  assignment: "Owner bot finished. Merge or request changes.",
   state: "decision",
   severityCounts: {
     critical: 1,
@@ -32,7 +32,7 @@ describe("<InboxRow>", () => {
       />,
     );
     expect(screen.getByText(row.title)).toBeInTheDocument();
-    expect(screen.getByText(/Owner agent finished/i)).toBeInTheDocument();
+    expect(screen.getByText(/Owner bot finished/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/state: decision/i)).toBeInTheDocument();
     expect(screen.getByTitle(/last changed 8m ago/i)).toBeInTheDocument();
   });

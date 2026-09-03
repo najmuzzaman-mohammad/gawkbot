@@ -2,13 +2,13 @@ package team
 
 // office_eval_jobs_interview_dedupe.go — the `interview-dedupe` eval job.
 //
-// Live smoke run: FIVE agents asked the human the same "which CRM?"
+// Live smoke run: FIVE bots asked the human the same "which CRM?"
 // question in five separate blocking interviews; answering one did not
 // ground the rest. This job replays that failure at the HTTP layer with
 // the exact wire the MCP human_interview tool fires (POST /requests →
 // poll GET /interview/answer):
 //
-//	(a) two agents raise semantically-similar questions → ONE pending card,
+//	(a) two bots raise semantically-similar questions → ONE pending card,
 //	    second asker attached as also_asking;
 //	(b) answering the one card fans the answer out to BOTH askers (same
 //	    request id, both polls carry the answer, both tagged in the
@@ -64,7 +64,7 @@ func evalJobInterviewDedupe(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		return ids
 	}
 
-	// ── (a) two agents, same question, different phrasing → ONE card ───────
+	// ── (a) two bots, same question, different phrasing → ONE card ───────
 	const q1 = "Which CRM should the team standardize on for the pilot — HubSpot or Salesforce?"
 	const q1Rephrased = "Which CRM do you want us to standardize on: HubSpot or Salesforce?"
 	st1, first, err := postInterview("eng", q1)
@@ -76,7 +76,7 @@ func evalJobInterviewDedupe(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		return err
 	}
 	pending := pendingInterviewIDs()
-	r.add(job, "a second agent asking a similar question merges onto the existing card (one pending interview)",
+	r.add(job, "a second bot asking a similar question merges onto the existing card (one pending interview)",
 		st1 == http.StatusOK && st2 == http.StatusOK && first.ID != "" &&
 			second.Deduped && second.ID == first.ID && len(pending) == 1,
 		fmt.Sprintf("first=%s second=%s deduped=%v pending=%d", first.ID, second.ID, second.Deduped, len(pending)), "")
@@ -92,7 +92,7 @@ func evalJobInterviewDedupe(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if err != nil {
 		return err
 	}
-	// Both agents poll the SAME id (the dedupe handed ceo eng's request id),
+	// Both bots poll the SAME id (the dedupe handed ceo eng's request id),
 	// so one GET per asker is exactly the wire each poll loop fires.
 	pollOK := true
 	for range 2 {

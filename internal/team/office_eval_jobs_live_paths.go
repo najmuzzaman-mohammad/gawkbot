@@ -46,7 +46,7 @@ package team
 //     500/409s bubble from the atomic wiki commit (git wedge, duplicate
 //     target) — also swallowed. The queue looked frozen ([17:43], [18:14]).
 //
-// (5) Agents executed and "completed" tasks still in `drafting`: the
+// (5) Bots executed and "completed" tasks still in `drafting`: the
 //     dispatch gate (isExecutableTeamTaskStatus in sendTaskUpdate) refuses
 //     execution turns, but a CEO chat-turn can still call team_task
 //     action=complete — MutateTask had no pre-start gate, so J3's
@@ -75,7 +75,7 @@ package team
 //  (d) wiki review request-changes + approve via the FE payloads succeed;
 //      the empty-rationale contract errors loudly
 //  (e) a PARKED task (composer Backlog/park — the one deliberate way into
-//      drafting): agent complete is refused, no turn dispatches, and the
+//      drafting): bot complete is refused, no turn dispatches, and the
 //      human's start affordance un-parks it into running
 //  (f) dependent stays blocked until upstream completion-with-artifact
 //  (g) board list and task detail report the same state for the same task
@@ -345,7 +345,7 @@ func evalJobLivePaths(fx *officeEvalFixture, r *OfficeEvalReport) error {
 			reopened.LifecycleState == LifecycleStateRunning && reopened.CompletedAt == "" && !staleApproved,
 		fmt.Sprintf("status=%d body=%s state=%s staleApproved=%v", reopenStatus, truncate(reopenBody, 120), reopened.LifecycleState, staleApproved), "")
 
-	// ── (e) agent turn / completion for a PARKED task is refused ──────────
+	// ── (e) bot turn / completion for a PARKED task is refused ──────────
 	// Drafting is now reachable only through the deliberate park path (the
 	// composer's Backlog action → POST /task-plan park=true). Everything
 	// the old pre-start ceremony enforced binds ONLY here.
@@ -382,7 +382,7 @@ func evalJobLivePaths(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		return err
 	}
 	eTask := fx.broker.TaskByID(eID)
-	r.add(job, "agent complete on a parked task is refused with a structured error",
+	r.add(job, "bot complete on a parked task is refused with a structured error",
 		eStatus == http.StatusConflict && strings.Contains(eBody, "parked") &&
 			eTask != nil && eTask.LifecycleState == LifecycleStateDrafting,
 		fmt.Sprintf("status=%d body=%s state=%s", eStatus, truncate(eBody, 160), eTask.LifecycleState), "")

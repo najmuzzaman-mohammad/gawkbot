@@ -62,7 +62,7 @@ func exitCodeOf(err error) int {
 	return 1
 }
 
-// MCPLaunch is the spawn contract handed to an agent runtime for the
+// MCPLaunch is the spawn contract handed to a bot runtime for the
 // "computer" MCP server: the gawkbot binary bridging stdio into Cua Driver
 // inside the container (see bridge.go).
 type MCPLaunch struct {

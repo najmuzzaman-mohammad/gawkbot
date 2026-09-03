@@ -322,7 +322,7 @@ func TestStageACompilerSetsSourceArticle(t *testing.T) {
 
 	// Seed a playbook article. Frontmatter not strictly required for this
 	// test (the stub provider returns is_skill=true regardless), but
-	// matching the agent-authored shape keeps the test scenario realistic.
+	// matching the bot-authored shape keeps the test scenario realistic.
 	articleRel := "team/playbooks/customer-refund.md"
 	body := "---\nname: customer-refund\ndescription: Issue a refund.\n---\n# Customer Refund\n\nbody\n"
 	if _, _, err := repo.Commit(context.Background(), "ceo", articleRel, body, "create", "seed playbook"); err != nil {

@@ -3,7 +3,7 @@ package team
 import "testing"
 
 // TestInterviewQuestionsSimilar pins the conservative similarity contract
-// the cross-agent interview dedupe relies on: paraphrases of the same ask
+// the cross-bot interview dedupe relies on: paraphrases of the same ask
 // merge; entity-swapped or genuinely different questions never do. The
 // live-path regression coverage lives in the `interview-dedupe` office
 // eval job; this table guards the thresholds themselves.
@@ -20,7 +20,7 @@ func TestInterviewQuestionsSimilar(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "paraphrase of the same ask merges (the live five-agent failure)",
+			name: "paraphrase of the same ask merges (the live five-bot failure)",
 			a:    "Which CRM should the team standardize on for the pilot — HubSpot or Salesforce?",
 			b:    "Which CRM do you want us to standardize on: HubSpot or Salesforce?",
 			want: true,

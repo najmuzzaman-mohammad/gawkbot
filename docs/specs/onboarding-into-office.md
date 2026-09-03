@@ -12,7 +12,7 @@ hard-cut transition into `Shell` after `/onboarding/complete`.
 
 The current onboarding is a 9-step modal wizard that hard-cuts to an office the
 user has not yet seen. New users get all the questions front-loaded, the office
-appears fully formed in one frame, and agents start running on the first task
+appears fully formed in one frame, and bots start running on the first task
 before the user has any trust calibration. We replace it with:
 
 1. **One pre-office screen** — provider selection (Claude Code / Codex /
@@ -20,7 +20,7 @@ before the user has any trust calibration. We replace it with:
 2. **An empty office shell with a DM open to CEO.** The user sees their office
    from frame 1, but it is quiet. The CEO greets them and asks the first
    question. The shell **populates live** as decisions are made: channels
-   fade in, agents slide into the sidebar, the workspace label updates.
+   fade in, bots slide into the sidebar, the workspace label updates.
    The early turns are pure form-fills (workspace name, description, website
    URL, blueprint pick, team trim) plus a deterministic website scan that
    seeds the wiki. **No LLM tokens spent in this phase.** The LLM only
@@ -28,12 +28,12 @@ before the user has any trust calibration. We replace it with:
 3. **An issue-first planning loop.** Tasks are upgraded to **Issues** — proper
    spec documents with comments, sub-issues, and an explicit human approval
    gate. CEO drafts the issue with the user; CEO can suggest pulling other
-   agents in to comment during drafting. **Nothing executes until the user
+   bots in to comment during drafting. **Nothing executes until the user
    approves the issue.** This is the trust-building beat the current product
    does not have.
-4. **One agent cast across two stages.** No separate "planner" role. The same
+4. **One bot cast across two stages.** No separate "planner" role. The same
    Engineer, Designer, PM, etc. comment during drafting and then execute after
-   approval. Stages are a property of the issue, not the agents.
+   approval. Stages are a property of the issue, not the bots.
 
 Result: the office feels like it is forming around the user as they decide what
 to do, and they get to plan before anything runs. Activation goes from
@@ -59,14 +59,14 @@ should not be revisited without going through the same review.
 - **Approval gate: server-side enforcement in the broker.** Adds
   `isExecutableTeamTaskStatus` (true only for `LifecycleStateRunning` and
   `LifecycleStateApproved`). Every dispatch entry point goes through the
-  guard: `PamDispatcher`, `headless codex`, self-heal, agent-to-agent
+  guard: `PamDispatcher`, `headless codex`, self-heal, bot-to-bot
   dispatch, external triggers. Comments allowed in any lifecycle state.
 - **Issue surface reuses existing lifecycle states.** No new "Issue" primitive.
   An issue IS a lifecycle task with a richer presentation. Status pill maps
   to existing `LifecycleState`; `Approve & Start` = existing `approve`
   action; comments use the existing comment infrastructure (already wired
   per `broker_inbox_handler.go:229`). Adds one new state
-  `LifecycleStateDrafting` for the pre-Intake "agents can comment, not
+  `LifecycleStateDrafting` for the pre-Intake "bots can comment, not
   dispatch" mode. Cuts ~40% off Phase 3 scope.
 - **CEO transcript lives in `b.messages`, not in onboarding state.** The CEO
   DM is a real DM (`dm:ceo:onboarding` reserved slug). Inherits SSE,
@@ -92,7 +92,7 @@ should not be revisited without going through the same review.
   exactly `#general` + 2 wiki pages + CEO. No fake-synthesized team.
   When the user describes a task at `draft` phase, CEO's LLM call
   proposes the team inline and they're added via the broker's existing
-  incremental agent-add path.
+  incremental bot-add path.
 
 ### Code quality
 - **Frontend reuses `DMView` for the CEO chat.** A small `OnboardingDMRoute`
@@ -194,7 +194,7 @@ revisited without going through the same review.
   `bg: var(--accent-bg)`, `text: var(--accent)`, `label: "drafting"`.
   Distinct from intake/ready (which use `--bg-row-active`) — signals
   "needs human attention" via the brand accent.
-- **Reuse `PixelAvatar`** for CEO and all agent avatars; do not introduce a
+- **Reuse `PixelAvatar`** for CEO and all bot avatars; do not introduce a
   new avatar system.
 
 ### Responsive
@@ -279,9 +279,9 @@ Per global rules, the design must work end-to-end for three real users:
   handoff message from deterministic mode.
 - **LLM mode begins.** Sam: *"Get Stripe webhooks working."*
 - CEO drafts issue `#1 Stripe webhook handler` in the main area (first LLM
-  call). Because Sam went scratch, CEO ALSO proposes an agent roster as
+  call). Because Sam went scratch, CEO ALSO proposes a bot roster as
   part of the draft: *"For this work I'd bring in Founding Engineer + PM.
-  Add?"* Sam approves; agents slide into sidebar with intro lines posted
+  Add?"* Sam approves; bots slide into sidebar with intro lines posted
   in the issue's comments timeline.
 - Engineer posts technical sanity-check comment (LLM). Sam edits acceptance
   criteria. Clicks **Approve & Start**. Execution dispatches.
@@ -297,7 +297,7 @@ Per global rules, the design must work end-to-end for three real users:
   the sidebar with stagger; wiki scaffold pages (Style Guide, Editorial
   Calendar, Brand Voice) appear under their wiki tree.
 - CEO: *"This blueprint comes with a team — keep or trim:"* — renders a
-  deterministic checklist of agents (Writer ✓, Editor ✓, Designer ✓).
+  deterministic checklist of bots (Writer ✓, Editor ✓, Designer ✓).
   Priya unchecks Writer (*"We use a real writer"*) and submits.
 - On submit, Editor + Designer slide into sidebar with intro lines posted
   in the CEO DM. Still no LLM call.
@@ -316,11 +316,11 @@ Per global rules, the design must work end-to-end for three real users:
 - Channels (`#engineering`, `#standup`) materialize; wiki scaffold (Eng
   Practices, Architecture Decisions) appears.
 - CEO: *"This blueprint comes with a team — keep or trim:"* — Marcus
-  accepts the default roster (Founding Engineer, PM, Designer). Agents
+  accepts the default roster (Founding Engineer, PM, Designer). Bots
   slide into sidebar.
 - CEO: *"All set up. Want to start an issue, or look around first?"* —
   Marcus picks **Look around first** via a chip. **No LLM call happens.**
-  Office stays real and quiet. Marcus reads agent profiles, browses the
+  Office stays real and quiet. Marcus reads bot profiles, browses the
   wiki, hovers over Issues (empty), and can return to start an issue any
   time via `+ New issue` (which re-enters the LLM `draft` phase). Trust
   through inertia, not action.
@@ -340,10 +340,10 @@ task → ready` (plus a hidden `analysis` step).
 | `identity` | Move into chat | CEO asks naturally. The wizard's separate identity form is friction. |
 | `templates` | Render as chip picker inside chat | **Deterministic.** CEO posts the blueprint chips as a structured message. No LLM inference of blueprint from free text — the user picks. |
 | `analysis` | Keep but render in chat | The `POST /onboarding/scan` of the user's website URL is the same backend call; chat shows a scan-progress chip. Environment probes (runtime detection) remain silent unless they fail. |
-| `team` | Render as checklist in chat **only on blueprint path** | Deterministic trim for blueprint path: same multi-select as today, rendered as a CEO message. Scratch path skips this entirely; CEO proposes agents during issue drafting (the only LLM moment in the team flow). |
-| `setup` | **Keep, pre-office** | Provider selection has to happen before any agent can run. This is the only true blocker. |
+| `team` | Render as checklist in chat **only on blueprint path** | Deterministic trim for blueprint path: same multi-select as today, rendered as a CEO message. Scratch path skips this entirely; CEO proposes bots during issue drafting (the only LLM moment in the team flow). |
+| `setup` | **Keep, pre-office** | Provider selection has to happen before any bot can run. This is the only true blocker. |
 | `nex` | **Drop from onboarding** | Optional integration. Move to Settings → Integrations. Nothing depends on it for the first issue. |
-| `task` | Replace with issue drafting | Old flow: type a sentence and the agent starts. New flow: CEO drafts an issue with you, you approve, then it starts. |
+| `task` | Replace with issue drafting | Old flow: type a sentence and the bot starts. New flow: CEO drafts an issue with you, you approve, then it starts. |
 | `ready` | Cut | The Approve & Start button on the first issue is the readiness gate. |
 
 Net: **1 pre-office screen + a chat that builds the office around you**, instead
@@ -421,7 +421,7 @@ Behavior rules for this frame:
   faint "CEO will set these up" placeholder, not hidden. The user must see
   what the surfaces ARE so they understand what is forming.
 - `Agents` shows only CEO with a status pill *Ready*.
-- CommandPalette, Search, AgentPanel, ThreadPanel are mounted but inert
+- CommandPalette, Search, BotPanel, ThreadPanel are mounted but inert
   (no entry points exposed until first issue exists).
 - Workspace rail shows one workspace tile with an unnamed placeholder.
 - StatusBar: small *"Office initializing — chat with CEO to set it up."*
@@ -444,7 +444,7 @@ its turns make LLM calls. This is deliberate:
   CEO renders them as natural speech, but the implementation is templates
   with slotted values + standard form payloads. Zero LLM tokens.
 - **LLM turns start only after the deterministic foundation is built.**
-  They begin when the user describes a first issue. At that point, agents
+  They begin when the user describes a first issue. At that point, bots
   have wiki context (from the deterministic scrape and blueprint
   scaffold) and a known blueprint or none, so the LLM has grounded input.
 
@@ -467,10 +467,10 @@ CEO chat messages with interactive payloads.
 | Website URL (optional) | Form field | Fires `POST /onboarding/scan` (existing endpoint); chat shows a scan-progress chip until response lands |
 | Owner name + role (optional) | Form fields | Stored for git attribution + CEO addressing the user by name |
 | Blueprint pick | Chip row in CEO message | If a blueprint is selected: its channels + wiki scaffold are materialized and the team picker renders next. If **Start from scratch**: sidebar stays minimal (just `#general` + minimal wiki scaffold) and team picker is skipped. |
-| Team trim (blueprint path only) | Checklist in CEO message | Selected agents are added to sidebar with stagger animation; each posts a one-line intro |
+| Team trim (blueprint path only) | Checklist in CEO message | Selected bots are added to sidebar with stagger animation; each posts a one-line intro |
 | Wiki seed (background) | Response of `POST /onboarding/scan` + blueprint scaffold | Company Facts page is updated with scraped data when the scrape returns; blueprint scaffold pages are materialized at blueprint-pick time |
 
-All templated. Even the "intro line" each agent posts on join is a template
+All templated. Even the "intro line" each bot posts on join is a template
 with one slotted variable.
 
 ### LLM phase — begins when user describes first issue
@@ -478,8 +478,8 @@ with one slotted variable.
 | Step | Why it's LLM |
 |---|---|
 | Issue draft | Spec must reflect the user's free-text description |
-| Agent suggestion (scratch path only) | No blueprint roster to draw from; CEO must reason about which agents fit this issue |
-| Agent comments on draft | Agents must read the draft and respond in role |
+| Bot suggestion (scratch path only) | No blueprint roster to draw from; CEO must reason about which bots fit this issue |
+| Bot comments on draft | Bots must read the draft and respond in role |
 | Sub-issue decomposition (when user clicks *Break this up*) | Requires reasoning about scope |
 | Execution after Approve | The actual work |
 
@@ -531,9 +531,9 @@ the user clicks **Approve all** or picks individually:
 2. The sidebar mutates with the chosen items, **one item at a time**, 250ms
    apart. Each item: opacity 0 → 1, translateX -8px → 0, 200ms ease-out.
    Items use `prefers-reduced-motion` to fall back to instant.
-3. Each newly added agent posts a one-line "intro" message in the DM:
+3. Each newly added bot posts a one-line "intro" message in the DM:
    *"PM here — I help with scope and acceptance criteria. Pinging when
-   useful."* Agents do this once, on join. Never spammy.
+   useful."* Bots do this once, on join. Never spammy.
 4. CEO's next message arrives ~600ms after the last item finishes animating
    — slow enough that the user can read each arrival.
 
@@ -545,10 +545,10 @@ the user clicks **Approve all** or picks individually:
 | `identity` | Deterministic | Collect office name, description, priority, owner info | Form-field messages inline in chat (same payloads as today's `Step3Identity`). |
 | `scan` | Deterministic (async) | Optional website scrape → wiki facts | URL form field + chip showing scrape status. Continues in background while the user answers later questions. Reuses `POST /onboarding/scan`. |
 | `blueprint` | Deterministic | Pick a starter template or scratch | Chip row inside a CEO message (same options as today's `Step2Templates`). No LLM inference of blueprint from text. |
-| `team` | Deterministic (blueprint) / **Skipped** (scratch) | Trim the blueprint's agent roster | Checklist inside a CEO message (same payload as today's `Step4Team`). Scratch path skips this phase. |
+| `team` | Deterministic (blueprint) / **Skipped** (scratch) | Trim the blueprint's bot roster | Checklist inside a CEO message (same payload as today's `Step4Team`). Scratch path skips this phase. |
 | `seed` | Deterministic | Materialize channels + wiki scaffold; finish website scrape | Sidebar mutations + intro lines. No LLM. |
 | `bridge` | Deterministic | Offer to start an issue | Templated message. User can also say "look around first" — exits onboarding with first issue deferred. |
-| `draft` | **LLM begins** | Co-author the first issue. Scratch path: CEO also proposes agents inline. | First LLM call. Moves user to Surface 4. |
+| `draft` | **LLM begins** | Co-author the first issue. Scratch path: CEO also proposes bots inline. | First LLM call. Moves user to Surface 4. |
 | `approve` | Deterministic | Human approves the issue | Status flips, suggestion card collapses. |
 | `kickoff` | **LLM** | Suggest execution lineup, dispatch | Suggestion card. First post-approval LLM call. |
 
@@ -618,13 +618,13 @@ Status pill drives the surface heavily:
 |---|---|---|---|
 | `Drafting` | Yes (all sections) | Approve & Start, Save draft, Discard | Comments only |
 | `Approved` | No (except acceptance) | Reopen for edits | Comments + dispatch event |
-| `In Progress` | No (except acceptance) | Pause, Cancel | Comments + agent activity events |
-| `Review` | No | Approve close, Request changes | Comments + agent activity events |
+| `In Progress` | No (except acceptance) | Pause, Cancel | Comments + bot activity events |
+| `Review` | No | Approve close, Request changes | Comments + bot activity events |
 | `Done` | No | Reopen | Frozen |
 
-The "Activity feed" mixes structured agent events (tool calls, file changes,
+The "Activity feed" mixes structured bot events (tool calls, file changes,
 test results) inline with comments. Same surface, different message types.
-Agent events use a quieter style — small avatar, monospace metadata,
+Bot events use a quieter style — small avatar, monospace metadata,
 collapsible payload — so the spec stays readable.
 
 ### Where the Issue lives
@@ -659,13 +659,13 @@ collapsible payload — so the spec stays readable.
 
 The single most important UX rule:
 
-> **No agent does any execution work for an issue until the human clicks
+> **No bot does any execution work for an issue until the human clicks
 > Approve & Start on that issue.**
 
 This is the rule the current product violates and the reason new users feel
 the system is "too quick." Concretely:
 
-- During `Drafting`, agents pulled in by CEO can **only** post comments on
+- During `Drafting`, bots pulled in by CEO can **only** post comments on
   the issue document. They cannot call tools, run code, write files, or
   send messages anywhere else. The broker enforces this server-side by
   refusing to dispatch tool calls for an issue not in `Approved` /
@@ -675,11 +675,11 @@ the system is "too quick." Concretely:
      toast (*"Approved. Dispatching CEO to coordinate execution."*).
   2. CEO posts an execution suggestion card: *"For execution, I'll route
      this to Engineer with Designer as reviewer. Sound good?"*
-  3. User approves the lineup; status flips to `In Progress`; first agent
+  3. User approves the lineup; status flips to `In Progress`; first bot
      activity event appears within seconds.
 
-This means the same Engineer agent can comment in `Drafting` and execute
-in `In Progress` — they are the same agent, the gate is the issue's status.
+This means the same Engineer bot can comment in `Drafting` and execute
+in `In Progress` — they are the same bot, the gate is the issue's status.
 
 ---
 
@@ -802,11 +802,11 @@ office is in normal mode: command palette is unlocked, `+ Add channel`,
   Issues are tasks rebranded with a richer surface. The broker's existing
   task lifecycle remains the substrate; the issue document is a new
   presentational layer plus the comments timeline.
-- **Does not introduce new agent roles.** The existing CEO + role-based
-  agents are sufficient. The two-stage behavior is an issue-status
-  property, not an agent property.
+- **Does not introduce new bot roles.** The existing CEO + role-based
+  bots are sufficient. The two-stage behavior is an issue-status
+  property, not a bot property.
 - **Does not deprecate channels.** Channels remain the home for
-  cross-issue conversation and ambient agent chatter. Issues are where
+  cross-issue conversation and ambient bot chatter. Issues are where
   scoped work lives.
 - **Does not change the marketing site or its DESIGN.md.** This is a
   separate visual layer; the app keeps its modern Slack-like aesthetic.
@@ -840,7 +840,7 @@ CEO DM that says hi. No regressions for users who already onboarded.
   `Step3Identity`, `Step2Templates`, `Step4Team`.
 - Wire `POST /onboarding/scan` to fire from the `scan` phase, with the
   scan-progress chip in chat and async wiki facts update on completion.
-- Implement sidebar mutation animations (channels, agents, workspace
+- Implement sidebar mutation animations (channels, bots, workspace
   label cross-fade) on `seed`.
 - End the conversation at `bridge` with "Click `+ New issue` when ready"
   or *"Look around first"* (Marcus path). No LLM drafting yet.
@@ -861,9 +861,9 @@ an issue, see its current state, and the surface is read-only for now.
 ### Phase 4 — Draft + approve + execute (v1 scope)
 - CEO can draft an issue inside Surface 4. The issue is a lifecycle task
   in the new `LifecycleStateDrafting` state.
-- Agents can comment on issues in `Drafting` (broker server-side gates
+- Bots can comment on issues in `Drafting` (broker server-side gates
   every dispatch entry point).
-- Comments timeline interleaves humans + agents using the existing
+- Comments timeline interleaves humans + bots using the existing
   comment infrastructure (`broker_inbox_handler.go:229`).
 - **Approve & Start** maps to the existing `approve` lifecycle action,
   transitions Drafting → Running, dispatches CEO's execution lineup
@@ -940,7 +940,7 @@ exists and is regenerated correctly on subsequent edits-then-approvals.
    snapshot of issue spec sections.
 4. **Comments on already-approved issues.** RESOLVED → comments stay
    open in all states (per the lifecycle comment infrastructure
-   already in place). Agents read new comments as guidance during
+   already in place). Bots read new comments as guidance during
    execution.
 5. **Old draft migration.** RESOLVED → finish in-flight wizard drafts
    through the old wizard (feature flag scoped to "started after
@@ -1053,7 +1053,7 @@ whether the design accounts for it.
 |---|---|---|---|---|
 | Approval gate (broker dispatch guard) | Caller bypasses guard from a new dispatch entry point added later | `TestBrokerRefusesDispatchForNonExecutableLifecycle` is parametric — adding a new entry point requires extending the test (catches drift) | `ErrIssueNotApproved` returned; caller's responsibility to surface | Yes — frontend shows "issue not approved" if it slips |
 | `POST /onboarding/scan` async | Website unreachable / times out | Existing handler test covers happy + bad-body; need additional timeout path test | Returns error to chat; chip shows "couldn't read site" | Yes — clear chat message |
-| Sanitization on new `ceo_*` kinds | Agent-controlled string with HTML/script injection | `broker_onboarding_sanitize_test.go` parametric over all new kinds | Sanitized to safe text before write | No — silent escape |
+| Sanitization on new `ceo_*` kinds | Bot-controlled string with HTML/script injection | `broker_onboarding_sanitize_test.go` parametric over all new kinds | Sanitized to safe text before write | No — silent escape |
 | Atomic seed at `seed` phase | Mid-seed crash (e.g., wiki materialization fails after channels seeded) | Existing `onboarding_origin` dedupe guard handles crash recovery | Resume re-runs idempotent seed; the broker dedupes | No — invisible recovery |
 | Phase resumption with `PendingSuggestion` | Suggestion ID collides across phases | ID is stable per `(phase, options-hash)` — collision implies same payload, dedupe is correct | Idempotent re-emit; frontend dedupes by ID | No |
 | Marcus path (no first issue) | User completes `bridge` with "look around first," office stays empty forever | E2E test asserts `Onboarded()` true + `+ New issue` works on demand | No error path; the design is "this is valid" | No |
@@ -1070,14 +1070,14 @@ least one of test, error handling, or user-visible message.
 | 2026-05-17 | Modern app shell with soft motion, not pixel art | Pixel art is the marketing site's job. The app's job is to look like a tool the user trusts. Different surfaces, different aesthetics. |
 | 2026-05-17 | DM with CEO inside the empty shell, not a full-bleed onboarding canvas | The product *is* the office. The user should see it from frame 1. The empty shell calibrates expectations and the live populate animation IS the value prop. |
 | 2026-05-17 | Tasks become Issues with their own surface, not threads or wiki pages | Issues need title + status + assignees + sub-issues + comments + approval gate. Wiki pages cannot host a status field cleanly; channel threads cannot have sub-threads at the level we need. Linear-style works. |
-| 2026-05-17 | One agent cast across two stages, status-driven | Doubling the agent count to add "planners" doubles cognitive load with no real upside. The same engineer should plan and build, like in a real team. The stage gate is the issue's status, not the agent. |
+| 2026-05-17 | One bot cast across two stages, status-driven | Doubling the bot count to add "planners" doubles cognitive load with no real upside. The same engineer should plan and build, like in a real team. The stage gate is the issue's status, not the bot. |
 | 2026-05-17 | Server-side enforcement of the no-execution-before-approval rule (recommended, open) | Trust is the design's core. Frontend-only enforcement is a footgun. |
 | 2026-05-17 | `motion` library, not framer-motion or pure CSS-only | framer-motion is too heavy; pure CSS misses the staggered sidebar enter. Slim motion lib hits both. |
 | 2026-05-17 | Deterministic-first conversation; LLM only after first issue description | Setup is form-fillable. Rendering it as templated CEO speech keeps it free, fast, and unfailable while preserving the natural-chat feel. LLM kicks in once the user has decided what to work on. |
 | 2026-05-17 | Blueprint picker is deterministic chips, not LLM-inferred from description | LLM blueprint inference adds a failure mode (wrong blueprint) for no real win. The user picks explicitly. Same as today's `Step2Templates`, rendered as a CEO message. |
 | 2026-05-17 | Team picker renders only on blueprint path; scratch path defers team to issue drafting | A blueprint comes with a team — that's a deterministic answer. Scratch has no team to offer up-front; CEO has to reason from the task, which is the right LLM moment. |
 | 2026-05-17 | Website scan + wiki seed are reused from existing onboarding | `POST /onboarding/scan` and blueprint `wiki_scaffold` already exist. We don't redesign them — we re-render their prompts and results as CEO chat. |
-| 2026-05-17 (eng review) | Server-side approval gate enforced in broker | The trust calibration is load-bearing. Frontend-only gating leaks through every alternate dispatch entry point (PamDispatcher, headless codex, self-heal, agent-to-agent). Server-side is the only honest answer. |
+| 2026-05-17 (eng review) | Server-side approval gate enforced in broker | The trust calibration is load-bearing. Frontend-only gating leaks through every alternate dispatch entry point (PamDispatcher, headless codex, self-heal, bot-to-bot). Server-side is the only honest answer. |
 | 2026-05-17 (eng review) | Issue surface reuses `LifecycleState*` instead of new primitive | Lifecycle apparatus already covers status, comments, approve/request_changes, and the Inbox PR-style loop (PR #885). New `LifecycleStateDrafting` is the only addition. Cuts ~40% off Phase 3. |
 | 2026-05-17 (eng review) | CEO transcript lives in `b.messages`, not in onboarding state | Reuses SSE + persistence + replay + search. Onboarding state stays small and focused. Eliminates ~200 lines of parallel persistence code. |
 | 2026-05-17 (eng review) | Staged FormAnswers + atomic seed at `seed` phase | Avoids refactoring `seedFromBlueprintLocked` into incremental mutations. Crash mid-flow leaves an empty office, not a half-formed one. Existing `onboarding_origin` dedupe guard inherits. |

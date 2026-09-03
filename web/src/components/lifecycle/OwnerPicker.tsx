@@ -30,7 +30,7 @@ export function OwnerPicker({
   useEffect(() => {
     if (isEditing) selectRef.current?.focus();
   }, [isEditing]);
-  const assignableAgents = members.filter(
+  const assignableBots = members.filter(
     (m) => m.slug && m.slug !== "human" && m.slug !== "you",
   );
 
@@ -91,7 +91,7 @@ export function OwnerPicker({
         data-testid="issue-owner-select"
       >
         <option value="">— unassigned —</option>
-        {assignableAgents.map((agent) => (
+        {assignableBots.map((agent) => (
           <option key={agent.slug} value={agent.slug}>
             @{agent.slug}
             {agent.name && agent.name !== agent.slug ? ` (${agent.name})` : ""}

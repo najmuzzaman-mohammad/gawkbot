@@ -66,17 +66,17 @@ func strictChannelWrites() bool {
 
 // groupDMsEnabled reports whether a group DM may be created, routed to, or
 // listed. A SEPARATE switch from generalChannelEnabled, on purpose: reviving
-// the shared room and reviving multi-agent DMs are two different product
+// the shared room and reviving multi-bot DMs are two different product
 // decisions, so they get two constants.
 //
 // A group DM is a channel by another name — internal/channel/types.go
-// documents ChannelTypeGroup as "Group DMs (human + N agents)", which is the
-// same several-agents-in-one-room shape #general is being retired to stop.
+// documents ChannelTypeGroup as "Group DMs (human + N bots)", which is the
+// same several-bots-in-one-room shape #general is being retired to stop.
 // Left alive, it becomes the new #general within a week.
 //
 // The point of DM-first is that every conversation has exactly two
-// participants, so the human can follow it. Tagging another agent inside a DM
-// sends the agent you are talking to off to consult them and report back; it
+// participants, so the human can follow it. Tagging another bot inside a DM
+// sends the bot you are talking to off to consult them and report back; it
 // does not pull them into the room.
 //
 // Create / route / list only, same as general: existing group rows still load
@@ -92,7 +92,7 @@ func groupDMsEnabled() bool {
 // 1:1 one.
 //
 // Two independent signals, because a group row can be identified by either:
-// its slug is a GroupSlug hash, so it names no single partner agent (unlike
+// its slug is a GroupSlug hash, so it names no single partner bot (unlike
 // "human__ceo" or the legacy "dm-ceo"); and it carries more than two members.
 // Checking both catches a row whose members drifted as well as one whose slug
 // did, and the member count is the direct expression of the rule that matters
@@ -101,7 +101,7 @@ func (ch *teamChannel) isGroupDM() bool {
 	if !ch.isDM() {
 		return false
 	}
-	return DMTargetAgent(ch.Slug) == "" || len(ch.Members) > 2
+	return DMTargetBot(ch.Slug) == "" || len(ch.Members) > 2
 }
 
 // namedChannelsEnabled reports whether an ordinary named channel may be
@@ -115,7 +115,7 @@ func (ch *teamChannel) isGroupDM() bool {
 //
 // Scope: blueprint-seeded rooms (#product, #gtm), synthesis rooms (#planning,
 // #execution, #review, #integrations), and open channel creation. NOT the Slack
-// or Telegram bridges (those are how external messages arrive, not rooms agents
+// or Telegram bridges (those are how external messages arrive, not rooms bots
 // chat in) and NOT app-<id> edit threads (hidden plumbing, load-bearing).
 //
 // Returns true today.
@@ -126,7 +126,7 @@ func namedChannelsEnabled() bool {
 // ErrNamedChannelsRetired is returned when a caller tries to mint an ordinary
 // named channel while they are switched off. An error, never a silent skip:
 // a caller that asked for a room and got nothing back must find out.
-var ErrNamedChannelsRetired = errors.New("team: named channels are retired; conversations happen in agent DMs")
+var ErrNamedChannelsRetired = errors.New("team: named channels are retired; conversations happen in bot DMs")
 
 // homeChannelFor is the lock-taking wrapper around homeChannelForLocked, for
 // callers that do not already hold b.mu — HTTP handlers, mostly. Mirrors the
@@ -164,7 +164,7 @@ func bucketChannelKey(slug string) string {
 // ErrNoHomeChannel if none qualify.
 //
 // It exists because "who does this belong to?" often has more than one honest
-// answer, ranked. A task has an OWNER (the agent that will do the work) and a
+// answer, ranked. A task has an OWNER (the bot that will do the work) and a
 // CREATOR (frequently "human", who is not on the roster and therefore has no
 // DM at all). Asking about the creator alone means a human-created task can
 // never find a home, even though the owner's DM was sitting right there — the
@@ -221,7 +221,7 @@ func (b *Broker) homeChannelForWriterLocked(writer string, candidates ...string)
 // Exactly three outcomes, and deliberately no fourth:
 //
 //  1. #general is enabled            -> GeneralChannelSlug, as today.
-//  2. Disabled, actor is on the roster -> that agent's DM, created if missing.
+//  2. Disabled, actor is on the roster -> that bot's DM, created if missing.
 //  3. Disabled, actor does not resolve -> ErrNoHomeChannel.
 //
 // The third outcome is the point. Returning some default slug for an

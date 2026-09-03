@@ -5,7 +5,7 @@ icon: "📰"
 kind: media_publication
 category: media
 outcome: "Stand up a team that researches, writes, grows, and monetizes a niche newsletter."
-description: A publication team of agents that runs a focused newsletter end to end, from the editorial angle to a growing subscriber list and a working revenue loop.
+description: A publication team of bots that runs a focused newsletter end to end, from the editorial angle to a growing subscriber list and a working revenue loop.
 objective: Find the niche, ship issues on a cadence, grow the subscriber list, and turn it into revenue, with every send behind human approval.
 estimated_setup_minutes: 6
 first_tasks:
@@ -30,11 +30,11 @@ requirements:
   - kind: api-key
     name: "ANTHROPIC_API_KEY or OPENAI_API_KEY"
     required: true
-    detail: "Powers the editor, growth, monetization, and reviewer agents."
+    detail: "Powers the editor, growth, monetization, and reviewer bots."
   - kind: runtime
     name: "Claude Code or Codex CLI"
     required: true
-    detail: "Runs the agent loops locally and drafts the issues."
+    detail: "Runs the bot loops locally and drafts the issues."
 example_artifacts:
   - kind: brief
     title: "Niche and angle brief"

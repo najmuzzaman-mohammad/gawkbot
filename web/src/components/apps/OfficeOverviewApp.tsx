@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import {
-  type AgentRequest,
+  type BotRequest,
   get,
   getAllRequests,
   getConfig,
@@ -23,7 +23,7 @@ import {
 } from "../../api/tasks";
 import { useOfficeStats } from "../../hooks/useOfficeStats";
 import { formatRelativeTime } from "../../lib/format";
-import { isAgentActive, normalizeStatus } from "../../lib/officeStatus";
+import { isBotActive, normalizeStatus } from "../../lib/officeStatus";
 import { router } from "../../lib/router";
 import {
   configuredConnectedRuntimeProviders,
@@ -33,7 +33,7 @@ import { stageForState } from "../../lib/types/lifecycle";
 import { useAppStore } from "../../stores/app";
 import type { PrereqResult } from "../onboarding/runtimes";
 import { ActiveTasksPanel } from "./shared/ActiveTasksPanel";
-import { AgentPulsePanel } from "./shared/AgentPulsePanel";
+import { BotPulsePanel } from "./shared/BotPulsePanel";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -58,8 +58,8 @@ interface OverviewData {
   activeTasks: Task[];
   blockedTasks: Task[];
   recentArtifacts: Task[];
-  activeAgents: OfficeMember[];
-  pendingRequests: AgentRequest[];
+  activeBots: OfficeMember[];
+  pendingRequests: BotRequest[];
   recentSkills: Skill[];
   upcomingJobs: SchedulerJob[];
   connectedProviders: RuntimeProviderOption[];
@@ -174,7 +174,7 @@ function useOverviewData(): OverviewData {
 
   const allTasks: Task[] = tasks.data?.tasks ?? [];
   const allMembers: OfficeMember[] = members.data?.members ?? [];
-  const allRequests: AgentRequest[] = requests.data?.requests ?? [];
+  const allRequests: BotRequest[] = requests.data?.requests ?? [];
   const allSkills: Skill[] = skills.data?.skills ?? [];
   const allJobs: SchedulerJob[] = scheduler.data?.jobs ?? [];
   const allProviders: LocalProviderStatus[] = Array.isArray(providers.data)
@@ -196,7 +196,7 @@ function useOverviewData(): OverviewData {
     (t) => stageForState(taskToLifecycleState(t)) === "blocked",
   );
 
-  const activeAgents = allMembers.filter(isAgentActive);
+  const activeBots = allMembers.filter(isBotActive);
 
   const pendingRequests = allRequests.filter(
     (r) => !r.status || r.status === "open" || r.status === "pending",
@@ -234,7 +234,7 @@ function useOverviewData(): OverviewData {
     activeTasks,
     blockedTasks,
     recentArtifacts,
-    activeAgents,
+    activeBots,
     pendingRequests,
     recentSkills,
     upcomingJobs,
@@ -320,42 +320,42 @@ function BlockedTasksSection({
           badgeClass="badge badge-yellow"
           limit={5}
           onTaskClick={goToTask}
-          emptyLabel="Nothing is blocked. Agents are moving freely."
+          emptyLabel="Nothing is blocked. Bots are moving freely."
         />
       )}
     </OverviewSection>
   );
 }
 
-interface AgentsWorkingSectionProps {
+interface BotsWorkingSectionProps {
   agents: OfficeMember[];
   isLoading: boolean;
   /** Shared-stats headline count; falls back to the row list length. */
   count?: number;
 }
 
-function AgentsWorkingSection({
+function BotsWorkingSection({
   agents,
   isLoading,
   count,
-}: AgentsWorkingSectionProps) {
+}: BotsWorkingSectionProps) {
   return (
     <OverviewSection
-      title="Agents working now"
+      title="Bots working now"
       count={count ?? agents.length}
       id="agents-working"
     >
       {isLoading ? (
         <SkeletonRows count={3} />
       ) : (
-        <AgentPulsePanel agents={agents} limit={6} />
+        <BotPulsePanel agents={agents} limit={6} />
       )}
     </OverviewSection>
   );
 }
 
 interface PendingReviewsSectionProps {
-  requests: AgentRequest[];
+  requests: BotRequest[];
   isLoading: boolean;
 }
 
@@ -378,7 +378,7 @@ function PendingReviewsSection({
         <SkeletonRows count={2} />
       ) : requests.length === 0 ? (
         <EmptyState action={{ label: "Go to requests", onClick: goToRequests }}>
-          No pending requests from agents.
+          No pending requests from bots.
         </EmptyState>
       ) : (
         // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Pending-reviews map callback builds per-request meta + badge from multiple optional fields; inline for readability, baselined pending extraction.
@@ -630,8 +630,8 @@ export function OfficeOverviewApp() {
           isLoading={data.taskIsLoading}
           count={data.stats?.tasks.blocked}
         />
-        <AgentsWorkingSection
-          agents={data.activeAgents}
+        <BotsWorkingSection
+          agents={data.activeBots}
           isLoading={data.membersIsLoading}
           count={data.stats?.agents_active}
         />

@@ -37,12 +37,12 @@ func (b *Broker) SetHeadlessDispatchController(c headlessDispatchController) {
 	b.governor.setController(c)
 }
 
-// dispatchAgentTurn enqueues a single agent turn directly — one agent, one job,
+// dispatchBotTurn enqueues a single bot turn directly — one bot, one job,
 // no CEO/lead orchestration hop. Returns false when no enqueuer is wired (unit
 // tests, or before the launcher attaches). This is the pi-skeleton dispatch the
 // App Builder edit path uses so a human change reaches the builder without
 // bouncing through the lead (which can hit its own turn cap and drop the work).
-func (b *Broker) dispatchAgentTurn(slug, prompt, channel string) bool {
+func (b *Broker) dispatchBotTurn(slug, prompt, channel string) bool {
 	if b == nil || b.governor == nil {
 		return false
 	}
@@ -64,7 +64,7 @@ func (b *Broker) initGovernor() {
 }
 
 // sessionUsageSnapshot returns the current session's cumulative tokens and cost
-// from the usage accounting that every headless turn feeds via RecordAgentUsage.
+// from the usage accounting that every headless turn feeds via RecordBotUsage.
 func (b *Broker) sessionUsageSnapshot() (tokens int, cost float64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -112,7 +112,7 @@ func (b *Broker) GovernorPause() {
 }
 
 // GovernorStop is the manual "Stop" action: pause dispatch AND cancel in-flight
-// turns now. slug == "" stops the whole team; a slug stops one agent. Queued
+// turns now. slug == "" stops the whole team; a slug stops one bot. Queued
 // work is preserved and drains on resume (clearing it would be harder to undo).
 func (b *Broker) GovernorStop(slug string) {
 	if b == nil || b.governor == nil {

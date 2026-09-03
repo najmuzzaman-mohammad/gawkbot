@@ -2,15 +2,15 @@ package team
 
 import "strings"
 
-// librarian.go holds what remains of the Librarian, an agent RETIRED as a
+// librarian.go holds what remains of the Librarian, a bot RETIRED as a
 // default. New workspaces do not seed it and nothing back-fills it; wiki
-// contribution is a system skill every agent carries instead. The slug
+// contribution is a system skill every bot carries instead. The slug
 // helpers and name constants stay because legacy workspaces still hold the
-// member on disk — it loads as an ordinary, removable agent, and load-time
+// member on disk — it loads as an ordinary, removable bot, and load-time
 // reconciliation rebrands its display name away from the old Office
 // reference.
 
-// LibrarianSlug is the roster slug for the Librarian agent.
+// LibrarianSlug is the roster slug for the Librarian bot.
 const LibrarianSlug = "librarian"
 
 const (

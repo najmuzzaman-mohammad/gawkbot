@@ -1,8 +1,8 @@
 // AppIntegrationBanner — the host-side answer to an app that says "No CRM
 // connected" with nowhere to click. The sandboxed app iframe cannot reach the
-// host's connect flow, so when a READY agent's own description references
+// host's connect flow, so when a READY bot's own description references
 // external systems that are not connected, the UI tab shows this banner above
-// the frame: what the agent wants, and gate-style connect rows (logo + name +
+// the frame: what the bot wants, and gate-style connect rows (logo + name +
 // live Connect) to fix it in place. It disappears on its own the moment the
 // referenced systems are live — or stays hidden for this app if dismissed.
 
@@ -33,7 +33,7 @@ export function AppIntegrationBanner({ app }: { app: CustomApp }) {
   const [dismissed, setDismissed] = useState(() => isDismissed(app.id));
   const queryClient = useQueryClient();
 
-  // What the agent's own words say it wants, minus what is connected. Polled
+  // What the bot's own words say it wants, minus what is connected. Polled
   // gently so connecting (here or anywhere else) clears the banner without a
   // reload. Resolves [] on any API failure — the banner never blocks the app.
   const refs = describedIntegrations(

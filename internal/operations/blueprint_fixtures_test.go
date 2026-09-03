@@ -58,22 +58,22 @@ func assertBlueprintFixtureShape(t *testing.T, repoRoot string, bp Blueprint, id
 			t.Fatalf("expected employee blueprint %q to load for %s: %v", ref, id, err)
 		}
 	}
-	for _, agent := range bp.Starter.Agents {
-		if strings.TrimSpace(agent.EmployeeBlueprint) == "" {
-			if strings.TrimSpace(agent.Name) == "" {
-				t.Fatalf("expected starter agent %q to bind an employee blueprint or set a name", agent.Slug)
+	for _, bot := range bp.Starter.Bots {
+		if strings.TrimSpace(bot.EmployeeBlueprint) == "" {
+			if strings.TrimSpace(bot.Name) == "" {
+				t.Fatalf("expected starter bot %q to bind an employee blueprint or set a name", bot.Slug)
 			}
 			continue
 		}
-		if !containsString(bp.EmployeeBlueprints, agent.EmployeeBlueprint) {
-			t.Fatalf("expected starter agent %q binding %q to appear in employee blueprint refs %+v", agent.Slug, agent.EmployeeBlueprint, bp.EmployeeBlueprints)
+		if !containsString(bp.EmployeeBlueprints, bot.EmployeeBlueprint) {
+			t.Fatalf("expected starter bot %q binding %q to appear in employee blueprint refs %+v", bot.Slug, bot.EmployeeBlueprint, bp.EmployeeBlueprints)
 		}
 	}
 	if strings.TrimSpace(bp.Starter.LeadSlug) == "" {
 		t.Fatalf("expected lead slug for %s", id)
 	}
-	if len(bp.Starter.Agents) < 4 {
-		t.Fatalf("expected starter agents, got %+v", bp.Starter.Agents)
+	if len(bp.Starter.Bots) < 4 {
+		t.Fatalf("expected starter bots, got %+v", bp.Starter.Bots)
 	}
 	if len(bp.Starter.Channels) < 4 {
 		t.Fatalf("expected starter channels, got %+v", bp.Starter.Channels)

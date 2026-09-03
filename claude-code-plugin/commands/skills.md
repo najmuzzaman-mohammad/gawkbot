@@ -1,5 +1,5 @@
 ---
-description: List agent skills, view a skill, compile, or sync to local folder
+description: List bot skills, view a skill, compile, or sync to local folder
 ---
 Handle skill requests based on $ARGUMENTS:
 
@@ -10,7 +10,7 @@ Use the `list_skills` MCP tool. Display results as a table with Name (slug), Tri
 Use `get_skill_by_slug` with the slug. Display the full markdown content including action steps, required integrations, and workspace context.
 
 **"sync" -> sync all skills to local .nex/ folder:**
-Use `sync_skills`. This downloads all skills as .md files to .nex/skills/ for fast local access by any AI agent.
+Use `sync_skills`. This downloads all skills as .md files to .nex/skills/ for fast local access by any AI bot.
 
 **"compile" -> trigger skill compilation:**
 Use `compile_skills`. This scans playbook rules and generates executable skills grounded to the workspace's tools, team, and CRM schema.

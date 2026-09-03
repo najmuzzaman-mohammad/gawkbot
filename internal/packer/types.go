@@ -22,7 +22,7 @@ type BotTrust int
 const (
 	BotUntrusted  BotTrust = iota // default for anything externally originated
 	BotFirstParty                 // in-house, company-owned workspace, known data handling
-	BotHosted                     // WUPHF-hosted agent (also gets push-side injection)
+	BotHosted                     // WUPHF-hosted bot (also gets push-side injection)
 )
 
 // ReadScope is how much of the conversation a bot reads. Upgraded to ReadThread

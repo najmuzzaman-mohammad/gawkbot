@@ -8,19 +8,19 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// agentToolEventMiddleware wraps every incoming MCP method so tools/call
-// invocations are teed to the broker's per-agent stream. This gives the web
-// UI an audit trail of what tool each agent called, with arguments and
+// botToolEventMiddleware wraps every incoming MCP method so tools/call
+// invocations are teed to the broker's per-bot stream. This gives the web
+// UI an audit trail of what tool each bot called, with arguments and
 // either the result summary or an error — visibility the raw pane capture
-// can't provide for agents that do their work through MCP calls.
-func agentToolEventMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
+// can't provide for bots that do their work through MCP calls.
+func botToolEventMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 		if method != "tools/call" {
 			return next(ctx, method, req)
 		}
 		toolName, argsJSON := extractToolCallRequest(req)
 		if toolName != "" {
-			postAgentToolEvent(ctx, resolveSlugOptional(""), "call", toolName, argsJSON, "", "")
+			postBotToolEvent(ctx, resolveSlugOptional(""), "call", toolName, argsJSON, "", "")
 		}
 		result, err := next(ctx, method, req)
 		if toolName != "" {
@@ -30,7 +30,7 @@ func agentToolEventMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 				phase = "error"
 				errStr = err.Error()
 			}
-			postAgentToolEvent(ctx, resolveSlugOptional(""), phase, toolName, "", summarizeToolResult(result), errStr)
+			postBotToolEvent(ctx, resolveSlugOptional(""), phase, toolName, "", summarizeToolResult(result), errStr)
 		}
 		return result, err
 	}
@@ -64,7 +64,7 @@ func summarizeToolResult(res mcp.Result) string {
 	return ""
 }
 
-func postAgentToolEvent(ctx context.Context, slug, phase, tool, args, result, errStr string) {
+func postBotToolEvent(ctx context.Context, slug, phase, tool, args, result, errStr string) {
 	slug = strings.TrimSpace(slug)
 	if slug == "" || tool == "" {
 		return
@@ -82,7 +82,7 @@ func postAgentToolEvent(ctx context.Context, slug, phase, tool, args, result, er
 		eventCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		// Ignore errors — the broker might be restarting or unreachable,
-		// and an audit-log failure is not worth surfacing to the agent.
+		// and an audit-log failure is not worth surfacing to the bot.
 		_ = brokerPostJSON(eventCtx, "/agent-tool-event", body, nil)
 	}()
 	_ = ctx

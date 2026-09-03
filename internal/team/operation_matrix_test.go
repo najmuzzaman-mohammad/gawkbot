@@ -51,8 +51,8 @@ func TestOperationBlueprintMatrixBuildsBootstrapPackage(t *testing.T) {
 			if pkg.BootstrapConfig.ChannelName == "" || pkg.BootstrapConfig.ChannelSlug == "" {
 				t.Fatalf("expected bootstrap config identifiers, got %+v", pkg.BootstrapConfig)
 			}
-			if len(pkg.Starter.Agents) != len(blueprint.Starter.Agents) {
-				t.Fatalf("expected starter agents to mirror blueprint, got %d want %d", len(pkg.Starter.Agents), len(blueprint.Starter.Agents))
+			if len(pkg.Starter.Bots) != len(blueprint.Starter.Bots) {
+				t.Fatalf("expected starter bots to mirror blueprint, got %d want %d", len(pkg.Starter.Bots), len(blueprint.Starter.Bots))
 			}
 			if len(pkg.Starter.Channels) != len(blueprint.Starter.Channels) {
 				t.Fatalf("expected starter channels to mirror blueprint, got %d want %d", len(pkg.Starter.Channels), len(blueprint.Starter.Channels))
@@ -82,18 +82,18 @@ func TestOperationBlueprintMatrixBuildsBootstrapPackage(t *testing.T) {
 				t.Fatalf("expected rendered bootstrap config for %s, got starter=%q cfg=%+v", id, pkg.Starter.GeneralDesc, pkg.BootstrapConfig)
 			}
 
-			agentSlugs := make(map[string]struct{}, len(pkg.Starter.Agents))
-			for _, agent := range pkg.Starter.Agents {
-				if strings.TrimSpace(agent.Slug) == "" || strings.TrimSpace(agent.Name) == "" || strings.TrimSpace(agent.Role) == "" {
-					t.Fatalf("expected starter agent to be fully populated, got %+v", agent)
+			botSlugs := make(map[string]struct{}, len(pkg.Starter.Bots))
+			for _, bot := range pkg.Starter.Bots {
+				if strings.TrimSpace(bot.Slug) == "" || strings.TrimSpace(bot.Name) == "" || strings.TrimSpace(bot.Role) == "" {
+					t.Fatalf("expected starter bot to be fully populated, got %+v", bot)
 				}
-				agentSlugs[agent.Slug] = struct{}{}
+				botSlugs[bot.Slug] = struct{}{}
 			}
 			if got, want := len(pkg.Starter.KickoffTagged), 1; got != want {
 				t.Fatalf("expected a single kickoff tag, got %d", got)
 			}
-			if _, ok := agentSlugs[pkg.Starter.KickoffTagged[0]]; !ok {
-				t.Fatalf("expected kickoff tag %q to map to a starter agent, got %+v", pkg.Starter.KickoffTagged[0], pkg.Starter.Agents)
+			if _, ok := botSlugs[pkg.Starter.KickoffTagged[0]]; !ok {
+				t.Fatalf("expected kickoff tag %q to map to a starter bot, got %+v", pkg.Starter.KickoffTagged[0], pkg.Starter.Bots)
 			}
 			for _, channel := range pkg.Starter.Channels {
 				if strings.TrimSpace(channel.Slug) == "" || strings.TrimSpace(channel.Name) == "" {
@@ -105,8 +105,8 @@ func TestOperationBlueprintMatrixBuildsBootstrapPackage(t *testing.T) {
 					}
 				}
 				for _, member := range channel.Members {
-					if _, ok := agentSlugs[member]; !ok {
-						t.Fatalf("expected channel member %q to reference a starter agent, got %+v", member, channel)
+					if _, ok := botSlugs[member]; !ok {
+						t.Fatalf("expected channel member %q to reference a starter bot, got %+v", member, channel)
 					}
 				}
 			}
@@ -114,8 +114,8 @@ func TestOperationBlueprintMatrixBuildsBootstrapPackage(t *testing.T) {
 				if strings.TrimSpace(task.Title) == "" || strings.TrimSpace(task.Channel) == "" || strings.TrimSpace(task.Owner) == "" {
 					t.Fatalf("expected starter task to be populated, got %+v", task)
 				}
-				if _, ok := agentSlugs[task.Owner]; !ok {
-					t.Fatalf("expected task owner %q to reference a starter agent, got %+v", task.Owner, task)
+				if _, ok := botSlugs[task.Owner]; !ok {
+					t.Fatalf("expected task owner %q to reference a starter bot, got %+v", task.Owner, task)
 				}
 			}
 		})
@@ -153,15 +153,15 @@ func TestOperationBlueprintMatrixSeedsBrokerOffice(t *testing.T) {
 
 			b := newRawTestBroker(t)
 			members := b.OfficeMembers()
-			// Roster = the blueprint's starter agents, EXACTLY.
+			// Roster = the blueprint's starter bots, EXACTLY.
 			//
 			// This used to allow two extras — the Librarian and the App Builder,
 			// "always-present built-ins" appended to every blueprint. Both are
 			// retired as defaults and nothing back-fills them, so a blueprint's
 			// roster is now what the blueprint says it is. Asserting the exact
 			// count is what catches a resurrected append: a >= check would not.
-			if len(members) != len(blueprint.Starter.Agents) {
-				t.Fatalf("expected broker office roster to match the blueprint's starter agents exactly, got %d want %d (%+v)", len(members), len(blueprint.Starter.Agents), members)
+			if len(members) != len(blueprint.Starter.Bots) {
+				t.Fatalf("expected broker office roster to match the blueprint's starter bots exactly, got %d want %d (%+v)", len(members), len(blueprint.Starter.Bots), members)
 			}
 
 			memberBySlug := make(map[string]officeMember, len(members))
@@ -173,10 +173,10 @@ func TestOperationBlueprintMatrixSeedsBrokerOffice(t *testing.T) {
 					t.Fatalf("retired default %q was appended to the blueprint roster: %+v", retired, members)
 				}
 			}
-			for _, starter := range blueprint.Starter.Agents {
+			for _, starter := range blueprint.Starter.Bots {
 				member, ok := memberBySlug[starter.Slug]
 				if !ok {
-					t.Fatalf("expected starter agent %q in office roster, got %+v", starter.Slug, members)
+					t.Fatalf("expected starter bot %q in office roster, got %+v", starter.Slug, members)
 				}
 				if strings.TrimSpace(member.Name) == "" || strings.TrimSpace(member.Role) == "" {
 					t.Fatalf("expected populated office member for %q, got %+v", starter.Slug, member)
@@ -186,8 +186,8 @@ func TestOperationBlueprintMatrixSeedsBrokerOffice(t *testing.T) {
 				}
 			}
 
-			// Was: every starter agent must be a member of #general. With
-			// #general retired, "the blueprint's agents are all reachable"
+			// Was: every starter bot must be a member of #general. With
+			// #general retired, "the blueprint's bots are all reachable"
 			// means each one has its own DM.
 			b.mu.Lock()
 			// Only meaningful once the kill switch is off. While #general is
@@ -196,9 +196,9 @@ func TestOperationBlueprintMatrixSeedsBrokerOffice(t *testing.T) {
 			if !generalChannelEnabled() && b.findChannelLocked(GeneralChannelSlug) != nil {
 				t.Error("#general is retired and must not be seeded")
 			}
-			for _, starter := range blueprint.Starter.Agents {
+			for _, starter := range blueprint.Starter.Bots {
 				if b.findChannelLocked(channel.DirectSlug("human", starter.Slug)) == nil {
-					t.Errorf("starter agent %q has no DM and is unreachable", starter.Slug)
+					t.Errorf("starter bot %q has no DM and is unreachable", starter.Slug)
 				}
 			}
 			b.mu.Unlock()
@@ -255,8 +255,8 @@ func TestOperationBlueprintMatrixServesBootstrapPackageEndpoint(t *testing.T) {
 			if !strings.Contains(filepath.ToSlash(pkg.SourcePath), filepath.ToSlash(filepath.Join("templates", "operations", id, "blueprint.yaml"))) {
 				t.Fatalf("expected template blueprint source path, got %q", pkg.SourcePath)
 			}
-			if len(pkg.Starter.Agents) != len(blueprint.Starter.Agents) {
-				t.Fatalf("expected starter agents to mirror blueprint, got %d want %d", len(pkg.Starter.Agents), len(blueprint.Starter.Agents))
+			if len(pkg.Starter.Bots) != len(blueprint.Starter.Bots) {
+				t.Fatalf("expected starter bots to mirror blueprint, got %d want %d", len(pkg.Starter.Bots), len(blueprint.Starter.Bots))
 			}
 			if len(pkg.Starter.Channels) != len(blueprint.Starter.Channels) {
 				t.Fatalf("expected starter channels to mirror blueprint, got %d want %d", len(pkg.Starter.Channels), len(blueprint.Starter.Channels))

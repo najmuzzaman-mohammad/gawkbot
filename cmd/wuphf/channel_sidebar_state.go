@@ -90,7 +90,7 @@ func (m channelModel) updateSidebar(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.selectSidebarItem(items[m.sidebarCursor])
 	case "d":
-		// Switch the main channel view to the per-agent DM channel.
+		// Switch the main channel view to the per-bot DM channel.
 		// The office continues running; this is just a channel switch.
 		roster := channelui.MergeOfficeMembers(m.officeMembers, m.members, m.currentChannelInfo())
 		if len(roster) > 0 {
@@ -204,10 +204,10 @@ func (m *channelModel) selectSidebarItem(item sidebarItem) tea.Cmd {
 			m.notice = "Viewing #" + m.activeChannel + "."
 			return pollBroker("", m.activeChannel)
 		case channelui.OfficeAppInbox:
-			m.notice = "Viewing the selected agent inbox."
+			m.notice = "Viewing the selected bot inbox."
 			return pollBroker("", m.activeChannel)
 		case channelui.OfficeAppOutbox:
-			m.notice = "Viewing the selected agent outbox."
+			m.notice = "Viewing the selected bot outbox."
 			return pollBroker("", m.activeChannel)
 		case channelui.OfficeAppRecovery:
 			m.notice = "Viewing the recovery summary."

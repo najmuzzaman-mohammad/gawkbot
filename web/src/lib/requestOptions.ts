@@ -1,7 +1,7 @@
-import type { AgentRequest, InterviewOption } from "../api/client";
+import type { BotRequest, InterviewOption } from "../api/client";
 
 export function requestOptionNeedsText(
-  request: AgentRequest,
+  request: BotRequest,
   option: InterviewOption,
 ): boolean {
   return Boolean(
@@ -11,7 +11,7 @@ export function requestOptionNeedsText(
 }
 
 export function requestOptionTextHint(
-  request: AgentRequest,
+  request: BotRequest,
   option: InterviewOption,
 ): string {
   if (option.text_hint) return option.text_hint;

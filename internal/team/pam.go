@@ -4,7 +4,7 @@ package team
 //
 // Pam is the archivist — same git identity (ArchivistAuthor), same
 // single-writer commit path through WikiWorker. What's new: Pam now runs in
-// her own sub-process per task, mirroring how roster agents are spawned.
+// her own sub-process per task, mirroring how roster bots are spawned.
 //
 // The current sub-process mode is headless: each Pam turn shells out via
 // provider.RunConfiguredOneShot, a fresh process per task. Context is
@@ -13,7 +13,7 @@ package team
 // Callers supply a PamRunner to NewPamDispatcher. The broker wires a
 // HeadlessPamRunner by default.
 //
-// Pam is NOT a roster member (not in any PackDefinition.Agents[]). She sits
+// Pam is NOT a roster member (not in any PackDefinition.Bots[]). She sits
 // on top of the wiki UI and is triggered explicitly by the user.
 
 import (
@@ -292,7 +292,7 @@ func (d *PamDispatcher) runJob(ctx context.Context, job PamJob) {
 		d.mu.Unlock()
 		if needsFollowup && running {
 			// Preserve the original requestor on the follow-up so the audit
-			// trail still reflects the human (or agent) who triggered Pam.
+			// trail still reflects the human (or bot) who triggered Pam.
 			requestor := job.RequestBy
 			d.wg.Add(1)
 			go func() {

@@ -120,7 +120,7 @@ func memberDraftComposerLabel(d channelMemberDraft) string {
 	case "personality":
 		return "Personality"
 	default:
-		return "Agent setup"
+		return "Bot setup"
 	}
 }
 

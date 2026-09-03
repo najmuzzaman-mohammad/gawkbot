@@ -52,7 +52,7 @@ export const States: Story = {
   render: () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <SidebarSectionHeader
-        label="Agents (open)"
+        label="Bots (open)"
         open={true}
         onToggle={() => {}}
       />

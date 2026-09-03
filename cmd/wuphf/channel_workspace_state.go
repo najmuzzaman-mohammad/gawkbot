@@ -20,8 +20,8 @@ func (m channelModel) currentWorkspaceUIState() channelui.WorkspaceUIState {
 		BrokerConnected: m.brokerConnected,
 		Direct:          m.isOneOnOne(),
 		Channel:         m.activeChannel,
-		AgentName:       m.oneOnOneAgentName(),
-		AgentSlug:       m.oneOnOneAgentSlug(),
+		BotName:         m.oneOnOneBotName(),
+		BotSlug:         m.oneOnOneBotSlug(),
 		PeerCount:       len(m.members),
 		RunningTasks:    channelui.CountRunningRuntimeTasks(snapshot.Tasks),
 		OpenRequests:    len(snapshot.Requests),
@@ -114,8 +114,8 @@ func (m channelModel) buildDirectIntroLines(contentWidth int) []channelui.Render
 		{Text: channelui.RenderDateSeparator(contentWidth, "Direct session")},
 		{Text: ""},
 	}
-	title := channelui.SubtlePill("1:1", "#F8FAFC", "#334155") + " " + lipgloss.NewStyle().Bold(true).Render("Direct session with "+m.oneOnOneAgentName())
-	body := "Direct session reset. Agent pane reloaded in place. This surface is just you and the selected agent. No rooms, no chatter from anyone else. The door is closed."
+	title := channelui.SubtlePill("1:1", "#F8FAFC", "#334155") + " " + lipgloss.NewStyle().Bold(true).Render("Direct session with "+m.oneOnOneBotName())
+	body := "Direct session reset. Bot pane reloaded in place. This surface is just you and the selected bot. No rooms, no chatter from anyone else. The door is closed."
 	extra := []string{"Use /switcher to jump back to the team."}
 	if strings.TrimSpace(state.Focus) != "" {
 		extra = append(extra, "Focus: "+state.Focus)
@@ -152,13 +152,13 @@ func (m channelModel) buildOfficeFeedLines(contentWidth int) []channelui.Rendere
 func (m channelModel) buildDirectFeedLines(contentWidth int) []channelui.RenderedLine {
 	if len(m.messages) == 0 {
 		lines := m.buildDirectIntroLines(contentWidth)
-		focusSlug := m.oneOnOneAgentSlug()
+		focusSlug := m.oneOnOneBotSlug()
 		lines = append(lines, channelui.BuildDirectExecutionLines(m.actions, focusSlug, contentWidth)...)
 		lines = append(lines, channelui.BuildLiveWorkLines(m.members, m.tasks, nil, contentWidth, focusSlug)...)
 		return lines
 	}
-	lines := buildOneOnOneMessageLines(m.messages, m.expandedThreads, contentWidth, m.oneOnOneAgentName(), m.unreadAnchorID, m.unreadCount)
-	focusSlug := m.oneOnOneAgentSlug()
+	lines := buildOneOnOneMessageLines(m.messages, m.expandedThreads, contentWidth, m.oneOnOneBotName(), m.unreadAnchorID, m.unreadCount)
+	focusSlug := m.oneOnOneBotSlug()
 	lines = append(lines, channelui.BuildDirectExecutionLines(m.actions, focusSlug, contentWidth)...)
 	lines = append(lines, channelui.BuildLiveWorkLines(m.members, m.tasks, nil, contentWidth, focusSlug)...)
 	return lines

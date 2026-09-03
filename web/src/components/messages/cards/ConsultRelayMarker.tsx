@@ -1,6 +1,6 @@
 /**
- * ConsultRelayMarker — the quiet line in your DM showing that your agent went
- * and talked to another agent.
+ * ConsultRelayMarker — the quiet line in your DM showing that your bot went
+ * and talked to another bot.
  *
  *   ── Messaged  (avatar) Bagel Social ──
  *   ── Message from  (avatar) Bagel Social ──
@@ -10,14 +10,14 @@
  * borrows its treatment from. Nobody said this — it is an event, and the row
  * has no sender to render.
  *
- * Clicking opens that agent-to-agent conversation READ-ONLY. You can see what
+ * Clicking opens that bot-to-bot conversation READ-ONLY. You can see what
  * was said; you cannot post into it, and there is no composer to suggest you
- * could. That is the point of the whole feature: if your agent tells you
+ * could. That is the point of the whole feature: if your bot tells you
  * "Social says X", you can check whether it actually asked.
  *
- * The marker is derived server-side from the real agent-to-agent message
+ * The marker is derived server-side from the real bot-to-bot message
  * (internal/team/broker_consult_relay.go), so it cannot be fabricated by an
- * agent claiming a consult it never had.
+ * bot claiming a consult it never had.
  */
 
 import { useState } from "react";
@@ -30,11 +30,11 @@ import { SidePanel } from "../../ui/SidePanel";
 import { MessageFeed } from "../MessageFeed";
 
 export interface ConsultRelayPayload {
-  /** Relative to the agent whose DM this appears in. */
+  /** Relative to the bot whose DM this appears in. */
   direction?: "sent" | "received";
-  /** The OTHER agent — the one named on the marker. */
+  /** The OTHER bot — the one named on the marker. */
   agent?: string;
-  /** The agent-to-agent DM channel, so the click has somewhere to go. */
+  /** The bot-to-bot DM channel, so the click has somewhere to go. */
   channel?: string;
 }
 

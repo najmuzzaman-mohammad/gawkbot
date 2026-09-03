@@ -21,7 +21,7 @@ import (
 
 // TestNormaliserDivergenceIsExactlyThreeCases is the load-bearing test of the
 // whole tranche. Every "switch this site to normalizeActorSlug" judgement was
-// made on the claim that the two normalisers agree on ordinary agent slugs and
+// made on the claim that the two normalisers agree on ordinary bot slugs and
 // differ only on empty, a leading "#", and "__". If that claim stops holding,
 // the switches become silent behaviour changes on persisted data — so pin it.
 func TestNormaliserDivergenceIsExactlyThreeCases(t *testing.T) {
@@ -98,9 +98,9 @@ func TestRefusalsFireOnEmptyInput(t *testing.T) {
 		}
 	})
 
-	t.Run("agent activity with no agent is dropped, not filed under a channel", func(t *testing.T) {
+	t.Run("bot activity with no bot is dropped, not filed under a channel", func(t *testing.T) {
 		b := newTestBroker(t)
-		b.UpdateAgentActivity(agentActivitySnapshot{Slug: "  "})
+		b.UpdateBotActivity(botActivitySnapshot{Slug: "  "})
 		b.mu.Lock()
 		_, leaked := b.activity[GeneralChannelSlug]
 		n := len(b.activity)
@@ -115,7 +115,7 @@ func TestRefusalsFireOnEmptyInput(t *testing.T) {
 
 	t.Run("generated member template rejects an empty slug", func(t *testing.T) {
 		if _, err := parseGeneratedMemberTemplate(`{"slug":"  ","name":"X"}`); err == nil {
-			t.Error("expected an error; an empty generated slug used to mint an agent named \"general\"")
+			t.Error("expected an error; an empty generated slug used to mint a bot named \"general\"")
 		}
 	})
 
@@ -221,11 +221,11 @@ func TestEmptyFilterMeansNoFilter(t *testing.T) {
 
 // TestDMSlugsRequireTheChannelNormaliser guards the trap running in reverse.
 //
-// The obvious reading of broker_dm.go is "these take an agent slug, so switch
+// The obvious reading of broker_dm.go is "these take a bot slug, so switch
 // them to normalizeActorSlug like everything else". That is catastrophically
 // wrong: normalizeChannelSlug's "__" placeholder dance exists precisely to
 // preserve the DM separator, and the actor normaliser folds "__" to "--". A
-// sweep that "finished the job" here would break DM lookup, DMTargetAgent, and
+// sweep that "finished the job" here would break DM lookup, DMTargetBot, and
 // the canonical-slug migration in one move, and every symptom would look like
 // a routing bug rather than a normalisation one.
 func TestDMSlugsRequireTheChannelNormaliser(t *testing.T) {
@@ -249,7 +249,7 @@ func TestDMSlugsRequireTheChannelNormaliser(t *testing.T) {
 	if IsDMSlug(normalizeActorSlug(dm)) {
 		t.Error("an actor-normalised DM slug still parsed as a DM — the hazard has moved, re-check broker_dm.go")
 	}
-	if got := DMTargetAgent(normalizeActorSlug(dm)); got == "ceo" {
-		t.Error("DMTargetAgent survived actor normalisation; re-check the DO-NOT-CHANGE note in broker_dm.go")
+	if got := DMTargetBot(normalizeActorSlug(dm)); got == "ceo" {
+		t.Error("DMTargetBot survived actor normalisation; re-check the DO-NOT-CHANGE note in broker_dm.go")
 	}
 }

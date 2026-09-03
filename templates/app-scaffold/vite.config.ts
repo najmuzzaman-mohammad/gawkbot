@@ -51,7 +51,7 @@ function wuphfSourceStamp({ types: t }: any) {
 }
 
 // Dev-only: inject the "select to edit" / error-capture inspector into the page
-// at the HTML level, so it loads no matter how the agent rewrites src/main.tsx.
+// at the HTML level, so it loads no matter how the bot rewrites src/main.tsx.
 // Wiring it through index.html (not app source) is what keeps the live-preview
 // tooling robust across rebuilds; it never reaches the production build.
 function wuphfInspectorInject() {

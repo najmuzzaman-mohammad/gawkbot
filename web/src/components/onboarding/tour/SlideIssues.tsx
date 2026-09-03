@@ -5,7 +5,7 @@
  *   1. A mock composer "types out" an @mention issue via a CSS typewriter
  *      (steps() over the monospace command, with a blinking caret).
  *   2. The work fans out into a small grid of task cards, each with a live
- *      pulsing green heartbeat dot, so the user sees parallel agents pick
+ *      pulsing green heartbeat dot, so the user sees parallel bots pick
  *      work up.
  *   3. A `#general` destination pill closes the loop: the ship lands back in
  *      a channel the founder can see.
@@ -35,7 +35,7 @@ const TYPED_COMMAND =
 interface MockTask {
   /** Stable key. */
   id: string;
-  /** Which agent claimed it. */
+  /** Which bot claimed it. */
   owner: string;
   /** Short, plausible task title. */
   title: string;

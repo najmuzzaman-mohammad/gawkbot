@@ -11,12 +11,12 @@ Today the wiki organizes articles by **fixed top-level folders** under `team/`
 (people / companies / customers / playbooks / …) and an article's "category" in the UI is just
 its first path segment. This causes the customer-reported problems: insight/concept articles get
 filed into entity folders (`team/companies/hubspot-mql.md`, `linear-ci.md` are insights, not
-companies), the nav is rigid, there's no home for non-entity **concept** articles, and agents
+companies), the nav is rigid, there's no home for non-entity **concept** articles, and bots
 dump standalone "insight" pages instead of folding knowledge into the right article.
 
 **Goal: make the wiki behave like Wikipedia** across four dimensions — **navigation/IA**,
-**article writing**, **associations**, and the **agent read/write/query** paths — because the
-wiki is the agents' compounding knowledge substrate, not only a human reading surface.
+**article writing**, **associations**, and the **bot read/write/query** paths — because the
+wiki is the bots' compounding knowledge substrate, not only a human reading surface.
 
 ## 2. Approach: a category LAYER, not a physical flatten
 
@@ -69,7 +69,7 @@ Every generated/synthesized article emits, in this order:
   entity AND concept **on first mention**.
 - **Categories** — classification association.
 - **Backlinks / "What links here"** — reverse links (we have the bidirectional entity graph;
-  surface it as a backlinks view agents and humans can query).
+  surface it as a backlinks view bots and humans can query).
 - **`## See also`** — curated related-article links.
 - **Navboxes** — grouped related-article nav at the foot (generated from the graph / category
   co-membership).
@@ -91,9 +91,9 @@ Every generated/synthesized article emits, in this order:
 | Redirect | redirect stub (`canonical_slug`/`redirect_to`) + `redirects.md` mirror |
 | `[[wikilinks]]` | `[[kind/slug]]` wikilink grammar (concepts = `[[concepts/slug]]`) |
 
-## 5. Agent-facing model (write · find · associate)
+## 5. Bot-facing model (write · find · associate)
 
-The wiki is the agents' substrate; the Wikipedia model governs their paths:
+The wiki is the bots' substrate; the Wikipedia model governs their paths:
 
 **WRITE (Wikipedia-faithful authoring).**
 - Extraction (`prompts/extract_entities_lite.tmpl`, `ValidEntityKinds()` entity_facts.go:52):
@@ -107,7 +107,7 @@ The wiki is the agents' substrate; the Wikipedia model governs their paths:
   authoring rules — highest-leverage single edit; all prompts inherit it.
 
 **FIND (retrieval via the graph, not folders).**
-- `context_assembler.go` + `prompt_builder.go`: assemble an agent's turn context from
+- `context_assembler.go` + `prompt_builder.go`: assemble a bot's turn context from
   **categories** (same-category articles) + **wikilinks** + **backlinks (What links here)** +
   **concept articles**, not just the entity's own brief.
 - Index `categories` + concept articles in bleve/sqlite; add **category-scoped retrieval**.
@@ -118,7 +118,7 @@ The wiki is the agents' substrate; the Wikipedia model governs their paths:
   `Query` are already kind-generic; the gate is `ValidEntityKinds` + extraction emitting refs).
 - Associations rendered as `## See also` + navbox + foot categories from the graph + category index.
 
-**Net effect:** agents file encyclopedic entity/concept articles, categorize by defining trait,
+**Net effect:** bots file encyclopedic entity/concept articles, categorize by defining trait,
 wikilink+backlink associations, fold new insights under the right header, and retrieve by
 category/link/backlink — so knowledge compounds and stays findable, like Wikipedia.
 
@@ -126,7 +126,7 @@ category/link/backlink — so knowledge compounds and stays findable, like Wikip
 
 0. **Schema amendment** (✅ done) — `type`, `categories`, `team/concepts/`, `redirect_to`,
    redirects.md writer, §7.2 re-file, §12 changelog. Follow-up: add `parent_categories`, the
-   WP:LAYOUT order, the Category-page model, disambiguation, and the §10 agent-authoring rules.
+   WP:LAYOUT order, the Category-page model, disambiguation, and the §10 bot-authoring rules.
 1. **Category derived index** (✅ done) — `article_categories` on both stores (sqlite +
    in-memory), reconcile hook in `reconcileEntityBrief`, folded into `CanonicalHashAll`
    (backend-agnostic), `meta.Categories` populated from frontmatter; `rm -rf index`
@@ -142,16 +142,16 @@ category/link/backlink — so knowledge compounds and stays findable, like Wikip
    `Wiki.tsx` from folder `group` to real categories; introduce **category pages** (with
    `parent_categories:`) + the category→parent derived edges and render the **subcategory tree**;
    backfill so nav is never empty.
-4. **Concept articles + agent authoring** — `EntityKindConcepts`; `concept_article.go` mirroring
+4. **Concept articles + bot authoring** — `EntityKindConcepts`; `concept_article.go` mirroring
    `entity_article.go` in **WP:LAYOUT order**; extraction recognizes concepts; librarian/synthesis
    prompts + §10 updated; `## Associated` → `## See also`; categories at foot.
 5. **Insights fold under headers** — `wiki_section_merge.go` (`mergeUnderHeader`, fence-safe,
-   outside sentinel regions); agent names target; no target → notebook for librarian promotion.
+   outside sentinel regions); bot names target; no target → notebook for librarian promotion.
 6. **Re-file via redirects** (riskiest, last) — `wiki_redirect.go` (`redirects.md` writer +
    `Refile` = survivor + stub, never rename) + `DetectMisplaced`; "Redirected from" hatnote;
    human/librarian-confirmed.
 
-Cross-cutting **agent retrieval + backlinks ("What links here") + navbox** work rides Phases 3–4.
+Cross-cutting **bot retrieval + backlinks ("What links here") + navbox** work rides Phases 3–4.
 
 ## 7. Verification (per phase)
 - Go: `bash scripts/test-go.sh ./internal/team`; `gofmt`, `go vet`, **`golangci-lint run`**

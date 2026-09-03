@@ -117,7 +117,7 @@ describe("pickIdleCopy", () => {
 describe("a populated roster does not show one line for everybody", () => {
   // The bug this pins: roles fell through to GENERALIST_COPY, and rotateIndex
   // is derived from idleMs alone, so the WHOLE ROSTER showed the same line at
-  // the same moment. A sidebar where every agent is "clearing something small"
+  // the same moment. A sidebar where every bot is "clearing something small"
   // reads as broken, not as charming.
   //
   // This used to iterate six built-ins. It cannot any more: the founder
@@ -126,7 +126,7 @@ describe("a populated roster does not show one line for everybody", () => {
   // the same line" is unfalsifiable against a roster of one.
   //
   // The regression is still real for the rosters users actually build, so the
-  // fixture is now user-created agents with distinct roles. That is the case
+  // fixture is now user-created bots with distinct roles. That is the case
   // that can still regress.
   const ROSTER: readonly { slug: string; role: string }[] = [
     { slug: "ceo", role: "Chief of Staff" },
@@ -145,7 +145,7 @@ describe("a populated roster does not show one line for everybody", () => {
     }
   });
 
-  it("does not show the same line for every agent at the same moment", () => {
+  it("does not show the same line for every bot at the same moment", () => {
     // The actual user-visible symptom, asserted directly rather than via the
     // lookup that causes it.
     const seen = ROSTER.map((m) =>
@@ -155,7 +155,7 @@ describe("a populated roster does not show one line for everybody", () => {
   });
 
   it("a retired built-in degrades to the generalist line, not a crash", () => {
-    // Legacy workspaces still hold these agents on disk. Their role tables are
+    // Legacy workspaces still hold these bots on disk. Their role tables are
     // gone, so they must fall through cleanly rather than throw or return "".
     for (const role of ["Librarian", "App Builder", "Planner", "Reviewer"]) {
       const copy = pickIdleCopy({ slug: "legacy", role, idleMs: 0 });

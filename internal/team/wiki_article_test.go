@@ -376,8 +376,8 @@ func TestBuildArticle_ReadTracking(t *testing.T) {
 	if meta.HumanReadCount != 1 {
 		t.Errorf("HumanReadCount: want 1, got %d", meta.HumanReadCount)
 	}
-	if meta.AgentReadCount != 0 {
-		t.Errorf("AgentReadCount: want 0, got %d", meta.AgentReadCount)
+	if meta.BotReadCount != 0 {
+		t.Errorf("BotReadCount: want 0, got %d", meta.BotReadCount)
 	}
 	if meta.LastRead == nil {
 		t.Error("LastRead should be non-nil after human read")
@@ -410,7 +410,7 @@ func TestBuildCatalog_ReadTracking(t *testing.T) {
 	}
 
 	rl := NewReadLog(root)
-	// Alice read by a human and an agent; Bob never read.
+	// Alice read by a human and a bot; Bob never read.
 	rl.Append("team/people/alice.md", "web")
 	rl.Append("team/people/alice.md", "slack-agent")
 
@@ -428,16 +428,16 @@ func TestBuildCatalog_ReadTracking(t *testing.T) {
 	if alice.HumanReadCount != 1 {
 		t.Errorf("alice HumanReadCount: want 1, got %d", alice.HumanReadCount)
 	}
-	if alice.AgentReadCount != 1 {
-		t.Errorf("alice AgentReadCount: want 1, got %d", alice.AgentReadCount)
+	if alice.BotReadCount != 1 {
+		t.Errorf("alice BotReadCount: want 1, got %d", alice.BotReadCount)
 	}
 	if alice.LastRead == nil {
 		t.Error("alice LastRead should be non-nil")
 	}
 
 	bob := byPath["team/people/bob.md"]
-	if bob.HumanReadCount != 0 || bob.AgentReadCount != 0 {
-		t.Errorf("bob counts: want 0/0, got %d/%d", bob.HumanReadCount, bob.AgentReadCount)
+	if bob.HumanReadCount != 0 || bob.BotReadCount != 0 {
+		t.Errorf("bob counts: want 0/0, got %d/%d", bob.HumanReadCount, bob.BotReadCount)
 	}
 	if bob.LastRead != nil {
 		t.Error("bob LastRead should be nil (never read)")
@@ -493,7 +493,7 @@ func writeReadEvent(t *testing.T, root, relPath, reader string, ts time.Time) {
 		Path:      relPath,
 		Timestamp: ts.UTC(),
 		Reader:    reader,
-		IsAgent:   reader != ReaderHuman,
+		IsBot:     reader != ReaderHuman,
 	}
 	line, err := json.Marshal(ev)
 	if err != nil {
@@ -514,7 +514,7 @@ func writeReadEvent(t *testing.T, root, relPath, reader string, ts time.Time) {
 // docs/specs/wiki-prune-signals-icp-examples.md:
 //
 //  1. Alex: 800-word verbose unread playbook → high prune_score, sorts first.
-//  2. Jordan: same article with 3 agent reads 7 days ago → meaningfully
+//  2. Jordan: same article with 3 bot reads 7 days ago → meaningfully
 //     lower prune_score (denominator clamp + smaller daysUnread).
 //  3. Marcus: sort=prune_score returns descending order, deterministic
 //     tie-break by path.
@@ -617,11 +617,11 @@ func TestBuildCatalog_PruneScore(t *testing.T) {
 	})
 
 	t.Run("jordan_lower_score_with_agent_reads", func(t *testing.T) {
-		// Jordan: 4 agent reads, last one 7 days ago, no human reads.
+		// Jordan: 4 bot reads, last one 7 days ago, no human reads.
 		// denominator = max(0 + 0.3*4, 1.0) = 1.2
 		// numerator = words * 7
 		// Expect score meaningfully lower than the 45-day case above, and
-		// verify the agent-read weight contributes to the denominator.
+		// verify the bot-read weight contributes to the denominator.
 		root := t.TempDir()
 		backup := filepath.Join(t.TempDir(), "bak")
 		repo := NewRepoAt(root, backup)
@@ -648,13 +648,13 @@ func TestBuildCatalog_PruneScore(t *testing.T) {
 				break
 			}
 		}
-		if verbose.AgentReadCount != 4 {
-			t.Errorf("AgentReadCount: want 4, got %d", verbose.AgentReadCount)
+		if verbose.BotReadCount != 4 {
+			t.Errorf("BotReadCount: want 4, got %d", verbose.BotReadCount)
 		}
 		if verbose.DaysUnread < 6 || verbose.DaysUnread > 8 {
 			t.Fatalf("DaysUnread drift: got %d, want ~7", verbose.DaysUnread)
 		}
-		denom := math.Max(0+0.3*float64(verbose.AgentReadCount), 1.0)
+		denom := math.Max(0+0.3*float64(verbose.BotReadCount), 1.0)
 		want := float64(verbose.WordCount*verbose.DaysUnread) / denom
 		if math.Abs(verbose.PruneScore-want) > 0.001 {
 			t.Errorf("Jordan PruneScore: got %f, want %f", verbose.PruneScore, want)
@@ -732,7 +732,7 @@ func TestBuildArticle_NilReadLog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildArticle with nil readLog: %v", err)
 	}
-	if meta.HumanReadCount != 0 || meta.AgentReadCount != 0 {
+	if meta.HumanReadCount != 0 || meta.BotReadCount != 0 {
 		t.Error("nil readLog should leave counts at zero")
 	}
 	if meta.LastRead != nil {

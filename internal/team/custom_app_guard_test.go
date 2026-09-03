@@ -182,7 +182,7 @@ func TestCheckAppSourceEfficiency_MarkerCommentScoped(t *testing.T) {
 }
 
 // TestAppEfficiencyGuardError surfaces every violation with file:line so the
-// agent can fix them in one pass.
+// bot can fix them in one pass.
 func TestAppEfficiencyGuardError(t *testing.T) {
 	err := appEfficiencyGuardError([]appGuardViolation{
 		{File: "src/App.tsx", Line: 12, Rule: "no-focus-refetch", Message: "x"},
@@ -319,7 +319,7 @@ func TestCheckAppCardPile(t *testing.T) {
 // source re-runs work on tab focus is rejected by Save BEFORE the build, as a
 // caller error (HTTP 400) naming the rule — while a clean app with a
 // computed-delay timer publishes normally. This wires the guard into the
-// host-owned build path the agent cannot bypass.
+// host-owned build path the bot cannot bypass.
 func TestPublishRejectsWastefulSourceViaSave(t *testing.T) {
 	store := newCustomAppStore(t.TempDir())
 	store.buildBundle = stubBuildBundle

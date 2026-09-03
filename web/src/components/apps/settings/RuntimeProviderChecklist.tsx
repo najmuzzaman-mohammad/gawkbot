@@ -105,7 +105,7 @@ export function RuntimeProviderChecklist({
   return (
     <>
       <div style={{ marginTop: 24, fontSize: 14, fontWeight: 600 }}>
-        Default runtime for new agents
+        Default runtime for new bots
       </div>
       <p
         style={{

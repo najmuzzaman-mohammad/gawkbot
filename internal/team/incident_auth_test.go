@@ -6,7 +6,7 @@ import (
 )
 
 // TestReportIncidentRoutesAuthErrorThroughSystemCard verifies that
-// "Not logged in" failures from the agent loop are routed through the
+// "Not logged in" failures from the bot loop are routed through the
 // system-authored SystemErrorCard path instead of being posted as an
 // agent_issue bubble. Issue #933 — runtime/auth failures must look
 // different from in-character CEO output.
@@ -44,10 +44,10 @@ func TestReportIncidentRoutesAuthErrorThroughSystemCard(t *testing.T) {
 func TestReportIncidentAuthErrorIdentifiesCodex(t *testing.T) {
 	b := newTestBroker(t)
 
-	// "ceo" is the agent slug; the test asserts on provider=codex detected
+	// "ceo" is the bot slug; the test asserts on provider=codex detected
 	// from the message text (the Codex CLI's auth-error string), not on the
-	// agent's identity. Using "ceo" keeps the canAccessChannelLocked gate
-	// happy in a fresh broker where non-built-in agents aren't channel
+	// bot's identity. Using "ceo" keeps the canAccessChannelLocked gate
+	// happy in a fresh broker where non-built-in bots aren't channel
 	// members yet.
 	msg, _, posted, err := b.ReportIncident("ceo", "team", "", "Codex CLI requires login. Run `codex login` or use /provider to choose a different provider.")
 	if err != nil {
@@ -100,7 +100,7 @@ func TestReportIncidentAuthErrorDedupesWithinChannel(t *testing.T) {
 // TestReportIncidentAuthErrorEnforcesChannelACL regression-guards
 // the CodeRabbit finding on PR #985: the system-auth fork must respect
 // canAccessChannelLocked just like the legacy incident path, so an
-// agent that isn't a member of a channel can't surface an auth banner
+// bot that isn't a member of a channel can't surface an auth banner
 // in it via the auth fork.
 func TestReportIncidentAuthErrorEnforcesChannelACL(t *testing.T) {
 	b := newTestBroker(t)
@@ -108,7 +108,7 @@ func TestReportIncidentAuthErrorEnforcesChannelACL(t *testing.T) {
 	// a member of the default #general channel created at boot.
 	_, _, posted, err := b.ReportIncident("eng", "team", "", "Claude CLI requires login. Run `claude login`.")
 	if err == nil {
-		t.Fatal("expected ACL denial on auth-fork path for non-member agent")
+		t.Fatal("expected ACL denial on auth-fork path for non-member bot")
 	}
 	if !strings.Contains(err.Error(), "channel access denied") {
 		t.Errorf("expected channel-access-denied error, got %v", err)
@@ -118,10 +118,10 @@ func TestReportIncidentAuthErrorEnforcesChannelACL(t *testing.T) {
 	}
 }
 
-// TestReportIncidentLeavesNonAuthErrorsAsAgentIssue verifies the fork
+// TestReportIncidentLeavesNonAuthErrorsAsBotIssue verifies the fork
 // is precise: non-auth visible incidents still take the legacy agent_issue
 // message-kind path so self-heal approval flows aren't broken.
-func TestReportIncidentLeavesNonAuthErrorsAsAgentIssue(t *testing.T) {
+func TestReportIncidentLeavesNonAuthErrorsAsBotIssue(t *testing.T) {
 	b := newTestBroker(t)
 
 	msg, _, posted, err := b.ReportIncident("ceo", "team", "", "browser access is not available")
@@ -129,7 +129,7 @@ func TestReportIncidentLeavesNonAuthErrorsAsAgentIssue(t *testing.T) {
 		t.Fatalf("non-auth incident: posted=%v err=%v", posted, err)
 	}
 	if msg.From != "ceo" {
-		t.Errorf("expected non-auth incident to stay agent-authored, got From=%q", msg.From)
+		t.Errorf("expected non-auth incident to stay bot-authored, got From=%q", msg.From)
 	}
 	if msg.Kind != "agent_issue" {
 		t.Errorf("expected Kind=agent_issue for non-auth path, got %q", msg.Kind)

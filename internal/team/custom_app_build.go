@@ -2,18 +2,18 @@ package team
 
 // custom_app_build.go — server-side publish build for App Builder apps.
 //
-// The App Builder agent submits SOURCE (a Vite/React/TS project), not a trusted
+// The App Builder bot submits SOURCE (a Vite/React/TS project), not a trusted
 // bundle. The HOST owns the wire contract (the postMessage bridge + read policy)
 // and the build, so a generated app can never ship a tampered bridge or an
 // unverified bundle:
 //
-//  1. The agent's copies of the PROTECTED host-contract files are discarded and
+//  1. The bot's copies of the PROTECTED host-contract files are discarded and
 //     replaced with the CANONICAL bytes from the embedded scaffold. The host owns
-//     these — an app whose agent rewrote wuphf-bridge.ts still publishes with the
+//     these — an app whose bot rewrote wuphf-bridge.ts still publishes with the
 //     lean, robust canonical bridge.
 //  2. The bundle is built server-side (`bun install` then `bun run build`) from
 //     that source. The resulting dist/index.html is what gets stored — the
-//     agent-submitted html is never trusted.
+//     bot-submitted html is never trusted.
 //  3. A build failure (tsc/vite error) does NOT publish: it returns a caller
 //     error carrying the build output tail so register_app surfaces why.
 //
@@ -44,15 +44,15 @@ const (
 	// generous ceiling so a pathological build fails loudly instead of hanging.
 	customAppBuildTimeout = 4 * time.Minute
 	// customAppBuildLogTailBytes caps how much build output rides back in the
-	// error so register_app shows the agent the failing tsc/vite lines without
+	// error so register_app shows the bot the failing tsc/vite lines without
 	// dumping the entire (potentially huge) log.
 	customAppBuildLogTailBytes = 4 * 1024
 )
 
 // customAppProtectedFiles maps a project-relative path (forward-slash) to its
-// canonical source under the embedded scaffold root. On every publish the agent's
+// canonical source under the embedded scaffold root. On every publish the bot's
 // copy at the key is overwritten with the embedded bytes at the value, so the
-// host owns the contract regardless of what the agent submitted.
+// host owns the contract regardless of what the bot submitted.
 var customAppProtectedFiles = map[string]string{
 	"src/wuphf-bridge.ts":    "app-scaffold/src/wuphf-bridge.ts",
 	"src/wuphf-inspector.ts": "app-scaffold/src/wuphf-inspector.ts",
@@ -76,9 +76,9 @@ func canonicalProtectedFile(projectRel string) ([]byte, error) {
 
 // overwriteProtectedFiles replaces every protected host-contract file in the
 // source map with its canonical embedded bytes (returning a NEW map; the input
-// is not mutated). The agent's versions of these files are discarded — the host
+// is not mutated). The bot's versions of these files are discarded — the host
 // owns them — so a tampered bridge/inspector/config can never reach the build.
-// Protected files are written even if the agent omitted them, so the build
+// Protected files are written even if the bot omitted them, so the build
 // always has the host's contract present.
 func overwriteProtectedFiles(files map[string]string) (map[string]string, error) {
 	out := make(map[string]string, len(files)+len(customAppProtectedFiles))
@@ -105,7 +105,7 @@ func overwriteProtectedFiles(files map[string]string) (map[string]string, error)
 //   - cleanup: removes the temp snapshot dir; safe to defer unconditionally.
 //
 // Rolling back matters for the security boundary: without it, a deliberately
-// build-failing publish would leave the agent's (tampered) source on disk, and
+// build-failing publish would leave the bot's (tampered) source on disk, and
 // the live dev preview would hot-reload and RUN it even though the sealed bundle
 // stayed canonical. With it, a failed build is a no-op on the running preview.
 func snapshotAppSource(srcRoot string) (restore func() error, cleanup func(), err error) {
@@ -189,7 +189,7 @@ func copyTreeEntry(from, to string) error {
 	return nil
 }
 
-// buildAppBundle builds the agent's source into a single-file dist/index.html
+// buildAppBundle builds the bot's source into a single-file dist/index.html
 // and returns its bytes. It is the HOST-owned build: the protected files were
 // already overwritten with canonical bytes by the caller, so this trusts the
 // tree on disk under srcDir. install/build run with bun, bounded by a context
@@ -202,9 +202,9 @@ func buildAppBundle(srcDir string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), customAppBuildTimeout)
 	defer cancel()
 
-	// --ignore-scripts: the source is agent-authored, and package.json is NOT a
+	// --ignore-scripts: the source is bot-authored, and package.json is NOT a
 	// host-protected file, so a postinstall/preinstall hook would otherwise run
-	// arbitrary agent code in the broker process (its env carries provider +
+	// arbitrary bot code in the broker process (its env carries provider +
 	// integration secrets, and the build host has network). The scaffold has no
 	// lifecycle scripts, so this never costs a legitimate build.
 	if out, err := runAppBuildStep(ctx, srcDir, "install", "--ignore-scripts"); err != nil {
@@ -250,7 +250,7 @@ func runAppBuildStep(ctx context.Context, srcDir string, args ...string) ([]byte
 }
 
 // buildStepError wraps a failed build step as a caller error carrying the tail of
-// the build output, so register_app shows the agent the failing tsc/vite lines
+// the build output, so register_app shows the bot the failing tsc/vite lines
 // rather than an opaque exit code.
 func buildStepError(step string, out []byte, runErr error) error {
 	tail := strings.TrimSpace(string(tailBytes(out, customAppBuildLogTailBytes)))

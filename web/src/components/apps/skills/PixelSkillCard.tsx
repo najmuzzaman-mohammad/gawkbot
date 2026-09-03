@@ -118,7 +118,7 @@ export function PixelSkillCard({
   const status: SkillStatus = skill.status ?? "active";
   const type = STATUS_TO_TYPE[status];
   const owners = (skill.owner_agents ?? []).filter((s) => s.trim().length > 0);
-  // Portrait identity: prefer the first owning agent so a skill scoped to
+  // Portrait identity: prefer the first owning bot so a skill scoped to
   // @ceo always shows the CEO portrait. Fall back to the skill name so
   // lead-routable skills get their own deterministic character.
   const portraitSlug = owners[0] || skill.name || "skill";

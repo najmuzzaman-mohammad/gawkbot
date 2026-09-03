@@ -46,7 +46,7 @@ describe("parseMentions", () => {
     ]);
   });
 
-  it("accepts hyphenated agent slugs", () => {
+  it("accepts hyphenated bot slugs", () => {
     const tokens = parseMentions("ping @founding-engineer now", agents);
     expect(tokens).toEqual([
       { kind: "text", value: "ping " },
@@ -98,14 +98,14 @@ describe("parseMentions", () => {
 describe("extractTaggedMentions", () => {
   const agents = ["pm", "ceo", "founding-engineer", "human"];
 
-  it("returns explicit agent mentions in order", () => {
+  it("returns explicit bot mentions in order", () => {
     expect(extractTaggedMentions("ping @pm then @ceo", agents)).toEqual([
       "pm",
       "ceo",
     ]);
   });
 
-  it("expands @all to every mentionable agent slug", () => {
+  it("expands @all to every mentionable bot slug", () => {
     expect(extractTaggedMentions("ping @all now", agents)).toEqual([
       "pm",
       "ceo",

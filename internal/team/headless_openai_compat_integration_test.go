@@ -8,7 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // TestOpenAICompatBridge_E2E wires the two halves of the local-llm
@@ -17,7 +17,7 @@ import (
 //  1. A real MCP server registers a tool typed in the same shape the
 //     wuphf broker would expose (using mcp.AddTool with a typed input
 //     struct).
-//  2. The bridge converts that tool into agent.AgentTool entries.
+//  2. The bridge converts that tool into bot.BotTool entries.
 //  3. A scripted StreamFn (standing in for a local OpenAI-compatible
 //     model) invokes the tool, then replies with text after seeing the
 //     result.
@@ -43,7 +43,7 @@ func TestOpenAICompatBridge_E2E(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "fake-broker", Version: "0"}, nil)
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "broker_post_message",
-		Description: "Post a message to a wuphf broker channel as the agent.",
+		Description: "Post a message to a wuphf broker channel as the bot.",
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in postMessageInput) (*mcp.CallToolResult, postMessageOutput, error) {
 		posted = append(posted, in)
 		summary := "posted to #" + in.Channel
@@ -64,7 +64,7 @@ func TestOpenAICompatBridge_E2E(t *testing.T) {
 	}
 	defer session.Close()
 
-	tools, err := mcpSessionToAgentTools(ctx, session)
+	tools, err := mcpSessionToBotTools(ctx, session)
 	if err != nil {
 		t.Fatalf("bridge: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestOpenAICompatBridge_E2E(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{
 						Type:       "tool_use",
 						ToolName:   "broker_post_message",
@@ -86,7 +86,7 @@ func TestOpenAICompatBridge_E2E(t *testing.T) {
 						ToolUseID:  "c1",
 					},
 				},
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					// Sanity check: turn 1 sees the system prompt + the
 					// user notification, with no synthetic noise leaked
 					// in from prior turns.
@@ -99,10 +99,10 @@ func TestOpenAICompatBridge_E2E(t *testing.T) {
 				},
 			},
 			{
-				chunks: []agent.StreamChunk{
+				chunks: []bot.StreamChunk{
 					{Type: "text", Content: "Done — message posted."},
 				},
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					last := msgs[len(msgs)-1]
 					if last.Role != "user" {
 						t.Errorf("turn 2 last role = %q", last.Role)
@@ -118,13 +118,13 @@ func TestOpenAICompatBridge_E2E(t *testing.T) {
 	loop := openAICompatToolLoop{
 		streamFn:    stream.fn(t),
 		tools:       tools,
-		toolByName:  map[string]agent.AgentTool{"broker_post_message": tools[0]},
+		toolByName:  map[string]bot.BotTool{"broker_post_message": tools[0]},
 		maxIters:    4,
 		toolTimeout: 3 * time.Second,
 	}
 
-	final, iters, _, streamErr, err := loop.run(ctx, []agent.Message{
-		{Role: "system", Content: "You're a helpful office agent."},
+	final, iters, _, streamErr, err := loop.run(ctx, []bot.Message{
+		{Role: "system", Content: "You're a helpful office bot."},
 		{Role: "user", Content: "Tell the team hi in #team."},
 	})
 	if err != nil {

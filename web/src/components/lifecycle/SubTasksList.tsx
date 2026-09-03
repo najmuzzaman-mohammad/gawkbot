@@ -61,8 +61,8 @@ export function SubTasksList({ taskId, channel }: SubTasksListProps) {
 
   const children = childQuery.data?.tasks ?? [];
   // Sub-tasks + Tasks should share owner-pick UX. Exclude `human` and
-  // self-loop entries that aren't real agent slugs.
-  const assignableAgents = members.filter(
+  // self-loop entries that aren't real bot slugs.
+  const assignableBots = members.filter(
     (m) => m.slug && m.slug !== "human" && m.slug !== "you",
   );
 
@@ -187,7 +187,7 @@ export function SubTasksList({ taskId, channel }: SubTasksListProps) {
               data-testid="sub-issue-owner-select"
             >
               <option value="">— unassigned —</option>
-              {assignableAgents.map((agent) => (
+              {assignableBots.map((agent) => (
                 <option key={agent.slug} value={agent.slug}>
                   @{agent.slug}
                   {agent.name && agent.name !== agent.slug

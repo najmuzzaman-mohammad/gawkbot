@@ -14,7 +14,7 @@ package team
 //     attribution is a v1.1 concern; see the PR description.
 //   - Concurrency model is optimistic, not pessimistic: we never lock the
 //     article across the editor open → save round-trip. Readers and
-//     agents keep writing freely; conflicts surface at save time and the
+//     bots keep writing freely; conflicts surface at save time and the
 //     client re-loads the latest. This mirrors Wikipedia's "edit
 //     conflict" flow, and avoids the half-typed-draft lock state that
 //     pessimistic locking would introduce.
@@ -34,7 +34,7 @@ import (
 // HumanAuthor is the synthetic commit author slug used when no richer
 // human identity has been registered (no `git config --global user.name`
 // / `user.email` on this machine). Yields `human <human@wuphf.local>`
-// via runGitLocked's identity derivation. Distinct from every agent slug
+// via runGitLocked's identity derivation. Distinct from every bot slug
 // and from the other synthetic identities (archivist, wuphf-bootstrap,
 // wuphf-recovery, system) so audit views can colour human edits
 // distinctly.

@@ -1,18 +1,18 @@
 package team
 
 // slack_entity_facts.go builds the office's entity wiki from the Slack
-// surface: every human and AI agent the office can observe gets a wiki
+// surface: every human and AI bot the office can observe gets a wiki
 // article under team/people/, continuously accreted from Slack profile info
 // (users:read), bridged-channel membership, the office roster, and the
-// foreign-agent registry. Reuses the B2 substrate end-to-end — observations
+// foreign-bot registry. Reuses the B2 substrate end-to-end — observations
 // land as append-only facts (content-hash dedup makes the pass idempotent)
 // and articles regenerate deterministically ONLY when a new fact landed, so
 // the recurring sync never churns the wiki repo.
 //
-// Agents deliberately share the `people` kind with humans: B1 task-mention
-// extraction already records @agent mentions as people/<slug>, so a separate
+// Bots deliberately share the `people` kind with humans: B1 task-mention
+// extraction already records @bot mentions as people/<slug>, so a separate
 // kind would split the same entity across two articles. What an entity IS
-// (human teammate, office agent, foreign bridged agent) is stated in its
+// (human teammate, office bot, foreign bridged bot) is stated in its
 // facts instead.
 
 import (
@@ -66,7 +66,7 @@ func (t *SlackTransport) runEntityFactSync(ctx context.Context) error {
 }
 
 // syncEntityFactsOnce records identity facts for every observable human and
-// agent, then regenerates the wiki article of each entity that gained a new
+// bot, then regenerates the wiki article of each entity that gained a new
 // fact this pass.
 func (t *SlackTransport) syncEntityFactsOnce(ctx context.Context) {
 	if t.Broker == nil {
@@ -145,10 +145,10 @@ func (t *SlackTransport) recordSlackUserFacts(ctx context.Context, record func(s
 			t.mapsMu.RUnlock()
 			slug := slackEntitySlug(name, userID)
 
-			// Registered foreign agents are described by the roster pass
+			// Registered foreign bots are described by the roster pass
 			// (richer identity); here they only gain the presence fact.
-			isForeignAgent := t.foreignAgentSlug(userID) != ""
-			if !isForeignAgent {
+			isForeignBot := t.foreignBotSlug(userID) != ""
+			if !isForeignBot {
 				if human {
 					record(slug, fmt.Sprintf("Human teammate on Slack — display name %q (user id %s).", name, userID))
 					if info.realName != "" && info.realName != name {
@@ -161,10 +161,10 @@ func (t *SlackTransport) recordSlackUserFacts(ctx context.Context, record func(s
 						record(slug, fmt.Sprintf("Timezone: %s.", info.tz))
 					}
 				} else {
-					record(slug, fmt.Sprintf("Slack bot %q (user id %s) — present in the workspace but not registered as a team agent.", name, userID))
+					record(slug, fmt.Sprintf("Slack bot %q (user id %s) — present in the workspace but not registered as a team bot.", name, userID))
 				}
 			} else {
-				slug = t.foreignAgentSlug(userID)
+				slug = t.foreignBotSlug(userID)
 			}
 			record(slug, fmt.Sprintf("Member of the Slack channel bridged to office channel %q.", channelSlug))
 		}
@@ -172,7 +172,7 @@ func (t *SlackTransport) recordSlackUserFacts(ctx context.Context, record func(s
 }
 
 // recordOfficeMemberFacts records identity facts for every office roster
-// member: built-in/office agents and bridged foreign agents alike.
+// member: built-in/office bots and bridged foreign bots alike.
 func (t *SlackTransport) recordOfficeMemberFacts(record func(slug, text string)) {
 	for _, m := range t.Broker.OfficeMembers() {
 		slug := strings.TrimSpace(m.Slug)
@@ -185,13 +185,13 @@ func (t *SlackTransport) recordOfficeMemberFacts(record func(slug, text string))
 		}
 		switch {
 		case m.Provider.Slack != nil && m.Provider.Slack.BotTokenEnv != "":
-			// Spawned agent (broker_slack_spawn.go): a real office agent that
+			// Spawned bot (broker_slack_spawn.go): a real office bot that
 			// carries its OWN Slack identity and posts as itself.
-			record(slug, fmt.Sprintf("AI agent %q — a WUPHF office agent with its own Slack identity (Slack user id %s); it posts in the bridged channel as itself. Role: %s.", m.Name, m.Provider.Slack.UserID, role))
+			record(slug, fmt.Sprintf("AI bot %q — a WUPHF office bot with its own Slack identity (Slack user id %s); it posts in the bridged channel as itself. Role: %s.", m.Name, m.Provider.Slack.UserID, role))
 		case m.Provider.Slack != nil:
-			record(slug, fmt.Sprintf("AI agent %q — a foreign Slack agent bridged onto the team (Slack user id %s). It runs its own runtime outside WUPHF and is reached by @-mentioning it in the bridged channel.", m.Name, m.Provider.Slack.UserID))
+			record(slug, fmt.Sprintf("AI bot %q — a foreign Slack bot bridged onto the team (Slack user id %s). It runs its own runtime outside WUPHF and is reached by @-mentioning it in the bridged channel.", m.Name, m.Provider.Slack.UserID))
 		default:
-			record(slug, fmt.Sprintf("AI agent %q — a team agent with the role: %s.", m.Name, role))
+			record(slug, fmt.Sprintf("AI bot %q — a team bot with the role: %s.", m.Name, role))
 			if kind := strings.TrimSpace(m.Provider.Kind); kind != "" {
 				record(slug, fmt.Sprintf("Runs on the %s runtime.", kind))
 			}

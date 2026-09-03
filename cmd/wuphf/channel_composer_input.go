@@ -37,7 +37,7 @@ func (m *channelModel) updateOverlaysForInput(input []rune, cursor int) {
 		cursor = len(input)
 	}
 	m.autocomplete.UpdateQuery(strings.TrimLeft(text[:cursor], " "))
-	m.mention.UpdateAgents(channelMentionAgents(m.members))
+	m.mention.UpdateBots(channelMentionBots(m.members))
 	m.mention.UpdateQuery(text[:cursor])
 }
 

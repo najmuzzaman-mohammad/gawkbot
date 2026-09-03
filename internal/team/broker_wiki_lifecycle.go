@@ -156,7 +156,7 @@ func (b *Broker) initWikiWorker() {
 	// stale errors from a previous attempt.
 	b.wikiInitErr = nil
 
-	b.backfillAgentFilesForRoster()
+	b.backfillBotFilesForRoster()
 
 	// Skill status reconciliation: now that the wiki worker is wired,
 	// prefer the on-disk SKILL.md frontmatter status over the potentially

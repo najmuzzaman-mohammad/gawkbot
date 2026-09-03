@@ -22,7 +22,7 @@ const (
 
 // ChannelConfirm is a pending confirmation card — title, detail body,
 // confirm/cancel labels, and action-specific payload (the session
-// mode / agent / channel / interview answer parts the dispatcher
+// mode / bot / channel / interview answer parts the dispatcher
 // uses to actually act). Only one ChannelConfirm is in flight at a
 // time on the channelModel.
 type ChannelConfirm struct {
@@ -32,7 +32,7 @@ type ChannelConfirm struct {
 	CancelLabel  string
 	Action       ChannelConfirmAction
 	SessionMode  string
-	Agent        string
+	Bot          string
 	Channel      string
 	Request      *Interview
 	ChoiceID     string
@@ -41,15 +41,15 @@ type ChannelConfirm struct {
 }
 
 // ConfirmationForResetDM builds the "Clear Direct Messages" confirm
-// card for a DM reset against agent in the given channel.
-func ConfirmationForResetDM(agent, channel string) *ChannelConfirm {
+// card for a DM reset against bot in the given channel.
+func ConfirmationForResetDM(bot, channel string) *ChannelConfirm {
 	return &ChannelConfirm{
 		Title:        "Clear Direct Messages",
-		Detail:       fmt.Sprintf("This deletes the saved direct transcript with %s for this session.", DisplayName(agent)),
+		Detail:       fmt.Sprintf("This deletes the saved direct transcript with %s for this session.", DisplayName(bot)),
 		ConfirmLabel: "Enter clear DMs",
 		CancelLabel:  "Esc keep transcript",
 		Action:       ChannelConfirmActionResetDM,
-		Agent:        agent,
+		Bot:          bot,
 		Channel:      channel,
 	}
 }

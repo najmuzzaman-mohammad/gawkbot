@@ -70,7 +70,7 @@ func TestDiscoverSectionsBlueprintOnly(t *testing.T) {
 
 func TestDiscoverSectionsBlueprintPlusDiscovered(t *testing.T) {
 	repo, worker := sectionsTestRepo(t)
-	// Blueprint declares people + playbooks. Agents later write
+	// Blueprint declares people + playbooks. Bots later write
 	// articles under retrospectives/ and templates/.
 	writeArticle(t, worker, "ceo", "team/people/nazz.md", "# Nazz\n")
 	writeArticle(t, worker, "pm", "team/playbooks/onboarding.md", "# Onboarding\n")

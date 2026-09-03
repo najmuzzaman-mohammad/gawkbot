@@ -21,16 +21,16 @@ describe("deriveBreadcrumbs", () => {
     expect(deriveBreadcrumbs(route)).toEqual([]);
   });
 
-  it("returns [Agents, @agent] for agent-detail routes", () => {
+  it("returns [Bots, @bot] for bot-detail routes", () => {
     const route: CurrentRoute = {
       kind: "agent-detail",
       agentSlug: "gaia",
     };
     const crumbs = deriveBreadcrumbs(route);
     expect(crumbs).toHaveLength(2);
-    expect(crumbs[0].label).toBe("Agents");
+    expect(crumbs[0].label).toBe("Bots");
     expect(crumbs[0].href).toBe("#/agents");
-    expect(crumbs[1].label).toBe("Agent: gaia");
+    expect(crumbs[1].label).toBe("Bot: gaia");
     expect(crumbs[1].href).toBe("#/agents/gaia");
   });
 

@@ -16,8 +16,8 @@ export function normalizeStatus(raw: string): string {
 }
 
 /**
- * Returns the display state and label for an active agent.
- * Only call on members that have already passed `isAgentActive`.
+ * Returns the display state and label for an active bot.
+ * Only call on members that have already passed `isBotActive`.
  */
 export function classifyMember(member: OfficeMember): {
   state: "shipping" | "plotting";
@@ -30,10 +30,10 @@ export function classifyMember(member: OfficeMember): {
 }
 
 /**
- * True when the member is an agent (not the human seat) and is visibly
+ * True when the member is a bot (not the human seat) and is visibly
  * working — shipping, plotting, or has a live task string.
  */
-export function isAgentActive(member: OfficeMember): boolean {
+export function isBotActive(member: OfficeMember): boolean {
   return (
     member.slug !== "human" &&
     member.slug !== "you" &&

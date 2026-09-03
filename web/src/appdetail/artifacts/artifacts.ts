@@ -1,9 +1,9 @@
-// Artifacts — the file-ish outcomes an AGENT's runs produce: PDFs, HTML pages,
-// markdown docs. The agent's ONE built app is not an artifact — it IS the UI
+// Artifacts — the file-ish outcomes a BOT's runs produce: PDFs, HTML pages,
+// markdown docs. The bot's ONE built app is not an artifact — it IS the UI
 // tab; artifacts collect below it as the outputs of routines and tool runs.
 //
-// FE-first: the shapes are real, the seeds are mock (used by the mock agent
-// detail to show the range; a real agent starts empty and collects artifacts as
+// FE-first: the shapes are real, the seeds are mock (used by the mock bot
+// detail to show the range; a real bot starts empty and collects artifacts as
 // tools/runs produce them).
 
 export type ArtifactType = "pdf" | "html" | "md";
@@ -13,7 +13,7 @@ export interface Artifact {
   type: ArtifactType;
   /** Filename-ish display title, e.g. "weekly-pipeline-summary.md". */
   title: string;
-  /** What produced it, e.g. "weeklyPipelineSummary" or "built by an agent". */
+  /** What produced it, e.g. "weeklyPipelineSummary" or "built by a bot". */
   producedBy: string;
   at: string;
   /** Inline content for md/html; absent for pdf (file-ish, download only). */
@@ -54,7 +54,7 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#777}
 <tr><td>Initech</td><td>61</td><td>queue</td></tr></table>
 </body></html>`;
 
-/** Mock non-app artifacts for the showcase (the mock agent detail). */
+/** Mock non-app artifacts for the showcase (the mock bot detail). */
 export function seedArtifacts(): Artifact[] {
   return [
     {

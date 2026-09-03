@@ -139,7 +139,7 @@ func (s *computerService) boxActionHandler(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	case "sleep":
-		if s.agentBusy(slug) {
+		if s.botBusy(slug) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "the computer is being used by this bot — interrupt the turn first"})
 			return
 		}

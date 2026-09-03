@@ -31,17 +31,17 @@ export type OnboardingWizardStepId =
 
 /**
  * Feature flag for the starter-pack surface: the "Pick a team pack" step, its
- * preset agent rosters, and the GET /onboarding/blueprints fetch that feeds it.
+ * preset bot rosters, and the GET /onboarding/blueprints fetch that feeds it.
  *
  * OFF while onboarding is deliberately minimal. The founder's flow is: pick a
  * runtime, name the office, land in #general, and let the CEO conversation
- * decide the current goal, the first task, and which agents are needed. A
+ * decide the current goal, the first task, and which bots are needed. A
  * preset roster picked before that conversation pre-empts it.
  *
  * Nothing is deleted. `StepTeam.tsx`, the blueprint wire types, and the host's
  * team-step branches all stay in the tree, so flipping this back to `true` is
  * the whole restore. The seed contract is unchanged either way: an empty
- * `blueprintId` plus an empty `pickedAgents` is the broker's scratch path,
+ * `blueprintId` plus an empty `pickedBots` is the broker's scratch path,
  * which seeds a CEO and #general (internal/team/broker_onboarding.go).
  *
  * Typed `boolean` rather than left to literal inference so the flag reads as a
@@ -76,7 +76,7 @@ export const ONBOARDING_WIZARD_STEP_IDS: OnboardingWizardStepId[] =
  * The answers the wizard collects across its steps. This is the wizard's
  * client-side working state; `useOnboardingWizard` persists the load-bearing
  * fields (company name, owner) into the broker's Partial / FormAnswers via
- * POST /onboarding/answer, then forwards blueprint + agents + the first issue
+ * POST /onboarding/answer, then forwards blueprint + bots + the first issue
  * to POST /onboarding/complete.
  *
  * - `companyName`   the office / company name. Persisted into Partial so the
@@ -90,11 +90,11 @@ export const ONBOARDING_WIZARD_STEP_IDS: OnboardingWizardStepId[] =
  *                   email is still stored locally when it is unchecked.
  * - `blueprintId`   the picked starter roster id, or "" for the scratch path.
  *                   Always "" while ONBOARDING_TEAM_PACKS_ENABLED is off.
- * - `pickedAgents`  the agent slugs kept from the blueprint roster. Always
+ * - `pickedBots`  the bot slugs kept from the blueprint roster. Always
  *                   empty while ONBOARDING_TEAM_PACKS_ENABLED is off, which is
  *                   the broker's "lead only" filter: a CEO and nothing else.
- * - `agentName`     the name briefed for the first agent (team step).
- * - `agentInstructions` what that agent does (team step).
+ * - `botName`     the name briefed for the first bot (team step).
+ * - `botInstructions` what that bot does (team step).
  * - `firstIssue`    the text of the first issue, prefilled with the RevOps
  *                   CRM-audit example.
  */
@@ -105,7 +105,7 @@ export interface OnboardingAnswers {
   email: string;
   keepInTouch: boolean;
   blueprintId: string;
-  pickedAgents: string[];
+  pickedBots: string[];
   /**
    * True when the user explicitly chose "Start from scratch" instead of a
    * pack. The seed treats an empty blueprintId as the scratch path (it
@@ -116,7 +116,7 @@ export interface OnboardingAnswers {
    */
   startFromScratch: boolean;
   agentName: string;
-  agentInstructions: string;
+  botInstructions: string;
   firstIssue: string;
   /**
    * Product-analytics consent, two independent channels, both default ON.
@@ -174,22 +174,22 @@ export const ONBOARDING_WIZARD_COPY: Record<
   meet: {
     eyebrow: "WELCOME TO THE OFFICE",
     headline: "Meet gawkbot.",
-    body: "gawkbot is a team of AI agents that work on your behalf. They claim work, they ship, and they actually answer your messages. Watch your team assemble itself on the right.",
+    body: "gawkbot is a team of AI bots that work on your behalf. They claim work, they ship, and they actually answer your messages. Watch your team assemble itself on the right.",
   },
   wiki: {
     eyebrow: "YOUR KNOWLEDGE BASE",
     headline: "Write the rules once.",
-    body: "Your wiki is the team's shared brain. Capture your RevOps rules a single time, account tiering, deal stages, and the dedupe policy, and every agent reads them as first-class context before it touches a record.",
+    body: "Your wiki is the team's shared brain. Capture your RevOps rules a single time, account tiering, deal stages, and the dedupe policy, and every bot reads them as first-class context before it touches a record.",
   },
   team: {
     eyebrow: "YOUR STARTING TEAM",
     headline: "Pick a team pack.",
-    body: "Each pack is a ready-made RevOps team. Pick one and you are set. Trim who you do not need, or add a custom agent only if you want to.",
+    body: "Each pack is a ready-made RevOps team. Pick one and you are set. Trim who you do not need, or add a custom bot only if you want to.",
   },
   ship: {
     eyebrow: "HOW WORK SHIPS",
     headline: "File it. They ship it.",
-    body: "Mention an agent with @, hand off a problem, and the work fans out into tasks across the team while you watch. The result lands back in the chat where you asked.",
+    body: "Mention a bot with @, hand off a problem, and the work fans out into tasks across the team while you watch. The result lands back in the chat where you asked.",
   },
   computer: {
     eyebrow: "YOUR BOTS' HANDS",
@@ -256,7 +256,7 @@ export const ONBOARDING_ANALYTICS_CONSENT_COPY = {
  */
 export const ONBOARDING_EMBEDDING_COPY = {
   heading: "Power semantic memory",
-  note: "Semantic memory lets your agents find a rule by meaning, not just by an exact word match. Add an OpenAI key for the best recall, or start on keyword search and upgrade whenever you like.",
+  note: "Semantic memory lets your bots find a rule by meaning, not just by an exact word match. Add an OpenAI key for the best recall, or start on keyword search and upgrade whenever you like.",
   // Primary: the recommended OpenAI key.
   openaiLabel: "OpenAI API key",
   openaiRecommended: "Recommended",

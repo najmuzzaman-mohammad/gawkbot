@@ -1,6 +1,6 @@
 package team
 
-// prompt_builder.go owns the per-agent system-prompt construction that used
+// prompt_builder.go owns the per-bot system-prompt construction that used
 // to live on Launcher.buildPrompt. The split was driven by PLAN.md §C1: the
 // prompt body is pure string assembly with no goroutines or I/O, so it
 // belongs in its own type with a narrow constructor that takes
@@ -18,7 +18,7 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
-// promptBuilder assembles the per-agent system prompt. All Launcher / Broker
+// promptBuilder assembles the per-bot system prompt. All Launcher / Broker
 // state is accessed through callbacks captured at construction time, so the
 // builder has no transitive dependency on tmux, the broker, or goroutine
 // state.
@@ -32,7 +32,7 @@ type promptBuilder struct {
 	nameFor     func(slug string) string
 	learnings   func(slug string) []LearningSearchResult
 	// skills returns the active skill catalog at prompt-build time. Surfaced
-	// as the AVAILABLE SKILLS block in both branches so agents have a
+	// as the AVAILABLE SKILLS block in both branches so bots have a
 	// definitive list to compare against before calling team_skill_run.
 	// Without this, the LLM was instructed to "invoke the matching skill"
 	// without any backing list and would hallucinate plausible-sounding
@@ -40,18 +40,18 @@ type promptBuilder struct {
 	skills func() []SkillSummary
 	// activeIssues returns the open Issues (team_task records) in the
 	// current channel/office. Rendered as the ACTIVE ISSUES block so the
-	// agent can pick an existing Issue to comment on instead of creating
-	// a duplicate. Without this list, an agent has no way to know which
+	// bot can pick an existing Issue to comment on instead of creating
+	// a duplicate. Without this list, a bot has no way to know which
 	// Issues already exist and ends up duplicating scope.
 	activeIssues func() []IssueSummary
 
-	// agentInstruction reads one of an agent's instruction files (SOUL /
+	// botInstruction reads one of a bot's instruction files (SOUL /
 	// IDENTITY / OPERATIONS / TOOLS) from the wiki repo, or "" when absent or
 	// the wiki backend is off. officeUser reads the office-wide USER.md. Both
 	// are optional so promptBuilder stays usable from tests that don't wire a
-	// wiki backend; when nil the agent-files block is simply omitted.
-	agentInstruction func(slug, name string) string
-	officeUser       func() string
+	// wiki backend; when nil the bot-files block is simply omitted.
+	botInstruction func(slug, name string) string
+	officeUser     func() string
 
 	// Captured-at-construction config flags. They control major branches
 	// (markdown wiki section, no-external-graph fallbacks) and are stable for the
@@ -60,19 +60,19 @@ type promptBuilder struct {
 	markdownMemory bool
 }
 
-// agentFilesPromptBlock assembles the per-agent instruction files (SOUL,
+// botFilesPromptBlock assembles the per-bot instruction files (SOUL,
 // IDENTITY, OPERATIONS, TOOLS) plus the office-wide USER file into one prompt
 // section, in precedence order. Returns "" when no files are present (or no
 // reader is wired), so callers can append unconditionally. The content is
 // human/seed-authored markdown loaded verbatim; it is authoritative over the
 // inline persona defaults above it.
-func (p *promptBuilder) agentFilesPromptBlock(slug string) string {
-	if p.agentInstruction == nil {
+func (p *promptBuilder) botFilesPromptBlock(slug string) string {
+	if p.botInstruction == nil {
 		return ""
 	}
 	var sections []string
-	for _, name := range agentInstructionFiles {
-		if content := strings.TrimSpace(p.agentInstruction(slug, name)); content != "" {
+	for _, name := range botInstructionFiles {
+		if content := strings.TrimSpace(p.botInstruction(slug, name)); content != "" {
 			sections = append(sections, content)
 		}
 	}
@@ -97,7 +97,7 @@ func (p *promptBuilder) agentFilesPromptBlock(slug string) string {
 	return b.String()
 }
 
-// Build returns the system prompt for the agent identified by slug. The
+// Build returns the system prompt for the bot identified by slug. The
 // output is byte-stable across calls when the captured snapshots return the
 // same data — required for prompt caching to actually hit.
 func (p *promptBuilder) Build(slug string) string {
@@ -114,7 +114,7 @@ func (p *promptBuilder) Build(slug string) string {
 	if !found {
 		member = officeMember{Slug: slug, Name: slug, Role: slug}
 	}
-	agentCfg := agentConfigFromMember(member)
+	botCfg := botConfigFromMember(member)
 
 	// Sort by Slug so the prompt prefix is byte-identical across spawns for
 	// the same office; otherwise prompt caching (ANTHROPIC_PROMPT_CACHING=1)
@@ -125,15 +125,15 @@ func (p *promptBuilder) Build(slug string) string {
 	lead := p.leadSlug()
 	markdownMemory := p.markdownMemory
 
-	// Filter policies to the ones assigned to THIS agent (core-loop step 8:
-	// assigned policies are always loaded; a policy scoped to other agents
-	// stays out of this prompt). Nil/empty Agents = applies to everyone.
+	// Filter policies to the ones assigned to THIS bot (core-loop step 8:
+	// assigned policies are always loaded; a policy scoped to other bots
+	// stays out of this prompt). Nil/empty Bots = applies to everyone.
 	// Sort by ID inside the builder so prompt-cache byte-stability no longer
 	// depends on every caller pre-sorting before handing the snapshot in.
 	// Same reason as officeMembers above.
 	var activePolicies []officePolicy
 	for _, pol := range p.policies() {
-		if policyAppliesToAgent(pol, slug) {
+		if policyAppliesToBot(pol, slug) {
 			activePolicies = append(activePolicies, pol)
 		}
 	}
@@ -161,12 +161,12 @@ func (p *promptBuilder) Build(slug string) string {
 	companyCtx := config.CompanyContextBlock()
 
 	if p.isOneOnOne() {
-		sb.WriteString(fmt.Sprintf("You are %s in a direct one-on-one WUPHF session with the human.\n\n", agentCfg.Name))
+		sb.WriteString(fmt.Sprintf("You are %s in a direct one-on-one WUPHF session with the human.\n\n", botCfg.Name))
 		sb.WriteString(companyCtx)
-		sb.WriteString(fmt.Sprintf("Your expertise: %s\n\n", strings.Join(agentCfg.Expertise, ", ")))
-		sb.WriteString(fmt.Sprintf("Core personality: %s\n", agentCfg.Personality))
+		sb.WriteString(fmt.Sprintf("Your expertise: %s\n\n", strings.Join(botCfg.Expertise, ", ")))
+		sb.WriteString(fmt.Sprintf("Core personality: %s\n", botCfg.Personality))
 		sb.WriteString(fmt.Sprintf("Voice and vibe: %s\n\n", teamVoiceForSlug(slug)))
-		sb.WriteString(p.agentFilesPromptBlock(slug))
+		sb.WriteString(p.botFilesPromptBlock(slug))
 		sb.WriteString("== DIRECT SESSION ==\n")
 		sb.WriteString("This is not the shared office. There are no teammates, no channels, and no collaboration mechanics in this mode.\n")
 		sb.WriteString("You are only talking to the human.\n")
@@ -182,7 +182,7 @@ func (p *promptBuilder) Build(slug string) string {
 			sb.WriteString("There is no external knowledge graph in this run. Base your work on the conversation and direct human answers only.\n\n")
 		}
 		sb.WriteString("RULES:\n")
-		sb.WriteString("1. Do not talk as if a team exists. There are no other agents in this session.\n")
+		sb.WriteString("1. Do not talk as if a team exists. There are no other bots in this session.\n")
 		sb.WriteString("2. Do not create or suggest channels, teammates, bridges, shared tasks, or office structure.\n")
 		sb.WriteString("3. Default to direct, useful conversation with the human. Keep it crisp and human.\n")
 		sb.WriteString("4. The pushed notification IS the latest state. Respond directly from it. Do NOT poll before replying.\n")
@@ -200,11 +200,11 @@ func (p *promptBuilder) Build(slug string) string {
 	}
 
 	if slug == lead {
-		sb.WriteString(fmt.Sprintf("You are the %s of the %s.\n\n", agentCfg.Name, p.packName()))
+		sb.WriteString(fmt.Sprintf("You are the %s of the %s.\n\n", botCfg.Name, p.packName()))
 		sb.WriteString(ruleZeroBlock())
 		sb.WriteString(companyCtx)
-		sb.WriteString(fmt.Sprintf("Core personality: %s\n\n", agentCfg.Personality))
-		sb.WriteString(p.agentFilesPromptBlock(slug))
+		sb.WriteString(fmt.Sprintf("Core personality: %s\n\n", botCfg.Personality))
+		sb.WriteString(p.botFilesPromptBlock(slug))
 		sb.WriteString("== YOUR TEAM ==\n")
 		for _, member := range officeMembers {
 			if member.Slug == slug {
@@ -215,7 +215,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("\n== TEAM CHANNEL ==\n")
 		sb.WriteString("Your tools default to the active conversation context.\n")
 		sb.WriteString("- team_broadcast: Post to channel. To wake a teammate, @mention it by slug (e.g. @ceo); a valid @mention of a registered teammate is promoted into a wake (equivalently, include the slug in the `tagged` parameter). A message that @mentions no one does not wake the Chief of Staff and pulls in no uninvolved teammate — it streams to the human (the owner of an active task in the thread may still pick it up). So @mention exactly the teammates who must act, and no others.\n")
-		sb.WriteString("- team_poll: Read recent messages whenever the pushed context is missing something you need. The pushed notification carries thread context, task state, and active agents — start from it, but pull freely when it is not enough. Never decide from a guess you could have checked.\n")
+		sb.WriteString("- team_poll: Read recent messages whenever the pushed context is missing something you need. The pushed notification carries thread context, task state, and active bots — start from it, but pull freely when it is not enough. Never decide from a guess you could have checked.\n")
 		sb.WriteString("- team_bridge: Carry context from one channel into another (Chief of Staff only).\n")
 		sb.WriteString("- team_task: Create and assign execution tasks cut from an issue/spec, and orchestrate the PR-like revision loop. Use action=define to set the task's structured definition (goal, deliverables+format, success_criteria, access_needed) BEFORE staffing it — see ISSUE SCOPING FRAMEWORK below. Do NOT turn every small follow-up, blocker, or one-reply delegation into an issue; issue-level work is a project-sized spec that later breaks into smaller owned team_task records. Reviewers call action=request_changes (with feedback in details) to bounce a submitted task back to its owner; use action=comment to leave a non-blocking note without changing state; and use action=reject (terminal — dependents stay blocked) for work that cannot land. The owner calls action=submit_for_review after revising. Only after action=approve does the task become canonical and unblock dependents. Use action=complete only on tasks that do not need structured review.\n")
 		sb.WriteString("- team_skill_run: Invoke a saved skill by exact slug from the AVAILABLE SKILLS block above. ONLY pass a slug that appears verbatim in that list. If the list is empty or no slug matches, do NOT call this tool — proceed with the work directly. Hallucinated slugs return 404 and waste a turn.\n")
@@ -227,7 +227,7 @@ func (p *promptBuilder) Build(slug string) string {
 		}
 		sb.WriteString("- human_message: Present output or a recommendation directly to the human.\n")
 		sb.WriteString("- human_interview: Ask the human a cancelable interview question; it never blocks chat, and dismiss/send cancels it.\n")
-		sb.WriteString("- team_policy_record: When the human gives explicit operating feedback in chat (\"always …\", \"never …\", \"from now on …\"), record it as a team policy in the SAME turn — one atomic rule per call (never bundle several rules into one). It applies to ALL agents unless the human names specific agents (then pass `agents`). ONLY human feedback creates policies in chat; never mint one from your own judgment — the compiler derives the rest from playbooks automatically.\n")
+		sb.WriteString("- team_policy_record: When the human gives explicit operating feedback in chat (\"always …\", \"never …\", \"from now on …\"), record it as a team policy in the SAME turn — one atomic rule per call (never bundle several rules into one). It applies to ALL bots unless the human names specific bots (then pass `bots`). ONLY human feedback creates policies in chat; never mint one from your own judgment — the compiler derives the rest from playbooks automatically.\n")
 		sb.WriteString("Other tools: team_tasks, team_task_status, team_requests, team_request, team_status, team_members, team_office_members, team_channels, team_channel, team_member, team_channel_member, team_action_guide, team_action_workflow_create, team_action_workflow_schedule, team_action_relays, team_action_relay_event_types, team_action_relay_create, team_action_relay_activate, team_action_relay_events, team_action_relay_event.\n\n")
 		sb.WriteString("== TOOL HYGIENE ==\n")
 		sb.WriteString("All team_*, human_*, and mcp__wuphf-office__* tools listed above are registered for this session. claude-code defers their schemas behind a built-in ToolSearch tool; if the runtime injects a \"call ToolSearch with select:<name> first\" reminder, do it ONCE at the very start of your turn, in a single ToolSearch call. Load ONLY the schemas you actually plan to use this turn — for a typical answer that is team_broadcast (and maybe human_message); add visual_artifact_create ONLY when the HTML article rule below actually fires. Do NOT preload team_wiki_write unless the human explicitly asked for that exact action; it is banned for unsolicited use. (team_task is exempt — Rule Zero requires team_task action=create as your FIRST tool call on any work-shaped request, so load team_task whenever you will create or comment on an Issue.) Then proceed with the real work in the same assistant response. Never call ToolSearch a second time in the same turn.\n")
@@ -249,7 +249,7 @@ func (p *promptBuilder) Build(slug string) string {
 			}
 			sb.WriteString("\n")
 		}
-		sb.WriteString("Tagged agents are expected to respond.\n\n")
+		sb.WriteString("Tagged bots are expected to respond.\n\n")
 		if p.isFocusMode() {
 			sb.WriteString("== DELEGATION MODE ==\n")
 			sb.WriteString("You are the routing hub. Specialists only act when you or the human explicitly @tag them.\n")
@@ -261,7 +261,7 @@ func (p *promptBuilder) Build(slug string) string {
 			sb.WriteString("- After you delegate, ask a blocking question, or post the current synthesis, END THE TURN. Do not stay active waiting for teammates; a new pushed notification will wake you when something changes.\n\n")
 		}
 		sb.WriteString(renderSkillsCatalogBlock(activeSkills, slug))
-		sb.WriteString(renderAvailableAgentsBlock(officeMembers, slug))
+		sb.WriteString(renderAvailableBotsBlock(officeMembers, slug))
 		sb.WriteString(renderActiveIssuesBlock(activeIssues))
 		sb.WriteString("THREADING: Default to replying in the active thread. If you intentionally cross into another channel or start a new topic, pass channel or new_topic explicitly.\n\n")
 		sb.WriteString(issueJudgmentBlock())
@@ -277,7 +277,7 @@ func (p *promptBuilder) Build(slug string) string {
 		} else {
 			sb.WriteString("1. Coordinate inside the team channel first and keep the team aligned there\n")
 		}
-		sb.WriteString("2. The pushed notification is your starting context — it contains thread context, task state, and agent activity. When it already answers the question, respond directly from it. When anything material is missing or ambiguous, pull it (team_poll, team_tasks, wiki search) before deciding. Acting on a guess you could have checked is the failure; gathering needed context is not.\n")
+		sb.WriteString("2. The pushed notification is your starting context — it contains thread context, task state, and bot activity. When it already answers the question, respond directly from it. When anything material is missing or ambiguous, pull it (team_poll, team_tasks, wiki search) before deciding. Acting on a guess you could have checked is the failure; gathering needed context is not.\n")
 		sb.WriteString("3. When routing a simple human @tagged request that should resolve in one reply, tag the specialist in your message and do NOT also create a team_task for the same work. For any multi-step build, cross-functional initiative, or work likely to need another round, you MUST create explicit team_task records for each owned lane before you send the kickoff so specialists wake up from durable task state. When those task records already exist, do NOT also tag the same specialists in the kickoff unless you need extra commentary outside the owned task.\n")
 		sb.WriteString("4. Tag the specialists who should weigh in. Don't tag everyone for everything.\n")
 		sb.WriteString("4a. NEVER post an acknowledgement. \"Acknowledged\", \"Standing by\", \"Posted.\", \"Waiting for the next task\", \"Done — acknowledged the wrap\", \"All clear\" and every variant are banned: they carry no information and wake teammates for nothing. If you have nothing to add beyond confirming receipt, END THE TURN silently. Post only when you have a result, a decision, a blocker, or a question.\n")
@@ -304,10 +304,10 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("16c. On a human build/ship/end-to-end request, after you approve or close any engineering/execution slice, if the system is not yet runnable end to end and no engineering/execution lane remains active, create the next engineering/execution task in that same turn before you stop. Do not replace the only live build lane with GTM-only packaging, eval prompts, scoring rubrics, or other sidecar work.\n")
 		sb.WriteString("16d. When a task or policy allows a low-risk external step on a connected system, prefer the smallest real external action now over more internal collateral. A Slack/Notion/Drive lane is not satisfied by repo markdown, preview notes, proof markers, or substitute proof artifacts unless the task explicitly says mock/preview/stub-only.\n")
 		sb.WriteString("16e. When the work is live, describe outputs as client deliverables, approvals, handoffs, updates, or records. Do not frame live business work as proof/test/eval artifacts unless the task explicitly asks for testing or evidence capture.\n")
-		sb.WriteString("16f. Capability-gap rule: if the work is blocked because the needed specialist, channel, skill, or tool path does not exist yet, treat that gap as the next real work item. Do not fall back to a review bundle, proof packet, artifact shell, or local substitute deliverable. First reuse an existing specialist whose expertise fits the gap; only if no current teammate can cover it, propose a new specialist with team_member (creating a new agent ALWAYS requires explicit human approval — the tool raises an approval request and blocks until the human decides, and if they decline you must assign the work to an existing specialist instead). If the work will span more than one turn, propose the missing execution channel with team_channel (creating a channel ALSO always requires explicit human approval — the tool raises an approval request and blocks until the human decides, and if they decline you must use an existing channel instead); capture the missing workflow as a playbook article (so skill compilation picks it up) in the same turn; and if the blocker is a tool or provider gap, open a tool-discovery/research lane named for the exact tool you need so the team can discover, validate, and enable it. Example: if the work needs video generation and you do not already have a usable path, create a discovery lane for Remotion or the exact video tool before drafting any deliverable shell.\n")
+		sb.WriteString("16f. Capability-gap rule: if the work is blocked because the needed specialist, channel, skill, or tool path does not exist yet, treat that gap as the next real work item. Do not fall back to a review bundle, proof packet, artifact shell, or local substitute deliverable. First reuse an existing specialist whose expertise fits the gap; only if no current teammate can cover it, propose a new specialist with team_member (creating a new bot ALWAYS requires explicit human approval — the tool raises an approval request and blocks until the human decides, and if they decline you must assign the work to an existing specialist instead). If the work will span more than one turn, propose the missing execution channel with team_channel (creating a channel ALSO always requires explicit human approval — the tool raises an approval request and blocks until the human decides, and if they decline you must use an existing channel instead); capture the missing workflow as a playbook article (so skill compilation picks it up) in the same turn; and if the blocker is a tool or provider gap, open a tool-discovery/research lane named for the exact tool you need so the team can discover, validate, and enable it. Example: if the work needs video generation and you do not already have a usable path, create a discovery lane for Remotion or the exact video tool before drafting any deliverable shell.\n")
 		sb.WriteString("16g. Task hygiene rule: if a live business lane gets named or reframed as a review packet, proof artifact, blueprint-derived scaffold, rubric, or other internal shell, rewrite that lane in the same turn. Replace it with either the next real deliverable/customer-facing/business-facing step or the exact capability-enablement task that unblocks that step.\n")
-		sb.WriteString("17. Propose channels (team_channel) only when scope genuinely warrants a new one and no existing channel fits — creating a channel always requires explicit human approval, exactly like creating an agent. Propose a new agent (team_member) only when no existing teammate fits the work — and remember creating a new agent always requires explicit human approval. Tasks do NOT have their own chat rooms. Discuss every task on the team channel it was created from — normally #general, where the whole team is present and the human is reading. Tasks are tracked on the Tasks board, not in a private room per task; reference a task by its id in the channel and the humans can open it from there.\n")
-		sb.WriteString("17b. When the human explicitly asks to add or test integrations, generated skills, reusable workflows, or generated agents, you MUST leave durable state for that work in the same turn. Create the integration/onboarding task lane(s), capture the relevant workflow(s) as playbook articles so skill compilation picks them up, and create any needed specialist agent(s) instead of only describing them narratively. If real accounts, credentials, spend, publishing, or other external side effects would be required, proceed with stubs/placeholders until the exact human approval is truly needed.\n")
+		sb.WriteString("17. Propose channels (team_channel) only when scope genuinely warrants a new one and no existing channel fits — creating a channel always requires explicit human approval, exactly like creating a bot. Propose a new bot (team_member) only when no existing teammate fits the work — and remember creating a new bot always requires explicit human approval. Tasks do NOT have their own chat rooms. Discuss every task on the team channel it was created from — normally #general, where the whole team is present and the human is reading. Tasks are tracked on the Tasks board, not in a private room per task; reference a task by its id in the channel and the humans can open it from there.\n")
+		sb.WriteString("17b. When the human explicitly asks to add or test integrations, generated skills, reusable workflows, or generated bots, you MUST leave durable state for that work in the same turn. Create the integration/onboarding task lane(s), capture the relevant workflow(s) as playbook articles so skill compilation picks them up, and create any needed specialist bot(s) instead of only describing them narratively. If real accounts, credentials, spend, publishing, or other external side effects would be required, proceed with stubs/placeholders until the exact human approval is truly needed.\n")
 		sb.WriteString("18. Sequence structural changes safely: propose a new specialist with team_member first and wait for human approval plus success, then add them to channels or tag them. When creating a new channel, only include members that already exist.\n")
 		sb.WriteString("19. For `team_channel` create/remove calls, set `channel` to the explicit target slug like `youtube-factory`; it is not inferred from the current room.\n")
 		sb.WriteString("20. Use team_bridge to carry context between channels when relevant\n")
@@ -318,9 +318,9 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("When delegating to a specialist, tell them which skill to run (by slug) so they call team_skill_run before acting. Never paraphrase a skill's steps into a delegation message — the skill IS the spec.\n")
 		sb.WriteString("Skills are NOT created ad hoc: they are compiled automatically from playbook articles in the team wiki. When a workflow is worth codifying, ask @librarian to capture it as a playbook article in the wiki; the compiler turns it into a skill and assigns it to the team.\n")
 		sb.WriteString("Rules:\n")
-		sb.WriteString("- To suggest adding a new specialist agent, use team_member with a clear expertise and rationale\n")
-		sb.WriteString("- When integrations matter, make the required systems explicit in playbook articles and agent rationale so the team knows which connected accounts or placeholders each workflow expects\n")
-		sb.WriteString("- When you create a new specialist for integration/onboarding work, include the owned integrations directly in that agent's expertise so the roster clearly shows who owns Gmail, Slack, YouTube, Drive, analytics, or similar lanes\n\n")
+		sb.WriteString("- To suggest adding a new specialist bot, use team_member with a clear expertise and rationale\n")
+		sb.WriteString("- When integrations matter, make the required systems explicit in playbook articles and bot rationale so the team knows which connected accounts or placeholders each workflow expects\n")
+		sb.WriteString("- When you create a new specialist for integration/onboarding work, include the owned integrations directly in that bot's expertise so the roster clearly shows who owns Gmail, Slack, YouTube, Drive, analytics, or similar lanes\n\n")
 		sb.WriteString("STYLE: Be concise, delegate, short lively messages. Use compact markdown for simple chat structure; for dense, visual, or interactive outputs, create an HTML visual artifact instead of leaving the human with a long markdown wall.\n")
 		if markdownMemory {
 			sb.WriteString("Do not pretend the team wiki was updated; verify @librarian captured the knowledge or team_wiki_write succeeded from a verified human request before claiming canonical storage.\n")
@@ -329,12 +329,12 @@ func (p *promptBuilder) Build(slug string) string {
 		}
 		sb.WriteString("Never launch another WUPHF office from inside your turn (`wuphf`, `./wuphf`, `/reset`, or a new browser instance). The team is already running; inspect the current repo and UI instead.\n")
 	} else {
-		sb.WriteString(fmt.Sprintf("You are %s on the %s.\n", agentCfg.Name, p.packName()))
+		sb.WriteString(fmt.Sprintf("You are %s on the %s.\n", botCfg.Name, p.packName()))
 		sb.WriteString(ruleZeroBlock())
 		sb.WriteString(companyCtx)
-		sb.WriteString(fmt.Sprintf("Your expertise: %s\n\n", strings.Join(agentCfg.Expertise, ", ")))
-		sb.WriteString(fmt.Sprintf("Core personality: %s\n\n", agentCfg.Personality))
-		sb.WriteString(p.agentFilesPromptBlock(slug))
+		sb.WriteString(fmt.Sprintf("Your expertise: %s\n\n", strings.Join(botCfg.Expertise, ", ")))
+		sb.WriteString(fmt.Sprintf("Core personality: %s\n\n", botCfg.Personality))
+		sb.WriteString(p.botFilesPromptBlock(slug))
 		sb.WriteString("== YOUR TEAM ==\n")
 		sb.WriteString(fmt.Sprintf("- @%s (%s): TEAM LEAD — has final say on decisions\n", lead, p.nameFor(lead)))
 		for _, member := range officeMembers {
@@ -379,7 +379,7 @@ func (p *promptBuilder) Build(slug string) string {
 			}
 			sb.WriteString("\n")
 		}
-		sb.WriteString("Tag agents with @slug. Tagged agents must respond.\n")
+		sb.WriteString("Tag bots with @slug. Tagged bots must respond.\n")
 		sb.WriteString("\n")
 		if p.isFocusMode() {
 			sb.WriteString("== DELEGATION MODE ==\n")
@@ -392,7 +392,7 @@ func (p *promptBuilder) Build(slug string) string {
 			sb.WriteString("- After you report completion, a blocker, or a handoff, END THE TURN. Do not keep researching or wait for acknowledgements in the same run.\n\n")
 		}
 		sb.WriteString(renderSkillsCatalogBlock(activeSkills, slug))
-		sb.WriteString(renderAvailableAgentsBlock(officeMembers, slug))
+		sb.WriteString(renderAvailableBotsBlock(officeMembers, slug))
 		sb.WriteString(renderActiveIssuesBlock(activeIssues))
 		sb.WriteString("THREADING: Default to replying in the active thread. If you intentionally cross into another channel or start a new topic, pass channel or new_topic explicitly.\n\n")
 		sb.WriteString(issueJudgmentBlock())
@@ -409,7 +409,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("3. Push back when you disagree — explain why using your expertise\n")
 		sb.WriteString("4. Check team_requests before asking the human anything new\n")
 		sb.WriteString("5. For completion or recommendations, use human_message. For cancelable clarifications, use human_interview with options. For blocking human decisions, use team_request with kind `approval`, `confirm`, or `choice`.\n")
-		sb.WriteString("6. When assigned a task, claim it with team_task first, then use team_status to narrate what you're doing as you go. No other agent wakes on your status posts — they stream straight to the human as your live activity feed — so don't keep them to a terse one-liner: post the concrete steps, what you're trying, what you found, and what's next, so the human has real visibility into your work. Keep each post readable, leave out secrets and raw dumps, and don't @mention anyone on a routine status (an @mention wakes that agent). Then mark complete or review-ready and broadcast when done. Final sequence for owned tasks: team_task mutation first, then any completion broadcast or human_message, then stop. A task is NOT finished until team_task marks it complete or review-ready; posting a channel reply alone does not unblock downstream work, and a completion post while the task stays in_progress is a failure. If the Chief of Staff delegates a substantial workstream and the packet shows no owned task yet, do one quick team_tasks check before creating a fallback task; if a matching task already exists, claim that instead of duplicating it. Only create a fallback execution task when the delegated work is substantial and no matching task exists after that single check; do not create an issue-level spec yourself for a small detected follow-up. Create that fallback with team_task action=create; if you omit owner, it defaults to you. If the result is mainly for the human, also send it via human_message.\n")
+		sb.WriteString("6. When assigned a task, claim it with team_task first, then use team_status to narrate what you're doing as you go. No other bot wakes on your status posts — they stream straight to the human as your live activity feed — so don't keep them to a terse one-liner: post the concrete steps, what you're trying, what you found, and what's next, so the human has real visibility into your work. Keep each post readable, leave out secrets and raw dumps, and don't @mention anyone on a routine status (an @mention wakes that bot). Then mark complete or review-ready and broadcast when done. Final sequence for owned tasks: team_task mutation first, then any completion broadcast or human_message, then stop. A task is NOT finished until team_task marks it complete or review-ready; posting a channel reply alone does not unblock downstream work, and a completion post while the task stays in_progress is a failure. If the Chief of Staff delegates a substantial workstream and the packet shows no owned task yet, do one quick team_tasks check before creating a fallback task; if a matching task already exists, claim that instead of duplicating it. Only create a fallback execution task when the delegated work is substantial and no matching task exists after that single check; do not create an issue-level spec yourself for a small detected follow-up. Create that fallback with team_task action=create; if you omit owner, it defaults to you. If the result is mainly for the human, also send it via human_message.\n")
 		sb.WriteString("7. You can see other channel names and descriptions, but cannot access their content unless you are a member. If context from another channel is needed, ask the Chief of Staff to bridge it.\n")
 		sb.WriteString("8. If a task or status line shows a worktree path, use that as working_directory for local file and bash tools.\n")
 		sb.WriteString("9. For local_worktree or feature tasks, default to direct implementation in the assigned worktree. Do not relaunch WUPHF, copied binaries, or a fresh local server just to inspect the app; use the current repo and running office instead.\n")
@@ -419,14 +419,14 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("11b. If a task names a connected external system and asks you to create, post, query, or run something there, do that live external step through the connected workflow/integration path. Repo docs, previews, local markdown, proof markers, or test artifacts do not count unless the task explicitly says mock/preview/stub-only.\n")
 		sb.WriteString("11c. When the work is live, phrase it as a client deliverable, approval, handoff, update, or record. Avoid proof/test/marker/eval language unless the task explicitly asks for testing or evidence capture.\n")
 		sb.WriteString("11d. When a task calls for Slack, Notion, Drive, or another connected system, use the `team_action_*` tools first. Do NOT probe localhost broker routes, curl the provider directly, or fall back to shell-side API experiments when the team action tools can do the job.\n")
-		sb.WriteString("11e. Capability-gap rule: if the work is blocked because the needed specialist, channel, skill, or tool path does not exist yet, treat that gap as the next real work item. Do not fall back to a review bundle, proof packet, artifact shell, or local substitute deliverable. Propose the missing specialist with team_member first (creating a new agent ALWAYS requires explicit human approval — the tool blocks until the human decides, and if they decline you must reuse an existing specialist); if the work will span more than one turn, propose the missing execution channel with team_channel (also human-approved — if declined, use an existing channel); capture the missing workflow as a playbook article (so skill compilation picks it up) in the same turn; and if the blocker is a tool or provider gap, open a tool-discovery/research lane named for the exact tool you need so the team can discover, validate, and enable it. Example: if the work needs video generation and you do not already have a usable path, create a discovery lane for Remotion or the exact video tool before drafting any deliverable shell.\n")
+		sb.WriteString("11e. Capability-gap rule: if the work is blocked because the needed specialist, channel, skill, or tool path does not exist yet, treat that gap as the next real work item. Do not fall back to a review bundle, proof packet, artifact shell, or local substitute deliverable. Propose the missing specialist with team_member first (creating a new bot ALWAYS requires explicit human approval — the tool blocks until the human decides, and if they decline you must reuse an existing specialist); if the work will span more than one turn, propose the missing execution channel with team_channel (also human-approved — if declined, use an existing channel); capture the missing workflow as a playbook article (so skill compilation picks it up) in the same turn; and if the blocker is a tool or provider gap, open a tool-discovery/research lane named for the exact tool you need so the team can discover, validate, and enable it. Example: if the work needs video generation and you do not already have a usable path, create a discovery lane for Remotion or the exact video tool before drafting any deliverable shell.\n")
 		sb.WriteString("11f. Task hygiene rule: if a live business lane gets named or reframed as a review packet, proof artifact, blueprint-derived scaffold, rubric, or other internal shell, rewrite that lane in the same turn. Replace it with either the next real deliverable/customer-facing/business-facing step or the exact capability-enablement task that unblocks that step.\n")
-		if codingAgentSlugs[slug] {
+		if codingBotSlugs[slug] {
 			sb.WriteString("11g. When you commit to opening a pull request, actually open it. Run `gh pr create --title \"<short title>\" --body \"<body>\" --head \"<your-branch>\" --base main` via the bash tool. Paste the returned URL into your channel message so the team can click through. Do not claim a PR is open unless the bash output shows a https://github.com/... URL.\n")
 		}
 		if markdownMemory {
-			// Wiki contribution is a system skill every agent carries. The
-			// Librarian is retired as a default agent, so there is no sole
+			// Wiki contribution is a system skill every bot carries. The
+			// Librarian is retired as a default bot, so there is no sole
 			// writer to tag; knowledge becomes canonical through promotion,
 			// which a human approves.
 			sb.WriteString("12. Use wuphf_wiki_lookup or team_wiki_search when prior knowledge matters. Capture durable knowledge in your notebook as you work.\n")
@@ -440,7 +440,7 @@ func (p *promptBuilder) Build(slug string) string {
 		sb.WriteString("Never launch another WUPHF office from inside your turn (`wuphf`, `./wuphf`, `/reset`, or a new browser instance). The team is already running; inspect the current repo and UI instead.\n")
 	}
 
-	// Apps guidance for every office agent: awareness of propose_app for most,
+	// Apps guidance for every office bot: awareness of propose_app for most,
 	// the full build playbook for the App Builder.
 	sb.WriteString("\n")
 	sb.WriteString(appsPromptBlock(slug, member.Role))
@@ -460,14 +460,14 @@ func markdownKnowledgeToolBlock() string {
 		"- visual_artifact_list / visual_artifact_read / visual_artifact_promote: Reuse, inspect, and promote existing HTML articles into wiki visual views.\n" +
 		"- team_wiki_read / team_wiki_search / team_wiki_list / wuphf_wiki_lookup: Read the canonical shared wiki.\n" +
 		"- team_learning_search: Search typed prior learnings before repeating substantial work. Prefer scoped search by playbook, file, task, or repo when available; treat source/trust/confidence as evidence quality.\n" +
-		"- team_learning_record: Record a durable typed learning only when it would save future work or prevent a repeat mistake. Use user-stated only when the human explicitly said it; otherwise choose observed, inferred, execution, synthesis, cross-agent, or cross-model with an honest confidence. This is the typed learning store, not the team wiki.\n" +
-		"- team_wiki_write: Direct canonical wiki writes only when the human explicitly asked you to write the article, playbook, or canonical page to the wiki. Pass human_request as the broker message ID for that recent human-authored wiki request. Do not use this for unsolicited agent-authored writes; when knowledge should become canonical, tag @librarian (Pam) to land it in the wiki.\n" +
+		"- team_learning_record: Record a durable typed learning only when it would save future work or prevent a repeat mistake. Use user-stated only when the human explicitly said it; otherwise choose observed, inferred, execution, synthesis, cross-bot, or cross-model with an honest confidence. This is the typed learning store, not the team wiki.\n" +
+		"- team_wiki_write: Direct canonical wiki writes only when the human explicitly asked you to write the article, playbook, or canonical page to the wiki. Pass human_request as the broker message ID for that recent human-authored wiki request. Do not use this for unsolicited bot-authored writes; when knowledge should become canonical, tag @librarian (Pam) to land it in the wiki.\n" +
 		"- Human remember/save-to-wiki phrases are auto-routed by the broker. When a human says \"remember this\", \"save to wiki\", \"save to KB\", \"write this down\", \"add to wiki\", \"wiki this\", \"save to memory\", or \"this is canonical\", do NOT re-route the content yourself and do NOT acknowledge that you saved it; the human's own message is the canonical source.\n"
 }
 
 // visualArtifactForcingBlock returns the selectivity decision tree for HTML
 // visual artifacts. Earlier versions of this block tried to FORCE an HTML
-// article for every research/explain/wiki/plan request. That trained agents
+// article for every research/explain/wiki/plan request. That trained bots
 // to produce a heavyweight artifact for every conversational answer, broke
 // chat flow, and burned tokens. The live demo on 2026-05-29 made the failure
 // obvious: a one-line coffee-pressure question got a full HTML article plus
@@ -475,7 +475,7 @@ func markdownKnowledgeToolBlock() string {
 // that has since been removed entirely — skills now come only from
 // playbook compilation).
 //
-// The new rule is selectivity, not forcing. The agent must JUDGE whether the
+// The new rule is selectivity, not forcing. The bot must JUDGE whether the
 // answer benefits from a real visual artifact (genuine SVG figures, multi-
 // section explainer, side-by-side comparison) before reaching for the tool.
 // When in doubt, answer in chat as plain text.
@@ -486,13 +486,13 @@ func markdownKnowledgeToolBlock() string {
 // failure-mode cluster together.
 func visualArtifactForcingBlock() string {
 	return "HTML ARTICLE RULE — selectivity, not reflex:\n" +
-		"The visual_artifact_create tool produces a heavyweight, self-contained HTML article with embedded SVG figures. It is NOT the default answer format. Use it only when the answer genuinely benefits from a rich visual document. For most chat — questions, status updates, short answers, coordination, confirmations, conversational explanations — answer in plain text in the channel and STOP. The agent must judge fit; do not produce an artifact for everything.\n\n" +
+		"The visual_artifact_create tool produces a heavyweight, self-contained HTML article with embedded SVG figures. It is NOT the default answer format. Use it only when the answer genuinely benefits from a rich visual document. For most chat — questions, status updates, short answers, coordination, confirmations, conversational explanations — answer in plain text in the channel and STOP. The bot must judge fit; do not produce an artifact for everything.\n\n" +
 		"USE an HTML article ONLY when ALL THREE of these are true:\n" +
 		"  (1) The request is one of: an explicit ask for a visual / diagram / chart / illustration / mockup / \"show me\", OR an answer that naturally requires comparing two-or-more things side by side, OR walking a multi-step process or timeline, OR mapping a 2D variable space (control chart, matrix, decision grid).\n" +
 		"  (2) The answer is a multi-section explainer with at least THREE distinct sections that each carry their own structure.\n" +
 		"  (3) Plain prose in chat would lose meaningful information density — the figures, the side-by-side, or the spatial layout are doing real work that a bulleted list cannot replicate.\n\n" +
 		"DO NOT use an HTML article when ANY of these are true:\n" +
-		"  • The answer is conversational, a status update, a short factual reply, a confirmation, an opinion, or agent-to-agent coordination.\n" +
+		"  • The answer is conversational, a status update, a short factual reply, a confirmation, an opinion, or bot-to-bot coordination.\n" +
 		"  • The human asked a one-liner question expecting a one-liner answer (\"what pressure for espresso?\", \"is the build green?\", \"who owns this lane?\").\n" +
 		"  • The answer is mostly a list, a code snippet, a small table, a config block, or anything markdown handles cleanly.\n" +
 		"  • You feel an urge to \"codify\" or \"document\" the answer for future reuse but the human did not ask for that.\n" +
@@ -594,9 +594,9 @@ func clipPromptText(s string, max int) string {
 	return strings.TrimSpace(s[:max-1]) + "…"
 }
 
-// renderActiveIssuesBlock emits the ACTIVE ISSUES section so the agent can
+// renderActiveIssuesBlock emits the ACTIVE ISSUES section so the bot can
 // pick an existing Issue (and comment on it) instead of duplicating scope.
-// Empty-state is explicit — the agent reads "(none yet)" and knows it
+// Empty-state is explicit — the bot reads "(none yet)" and knows it
 // must create the Issue.
 func renderActiveIssuesBlock(issues []IssueSummary) string {
 	var sb strings.Builder
@@ -622,7 +622,7 @@ func renderActiveIssuesBlock(issues []IssueSummary) string {
 }
 
 // IssueSummary is the slim projection of an open Issue used to render the
-// ACTIVE ISSUES catalog block into agent system prompts. Slug + title +
+// ACTIVE ISSUES catalog block into bot system prompts. Slug + title +
 // state + owner is enough for the LLM to decide whether to reuse or
 // create — without dragging full details into every spawn.
 type IssueSummary struct {
@@ -636,7 +636,7 @@ type IssueSummary struct {
 // ruleZeroBlock anchors the most load-bearing rule at the very top of the
 // prompt so it cannot be drowned out by the role-specific sections below.
 // The product call (locked 2026-05-26): any work getting done has an Issue
-// behind it. The agent SHOULD create the Issue itself; the broker has a
+// behind it. The bot SHOULD create the Issue itself; the broker has a
 // safety net at the action-execute boundary but the right path is for the
 // LLM to scope work into an Issue before any external action.
 //
@@ -654,7 +654,7 @@ func ruleZeroBlock() string {
 		"When you genuinely cannot tell, prefer answering, then offer: \"want me to make that an Issue?\" An unwanted Issue costs the human a cleanup; an answer costs them nothing.\n" +
 		"NARROW EXCEPTION — scoping interview: if (and ONLY if) the request is genuinely ambiguous and the ISSUE_JUDGMENT / ISSUE_SCOPING_FRAMEWORK block below says you have genuine definition gaps, you MAY call human_interview ONCE (batched questions) BEFORE team_task action=create. Restrict it to definition gaps (goal, deliverable + format, success criteria, access needed). Once scope is clear, you MUST still create the Issue — the interview does not replace the Issue. Default to issue-first whenever scope is already clear from the message; only reach for a pre-Issue interview when you genuinely cannot write a sensible title and details without one.\n" +
 		"The Issue title restates what the human asked for. Pass task_type=\"issue\" (this is the value the Issues board reads — values like follow_up/research/feature/bugfix are for sub-tasks INSIDE an Issue, not for the Issue itself). Capture the human's exact request in details so the Issue is the source of truth.\n" +
-		"ALWAYS set `owner` to a slug from the AVAILABLE AGENTS block above. Prefer an existing specialist whose expertise matches the work. Only call team_member action=create FIRST (then team_task with the new slug) when NO existing agent fits the Issue's domain. Assigning yourself is fine for work that genuinely sits in your domain; assigning the wrong specialist is worse than assigning yourself.\n" +
+		"ALWAYS set `owner` to a slug from the AVAILABLE AGENTS block above. Prefer an existing specialist whose expertise matches the work. Only call team_member action=create FIRST (then team_task with the new slug) when NO existing bot fits the Issue's domain. Assigning yourself is fine for work that genuinely sits in your domain; assigning the wrong specialist is worse than assigning yourself.\n" +
 		"\n" +
 		"== CREATION IS THE AUTHORIZATION ==\n" +
 		"Creating the Issue IS the go-ahead: a new Issue with an owner lands in `running` and the owner starts immediately — there is no separate start-approval step. After creating the Issue:\n" +
@@ -668,21 +668,21 @@ func ruleZeroBlock() string {
 		"Before you create anything, know which of these you are in:\n" +
 		"  - THE HUMAN ASKED YOU, here, for this. Then file it yourself with owner=YOU and start. No permission round trip: their ask IS the authorization, and going to anyone else for a second one just spends turns.\n" +
 		"  - YOU THOUGHT OF IT. You were doing something else and noticed adjacent work worth doing. ASK THE HUMAN FIRST, in one short message: what you spotted, and whether they want it. Do not file it, do not fold it into what you were asked for, and do not route it via the Chief of Staff — the human is in this conversation and the Chief of Staff is not. Self-directed work is where scope and spend quietly grow, and one question costs a fraction of the wrong task.\n" +
-		"  - IT IS SOMEBODY ELSE'S WORK. Filing an Issue owned by another agent, or reassigning/approving/rejecting one, is not yours — the broker refuses it. Comment with a [SUGGESTION] and @-mention the lead.\n" +
+		"  - IT IS SOMEBODY ELSE'S WORK. Filing an Issue owned by another bot, or reassigning/approving/rejecting one, is not yours — the broker refuses it. Comment with a [SUGGESTION] and @-mention the lead.\n" +
 		"\n" +
 		"If an open Issue already covers the request, do NOT create a duplicate — post team_task action=comment on it instead. Look before you file: the broker collapses a repeat of the SAME title onto the open Issue, but a reworded restatement gets through and becomes a second Issue nobody reconciles. The Issue is the audit-trail anchor for every approval, action, and message that follows. Without it the work is invisible to the operator and approvals become orphan gates.\n" +
 		"No narration tax. Do not open with what you are about to do (\"I'll load the tools I need, then scope this and investigate\"). The human sees your status feed already. Lead with the answer or the action; if you need a moment of work first, do the work and then report what you found.\n\n"
 }
 
 // renderSkillsCatalogBlock emits the AVAILABLE SKILLS section for a single
-// agent: ONLY the skills assigned to it (OwnerAgents membership) are
+// bot: ONLY the skills assigned to it (OwnerBots membership) are
 // rendered — unassigned skills are invisible (core-loop step 8: assigned
 // skills are always loaded; everything else stays out of the prompt).
-// agentSlug is the system-prompt subject.
-func renderSkillsCatalogBlock(skills []SkillSummary, agentSlug string) string {
+// botSlug is the system-prompt subject.
+func renderSkillsCatalogBlock(skills []SkillSummary, botSlug string) string {
 	available := make([]SkillSummary, 0, len(skills))
 	for _, sk := range skills {
-		if skillEnabledForAgent(sk, agentSlug) {
+		if skillEnabledForBot(sk, botSlug) {
 			available = append(available, sk)
 		}
 	}
@@ -701,15 +701,15 @@ func renderSkillsCatalogBlock(skills []SkillSummary, agentSlug string) string {
 	return sb.String()
 }
 
-// skillEnabledForAgent reports whether the agent slug can invoke this
-// skill right now. An empty agentSlug (e.g. one-on-one mode without a
-// member) sees nothing — agents must be explicitly assigned to invoke.
-func skillEnabledForAgent(sk SkillSummary, agentSlug string) bool {
-	if agentSlug == "" {
+// skillEnabledForBot reports whether the bot slug can invoke this
+// skill right now. An empty botSlug (e.g. one-on-one mode without a
+// member) sees nothing — bots must be explicitly assigned to invoke.
+func skillEnabledForBot(sk SkillSummary, botSlug string) bool {
+	if botSlug == "" {
 		return false
 	}
-	for _, owner := range sk.OwnerAgents {
-		if owner == agentSlug {
+	for _, owner := range sk.OwnerBots {
+		if owner == botSlug {
 			return true
 		}
 	}
@@ -736,13 +736,13 @@ func formatSkillLine(sk SkillSummary) string {
 // be emitted together so each side knows what the other is told.
 func ceoIssueManagementBlock() string {
 	return "== Chief of Staff ISSUE OWNERSHIP (Chief of Staff only) ==\n" +
-		"Every agent can now file its OWN work: when the human asks a specialist directly, that specialist creates the Issue and does it, without routing through you. You are no longer a gate on work the human asked for, and waiting to be asked would just add turns to something already authorized.\n" +
-		"You remain the only agent who can act on SOMEBODY ELSE's work — reassign, approve, reject, reopen another agent's Issue, or file an Issue owned by a different agent. The broker rejects those from specialists.\n" +
-		"What that makes you: not a queue, but the one agent who sees ACROSS Issues. Nobody else has that view, so watch for the things only a cross-Issue view catches — two agents converging on the same work, an Issue with no owner making progress, work drifting past what the human actually asked for. Apply these rules every turn:\n" +
+		"Every bot can now file its OWN work: when the human asks a specialist directly, that specialist creates the Issue and does it, without routing through you. You are no longer a gate on work the human asked for, and waiting to be asked would just add turns to something already authorized.\n" +
+		"You remain the only bot who can act on SOMEBODY ELSE's work — reassign, approve, reject, reopen another bot's Issue, or file an Issue owned by a different bot. The broker rejects those from specialists.\n" +
+		"What that makes you: not a queue, but the one bot who sees ACROSS Issues. Nobody else has that view, so watch for the things only a cross-Issue view catches — two bots converging on the same work, an Issue with no owner making progress, work drifting past what the human actually asked for. Apply these rules every turn:\n" +
 		"1. Plan before you decompose. A new top-level Issue lands in PLANNING: you run read-only, ask the human any genuine open questions (human_interview, batched once), and write a single coherent plan that names the SPECIFIC sub-tasks you will create — each a distinct, non-overlapping slice. The broker REFUSES sub-issue creation while the parent is in planning, and rejects any sub-task that just restates the parent or duplicates a sibling. Only after the human approves the plan (Planning→Running) do you create those sub-issues (team_task action=create + parent_issue_id). Then, as genuinely new work surfaces mid-flight, add sub-issues for it — but never spray shallow or redundant ones.\n" +
-		"2. Hire when no agent fits. If a sub-issue needs expertise no current agent has, create a sub-issue titled \"Hire @{role}\" with owner=ceo. Once that hire is approved and you call team_member action=create, reassign the dependent sub-issues to the new specialist via team_task action=reassign.\n" +
+		"2. Hire when no bot fits. If a sub-issue needs expertise no current bot has, create a sub-issue titled \"Hire @{role}\" with owner=ceo. Once that hire is approved and you call team_member action=create, reassign the dependent sub-issues to the new specialist via team_task action=reassign.\n" +
 		"3. Watch for [SUGGESTION] comments. Specialists can't edit Issues but they can comment with a [SUGGESTION] prefix to propose scope changes. Read each one, decide on it, and reply (team_task action=comment) explaining what you did and why. Examples: \"Adopted — created sub-issue task-42 for the auth question.\" / \"Skipped — that's out of scope for this Issue; file it as a new Issue if it's worth doing.\" Never silently ignore a [SUGGESTION].\n" +
-		"4. Reassign when the owner is wrong. If a specialist's status updates reveal a different agent is better suited, just reassign — don't ask. team_task action=reassign with the new owner slug.\n" +
+		"4. Reassign when the owner is wrong. If a specialist's status updates reveal a different bot is better suited, just reassign — don't ask. team_task action=reassign with the new owner slug.\n" +
 		"5. Surface lifecycle changes. The broker auto-posts an issue_lifecycle card when an Issue transitions, so you don't have to narrate state. But DO post a human_message when you make a non-obvious scope call (created a sub-issue, hired someone, reassigned an Issue) so the human can intervene if they disagree.\n\n"
 }
 
@@ -752,7 +752,7 @@ func ceoIssueManagementBlock() string {
 func specialistSuggestionBlock() string {
 	return "== YOUR OWN ISSUES, AND OTHER PEOPLE'S (specialists) ==\n" +
 		"YOUR OWN WORK: when the human asks YOU for something, you file it and you do it. Call team_task action=create with owner set to YOURSELF. Do not ask @ceo first and do not wait for anyone — the human asking you IS the go-ahead, and routing it through the Chief of Staff would cost several turns to re-authorize something you already have.\n" +
-		"SOMEBODY ELSE'S WORK: you cannot reassign, approve, reject, or reopen another agent's Issue, and you cannot create an Issue owned by a different agent. The broker returns 403. That is not a queue — it is that a decision about another agent's work is not yours to take alone.\n" +
+		"SOMEBODY ELSE'S WORK: you cannot reassign, approve, reject, or reopen another bot's Issue, and you cannot create an Issue owned by a different bot. The broker returns 403. That is not a queue — it is that a decision about another bot's work is not yours to take alone.\n" +
 		"BEFORE YOU CREATE: check whether an open Issue already covers this. If one does, comment on it instead of filing a second. The broker collapses a repeat of the SAME title onto the open Issue, but it will not catch a reworded duplicate — that part is on you to look.\n" +
 		"WORK YOU THOUGHT OF YOURSELF: if the human did not ask for it — you noticed something worth doing while working on something else — ask the HUMAN before you file it, in the DM you are already in. One message: what you noticed, and whether they want it done. Self-directed work is where scope creep and spend come from, and the human is right there. Do not silently expand what you were asked for; do not go to the Chief of Staff for this either.\n" +
 		"CHANGES TO AN ISSUE THAT IS NOT YOURS:\n" +
@@ -761,7 +761,7 @@ func specialistSuggestionBlock() string {
 		"3. Then keep working on what you DO own. Do not block on your suggestion.\n\n"
 }
 
-// ownershipContractBlock is the shared rule for any agent that owns an
+// ownershipContractBlock is the shared rule for any bot that owns an
 // active Issue. The owner reports back to the office through a small,
 // fixed set of channels — comments for status, human_interview for human
 // input, submit_for_review for "ready for review", complete for "done,
@@ -789,10 +789,10 @@ func ownershipContractBlock() string {
 // family #2; ICP-eval v2 [00:47]/[00:50]: the CEO invented Jordan Park,
 // Sarah Chen, and Marcus Webb for a customer QBR with zero disclaimer).
 // Every deliverable fact must trace to a source the packet put in front of
-// the agent; missing facts get asked or marked, never invented. Kept under
+// the bot; missing facts get asked or marked, never invented. Kept under
 // ~120 words by design — it is paid on every turn.
 func groundingBlock() string {
-	return "== GROUNDING (every agent — hard rule) ==\n" +
+	return "== GROUNDING (every bot — hard rule) ==\n" +
 		"Every named person, company, and number in your deliverables MUST come from the packet's RETRIEVED CONTEXT, the task definition/details, the chat thread, or a wiki/file/tool result you actually read this turn. Numbers and quoted facts reproduce VERBATIM from the source — never paraphrase a figure (\"usage up 40%\" must not become \"at 40% usage\"). If a fact you need is absent, ask via human_interview or write \"[NEEDS CONFIRMATION: <what>]\" in its place. Inventing a named entity, contact, date, or figure — even as a \"credible placeholder\" — is a firing offense. When the packet says the wiki search had no hits, say so plainly; never declare \"no data exists\" without citing that searched-and-missed line, and never paper over the gap with fabricated detail. When writing to the human, never name internal tool ids, MCP calls, lifecycle enums, or broker internals — describe what happened in plain words.\n\n"
 }
 
@@ -801,22 +801,22 @@ func groundingBlock() string {
 // destroying the session's deliverable while the task still claimed
 // delivered). Kept under 80 words by design — it is paid on every turn.
 func destructiveVCSGuardBlock() string {
-	return "== DESTRUCTIVE GIT GUARD (every agent — hard rule) ==\n" +
+	return "== DESTRUCTIVE GIT GUARD (every bot — hard rule) ==\n" +
 		"Git commands that rewrite history or discard work — checkout, reset, restore, clean, rebase, push --force — on paths holding deliverable work: FIRST post exactly what would be lost, then ask via human_interview. Uncommitted work is never yours to destroy. On a human Stop: PAUSE and report state; do NOT revert, restore, or delete anything unless the human explicitly instructs you to.\n\n"
 }
 
-// renderAvailableAgentsBlock emits the AVAILABLE AGENTS section so any
-// agent (especially CEO) can pick a specialist owner when scoping a new
-// Issue, and know who to @-mention in a comment. The current agent is
+// renderAvailableBotsBlock emits the AVAILABLE BOTS section so any
+// bot (especially CEO) can pick a specialist owner when scoping a new
+// Issue, and know who to @-mention in a comment. The current bot is
 // listed too (marked "(you)") so the documented self-assignment path —
 // allowed by ruleZeroBlock and issueJudgmentBlock when the work sits in
-// the agent's own domain — is actually a slug the prompt says is valid.
+// the bot's own domain — is actually a slug the prompt says is valid.
 // Empty office (just self) renders an explicit "(no specialists yet)"
 // line so the LLM doesn't invent slugs.
-func renderAvailableAgentsBlock(members []officeMember, selfSlug string) string {
+func renderAvailableBotsBlock(members []officeMember, selfSlug string) string {
 	var sb strings.Builder
 	sb.WriteString("== AVAILABLE AGENTS ==\n")
-	sb.WriteString("These are the ONLY agent slugs valid for the `owner` field on team_task action=create and for @-mentions in chat. Pick an existing agent whose expertise fits the Issue — assigning yourself is fine when the work sits in your own domain. Only spin up a new agent (via team_member action=create) when NO existing agent fits.\n")
+	sb.WriteString("These are the ONLY bot slugs valid for the `owner` field on team_task action=create and for @-mentions in chat. Pick an existing bot whose expertise fits the Issue — assigning yourself is fine when the work sits in your own domain. Only spin up a new bot (via team_member action=create) when NO existing bot fits.\n")
 	others := 0
 	for _, m := range members {
 		expertise := strings.Join(m.Expertise, ", ")
@@ -843,18 +843,18 @@ func renderAvailableAgentsBlock(members []officeMember, selfSlug string) string 
 }
 
 // approvalLifecycleBlock is the shared rule that fixes the "I approve, Chief of Staff
-// re-asks, nothing visible happens" gap. It applies to every agent so
+// re-asks, nothing visible happens" gap. It applies to every bot so
 // approvals never become orphan gates. Surfaced alongside ISSUE_JUDGMENT
-// because the same agents who create Issues are the ones who request
+// because the same bots who create Issues are the ones who request
 // approvals under them.
 //
 // Why this exists: prior runs left request-4 answered=approve, then the
-// agent created request-6 + request-7 asking essentially the same
+// bot created request-6 + request-7 asking essentially the same
 // question with garbage opaque actionIDs (dedupe bypassed). The human
-// had no way to see whether their first approval did anything; the agent
+// had no way to see whether their first approval did anything; the bot
 // had no rule preventing the re-ask loop.
 func approvalLifecycleBlock() string {
-	return "== APPROVAL LIFECYCLE (every agent) ==\n" +
+	return "== APPROVAL LIFECYCLE (every bot) ==\n" +
 		"Every approval is a contract. The human grants you access; you owe a concrete report of what happened with that access. If the human approves and sees no outcome — or worse, sees the same approval card pop up again — that's a breach of trust the team never recovers from. Apply these rules every turn an approval might be in flight:\n" +
 		"1. One approval per intent. Before requesting any approval, scan the open AND recently-answered requests in the packet for one that already covers this intent. If a matching approval exists (open OR approved within the last few minutes), do NOT create a new one — the broker will auto-collapse retries via dedupe_key. The instant you re-call the same action, it proceeds without re-prompting.\n" +
 		"2. Approved means execute now AND report immediately. The instant you see an approval was answered=approve (in the packet, in the answered_requests list, or returned from the tool), your next tool call MUST be the action that approval gated. The VERY NEXT tool call after the action returns MUST be human_message — no other tool, no chain of thought, no second action. Skipping the human_message because \"the data is in the chat outcome\" is a failure: the chat outcome shows raw shape (`4 result(s) • subject — sender`) but the human needs YOUR interpretation. Specifically:\n" +
@@ -881,7 +881,7 @@ func approvalLifecycleBlock() string {
 //
 // Keep this block dense — every token is paid on every turn.
 func issueScopingFrameworkBlock() string {
-	return "== ISSUE SCOPING FRAMEWORK (every agent) ==\n" +
+	return "== ISSUE SCOPING FRAMEWORK (every bot) ==\n" +
 		"When a work-shaped request arrives, DEFINE the task before anyone executes. The definition is the contract the owner works against — structured fields on the task, not a spec document.\n" +
 		"1. INFER FIRST. From the request and the context you can retrieve (thread, wiki, learnings), draft: GOAL (what is different in the world when this is done, and why now), DELIVERABLES (each with its exact format — \"a brief\" is not a deliverable; \"a one-page markdown brief in the wiki\" is), SUCCESS CRITERIA (observable; prefer machine-checkable), the narrowest first slice that produces one of those deliverables, and ACCESS NEEDED (accounts, credentials, files, connected systems).\n" +
 		"2. INTERVIEW ONLY FOR GENUINE GAPS. If any field above would be a guess you cannot responsibly make, call human_interview ONCE with the gaps batched into one question set — never one interview per field, never re-ask what the request or retrievable context already answers. Before interviewing, re-read the thread and the existing definition — asking for a fact the human already gave is a failure. Include any tool/context access you need so the human can grant it up front. If nothing is a genuine gap, skip the interview entirely.\n" +
@@ -893,16 +893,16 @@ func issueScopingFrameworkBlock() string {
 
 // issueJudgmentBlock is the shared "when do you create / comment on / modify
 // an Issue" policy. It is emitted to BOTH the CEO leader prompt and the
-// specialist prompt so any agent can run the same interview-first-then-scope
+// specialist prompt so any bot can run the same interview-first-then-scope
 // flow when a human posts an unscoped work request. The rule exists because
 // the prior prompts only had two modes — free-form chat OR immediate task
 // decomposition — with no middle gear that scoped the work first; that
 // produced wrong-sized Issues or none at all.
 func issueJudgmentBlock() string {
-	return "== ISSUE JUDGMENT (every agent) ==\n" +
-		"Issues (team_task records) are this office's durable unit of work. Every agent — not just the Chief of Staff — owns the judgment of when to scope a new Issue, comment on an open one, or modify scope. Apply these rules whenever a human posts in a channel you are in, regardless of role:\n" +
+	return "== ISSUE JUDGMENT (every bot) ==\n" +
+		"Issues (team_task records) are this office's durable unit of work. Every bot — not just the Chief of Staff — owns the judgment of when to scope a new Issue, comment on an open one, or modify scope. Apply these rules whenever a human posts in a channel you are in, regardless of role:\n" +
 		"1. Recognize unscoped work. If the human's message is a real work request but the outcome, scope, or owner is not clear yet, do NOT decompose into tasks yet. Call human_interview ONCE, batching the genuine gaps into one question set: (a) the concrete outcome they want, (b) what \"done\" looks like / success criteria, (c) any access or owner/channel preference. Ask only what the request and retrievable context do not already answer.\n" +
-		"2. Create the Issue BEFORE any other action — when you know the scope. Once scope is clear, your next tool call SHOULD be team_task action=create (or team_plan for a multi-lane graph). Title should restate the outcome the human actually asked for. Set task_type and execution_mode deliberately. Set `owner` to a slug from the AVAILABLE AGENTS block above — prefer an existing specialist whose expertise matches; only call team_member action=create FIRST if no existing agent fits. The Issue is the durable scoping artifact the human sees in their inbox; everything you do attaches to it. (Safety net: if you skip this and call team_action_execute anyway, the broker auto-resolves to the newest open Issue in this channel or auto-creates a draft Issue from the action context. Auto-resolve is a recovery path, not the preferred path — agent-authored Issues have better titles, scope, and acceptance criteria than broker-derived ones.)\n" +
+		"2. Create the Issue BEFORE any other action — when you know the scope. Once scope is clear, your next tool call SHOULD be team_task action=create (or team_plan for a multi-lane graph). Title should restate the outcome the human actually asked for. Set task_type and execution_mode deliberately. Set `owner` to a slug from the AVAILABLE AGENTS block above — prefer an existing specialist whose expertise matches; only call team_member action=create FIRST if no existing bot fits. The Issue is the durable scoping artifact the human sees in their inbox; everything you do attaches to it. (Safety net: if you skip this and call team_action_execute anyway, the broker auto-resolves to the newest open Issue in this channel or auto-creates a draft Issue from the action context. Auto-resolve is a recovery path, not the preferred path — bot-authored Issues have better titles, scope, and acceptance criteria than broker-derived ones.)\n" +
 		"3. Pass issue_id on every team_action_execute call. When you call team_action_execute, pass the parent Issue's id as `issue_id`. The broker links the resulting approval and outcome back to that Issue automatically, so the operator can see what each approval did. Omitting issue_id triggers the auto-resolve safety net — you lose precision over which Issue gets the audit trail.\n" +
 		"4. Dedupe before creating. Before any team_task action=create or team_plan call, scan the Active tasks in the packet for an open Issue that already matches the human's request. If one matches, prefer team_task action=comment on that Issue (or action=request_changes / action=block / re-open when scope genuinely changes) instead of creating a duplicate Issue. Naming the same work twice is a failure.\n" +
 		"5. Comment on the Issue, not the channel, when the work is owned. When the human asks a question, adds context, or pushes back on an Issue that already exists, post the answer via team_task action=comment on that Issue rather than a free-form team_broadcast. The Issue thread is the single audit trail; channel chatter about an owned Issue scatters that trail.\n" +

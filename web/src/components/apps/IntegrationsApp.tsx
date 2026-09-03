@@ -228,8 +228,8 @@ function ConnectionStatus({
         </span>
         <span className="op-conn-sub">
           {connected
-            ? "Your agents can connect and act in the tools below."
-            : "Connect to add tools your agents can act in."}
+            ? "Your bots can connect and act in the tools below."
+            : "Connect to add tools your bots can act in."}
         </span>
       </span>
     </div>
@@ -267,7 +267,7 @@ function CatalogPanel({
         <div className="op-panel-heading">
           <h3 className="op-panel-title">Available integrations</h3>
           <p className="op-panel-sub">
-            Connect the tools your agents can act in.
+            Connect the tools your bots can act in.
           </p>
         </div>
         <span className="op-panel-count">{items.length}</span>

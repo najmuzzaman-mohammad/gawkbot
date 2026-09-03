@@ -57,7 +57,7 @@ type FormAnswers struct {
 	OwnerRole    string   `json:"owner_role,omitempty"`
 	OwnerEmail   string   `json:"owner_email,omitempty"`  // captured in onboarding; PII, stored locally
 	BlueprintID  string   `json:"blueprint_id,omitempty"` // empty = scratch path
-	PickedAgents []string `json:"picked_agents,omitempty"`
+	PickedBots   []string `json:"picked_agents,omitempty"`
 	ScanComplete bool     `json:"scan_complete,omitempty"`
 	TaskPrompt   string   `json:"task_prompt,omitempty"`
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -132,7 +132,7 @@ func TestBrokerTaskPlanParkAndAuto(t *testing.T) {
 //
 //	POST /task-plan (assignee=auto)
 //	  → requestAutoAssignmentLocked posts a human-authored @ceo message
-//	  → the broker publishes it on the message stream notifyAgentsLoop reads
+//	  → the broker publishes it on the message stream notifyBotsLoop reads
 //	  → deliverMessageNotification dispatches a headless turn to the CEO.
 //
 // Without the dispatch the staffing copy on the task page ("CEO is picking
@@ -153,11 +153,11 @@ func TestOwnerlessTaskCreate_TriageMessageWakesCEO(t *testing.T) {
 
 	l := newHeadlessLauncherForTest(t)
 	l.broker = b
-	l.provider = "codex" // headless dispatch for every agent
+	l.provider = "codex" // headless dispatch for every bot
 	l.notifyLastDelivered = make(map[notifyDedupKey]time.Time)
-	l.pack = &agent.PackDefinition{
+	l.pack = &bot.PackDefinition{
 		LeadSlug: "ceo",
-		Agents: []agent.AgentConfig{
+		Bots: []bot.BotConfig{
 			{Slug: "ceo", Name: "CEO"},
 			{Slug: "builder", Name: "Builder"},
 		},
@@ -170,7 +170,7 @@ func TestOwnerlessTaskCreate_TriageMessageWakesCEO(t *testing.T) {
 	})
 
 	// Subscribe BEFORE the create so the published triage message is observed
-	// exactly the way notifyAgentsLoop observes it.
+	// exactly the way notifyBotsLoop observes it.
 	msgs, unsubscribe := b.SubscribeMessages(32)
 	defer unsubscribe()
 
@@ -195,7 +195,7 @@ func TestOwnerlessTaskCreate_TriageMessageWakesCEO(t *testing.T) {
 	}
 
 	// The triage message must arrive on the published stream and must NOT be
-	// authored by "system" — notifyAgentsLoop drops From=system posts, so a
+	// authored by "system" — notifyBotsLoop drops From=system posts, so a
 	// system author would silently never wake the CEO.
 	var triage channelMessage
 	deadline := time.After(2 * time.Second)
@@ -212,10 +212,10 @@ waitTriage:
 		}
 	}
 	if triage.From == "system" {
-		t.Fatalf("triage message authored by %q — notifyAgentsLoop drops system posts, the CEO would never wake", triage.From)
+		t.Fatalf("triage message authored by %q — notifyBotsLoop drops system posts, the CEO would never wake", triage.From)
 	}
 
-	// Run the exact delivery step notifyAgentsLoop performs for this message.
+	// Run the exact delivery step notifyBotsLoop performs for this message.
 	l.deliverMessageNotification(triage)
 
 	dispatchDeadline := time.After(2 * time.Second)

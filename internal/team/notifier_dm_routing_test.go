@@ -3,22 +3,22 @@ package team
 import (
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // The DM branch of notificationTargetsForMessage used to resolve its single
-// recipient with DMTargetAgent, which is human-relative. In an agent-to-agent
+// recipient with DMTargetBot, which is human-relative. In a bot-to-bot
 // DM there is no human side, so it named nobody and the message reached
-// nobody — the thing that blocked the consult relay (tagging an agent in your
-// DM sends your agent to talk to theirs). It now resolves relative to the
+// nobody — the thing that blocked the consult relay (tagging a bot in your
+// DM sends your bot to talk to theirs). It now resolves relative to the
 // SENDER.
 
 func dmRoutingTestLauncher(t *testing.T) *Launcher {
 	t.Helper()
 	return &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "designer", Name: "Designer"},
 				{Slug: "eng", Name: "Engineer"},
@@ -105,7 +105,7 @@ func TestDMRouting_AgentReplyToHumanNotifiesNobody(t *testing.T) {
 	l := dmRoutingTestLauncher(t)
 
 	// The other side is the human, who is not woken by the notifier. This also
-	// covers the old "don't echo an agent's own message back" guard.
+	// covers the old "don't echo a bot's own message back" guard.
 	immediate, delayed := l.notificationTargetsForMessage(channelMessage{
 		ID:      "dm-msg-5",
 		From:    "eng",
@@ -113,7 +113,7 @@ func TestDMRouting_AgentReplyToHumanNotifiesNobody(t *testing.T) {
 		Content: "done",
 	})
 	if len(immediate) != 0 || len(delayed) != 0 {
-		t.Errorf("an agent replying to the human must wake nobody; got %v / %v", immediate, delayed)
+		t.Errorf("a bot replying to the human must wake nobody; got %v / %v", immediate, delayed)
 	}
 }
 
@@ -140,7 +140,7 @@ func TestDMRouting_SystemPostStillWakesTheAgentInAHumanDM(t *testing.T) {
 
 	// A broker/system post is not a DM participant, so the sender-relative
 	// lookup cannot name a recipient. The human-relative fallback keeps these
-	// waking the agent, as they always have.
+	// waking the bot, as they always have.
 	immediate, _ := l.notificationTargetsForMessage(channelMessage{
 		ID:      "dm-msg-7",
 		From:    "system",
@@ -157,7 +157,7 @@ func TestDMRouting_SystemPostInAnAgentDMWakesNobody(t *testing.T) {
 
 	// Deliberate: with no viewer to resolve against there is no non-arbitrary
 	// side to pick, so nobody is woken rather than a coin flip between two
-	// real agents.
+	// real bots.
 	immediate, delayed := l.notificationTargetsForMessage(channelMessage{
 		ID:      "dm-msg-8",
 		From:    "system",
@@ -165,6 +165,6 @@ func TestDMRouting_SystemPostInAnAgentDMWakesNobody(t *testing.T) {
 		Content: "task DUNDE-4 moved to review",
 	})
 	if len(immediate) != 0 || len(delayed) != 0 {
-		t.Errorf("system post in an agent-to-agent DM must wake nobody; got %v / %v", immediate, delayed)
+		t.Errorf("system post in a bot-to-bot DM must wake nobody; got %v / %v", immediate, delayed)
 	}
 }

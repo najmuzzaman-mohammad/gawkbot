@@ -100,14 +100,14 @@ function actionsForState(state: LifecycleState): ActionDef[] {
         },
       ];
     case "blocked":
-      // Blocked tasks are agent-internal blockers. The human only
+      // Blocked tasks are bot-internal blockers. The human only
       // sees this surface on the Issue detail page (the Inbox
       // intentionally hides blocked items per the product model:
       // human input goes through human_interview requests instead).
       // We still offer a manual unblock for the rare case where the
       // human knows they fixed the underlying issue out-of-band
       // (paid a bill, reconnected an account) — no reason required
-      // since they probably can't articulate the agent's blocker.
+      // since they probably can't articulate the bot's blocker.
       return [
         {
           action: "resume",

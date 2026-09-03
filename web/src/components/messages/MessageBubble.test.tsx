@@ -116,13 +116,13 @@ describe("<MessageBubble> rich artifact references", () => {
   });
 });
 
-// The founder's rule: "there is never a system agent talking anywhere."
+// The founder's rule: "there is never a system bot talking anywhere."
 //
 // The broker posts a few messages as "system" — a delivery landing, an
 // onboarding welcome, a runtime error. The bubble only asked "is this the
-// human?", so every one of them took the AGENT branch and rendered as a
+// human?", so every one of them took the BOT branch and rendered as a
 // colleague: a generated pixel face, an author line reading literally
-// "system", and a button that opened an agent profile panel for an agent that
+// "system", and a button that opened a bot profile panel for a bot that
 // does not exist. The office looked like it contained a teammate nobody hired.
 //
 // The senders are being removed at the source. This is the safety net, and it
@@ -137,17 +137,17 @@ describe("<MessageBubble> synthetic senders", () => {
     timestamp: "2026-08-23T00:00:00Z",
   };
 
-  it("never renders an unknown sender as a clickable agent", () => {
+  it("never renders an unknown sender as a clickable bot", () => {
     renderWithQueryClient(<MessageBubble message={systemMessage} />);
 
     expect(
-      screen.queryByRole("button", { name: /Open agent panel for/i }),
+      screen.queryByRole("button", { name: /Open bot panel for/i }),
     ).toBeNull();
     // The raw slug must not become a display name.
     expect(screen.queryByText("system")).toBeNull();
   });
 
-  it("marks the author kind as system, not agent", () => {
+  it("marks the author kind as system, not bot", () => {
     const { container } = renderWithQueryClient(
       <MessageBubble message={systemMessage} />,
     );
@@ -155,14 +155,14 @@ describe("<MessageBubble> synthetic senders", () => {
     expect(bubble?.getAttribute("data-author-kind")).toBe("system");
   });
 
-  it("still renders a real roster agent as a clickable agent", () => {
+  it("still renders a real roster bot as a clickable bot", () => {
     renderWithQueryClient(
       <MessageBubble
         message={{ ...systemMessage, id: "msg-pm", from: "pm" }}
       />,
     );
     expect(
-      screen.getAllByRole("button", { name: /Open agent panel for Mara/i })
+      screen.getAllByRole("button", { name: /Open bot panel for Mara/i })
         .length,
     ).toBeGreaterThan(0);
   });

@@ -37,7 +37,7 @@ func TestPopupActionIndexParses(t *testing.T) {
 	}
 }
 
-func TestCountUniqueAgentsExcludesYouNexAndAutomation(t *testing.T) {
+func TestCountUniqueBotsExcludesYouNexAndAutomation(t *testing.T) {
 	messages := []channelui.BrokerMessage{
 		{From: "fe"},
 		{From: "be"},
@@ -46,13 +46,13 @@ func TestCountUniqueAgentsExcludesYouNexAndAutomation(t *testing.T) {
 		{From: "nex"},
 		{From: "fe", Kind: "automation"},
 	}
-	if got := channelui.CountUniqueAgents(messages); got != 2 {
-		t.Fatalf("expected 2 unique agents (fe, be), got %d", got)
+	if got := channelui.CountUniqueBots(messages); got != 2 {
+		t.Fatalf("expected 2 unique bots (fe, be), got %d", got)
 	}
 }
 
-func TestCountUniqueAgentsEmpty(t *testing.T) {
-	if got := channelui.CountUniqueAgents(nil); got != 0 {
+func TestCountUniqueBotsEmpty(t *testing.T) {
+	if got := channelui.CountUniqueBots(nil); got != 0 {
 		t.Fatalf("expected 0 for empty input, got %d", got)
 	}
 }
@@ -146,9 +146,9 @@ func TestSelectedInterviewOptionEdgeCases(t *testing.T) {
 	}
 }
 
-func TestRenderUsageStripBuildsAgentColumn(t *testing.T) {
+func TestRenderUsageStripBuildsBotColumn(t *testing.T) {
 	usage := channelui.UsageState{
-		Agents: map[string]channelui.UsageTotals{
+		Bots: map[string]channelui.UsageTotals{
 			"fe":  {InputTokens: 100, OutputTokens: 50, TotalTokens: 150, CostUsd: 0.5},
 			"ceo": {InputTokens: 5, OutputTokens: 1, TotalTokens: 6},
 		},
@@ -170,7 +170,7 @@ func TestRenderUsageStripEmptyReturnsEmpty(t *testing.T) {
 	if got := channelui.RenderUsageStrip(channelui.UsageState{}, nil, 120); got != "" {
 		t.Fatalf("empty usage should yield empty strip, got %q", got)
 	}
-	usage := channelui.UsageState{Agents: map[string]channelui.UsageTotals{"fe": {TotalTokens: 1}}}
+	usage := channelui.UsageState{Bots: map[string]channelui.UsageTotals{"fe": {TotalTokens: 1}}}
 	if got := channelui.RenderUsageStrip(usage, nil, 30); got != "" {
 		t.Fatalf("narrow width should yield empty strip, got %q", got)
 	}
@@ -183,7 +183,7 @@ func TestRenderUsageStripEmptyReturnsEmpty(t *testing.T) {
 // asserts they appear in the order matching alphabetical slug sort.
 func TestRenderUsageStripSortsUnrosteredSlugsAlphabetically(t *testing.T) {
 	usage := channelui.UsageState{
-		Agents: map[string]channelui.UsageTotals{
+		Bots: map[string]channelui.UsageTotals{
 			"zeta":    {TotalTokens: 30, CostUsd: 0.30},
 			"alpha":   {TotalTokens: 10, CostUsd: 0.10},
 			"mango":   {TotalTokens: 20, CostUsd: 0.20},
@@ -214,7 +214,7 @@ func TestVisiblePendingRequestNilWhenNoPending(t *testing.T) {
 func TestComposerTargetLabelInDirect(t *testing.T) {
 	m := channelModel{}
 	m.sessionMode = "1o1"
-	m.oneOnOneAgent = "fe"
+	m.oneOnOneBot = "fe"
 	got := m.composerTargetLabel()
 	if got == "" {
 		t.Fatalf("expected non-empty composer target label in 1:1")
@@ -253,7 +253,7 @@ func TestCurrentAppLabelByApp(t *testing.T) {
 func TestCurrentAppLabelOneOnOneOverridesMostApps(t *testing.T) {
 	m := channelModel{}
 	m.sessionMode = "1o1"
-	m.oneOnOneAgent = "fe"
+	m.oneOnOneBot = "fe"
 	m.activeApp = channelui.OfficeAppTasks
 	if got := m.currentAppLabel(); got != "messages" {
 		t.Errorf("1:1 mode should report 'messages' for non-mailbox apps, got %q", got)

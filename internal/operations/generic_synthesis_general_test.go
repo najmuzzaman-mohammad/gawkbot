@@ -80,12 +80,12 @@ func TestGenericDefaultChannelsRespectsGeneralKillSwitch(t *testing.T) {
 	// "always showed up as default in a workspace". They are removed, not
 	// renamed: a slug-level assertion so a future rename cannot smuggle the
 	// concept back in under new labels.
-	t.Run("no retired specialist agents are synthesized", func(t *testing.T) {
+	t.Run("no retired specialist bots are synthesized", func(t *testing.T) {
 		plan := genericStarterPlan("gtm", "Acme", "Grow pipeline", SynthesisInput{}, nil, nil)
-		for _, agent := range plan.Agents {
-			switch agent.Slug {
+		for _, bot := range plan.Bots {
+			switch bot.Slug {
 			case "planner", "executor", "reviewer":
-				t.Errorf("synthesis resurrected the retired built-in %q", agent.Slug)
+				t.Errorf("synthesis resurrected the retired built-in %q", bot.Slug)
 			}
 		}
 		for _, task := range plan.Tasks {

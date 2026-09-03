@@ -170,15 +170,15 @@ const TaskComposer = lazy(() =>
     default: m.TaskComposer,
   })),
 );
-// Agents tool — roster grid (/agents) + per-agent config (/agents/$slug).
-const AgentsTool = lazy(() =>
-  import("../components/agents/AgentsTool").then((m) => ({
-    default: m.AgentsTool,
+// Bots tool — roster grid (/bots) + per-bot config (/bots/$slug).
+const BotsTool = lazy(() =>
+  import("../components/bots/BotsTool").then((m) => ({
+    default: m.BotsTool,
   })),
 );
-const AgentDetail = lazy(() =>
-  import("../components/agents/AgentsTool").then((m) => ({
-    default: m.AgentDetail,
+const BotDetail = lazy(() =>
+  import("../components/bots/BotsTool").then((m) => ({
+    default: m.BotDetail,
   })),
 );
 // Full-screen skill SKILL.md editor + preview.
@@ -451,7 +451,7 @@ function TasksRedirect() {
 
 /**
  * FirstClassAppRedirect navigates the user from a `/apps/$id` URL whose
- * `$id` is a first-class app (wiki, inbox, tasks, agents) to that app's
+ * `$id` is a first-class app (wiki, inbox, tasks, bots) to that app's
  * canonical dedicated route. Users who type a sidebar-label-style URL by
  * hand (e.g. `/#/apps/wiki`) used to hit "Page not found" because
  * first-class apps live at their own paths, not under `/apps`. Mirrors
@@ -578,7 +578,7 @@ function MainContent() {
         return <FirstClassAppRedirect appId={route.appId} />;
       }
       if (!isAppPanelId(route.appId)) {
-        // Agent-generated Apps live at /apps/app_<hash>. Anything else under
+        // Bot-generated Apps live at /apps/app_<hash>. Anything else under
         // /apps that is neither a built-in panel nor a custom app id is unknown.
         if (route.appId.startsWith("app_")) {
           // The app surface is the operator-era detail view, folded into the
@@ -625,9 +625,9 @@ function MainContent() {
     case "task-decision":
       return <DecisionPacketRoute taskId={route.taskId} />;
     case "agents":
-      return <AgentsTool />;
+      return <BotsTool />;
     case "agent-detail":
-      return <AgentDetail agentSlug={route.agentSlug} tab={route.tab} />;
+      return <BotDetail agentSlug={route.agentSlug} tab={route.tab} />;
     case "skill-detail":
       return <SkillDetailRoute skillName={route.skillName} />;
     case "routine-detail":
@@ -904,9 +904,9 @@ export default function RootRoute() {
         ceoChannel,
         "Audit our CRM for duplicate accounts, deals missing an owner, and opportunities with no activity in 30 days, then propose a cleanup plan",
       );
-    // The legacy `/dm/$agentSlug` route was removed in the task-scoped
+    // The legacy `/dm/$botSlug` route was removed in the task-scoped
     // restructure (DMs fold into task channels). It was only sugar over
-    // `/channels/<directChannelSlug(agentSlug)>`, so navigate to the same
+    // `/channels/<directChannelSlug(botSlug)>`, so navigate to the same
     // destination directly — the channel the draft was just seeded into.
     void router.navigate({
       to: "/channels/$channelSlug",
@@ -1027,7 +1027,7 @@ export default function RootRoute() {
       // Visual stepped wizard — full-screen, NOT inside the office Shell. The
       // user is not "on the team" yet. The wizard educates with a persistent
       // mock office and creates the team (pick a blueprint, brief the first
-      // agent, write the first issue), then POSTs /onboarding/complete to seed
+      // bot, write the first issue), then POSTs /onboarding/complete to seed
       // the office and flip onboarded=true. Its onComplete fires after the seed
       // succeeds, so we flip onboardingComplete here and the office Shell mounts
       // via the branch below with the first issue already seeded into the CEO

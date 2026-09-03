@@ -420,7 +420,7 @@ function DetailBlock({
 
 /**
  * Resolve a click-through link for the run's target. Workflow runs
- * deep-link into the workflow registry; agent runs into the agent
+ * deep-link into the workflow registry; bot runs into the bot
  * profile. Everything else falls back to a plain text rendering.
  */
 function targetLinkFor(run: SchedulerRun): string | null {

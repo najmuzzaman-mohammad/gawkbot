@@ -91,7 +91,7 @@ func SeedGettingStarted(wikiRoot string) ([]string, error) {
 		relPath := "team/getting-started/" + name
 		finalPath := filepath.Join(wikiRoot, "team", "getting-started", name)
 		// Skip-if-exists: never overwrite a page a prior seed (or a human, or
-		// an agent enriching the section) already wrote. Mirrors the
+		// a bot enriching the section) already wrote. Mirrors the
 		// skip-if-exists guard on team/about/{README,company,owner}.md.
 		if _, statErr := os.Stat(finalPath); statErr == nil {
 			continue
@@ -543,7 +543,7 @@ func buildCompanyMD(profile CompanyProfile) string {
 // resolves even before LLM extraction has populated a real CompanyProfile.
 // It is overwritten by buildCompanyMD as soon as a real profile is available.
 //
-// The TODO comment is intentional — it tells the next human or agent reader
+// The TODO comment is intentional — it tells the next human or bot reader
 // that this file is a stub waiting to be filled in. See issue #946.
 func buildCompanyPlaceholderMD(name string) string {
 	displayName := strings.TrimSpace(name)
@@ -552,8 +552,8 @@ func buildCompanyPlaceholderMD(name string) string {
 	}
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# %s\n\n", displayName))
-	sb.WriteString("<!-- TODO: replace this placeholder with a short description of what the company does, who it serves, and what the current focus is. The Chief of Staff-onboarding scan or any agent with `wiki.write` permission can rewrite this file. -->\n\n")
-	sb.WriteString("This article will hold a short description of what the company does, who it serves, and what the current focus is. It is a placeholder so the link from `README.md` resolves on day one; the scan or any agent can rewrite it with the real profile.\n")
+	sb.WriteString("<!-- TODO: replace this placeholder with a short description of what the company does, who it serves, and what the current focus is. The Chief of Staff-onboarding scan or any bot with `wiki.write` permission can rewrite this file. -->\n\n")
+	sb.WriteString("This article will hold a short description of what the company does, who it serves, and what the current focus is. It is a placeholder so the link from `README.md` resolves on day one; the scan or any bot can rewrite it with the real profile.\n")
 	return sb.String()
 }
 
@@ -571,8 +571,8 @@ func buildOwnerPlaceholderMD(name, role string) string {
 	if r := strings.TrimSpace(role); r != "" {
 		sb.WriteString(fmt.Sprintf("**Role:** %s\n\n", r))
 	}
-	sb.WriteString("<!-- TODO: replace this placeholder with a short profile of the person running this workspace — name, role, and how agents should escalate to them. -->\n\n")
-	sb.WriteString("This article will hold a short profile of the person running this workspace and how agents should escalate to them. It is a placeholder so the link from `README.md` resolves on day one.\n")
+	sb.WriteString("<!-- TODO: replace this placeholder with a short profile of the person running this workspace — name, role, and how bots should escalate to them. -->\n\n")
+	sb.WriteString("This article will hold a short profile of the person running this workspace and how bots should escalate to them. It is a placeholder so the link from `README.md` resolves on day one.\n")
 	return sb.String()
 }
 
@@ -612,7 +612,7 @@ func AboutReadmeContent() string { return aboutReadmeContent }
 // AboutScratchCompanyMD returns a placeholder team/about/company.md body for
 // the skip-website scratch path. It seeds whatever onboarding captured
 // (company name + short description) so the wiki has a usable starting
-// article; agents enriching this article later can replace the body in place.
+// article; bots enriching this article later can replace the body in place.
 func AboutScratchCompanyMD(companyName, description string) string {
 	name := strings.TrimSpace(companyName)
 	if name == "" {
@@ -623,7 +623,7 @@ func AboutScratchCompanyMD(companyName, description string) string {
 	if d := strings.TrimSpace(description); d != "" {
 		sb.WriteString(fmt.Sprintf("%s\n\n", d))
 	}
-	sb.WriteString("_No website was scanned during onboarding. Fill in details about the company here, or ask an agent to research and enrich this article._\n")
+	sb.WriteString("_No website was scanned during onboarding. Fill in details about the company here, or ask a bot to research and enrich this article._\n")
 	return sb.String()
 }
 

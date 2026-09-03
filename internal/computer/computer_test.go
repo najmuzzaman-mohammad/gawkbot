@@ -490,17 +490,17 @@ func TestGateInterceptorRefusesWhileHeldAndAddsHelpTool(t *testing.T) {
 		listIDs: map[string]bool{},
 	}
 	ctx := context.Background()
-	g.fromAgent(ctx, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`)
-	g.fromAgent(ctx, `{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"click","arguments":{}}}`)
+	g.fromBot(ctx, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`)
+	g.fromBot(ctx, `{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"click","arguments":{}}}`)
 	if len(forwarded) != 1 || len(emitted) != 1 || !strings.Contains(emitted[0], `"isError":true`) || !strings.Contains(emitted[0], `"id":2`) {
 		t.Fatalf("held: expected initialize forwarded and click refused, got fwd=%v emit=%v", forwarded, emitted)
 	}
 	held = false
-	g.fromAgent(ctx, `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"click","arguments":{}}}`)
+	g.fromBot(ctx, `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"click","arguments":{}}}`)
 	if len(forwarded) != 2 {
 		t.Fatalf("released: click must be forwarded")
 	}
-	g.fromAgent(ctx, `{"jsonrpc":"2.0","id":4,"method":"tools/list"}`)
+	g.fromBot(ctx, `{"jsonrpc":"2.0","id":4,"method":"tools/list"}`)
 	g.fromChild(`{"jsonrpc":"2.0","id":4,"result":{"tools":[{"name":"click"}]}}`)
 	last := emitted[len(emitted)-1]
 	if !strings.Contains(last, HelpToolName) || !strings.Contains(last, `"name":"click"`) {
@@ -510,7 +510,7 @@ func TestGateInterceptorRefusesWhileHeldAndAddsHelpTool(t *testing.T) {
 	if emitted[len(emitted)-1] != `{"jsonrpc":"2.0","id":9,"result":{"content":[]}}` {
 		t.Fatalf("unrelated responses must pass through byte-for-byte")
 	}
-	g.fromAgent(ctx, "not json at all")
+	g.fromBot(ctx, "not json at all")
 	if forwarded[len(forwarded)-1] != "not json at all" {
 		t.Fatalf("non-JSON lines must be forwarded untouched")
 	}

@@ -20,12 +20,12 @@ person would: look at the page, click, type, read the result, move on.
   running Chrome (Chrome DevTools Protocol) — their browser, their logins — and
   drive it by screenshotting and dispatching input. Not a cloud sandbox (that is
   not their browser) and not the heavyweight cua native driver yet.
-- **Loop: a computer-use agent loop now.** screenshot → model → action → execute
+- **Loop: a computer-use bot loop now.** screenshot → model → action → execute
   → repeat, until the step's goal is met or a bound is hit. Gets it working on
   any site immediately.
 - **Model: OpenAI `computer-use-preview`.** Same account/key as the realtime
   call; purpose-built to return browser actions from a screenshot.
-- **Evolution: record + deterministic replay + CUA-heal.** The agent loop is the
+- **Evolution: record + deterministic replay + CUA-heal.** The bot loop is the
   bootstrap. As steps run, we record the concrete UI actions and replay them
   deterministically next time; the computer-use model is only invoked to *heal*
   when the page has changed (the operator spec's "API-first → UI-replay →

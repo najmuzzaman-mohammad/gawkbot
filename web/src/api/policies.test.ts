@@ -12,13 +12,13 @@ vi.mock("./client", () => ({
 }));
 
 import {
-  assignPolicyAgent,
+  assignPolicyBot,
   createPolicy,
   deactivatePolicy,
   getPolicies,
   type Policy,
-  policyAppliesToAgent,
-  unassignPolicyAgent,
+  policyAppliesToBot,
+  unassignPolicyBot,
 } from "./policies";
 
 describe("policies client", () => {
@@ -55,7 +55,7 @@ describe("policies client", () => {
   });
 
   describe("createPolicy", () => {
-    it("POSTs to /policies with rule, source, and agents", async () => {
+    it("POSTs to /policies with rule, source, and bots", async () => {
       const policy: Policy = {
         id: "p2",
         source: "human_directed",
@@ -104,7 +104,7 @@ describe("policies client", () => {
   });
 
   describe("assignPolicyAgent", () => {
-    it("POSTs to /policies/:id/assign with the agent", async () => {
+    it("POSTs to /policies/:id/assign with the bot", async () => {
       const updated: Policy = {
         id: "p1",
         source: "human_directed",
@@ -115,7 +115,7 @@ describe("policies client", () => {
       };
       postMock.mockResolvedValue(updated);
 
-      const result = await assignPolicyAgent("p1", "ceo");
+      const result = await assignPolicyBot("p1", "ceo");
 
       expect(postMock).toHaveBeenCalledWith("/policies/p1/assign", {
         agent: "ceo",
@@ -125,7 +125,7 @@ describe("policies client", () => {
   });
 
   describe("unassignPolicyAgent", () => {
-    it("POSTs to /policies/:id/unassign with the agent", async () => {
+    it("POSTs to /policies/:id/unassign with the bot", async () => {
       const updated: Policy = {
         id: "p1",
         source: "human_directed",
@@ -136,7 +136,7 @@ describe("policies client", () => {
       };
       postMock.mockResolvedValue(updated);
 
-      const result = await unassignPolicyAgent("p1", "ceo");
+      const result = await unassignPolicyBot("p1", "ceo");
 
       expect(postMock).toHaveBeenCalledWith("/policies/p1/unassign", {
         agent: "ceo",
@@ -154,23 +154,23 @@ describe("policies client", () => {
       created_at: "2026-06-01T00:00:00Z",
     };
 
-    it("returns true for a global policy (no agents field)", () => {
-      expect(policyAppliesToAgent(base, "ceo")).toBe(true);
+    it("returns true for a global policy (no bots field)", () => {
+      expect(policyAppliesToBot(base, "ceo")).toBe(true);
     });
 
-    it("returns true for a global policy with empty agents array", () => {
-      expect(policyAppliesToAgent({ ...base, agents: [] }, "ceo")).toBe(true);
+    it("returns true for a global policy with empty bots array", () => {
+      expect(policyAppliesToBot({ ...base, agents: [] }, "ceo")).toBe(true);
     });
 
-    it("returns true when agent is in the agents list", () => {
+    it("returns true when bot is in the bots list", () => {
       expect(
-        policyAppliesToAgent({ ...base, agents: ["ceo", "librarian"] }, "ceo"),
+        policyAppliesToBot({ ...base, agents: ["ceo", "librarian"] }, "ceo"),
       ).toBe(true);
     });
 
-    it("returns false when agent is NOT in the agents list", () => {
+    it("returns false when bot is NOT in the bots list", () => {
       expect(
-        policyAppliesToAgent({ ...base, agents: ["librarian"] }, "ceo"),
+        policyAppliesToBot({ ...base, agents: ["librarian"] }, "ceo"),
       ).toBe(false);
     });
   });

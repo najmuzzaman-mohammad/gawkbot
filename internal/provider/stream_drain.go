@@ -11,7 +11,7 @@ import (
 // DefaultMaxLineBytes caps the in-memory size of a single line. The cap is
 // generous enough that legitimate provider output is delivered intact (8x
 // the largest prior Scanner cap of 4 MiB, well above realistic JSONL events
-// from any of the headless agents we run today) but bounded enough that a
+// from any of the headless bots we run today) but bounded enough that a
 // pathological or buggy upstream emitting an unbounded line cannot OOM the
 // parent process.
 const DefaultMaxLineBytes = 32 * 1024 * 1024

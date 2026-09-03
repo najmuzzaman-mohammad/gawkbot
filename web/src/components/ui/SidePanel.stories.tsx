@@ -37,7 +37,7 @@ export const Default: Story = {
             >
               <p style={{ marginBottom: 12 }}>
                 A side panel keeps the main view in context while the user
-                explores a secondary surface — skill detail, thread view, agent
+                explores a secondary surface — skill detail, thread view, bot
                 profile.
               </p>
               <p style={{ marginBottom: 12, color: "var(--text-secondary)" }}>

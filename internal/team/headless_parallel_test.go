@@ -27,7 +27,7 @@ func brokerWithTasks(t *testing.T, tasks ...teamTask) *Broker {
 // worktree path (isolated-worktree tasks) or task id (office/external). Two
 // turns therefore share a lane — and serialize — exactly when they write the
 // same directory or are the same office task. Chat / channel-triage turns (no
-// task) collapse to the agent's default lane. This is true for the LEAD too: a
+// task) collapse to the bot's default lane. This is true for the LEAD too: a
 // lead turn carrying a task id gets its own per-task lane (CEO multitasking),
 // while a lead turn with no task id stays on the default triage lane.
 func TestLaneForTurnKeysByWorktree(t *testing.T) {
@@ -73,9 +73,9 @@ func TestLaneForTurnKeysByWorktree(t *testing.T) {
 }
 
 // TestParallelInstancesRunDistinctWorktreesConcurrently proves the feature: one
-// agent owning two isolated-worktree tasks runs BOTH at once. The run-turn
+// bot owning two isolated-worktree tasks runs BOTH at once. The run-turn
 // stub signals when it starts and then parks on ctx; if the scheduler still
-// serialized the agent, only one instance would start within the window and the
+// serialized the bot, only one instance would start within the window and the
 // test would fail.
 func TestParallelInstancesRunDistinctWorktreesConcurrently(t *testing.T) {
 	b := brokerWithTasks(t,
@@ -118,15 +118,15 @@ func TestParallelInstancesRunDistinctWorktreesConcurrently(t *testing.T) {
 
 // TestHeadlessTurnPanicFreesActiveSlot pins the stall-recovery invariant: if a
 // turn's runner PANICS mid-execution, the lane's active slot must still be
-// released so other agents are not starved behind a zombie in-flight turn.
+// released so other bots are not starved behind a zombie in-flight turn.
 //
 // Before the fix, finishHeadlessTurn was the last statement inside the worker's
 // panic-recovered closure, so any panic in headlessCodexRunTurn (or the recovery
 // / ledger calls after it) was swallowed by recoverPanicTo and finishHeadlessTurn
 // never ran. The active slot leaked forever; under a concurrency cap every other
-// agent's lane parked and never drained — the CEO and specialists silently
+// bot's lane parked and never drained — the CEO and specialists silently
 // "stalled and never replied". This test reproduces that: eng's turn panics, and
-// a second agent (gtm) enqueued afterward under a global cap of 1 must still get
+// a second bot (gtm) enqueued afterward under a global cap of 1 must still get
 // to run because the panicking lane freed its slot.
 func TestHeadlessTurnPanicFreesActiveSlot(t *testing.T) {
 	b := brokerWithTasks(t,
@@ -159,7 +159,7 @@ func TestHeadlessTurnPanicFreesActiveSlot(t *testing.T) {
 	})
 
 	// Drive eng first and wait for its turn to start (and therefore panic),
-	// so the second agent is enqueued only after the slot should have freed.
+	// so the second bot is enqueued only after the slot should have freed.
 	l.enqueueHeadlessCodexTurnRecord("eng", headlessCodexTurn{Prompt: "work #task-eng", Channel: "team", TaskID: "task-eng"})
 	select {
 	case got := <-started:
@@ -190,9 +190,9 @@ func TestHeadlessTurnPanicFreesActiveSlot(t *testing.T) {
 
 // TestParallelInstancesRunNonDependentOfficeTasksConcurrently proves the rule
 // "non-dependent tasks run together" extends to office/external work, not just
-// worktree tasks: one agent with two non-dependent office tasks runs both at
+// worktree tasks: one bot with two non-dependent office tasks runs both at
 // once. They share cwd — the same concurrency the system already runs across
-// different agents — so each gets its own per-task lane.
+// different bots — so each gets its own per-task lane.
 func TestParallelInstancesRunNonDependentOfficeTasksConcurrently(t *testing.T) {
 	b := brokerWithTasks(t,
 		teamTask{ID: "task-a", Title: "a", Owner: "eng", status: "in_progress", ExecutionMode: "office"},
@@ -365,7 +365,7 @@ func TestLeadTriageTurnStillHeldByBusySpecialist(t *testing.T) {
 }
 
 // TestHeadlessConcurrencyCapParksAndDrains proves the cost guard: with the
-// per-agent cap set to 1, the lead's two task lanes cannot both run at once —
+// per-bot cap set to 1, the lead's two task lanes cannot both run at once —
 // one starts, the other PARKS (queued, no worker) — and the parked lane DRAINS
 // once the first turn finishes and frees a slot.
 func TestHeadlessConcurrencyCapParksAndDrains(t *testing.T) {
@@ -375,7 +375,7 @@ func TestHeadlessConcurrencyCapParksAndDrains(t *testing.T) {
 	)
 	l := newHeadlessLauncherForTest(t)
 	l.broker = b
-	l.headless.maxConcurrentPerAgent = 1 // CEO may run only one task at a time
+	l.headless.maxConcurrentPerBot = 1 // CEO may run only one task at a time
 
 	started := make(chan string, 8)
 	setHeadlessCodexRunTurnForTest(t, func(_ *Launcher, ctx context.Context, _, _ string, _ ...string) error {
@@ -423,8 +423,8 @@ func TestHeadlessConcurrencyCapParksAndDrains(t *testing.T) {
 }
 
 // TestHeadlessGlobalConcurrencyCapParksAndDrains is the GLOBAL-pool sibling of
-// the per-agent cap test: with maxConcurrent=1 (and the per-agent cap left
-// unset/0), two non-dependent office tasks owned by DIFFERENT agents cannot both
+// the per-bot cap test: with maxConcurrent=1 (and the per-bot cap left
+// unset/0), two non-dependent office tasks owned by DIFFERENT bots cannot both
 // run — only the GLOBAL cap binds — so one starts, the other PARKS, and the
 // parked lane DRAINS once the first turn finishes and frees the single slot.
 func TestHeadlessGlobalConcurrencyCapParksAndDrains(t *testing.T) {

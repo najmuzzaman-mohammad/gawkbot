@@ -1,12 +1,12 @@
 package team
 
-// broker_intake.go is the synthetic broker-internal intake agent driver
-// (Lane B of the multi-agent control loop). It does NOT spawn a
-// user-configurable officeMember; the agent is invoked via a direct LLM
+// broker_intake.go is the synthetic broker-internal intake bot driver
+// (Lane B of the multi-bot control loop). It does NOT spawn a
+// user-configurable officeMember; the bot is invoked via a direct LLM
 // round-trip with a hardcoded system prompt that demands a single ```json
 // fenced block matching the Spec schema in broker_intake_types.go.
 //
-// Provider preference (per design doc "Intake agent / Provider"):
+// Provider preference (per design doc "Intake bot / Provider"):
 //
 //  1. Anthropic haiku-class (claude-haiku-4-5-20251001) when
 //     ANTHROPIC_API_KEY is set.
@@ -24,13 +24,13 @@ package team
 //   provider's chat-completions API. The existing skill_synth_provider in
 //   this package already follows the same shape (system prompt + single
 //   user message + JSON-fenced response), so reusing the pattern keeps the
-//   intake agent on a path the broker already trusts. Option (b) — a
-//   direct field on a synthetic-agent spawn request — would either leak
+//   intake bot on a path the broker already trusts. Option (b) — a
+//   direct field on a synthetic-bot spawn request — would either leak
 //   intake-specific concerns into the headless-runner spawn API or require
 //   a parallel "spawn synthetic" surface that v1 does not need. The user
 //   turn is the canonical native shape every provider supports.
 //
-//   v1 does not share buildResumePacket between intake and owner agents;
+//   v1 does not share buildResumePacket between intake and owner bots;
 //   intake gets its own hardcoded system prompt (intakeSystemPrompt) and
 //   its own user-turn template (buildIntakeUserPrompt).
 
@@ -72,7 +72,7 @@ type IntakeOutcome struct {
 	// Always non-empty on success.
 	TaskID string
 
-	// Spec is the validated spec the intake agent emitted. Always populated
+	// Spec is the validated spec the intake bot emitted. Always populated
 	// on success.
 	Spec Spec
 
@@ -156,7 +156,7 @@ func (c *AutoAssignCountdown) Duration() time.Duration {
 }
 
 // intakeSystemPrompt is the hardcoded system prompt for the synthetic
-// intake agent. The shape is deliberately tight: tell the model to emit
+// intake bot. The shape is deliberately tight: tell the model to emit
 // ONE fenced JSON block matching the Spec schema, with required fields
 // called out explicitly so the validator's reject reasons line up with
 // the prompt's contract.
@@ -164,10 +164,10 @@ func (c *AutoAssignCountdown) Duration() time.Duration {
 // The schema example in the prompt mirrors the JSON tags in
 // broker_intake_types.go. Keep them in lockstep; a drift here means the
 // LLM emits a key the parser ignores and the validator rejects.
-const intakeSystemPrompt = `You are the WUPHF intake agent. Your job is to convert a single free-text
+const intakeSystemPrompt = `You are the WUPHF intake bot. Your job is to convert a single free-text
 intent from a developer into a tight, structured task spec.
 
-The spec is the contract for the work that follows. An owner agent will read
+The spec is the contract for the work that follows. An owner bot will read
 your output, execute against the AcceptanceCriteria you set, and pass the
 spec to reviewers and ultimately a human merge decision.
 
@@ -184,7 +184,7 @@ no commentary inside the block. The block must match this schema:
   ],
   "assignment": "one concrete next action (required, must be non-empty)",
   "constraints": ["upfront constraints, deps, scope limits"],
-  "autoAssign": "agent slug if the intent names a clear owner; empty string otherwise"
+  "autoAssign": "bot slug if the intent names a clear owner; empty string otherwise"
 }
 ` + "```" + `
 
@@ -194,7 +194,7 @@ Optional fields: targetOutcome, constraints, autoAssign.
 Hard rules:
   - Do NOT invent acceptance criteria the intent does not justify.
   - Do NOT add a feedback field; that is owned by the reviewer path.
-  - Do NOT pre-populate "done" on acceptance criteria; the owner agent flips them.
+  - Do NOT pre-populate "done" on acceptance criteria; the owner bot flips them.
   - Do NOT echo the intent verbatim into problem; rephrase it tightly.
   - Use autoAssign only when the intent contains an unambiguous handoff
     target (e.g. the user typed "send to security-review"); otherwise leave
@@ -202,7 +202,7 @@ Hard rules:
 
 Stay under 1500 characters total. Brevity is a feature.`
 
-// intakeDefaultTimeout is the hard ceiling on intake-agent latency. Per
+// intakeDefaultTimeout is the hard ceiling on intake-bot latency. Per
 // design doc: 30s, after which the CLI should surface the error and offer
 // the manual-entry escape hatch. Lane B surfaces the timeout via the
 // returned error; Lane F decides what to show.
@@ -553,21 +553,21 @@ func validateIntakeSpec(spec Spec) error {
 }
 
 // emitSpecCreatedEvent writes a manifest-style headless event onto the
-// "intake" agent's stream buffer when a spec validates and the task
+// "intake" bot's stream buffer when a spec validates and the task
 // transitions intake → ready. Reuses the existing manifest event taxonomy
 // (PR #729) so the frontend, notebook auto-writer, and decision packet
 // aggregator can subscribe to one event shape.
 //
-// The synthetic-intake agent slug is intentionally stable ("intake") so
-// downstream consumers can route by agent without inspecting the task. We
-// emit on the broker's per-agent stream rather than the task stream so the
+// The synthetic-intake bot slug is intentionally stable ("intake") so
+// downstream consumers can route by bot without inspecting the task. We
+// emit on the broker's per-bot stream rather than the task stream so the
 // event is discoverable even before the SSE consumer subscribes to the
 // task.
 func (b *Broker) emitSpecCreatedEvent(taskID string, spec Spec, providerHint intakeProviderHint) {
 	if b == nil {
 		return
 	}
-	stream := b.AgentStream(intakeAgentSlug)
+	stream := b.BotStream(intakeBotSlug)
 	if stream == nil {
 		return
 	}
@@ -587,7 +587,7 @@ func (b *Broker) emitSpecCreatedEvent(taskID string, spec Spec, providerHint int
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:     HeadlessEventTypeManifest,
 		Provider: provider,
-		Agent:    intakeAgentSlug,
+		Bot:      intakeBotSlug,
 		TurnID:   turnID,
 		TaskID:   taskID,
 		Status:   "idle",
@@ -600,10 +600,10 @@ func (b *Broker) emitSpecCreatedEvent(taskID string, spec Spec, providerHint int
 	})
 }
 
-// intakeAgentSlug is the stable speaker slug for the synthetic intake
-// agent. It does NOT correspond to a configurable officeMember; the slug
+// intakeBotSlug is the stable speaker slug for the synthetic intake
+// bot. It does NOT correspond to a configurable officeMember; the slug
 // only exists so headless events carry a routable identifier.
-const intakeAgentSlug = "intake"
+const intakeBotSlug = "intake"
 
 // StartIntake is the public entry point Lane F's CLI calls. It:
 //
@@ -706,9 +706,9 @@ func classifyIntakeProvider() intakeProviderHint {
 }
 
 // createIntakeTask seeds a placeholder task in the broker so the intake
-// agent has an ID to operate against. The task lands in the
+// bot has an ID to operate against. The task lands in the
 // LifecycleStateIntake state with status="open" (forward-map row), is
-// owned by the synthetic intake agent slug, and lives on the "general"
+// owned by the synthetic intake bot slug, and lives on the "general"
 // channel — matching the self-heal placement convention.
 func (b *Broker) createIntakeTask(intent string) string {
 	b.mu.Lock()
@@ -723,7 +723,7 @@ func (b *Broker) createIntakeTask(intent string) string {
 		Title:         title,
 		Details:       intent,
 		Owner:         "",
-		CreatedBy:     intakeAgentSlug,
+		CreatedBy:     intakeBotSlug,
 		TaskType:      "intake",
 		PipelineID:    "intake",
 		ExecutionMode: "office",
@@ -739,7 +739,7 @@ func (b *Broker) createIntakeTask(intent string) string {
 		log.Printf("intake: applyLifecycleStateLocked(intake) for new task: %v", err)
 	}
 	b.tasks = append(b.tasks, task)
-	b.appendActionLocked("intake_started", "office", task.Channel, intakeAgentSlug, truncateSummary(title, 140), task.ID)
+	b.appendActionLocked("intake_started", "office", task.Channel, intakeBotSlug, truncateSummary(title, 140), task.ID)
 	if err := b.saveLocked(); err != nil {
 		log.Printf("intake: saveLocked after createIntakeTask: %v", err)
 	}

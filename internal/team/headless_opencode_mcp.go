@@ -1,7 +1,7 @@
 package team
 
 // headless_opencode_mcp.go owns the MCP config-file shape used by the
-// opencode CLI: writeHeadlessOpencodeMCPConfig writes the per-agent
+// opencode CLI: writeHeadlessOpencodeMCPConfig writes the per-bot
 // JSON the CLI reads on startup, buildHeadlessOpencodeMCPEntry composes
 // the wuphf-office server entry, and the small slug + path helpers
 // keep file naming consistent. Mirrors headless_openai_compat_mcp.go's
@@ -18,9 +18,9 @@ import (
 )
 
 // writeHeadlessOpencodeMCPConfig merges WUPHF's MCP server definition into an
-// agent-scoped Opencode config derived from the user's normal
+// bot-scoped Opencode config derived from the user's normal
 // $HOME/.config/opencode/opencode.json. The caller passes the returned path via
-// OPENCODE_CONFIG, so concurrent agents do not race to rewrite a shared config
+// OPENCODE_CONFIG, so concurrent bots do not race to rewrite a shared config
 // with different WUPHF_AGENT_SLUG values. Preserves other top-level user keys
 // (theme, provider preferences, user-configured MCP servers) and only touches
 // the wuphf-office entry under `mcp`. Secrets live in the MCP subprocess's
@@ -32,10 +32,10 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	}
 	// user-global; intentionally NOT under WUPHF_RUNTIME_HOME — the base opencode
 	// config (~/.config/opencode/opencode.json) is a user-global read; the
-	// per-agent write path uses runtimeHome below.
+	// per-bot write path uses runtimeHome below.
 	//
 	// os.UserHomeDir failure is non-fatal for the base config read: if HOME is
-	// unset the base path is simply skipped and the agent config gets a minimal
+	// unset the base path is simply skipped and the bot config gets a minimal
 	// overlay. Only the write path (runtimeHome) must be non-empty.
 	var baseConfigPath string
 	if userHome, herr := os.UserHomeDir(); herr == nil && strings.TrimSpace(userHome) != "" {
@@ -50,7 +50,7 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	if runtimeHome == "" {
 		return "", fmt.Errorf("resolve runtime home for opencode config: WUPHF_RUNTIME_HOME unset and os.UserHomeDir failed")
 	}
-	configPath := headlessOpencodeAgentConfigPath(runtimeHome, slug)
+	configPath := headlessOpencodeBotConfigPath(runtimeHome, slug)
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
 		return "", fmt.Errorf("mkdir opencode config dir: %w", err)
 	}
@@ -59,12 +59,12 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	if raw, err := os.ReadFile(baseConfigPath); err == nil && len(raw) > 0 {
 		// Best-effort: if the existing file isn't valid JSON, fall back to
 		// writing a minimal overlay so wuphf keeps booting — but surface the
-		// parse error in the agent log so the operator can see they have a
+		// parse error in the bot log so the operator can see they have a
 		// malformed base config silently dropping their `model`/`provider`
-		// blocks from every per-agent merge. (#313 bonus #1)
+		// blocks from every per-bot merge. (#313 bonus #1)
 		if uerr := json.Unmarshal(raw, &merged); uerr != nil {
 			merged = map[string]any{}
-			appendHeadlessCodexLog(slug, fmt.Sprintf("opencode_base-config-parse-failed: %s: %s — per-agent config will not inherit user model/provider/MCP keys until this is fixed", baseConfigPath, uerr.Error()))
+			appendHeadlessCodexLog(slug, fmt.Sprintf("opencode_base-config-parse-failed: %s: %s — per-bot config will not inherit user model/provider/MCP keys until this is fixed", baseConfigPath, uerr.Error()))
 		}
 	}
 
@@ -115,7 +115,7 @@ func (l *Launcher) writeHeadlessOpencodeMCPConfig(slug string) (string, error) {
 	return configPath, nil
 }
 
-func headlessOpencodeAgentConfigPath(home string, slug string) string {
+func headlessOpencodeBotConfigPath(home string, slug string) string {
 	return filepath.Join(home, ".config", "opencode", "opencode."+safeHeadlessOpencodeConfigSlug(slug)+".json")
 }
 
@@ -164,7 +164,7 @@ func (l *Launcher) buildHeadlessOpencodeMCPEntry(wuphfBinary string, slug string
 	}
 	if l != nil && l.isOneOnOne() {
 		envMap["WUPHF_ONE_ON_ONE"] = "1"
-		if v := strings.TrimSpace(l.oneOnOneAgent()); v != "" {
+		if v := strings.TrimSpace(l.oneOnOneBot()); v != "" {
 			envMap["WUPHF_ONE_ON_ONE_AGENT"] = v
 		}
 	}

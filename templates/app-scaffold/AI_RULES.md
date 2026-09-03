@@ -506,10 +506,10 @@ fail, the operator hears about it where they clicked.
 ## Post-submit copy must describe surfaces that exist
 
 The host shell has NO "inbox", no task board, and no notifications center —
-its only surfaces are this app's tabs and the agent chat panel. After a
+its only surfaces are this app's tabs and the bot chat panel. After a
 successful `create_task` or approval-style submit, never write "check your
 inbox" or point at any surface you have not seen in the host. The honest
-line is: "Submitted — the team picked it up. You will be pinged in the agent
+line is: "Submitted — the team picked it up. You will be pinged in the bot
 chat when it needs your sign-off." Copy that sends the operator hunting for
 a page that does not exist reads as a bug even when the write succeeded.
 

@@ -4,7 +4,7 @@ package team
 // (ten-out-of-ten Wave D / D1).
 //
 // ICP-eval v3 [18:30–18:36]: one "weekly Monday 9am summary" ask produced
-// TWO provider-session cron jobs from two agents, each with a "dies in 7
+// TWO provider-session cron jobs from two bots, each with a "dies in 7
 // days with the session" caveat, and the Scheduled Tasks app showed
 // neither. Standing automations must be REAL (run through the broker
 // scheduler), PERSISTENT (survive a state save/load round-trip), VISIBLE
@@ -65,7 +65,7 @@ func evalJobSchedulerTruth(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	defer srv.Close()
 	client := &livePathsClient{srv: srv, token: fx.broker.Token()}
 
-	// ── (a) An agent registers a standing automation over the live wire ──
+	// ── (a) A bot registers a standing automation over the live wire ──
 	status, raw, err := client.postJSON("/scheduler/routines", map[string]any{
 		"purpose":    "Weekly Monday 9am renewal risk summary to #general",
 		"schedule":   "0 9 * * 1",
@@ -84,13 +84,13 @@ func evalJobSchedulerTruth(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if err := json.Unmarshal([]byte(raw), &created); err != nil {
 		return fmt.Errorf("decode register response: %w (body=%s)", err, raw)
 	}
-	r.add(job, "agent cron registration lands in the broker scheduler",
+	r.add(job, "bot cron registration lands in the broker scheduler",
 		status == http.StatusCreated && !created.Updated && created.Job.Slug != "" &&
 			created.Job.NextRun != "" && created.Job.Enabled,
 		fmt.Sprintf("status=%d slug=%q next_run=%q", status, created.Job.Slug, created.Job.NextRun), "")
 
 	// The Scheduled Tasks app reads GET /scheduler and classifies a USER
-	// routine as: not system-managed, agent-targeted, with a recurring
+	// routine as: not system-managed, bot-targeted, with a recurring
 	// trigger (schedulerJobClassification.ts). The registered automation
 	// must satisfy that classification or it renders in the hidden system
 	// drawer — the v3 "Scheduled Tasks 0" failure.
@@ -152,7 +152,7 @@ func evalJobSchedulerTruth(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		fmt.Sprintf("persisted=%+v", persisted), "")
 
 	// ── (b) duplicate registration converges instead of duplicating ──
-	// A SECOND agent registers the same automation with cosmetically
+	// A SECOND bot registers the same automation with cosmetically
 	// different wording (punctuation, case, word order) and the same
 	// schedule — the v3 failure mode (CEO + Outreach each minted a cron
 	// for one ask). The broker must update the existing job, not append.
@@ -197,7 +197,7 @@ func evalJobSchedulerTruth(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	}
 	r.add(job, "one ask yields exactly one standing automation",
 		status == http.StatusOK && matches == 1,
-		fmt.Sprintf("matching agent routines=%d (want 1)", matches), "")
+		fmt.Sprintf("matching bot routines=%d (want 1)", matches), "")
 
 	// ── (c) the persistent path actually FIRES through the scheduler ──
 	// Force the job due and drive one watchdog tick: the routine must

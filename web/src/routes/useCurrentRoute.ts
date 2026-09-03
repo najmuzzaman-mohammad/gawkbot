@@ -3,12 +3,12 @@ import { useMatches } from "@tanstack/react-router";
 import { useOfficeTasks } from "../hooks/useOfficeTasks";
 import { directChannelSlug } from "../lib/channels";
 import {
-  agentDetailRoute,
-  agentDetailTabRoute,
-  agentsRoute,
   appRoute,
   appTaskDetailRoute,
   articleRoute,
+  botDetailRoute,
+  botDetailTabRoute,
+  botsRoute,
   channelRoute,
   inboxRoute,
   indexRoute,
@@ -28,7 +28,7 @@ import { useAppStore } from "../stores/app";
 /**
  * Discriminated union describing the matched leaf route. Replaces the
  * legacy `currentApp` / `currentChannel` / `wikiPath` / `wikiLookupQuery` /
- * `notebookAgentSlug` / `notebookEntrySlug` scattered across the Zustand
+ * `notebookBotSlug` / `notebookEntrySlug` scattered across the Zustand
  * store with one URL-driven shape that components can pattern-match on.
  *
  * Step 4 of the route migration deletes those store fields; everything
@@ -49,7 +49,7 @@ export type CurrentRoute =
   | { kind: "article"; articleId: string }
   | { kind: "inbox" }
   | { kind: "task-decision"; taskId: string }
-  // Agents tool — roster grid + per-agent config/detail page.
+  // Bots tool — roster grid + per-bot config/detail page.
   | { kind: "agents" }
   | { kind: "agent-detail"; agentSlug: string; tab?: string }
   // Full-screen skill detail editor + viewer.
@@ -90,9 +90,9 @@ type CurrentRouteId =
   | typeof articleRoute.id
   | typeof inboxRoute.id
   | typeof taskDecisionRoute.id
-  | typeof agentsRoute.id
-  | typeof agentDetailRoute.id
-  | typeof agentDetailTabRoute.id
+  | typeof botsRoute.id
+  | typeof botDetailRoute.id
+  | typeof botDetailTabRoute.id
   | typeof skillDetailRoute.id
   | typeof routineDetailRoute.id
   | typeof routineNewRoute.id;
@@ -111,9 +111,9 @@ const CURRENT_ROUTE_IDS = [
   articleRoute.id,
   inboxRoute.id,
   taskDecisionRoute.id,
-  agentsRoute.id,
-  agentDetailRoute.id,
-  agentDetailTabRoute.id,
+  botsRoute.id,
+  botDetailRoute.id,
+  botDetailTabRoute.id,
   skillDetailRoute.id,
   routineDetailRoute.id,
   routineNewRoute.id,
@@ -166,15 +166,15 @@ const ROUTE_DERIVERS = {
     kind: "task-decision",
     taskId: params.taskId ?? "",
   }),
-  // Agents tool — roster grid (/agents) + per-agent config (/agents/$slug)
-  // + tabbed subspace (/agents/$slug/$tab).
-  [agentsRoute.id]: () => ({ kind: "agents" }),
-  [agentDetailRoute.id]: (params) => ({
+  // Bots tool — roster grid (/bots) + per-bot config (/bots/$slug)
+  // + tabbed subspace (/bots/$slug/$tab).
+  [botsRoute.id]: () => ({ kind: "agents" }),
+  [botDetailRoute.id]: (params) => ({
     kind: "agent-detail",
     agentSlug: params.agentSlug ?? "",
     tab: undefined,
   }),
-  [agentDetailTabRoute.id]: (params) => ({
+  [botDetailTabRoute.id]: (params) => ({
     kind: "agent-detail",
     agentSlug: params.agentSlug ?? "",
     tab: params.tab,
@@ -241,10 +241,10 @@ export function useCurrentTaskId(): string | null {
  * Resolve the channel slug of the chat the human is *currently looking at*:
  * the channel for a channel route, the owning task's channel for a
  * task-detail route, and "general" for the home composer (which posts to
- * #general). Returns null on non-chat surfaces (wiki, agents, apps,
+ * #general). Returns null on non-chat surfaces (wiki, bots, apps,
  * settings, inbox, …) where there is no single conversation to anchor to.
  *
- * The interview bar uses this to surface an agent's question only in the
+ * The interview bar uses this to surface a bot's question only in the
  * chat it was asked in, instead of mirroring the office-wide request queue
  * onto every surface. Cross-channel triage still lives in the Inbox, so a
  * request is never stranded by this narrowing.
@@ -258,12 +258,12 @@ export function useActiveChannelSlug(): string | null {
   const route = useCurrentRoute();
   const { data: tasks } = useOfficeTasks();
   if (route.kind === "channel") return route.channelSlug;
-  // The agent subspace IS a chat now — its Chat tab is the DM with that
-  // agent, and since the shared-room retirement it is the PRIMARY surface.
+  // The bot subspace IS a chat now — its Chat tab is the DM with that
+  // bot, and since the shared-room retirement it is the PRIMARY surface.
   // Without this mapping the globally-mounted InterviewBar treated
-  // /agents/:slug as a non-chat route and rendered nothing, which made
+  // /bots/:slug as a non-chat route and rendered nothing, which made
   // blocking approvals (add a teammate, plan sign-off) unanswerable anywhere:
-  // the board card is read-only and a chat reply just makes the agent cancel
+  // the board card is read-only and a chat reply just makes the bot cancel
   // and re-ask. Found live: three consecutive "Add Editor?" requests, each
   // canceled by the next, with no Approve control on any surface.
   if (route.kind === "agent-detail" && route.agentSlug.trim()) {

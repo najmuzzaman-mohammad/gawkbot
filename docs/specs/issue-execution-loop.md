@@ -7,7 +7,7 @@
 ## North star
 
 Any work the human asks for becomes an Issue. The Issue carries the work
-from "human request" through "owner agent ships it" with a human gate at
+from "human request" through "owner bot ships it" with a human gate at
 the start (approve to begin) and a human surface at the end (review what
 landed). Important transitions surface in chat as Issue cards. Anything
 that needs the human's input parks in the Inbox.
@@ -17,8 +17,8 @@ that needs the human's input parks in the Inbox.
 | ID | Decision | Choice | Why |
 |----|----------|--------|-----|
 | A1 | Owner assignment timing | CEO sets `owner` on `team_task action=create` in one call | One tool call, simpler model, already supported by broker. |
-| B1 | Spinning up a new agent | CEO calls `team_member action=create` FIRST, then `team_task` with the new slug as owner | Explicit creation; no hidden side effects. |
-| C1 | "Needs human input" surface | Owner agent calls `human_interview` (existing path) → lands in Inbox | Reuse working path, no new lifecycle state needed. |
+| B1 | Spinning up a new bot | CEO calls `team_member action=create` FIRST, then `team_task` with the new slug as owner | Explicit creation; no hidden side effects. |
+| C1 | "Needs human input" surface | Owner bot calls `human_interview` (existing path) → lands in Inbox | Reuse working path, no new lifecycle state needed. |
 
 ## End-to-end flow
 
@@ -46,26 +46,26 @@ Human posts work
 |---|-----|--------|
 | C1 | Drafting + Approve transitions Issue directly to **approved** (terminal/done) instead of **running**. Owner never starts. | ❌ TODO Slice 1 |
 | C2 | Same approve path writes a "decision" entry to wiki with zero context. | ❌ TODO Slice 1 (drop the write) |
-| C3 | CEO assigns itself as owner by default — never picks an existing specialist agent. | ❌ TODO Slice 2 |
-| C4 | Drafting → Running transition doesn't post a chat message tagging owner; owner agent has nothing to wake on. | ❌ TODO Slice 2 |
+| C3 | CEO assigns itself as owner by default — never picks an existing specialist bot. | ❌ TODO Slice 2 |
+| C4 | Drafting → Running transition doesn't post a chat message tagging owner; owner bot has nothing to wake on. | ❌ TODO Slice 2 |
 | C5 | No chat card emitted on important lifecycle transitions (only on `issue_created`). | ❌ TODO Slice 2 |
-| C6 | Owner agent has no prompt contract for {blocked, needs_input, done}; will improvise. | ❌ TODO Slice 3 |
+| C6 | Owner bot has no prompt contract for {blocked, needs_input, done}; will improvise. | ❌ TODO Slice 3 |
 | C7 | `human_interview` calls from owner don't link to the parent Issue, so the Inbox card has no breadcrumb. | ❌ TODO Slice 3 |
 | C8 | Lifecycle states are 10+ (drafting/intake/ready/running/changes_requested/blocked_on_pr_merge/review/decision/approved/rejected/unknown) — not Linear-shaped. | ❌ TODO Slice 4 |
 | C9 | Approving an Issue ≠ writing a Decision. Decisions are a distinct concept with proper shape (problem, options, choice, rationale, decided_by, decided_at). | ❌ TODO Slice 5 (after Slice 1 strips the bad write) |
-| C10 | Issue comment textarea has no @-mention autocomplete; humans can't easily tag specific agents. | ❌ TODO Slice 6 |
+| C10 | Issue comment textarea has no @-mention autocomplete; humans can't easily tag specific bots. | ❌ TODO Slice 6 |
 
 ## Shipped (verified live)
 
-- RULE ZERO + WAIT FOR APPROVAL in agent prompts
-- ACTIVE ISSUES catalog visible to all agents
+- RULE ZERO + WAIT FOR APPROVAL in bot prompts
+- ACTIVE ISSUES catalog visible to all bots
 - AVAILABLE SKILLS catalog (no slug hallucination)
 - Broker auto-resolves Issue on `team_action_execute` boundary (drafting Issues block)
 - Issue card (`issue_created` system message) renders in chat with amber "Review & Approve →" CTA when drafting
 - Decision Packet auto-seeded on Issue create (no more "decision packet not yet available" 404)
 - Issues default to `task_type="issue"` (legacy follow_up/research/feature/launch/bugfix get overridden)
 - Tasks created via team_task land in drafting (not in_progress)
-- POST /tasks/{id}/comment emits channel message tagging [ceo, ...@mentions] — wakes agents
+- POST /tasks/{id}/comment emits channel message tagging [ceo, ...@mentions] — wakes bots
 - Close Issue button on IssueDocument (two-step with reason)
 
 ## Slice plan (execute in this order)
@@ -104,9 +104,9 @@ Changes:
   - New `renderAvailableAgentsBlock` section: list `@slug — role/expertise`
     for every team member. CEO reads this before assigning owner.
   - Tighten ISSUE_JUDGMENT: "When creating an Issue, ALWAYS assign an
-    owner. Prefer an existing agent whose expertise matches. Only call
-    `team_member action=create` to spin up a new agent if NO existing
-    agent fits."
+    owner. Prefer an existing bot whose expertise matches. Only call
+    `team_member action=create` to spin up a new bot if NO existing
+    bot fits."
   - Update RULE ZERO to mention owner-assignment requirement.
 - Broker: `broker_decision_packet.go` + `broker_tasks_notifications.go`
   - On any drafting→running transition, post a channel message tagging
@@ -123,18 +123,18 @@ Changes:
 
 Acceptance:
 - Fresh test: ask CEO to do bookkeeping work → CEO creates Issue with
-  `owner: bookkeeper` (existing agent)
+  `owner: bookkeeper` (existing bot)
 - Approve & Start → chat shows green "Approved & started — @bookkeeper
-  on it" card → bookkeeper agent wakes and begins work
+  on it" card → bookkeeper bot wakes and begins work
 - Close → chat shows neutral "Closed" card
 
 ### Slice 3 — Owner reports {blocked, needs_input, done} (2–3 hr)
 
-Goal: owner agent has a clear contract for reporting back, and the
+Goal: owner bot has a clear contract for reporting back, and the
 right info surfaces on the right surface.
 
 Changes:
-- Prompt: every agent (not just CEO) gets a `== OWNERSHIP CONTRACT ==`
+- Prompt: every bot (not just CEO) gets a `== OWNERSHIP CONTRACT ==`
   block when they own an Issue. Spells out:
   - Use `team_task action=comment` for status updates (CEO + reviewers
     see)
@@ -147,7 +147,7 @@ Changes:
   - The POST /requests handler already accepts `issue_id` (shipped
     earlier). Verify it persists on every `human_interview` call from
     the MCP layer too — `internal/teammcp/server_human_interview.go`
-    needs to pass `IssueID` when the agent owns an Issue.
+    needs to pass `IssueID` when the bot owns an Issue.
 - Broker: `broker_inbox_handler.go`
   - When the human comments on an Issue, current behavior wakes CEO +
     @mentions. Keep that, AND wake the owner too (always tag owner so
@@ -156,9 +156,9 @@ Changes:
   task-X" breadcrumb when `issue_id` is set.
 
 Acceptance:
-- Owner agent runs, hits a blocker, calls human_interview → Inbox card
+- Owner bot runs, hits a blocker, calls human_interview → Inbox card
   appears with "Issue: task-X — [open]" link
-- Owner agent finishes → calls team_task action=complete → Issue moves
+- Owner bot finishes → calls team_task action=complete → Issue moves
   to in_review (or done depending on review_state) → chat card emitted
 
 ### Slice 4 — Linear-style lifecycle (~4 hr)
@@ -212,7 +212,7 @@ Changes:
   `currentTrigger` helpers from `messages/Autocomplete.tsx`.
 - Keyboard nav parity with `Composer.tsx`.
 - When picked, slug gets inserted as `@slug`. Comment broadcast (already
-  shipped) parses these and wakes the right agents.
+  shipped) parses these and wakes the right bots.
 
 ## Out of scope (for now)
 
@@ -220,7 +220,7 @@ Changes:
   Slice 7+.
 - Multi-owner Issues (today: single owner). Sub-tasks (parent_issue_id)
   is the right answer here — separate slice already on the roadmap.
-- Real-time owner agent status pill on the Issue card. Today: poll on
+- Real-time owner bot status pill on the Issue card. Today: poll on
   open. Real-time via SSE is post-MVP.
 - Reviewer roles (today: every member is a reviewer). Per-Issue reviewer
   assignment is Phase 2.
@@ -234,5 +234,5 @@ Changes:
   as redundant? Decision: show it — even self-assignment is a real
   state change worth surfacing.
 - When auto-resolve creates an Issue on team_action_execute (the
-  fallback when agent forgets), who's the owner? Today: defaults to the
-  calling agent. Keep that — they triggered the work.
+  fallback when bot forgets), who's the owner? Today: defaults to the
+  calling bot. Keep that — they triggered the work.

@@ -29,8 +29,8 @@ func RenderReactions(reactions []BrokerReaction) string {
 		Padding(0, 1)
 	var parts []string
 	for _, emoji := range order {
-		agents := groups[emoji]
-		label := emoji + " " + fmt.Sprintf("%d", len(agents))
+		bots := groups[emoji]
+		label := emoji + " " + fmt.Sprintf("%d", len(bots))
 		parts = append(parts, pillStyle.Render(label))
 	}
 	return strings.Join(parts, " ")

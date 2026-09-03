@@ -54,13 +54,13 @@ func ensureGBrainBrain() {
 // CompleteFunc is the side-effect hook invoked by HandleComplete when the
 // user finishes onboarding. The broker supplies a real implementation that
 // seeds the team from the picked blueprint (or synthesizes one when blueprintID
-// is empty), honors the selectedAgents filter from the wizard, and posts the
+// is empty), honors the selectedBots filter from the wizard, and posts the
 // kickoff task. blueprintID is empty for the "from scratch" path.
-// selectedAgents is nil when no filtering is requested (internal synthesis
+// selectedBots is nil when no filtering is requested (internal synthesis
 // callers) and may be an empty slice when the wizard user unchecked every
-// agent. companyName is the company or project name captured in the identity
+// bot. companyName is the company or project name captured in the identity
 // step; it is empty when the user skipped or left the field blank.
-type CompleteFunc func(task string, skipTask bool, blueprintID string, selectedAgents []string, companyName string) error
+type CompleteFunc func(task string, skipTask bool, blueprintID string, selectedBots []string, companyName string) error
 
 // RegisterRoutes attaches all onboarding HTTP handlers to mux.
 //
@@ -216,10 +216,10 @@ func makeHandleComplete(completeFn CompleteFunc) http.HandlerFunc {
 }
 
 // HandleComplete handles POST /onboarding/complete.
-// Body: {"task": string, "skip_task": bool, "blueprint": string, "agents": []string}.
-// The blueprint and agents fields are forwarded to completeFn so the broker
+// Body: {"task": string, "skip_task": bool, "blueprint": string, "bots": []string}.
+// The blueprint and bots fields are forwarded to completeFn so the broker
 // can seed the team that the wizard actually picked. A legacy client that
-// omits them is treated as "from scratch" (blueprint empty, agents nil).
+// omits them is treated as "from scratch" (blueprint empty, bots nil).
 //
 // Logic:
 //  1. Load state; if already completed return 200 {"already_completed": true, "redirect": "/"}.
@@ -239,7 +239,7 @@ func HandleComplete(w http.ResponseWriter, r *http.Request, completeFn CompleteF
 		Task          string   `json:"task"`
 		SkipTask      bool     `json:"skip_task"`
 		Blueprint     string   `json:"blueprint"`
-		Agents        []string `json:"agents"`
+		Bots          []string `json:"agents"`
 		Website       string   `json:"website"`
 		ScanCompleted bool     `json:"scan_completed"`
 		OwnerName     string   `json:"owner_name"`
@@ -286,7 +286,7 @@ func HandleComplete(w http.ResponseWriter, r *http.Request, completeFn CompleteF
 	companyName := onboardingPartialCompanyName(s.Partial)
 
 	if completeFn != nil {
-		if err := completeFn(body.Task, body.SkipTask, strings.TrimSpace(body.Blueprint), body.Agents, companyName); err != nil {
+		if err := completeFn(body.Task, body.SkipTask, strings.TrimSpace(body.Blueprint), body.Bots, companyName); err != nil {
 			// Log the full error server-side but return an opaque response to
 			// the client. completeFn may wrap filesystem paths, yaml parse
 			// messages, or other internals that should not leak to HTTP
@@ -634,7 +634,7 @@ func HandleTemplates(w http.ResponseWriter, r *http.Request, packSlug string) {
 // fields (outcome, category, channels, skills, wiki_scaffold,
 // first_tasks, requirements, estimated_setup_minutes,
 // example_artifacts) are additive — older clients that only consume
-// id/name/description/agents/tasks keep working.
+// id/name/description/bots/tasks keep working.
 type blueprintSummary struct {
 	ID                    string                       `json:"id"`
 	Name                  string                       `json:"name"`
@@ -643,7 +643,7 @@ type blueprintSummary struct {
 	Outcome               string                       `json:"outcome,omitempty"`
 	Category              string                       `json:"category,omitempty"`
 	EstimatedSetupMinutes int                          `json:"estimated_setup_minutes,omitempty"`
-	Agents                []blueprintAgentSummary      `json:"agents,omitempty"`
+	Bots                  []blueprintBotSummary        `json:"agents,omitempty"`
 	Channels              []blueprintChannelSummary    `json:"channels,omitempty"`
 	Tasks                 []blueprintTaskSummary       `json:"tasks,omitempty"`
 	Skills                []blueprintSkillSummary      `json:"skills,omitempty"`
@@ -688,13 +688,13 @@ type blueprintExampleSummary struct {
 	Title string `json:"title"`
 }
 
-type blueprintAgentSummary struct {
+type blueprintBotSummary struct {
 	Slug    string `json:"slug"`
 	Name    string `json:"name"`
 	Role    string `json:"role,omitempty"`
 	Emoji   string `json:"emoji,omitempty"`
 	Checked bool   `json:"checked"`
-	// BuiltIn marks the blueprint's lead agent (type: lead or built_in:
+	// BuiltIn marks the blueprint's lead bot (type: lead or built_in:
 	// true in the yaml). The wizard uses this to prevent the user from
 	// unchecking the lead in the Team step — downstream broker guards
 	// also refuse to disable or remove a BuiltIn member.
@@ -742,12 +742,12 @@ func summarizeBlueprint(bp operations.Blueprint) blueprintSummary {
 		EstimatedSetupMinutes: bp.EstimatedSetupMinutes,
 	}
 	leadSlug := strings.TrimSpace(bp.Starter.LeadSlug)
-	for _, a := range bp.Starter.Agents {
+	for _, a := range bp.Starter.Bots {
 		// Mark the lead as BuiltIn so the wizard's Team step can disable
 		// its checkbox. We trust three signals from the blueprint yaml:
 		// explicit built_in, type=lead, or slug matching starter.lead_slug.
 		builtIn := a.BuiltIn || strings.EqualFold(strings.TrimSpace(a.Type), "lead") || (leadSlug != "" && a.Slug == leadSlug)
-		s.Agents = append(s.Agents, blueprintAgentSummary{
+		s.Bots = append(s.Bots, blueprintBotSummary{
 			Slug:    a.Slug,
 			Name:    a.Name,
 			Role:    a.Role,
@@ -1212,13 +1212,13 @@ func applyFormAnswer(s *State, field string, value interface{}) error {
 		if !ok {
 			return fmt.Errorf("picked_agents must be an array")
 		}
-		agents := make([]string, 0, len(raw))
+		bots := make([]string, 0, len(raw))
 		for _, v := range raw {
 			if slug := strings.TrimSpace(fmt.Sprintf("%v", v)); slug != "" {
-				agents = append(agents, onboardingSanitizeString(slug))
+				bots = append(bots, onboardingSanitizeString(slug))
 			}
 		}
-		s.FormAnswers.PickedAgents = agents
+		s.FormAnswers.PickedBots = bots
 	case "scan_complete":
 		b, ok := value.(bool)
 		if !ok {

@@ -71,7 +71,7 @@ func TestBuildOneOnOneMessageLinesEmptyShowsCoachingCopy(t *testing.T) {
 	lines := buildOneOnOneMessageLines(nil, nil, 80, "Frontend", "", 0)
 	plain := stripANSI(joinRenderedLines(lines))
 	if !strings.Contains(plain, "Frontend") {
-		t.Fatalf("expected agent name in empty state, got %q", plain)
+		t.Fatalf("expected bot name in empty state, got %q", plain)
 	}
 	if !strings.Contains(plain, "Suggested:") {
 		t.Fatalf("expected suggestion in empty state, got %q", plain)

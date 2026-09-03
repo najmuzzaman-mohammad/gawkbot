@@ -27,7 +27,7 @@ const defaultMaxMessages = 500
 func (b *Broker) appendMessageLocked(msg channelMessage) channelMessage {
 	// redaction removed (core-loop R1)
 	// Tag the message with the sender's current in-flight task so
-	// the agent-context builder can suppress pre-review chatter from
+	// the bot-context builder can suppress pre-review chatter from
 	// downstream consumers. Already-stamped messages (system posts
 	// from broadcastDecisionLocked, persistence banners, etc.) keep
 	// their explicit value. Human and system senders are never
@@ -36,14 +36,14 @@ func (b *Broker) appendMessageLocked(msg channelMessage) channelMessage {
 		!isHumanMessageSender(msg.From) &&
 		msg.From != "system" {
 		// Scope source-task stamping to the message's channel (and
-		// thread, when available) so an agent owning multiple lanes
+		// thread, when available) so a bot owning multiple lanes
 		// doesn't get a message in lane A stamped with task B. Falls
 		// back to channel-only when ReplyTo is unset.
 		if taskID := b.activeOwnerTaskIDLocked(msg.From, msg.Channel, msg.ReplyTo); taskID != "" {
 			msg.SourceTaskID = taskID
-			// Chain the agent's task message into the task's thread so the
+			// Chain the bot's task message into the task's thread so the
 			// thread-scoped context (ThreadMessageIDs walks ReplyTo) actually
-			// contains the agent's own work — otherwise a task turn would see
+			// contains the bot's own work — otherwise a task turn would see
 			// only the bare root card and miss its collaborators' replies.
 			// Only fills an empty ReplyTo; an explicit in-thread reply wins.
 			if strings.TrimSpace(msg.ReplyTo) == "" {
@@ -60,10 +60,10 @@ func (b *Broker) appendMessageLocked(msg channelMessage) channelMessage {
 	}
 	b.publishMessageLocked(msg)
 	// First-run nudge dismissal: track the very first human-authored message
-	// so the office sidebar can drop the "→ tag @<agent> in #general" hint.
+	// so the office sidebar can drop the "→ tag @<bot> in #general" hint.
 	// Once true the field stays true for the lifetime of the broker (and
 	// across restarts, because the message log is persisted and rescanned
-	// on bootstrap). System and agent messages do not flip the bit. Empty
+	// on bootstrap). System and bot messages do not flip the bit. Empty
 	// From is rejected explicitly: isHumanMessageSender("") returns true for
 	// historical reasons but a missing sender is not proof of a real human.
 	if !b.humanHasPosted && strings.TrimSpace(msg.From) != "" && isHumanMessageSender(msg.From) {
@@ -86,9 +86,9 @@ func (b *Broker) appendMessageLocked(msg channelMessage) channelMessage {
 //     so an in-thread reply still gets stamped if the owner has any
 //     active lane on that channel.
 //
-// Returns the empty string when the agent has no in-flight task in
+// Returns the empty string when the bot has no in-flight task in
 // the requested scope. Used by appendMessageLocked to stamp
-// source-task-ID on agent messages.
+// source-task-ID on bot messages.
 //
 // Caller must hold b.mu.
 func (b *Broker) activeOwnerTaskIDLocked(slug, channel, replyTo string) string {
@@ -136,7 +136,7 @@ func (b *Broker) activeOwnerTaskIDLocked(slug, channel, replyTo string) string {
 // lifecycleStateIsPreMerge returns true when the state describes work
 // that hasn't been canonically resolved yet. Messages posted under a
 // pre-merge state are still subject to review and should be hidden from
-// downstream agents that aren't authoritatively involved.
+// downstream bots that aren't authoritatively involved.
 func lifecycleStateIsPreMerge(s LifecycleState) bool {
 	switch s {
 	case LifecycleStateRunning,
@@ -168,7 +168,7 @@ func (b *Broker) publishActionLocked(action officeActionLog) {
 	}
 }
 
-func (b *Broker) publishActivityLocked(activity agentActivitySnapshot) {
+func (b *Broker) publishActivityLocked(activity botActivitySnapshot) {
 	for _, ch := range b.activitySubscribers {
 		select {
 		case ch <- activity:

@@ -25,7 +25,7 @@ func TestHandleTeamWikiWriteRequiresHumanRequestByDefault(t *testing.T) {
 		t.Fatalf("expected missing-human-request tool error, got %#v text=%q", res, toolErrorText(res))
 	}
 	// Human-boundary copy guard (ten-out-of-ten E1b): the gate's wording must
-	// be safe for an agent to relay — no "broker message ID" jargon leading
+	// be safe for a bot to relay — no "broker message ID" jargon leading
 	// the message (ICP-eval v3 [18:07]).
 	if !strings.Contains(toolErrorText(res), "direct go-ahead") {
 		t.Fatalf("gate error lost its human wording: %q", toolErrorText(res))
@@ -37,7 +37,7 @@ func TestHandleTeamWikiWriteRequiresHumanRequestByDefault(t *testing.T) {
 
 func TestHandleTeamWikiWriteLibrarianWritesDirectlyWithoutHumanRequest(t *testing.T) {
 	// Phase 4: the Librarian owns the wiki, so it writes canonical articles
-	// directly — no human_request gate (unlike every other agent, see
+	// directly — no human_request gate (unlike every other bot, see
 	// TestHandleTeamWikiWriteRequiresHumanRequestByDefault).
 	srv, auth := stubBroker(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

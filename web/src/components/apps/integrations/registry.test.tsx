@@ -22,7 +22,7 @@ describe("integrations/registry", () => {
     }
   });
 
-  it("populates External Agents and Channels", () => {
+  it("populates External Bots and Channels", () => {
     const byCat = new Map<string, number>();
     for (const d of INTEGRATIONS) {
       byCat.set(d.category, (byCat.get(d.category) ?? 0) + 1);
@@ -47,7 +47,7 @@ describe("integrations/registry", () => {
     };
     for (const d of INTEGRATIONS) {
       // The Channels category is always available (no build gate). External
-      // Agents must be available iff their gateway is registered.
+      // Bots must be available iff their gateway is registered.
       if (d.category === "external-agents") {
         // biome-ignore lint/suspicious/noExplicitAny: ctx is a structural sample
         expect(d.isAvailable(ctx as any)).toBe(false);

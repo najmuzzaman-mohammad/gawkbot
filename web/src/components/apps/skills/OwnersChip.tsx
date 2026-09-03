@@ -3,7 +3,7 @@ export interface OwnersChipProps {
 }
 
 /**
- * Small pill rendering the agent slugs that own a skill. Empty/missing
+ * Small pill rendering the bot slugs that own a skill. Empty/missing
  * slugs render as "lead-routable" (italic, dim) to make ownership status
  * legible at a glance without the user squinting at a missing field.
  */
@@ -13,7 +13,7 @@ export function OwnersChip({ slugs }: OwnersChipProps) {
     return (
       <span
         className="owners-chip owners-chip--lead"
-        title="Lead-routable: any agent can route through the team lead"
+        title="Lead-routable: any bot can route through the team lead"
       >
         lead-routable
       </span>

@@ -489,7 +489,7 @@ func (m splashModel) renderNameLabel(slug, name string, slotW int) string {
 		padR = 0
 	}
 	label := strings.Repeat(" ", padL) + name + strings.Repeat(" ", padR)
-	color := channelui.AgentColor(slug)
+	color := channelui.BotColor(slug)
 	return lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Bold(true).Render(label)
 }
 

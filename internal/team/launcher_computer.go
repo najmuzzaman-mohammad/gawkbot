@@ -13,8 +13,8 @@ import (
 	"strings"
 )
 
-// mountComputerForTurn resolves and wakes the agent's computer. Failures
-// are reported into the agent's own stream and the turn proceeds without
+// mountComputerForTurn resolves and wakes the bot's computer. Failures
+// are reported into the bot's own stream and the turn proceeds without
 // a computer, never blocking the reply.
 func (l *Launcher) mountComputerForTurn(ctx context.Context, slug string) *computerMount {
 	if l == nil || l.broker == nil {
@@ -26,7 +26,7 @@ func (l *Launcher) mountComputerForTurn(ctx context.Context, slug string) *compu
 	mount, err := l.broker.computers().mountForTurn(ctx, slug, turnID, taskID, controlURL, l.broker.Token())
 	if err != nil {
 		appendHeadlessClaudeLog(slug, "computer: "+err.Error())
-		if stream := l.broker.AgentStream(slug); stream != nil {
+		if stream := l.broker.BotStream(slug); stream != nil {
 			emitHeadlessText(stream, turnID, "computer", slug, taskID, fmt.Sprintf("(computer unavailable this turn: %s)", err.Error()), "computer.unavailable")
 		}
 		return nil
@@ -83,7 +83,7 @@ func (m *computerMount) destination() string {
 	return computerSandbox
 }
 
-// envPairs returns KEY=VALUE pairs for the agent CLI's environment. Codex
+// envPairs returns KEY=VALUE pairs for the bot CLI's environment. Codex
 // passes env to MCP servers by name, so the values must exist on the
 // parent; Claude gets them from the config entry too, which is harmless.
 func (m *computerMount) envPairs() []string {

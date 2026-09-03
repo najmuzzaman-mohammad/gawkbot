@@ -7,9 +7,9 @@
  * that message: a clickable banner-style card with the task id, title,
  * owner, and lifecycle state. Click → navigates to /tasks/$taskId.
  *
- * Why a card and not a plain agent message: RULE ZERO means every piece
+ * Why a card and not a plain bot message: RULE ZERO means every piece
  * of work has a Task behind it. The card is the audit-trail anchor
- * humans (and other agents) latch onto when scrolling the channel later.
+ * humans (and other bots) latch onto when scrolling the channel later.
  *
  * Security: payload fields are plain text only. The broker-side
  * sanitizer is authoritative; this component is defense-in-depth.

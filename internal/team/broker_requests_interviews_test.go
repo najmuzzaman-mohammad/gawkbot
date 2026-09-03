@@ -191,7 +191,7 @@ func TestBrokerRequestsLifecycle(t *testing.T) {
 }
 
 // TestBrokerPostRequestDedupeKeyCollapsesDuplicates locks in the fix
-// for the 117-stacked-approval bug: when an agent retries a mutating
+// for the 117-stacked-approval bug: when a bot retries a mutating
 // external action, every call into the approval gate POSTs /requests
 // with the same dedupe_key. The broker must return the existing
 // active request instead of stacking duplicates.
@@ -280,7 +280,7 @@ func TestBrokerPostRequestDedupeKeyCollapsesDuplicates(t *testing.T) {
 // TestBrokerPostRequestDedupeKeyReusesApprovedApproval pins the
 // post-Slice-7 contract: once an APPROVAL is approved, a subsequent
 // POST with the same dedupe_key within recentApprovalReuseWindow
-// reuses the existing answered request (so the calling agent's poll
+// reuses the existing answered request (so the calling bot's poll
 // loop sees the approval immediately and executes without re-prompting
 // the human). This is the explicit fix for the "I approved it but it
 // asked me again" loop the user reported. The window-expiry +
@@ -352,8 +352,8 @@ func TestBrokerPostRequestDedupeKeyReusesApprovedApproval(t *testing.T) {
 	}
 
 	// Same dedupe key after approve → reuse the existing answered
-	// approval (deduped=true). The agent's poll loop on /interview/
-	// answer?id=<first> already shows answer=approve, so the agent
+	// approval (deduped=true). The bot's poll loop on /interview/
+	// answer?id=<first> already shows answer=approve, so the bot
 	// proceeds to execute without spamming the human with a new card.
 	second, deduped := post()
 	if second != first {
@@ -887,7 +887,7 @@ func TestBrokerHumanInterviewDoesNotBlockAndThreadReplyAnswers(t *testing.T) {
 	}
 	if answer.Answered == nil || answer.Status != "answered" ||
 		answer.Answered.CustomText != "Let's keep moving in this thread." {
-		t.Fatalf("expected the polling agent to receive the thread-reply answer, got %+v", answer)
+		t.Fatalf("expected the polling bot to receive the thread-reply answer, got %+v", answer)
 	}
 }
 
@@ -1234,13 +1234,13 @@ func TestAlsoAskingSurvivesRestart(t *testing.T) {
 	if err := b2.loadState(); err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	if !b2.AgentAwaitingInterviewAnswer("revops") {
+	if !b2.BotAwaitingInterviewAnswer("revops") {
 		t.Fatal("also_asking subscriber must still be awaiting after restart")
 	}
-	if !b2.AgentAwaitingInterviewAnswer("ae") {
+	if !b2.BotAwaitingInterviewAnswer("ae") {
 		t.Fatal("original asker must still be awaiting after restart")
 	}
-	if b2.AgentAwaitingInterviewAnswer("eng") {
+	if b2.BotAwaitingInterviewAnswer("eng") {
 		t.Fatal("non-subscriber must not be parked")
 	}
 }

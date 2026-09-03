@@ -37,9 +37,9 @@ func (m channelModel) handleChannelMsg(msg channelMsg) (channelModel, tea.Cmd) {
 		}
 		m.messages = uniqueMessages
 		m.lastID = msg.messages[len(msg.messages)-1].ID
-		// Track latest streaming text per agent for sidebar display.
-		if m.lastAgentContent == nil {
-			m.lastAgentContent = make(map[string]string)
+		// Track latest streaming text per bot for sidebar display.
+		if m.lastBotContent == nil {
+			m.lastBotContent = make(map[string]string)
 		}
 		for _, bm := range addedMessages {
 			if !channelui.IsHumanSender(bm.From) && bm.Content != "" {
@@ -48,7 +48,7 @@ func (m channelModel) handleChannelMsg(msg channelMsg) (channelModel, tea.Cmd) {
 					runes := []rune(snippet)
 					snippet = "…" + string(runes[len(runes)-37:])
 				}
-				m.lastAgentContent[bm.From] = snippet
+				m.lastBotContent[bm.From] = snippet
 			}
 		}
 		if m.scroll > 0 || m.focus != focusMain || m.threadPanelOpen {
@@ -68,9 +68,9 @@ func (m channelModel) handleChannelMembersMsg(msg channelMembersMsg) (channelMod
 	m.members = msg.members
 	// Overlay last-seen streaming content into LiveActivity when the broker
 	// hasn't set it yet (e.g. between polls or when liveActivity is stale).
-	if m.lastAgentContent != nil {
+	if m.lastBotContent != nil {
 		for i, mem := range m.members {
-			if snippet, ok := m.lastAgentContent[mem.Slug]; ok && snippet != "" && mem.LiveActivity == "" {
+			if snippet, ok := m.lastBotContent[mem.Slug]; ok && snippet != "" && mem.LiveActivity == "" {
 				m.members[i].LiveActivity = snippet
 			}
 		}
@@ -108,8 +108,8 @@ func (m channelModel) handleChannelChannelsMsg(msg channelChannelsMsg) (channelM
 
 func (m channelModel) handleChannelUsageMsg(msg channelUsageMsg) (channelModel, tea.Cmd) {
 	m.usage = msg.usage
-	if m.usage.Agents == nil {
-		m.usage.Agents = make(map[string]channelui.UsageTotals)
+	if m.usage.Bots == nil {
+		m.usage.Bots = make(map[string]channelui.UsageTotals)
 	}
 	return m, nil
 }
@@ -120,10 +120,10 @@ func (m channelModel) handleChannelHealthMsg(msg channelHealthMsg) (channelModel
 		return m, nil
 	}
 	nextMode := team.NormalizeSessionMode(msg.SessionMode)
-	nextAgent := team.NormalizeOneOnOneAgent(msg.OneOnOneAgent)
-	modeChanged := nextMode != m.sessionMode || nextAgent != m.oneOnOneAgent
+	nextBot := team.NormalizeOneOnOneBot(msg.OneOnOneBot)
+	modeChanged := nextMode != m.sessionMode || nextBot != m.oneOnOneBot
 	m.sessionMode = nextMode
-	m.oneOnOneAgent = nextAgent
+	m.oneOnOneBot = nextBot
 	if m.isOneOnOne() {
 		m.activeApp = channelui.OfficeAppMessages
 		m.sidebarCollapsed = true
@@ -141,7 +141,7 @@ func (m channelModel) handleChannelHealthMsg(msg channelHealthMsg) (channelModel
 		m.clearUnreadState()
 		m.refreshSlashCommands()
 		if m.isOneOnOne() && strings.TrimSpace(m.notice) == "" {
-			m.notice = "Direct session reset. Agent pane reloaded in place. Nobody else is looking."
+			m.notice = "Direct session reset. Bot pane reloaded in place. Nobody else is looking."
 		}
 		return m, m.pollCurrentState()
 	}

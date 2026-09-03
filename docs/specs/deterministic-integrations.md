@@ -109,7 +109,7 @@ Integrations app.
   user's "block on a typed Connect decision" call). The resolver raises ONE
   blocking Connect card per platform (workspace-wide dedupe via
   `connect:<platform>`) on a `connect` decision and returns its `request_id`;
-  the gate surfaces that card to the agent instead of telling it to retry. When
+  the gate surfaces that card to the bot instead of telling it to retry. When
   `/integrations/connect-status` observes the OAuth completion,
   `fanOutConnected` flips the registry to `connected`, auto-answers the open
   card (`choice=connect`), and runs the standard unblock cascade so the parked
@@ -125,7 +125,7 @@ Integrations app.
   fan-out resume + idempotence, connect-status E2E).
 - [x] **Slice 3b (web Connect card)** — `ConnectIntegrationCard.tsx`: a
   `connect`-kind blocking card with the integration logo + "Connect <Platform>"
-  + the agent's reason; Connect drives the shipped Composio OAuth
+  + the bot's reason; Connect drives the shipped Composio OAuth
   (`startIntegrationConnection` → `window.open(auth_url)` → poll
   `getIntegrationConnectStatus`). Each poll hits `/integrations/connect-status`,
   which fires the backend `fanOutConnected` that auto-answers this card — so on
@@ -139,7 +139,7 @@ Integrations app.
   `integration_fallback_timed_out`, freeing the blocking channel. Hooked into the
   per-minute `runActivityWatchdog` tick so it fires regardless of who is polling.
   NOTE: "task back to backlog" reduces to cancel + audit — the connect flow does
-  not park a task (the agent already got its tool error when blocked), so there
+  not park a task (the bot already got its tool error when blocked), so there
   is nothing to re-queue; the realized behavior is unblock + audit. The human can
   always Skip sooner; this is the backstop. Test: fresh card kept, stale card
   expired + audited.
@@ -149,7 +149,7 @@ Integrations app.
   recovers the platform, action id, verb, account, channel, why, and payload
   summary from `parseApprovalContext` with NO Go change. Layout: integration
   logo tile + platform eyebrow + verb headline + mono action_id; a "Why" rule
-  with the agent's intent; an inset "What will be sent" panel with the
+  with the bot's intent; an inset "What will be sent" panel with the
   secret-masked payload fields and a **Show/Hide raw** toggle (the raw view is a
   reformat of the SAME masked fields — never a new data source); a connected-
   account dot + channel meta; actions Approve / Approve & always allow / Reject /
@@ -159,7 +159,7 @@ Integrations app.
   (approval kind only; everything else keeps the generic interview body). Files:
   `web/src/components/messages/ExternalActionApprovalCard.tsx` (+ `.test.tsx`,
   `.stories.tsx`), `HumanInterviewOverlay.tsx`/`.test.tsx`, `web/src/api/client.ts`
-  (AgentRequest +platform/logo_url, grant client fns), `web/src/styles/global.css`
+  (BotRequest +platform/logo_url, grant client fns), `web/src/styles/global.css`
   (`.eac-*`). tsc clean, biome clean, 214 messages tests pass, web build green.
 - [x] **Slice 4b** — structured action-approval payload with the real masked
   HTTP envelope behind the raw toggle. New wire shape `humanInterview.action =
@@ -194,18 +194,18 @@ Integrations app.
   is the host-trust boundary — the local owner's web app AND the MCP server both
   use it (broker kind); human-SESSION actors are shared-link guests that
   `withAuth` 403s off non-allowlisted routes. So a "require human kind" gate is
-  BACKWARDS (rejects the owner). The real control that an agent cannot self-grant
-  is that NO MCP tool reaches `/integrations/grants` — agents act only through
+  BACKWARDS (rejects the owner). The real control that a bot cannot self-grant
+  is that NO MCP tool reaches `/integrations/grants` — bots act only through
   the fixed teammcp tool surface. Files: `broker_action_grants.go` (new),
   `broker.go`/`broker_types.go`/`broker_persistence.go` (persist), `broker_
   integrations_resolve.go` (eval), `internal/teammcp/actions.go` (preApproved +
   bypass). Tests: `broker_action_grants_test.go` + a teammcp grant-bypass test.
   Persisted wire shape → triangulate before merge.
 - [x] **Slice 5b** — Grant UI, complete. (1) The approval card's "Approve &
-  always allow" button mints a grant via `createActionGrant(agent, platform,
+  always allow" button mints a grant via `createActionGrant(bot, platform,
   action_id, channel)` then approves; grant-write failure still approves once.
   (2) `ActionGrantsPanel.tsx` ("Always-allowed actions") in the Integrations app
-  home: lists every active grant (logo + mono action_scope + agent + platform +
+  home: lists every active grant (logo + mono action_scope + bot + platform +
   since-date) with a Revoke button (`revokeActionGrant` → invalidate); renders
   nothing when there are no grants. Tests co-located.
 - [x] **Slice 6** — `fallback` manual-handoff decision kind (backend; done

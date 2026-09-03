@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/team"
 )
 
@@ -104,7 +104,7 @@ func TestBrokerConstructionTwoBrokersDoNotShareState(t *testing.T) {
 				t.Fatalf("start b1: %v", err)
 			}
 			defer b1.Stop()
-			b1.SeedDefaultSkills([]agent.PackSkillSpec{{
+			b1.SeedDefaultSkills([]bot.PackSkillSpec{{
 				Name:        "iso-marker-skill",
 				Title:       "Isolation Marker",
 				Description: "If b2 sees this name, the construction-isolation invariant has regressed.",

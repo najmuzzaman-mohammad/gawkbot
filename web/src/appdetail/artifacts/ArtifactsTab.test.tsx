@@ -26,7 +26,7 @@ const ARTIFACTS: Artifact[] = [
 describe("ArtifactsTab", () => {
   it("lists every artifact and opens the first one's viewer", () => {
     const { getByText } = render(
-      <ArtifactsTab agentName="Pipeline Agent" artifacts={ARTIFACTS} />,
+      <ArtifactsTab agentName="Pipeline Bot" artifacts={ARTIFACTS} />,
     );
     // All artifacts appear as chips (md + pdf).
     expect(getByText("weekly-summary.md")).toBeTruthy();
@@ -37,7 +37,7 @@ describe("ArtifactsTab", () => {
 
   it("switches viewer when another artifact is selected", () => {
     const { getByText, queryByText } = render(
-      <ArtifactsTab agentName="Pipeline Agent" artifacts={ARTIFACTS} />,
+      <ArtifactsTab agentName="Pipeline Bot" artifacts={ARTIFACTS} />,
     );
     // The pdf artifact shows the file card with a download affordance.
     fireEvent.click(getByText("brief.pdf"));
@@ -46,7 +46,7 @@ describe("ArtifactsTab", () => {
     expect(getByText(/182 KB/)).toBeTruthy();
   });
 
-  it("renders agent-authored html in a fully locked-down sandbox", () => {
+  it("renders bot-authored html in a fully locked-down sandbox", () => {
     const html: Artifact = {
       id: "h1",
       type: "html",
@@ -57,21 +57,21 @@ describe("ArtifactsTab", () => {
     };
     const { container, getByText } = render(
       <ArtifactsTab
-        agentName="Pipeline Agent"
+        agentName="Pipeline Bot"
         artifacts={[...ARTIFACTS, html]}
       />,
     );
     fireEvent.click(getByText("lead-scores.html"));
     const iframe = container.querySelector("iframe");
     expect(iframe).toBeTruthy();
-    // The EMPTY sandbox attribute is the security boundary for agent-authored
+    // The EMPTY sandbox attribute is the security boundary for bot-authored
     // HTML: no scripts, no navigation, no same-origin. Never loosen silently.
     expect(iframe?.getAttribute("sandbox")).toBe("");
   });
 
   it("disables the pdf download until the artifact has a url", () => {
     const { container, getByText, rerender } = render(
-      <ArtifactsTab agentName="Pipeline Agent" artifacts={ARTIFACTS} />,
+      <ArtifactsTab agentName="Pipeline Bot" artifacts={ARTIFACTS} />,
     );
     fireEvent.click(getByText("brief.pdf"));
     // No url yet (honest mock): the button is disabled and says why.
@@ -83,7 +83,7 @@ describe("ArtifactsTab", () => {
     const exported = ARTIFACTS.map((a) =>
       a.id === "p1" ? { ...a, url: "/artifacts/brief.pdf" } : a,
     );
-    rerender(<ArtifactsTab agentName="Pipeline Agent" artifacts={exported} />);
+    rerender(<ArtifactsTab agentName="Pipeline Bot" artifacts={exported} />);
     const anchor = container.querySelector("a[download]");
     expect(anchor?.getAttribute("href")).toBe("/artifacts/brief.pdf");
   });
@@ -98,10 +98,7 @@ describe("ArtifactsTab", () => {
       content: "# hi",
     };
     const { container, getByText } = render(
-      <ArtifactsTab
-        agentName="Pipeline Agent"
-        artifacts={[iso, ...ARTIFACTS]}
-      />,
+      <ArtifactsTab agentName="Pipeline Bot" artifacts={[iso, ...ARTIFACTS]} />,
     );
     const meta = container.querySelector(".opr-artifact-meta");
     // The raw ISO stamp never reaches the UI…
@@ -114,7 +111,7 @@ describe("ArtifactsTab", () => {
 
   it("shows the honest empty state when nothing was produced yet", () => {
     const { getByText } = render(
-      <ArtifactsTab agentName="Pipeline Agent" artifacts={[]} />,
+      <ArtifactsTab agentName="Pipeline Bot" artifacts={[]} />,
     );
     expect(
       getByText(/The out-tray stays empty until the first run/),

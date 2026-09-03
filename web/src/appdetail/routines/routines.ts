@@ -1,16 +1,16 @@
-// Routines — a workflow IS a scheduled prompt run in the agent's chat (Claude
+// Routines — a workflow IS a scheduled prompt run in the bot's chat (Claude
 // Routines-style). Nothing to compile: the prompt goes into a chat session on a
-// schedule, the agent calls its tools, the outcome lands as messages/artifacts.
-// Disable and Publish-new-version belong to EACH routine, not the agent.
+// schedule, the bot calls its tools, the outcome lands as messages/artifacts.
+// Disable and Publish-new-version belong to EACH routine, not the bot.
 // FE-first mock; persistence + the real scheduler are the next slice.
-// See docs/specs/operator-agent-routines.md.
+// See docs/specs/operator-bot-routines.md.
 
 export interface Routine {
   /** For LIVE routines this is the broker scheduler slug. */
   id: string;
   /** Plain-language name, e.g. "Monday pipeline recap". */
   name: string;
-  /** The prompt the agent runs in its chat. */
+  /** The prompt the bot runs in its chat. */
   prompt: string;
   /** Cron expression / broker shorthand for live routines; a human label for
    * seeded mocks. Render through humanSchedule(). */

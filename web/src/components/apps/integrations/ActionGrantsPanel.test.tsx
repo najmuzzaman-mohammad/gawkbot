@@ -47,7 +47,7 @@ describe("<ActionGrantsPanel>", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("lists each active grant with its scope, agent, and platform", async () => {
+  it("lists each active grant with its scope, bot, and platform", async () => {
     getGrants.mockResolvedValue({
       grants: [
         grant(),

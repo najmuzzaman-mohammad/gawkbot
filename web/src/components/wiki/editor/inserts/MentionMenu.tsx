@@ -7,7 +7,7 @@
  * `SlashMenu` (ArrowUp/Down, Enter, Escape).
  *
  * The picker is also reused for the slash-menu actions that need a wiki
- * page picker (link, task ref, agent mention) — `categoryFilter` narrows
+ * page picker (link, task ref, bot mention) — `categoryFilter` narrows
  * the surfaced bucket and lets the slash flow re-use the same UI.
  */
 

@@ -9,44 +9,44 @@ import (
 )
 
 const (
-	agentStreamHistoryLimit     = 2000
-	agentStreamTaskHistoryLimit = 2000
-	agentStreamTaskBufferLimit  = 64
+	botStreamHistoryLimit     = 2000
+	botStreamTaskHistoryLimit = 2000
+	botStreamTaskBufferLimit  = 64
 )
 
-type agentStreamBuffer struct {
+type botStreamBuffer struct {
 	mu        sync.Mutex
-	lines     []agentStreamLine
+	lines     []botStreamLine
 	taskLines map[string][]string
 	taskOrder []string
-	subs      map[int]agentStreamSubscriber
+	subs      map[int]botStreamSubscriber
 	nextID    int
 }
 
-type agentStreamLine struct {
+type botStreamLine struct {
 	TaskID string
 	Text   string
 }
 
-type agentStreamSubscriber struct {
+type botStreamSubscriber struct {
 	TaskID string
 	Ch     chan string
 }
 
-func (s *agentStreamBuffer) Push(line string) {
+func (s *botStreamBuffer) Push(line string) {
 	s.PushTask("", line)
 }
 
-func (s *agentStreamBuffer) PushTask(taskID, line string) {
+func (s *botStreamBuffer) PushTask(taskID, line string) {
 	taskID = strings.TrimSpace(taskID)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.lines = append(s.lines, agentStreamLine{
+	s.lines = append(s.lines, botStreamLine{
 		TaskID: taskID,
 		Text:   line,
 	})
-	if len(s.lines) > agentStreamHistoryLimit {
-		s.lines = s.lines[len(s.lines)-agentStreamHistoryLimit:]
+	if len(s.lines) > botStreamHistoryLimit {
+		s.lines = s.lines[len(s.lines)-botStreamHistoryLimit:]
 	}
 	if taskID != "" {
 		s.pushTaskHistoryLocked(taskID, line)
@@ -62,48 +62,48 @@ func (s *agentStreamBuffer) PushTask(taskID, line string) {
 	}
 }
 
-func (s *agentStreamBuffer) pushTaskHistoryLocked(taskID, line string) {
+func (s *botStreamBuffer) pushTaskHistoryLocked(taskID, line string) {
 	if s.taskLines == nil {
 		s.taskLines = make(map[string][]string)
 	}
 	if _, ok := s.taskLines[taskID]; !ok {
 		s.taskOrder = append(s.taskOrder, taskID)
-		for len(s.taskOrder) > agentStreamTaskBufferLimit {
+		for len(s.taskOrder) > botStreamTaskBufferLimit {
 			evict := s.taskOrder[0]
 			s.taskOrder = s.taskOrder[1:]
 			delete(s.taskLines, evict)
 		}
 	}
 	lines := append(s.taskLines[taskID], line)
-	if len(lines) > agentStreamTaskHistoryLimit {
-		lines = lines[len(lines)-agentStreamTaskHistoryLimit:]
+	if len(lines) > botStreamTaskHistoryLimit {
+		lines = lines[len(lines)-botStreamTaskHistoryLimit:]
 	}
 	s.taskLines[taskID] = lines
 }
 
-func (s *agentStreamBuffer) subscribe() (<-chan string, func()) {
+func (s *botStreamBuffer) subscribe() (<-chan string, func()) {
 	return s.subscribeTask("")
 }
 
-func (s *agentStreamBuffer) subscribeTask(taskID string) (<-chan string, func()) {
+func (s *botStreamBuffer) subscribeTask(taskID string) (<-chan string, func()) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.subscribeTaskLocked(taskID)
 }
 
-func (s *agentStreamBuffer) subscribeTaskWithRecent(taskID string) ([]string, <-chan string, func()) {
+func (s *botStreamBuffer) subscribeTaskWithRecent(taskID string) ([]string, <-chan string, func()) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	ch, unsubscribe := s.subscribeTaskLocked(taskID)
 	return s.recentTaskLocked(taskID), ch, unsubscribe
 }
 
-func (s *agentStreamBuffer) subscribeTaskLocked(taskID string) (<-chan string, func()) {
+func (s *botStreamBuffer) subscribeTaskLocked(taskID string) (<-chan string, func()) {
 	id := s.nextID
 	s.nextID++
 	taskID = strings.TrimSpace(taskID)
 	ch := make(chan string, 128)
-	s.subs[id] = agentStreamSubscriber{TaskID: taskID, Ch: ch}
+	s.subs[id] = botStreamSubscriber{TaskID: taskID, Ch: ch}
 	return ch, func() {
 		// Close the channel after removing it from the map so a
 		// consumer blocked on `<-ch` is unparked instead of leaking.
@@ -119,17 +119,17 @@ func (s *agentStreamBuffer) subscribeTaskLocked(taskID string) (<-chan string, f
 	}
 }
 
-func (s *agentStreamBuffer) recent() []string {
+func (s *botStreamBuffer) recent() []string {
 	return s.recentTask("")
 }
 
-func (s *agentStreamBuffer) recentTask(taskID string) []string {
+func (s *botStreamBuffer) recentTask(taskID string) []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.recentTaskLocked(taskID)
 }
 
-func (s *agentStreamBuffer) recentTaskLocked(taskID string) []string {
+func (s *botStreamBuffer) recentTaskLocked(taskID string) []string {
 	taskID = strings.TrimSpace(taskID)
 	if taskID != "" {
 		lines := s.taskLines[taskID]
@@ -144,30 +144,30 @@ func (s *agentStreamBuffer) recentTaskLocked(taskID string) []string {
 	return out
 }
 
-// AgentStream returns (or lazily creates) the stream buffer for a given agent slug.
+// BotStream returns (or lazily creates) the stream buffer for a given bot slug.
 // It is safe to call concurrently.
-func (b *Broker) AgentStream(slug string) *agentStreamBuffer {
+func (b *Broker) BotStream(slug string) *botStreamBuffer {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.agentStreams == nil {
-		b.agentStreams = make(map[string]*agentStreamBuffer)
+	if b.botStreams == nil {
+		b.botStreams = make(map[string]*botStreamBuffer)
 	}
-	s, ok := b.agentStreams[slug]
+	s, ok := b.botStreams[slug]
 	if !ok {
-		s = &agentStreamBuffer{
+		s = &botStreamBuffer{
 			taskLines: make(map[string][]string),
-			subs:      make(map[int]agentStreamSubscriber),
+			subs:      make(map[int]botStreamSubscriber),
 		}
-		b.agentStreams[slug] = s
+		b.botStreams[slug] = s
 	}
 	return s
 }
 
-func (l *Launcher) agentActiveTaskID(slug string) string {
+func (l *Launcher) botActiveTaskID(slug string) string {
 	if l == nil {
 		return ""
 	}
-	task := l.agentActiveTask(slug)
+	task := l.botActiveTask(slug)
 	if task == nil {
 		return ""
 	}
@@ -218,11 +218,11 @@ func (b *Broker) SubscribeActions(buffer int) (<-chan officeActionLog, func()) {
 	}
 }
 
-func (b *Broker) SubscribeActivity(buffer int) (<-chan agentActivitySnapshot, func()) {
+func (b *Broker) SubscribeActivity(buffer int) (<-chan botActivitySnapshot, func()) {
 	if buffer <= 0 {
 		buffer = 1
 	}
-	ch := make(chan agentActivitySnapshot, buffer)
+	ch := make(chan botActivitySnapshot, buffer)
 
 	b.mu.Lock()
 	id := b.nextSubscriberID
@@ -331,12 +331,12 @@ func (b *Broker) WikiIndex() *WikiIndex {
 	return b.wikiIndex
 }
 
-func (b *Broker) UpdateAgentActivity(update agentActivitySnapshot) {
-	// update.Slug is an AGENT slug, so it takes the actor normaliser, and the
+func (b *Broker) UpdateBotActivity(update botActivitySnapshot) {
+	// update.Slug is a BOT slug, so it takes the actor normaliser, and the
 	// emptiness test runs on the RAW value first. Previously this normalised
 	// with normalizeChannelSlug, whose empty-input fallback returns "general":
 	// the `slug == ""` refusal below could never fire, and an activity update
-	// carrying no agent was recorded against a CHANNEL named "general".
+	// carrying no bot was recorded against a CHANNEL named "general".
 	if strings.TrimSpace(update.Slug) == "" {
 		return
 	}
@@ -383,7 +383,7 @@ func (b *Broker) UpdateAgentActivity(update agentActivitySnapshot) {
 	// explicitly by the reaper / watchdog hooks for "stuck". An empty Kind
 	// here means the caller did not classify (e.g. legacy code paths) — we
 	// leave the previous Kind in place rather than wiping it, so a stuck
-	// agent does not silently flip back to routine on a status-only update
+	// bot does not silently flip back to routine on a status-only update
 	// that omits Kind.
 	if update.Kind != "" {
 		current.Kind = update.Kind
@@ -394,9 +394,9 @@ func (b *Broker) UpdateAgentActivity(update agentActivitySnapshot) {
 }
 
 // duplicateBroadcastWindow is how recent an earlier broadcast from the same
-// agent in the same channel+thread must be to count as a duplicate. Set tight
+// bot in the same channel+thread must be to count as a duplicate. Set tight
 // so legitimate quick follow-ups still land, but tight enough to catch the
-// "same turn, paraphrased again" pattern that agents produce.
+// "same turn, paraphrased again" pattern that bots produce.
 const duplicateBroadcastWindow = 30 * time.Second
 
 // duplicateBroadcastSimilarity is the lower bound at which two messages are
@@ -404,10 +404,10 @@ const duplicateBroadcastWindow = 30 * time.Second
 // catch paraphrased restatements while letting actual new content through.
 const duplicateBroadcastSimilarity = 0.85
 
-// isDuplicateAgentBroadcastLocked returns true when the agent has already
+// isDuplicateBotBroadcastLocked returns true when the bot has already
 // posted a nearly-identical message to the same (channel, thread) pair within
 // duplicateBroadcastWindow. Must be called with b.mu held.
-func (b *Broker) isDuplicateAgentBroadcastLocked(sender, channel, replyTo, content string) bool {
+func (b *Broker) isDuplicateBotBroadcastLocked(sender, channel, replyTo, content string) bool {
 	newNorm := normalizeBroadcastContent(content)
 	if newNorm == "" {
 		return false
@@ -499,15 +499,15 @@ func uniqueWordSet(s string) map[string]struct{} {
 // goleak/timeout failures. Production always runs with the default (true).
 var activityWatchdogEnabled = true
 
-// staleActivityThreshold is how long an agent can stay in a non-idle/non-error
+// staleActivityThreshold is how long a bot can stay in a non-idle/non-error
 // activity state before the watchdog forcibly resets it to idle. Set long
 // enough to cover normal long turns (tool chains, big edits) but short enough
-// that a crashed spawn does not leave the agent looking "active" for hours —
+// that a crashed spawn does not leave the bot looking "active" for hours —
 // which blocks the Chief of Staff's "Already active in this thread" re-route guard and
 // prevents the specialist from being dispatched again.
 const staleActivityThreshold = 5 * time.Minute
 
-// stuckThresholdSeconds is how long an active agent can go without any new
+// stuckThresholdSeconds is how long an active bot can go without any new
 // activity event before the reaper marks it Kind="stuck" (without changing
 // Status — the next real event clears the stuck flag). Far below
 // staleActivityThreshold so the human gets a stuck signal on the team well
@@ -518,28 +518,28 @@ const staleActivityThreshold = 5 * time.Minute
 const stuckThresholdSeconds = 90
 
 // reapStaleActivityLocked walks the activity map and emits two kinds of
-// follow-up snapshots when an agent's LastTime has aged past a threshold:
+// follow-up snapshots when a bot's LastTime has aged past a threshold:
 //
 //  1. Stuck-while-active (>= stuckThresholdSeconds, < staleActivityThreshold):
-//     the agent is still nominally "active"/"thinking"/"tool_use" but has gone
+//     the bot is still nominally "active"/"thinking"/"tool_use" but has gone
 //     quiet long enough that the human on the team should be alerted. We
 //     stamp Kind="stuck" without changing Status — the next real event from
-//     the agent flips Kind back to whatever the classifier returns. Emitted
+//     the bot flips Kind back to whatever the classifier returns. Emitted
 //     once per stuck transition (re-emitting every reaper tick would spam the
 //     SSE stream and re-trigger frontend assertive announcements).
 //
 //  2. Stale-active reset (>= staleActivityThreshold): the long-standing
-//     safety net. Treat the agent as crashed and force it back to idle so
+//     safety net. Treat the bot as crashed and force it back to idle so
 //     the Chief of Staff's "Already active in this thread" re-route guard releases.
 //
 // Must be called with b.mu held. Returns the snapshots that need to be
 // published to subscribers after the caller releases the lock.
-func (b *Broker) reapStaleActivityLocked(now time.Time) []agentActivitySnapshot {
+func (b *Broker) reapStaleActivityLocked(now time.Time) []botActivitySnapshot {
 	if len(b.activity) == 0 {
 		return nil
 	}
 	stuckThreshold := time.Duration(stuckThresholdSeconds) * time.Second
-	var reset []agentActivitySnapshot
+	var reset []botActivitySnapshot
 	for slug, snap := range b.activity {
 		status := strings.ToLower(strings.TrimSpace(snap.Status))
 		if status == "" || status == "idle" || status == "error" {
@@ -556,9 +556,9 @@ func (b *Broker) reapStaleActivityLocked(now time.Time) []agentActivitySnapshot 
 			snap.Status = "idle"
 			snap.Activity = "idle"
 			// Plain-language, actionable detail — this string surfaces in the
-			// activity feed and the agent pill tooltip, so it must read as
+			// activity feed and the bot pill tooltip, so it must read as
 			// English to a non-technical operator (not "stale activity
-			// reaped") and tell them how to get the agent moving again.
+			// reaped") and tell them how to get the bot moving again.
 			mins := int(age.Round(time.Minute) / time.Minute)
 			if mins < 1 {
 				mins = 1
@@ -570,7 +570,7 @@ func (b *Broker) reapStaleActivityLocked(now time.Time) []agentActivitySnapshot 
 			snap.Detail = fmt.Sprintf("Went idle after no progress for %d %s — send a new message to bring it back.", mins, unit)
 			snap.LastTime = now.UTC().Format(time.RFC3339)
 			// Reaping back to idle clears any prior stuck flag — the
-			// agent is no longer claiming to be working.
+			// bot is no longer claiming to be working.
 			snap.Kind = "routine"
 			b.activity[slug] = snap
 			reset = append(reset, snap)
@@ -588,7 +588,7 @@ func (b *Broker) reapStaleActivityLocked(now time.Time) []agentActivitySnapshot 
 }
 
 // runActivityWatchdog scans the in-memory activity map every minute and
-// resets agents that have been stuck in a non-terminal state past
+// resets bots that have been stuck in a non-terminal state past
 // staleActivityThreshold. Stops when ctx is done so NewBroker can tear it
 // down alongside the rest of the broker's lifecycle.
 func (b *Broker) runActivityWatchdog(ctx context.Context) {

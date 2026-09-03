@@ -24,7 +24,7 @@ import (
 // The gh capability advisory runs after every successful runtime check
 // (codex, opencode, claude+tmux), not just the claude branch. Pre-fix,
 // codex/opencode launches missed the "gh CLI not found / not authed"
-// note, leaving operators puzzled when their agents couldn't open PRs.
+// note, leaving operators puzzled when their bots couldn't open PRs.
 func (l *Launcher) Preflight() error {
 	if l.usesCodexRuntime() {
 		if l.usesOpencodeRuntime() {
@@ -61,7 +61,7 @@ func emitGHCapabilityNote() {
 
 // checkGHCapability checks whether the gh CLI is installed and authenticated.
 // It returns a soft-warning note when either condition is not met; callers
-// should print the note but must NOT treat it as a fatal error — agents can
+// should print the note but must NOT treat it as a fatal error — bots can
 // still work locally without gh. Only PR-opening will be unavailable.
 //
 // Authentication is probed with `gh auth token`, not `gh auth status`. The
@@ -77,12 +77,12 @@ func emitGHCapabilityNote() {
 //
 // A 5s deadline is generous for the happy path; on timeout we suppress the
 // warning entirely rather than print a misleading "not authenticated" note.
-// A real unauth state surfaces immediately when an agent actually tries to
+// A real unauth state surfaces immediately when a bot actually tries to
 // open a PR — printing a false positive on every boot is worse than missing
 // a true positive on a flaky network.
 func checkGHCapability() (installed bool, authed bool, note string) {
 	if _, err := exec.LookPath("gh"); err != nil {
-		return false, false, "gh CLI not found in PATH; agents won't be able to open real PRs. Install from https://cli.github.com."
+		return false, false, "gh CLI not found in PATH; bots won't be able to open real PRs. Install from https://cli.github.com."
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -100,5 +100,5 @@ func checkGHCapability() (installed bool, authed bool, note string) {
 	// hosts" to stderr and exits non-zero. Anything else (binary corrupted,
 	// transient failure) we also surface, because gh auth token's
 	// non-timeout failure space is narrow.
-	return true, false, "gh installed but not authenticated; run `gh auth login` so agents can open real PRs."
+	return true, false, "gh installed but not authenticated; run `gh auth login` so bots can open real PRs."
 }

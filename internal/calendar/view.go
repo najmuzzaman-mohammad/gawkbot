@@ -8,14 +8,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// agentDay groups an agent's fire times for a single day.
-type agentDay struct {
+// botDay groups a bot's fire times for a single day.
+type botDay struct {
 	Slug  string
 	Times []string
 }
 
-// Agent colors for the calendar grid markers.
-var agentColors = []string{
+// Bot colors for the calendar grid markers.
+var botColors = []string{
 	"#2980fb", // blue
 	"#cf72d9", // purple
 	"#97a022", // green
@@ -52,8 +52,8 @@ func RenderWeekGrid(store *CalendarStore, weekStart time.Time) string {
 	// Collect events per day
 	events := store.GetEventsForWeek(weekStart)
 	type daySlot struct {
-		AgentSlug string
-		Time      string
+		BotSlug string
+		Time    string
 	}
 	daySlots := make([][]daySlot, 7)
 	for _, ev := range events {
@@ -66,42 +66,42 @@ func RenderWeekGrid(store *CalendarStore, weekStart time.Time) string {
 			continue
 		}
 		daySlots[dayIdx] = append(daySlots[dayIdx], daySlot{
-			AgentSlug: ev.AgentSlug,
-			Time:      ev.ScheduledAt.Format("15:04"),
+			BotSlug: ev.BotSlug,
+			Time:    ev.ScheduledAt.Format("15:04"),
 		})
 	}
 
-	// Deduplicate per day: group by agent, show count if >1
-	dayAgents := make([][]agentDay, 7)
+	// Deduplicate per day: group by bot, show count if >1
+	dayBots := make([][]botDay, 7)
 	for d := 0; d < 7; d++ {
-		seen := map[string]*agentDay{}
+		seen := map[string]*botDay{}
 		var order []string
 		for _, slot := range daySlots[d] {
-			if ad, ok := seen[slot.AgentSlug]; ok {
+			if ad, ok := seen[slot.BotSlug]; ok {
 				ad.Times = append(ad.Times, slot.Time)
 			} else {
-				ad := &agentDay{Slug: slot.AgentSlug, Times: []string{slot.Time}}
-				seen[slot.AgentSlug] = ad
-				order = append(order, slot.AgentSlug)
+				ad := &botDay{Slug: slot.BotSlug, Times: []string{slot.Time}}
+				seen[slot.BotSlug] = ad
+				order = append(order, slot.BotSlug)
 			}
 		}
 		for _, slug := range order {
-			dayAgents[d] = append(dayAgents[d], *seen[slug])
+			dayBots[d] = append(dayBots[d], *seen[slug])
 		}
 	}
 
-	// Build color map for agents
+	// Build color map for bots
 	schedules := store.ListSchedules()
 	colorMap := make(map[string]string)
 	for i, s := range schedules {
-		colorMap[s.AgentSlug] = agentColors[i%len(agentColors)]
+		colorMap[s.BotSlug] = botColors[i%len(botColors)]
 	}
 
 	// Determine max rows needed
 	maxRows := 0
-	for _, agents := range dayAgents {
+	for _, bots := range dayBots {
 		rows := 0
-		for range agents {
+		for range bots {
 			rows += 2 // name + time summary
 		}
 		if rows > maxRows {
@@ -117,7 +117,7 @@ func RenderWeekGrid(store *CalendarStore, weekStart time.Time) string {
 	for row := 0; row < maxRows; row++ {
 		var cells []string
 		for d := 0; d < 7; d++ {
-			cell := renderDayCell(dayAgents[d], row, colWidth, colorMap)
+			cell := renderDayCell(dayBots[d], row, colWidth, colorMap)
 			cells = append(cells, cell)
 		}
 		gridLines = append(gridLines, strings.Join(cells, " "))
@@ -135,12 +135,12 @@ func RenderWeekGrid(store *CalendarStore, weekStart time.Time) string {
 }
 
 // renderDayCell renders a single cell for a day column at the given row index.
-func renderDayCell(agents []agentDay, row, width int, colorMap map[string]string) string {
-	// Each agent takes 2 rows: name, time
+func renderDayCell(bots []botDay, row, width int, colorMap map[string]string) string {
+	// Each bot takes 2 rows: name, time
 	currentRow := 0
-	for _, ad := range agents {
+	for _, ad := range bots {
 		if row == currentRow {
-			// Agent name row
+			// Bot name row
 			color := colorMap[ad.Slug]
 			if color == "" {
 				color = "#838485"

@@ -21,7 +21,7 @@ honest scripted preview; with a key it is the real thing.
 ## 2. The cua decision (shell)
 
 We evaluated [`trycua/cua`](https://github.com/trycua/cua) — open-source
-infrastructure for computer-use agents. Its load-bearing piece for us is **Cua
+infrastructure for computer-use bots. Its load-bearing piece for us is **Cua
 Drivers**: a locally-installed native service that **observes and drives the
 real macOS/Windows desktop in the background** (no focus stealing) and exposes
 an **MCP server** (`cua-driver mcp`).

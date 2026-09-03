@@ -10,14 +10,14 @@ import (
 // the frontend depends on: every emitted line carries kind:"headless_event"
 // (so the React StreamLineView's branch-by-discriminator can short-circuit
 // without inspecting type-specific fields), and the line lands in the
-// agentStream task buffer with the canonical JSON encoding.
+// botStream task buffer with the canonical JSON encoding.
 func TestPushHeadlessEventEncodesDiscriminatorAndPushes(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:     HeadlessEventTypeIdle,
 		Provider: HeadlessProviderClaude,
-		Agent:    "ceo",
+		Bot:      "ceo",
 		TaskID:   "task-42",
 		Text:     "reply ready · ttft 120ms",
 		Status:   "idle",
@@ -46,8 +46,8 @@ func TestPushHeadlessEventEncodesDiscriminatorAndPushes(t *testing.T) {
 	if decoded.Type != HeadlessEventTypeIdle {
 		t.Fatalf("type: want idle, got %q", decoded.Type)
 	}
-	if decoded.Provider != HeadlessProviderClaude || decoded.Agent != "ceo" {
-		t.Fatalf("provider/agent: %+v", decoded)
+	if decoded.Provider != HeadlessProviderClaude || decoded.Bot != "ceo" {
+		t.Fatalf("provider/bot: %+v", decoded)
 	}
 	if decoded.StartedAt == "" {
 		t.Fatal("StartedAt must be populated by pushHeadlessEvent default")
@@ -76,7 +76,7 @@ func TestPushHeadlessEventNilStreamIsSafe(t *testing.T) {
 // flow into the same wire envelope so a single React component can
 // render both.
 func TestEmitHeadlessTerminalIdleAndError(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 
 	metrics := headlessProgressMetrics{TotalMs: 800, FirstTextMs: 90}
 	emitHeadlessTerminal(stream, HeadlessProviderCodex, "eng", "task-7", "reply ready · ttft 90ms", "", metrics, &headlessTokenUsage{InputTokens: 100, OutputTokens: 60})
@@ -118,7 +118,7 @@ func TestEmitHeadlessTerminalIdleAndError(t *testing.T) {
 // text chunk carries kind="headless_event", type="text", the turn
 // correlation key, and the runner-supplied raw_type for debug tooling.
 func TestEmitHeadlessTextDropsEmptyAndCarriesTurn(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 
 	// Empty / whitespace-only text must not produce an event.
 	emitHeadlessText(stream, "turn-1", HeadlessProviderClaude, "ceo", "task-1", "", "claude.text")
@@ -155,7 +155,7 @@ func TestEmitHeadlessTextDropsEmptyAndCarriesTurn(t *testing.T) {
 // carries the truncated summary text. Both variants share the same
 // turn id so a downstream consumer can correlate call -> result.
 func TestEmitHeadlessToolUseAndToolResult(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 
 	emitHeadlessToolUse(stream, "turn-2", HeadlessProviderCodex, "eng", "task-7", "team_broadcast", `{"channel":"team","content":"shipped"}`, "response.function_call.delta")
 	emitHeadlessToolResult(stream, "turn-2", HeadlessProviderCodex, "eng", "task-7", "team_broadcast", "Posted to #team as @eng", "response.function_call_result")
@@ -217,7 +217,7 @@ func TestNewHeadlessTurnIDIsUnique(t *testing.T) {
 // list is sorted alphabetically so wire output is deterministic, and the
 // event carries the same turn/task correlation IDs as per-phase events.
 func TestEmitHeadlessManifestAggregatesAndSorts(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	metrics := headlessProgressMetrics{TotalMs: 2000, FirstTextMs: 80}
 
 	// Read called 3 times, Edit called 1 time, Bash called 2 times — expect
@@ -278,7 +278,7 @@ func TestEmitHeadlessManifestAggregatesAndSorts(t *testing.T) {
 // flips the manifest status to "error" so consumers can distinguish failed
 // turns without also reading the preceding idle/error event.
 func TestEmitHeadlessManifestErrorTurnStatus(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	emitHeadlessManifest(stream, "turn-err", HeadlessProviderCodex, "eng", "task-e", "auth: 401",
 		nil, 0, headlessProgressMetrics{TotalMs: 300}, nil)
 	lines := stream.recentTask("task-e")
@@ -298,7 +298,7 @@ func TestEmitHeadlessManifestErrorTurnStatus(t *testing.T) {
 // still emits a manifest with zero-length ToolCalls (omitted from wire
 // JSON due to omitempty) but still carries TextLen and Metrics.
 func TestEmitHeadlessManifestEmptyTools(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	metrics := headlessProgressMetrics{TotalMs: 500}
 
 	emitHeadlessManifest(stream, "turn-m2", HeadlessProviderCodex, "eng", "task-1", "",
@@ -350,7 +350,7 @@ func TestEmitHeadlessManifestNilStreamIsSafe(t *testing.T) {
 // before appending, but other callers could pass raw provider names
 // that arrive empty; the filter ensures they don't inflate the count.
 func TestEmitHeadlessManifestFiltersEmptyToolNames(t *testing.T) {
-	stream := &agentStreamBuffer{subs: make(map[int]agentStreamSubscriber)}
+	stream := &botStreamBuffer{subs: make(map[int]botStreamSubscriber)}
 	toolNames := []string{"Read", "", "  ", "Edit", ""}
 	emitHeadlessManifest(stream, "turn-f1", HeadlessProviderClaude, "ceo", "task-f", "",
 		toolNames, 0, headlessProgressMetrics{}, nil)

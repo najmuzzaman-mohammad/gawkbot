@@ -223,7 +223,7 @@ type SlackTransport struct {
 	botUserID string
 	// botUserName is this bot's own Slack display name (auth.test "user").
 	// Outbound rendering uses it as the coordinator's public voice: internal
-	// office agents never present as separate Slack actors — WUPHF is one bot
+	// office bots never present as separate Slack actors — WUPHF is one bot
 	// coordinating, so references to the office lead render as the bot name.
 	botUserName string
 
@@ -231,7 +231,7 @@ type SlackTransport struct {
 	// FormatOutbound and writes from routeInbound (learning new users).
 	mapsMu sync.RWMutex
 
-	// spawnedClients caches per-spawned-agent Web API clients keyed by office
+	// spawnedClients caches per-spawned-bot Web API clients keyed by office
 	// slug — written once per slug, read on every Send. See
 	// slack_spawned_agents.go for the lookup and construction.
 	spawnedClients sync.Map
@@ -470,9 +470,9 @@ func (t *SlackTransport) handleEvent(ctx context.Context, host transport.Host, e
 // it to the office via host.UpsertParticipant + host.ReceiveMessage. Subtyped
 // events (edits/joins/etc.), the bot's own messages, and messages on unmapped
 // channels are skipped. Bot-authored messages are dropped UNLESS the author's
-// Slack user id is registered as a foreign agent via /slack/agents — those flow
+// Slack user id is registered as a foreign bot via /slack/bots — those flow
 // inbound attributed to the registered office slug as non-human participants,
-// which is the ingress half of multi-agent coordination (the egress half is the
+// which is the ingress half of multi-bot coordination (the egress half is the
 // packer's @-mention delegation). Returns a non-nil error only on a Host
 // contract failure (e.g. ErrBindingChannelMissing), matching telegram's
 // routeInbound so the caller can surface it for supervised restart.
@@ -490,11 +490,11 @@ func (t *SlackTransport) routeInbound(ctx context.Context, host transport.Host, 
 	if t.botUserID != "" && msg.User == t.botUserID {
 		return nil
 	}
-	// Echo guard for SPAWNED office agents (broker_slack_spawn.go): their
-	// Slack posts are office-originated (Send posts them with the agent's own
-	// token), so they must never re-ingress as new inbound. Foreign agents
-	// (ingress allowed) resolve via foreignAgentSlug below instead.
-	if t.Broker != nil && t.Broker.IsSpawnedSlackAgentUserID(msg.User) {
+	// Echo guard for SPAWNED office bots (broker_slack_spawn.go): their
+	// Slack posts are office-originated (Send posts them with the bot's own
+	// token), so they must never re-ingress as new inbound. Foreign bots
+	// (ingress allowed) resolve via foreignBotSlug below instead.
+	if t.Broker != nil && t.Broker.IsSpawnedSlackBotUserID(msg.User) {
 		return nil
 	}
 	if strings.TrimSpace(msg.Text) == "" {
@@ -509,25 +509,25 @@ func (t *SlackTransport) routeInbound(ctx context.Context, host transport.Host, 
 		return nil
 	}
 
-	// Resolve the sender. A registered foreign agent is attributed to its
+	// Resolve the sender. A registered foreign bot is attributed to its
 	// office slug and marked non-human; every OTHER bot-authored message —
 	// unregistered bot users, legacy bot_message posts without a user id, and
 	// our own posts when auth.test never resolved botUserID — drops here.
 	// Registration is the ingress allowlist: fail-closed by default.
 	var fromName string
 	var human bool
-	if agentSlug := t.foreignAgentSlug(msg.User); agentSlug != "" {
-		fromName, human = agentSlug, false
+	if botSlug := t.foreignBotSlug(msg.User); botSlug != "" {
+		fromName, human = botSlug, false
 	} else if msg.BotID != "" || msg.SubType == "bot_message" || msg.User == "" {
 		return nil
 	} else {
 		fromName, human = t.resolveUser(ctx, msg.User)
 		if !human {
 			// resolveUser classified this user as a bot (users.info IsBot) but
-			// it is not a registered foreign agent — fail closed, exactly like
+			// it is not a registered foreign bot — fail closed, exactly like
 			// the BotID/subtype guard above. A bot whose message happens to
-			// arrive in plain-user shape must not slip past the /slack/agents
-			// allowlist. Only humans and allowlisted agents ingress.
+			// arrive in plain-user shape must not slip past the /slack/bots
+			// allowlist. Only humans and allowlisted bots ingress.
 			return nil
 		}
 	}
@@ -567,7 +567,7 @@ var slackInboundMentionRE = regexp.MustCompile(`<@([UW][A-Z0-9]+)(?:\|[^>]*)?>`)
 // the broker's mention machinery understands who is addressed: a mention of
 // OUR bot becomes "@<lead>" (tagging the wuphf bot is how a Slack human talks
 // to the office — without this the lead never wakes); a registered foreign
-// agent becomes "@<slug>"; any other user becomes its cached display name
+// bot becomes "@<slug>"; any other user becomes its cached display name
 // (people are referenced, not office actors).
 func (t *SlackTransport) translateInboundMentions(ctx context.Context, text string) string {
 	if !strings.Contains(text, "<@") {
@@ -585,7 +585,7 @@ func (t *SlackTransport) translateInboundMentions(ctx context.Context, text stri
 			}
 		}
 		if t.Broker != nil {
-			if slug := t.Broker.SlackAgentSlugByUserID(userID); slug != "" {
+			if slug := t.Broker.SlackBotSlugByUserID(userID); slug != "" {
 				return "@" + slug
 			}
 		}
@@ -594,18 +594,18 @@ func (t *SlackTransport) translateInboundMentions(ctx context.Context, text stri
 	})
 }
 
-// foreignAgentSlug resolves a Slack user id to a registered foreign agent's
-// office slug via the /slack/agents registry. Returns "" for empty ids,
+// foreignBotSlug resolves a Slack user id to a registered foreign bot's
+// office slug via the /slack/bots registry. Returns "" for empty ids,
 // unregistered ids, and — as an echo guard even against a misconfigured
 // registration of our own bot — the transport's own bot user id.
-func (t *SlackTransport) foreignAgentSlug(userID string) string {
+func (t *SlackTransport) foreignBotSlug(userID string) string {
 	if userID == "" || t.Broker == nil {
 		return ""
 	}
 	if t.botUserID != "" && userID == t.botUserID {
 		return ""
 	}
-	return t.Broker.SlackAgentSlugByUserID(userID)
+	return t.Broker.SlackBotSlugByUserID(userID)
 }
 
 // Send delivers one outbound message to the Slack channel mapped to
@@ -617,9 +617,9 @@ func (t *SlackTransport) Send(ctx context.Context, msg transport.Outbound) error
 	if channelID == "" {
 		return fmt.Errorf("slack: no channel mapped for %q", msg.Binding.ChannelSlug)
 	}
-	// Post with the spawned agent's own client when the outbound carries a
+	// Post with the spawned bot's own client when the outbound carries a
 	// spawned-sender participant (slack_spawned_agents.go), so the message
-	// appears in Slack as that agent; the main bot client otherwise.
+	// appears in Slack as that bot; the main bot client otherwise.
 	api := t.postClientFor(msg.Participant)
 	opts := []slack.MsgOption{slack.MsgOptionText(msg.Text, false)}
 	// A decision/interview message renders as an interactive Block Kit card with
@@ -677,12 +677,12 @@ func (t *SlackTransport) FormatOutbound(msg channelMessage) (transport.Outbound,
 	// either already lives in Slack (typed there, marked delivered on inbound)
 	// or came from another surface (web/API), where WUPHF speaking AS that human
 	// in Slack is wrong — the office is one coordinating bot, never a person.
-	// Decision/interview cards are agent-authored (From is the raising agent),
+	// Decision/interview cards are bot-authored (From is the raising bot),
 	// so the approval-gate path is unaffected.
 	if isHumanMessageSender(msg.From) {
 		return transport.Outbound{}, false
 	}
-	// A spawned Slack agent posts as ITSELF: capture the sender BEFORE the
+	// A spawned Slack bot posts as ITSELF: capture the sender BEFORE the
 	// display-name rewrite below and carry it to Send via the otherwise-unused
 	// Participant field (see slack_spawned_agents.go).
 	spawnedSender := t.spawnedSenderParticipant(msg.From)
@@ -705,7 +705,7 @@ func (t *SlackTransport) FormatOutbound(msg channelMessage) (transport.Outbound,
 
 // leadingMentionSlugs parses the ADDRESSING position of a message: the run of
 // "@slug" tokens (separated by spaces/commas) at the very start of the content.
-// Only these are messages TO an agent — a real Slack ping is appropriate and a
+// Only these are messages TO a bot — a real Slack ping is appropriate and a
 // response is expected. "@slug" anywhere later is a reference, not an address;
 // pinging on references makes bots answer messages that merely talk ABOUT them.
 func leadingMentionSlugs(content string) map[string]bool {
@@ -728,7 +728,7 @@ func leadingMentionSlugs(content string) map[string]bool {
 
 // displayNameForOffice maps an office sender identity to the name real Slack
 // users should see. WUPHF presents as ONE coordinating bot in Slack: internal
-// office agents (ceo, planner, …) are an implementation detail, so their
+// office bots (ceo, planner, …) are an implementation detail, so their
 // messages carry NO sender attribution — Slack already shows the bot as the
 // speaker. Humans keep a minimal attribution (they are a genuinely different
 // speaker), and gate actors (human:<slack user id>) resolve to their cached
@@ -755,7 +755,7 @@ func (t *SlackTransport) displayNameForOffice(from string) string {
 	}
 	if t.Broker != nil {
 		if _, isMember := t.Broker.MemberDisplayNames()[normalizeActorSlug(from)]; isMember {
-			// Internal agent → the bot speaks as itself, no role theater.
+			// Internal bot → the bot speaks as itself, no role theater.
 			return ""
 		}
 	}
@@ -763,7 +763,7 @@ func (t *SlackTransport) displayNameForOffice(from string) string {
 }
 
 // renderOfficeTags rewrites office-internal "@slug" tokens for SLACK READERS:
-// a REGISTERED foreign agent becomes a real <@U…> mention so the bot is
+// a REGISTERED foreign bot becomes a real <@U…> mention so the bot is
 // actually pinged; the office LEAD becomes the bot's own Slack name (WUPHF is
 // one coordinating bot — there is no public "Chief of Staff"); every other member token
 // becomes its plain display name, because a tag that cannot be tagged in
@@ -781,8 +781,8 @@ func (t *SlackTransport) renderOfficeTags(text string, addressed map[string]bool
 		if slug == "" {
 			continue
 		}
-		if userID := t.Broker.SlackAgentUserIDBySlug(slug); userID != "" {
-			// Ping ONLY when the message addresses the agent (leading-mention
+		if userID := t.Broker.SlackBotUserIDBySlug(slug); userID != "" {
+			// Ping ONLY when the message addresses the bot (leading-mention
 			// position) — a ping is a request to respond. References render
 			// as the plain name so bots don't answer messages about them.
 			if addressed[slug] {

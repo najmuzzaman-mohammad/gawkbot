@@ -6,7 +6,7 @@
 // is embedded (not just read from templates/app-scaffold/ at runtime) so the
 // broker can PRE-SCAFFOLD a new app the instant its build task is created — the
 // live preview then boots a real dev server in seconds instead of showing
-// minutes of "Building…" dead air. The same files remain on disk for the agent
+// minutes of "Building…" dead air. The same files remain on disk for the bot
 // to read directly; this embed is the single source of truth either way.
 //
 // The go:embed directive cannot reference parent directories, so this package

@@ -3,7 +3,7 @@ package team
 import (
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 	"github.com/nex-crm/wuphf/internal/providertest"
 )
@@ -28,9 +28,9 @@ func TestUsesPaneRuntime_ConsultsRegistryCapabilities(t *testing.T) {
 	const fakeKind = "wuphf-test-fake-non-pane"
 	providertest.RegisterForTest(t, &provider.Entry{
 		Kind: fakeKind,
-		StreamFn: func(slug string) agent.StreamFn {
-			return func([]agent.Message, []agent.AgentTool) <-chan agent.StreamChunk {
-				ch := make(chan agent.StreamChunk)
+		StreamFn: func(slug string) bot.StreamFn {
+			return func([]bot.Message, []bot.BotTool) <-chan bot.StreamChunk {
+				ch := make(chan bot.StreamChunk)
 				close(ch)
 				return ch
 			}
@@ -52,9 +52,9 @@ func TestUsesPaneRuntime_PaneEligibleProviderStaysTrue(t *testing.T) {
 	const fakeKind = "wuphf-test-fake-pane"
 	providertest.RegisterForTest(t, &provider.Entry{
 		Kind: fakeKind,
-		StreamFn: func(slug string) agent.StreamFn {
-			return func([]agent.Message, []agent.AgentTool) <-chan agent.StreamChunk {
-				ch := make(chan agent.StreamChunk)
+		StreamFn: func(slug string) bot.StreamFn {
+			return func([]bot.Message, []bot.BotTool) <-chan bot.StreamChunk {
+				ch := make(chan bot.StreamChunk)
 				close(ch)
 				return ch
 			}
@@ -79,8 +79,8 @@ func TestRequiresClaudeSessionReset_OnlyTrueForClaude(t *testing.T) {
 	if provider.CapabilitiesFor(provider.KindCodex).RequiresClaudeSessionReset {
 		t.Error("Codex should declare RequiresClaudeSessionReset=false (no Claude session state)")
 	}
-	if provider.CapabilitiesFor(provider.KindHermesAgent).RequiresClaudeSessionReset {
-		t.Error("Hermes Agent should declare RequiresClaudeSessionReset=false (no Claude session state)")
+	if provider.CapabilitiesFor(provider.KindHermesBot).RequiresClaudeSessionReset {
+		t.Error("Hermes Bot should declare RequiresClaudeSessionReset=false (no Claude session state)")
 	}
 	if provider.CapabilitiesFor(provider.KindOpenclawHTTP).RequiresClaudeSessionReset {
 		t.Error("OpenClaw Gateway HTTP should declare RequiresClaudeSessionReset=false (no Claude session state)")

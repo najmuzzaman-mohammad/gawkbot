@@ -16,7 +16,7 @@ import (
 // Starter routine for a first build — SERVER-side.
 //
 // The described workflow IS the recurring job, so a brand-new operator-built
-// agent gets one standing routine minted from its build description. This
+// bot gets one standing routine minted from its build description. This
 // used to live in the builder chat's completion effect (FE), which only fired
 // while that chat stayed mounted: the 2026-08-16 fresh-workspace QA pass lost
 // the starter routine because the operator navigated away (and the broker
@@ -140,7 +140,7 @@ func (b *Broker) advisePublishOddities(app CustomApp) {
 	if oddity == "" || strings.TrimSpace(app.EditChannel) == "" {
 		return
 	}
-	msg := fmt.Sprintf("Heads up on %q: %s. Open the agent to check, and tell me what to fix here if it looks wrong.", app.Name, oddity)
+	msg := fmt.Sprintf("Heads up on %q: %s. Open the bot to check, and tell me what to fix here if it looks wrong.", app.Name, oddity)
 	if _, err := b.PostMessage(appBuilderSlug, app.EditChannel, msg, nil, ""); err != nil {
 		log.Printf("publish-advisory: %s: %v", app.ID, err)
 	}
@@ -148,10 +148,10 @@ func (b *Broker) advisePublishOddities(app CustomApp) {
 
 // mintOperatorPlaybookForFirstBuild captures the operator's described
 // workflow into the company brain at first registration — VERBATIM, with
-// provenance. Onboarding promises "write the rules once and every agent
+// provenance. Onboarding promises "write the rules once and every bot
 // reads them", but until now nothing ever wrote the operator's rules INTO
 // the brain: the description (thresholds, tiers, cadences) lived only
-// inside the built app (2026-08-17 quality audit — the wiki held agent
+// inside the built app (2026-08-17 quality audit — the wiki held bot
 // SOULs and app self-guides, never the operator's own policy).
 func (b *Broker) mintOperatorPlaybookForFirstBuild(app CustomApp, description string) {
 	worker := b.WikiWorker()
@@ -168,7 +168,7 @@ func (b *Broker) mintOperatorPlaybookForFirstBuild(app CustomApp, description st
 	}
 	quoted := "> " + strings.ReplaceAll(strings.TrimSpace(description), "\n", "\n> ")
 	content := fmt.Sprintf(
-		"# %s — the operator's workflow\n\nCaptured verbatim from the build request. This is the rule %s runs on; edit it here as your process evolves — agents read this page as first-class context.\n\n%s\n",
+		"# %s — the operator's workflow\n\nCaptured verbatim from the build request. This is the rule %s runs on; edit it here as your process evolves — bots read this page as first-class context.\n\n%s\n",
 		app.Name, app.Name, quoted,
 	)
 	if _, _, err := worker.Enqueue(context.Background(), appBuilderSlug, path, content, "create", "Capture the operator's described workflow at first build"); err != nil {
@@ -180,8 +180,8 @@ func (b *Broker) mintOperatorPlaybookForFirstBuild(app CustomApp, description st
 // team/playbooks/<slug>.md, or "" when there is no playbook (or it has no
 // recoverable rule). The operator routine fires this instead of the frozen
 // build-time snapshot so that editing the playbook — which the page explicitly
-// invites ("edit it here as your process evolves; agents read this page as
-// first-class context") — actually changes what the agent runs. Before this,
+// invites ("edit it here as your process evolves; bots read this page as
+// first-class context") — actually changes what the bot runs. Before this,
 // the playbook was write-only against the runtime: the routine ran a copy of
 // the description captured at mint, so the page's promise was a lie (2026-08-17
 // wiki audit). Falls back to the frozen payload at the call site on "".
@@ -270,8 +270,8 @@ func extractPlaybookRule(md string) string {
 }
 
 // mintStarterRoutineForFirstBuild creates the standing routine for a
-// human-initiated FIRST build (version 1). No-ops for refines, agent-created
-// apps, apps whose agent already has a routine, or descriptions we cannot
+// human-initiated FIRST build (version 1). No-ops for refines, bot-created
+// apps, apps whose bot already has a routine, or descriptions we cannot
 // recover. Runs off the registration request path; failures log and stop —
 // a missing starter routine must never fail a publish.
 func (b *Broker) mintStarterRoutineForFirstBuild(app CustomApp) {
@@ -292,10 +292,14 @@ func (b *Broker) mintStarterRoutineForFirstBuild(app CustomApp) {
 	now := time.Now().UTC()
 	nextRun := sched.Next(now).Format(time.RFC3339)
 
-	// "Pipeline Agent 2" -> "Pipeline": the dedupe counter and the Agent
+	// "Pipeline Bot 2" -> "Pipeline": the dedupe counter and the Bot
 	// suffix are roster bookkeeping, not routine vocabulary.
 	base := strings.TrimSpace(app.Name)
 	base = strings.TrimSpace(starterRoutineCounterRe.ReplaceAllString(base, ""))
+	// Both spellings: apps built before the Bot rename are still named
+	// "... Agent" on disk, and their routine labels should read the same as a
+	// freshly built one.
+	base = strings.TrimSpace(strings.TrimSuffix(base, "Bot"))
 	base = strings.TrimSpace(strings.TrimSuffix(base, "Agent"))
 	if base == "" {
 		base = app.Name
@@ -308,7 +312,7 @@ func (b *Broker) mintStarterRoutineForFirstBuild(app CustomApp) {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	// The agent already has a routine (a demo capture, a re-register, an
+	// The bot already has a routine (a demo capture, a re-register, an
 	// operator-made one): never stack a second.
 	for i := range b.scheduler {
 		if b.scheduler[i].Kind == "agent_routine" &&
@@ -353,7 +357,7 @@ func (b *Broker) mintStarterRoutineForFirstBuild(app CustomApp) {
 	b.recordSchedulerActivityLocked(unique, schedulerActivity{
 		Kind:    "created",
 		Actor:   appBuilderSlug,
-		Summary: "Starter routine created with the new agent",
+		Summary: "Starter routine created with the new bot",
 		Detail:  fmt.Sprintf("Initial revision v%d", saved.Version),
 	})
 	if err := b.saveLocked(); err != nil {

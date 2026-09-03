@@ -170,7 +170,7 @@ func synthesizeStarterPlan(name string, input SynthesisInput, workstreams []stri
 		//
 		// `workstreams` now shapes the LEAD's expertise instead of a planner's,
 		// so the synthesis still carries what it learned about the operation.
-		Agents: []StarterAgent{
+		Bots: []StarterBot{
 			{Slug: leadSlug, Emoji: "👔", Name: "Chief of Staff", Role: "Owns priorities, approvals, and escalation decisions", Checked: true, Type: "lead", BuiltIn: true, Expertise: workstreams},
 		},
 		// No channels. Named rooms are retired (channel.NamedChannelsEnabled),
@@ -182,7 +182,7 @@ func synthesizeStarterPlan(name string, input SynthesisInput, workstreams []stri
 		// Owned by the lead, with NO channel. An empty Channel is deliberate:
 		// the broker resolves a homeless task to its owner's DM, so these land
 		// in the conversation the human is actually in. The four lane-scoped
-		// tasks collapse into three because there are no longer four agents to
+		// tasks collapse into three because there are no longer four bots to
 		// split them across — but the work itself is unchanged.
 		Tasks: []StarterTask{
 			{Owner: leadSlug, Title: "Turn the directive into an operating plan", Details: firstOperationValue(input.Priority, input.Goals, input.Description, "Clarify scope, outcomes, constraints, and workstreams.")},

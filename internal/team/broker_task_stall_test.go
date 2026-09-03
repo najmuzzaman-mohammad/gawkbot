@@ -114,7 +114,7 @@ func TestStallWatchdogClearsMarkerOnFreshActivity(t *testing.T) {
 		t.Fatal("precondition: task should be stalled")
 	}
 
-	// An agent message in the task channel is an observable trace.
+	// A bot message in the task channel is an observable trace.
 	freshAt := base.Add(taskStallThreshold + 2*time.Minute)
 	b.mu.Lock()
 	b.counter++

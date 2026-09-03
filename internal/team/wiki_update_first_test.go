@@ -50,20 +50,20 @@ func TestRouteAgentCreateToSimilarSlug_AuthorExemptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, author := range []string{"system", "human", ""} {
-		path, mode := routeAgentCreateToSimilarSlug(dir, author, "team/decisions/office-296.md", "create")
+		path, mode := routeBotCreateToSimilarSlug(dir, author, "team/decisions/office-296.md", "create")
 		if path != "team/decisions/office-296.md" || mode != "create" {
 			t.Errorf("author %q: routed to (%s, %s); exempt authors must pass through", author, path, mode)
 		}
 	}
-	// An agent author in the same situation is ALSO passed through — the
+	// A bot author in the same situation is ALSO passed through — the
 	// numeric-token guard treats sequential ids as a series.
-	path, mode := routeAgentCreateToSimilarSlug(dir, "eng", "team/decisions/office-296.md", "create")
+	path, mode := routeBotCreateToSimilarSlug(dir, "eng", "team/decisions/office-296.md", "create")
 	if path != "team/decisions/office-296.md" || mode != "create" {
 		t.Errorf("numeric series: routed to (%s, %s); want pass-through", path, mode)
 	}
 }
 
-// An agent create with a similar-slug sibling routes to append on the
+// A bot create with a similar-slug sibling routes to append on the
 // existing article; replace mode and dissimilar slugs pass through.
 func TestRouteAgentCreateToSimilarSlug_Routing(t *testing.T) {
 	dir := t.TempDir()
@@ -74,23 +74,23 @@ func TestRouteAgentCreateToSimilarSlug_Routing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	path, mode := routeAgentCreateToSimilarSlug(dir, "eng", "team/accounts/acme-corp-briefing.md", "create")
+	path, mode := routeBotCreateToSimilarSlug(dir, "eng", "team/accounts/acme-corp-briefing.md", "create")
 	if path != "team/accounts/acme-corp-brief.md" || mode != "append_section" {
 		t.Errorf("similar create: got (%s, %s), want append on the existing brief", path, mode)
 	}
 
-	path, mode = routeAgentCreateToSimilarSlug(dir, "eng", "team/accounts/acme-corp-briefing.md", "replace")
+	path, mode = routeBotCreateToSimilarSlug(dir, "eng", "team/accounts/acme-corp-briefing.md", "replace")
 	if path != "team/accounts/acme-corp-briefing.md" || mode != "replace" {
 		t.Errorf("replace mode must pass through, got (%s, %s)", path, mode)
 	}
 
-	path, mode = routeAgentCreateToSimilarSlug(dir, "eng", "team/accounts/brightline-renewal-plan.md", "create")
+	path, mode = routeBotCreateToSimilarSlug(dir, "eng", "team/accounts/brightline-renewal-plan.md", "create")
 	if path != "team/accounts/brightline-renewal-plan.md" || mode != "create" {
 		t.Errorf("dissimilar create must pass through, got (%s, %s)", path, mode)
 	}
 }
 
-// End-to-end at the worker boundary: the second similar-slug agent create
+// End-to-end at the worker boundary: the second similar-slug bot create
 // lands as an append on the first article — one file on disk, and the B4
 // fold keeps a byte-identical double-write at one commit.
 func TestWikiWorkerUpdateFirstAndFold(t *testing.T) {
@@ -98,11 +98,11 @@ func TestWikiWorkerUpdateFirstAndFold(t *testing.T) {
 	defer teardown()
 
 	if _, _, err := worker.Enqueue(context.Background(), "eng", "team/accounts/acme-corp-brief.md",
-		"# Acme Corp brief\n", "create", "agent: brief"); err != nil {
+		"# Acme Corp brief\n", "create", "bot: brief"); err != nil {
 		t.Fatalf("first create: %v", err)
 	}
 	if _, _, err := worker.Enqueue(context.Background(), "eng", "team/accounts/acme-corp-briefing.md",
-		"## Addendum\nAPPEND-MARKER\n", "create", "agent: briefing"); err != nil {
+		"## Addendum\nAPPEND-MARKER\n", "create", "bot: briefing"); err != nil {
 		t.Fatalf("similar create: %v", err)
 	}
 	worker.WaitForIdle()
@@ -120,12 +120,12 @@ func TestWikiWorkerUpdateFirstAndFold(t *testing.T) {
 
 	// B4: byte-identical consecutive writes fold into one commit.
 	sha1, _, err := worker.Enqueue(context.Background(), "eng", "team/accounts/fold.md",
-		"# Fold\n", "replace", "agent: fold")
+		"# Fold\n", "replace", "bot: fold")
 	if err != nil {
 		t.Fatalf("fold write 1: %v", err)
 	}
 	sha2, _, err := worker.Enqueue(context.Background(), "eng", "team/accounts/fold.md",
-		"# Fold\n", "replace", "agent: fold again")
+		"# Fold\n", "replace", "bot: fold again")
 	if err != nil {
 		t.Fatalf("fold write 2: %v", err)
 	}

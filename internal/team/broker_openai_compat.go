@@ -1,7 +1,7 @@
 package team
 
 // broker_openai_compat.go — a minimal OpenAI-compatible /v1/chat/completions
-// route backed by the office's already-configured agent CLI.
+// route backed by the office's already-configured bot CLI.
 //
 // Why this exists
 // ===============

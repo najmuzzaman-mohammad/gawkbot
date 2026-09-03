@@ -76,12 +76,12 @@ base. Those are pure additive wins.
 | Intro step (dictionary cold-open) | `OfficeTour` slide 1 | Adapt | Retell as "what an office is" in WUPHF voice, serif `--font-logo` headline. |
 | Welcome / "what is this" / room setup steps | CEO greet + blueprint + team phases | Drop | Already covered, far better, by the CEO chat. |
 | Connect AI step (provider + verify) | `PrePickScreen` (exists) | Drop | WUPHF runtime picker + copy-sign-in-command (#932) already exceeds this. |
-| Hire agent step | CEO blueprint/team + `OfficeTour` slide 2 | Adapt | Hiring stays in the wizard; the explanation moves to the tour. |
+| Hire bot step | CEO blueprint/team + `OfficeTour` slide 2 | Adapt | Hiring stays in the wizard; the explanation moves to the tour. |
 | First task step | CEO `bridge` phase + tour finish handoff | Adapt | Tour finish drops the user into a real composer prefilled with an issue intent. |
 | Community step (GitHub / Discord / Cloud) | `GettingStartedChecklist` items | Adapt | Surfaced as the dormant `DefaultChecklist`. No "Cloud" upsell. |
 | Launch step | CEO `seed` + `complete` phases | Drop | Seed + land-in-`#general` already cover launch. |
-| **Tour modal + slides Intro/Data/Agents/Tasks** | `OfficeTour` + `useOfficeTour` | **Net-new** | The biggest gap. See section 4. |
-| **Tour mockup-sidebar** | `TourMockupSidebar` | **Net-new** | Mock of WUPHF's real sidebar (channels `#` + agents `@`), completion ticks. |
+| **Tour modal + slides Intro/Data/Bots/Tasks** | `OfficeTour` + `useOfficeTour` | **Net-new** | The biggest gap. See section 4. |
+| **Tour mockup-sidebar** | `TourMockupSidebar` | **Net-new** | Mock of WUPHF's real sidebar (channels `#` + bots `@`), completion ticks. |
 | Tour View-Transitions morph | `OfficeTour` transitions | Adapt | Feature-detect `startViewTransition`, gate behind `prefers-reduced-motion`, transform/opacity only. |
 | Tour ends in real composer | Tour finish navigates to CEO DM / `#general` | Port | Deposit the user mid-action, do not dead-end on "Done". |
 | **Seeded six-page getting-started wiki** | `team/getting-started/*.md` seeded at office seed | **Net-new content** | Authored fresh in WUPHF voice. See section 5. |
@@ -99,9 +99,9 @@ All under `web/src/components/onboarding/` unless noted. Reuse `ui/` primitives 
 | `tour/useOfficeTour.ts` | Auto-open once per browser via `localStorage: wuphf.office-tour-done`, `requestShowOfficeTour()` replay event, `markDone()`. Guards `typeof window`. | n/a |
 | `tour/TourMockupSidebar.tsx` | Decorative mock of WUPHF's real sidebar: workspace label + `#channel`/`@agent` rows + green completion ticks. | `--preview-row-*`, `--green`/`--green-bg`, `--font-mono`, `PixelAvatar` |
 | `tour/SlideIntro.tsx` | Slide 1: what an office is. Serif headline, mock sidebar materializing. | `--font-logo`, `--text-2xl`, `--text-secondary` |
-| `tour/SlideAgents.tsx` | Slide 2: agent = persona + heartbeat + claims work. | `--accent`, `--accent-bg`, status dots, `PixelAvatar` |
+| `tour/SlideAgents.tsx` | Slide 2: bot = persona + heartbeat + claims work. | `--accent`, `--accent-bg`, status dots, `PixelAvatar` |
 | `tour/SlideIssues.tsx` | Slide 3: file an issue, team cuts tasks and ships. Typed-command animation. | `--font-mono`, `--accent`, `--green` |
-| `tour/SlideWiki.tsx` | Slide 4: your context graph; seeded pages light up; agents read as first-class consumers. | `--bg-card`, `--border`, `--text` |
+| `tour/SlideWiki.tsx` | Slide 4: your context graph; seeded pages light up; bots read as first-class consumers. | `--bg-card`, `--border`, `--text` |
 | `tour/OfficeTour.tsx` | Modal host: slide registry, back/next/finish footer, progress dots, Esc-to-skip, arrow-key nav, finish handoff. | `--z-modal`, `--shadow-overlay`, `Button`, `Kbd` |
 | `GettingStartedChecklist.tsx` | Renders the dormant checklist (pick_team, second_key, github_repo, github_star, discord) as a dismissible panel. | `CollapsibleSection`, `Button`, `--green` ticks |
 | `useGettingStartedChecklist.ts` | Query/mutation hook over the EXISTING `/onboarding/state` + `/onboarding/checklist/{id}/done` + `/onboarding/checklist/dismiss`. | TanStack Query |
@@ -121,16 +121,16 @@ replayable from a Help entry via `requestShowOfficeTour()`. Slide motion uses `s
 when available, synchronous fallback otherwise, disabled under `prefers-reduced-motion`.
 
 **Mock sidebar** (`TourMockupSidebar`): a faithful mock of WUPHF's real left sidebar — workspace
-label, `#general`/`#engineering` channel group, `@ceo`/`@analyst`/`@engineer` agent rows with
+label, `#general`/`#engineering` channel group, `@ceo`/`@analyst`/`@engineer` bot rows with
 `PixelAvatar`s. Completion ticks light up per slide so the user watches their office fill in.
 `aria-hidden` on slides.
 
 **Slides** (copy finalized in section 6):
 
 1. **Intro — "This is your office."** Serif headline, one-line subhead, mock sidebar materializing.
-2. **Agents — "Your team, on the clock."** Hero agent card with three callouts: Persona, Heartbeat, Claims work.
+2. **Bots — "Your team, on the clock."** Hero bot card with three callouts: Persona, Heartbeat, Claims work.
 3. **Issues — "File it. They ship it."** Typed `@engineer ...` command, fan-out grid of task cards with live heartbeat dots, `#general` destination pill.
-4. **Wiki — "Write it once. The whole office knows."** Seeded wiki pages light up; agents read as first-class consumers. Finish CTA "Write your first issue" navigates to the composer.
+4. **Wiki — "Write it once. The whole office knows."** Seeded wiki pages light up; bots read as first-class consumers. Finish CTA "Write your first issue" navigates to the composer.
 
 **Finish handoff.** The finish button navigates to the CEO DM / `#general`, focuses the composer,
 optionally prefills an issue intent, and marks `wuphf.office-tour-done`.
@@ -139,18 +139,18 @@ optionally prefills an issue intent, and marks `wuphf.office-tour-done`.
 
 WUPHF already seeds `team/about/{README,company,owner}.md` at the office seed boundary
 (`company_seed.go`). Add a parallel `team/getting-started/` tree, authored fresh in WUPHF voice,
-seeded in the same atomic transaction, then regenerate the wiki index. Agents read these as
-first-class consumers, so this doubles as agent priming.
+seeded in the same atomic transaction, then regenerate the wiki index. Bots read these as
+first-class consumers, so this doubles as bot priming.
 
 | Reference topic | WUPHF page (`team/getting-started/*.md`) | Teaches |
 |---|---|---|
-| index.md | `index.md` — "How your office works" | The office metaphor: channels, agents, issues, wiki. |
+| index.md | `index.md` — "How your office works" | The office metaphor: channels, bots, issues, wiki. |
 | editor / WYSIWYG | folded into `the-wiki.md` | The wiki is the shared brain; markdown on disk; promotion from notebooks. |
-| AI panel / delegating-between-agents | `working-with-agents.md` | Personas + heartbeats; DM or `@mention`; issues cut into tasks and handed off. |
+| AI panel / delegating-between-bots | `working-with-agents.md` | Personas + heartbeats; DM or `@mention`; issues cut into tasks and handed off. |
 | apps-and-repos | `connecting-your-work.md` | Connect a GitHub repo, bring real work in (maps to `github_repo` checklist item). |
-| skills | `skills-and-runtimes.md` | What a skill is; how agents gain capabilities; runtime per agent. |
+| skills | `skills-and-runtimes.md` | What a skill is; how bots gain capabilities; runtime per bot. |
 | rooms | `channels.md` | WUPHF channels and DMs as the coordination surface. |
-| symlinks / load-knowledge | folded into `your-context-graph.md` | Wiki as a context graph agents query; temporal facts; reads count for humans and agents. |
+| symlinks / load-knowledge | folded into `your-context-graph.md` | Wiki as a context graph bots query; temporal facts; reads count for humans and bots. |
 
 Go side: extend `internal/operations/company_seed.go` with a `seedGettingStarted(...)` step
 (mirror the existing about/ seed), gated identically for blueprint and scratch paths, embed a
@@ -165,16 +165,16 @@ Go side: extend `internal/operations/company_seed.go` with a `seedGettingStarted
 | Next button | "Next" |
 | Finish button | "Write your first issue" |
 | Slide 1 headline | "This is your office." |
-| Slide 1 subhead | "A team of agents lives here. They claim work, they ship, and they actually answer your messages." |
+| Slide 1 subhead | "A team of bots lives here. They claim work, they ship, and they actually answer your messages." |
 | Slide 2 eyebrow | "MEET THE TEAM" |
 | Slide 2 headline | "Your team, on the clock." |
-| Slide 2 body | "Every agent has a role, a heartbeat that keeps it checking in, and a memory that does not reset. Unlike Ryan Howard, they actually ship." |
+| Slide 2 body | "Every bot has a role, a heartbeat that keeps it checking in, and a memory that does not reset. Unlike Ryan Howard, they actually ship." |
 | Slide 3 eyebrow | "FILE AN ISSUE" |
 | Slide 3 headline | "File it. They ship it." |
-| Slide 3 body | "Mention an agent with @, hand off a problem, and the work fans out into tasks across the team while you watch." |
+| Slide 3 body | "Mention a bot with @, hand off a problem, and the work fans out into tasks across the team while you watch." |
 | Slide 4 eyebrow | "YOUR CONTEXT GRAPH" |
 | Slide 4 headline | "Write it once. The whole office knows." |
-| Slide 4 body | "Your wiki is the shared brain. Agents read it as first-class citizens, so context you capture once never has to be repeated." |
+| Slide 4 body | "Your wiki is the shared brain. Bots read it as first-class citizens, so context you capture once never has to be repeated." |
 | Replay entry | "Replay the office tour" |
 | Checklist heading | "Settle into your office" |
 | Item pick_team | "Pick or trim your team" |
@@ -231,7 +231,7 @@ bunx secretlint "**/*"
 ### ICP tutorial scenarios (must pass end to end)
 
 1. **Sam, solo founder, first run.** Picks Claude Code, talks to CEO, picks Engineering blueprint,
-   trims to two agents, lands in `#general`. The office tour auto-opens once. Steps through four
+   trims to two bots, lands in `#general`. The office tour auto-opens once. Steps through four
    slides, mock sidebar fills with green ticks, finish CTA drops Sam into a composer prefilled with
    an issue intent. Wiki shows a populated Getting Started section. Checklist appears with five items.
    **Pass = tour auto-opens exactly once, finish lands in a focused composer, wiki and checklist non-empty.**

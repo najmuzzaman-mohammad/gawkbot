@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
@@ -35,7 +35,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 
 	var calls []string
 	var broadcast string
-	tools := []agent.AgentTool{
+	tools := []bot.BotTool{
 		{
 			Name:        "notebook_write",
 			Description: "Save the durable markdown source note before creating richer visual companions.",
@@ -80,7 +80,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 			},
 		},
 	}
-	toolByName := map[string]agent.AgentTool{}
+	toolByName := map[string]bot.BotTool{}
 	for _, tool := range tools {
 		toolByName[tool.Name] = tool
 	}
@@ -88,7 +88,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 	stream := &scriptedStreamFn{
 		turns: []scriptedTurn{
 			{
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					t.Helper()
 					if len(msgs) != 2 {
 						t.Fatalf("turn 1 messages=%d, want system+user", len(msgs))
@@ -105,7 +105,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 						}
 					}
 				},
-				chunks: []agent.StreamChunk{{
+				chunks: []bot.StreamChunk{{
 					Type:       "tool_use",
 					ToolName:   "notebook_write",
 					ToolParams: map[string]any{"article_path": sourcePath, "mode": "create", "content": "# Launch risk\n\nDense source notes."},
@@ -113,14 +113,14 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 				}},
 			},
 			{
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					t.Helper()
 					last := msgs[len(msgs)-1].Content
 					if !strings.Contains(last, `Tool "notebook_write" returned`) || !strings.Contains(last, sourcePath) {
 						t.Fatalf("turn 2 missing notebook_write result:\n%s", last)
 					}
 				},
-				chunks: []agent.StreamChunk{{
+				chunks: []bot.StreamChunk{{
 					Type:     "tool_use",
 					ToolName: "visual_artifact_create",
 					ToolParams: map[string]any{
@@ -132,14 +132,14 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 				}},
 			},
 			{
-				expectMessages: func(t *testing.T, msgs []agent.Message) {
+				expectMessages: func(t *testing.T, msgs []bot.Message) {
 					t.Helper()
 					last := msgs[len(msgs)-1].Content
 					if !strings.Contains(last, `Tool "visual_artifact_create" returned`) || !strings.Contains(last, artifactID) {
 						t.Fatalf("turn 3 missing artifact create result:\n%s", last)
 					}
 				},
-				chunks: []agent.StreamChunk{{
+				chunks: []bot.StreamChunk{{
 					Type:       "tool_use",
 					ToolName:   "team_broadcast",
 					ToolParams: map[string]any{"channel": "team", "content": "I saved the source note and made the launch-risk artifact.\nvisual-artifact:" + artifactID},
@@ -147,7 +147,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 				}},
 			},
 			{
-				chunks: []agent.StreamChunk{{Type: "text", Content: "Done."}},
+				chunks: []bot.StreamChunk{{Type: "text", Content: "Done."}},
 			},
 		},
 	}
@@ -158,7 +158,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 		toolByName:  toolByName,
 		maxIters:    6,
 		toolTimeout: time.Second,
-	}).run(context.Background(), []agent.Message{
+	}).run(context.Background(), []bot.Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: "Turn this launch-risk analysis into a durable note I can review quickly. Use whatever representation fits the work."},
 	})
@@ -179,7 +179,7 @@ func TestRichArtifactNaturalWorkflowPromptAndToolLoop(t *testing.T) {
 	}
 }
 
-func toolListIncludes(tools []agent.AgentTool, name, descriptionFragment string) bool {
+func toolListIncludes(tools []bot.BotTool, name, descriptionFragment string) bool {
 	for _, tool := range tools {
 		if tool.Name == name && strings.Contains(tool.Description, descriptionFragment) {
 			return true

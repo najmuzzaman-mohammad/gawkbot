@@ -13,8 +13,8 @@ package team
 //	    contract: an owner-set lane lands RUNNING and dispatches, an
 //	    ownerless lane lands READY and dispatch is gated only by
 //	    ownership (no start-approval ceremony).
-//	(c) a long-title task feeds NO clipped title into the agent-facing
-//	    details/packet of its repair sub-task (v3 [17:41:35]: one agent
+//	(c) a long-title task feeds NO clipped title into the bot-facing
+//	    details/packet of its repair sub-task (v3 [17:41:35]: one bot
 //	    pass consumed a truncated source and shipped a conflicting brief).
 //	(d) a double terminal-transition attempt produces exactly ONE
 //	    task_delivered post + ONE inbox notice (v3 6× done-messages), and
@@ -22,7 +22,7 @@ package team
 //	    one commit (v3 triple-identical commits).
 //	(e) decision/approval cards name the task owner from the TASK RECORD,
 //	    not the packet's last actor (v3 [18:44:21]: approve card named the
-//	    wrong agent).
+//	    wrong bot).
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/operations"
 )
 
@@ -48,7 +48,7 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		Starter: operations.StarterPlan{
 			LeadSlug:                  "ceo",
 			GeneralChannelDescription: "Primary coordination channel.",
-			Agents: []operations.StarterAgent{
+			Bots: []operations.StarterBot{
 				{Slug: "ceo", Name: "Chief of Staff", Role: "lead", Checked: true, BuiltIn: true},
 				{Slug: "eng", Name: "Engineer", Role: "engineering", Checked: true},
 			},
@@ -151,7 +151,7 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		return err
 	}
 	parentAID := parentA.Task.ID
-	child, reused, err := fx.broker.RequestSelfHealing("eng", parentAID, agent.EscalationStuck, "Agent stuck: provider session went stale.")
+	child, reused, err := fx.broker.RequestSelfHealing("eng", parentAID, bot.EscalationStuck, "Bot stuck: provider session went stale.")
 	if err != nil {
 		return err
 	}
@@ -159,10 +159,10 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		!reused && strings.TrimSpace(child.ParentIssueID) == parentAID && isSelfHealingTask(&child),
 		fmt.Sprintf("child=%s parent_issue_id=%q pipeline=%q", child.ID, child.ParentIssueID, child.PipelineID), "")
 
-	// A second escalation for the SAME stalled work (different agent +
+	// A second escalation for the SAME stalled work (different bot +
 	// reason → different exact title) merges into the open lane instead of
 	// spawning a sibling dup.
-	dup, dupReused, err := fx.broker.RequestSelfHealing("ceo", parentAID, agent.EscalationMaxRetries, "Repeated provider errors on the same task.")
+	dup, dupReused, err := fx.broker.RequestSelfHealing("ceo", parentAID, bot.EscalationMaxRetries, "Repeated provider errors on the same task.")
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 			strings.Contains(parentAfterHeal.Details, childDone.ID),
 		fmt.Sprintf("child=%s parentArtifact=%q parentState=%s", strings.TrimSpace(childDone.Status()), parentAfterHeal.Artifact, parentAfterHeal.LifecycleState), "")
 
-	// ── (c) no clipped title feeds the repair lane's agent-facing context ──
+	// ── (c) no clipped title feeds the repair lane's bot-facing context ──
 	const titleTail = "ACV $61,000 END-OF-TITLE-MARKER"
 	longTitle := "Corti Labs account brief covering the Q4 renewal motion, the champion-departure risk, the open support escalations, and the " + titleTail
 	const detailsTail = "The contract value is exactly $61,000 — END-OF-DETAILS-MARKER."
@@ -212,7 +212,7 @@ func evalJobTaskIntegrity(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	if err != nil {
 		return err
 	}
-	healC, _, err := fx.broker.RequestSelfHealing("eng", parentC.Task.ID, agent.EscalationStuck, "Stuck on the brief.")
+	healC, _, err := fx.broker.RequestSelfHealing("eng", parentC.Task.ID, bot.EscalationStuck, "Stuck on the brief.")
 	if err != nil {
 		return err
 	}

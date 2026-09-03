@@ -107,7 +107,7 @@ func (b *Broker) raisePlanApprovalInterviewLocked(taskID, actor, plan string) st
 		from = "office"
 	}
 	// The task's channel, else the owner's DM, else the asker's. This card is
-	// BLOCKING: the agent stalls until it is answered, so filing it into the
+	// BLOCKING: the bot stalls until it is answered, so filing it into the
 	// retired "general" hangs the plan on an approval the human never sees.
 	channel := normalizeChannelSlug(task.Channel)
 	if strings.TrimSpace(task.Channel) == "" {
@@ -122,10 +122,10 @@ func (b *Broker) raisePlanApprovalInterviewLocked(taskID, actor, plan string) st
 	}
 	var qb strings.Builder
 	// Lead with the decision in the human's terms: what they get, and what
-	// happens either way. The old copy opened with the agent's framing
+	// happens either way. The old copy opened with the bot's framing
 	// ("Plan ready for X. Review it and approve to start execution (the team
 	// will create the sub-tasks…)") and then pasted 1200 characters of the
-	// agent's own working plan — tool names, internal reasoning, and absolute
+	// bot's own working plan — tool names, internal reasoning, and absolute
 	// paths into the user's home directory. A human could not tell what it was
 	// for or why it was their problem.
 	fmt.Fprintf(&qb, "%s wants to start work on %s (%s).\n\n", ownerLabelForPlan(from), title, task.ID)
@@ -223,7 +223,7 @@ func (b *Broker) applyPlanApprovalAnswerLocked(req humanInterview, answer *inter
 	b.startApprovedPlanTaskLocked(task, actor)
 }
 
-// ownerLabelForPlan renders the requesting agent for a human audience.
+// ownerLabelForPlan renders the requesting bot for a human audience.
 func ownerLabelForPlan(slug string) string {
 	slug = strings.TrimSpace(slug)
 	if slug == "" || slug == "office" {
@@ -232,15 +232,15 @@ func ownerLabelForPlan(slug string) string {
 	return "@" + slug
 }
 
-// humanReadablePlanSummary turns an agent's working plan into something worth
+// humanReadablePlanSummary turns a bot's working plan into something worth
 // putting in front of a person.
 //
-// An agent writes its plan for itself: MCP tool names, step-by-step mechanics,
+// A bot writes its plan for itself: MCP tool names, step-by-step mechanics,
 // and the absolute path of the plan file on disk. Pasted raw into an approval
 // card that becomes noise the human has to decode before they can answer a
 // yes/no question — and it leaks local filesystem paths into a shared surface.
 //
-// This keeps the substance and drops what only the agent needs: absolute paths
+// This keeps the substance and drops what only the bot needs: absolute paths
 // are removed, and the whole thing is capped short enough to read at a glance.
 // The full plan stays available on the task itself for anyone who wants it.
 func humanReadablePlanSummary(plan string) string {

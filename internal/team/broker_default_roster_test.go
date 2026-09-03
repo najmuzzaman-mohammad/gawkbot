@@ -8,17 +8,17 @@ import (
 	"testing"
 )
 
-// The founder retired every default agent except the lead: "planner,executor,
+// The founder retired every default bot except the lead: "planner,executor,
 // reviewer always show up as default in a workspace. let's remove them
 // completely from everywhere. that concept should now be gone with those bots
 // as default. their defintions also shouldn't exist" — after twice asking for
 // the Librarian and App Builder to go ("there should be no librarian or app
-// builder agent anymore by default").
+// builder bot anymore by default").
 //
 // These tests pin the OUTCOME on a constructed broker, not that a seeding
 // function returned early. That distinction is the whole reason this file
 // exists: the first removal attempt edited the default roster and looked done,
-// while the ensure-style back-fills quietly re-added both agents on every
+// while the ensure-style back-fills quietly re-added both bots on every
 // load. A test on the seed list alone stayed green through the entire bug.
 
 // A brand-new office is the Chief of Staff alone, reachable in one DM.
@@ -57,10 +57,10 @@ func TestFreshOfficeSeedsOnlyTheChiefOfStaff(t *testing.T) {
 	}
 }
 
-// The retired agents' definitions are gone from every seed path, and — the
+// The retired bots' definitions are gone from every seed path, and — the
 // part that failed last time — nothing re-adds them on load. A roster without
 // them stays without them.
-func TestLoadDoesNotResurrectRetiredAgents(t *testing.T) {
+func TestLoadDoesNotResurrectRetiredBots(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "broker-state.json")
 	b := NewBrokerAt(path)
 	b.mu.Lock()
@@ -76,7 +76,7 @@ func TestLoadDoesNotResurrectRetiredAgents(t *testing.T) {
 	for _, m := range b2.members {
 		switch m.Slug {
 		case "librarian", "app-builder", "planner", "executor", "reviewer":
-			t.Errorf("reboot resurrected retired agent %q: a back-fill is still live", m.Slug)
+			t.Errorf("reboot resurrected retired bot %q: a back-fill is still live", m.Slug)
 		}
 	}
 	if len(b2.members) != 1 {
@@ -85,11 +85,11 @@ func TestLoadDoesNotResurrectRetiredAgents(t *testing.T) {
 }
 
 // Existing workspaces are the other half of the contract. Their retired
-// agents own DMs, tasks, and history on real disks, so they LOAD unchanged —
+// bots own DMs, tasks, and history on real disks, so they LOAD unchanged —
 // except for two reconciliations: the Office-referencing display name
 // "Pam the librarian" is rebranded (the founder banned Office references),
-// and the retired agents lose BuiltIn so users can finally delete them.
-func TestLegacyWorkspaceKeepsItsAgentsButDropsTheOfficeName(t *testing.T) {
+// and the retired bots lose BuiltIn so users can finally delete them.
+func TestLegacyWorkspaceKeepsItsBotsButDropsTheOfficeName(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "broker-state.json")
 
@@ -130,17 +130,17 @@ func TestLegacyWorkspaceKeepsItsAgentsButDropsTheOfficeName(t *testing.T) {
 	}
 	for _, slug := range []string{"ceo", "librarian", "app-builder", "planner"} {
 		if _, ok := got[slug]; !ok {
-			t.Fatalf("legacy member %q was dropped on load: existing workspaces must keep their agents", slug)
+			t.Fatalf("legacy member %q was dropped on load: existing workspaces must keep their bots", slug)
 		}
 	}
 	if name := got["librarian"].Name; name != "Librarian" {
 		t.Errorf("librarian name = %q, want \"Librarian\" (Office references are banned)", name)
 	}
 	if got["librarian"].BuiltIn {
-		t.Error("legacy librarian still BuiltIn: users could not delete an agent the product no longer defines")
+		t.Error("legacy librarian still BuiltIn: users could not delete a bot the product no longer defines")
 	}
 	if got["app-builder"].BuiltIn {
-		t.Error("legacy app-builder still BuiltIn: users could not delete an agent the product no longer defines")
+		t.Error("legacy app-builder still BuiltIn: users could not delete a bot the product no longer defines")
 	}
 	if !got["ceo"].BuiltIn {
 		t.Error("the lead lost BuiltIn on load")
@@ -158,7 +158,7 @@ func TestLegacyWorkspaceKeepsItsAgentsButDropsTheOfficeName(t *testing.T) {
 // features and ask for the person's goal to plan the first thing to do."
 //
 // The regression this pins: the old welcome was posted From "system" with
-// copy describing a six-agent office ("the team are online and ready ...
+// copy describing a six-bot office ("the team are online and ready ...
 // they'll claim work, argue, and ship"). Landing in a DM only works if
 // somebody is actually there, so the OUTCOME asserted is a message in the
 // lead's DM, from the lead, that asks for the goal.

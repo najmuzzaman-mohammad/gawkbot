@@ -3,7 +3,7 @@ package team
 import "strings"
 
 // classifyActivityKind maps a (tool, status, detail) triple to the activity
-// "kind" surfaced on agentActivitySnapshot.Kind. Two values are produced here:
+// "kind" surfaced on botActivitySnapshot.Kind. Two values are produced here:
 //
 //   - "milestone" — events the human in the office should notice ambient: an
 //     error, a build/test/deploy run, or other user-visible progress.
@@ -21,7 +21,7 @@ import "strings"
 // empty string the same as "routine".
 //
 // TODO: tune from dogfood — the seed table is conservative; once we have a
-// week of agent activity data we should pull common false-routine cases (e.g.
+// week of bot activity data we should pull common false-routine cases (e.g.
 // "opened PR #N" via gh CLI) into the milestone bucket.
 func classifyActivityKind(tool, status, detail string) string {
 	statusLower := strings.ToLower(strings.TrimSpace(status))

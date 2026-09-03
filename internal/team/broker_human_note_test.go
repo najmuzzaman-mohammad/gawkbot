@@ -7,8 +7,8 @@ package team
 //
 //  1. A HUMAN message posted into a running task's channel stamps
 //     teamTask.HumanNotePending (fresh struct, additive wire field).
-//     Agent posts, non-running tasks, and system tasks never get stamped.
-//  2. A note whose message LEADS with stop/wait/hold sets Halt: agent
+//     Bot posts, non-running tasks, and system tasks never get stamped.
+//  2. A note whose message LEADS with stop/wait/hold sets Halt: bot
 //     submit_for_review/complete are refused naming the stop order; a
 //     human performing the action clears the note instead.
 //  3. ConsumeTaskHumanNote (the packet builder's seam) clears the note,
@@ -117,10 +117,10 @@ func TestHumanNote_AgentPostDoesNotMark(t *testing.T) {
 	t.Parallel()
 	b := newHumanNoteTestBroker(t)
 	if _, err := b.PostMessage("ceo", "general", "stop and think about the sequencing here", nil, ""); err != nil {
-		t.Fatalf("agent post: %v", err)
+		t.Fatalf("bot post: %v", err)
 	}
 	if task := b.TaskByID("task-note-1"); task.HumanNotePending != nil {
-		t.Errorf("agent posts must never stamp a human note; got %+v", task.HumanNotePending)
+		t.Errorf("bot posts must never stamp a human note; got %+v", task.HumanNotePending)
 	}
 }
 
@@ -135,7 +135,7 @@ func TestHumanNote_HaltBlocksAgentCompleteUntilConsumed(t *testing.T) {
 		_, err := b.MutateTask(TaskPostRequest{Action: action, ID: "task-note-1", Channel: "general", CreatedBy: "eng"})
 		var mutationErr *TaskMutationError
 		if !errors.As(err, &mutationErr) || mutationErr.Kind != TaskMutationForbidden {
-			t.Fatalf("agent %s must be forbidden while the halt note is pending; got %v", action, err)
+			t.Fatalf("bot %s must be forbidden while the halt note is pending; got %v", action, err)
 		}
 		if !strings.Contains(mutationErr.Message, "stop order") {
 			t.Errorf("%s error must name the stop order; got %q", action, mutationErr.Message)
@@ -168,7 +168,7 @@ func TestHumanNote_NonHaltNeverBlocks_HumanCompleteClears(t *testing.T) {
 		t.Fatalf("FYI note must be pending and non-halt; got %+v", task.HumanNotePending)
 	}
 	if _, err := b.MutateTask(TaskPostRequest{Action: "complete", ID: "task-note-1", Channel: "general", CreatedBy: "eng"}); err != nil {
-		t.Fatalf("non-halt note must never block agent complete; got %v", err)
+		t.Fatalf("non-halt note must never block bot complete; got %v", err)
 	}
 
 	// Halt note + HUMAN complete: the human knows what they said — the

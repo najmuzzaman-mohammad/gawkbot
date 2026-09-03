@@ -233,7 +233,7 @@ func TestHandlePolicies_DELETE_DeactivatesByID(t *testing.T) {
 }
 
 // TestRecordPolicyScoped_AgentMergeSemantics pins the B3 scope-widening
-// contract: scoped+scoped dedupe unions the lists; nil (= all agents) on
+// contract: scoped+scoped dedupe unions the lists; nil (= all bots) on
 // either side of a dedupe dominates; whitespace differences in the rule
 // text still dedupe.
 func TestRecordPolicyScoped_AgentMergeSemantics(t *testing.T) {
@@ -243,11 +243,11 @@ func TestRecordPolicyScoped_AgentMergeSemantics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first record: %v", err)
 	}
-	if len(first.Agents) != 1 || first.Agents[0] != "eng" {
-		t.Fatalf("expected normalized agents [eng], got %v", first.Agents)
+	if len(first.Bots) != 1 || first.Bots[0] != "eng" {
+		t.Fatalf("expected normalized bots [eng], got %v", first.Bots)
 	}
 
-	// Same rule with collapsed-whitespace + case difference, new agent:
+	// Same rule with collapsed-whitespace + case difference, new bot:
 	// dedupe and union the scopes.
 	second, err := b.RecordPolicyScoped("auto_detected", "always   cc the CSM on renewal emails", []string{"ae"})
 	if err != nil {
@@ -256,38 +256,38 @@ func TestRecordPolicyScoped_AgentMergeSemantics(t *testing.T) {
 	if second.ID != first.ID {
 		t.Fatalf("expected normalized-text dedupe, got new policy %q", second.ID)
 	}
-	if len(second.Agents) != 2 || second.Agents[0] != "ae" || second.Agents[1] != "eng" {
-		t.Fatalf("expected union [ae eng], got %v", second.Agents)
+	if len(second.Bots) != 2 || second.Bots[0] != "ae" || second.Bots[1] != "eng" {
+		t.Fatalf("expected union [ae eng], got %v", second.Bots)
 	}
 
-	// Nil scope (all agents) dominates on dedupe: the policy must never
+	// Nil scope (all bots) dominates on dedupe: the policy must never
 	// silently narrow.
 	third, err := b.RecordPolicyScoped("human_directed", "Always CC the CSM on renewal emails", nil)
 	if err != nil {
 		t.Fatalf("third record: %v", err)
 	}
-	if third.ID != first.ID || third.Agents != nil {
-		t.Fatalf("expected nil (all-agents) scope to dominate, got %v", third.Agents)
+	if third.ID != first.ID || third.Bots != nil {
+		t.Fatalf("expected nil (all-bots) scope to dominate, got %v", third.Bots)
 	}
 }
 
-// TestPolicyAppliesToAgent pins the assignment filter: nil/empty = all
-// agents; a non-empty list scopes to exactly those slugs.
-func TestPolicyAppliesToAgent(t *testing.T) {
+// TestPolicyAppliesToBot pins the assignment filter: nil/empty = all
+// bots; a non-empty list scopes to exactly those slugs.
+func TestPolicyAppliesToBot(t *testing.T) {
 	all := officePolicy{Rule: "r"}
-	if !policyAppliesToAgent(all, "eng") || !policyAppliesToAgent(all, "ceo") {
-		t.Fatal("nil Agents must apply to everyone")
+	if !policyAppliesToBot(all, "eng") || !policyAppliesToBot(all, "ceo") {
+		t.Fatal("nil Bots must apply to everyone")
 	}
-	scoped := officePolicy{Rule: "r", Agents: []string{"eng"}}
-	if !policyAppliesToAgent(scoped, "eng") {
-		t.Fatal("scoped policy must apply to its agent")
+	scoped := officePolicy{Rule: "r", Bots: []string{"eng"}}
+	if !policyAppliesToBot(scoped, "eng") {
+		t.Fatal("scoped policy must apply to its bot")
 	}
-	if policyAppliesToAgent(scoped, "ceo") {
-		t.Fatal("scoped policy must NOT apply to other agents")
+	if policyAppliesToBot(scoped, "ceo") {
+		t.Fatal("scoped policy must NOT apply to other bots")
 	}
 }
 
-// TestHandlePolicies_POSTAcceptsAgents pins the additive `agents` wire key
+// TestHandlePolicies_POSTAcceptsAgents pins the additive `bots` wire key
 // on POST /policies.
 func TestHandlePolicies_POSTAcceptsAgents(t *testing.T) {
 	b := newTestBroker(t)
@@ -302,15 +302,15 @@ func TestHandlePolicies_POSTAcceptsAgents(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&posted); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(posted.Agents) != 1 || posted.Agents[0] != "eng" {
-		t.Fatalf("expected agents [eng] on the wire, got %v", posted.Agents)
+	if len(posted.Bots) != 1 || posted.Bots[0] != "eng" {
+		t.Fatalf("expected bots [eng] on the wire, got %v", posted.Bots)
 	}
 }
 
-// TestHandlePoliciesSubpath_AssignUnassign drives the per-agent assignment
+// TestHandlePoliciesSubpath_AssignUnassign drives the per-bot assignment
 // endpoints (mirroring the skills enable-for/disable-for pattern):
-// unassign on an all-agents policy materializes the roster minus the
-// agent; assign adds an agent back; unassigning the last agent is rejected.
+// unassign on an all-bots policy materializes the roster minus the
+// bot; assign adds a bot back; unassigning the last bot is rejected.
 func TestHandlePoliciesSubpath_AssignUnassign(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
@@ -322,15 +322,15 @@ func TestHandlePoliciesSubpath_AssignUnassign(t *testing.T) {
 		t.Fatalf("RecordPolicy: %v", err)
 	}
 
-	call := func(verb, agent string) *httptest.ResponseRecorder {
-		body := bytes.NewBufferString(fmt.Sprintf(`{"agent":%q}`, agent))
+	call := func(verb, bot string) *httptest.ResponseRecorder {
+		body := bytes.NewBufferString(fmt.Sprintf(`{"agent":%q}`, bot))
 		req := httptest.NewRequest(http.MethodPost, "/policies/"+p.ID+"/"+verb, body)
 		rec := httptest.NewRecorder()
 		b.handlePoliciesSubpath(rec, req)
 		return rec
 	}
 
-	// Unassign from an all-agents policy → roster minus the agent.
+	// Unassign from an all-bots policy → roster minus the bot.
 	rec := call("unassign", "eng")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("unassign: expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -339,8 +339,8 @@ func TestHandlePoliciesSubpath_AssignUnassign(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&out); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(out.Agents) != 1 || out.Agents[0] != "ceo" {
-		t.Fatalf("expected [ceo] after unassigning eng from all-agents policy, got %v", out.Agents)
+	if len(out.Bots) != 1 || out.Bots[0] != "ceo" {
+		t.Fatalf("expected [ceo] after unassigning eng from all-bots policy, got %v", out.Bots)
 	}
 
 	// Assign eng back → union.
@@ -351,8 +351,8 @@ func TestHandlePoliciesSubpath_AssignUnassign(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&out); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(out.Agents) != 2 || out.Agents[0] != "ceo" || out.Agents[1] != "eng" {
-		t.Fatalf("expected [ceo eng] after re-assign, got %v", out.Agents)
+	if len(out.Bots) != 2 || out.Bots[0] != "ceo" || out.Bots[1] != "eng" {
+		t.Fatalf("expected [ceo eng] after re-assign, got %v", out.Bots)
 	}
 
 	// Assigning a slug that is not in the roster is rejected.
@@ -360,12 +360,12 @@ func TestHandlePoliciesSubpath_AssignUnassign(t *testing.T) {
 		t.Fatalf("assign ghost: expected 400, got %d", rec.Code)
 	}
 
-	// Unassign down to one agent, then reject removing the last one (an
-	// empty list would silently flip the policy back to all-agents).
+	// Unassign down to one bot, then reject removing the last one (an
+	// empty list would silently flip the policy back to all-bots).
 	if rec := call("unassign", "eng"); rec.Code != http.StatusOK {
 		t.Fatalf("unassign eng: expected 200, got %d", rec.Code)
 	}
 	if rec := call("unassign", "ceo"); rec.Code != http.StatusConflict {
-		t.Fatalf("unassign last agent: expected 409, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("unassign last bot: expected 409, got %d: %s", rec.Code, rec.Body.String())
 	}
 }

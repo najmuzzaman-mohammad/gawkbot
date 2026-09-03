@@ -35,7 +35,7 @@ func BuildCalendarLines(actions []Action, jobs []SchedulerJob, tasks []Task, req
 		lines = append(lines, RenderedLine{Text: "  " + lipgloss.NewStyle().Bold(true).Render("Teammate calendars")})
 		for _, name := range OrderedCalendarParticipants(byParticipant) {
 			event := byParticipant[name]
-			lines = append(lines, RenderCalendarParticipantCard(name, event, contentWidth, AgentSlugForDisplay(name, members))...)
+			lines = append(lines, RenderCalendarParticipantCard(name, event, contentWidth, BotSlugForDisplay(name, members))...)
 		}
 		lines = append(lines, RenderedLine{Text: ""})
 		lines = append(lines, RenderedLine{Text: "  " + lipgloss.NewStyle().Bold(true).Render("Agenda")})
@@ -203,15 +203,15 @@ func RenderCalendarEventCard(event CalendarEvent, contentWidth int) []RenderedLi
 
 // RenderCalendarParticipantCard renders the smaller "next event for
 // teammate <name>" card used in the Teammate calendars strip. Border
-// and accent take the agent's color when known.
-func RenderCalendarParticipantCard(name string, event CalendarEvent, contentWidth int, agentSlug string) []RenderedLine {
+// and accent take the bot's color when known.
+func RenderCalendarParticipantCard(name string, event CalendarEvent, contentWidth int, botSlug string) []RenderedLine {
 	cardWidth := MaxInt(20, contentWidth-10)
 	accent := "#334155"
-	if color := AgentColorMap[agentSlug]; color != "" {
+	if color := BotColorMap[botSlug]; color != "" {
 		accent = color
 	}
 	header := lipgloss.JoinHorizontal(lipgloss.Left,
-		SubtlePill(AgentAvatar(agentSlug)+" "+name, "#F8FAFC", accent),
+		SubtlePill(BotAvatar(botSlug)+" "+name, "#F8FAFC", accent),
 		" ",
 		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#F8FAFC")).Render(event.Title),
 	)
@@ -228,7 +228,7 @@ func RenderCalendarParticipantCard(name string, event CalendarEvent, contentWidt
 		Padding(0, 1).
 		MarginLeft(2).
 		Render(strings.Join(body, "\n"))
-	return RenderedCardLines(card, event.TaskID, event.RequestID, event.ThreadID, agentSlug)
+	return RenderedCardLines(card, event.TaskID, event.RequestID, event.ThreadID, botSlug)
 }
 
 // RenderCalendarActionCard renders one row of the "Recent actions"
@@ -254,17 +254,17 @@ func RenderCalendarActionCard(action Action, meta string, contentWidth int) []Re
 
 // RenderedCardLines splits a pre-rendered card string into per-line
 // RenderedLine entries, attaching click metadata (TaskID / RequestID
-// / ThreadID / AgentSlug) so the channel feed can route clicks back
+// / ThreadID / BotSlug) so the channel feed can route clicks back
 // to the right target. Callers wanting to attach a prefilled composer
 // PromptValue should use RenderedCardLinesWithPrompt instead.
-func RenderedCardLines(card, taskID, requestID, threadID, agentSlug string) []RenderedLine {
-	return RenderedCardLinesWithPrompt(card, taskID, requestID, threadID, agentSlug, "")
+func RenderedCardLines(card, taskID, requestID, threadID, botSlug string) []RenderedLine {
+	return RenderedCardLinesWithPrompt(card, taskID, requestID, threadID, botSlug, "")
 }
 
 // RenderedCardLinesWithPrompt is like RenderedCardLines but stamps a
 // PromptValue onto every line — used by recovery-surgery cards that
 // want a click to prefill the composer with a suggested prompt.
-func RenderedCardLinesWithPrompt(card, taskID, requestID, threadID, agentSlug, promptValue string) []RenderedLine {
+func RenderedCardLinesWithPrompt(card, taskID, requestID, threadID, botSlug, promptValue string) []RenderedLine {
 	var lines []RenderedLine
 	for _, line := range strings.Split(card, "\n") {
 		lines = append(lines, RenderedLine{
@@ -272,7 +272,7 @@ func RenderedCardLinesWithPrompt(card, taskID, requestID, threadID, agentSlug, p
 			TaskID:      taskID,
 			RequestID:   requestID,
 			ThreadID:    threadID,
-			AgentSlug:   agentSlug,
+			BotSlug:     botSlug,
 			PromptValue: promptValue,
 		})
 	}

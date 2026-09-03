@@ -1,6 +1,6 @@
 /**
  * SidebarSection — header + collapsible body shell shared by every
- * top-level sidebar section (Agents, Channels, Issues, Tools). The
+ * top-level sidebar section (Bots, Channels, Issues, Tools). The
  * structural pair is split so the caller can put the scrolling list
  * body anywhere the layout wants it without nesting the chrome.
  */
@@ -14,7 +14,7 @@ interface SidebarSectionProps {
   open: boolean;
   onToggle: () => void;
   children: ReactNode;
-  /** Adds the `.is-team` modifier used by the Agents section. */
+  /** Adds the `.is-team` modifier used by the Bots section. */
   variant?: "default" | "team";
   /** Small trailing affordance(s) in the header (e.g. "View all"). */
   headerActions?: ReactNode;

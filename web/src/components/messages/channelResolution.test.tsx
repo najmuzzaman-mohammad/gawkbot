@@ -187,8 +187,8 @@ describe("<MessageBubble> consult_relay dispatch", () => {
     useChannelSlug.mockReturnValue(null);
   });
 
-  // Payload shape per ConsultRelayMarker's own contract: {direction, agent,
-  // channel}. The marker renders null without `agent`, so getting this wrong
+  // Payload shape per ConsultRelayMarker's own contract: {direction, bot,
+  // channel}. The marker renders null without `bot`, so getting this wrong
   // looks identical to a mis-placed hunk — which is how this test earned its
   // keep on the first run.
   const CONSULT: Message = {

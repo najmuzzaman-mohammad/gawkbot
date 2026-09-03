@@ -19,7 +19,7 @@
  * does filtering / sorting / pagination CLIENT-SIDE in memory (internal-tool
  * datasets are small). The single write is create("tasks") → createTask(), which
  * the host gates behind a human confirmation. update/delete are NOT supported and
- * throw loudly so a coding agent gets a clear error instead of a silent no-op.
+ * throw loudly so a coding bot gets a clear error instead of a silent no-op.
  *
  * PROTECTED FILE — like wuphf-bridge.ts, import and use this; do not reimplement
  * it. It is already correct (e.g. getTasks() reads ALL channels). See AI_RULES.md.
@@ -214,7 +214,7 @@ export const bridgeDataProvider: DataProvider = {
   },
 
   // The single human-gated write. Map create("tasks") onto createTask(); reject
-  // every other resource loudly so the agent gets a clear, actionable error.
+  // every other resource loudly so the bot gets a clear, actionable error.
   create: async <TData extends BaseRecord = BaseRecord, TVariables = object>(params: {
     resource: string;
     variables: TVariables;

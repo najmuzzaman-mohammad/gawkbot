@@ -16,7 +16,7 @@ import "context"
 //
 // Contract for implementors:
 //   - Cancel the headless dispatch context; give in-flight headless invocations
-//     up to their per-agent timeout to finish.
+//     up to their per-bot timeout to finish.
 //   - Set the pane-dispatch draining flag to prevent new sends; let in-flight
 //     pane sends finish via the existing per-slug worker drain.
 //   - Cancel the scheduler, watchdog, and notify-poll contexts.

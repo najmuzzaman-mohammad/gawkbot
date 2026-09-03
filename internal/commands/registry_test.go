@@ -71,7 +71,7 @@ func TestRegisterAllCommands(t *testing.T) {
 
 	expected := []string{
 		"ask", "search", "remember", "youtube-pack",
-		"task", "agent", "agents", "calendar", "chat",
+		"task", "bot", "bots", "calendar", "chat",
 		"messages", "inbox", "outbox", "rewind", "insert", "switcher",
 		"switch", "channels", "channel", "queue", "artifacts",
 		"config", "detect", "doctor", "integrate", "init", "provider",
@@ -148,23 +148,23 @@ func TestCmdHelp(t *testing.T) {
 	}
 }
 
-func TestCmdAgentsNoService(t *testing.T) {
+func TestCmdBotsNoService(t *testing.T) {
 	r := NewRegistry()
 	RegisterAllCommands(r)
 
-	cmd, _ := r.Get("agent")
+	cmd, _ := r.Get("bot")
 	var output string
 	ctx := &SlashContext{
-		AgentService: nil,
-		AddMessage:   func(role, content string) { output += content },
-		SetLoading:   func(bool) {},
-		SendResult:   func(string, error) {},
+		BotService: nil,
+		AddMessage: func(role, content string) { output += content },
+		SetLoading: func(bool) {},
+		SendResult: func(string, error) {},
 	}
 	if err := cmd.Execute(ctx, ""); err != nil {
-		t.Fatalf("agents returned error: %v", err)
+		t.Fatalf("bots returned error: %v", err)
 	}
 	if output == "" {
-		t.Error("agents produced no output for nil service")
+		t.Error("bots produced no output for nil service")
 	}
 }
 

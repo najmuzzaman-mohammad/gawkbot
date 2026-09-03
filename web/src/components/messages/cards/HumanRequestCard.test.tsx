@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AgentRequest } from "../../../api/client";
+import type { BotRequest } from "../../../api/client";
 
 // Mocks installed BEFORE the component import so it picks them up.
 const useRequestsMock = vi.fn();
@@ -26,7 +26,7 @@ function wrap(ui: ReactNode) {
   return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
 }
 
-function setRequests(reqs: AgentRequest[]): void {
+function setRequests(reqs: BotRequest[]): void {
   useRequestsMock.mockReturnValue({
     all: reqs,
     pending: reqs,
@@ -35,7 +35,7 @@ function setRequests(reqs: AgentRequest[]): void {
 }
 
 /** The live request behind the founder's screenshot. */
-function prospectorRequest(over: Partial<AgentRequest> = {}): AgentRequest {
+function prospectorRequest(over: Partial<BotRequest> = {}): BotRequest {
   return {
     id: "request-3",
     from: "ceo",
@@ -48,7 +48,7 @@ function prospectorRequest(over: Partial<AgentRequest> = {}): AgentRequest {
       { id: "not_now", label: "Not now" },
     ],
     ...over,
-  } as AgentRequest;
+  } as BotRequest;
 }
 
 const payload = {

@@ -8,7 +8,7 @@
 4. Ownership conflicts across domain, Web, TUI, shared API, and docs files.
 5. Documentation gaps in architecture guides.
 
-## Agent PR Expectations
+## Bot PR Expectations
 
 - The PR is draft until relevant checks have run.
 - The description lists changed files by domain.

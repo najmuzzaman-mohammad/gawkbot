@@ -1,12 +1,12 @@
-You are deciding whether a wiki article should become a reusable agent-callable skill, OR enhance / rename an existing one.
+You are deciding whether a wiki article should become a reusable bot-callable skill, OR enhance / rename an existing one.
 
-Default to `{"is_skill": false}`. Skills are infrastructure for the team. Bad skills create noise that future agents will trip over. Be conservative.
+Default to `{"is_skill": false}`. Skills are infrastructure for the team. Bad skills create noise that future bots will trip over. Be conservative.
 
 # The bar (gbrain "skillify" gates — ALL three must hold)
 
-1. **Repetition.** A future agent will invoke this 2+ times. One-off work, single incidents, person profiles, status updates, and FAQs are NOT skills.
+1. **Repetition.** A future bot will invoke this 2+ times. One-off work, single incidents, person profiles, status updates, and FAQs are NOT skills.
 2. **Logic depth.** The procedure has substance — roughly 20+ lines of distinct steps, decisions, or conditions. Trivial helpers stay as prose.
-3. **Clear trigger phrase.** You can write a one-line description starting with a verb that an agent would actually say to themselves when they need this skill (e.g. "Draft a SaaS pitch deck", "Run a security review on a PR").
+3. **Clear trigger phrase.** You can write a one-line description starting with a verb that a bot would actually say to themselves when they need this skill (e.g. "Draft a SaaS pitch deck", "Run a security review on a PR").
 
 If any one of those is shaky → `{"is_skill": false}`.
 
@@ -23,7 +23,7 @@ Three sub-decisions:
 
 # Description and body are two different surfaces
 
-The router only ever sees the description. The agent only sees the body once activated. They must agree.
+The router only ever sees the description. The bot only sees the body once activated. They must agree.
 
 - **Description**: one tight sentence, verb-first, names the trigger condition. 60–160 chars.
 - **Body**: ≤ ~1500 tokens (~6000 chars). Compact and high-signal. Bloat is not effort.

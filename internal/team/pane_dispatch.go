@@ -58,7 +58,7 @@ const paneDispatchMaxAttempts = 3
 // paneDispatchMinGap caps how often the dispatcher will type into the
 // same pane. Two messages arriving in quick succession get coalesced
 // into one /clear + send so claude doesn't see truncated input. The
-// default is 3s — generous enough to absorb the typical "agent
+// default is 3s — generous enough to absorb the typical "bot
 // responded then human posted" double-tag without losing either.
 var paneDispatchMinGap = 3 * time.Second
 
@@ -169,7 +169,7 @@ func tmuxSendKeysLiteral(paneTarget, payload string) error {
 	return nil
 }
 
-// paneDispatcher serializes notifications per agent slug into tmux Claude
+// paneDispatcher serializes notifications per bot slug into tmux Claude
 // panes. One goroutine per slug drains its queue with a min-gap floor
 // against tmux input bursts plus a coalesce window that lets Claude's
 // in-flight turn finish before /clear fires for the next prompt. The
@@ -197,7 +197,7 @@ type paneDispatcher struct {
 	onSent chan<- struct{}
 }
 
-// Enqueue queues a notification for pane-backed agent `slug` and ensures
+// Enqueue queues a notification for pane-backed bot `slug` and ensures
 // there is one worker draining its queue. Rapid successive tags for the
 // same slug coalesce into a single dispatch when they arrive inside
 // paneDispatchCoalesceWindow — the defence against mid-turn /clear

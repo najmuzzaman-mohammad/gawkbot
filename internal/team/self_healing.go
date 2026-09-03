@@ -6,61 +6,61 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // Legacy title prefix (pre-2026-05-28). New self-heal titles use the
-// "[@<agent>] <verb>: <parent title>" format — recognition is now
+// "[@<bot>] <verb>: <parent title>" format — recognition is now
 // pipeline-id based (see isSelfHealingTaskTitle). Kept here so tasks
 // persisted before the rename still parse as self-heals.
 const selfHealingTaskTitlePrefix = "Self-heal "
 
-// selfHealingTitleAgentPrefix is the new title shape's leading token:
-// "[@" + agent slug + "]". The legacy prefix above is kept for
+// selfHealingTitleBotPrefix is the new title shape's leading token:
+// "[@" + bot slug + "]". The legacy prefix above is kept for
 // backward compatibility with persisted state.
-const selfHealingTitleAgentPrefix = "[@"
+const selfHealingTitleBotPrefix = "[@"
 
-// maxActiveSelfHealsPerAgent caps how many non-terminal self-heal tasks can
-// exist for a single agent. Once an agent is at the cap, additional
+// maxActiveSelfHealsPerBot caps how many non-terminal self-heal tasks can
+// exist for a single bot. Once a bot is at the cap, additional
 // self-heal requests merge their incident detail into the most recently
 // updated active self-heal instead of opening a new task. This prevents the
-// (agent, taskID) dedupe key from leaking N self-heal entries when an agent
+// (bot, taskID) dedupe key from leaking N self-heal entries when a bot
 // fails on N distinct original task IDs.
 //
 // Override with WUPHF_SELF_HEAL_MAX_ACTIVE_PER_AGENT (>0) for installs with
-// taller per-agent repair lanes.
-const defaultMaxActiveSelfHealsPerAgent = 3
+// taller per-bot repair lanes.
+const defaultMaxActiveSelfHealsPerBot = 3
 
-var maxActiveSelfHealsPerAgent = clampSelfHealCap(envIntDefault("WUPHF_SELF_HEAL_MAX_ACTIVE_PER_AGENT", defaultMaxActiveSelfHealsPerAgent))
+var maxActiveSelfHealsPerBot = clampSelfHealCap(envIntDefault("WUPHF_SELF_HEAL_MAX_ACTIVE_PER_AGENT", defaultMaxActiveSelfHealsPerBot))
 
 // clampSelfHealCap rejects non-positive overrides. A cap of 0 or less would
-// silently disable the per-agent cap and reintroduce the explosion this fix
+// silently disable the per-bot cap and reintroduce the explosion this fix
 // is meant to prevent.
 func clampSelfHealCap(n int) int {
 	if n <= 0 {
-		return defaultMaxActiveSelfHealsPerAgent
+		return defaultMaxActiveSelfHealsPerBot
 	}
 	return n
 }
 
-func (l *Launcher) requestSelfHealing(agentSlug, taskID string, reason agent.EscalationReason, detail string) (teamTask, bool, error) {
+func (l *Launcher) requestSelfHealing(botSlug, taskID string, reason bot.EscalationReason, detail string) (teamTask, bool, error) {
 	if l == nil || l.broker == nil {
 		return teamTask{}, false, nil
 	}
-	return l.broker.RequestSelfHealing(agentSlug, taskID, reason, detail)
+	return l.broker.RequestSelfHealing(botSlug, taskID, reason, detail)
 }
 
-func (b *Broker) RequestSelfHealing(agentSlug, taskID string, reason agent.EscalationReason, detail string) (teamTask, bool, error) {
+func (b *Broker) RequestSelfHealing(botSlug, taskID string, reason bot.EscalationReason, detail string) (teamTask, bool, error) {
 	if b == nil {
 		return teamTask{}, false, nil
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.requestSelfHealingLocked(agentSlug, taskID, reason, detail)
+	return b.requestSelfHealingLocked(botSlug, taskID, reason, detail)
 }
 
-func (b *Broker) requestSelfHealingLocked(agentSlug, taskID string, reason agent.EscalationReason, detail string) (teamTask, bool, error) {
-	agentSlug = strings.TrimSpace(agentSlug)
+func (b *Broker) requestSelfHealingLocked(botSlug, taskID string, reason bot.EscalationReason, detail string) (teamTask, bool, error) {
+	botSlug = strings.TrimSpace(botSlug)
 	taskID = strings.TrimSpace(taskID)
 	if b.isSelfHealingTaskIDLocked(taskID) {
 		return teamTask{}, true, nil
@@ -68,10 +68,10 @@ func (b *Broker) requestSelfHealingLocked(agentSlug, taskID string, reason agent
 
 	owner := strings.TrimSpace(officeLeadSlugFrom(b.members))
 	if owner == "" {
-		owner = agentSlug
+		owner = botSlug
 	}
 	// Look up the parent Issue so the human-facing self-heal title carries
-	// real context ("Agent stuck on: Send VC outreach") and the agent half
+	// real context ("Bot stuck on: Send VC outreach") and the bot half
 	// of the details carries the parent's FULL work contract — never just
 	// the clipped escalation reason (ten-out-of-ten A3: a v3 lane worked
 	// off a truncated source and shipped a second conflicting brief).
@@ -98,8 +98,8 @@ func (b *Broker) requestSelfHealingLocked(agentSlug, taskID string, reason agent
 		}
 		parentIssueID = next
 	}
-	title := selfHealingTaskTitle(agentSlug, taskID, parentTitle, reason)
-	details := selfHealingTaskDetails(agentSlug, taskID, parentTitle, parentDetails, reason, detail)
+	title := selfHealingTaskTitle(botSlug, taskID, parentTitle, reason)
+	details := selfHealingTaskDetails(botSlug, taskID, parentTitle, parentDetails, reason, detail)
 	createdBy := selfHealingCreatedByForMode(b.sessionMode)
 	// Pass "" rather than the literal "general": a self-heal has no channel of
 	// its own to request, so it should take whatever home the resolver decides
@@ -146,7 +146,7 @@ func (b *Broker) requestSelfHealingLocked(agentSlug, taskID string, reason agent
 		}
 	}
 	if existing == nil {
-		if overflow := b.findOverflowSelfHealForAgentLocked(agentSlug); overflow != nil {
+		if overflow := b.findOverflowSelfHealForBotLocked(botSlug); overflow != nil {
 			existing = overflow
 			mergeOverflow = true
 		}
@@ -246,18 +246,18 @@ const selfHealLaneSimilarityThreshold = 0.90
 
 // normalizedWorkTitle reduces a task title to its comparable work phrase:
 // strips the self-heal "[@slug] " provenance prefix and the reason-verb
-// prefix ("Agent stuck on: …"), lowercases, and collapses whitespace.
+// prefix ("Bot stuck on: …"), lowercases, and collapses whitespace.
 func normalizedWorkTitle(title string) string {
 	t := strings.TrimSpace(title)
-	if strings.HasPrefix(t, selfHealingTitleAgentPrefix) {
-		if close := strings.Index(t, "] "); close > len(selfHealingTitleAgentPrefix) {
+	if strings.HasPrefix(t, selfHealingTitleBotPrefix) {
+		if close := strings.Index(t, "] "); close > len(selfHealingTitleBotPrefix) {
 			t = t[close+2:]
 		}
 	}
 	if colon := strings.Index(t, ": "); colon > 0 {
 		verb := t[:colon]
 		switch verb {
-		case "Agent stuck on", "Repeated errors blocked", "Missing capability for", "Help needed on":
+		case "Bot stuck on", "Repeated errors blocked", "Missing capability for", "Help needed on":
 			t = t[colon+2:]
 		}
 	}
@@ -305,7 +305,7 @@ func (b *Broker) findOpenLaneCoveringWorkLocked(channel, rootIssueID, stalledTas
 
 // selfHealingParentContract renders the stalled parent's full work contract
 // (Details plus the structured Definition goal/deliverables when present) for
-// embedding in the self-heal lane. Agent-facing content must come from
+// embedding in the self-heal lane. Bot-facing content must come from
 // Details/Definition — a repair lane that only sees the clipped escalation
 // reason re-derives the work from a truncated source (ten-out-of-ten A3).
 func selfHealingParentContract(parent *teamTask) string {
@@ -399,15 +399,15 @@ func (b *Broker) requestCapabilitySelfHealingLocked(blockedTask *teamTask, actor
 	if blockedTask == nil || !isCapabilityGapBlocker(detail) || isSelfHealingTaskTitle(blockedTask.Title) {
 		return
 	}
-	agentSlug := strings.TrimSpace(actor)
-	if agentSlug == "" || agentSlug == "system" {
-		agentSlug = strings.TrimSpace(blockedTask.Owner)
+	botSlug := strings.TrimSpace(actor)
+	if botSlug == "" || botSlug == "system" {
+		botSlug = strings.TrimSpace(blockedTask.Owner)
 	}
-	if agentSlug == "" {
-		agentSlug = "agent"
+	if botSlug == "" {
+		botSlug = "agent"
 	}
-	if _, _, err := b.requestSelfHealingLocked(agentSlug, blockedTask.ID, agent.EscalationCapabilityGap, detail); err != nil {
-		log.Printf("self-healing: create capability repair task for agent=%s task=%s: %v", agentSlug, blockedTask.ID, err)
+	if _, _, err := b.requestSelfHealingLocked(botSlug, blockedTask.ID, bot.EscalationCapabilityGap, detail); err != nil {
+		log.Printf("self-healing: create capability repair task for bot=%s task=%s: %v", botSlug, blockedTask.ID, err)
 	}
 }
 
@@ -487,7 +487,7 @@ func (b *Broker) isSelfHealingTaskIDLocked(taskID string) bool {
 }
 
 // isSelfHealingTaskTitle returns true for both the legacy
-// "Self-heal …" prefix and the current "[@<agent>] …" prefix. Production
+// "Self-heal …" prefix and the current "[@<bot>] …" prefix. Production
 // callers that already hold a teamTask should prefer the PipelineID
 // check below.
 func isSelfHealingTaskTitle(title string) bool {
@@ -495,13 +495,13 @@ func isSelfHealingTaskTitle(title string) bool {
 	if strings.HasPrefix(trimmed, selfHealingTaskTitlePrefix) {
 		return true
 	}
-	if !strings.HasPrefix(trimmed, selfHealingTitleAgentPrefix) {
+	if !strings.HasPrefix(trimmed, selfHealingTitleBotPrefix) {
 		return false
 	}
 	// "[@<slug>] " requires a closing bracket followed by space + the
 	// reason verb. Anything else is a stray [@mention] in a normal title.
 	close := strings.Index(trimmed, "] ")
-	return close > len(selfHealingTitleAgentPrefix)
+	return close > len(selfHealingTitleBotPrefix)
 }
 
 // isSelfHealingTask is the preferred recognition check when the caller
@@ -518,17 +518,17 @@ func isSelfHealingTask(t *teamTask) bool {
 	return isSelfHealingTaskTitle(t.Title)
 }
 
-// humanReasonVerb maps the agent-side escalation tag to a short human
+// humanReasonVerb maps the bot-side escalation tag to a short human
 // phrase used in the self-heal title. Non-tech operators don't need to
 // know what "capability_gap" or "max_retries" mean — they need to know
-// "the agent got stuck" or "the agent needs a tool it doesn't have."
-func humanReasonVerb(reason agent.EscalationReason) string {
+// "the bot got stuck" or "the bot needs a tool it doesn't have."
+func humanReasonVerb(reason bot.EscalationReason) string {
 	switch reason {
-	case agent.EscalationStuck:
-		return "Agent stuck on"
-	case agent.EscalationMaxRetries:
+	case bot.EscalationStuck:
+		return "Bot stuck on"
+	case bot.EscalationMaxRetries:
 		return "Repeated errors blocked"
-	case agent.EscalationCapabilityGap:
+	case bot.EscalationCapabilityGap:
 		return "Missing capability for"
 	default:
 		return "Help needed on"
@@ -538,27 +538,27 @@ func humanReasonVerb(reason agent.EscalationReason) string {
 // humanReasonSummary is one sentence in plain English describing what
 // kind of problem this is. Surfaces in the "What happened" block of the
 // self-heal details.
-func humanReasonSummary(reason agent.EscalationReason, agentName string) string {
+func humanReasonSummary(reason bot.EscalationReason, botName string) string {
 	switch reason {
-	case agent.EscalationStuck:
-		return fmt.Sprintf("%s kept trying to make progress on this work but couldn't move it forward.", agentName)
-	case agent.EscalationMaxRetries:
-		return fmt.Sprintf("%s hit the same error repeatedly while working on this and stopped to avoid wasting more attempts.", agentName)
-	case agent.EscalationCapabilityGap:
-		return fmt.Sprintf("%s realized it doesn't have a tool, skill, or piece of information it needs to finish this work.", agentName)
+	case bot.EscalationStuck:
+		return fmt.Sprintf("%s kept trying to make progress on this work but couldn't move it forward.", botName)
+	case bot.EscalationMaxRetries:
+		return fmt.Sprintf("%s hit the same error repeatedly while working on this and stopped to avoid wasting more attempts.", botName)
+	case bot.EscalationCapabilityGap:
+		return fmt.Sprintf("%s realized it doesn't have a tool, skill, or piece of information it needs to finish this work.", botName)
 	default:
-		return fmt.Sprintf("%s couldn't complete this work on its own and needs help to continue.", agentName)
+		return fmt.Sprintf("%s couldn't complete this work on its own and needs help to continue.", botName)
 	}
 }
 
-// agentDisplayNameFromSlug formats an agent slug for human-facing copy.
+// botDisplayNameFromSlug formats a bot slug for human-facing copy.
 // Uppercases conventional 2–3-letter abbreviations (CEO, CTO, CFO, COO,
 // CMO, VP, PM) and otherwise title-cases the slug. Empty slug renders
 // as a neutral fallback.
-func agentDisplayNameFromSlug(slug string) string {
+func botDisplayNameFromSlug(slug string) string {
 	slug = strings.TrimSpace(slug)
 	if slug == "" {
-		return "An agent"
+		return "A bot"
 	}
 	upper := strings.ToUpper(slug)
 	switch upper {
@@ -571,14 +571,14 @@ func agentDisplayNameFromSlug(slug string) string {
 }
 
 // selfHealingTaskTitle composes a title a non-tech operator can read at
-// a glance. Format: "[@<agent>] <reason verb>: <parent issue title>" —
-// e.g. "[@ceo] Agent stuck on: Send VC outreach email". The `[@slug]`
+// a glance. Format: "[@<bot>] <reason verb>: <parent issue title>" —
+// e.g. "[@ceo] Bot stuck on: Send VC outreach email". The `[@slug]`
 // prefix carries provenance (preserved for overflow-merge lookups that
-// scan titles per agent) and is stripped on the FE for display. Falls
+// scan titles per bot) and is stripped on the FE for display. Falls
 // back gracefully when the parent title is missing.
-func selfHealingTaskTitle(agentSlug, taskID, parentTitle string, reason agent.EscalationReason) string {
+func selfHealingTaskTitle(botSlug, taskID, parentTitle string, reason bot.EscalationReason) string {
 	verb := humanReasonVerb(reason)
-	who := strings.TrimSpace(agentSlug)
+	who := strings.TrimSpace(botSlug)
 	if who == "" {
 		who = "agent"
 	}
@@ -590,20 +590,20 @@ func selfHealingTaskTitle(agentSlug, taskID, parentTitle string, reason agent.Es
 	if taskID = strings.TrimSpace(taskID); taskID != "" {
 		return prefix + fmt.Sprintf("%s issue %s", verb, taskID)
 	}
-	return prefix + fmt.Sprintf("%s — agent couldn't continue", verb)
+	return prefix + fmt.Sprintf("%s — bot couldn't continue", verb)
 }
 
 // selfHealingTaskDetails is split into two halves:
 //   - HUMAN HALF (top): What happened + What needs to happen, in plain
 //     English. This is what the operator reads when they open the
 //     self-heal issue on the Issues board.
-//   - AGENT HALF (bottom): structured context + repair loop the assigned
-//     agent uses to recover. Same content as before so agent behavior
+//   - BOT HALF (bottom): structured context + repair loop the assigned
+//     bot uses to recover. Same content as before so bot behavior
 //     doesn't regress. Visually separated by a divider so the operator
 //     can scroll past it.
-func selfHealingTaskDetails(agentSlug, taskID, parentTitle, parentDetails string, reason agent.EscalationReason, detail string) string {
-	agentName := agentDisplayNameFromSlug(agentSlug)
-	who := strings.TrimSpace(agentSlug)
+func selfHealingTaskDetails(botSlug, taskID, parentTitle, parentDetails string, reason bot.EscalationReason, detail string) string {
+	botName := botDisplayNameFromSlug(botSlug)
+	who := strings.TrimSpace(botSlug)
 	if who == "" {
 		who = "unknown"
 	}
@@ -617,7 +617,7 @@ func selfHealingTaskDetails(agentSlug, taskID, parentTitle, parentDetails string
 	}
 	detail = strings.TrimSpace(detail)
 	if detail == "" {
-		detail = "(no further detail from the agent)"
+		detail = "(no further detail from the bot)"
 	}
 	parentLine := strings.TrimSpace(parentTitle)
 	if parentLine == "" {
@@ -631,9 +631,9 @@ func selfHealingTaskDetails(agentSlug, taskID, parentTitle, parentDetails string
 	lines := []string{
 		"## What happened",
 		"",
-		humanReasonSummary(reason, agentName),
+		humanReasonSummary(reason, botName),
 		"",
-		fmt.Sprintf("> %s reported: %s", agentName, detail),
+		fmt.Sprintf("> %s reported: %s", botName, detail),
 		"",
 		"## What needs to happen",
 		"",
@@ -643,9 +643,9 @@ func selfHealingTaskDetails(agentSlug, taskID, parentTitle, parentDetails string
 		"",
 		"---",
 		"",
-		"### Agent context (for the assigned agent)",
+		"### Bot context (for the assigned bot)",
 		"",
-		fmt.Sprintf("- Agent: @%s", who),
+		fmt.Sprintf("- Bot: @%s", who),
 		fmt.Sprintf("- Original task: %s", originalTask),
 		fmt.Sprintf("- Trigger: %s", trigger),
 		fmt.Sprintf("- Detail: %s", detail),
@@ -678,46 +678,46 @@ func selfHealingTaskDetails(agentSlug, taskID, parentTitle, parentDetails string
 }
 
 // whatNeedsToHappen returns the operator-facing next-step guidance for
-// each escalation reason. Plain English, no agent jargon — the operator
-// should know whether they need to do something or whether the agent is
+// each escalation reason. Plain English, no bot jargon — the operator
+// should know whether they need to do something or whether the bot is
 // expected to recover on its own.
-func whatNeedsToHappen(reason agent.EscalationReason) string {
+func whatNeedsToHappen(reason bot.EscalationReason) string {
 	switch reason {
-	case agent.EscalationStuck:
-		return "The Chief of Staff (or another suitable agent) will pick this up and try a different approach. You usually don't need to act — but if you have additional context or a workaround, drop it in the comments and the agent will use it on the next turn."
-	case agent.EscalationMaxRetries:
+	case bot.EscalationStuck:
+		return "The Chief of Staff (or another suitable bot) will pick this up and try a different approach. You usually don't need to act — but if you have additional context or a workaround, drop it in the comments and the bot will use it on the next turn."
+	case bot.EscalationMaxRetries:
 		return "The Chief of Staff will look at the failing pattern and either fix the root cause or escalate to you with a specific question. If you know which step keeps breaking (e.g. \"the email send is rate-limited\"), comment it here — that often resolves it in one turn."
-	case agent.EscalationCapabilityGap:
-		return "The Chief of Staff will identify what's missing (a tool, a skill, an integration, or a piece of information) and either enable it, request it from you, or hire a specialist who has it. If you already know the answer — e.g. \"use the Gmail integration\" — comment it here and the agent will proceed."
+	case bot.EscalationCapabilityGap:
+		return "The Chief of Staff will identify what's missing (a tool, a skill, an integration, or a piece of information) and either enable it, request it from you, or hire a specialist who has it. If you already know the answer — e.g. \"use the Gmail integration\" — comment it here and the bot will proceed."
 	default:
-		return "The Chief of Staff will review and decide how to proceed. If you have context that would unblock the agent, add it as a comment."
+		return "The Chief of Staff will review and decide how to proceed. If you have context that would unblock the bot, add it as a comment."
 	}
 }
 
-// findOverflowSelfHealForAgentLocked returns the most recently updated
-// active self-heal task for agentSlug when the agent's active count is at
-// or above maxActiveSelfHealsPerAgent. Returns nil when the cap is
-// disabled (<=0) or the agent is below the cap.
-func (b *Broker) findOverflowSelfHealForAgentLocked(agentSlug string) *teamTask {
+// findOverflowSelfHealForBotLocked returns the most recently updated
+// active self-heal task for botSlug when the bot's active count is at
+// or above maxActiveSelfHealsPerBot. Returns nil when the cap is
+// disabled (<=0) or the bot is below the cap.
+func (b *Broker) findOverflowSelfHealForBotLocked(botSlug string) *teamTask {
 	if b == nil {
 		return nil
 	}
-	limit := maxActiveSelfHealsPerAgent
+	limit := maxActiveSelfHealsPerBot
 	if limit <= 0 {
 		return nil
 	}
-	agentSlug = strings.TrimSpace(agentSlug)
-	if agentSlug == "" {
+	botSlug = strings.TrimSpace(botSlug)
+	if botSlug == "" {
 		return nil
 	}
 	// Two title formats are recognised so existing self-heals don't lose
-	// their agent attribution after the human-friendly rename:
+	// their bot attribution after the human-friendly rename:
 	//   legacy: "Self-heal @<slug> on <id>" — match "@<slug> "
 	//   new:    "[@<slug>] <verb>: <parent>" — match "[@<slug>] "
-	// Both anchor on a terminator (space or bracket) so agent "eng" does
+	// Both anchor on a terminator (space or bracket) so bot "eng" does
 	// not accidentally match "@engineering".
-	legacyNeedle := "@" + agentSlug + " "
-	newNeedle := "[@" + agentSlug + "] "
+	legacyNeedle := "@" + botSlug + " "
+	newNeedle := "[@" + botSlug + "] "
 	var most *teamTask
 	count := 0
 	for i := range b.tasks {
@@ -747,7 +747,7 @@ func (b *Broker) findOverflowSelfHealForAgentLocked(agentSlug string) *teamTask 
 // extra "Original task" line so a merged overflow incident keeps a pointer
 // back to the failing taskID it came from. Without this we lose the link
 // between the merged incident and the task that triggered it.
-func selfHealingOverflowIncidentUpdate(originalTaskID string, reason agent.EscalationReason, detail string) string {
+func selfHealingOverflowIncidentUpdate(originalTaskID string, reason bot.EscalationReason, detail string) string {
 	trigger := strings.TrimSpace(string(reason))
 	if trigger == "" {
 		trigger = "unknown"
@@ -761,14 +761,14 @@ func selfHealingOverflowIncidentUpdate(originalTaskID string, reason agent.Escal
 		originalTaskID = "unknown"
 	}
 	return strings.Join([]string{
-		"Latest incident (merged from per-agent self-heal overflow):",
+		"Latest incident (merged from per-bot self-heal overflow):",
 		fmt.Sprintf("- Original task: %s", originalTaskID),
 		fmt.Sprintf("- Trigger: %s", trigger),
 		fmt.Sprintf("- Detail: %s", detail),
 	}, "\n")
 }
 
-func selfHealingIncidentUpdate(reason agent.EscalationReason, detail string) string {
+func selfHealingIncidentUpdate(reason bot.EscalationReason, detail string) string {
 	trigger := strings.TrimSpace(string(reason))
 	if trigger == "" {
 		trigger = "unknown"

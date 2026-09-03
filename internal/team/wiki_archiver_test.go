@@ -151,7 +151,7 @@ func TestWikiArchiver_ICP3_RecentlyReadKept(t *testing.T) {
 		Path:      "team/company/bluesky-corp.md",
 		Timestamp: recent,
 		Reader:    "web",
-		IsAgent:   false,
+		IsBot:     false,
 	}
 	line, _ := json.Marshal(ev)
 	if err := os.MkdirAll(filepath.Dir(rl.path), 0o755); err != nil {

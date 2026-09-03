@@ -172,7 +172,7 @@ func TestAppAcceptancePassPostsSummaryAndKeepsDone(t *testing.T) {
 	seedAcceptanceApp(t, "app_00000000000000bb", ch, 5000, "ready", 1)
 	b.tasks = append(b.tasks, teamTask{
 		ID: "OFFICE-9", Owner: appBuilderSlug, Channel: ch,
-		Title: "Build app: Digest", Details: "Build a standup digest grouped by agent.",
+		Title: "Build app: Digest", Details: "Build a standup digest grouped by bot.",
 		status: "done",
 	})
 	_ = time.Now
@@ -222,7 +222,7 @@ func TestAppAcceptanceJudgeTimeoutStillReopensUnpublished(t *testing.T) {
 
 // Regression: an app that PUBLISHED (ready/v1) but is still the unmodified
 // starter scaffold must be reopened deterministically — even if the judge
-// (wrongly) passes it — because the agent never built the requested tool.
+// (wrongly) passes it — because the bot never built the requested tool.
 func TestAppAcceptanceReopensUnmodifiedScaffold(t *testing.T) {
 	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
 	var judgeCalled bool

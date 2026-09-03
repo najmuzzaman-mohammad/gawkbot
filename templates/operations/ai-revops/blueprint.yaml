@@ -5,7 +5,7 @@ icon: "📊"
 kind: revenue_operations
 category: services
 outcome: "Stand up an AI RevOps team that keeps the CRM clean and the funnel honest."
-description: A RevOps team of agents that operates on the CRM you already have, dedupes records, backfills owners, and keeps the pipeline trustworthy.
+description: A RevOps team of bots that operates on the CRM you already have, dedupes records, backfills owners, and keeps the pipeline trustworthy.
 objective: Run continuous CRM hygiene and pipeline operations so the revenue data stays trustworthy and every handoff is backed by evidence.
 estimated_setup_minutes: 6
 first_tasks:
@@ -17,7 +17,7 @@ first_tasks:
   - id: pipeline-truth-brief
     title: "Write the pipeline-truth brief"
     prompt: |
-      Write a pipeline-truth brief: define what a clean account, a clean deal, and a real opportunity look like for us. Capture our stage definitions, the dedupe policy, the owner-assignment rule, and the staleness thresholds. This becomes the rulebook every agent reads before it touches a record.
+      Write a pipeline-truth brief: define what a clean account, a clean deal, and a real opportunity look like for us. Capture our stage definitions, the dedupe policy, the owner-assignment rule, and the staleness thresholds. This becomes the rulebook every bot reads before it touches a record.
     expected_output: "A rulebook with stage definitions, dedupe policy, owner rule, and staleness thresholds, each grounded in a concrete example."
 skills:
   - name: "CRM hygiene"
@@ -30,11 +30,11 @@ requirements:
   - kind: api-key
     name: "ANTHROPIC_API_KEY or OPENAI_API_KEY"
     required: true
-    detail: "Powers the operations lead, hygiene, analyst, and outreach agents."
+    detail: "Powers the operations lead, hygiene, analyst, and outreach bots."
   - kind: runtime
     name: "Claude Code or Codex CLI"
     required: true
-    detail: "Runs the agent loops locally against your connected CRM and tools."
+    detail: "Runs the bot loops locally against your connected CRM and tools."
 example_artifacts:
   - kind: report
     title: "CRM hygiene report"
@@ -484,7 +484,7 @@ wiki_schema:
       skeleton: |
         # Dedupe and merge policy
 
-        _(How we decide two records are the same, which fields survive a merge, and what we never auto-merge. The agents read this before touching a record. Update it the first time a merge goes wrong.)_
+        _(How we decide two records are the same, which fields survive a merge, and what we never auto-merge. The bots read this before touching a record. Update it the first time a merge goes wrong.)_
     - path: team/pipeline/stage-definitions.md
       title: "Stage definitions and the pipeline rulebook"
       skeleton: |

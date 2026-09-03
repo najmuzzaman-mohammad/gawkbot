@@ -6,9 +6,9 @@ import (
 
 // TestLibrarianIsNotSeededIntoTheDefaultRoster is the INVERSION of the test
 // that used to live here ("the Librarian is a built-in member of the default
-// roster"). The founder retired the Librarian as a default agent: wiki
-// contribution is a system skill every agent carries, so a preinstalled
-// specialist who owns the wiki is an agent the product no longer defines.
+// roster"). The founder retired the Librarian as a default bot: wiki
+// contribution is a system skill every bot carries, so a preinstalled
+// specialist who owns the wiki is a bot the product no longer defines.
 //
 // Inverted rather than deleted, because the failure mode is a REGRESSION, not
 // an absence: the first removal attempt edited the seed list and looked done
@@ -90,7 +90,7 @@ func TestLibrarianTaskChannelSeedNoopsWithoutMember(t *testing.T) {
 	b.members = []officeMember{{Slug: "eng", Name: "Engineer", Role: "Engineer"}}
 	b.memberIndex = nil
 	// "ceo" is the CreatedBy below and is a member of #general in every real
-	// workspace; membership is authoritative for agents now, so the fixture
+	// workspace; membership is authoritative for bots now, so the fixture
 	// has to say so. The librarian is still deliberately absent — that
 	// absence is what this test is about.
 	b.channels = []teamChannel{{Slug: "team", Name: "team", Members: []string{"eng", "ceo"}}}
@@ -117,8 +117,8 @@ func TestLibrarianTaskChannelSeedNoopsWithoutMember(t *testing.T) {
 
 // TestLibrarianHasNoCrossChannelAccess: the Librarian has NO org-wide read.
 // This test previously asserted the opposite — Pam could reach any channel
-// "for wiki curation context" — which also let her read every human-to-agent
-// DM. Membership is now authoritative for every agent; she is added to the
+// "for wiki curation context" — which also let her read every human-to-bot
+// DM. Membership is now authoritative for every bot; she is added to the
 // conversations she curates. Inverted rather than deleted so a reinstated
 // bypass fails here. See broker_channel_access_dm_test.go for the DM case.
 func TestLibrarianHasNoCrossChannelAccess(t *testing.T) {

@@ -114,7 +114,7 @@ describe("ConsultRelayMarker", () => {
   });
 
   // Falls back to the slug rather than inventing a display name.
-  it("uses the slug when the roster has no such agent", () => {
+  it("uses the slug when the roster has no such bot", () => {
     wrap(
       <ConsultRelayMarker
         payload={{ direction: "sent", agent: "ghost", channel: "ops__ghost" }}

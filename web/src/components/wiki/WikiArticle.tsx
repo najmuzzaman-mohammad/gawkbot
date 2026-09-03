@@ -23,7 +23,7 @@ import {
   type WikiMaintenanceAction,
 } from "../../api/wiki";
 import { useInlineArtifacts } from "../../hooks/useInlineArtifacts";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 import { keyedByOccurrence } from "../../lib/reactKeys";
 import { ArticleAttribution } from "./ArticleAttribution";
 import ArticleContents from "./ArticleContents";
@@ -72,7 +72,7 @@ const STALENESS_AGING_DAYS = 7;
 export const WIKI_ARTICLE_FETCH_TIMEOUT_MS = 5_000;
 
 // StalenessIndicator shows a small badge when an article has not been accessed
-// by anyone (human or agent) in a while. "Agents only" signals an article
+// by anyone (human or bot) in a while. "Bots only" signals an article
 // actively used for context but never opened by a human.
 function StalenessIndicator({ article }: { article: WikiArticleT }) {
   const days_unread = article.days_unread ?? 0;
@@ -81,11 +81,11 @@ function StalenessIndicator({ article }: { article: WikiArticleT }) {
   if (agent_read_count > 0 && human_read_count === 0) {
     return (
       <span
-        className="wk-staleness-badge wk-staleness-agents-only"
+        className="wk-staleness-badge wk-staleness-bots-only"
         role="status"
-        aria-label="Article accessed by agents only — never opened by a human"
+        aria-label="Article accessed by bots only — never opened by a human"
       >
-        agents only
+        bots only
       </span>
     );
   }
@@ -322,7 +322,7 @@ export default function WikiArticle({
   >(null);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState(false);
-  const [liveAgent, setLiveAgent] = useState<string | null>(null);
+  const [liveBot, setLiveBot] = useState<string | null>(null);
   const [humans, setHumans] = useState<HumanIdentity[]>([]);
   const [visualArtifact, setVisualArtifact] =
     useState<RichArtifactDetail | null>(null);
@@ -336,7 +336,7 @@ export default function WikiArticle({
   // Fetch the human registry once per mount. The list is small (a handful
   // of team members) and changes rarely, so we skip refetching on every
   // path change. Failure falls through to an empty list — Byline gracefully
-  // shows the agent path when no human identity matches.
+  // shows the bot path when no human identity matches.
   useEffect(() => {
     let cancelled = false;
     fetchHumans()
@@ -419,18 +419,18 @@ export default function WikiArticle({
   }, [path, externalRefreshNonce, refreshNonce]);
 
   useEffect(() => {
-    setLiveAgent(null);
+    setLiveBot(null);
     let clearTimer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = subscribeEditLog((entry) => {
       if (entry.article_path !== path) return;
-      setLiveAgent(entry.who);
+      setLiveBot(entry.who);
       // Refetch the article body when an out-of-band wiki:write lands for
       // the currently open article (e.g. background synthesis or a staged
       // demo write). Without this the live editor's banner updates but the
       // rendered body stays stale.
       setRefreshNonce((n) => n + 1);
       if (clearTimer) clearTimeout(clearTimer);
-      clearTimer = setTimeout(() => setLiveAgent(null), 10_000);
+      clearTimer = setTimeout(() => setLiveBot(null), 10_000);
     });
     return () => {
       if (clearTimer) clearTimeout(clearTimer);
@@ -443,7 +443,7 @@ export default function WikiArticle({
     return historyCommits.map((c) => ({
       commitSha: c.sha,
       authorSlug: c.author_slug,
-      authorName: formatAgentName(c.author_slug),
+      authorName: formatBotName(c.author_slug),
       msg: c.msg,
       date: c.date,
     }));
@@ -488,7 +488,7 @@ export default function WikiArticle({
   const byline = (
     <Byline
       authorSlug={article.last_edited_by}
-      authorName={formatAgentName(article.last_edited_by)}
+      authorName={formatBotName(article.last_edited_by)}
       lastEditedTs={article.last_edited_ts}
       revisions={article.revisions}
       humans={humans}
@@ -533,7 +533,7 @@ export default function WikiArticle({
         className="wk-article-col wk-article-col--editing"
         aria-label={`Editing ${article.title}`}
       >
-        <LiveEditingBanner liveAgent={liveAgent} article={article} />
+        <LiveEditingBanner liveBot={liveBot} article={article} />
         <HatBar
           active={tab}
           onChange={setTab}
@@ -560,7 +560,7 @@ export default function WikiArticle({
     <>
       <main className="wk-article-col">
         <div className="wk-article-page">
-          <LiveEditingBanner liveAgent={liveAgent} article={article} />
+          <LiveEditingBanner liveBot={liveBot} article={article} />
           <ArticleSetupPanels
             entity={entity}
             playbook={playbook}
@@ -634,7 +634,7 @@ export default function WikiArticle({
             onSelect={(tag) => onNavigate(categoryPath(tag))}
           />
           <PageFooter
-            lastEditedBy={formatAgentName(article.last_edited_by)}
+            lastEditedBy={formatBotName(article.last_edited_by)}
             lastEditedTs={article.last_edited_ts}
             articlePath={article.path}
           />
@@ -825,17 +825,17 @@ function ConfirmDeleteArticle({
 }
 
 function LiveEditingBanner({
-  liveAgent,
+  liveBot,
   article,
 }: {
-  liveAgent: string | null;
+  liveBot: string | null;
   article: WikiArticleT;
 }) {
-  if (!liveAgent) return null;
+  if (!liveBot) return null;
   return (
     <ArticleStatusBanner
-      message={`${formatAgentName(liveAgent)} is editing this article right now.`}
-      liveAgent={liveAgent}
+      message={`${formatBotName(liveBot)} is editing this article right now.`}
+      liveBot={liveBot}
       revisions={article.revisions}
       contributors={article.contributors.length}
       wordCount={article.word_count}

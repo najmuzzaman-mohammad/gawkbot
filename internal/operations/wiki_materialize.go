@@ -19,7 +19,7 @@ package operations
 //	Idempotent: running twice with the same schema leaves the wiki in
 //	the same state. Existing articles are preserved byte-for-byte,
 //	regardless of their current content. This is load-bearing — users
-//	who re-pick a blueprint must not lose the notes their agents wrote.
+//	who re-pick a blueprint must not lose the notes their bots wrote.
 //
 //	Path-safe: every bootstrap path is rejected unless it is a clean
 //	relative path under team/. No ".." segments, no absolute paths, no

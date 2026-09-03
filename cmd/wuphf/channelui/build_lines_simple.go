@@ -17,7 +17,7 @@ func BuildRequestLines(requests []Interview, contentWidth int) []RenderedLine {
 		return []RenderedLine{
 			{Text: ""},
 			{Text: muted.Render("  No open requests right now. The team is self-sufficient.")},
-			{Text: muted.Render("  When an agent needs a real decision, it shows up here — these matter.")},
+			{Text: muted.Render("  When a bot needs a real decision, it shows up here — these matter.")},
 		}
 	}
 	var lines []RenderedLine

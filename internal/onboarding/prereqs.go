@@ -37,7 +37,7 @@ type PrereqResult struct {
 	// binary has no session, or no probe is wired for this runtime.
 	// Issue #932: distinguishes "we asked and got no session" (block the
 	// tile, show a sign-in CTA) from "we don't know" (let the user click
-	// and learn from the agent loop, the legacy behavior).
+	// and learn from the bot loop, the legacy behavior).
 	SessionProbed bool `json:"session_probed,omitempty"`
 
 	// SignedIn is true when the runtime reports an active auth session.
@@ -139,14 +139,14 @@ func CheckOne(ctx context.Context, name string) PrereqResult {
 	// Issue #932: session-status probe. Run the per-runtime auth-status
 	// subcommand. The goal is to distinguish "claude installed" (current
 	// behavior) from "claude installed AND signed in" — the latter is the
-	// actually-load-bearing state for an agent loop's first LLM call.
+	// actually-load-bearing state for a bot loop's first LLM call.
 	//
 	// Probe failure modes are intentionally lenient: a non-zero exit, parse
 	// error, or timeout all set SignedIn=false (which the SPA renders as
 	// a "sign in" CTA) rather than blocking the user. The cost of a false
 	// negative is a friction-y but recoverable click; the cost of a false
 	// positive (current behavior) is letting the user complete onboarding
-	// only to fail on the first agent call.
+	// only to fail on the first bot call.
 	probe, ok := runtimeSessionProbes[name]
 	if ok && probe != nil {
 		probeCtx, probeCancel := context.WithTimeout(ctx, 3*time.Second)

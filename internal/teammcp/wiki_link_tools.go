@@ -3,7 +3,7 @@ package teammcp
 // wiki_link_tools.go defines the link_task_wiki MCP tool: the CEO/Librarian
 // surface for explicitly linking wiki articles to a task. The inbound Slack
 // context-packer delivers ONLY these explicitly task-linked wiki refs to a
-// first-party agent ("explicitly task-linked wiki refs"), never a free wiki
+// first-party bot ("explicitly task-linked wiki refs"), never a free wiki
 // search, so this tool is the deliberate, audited way an article becomes
 // readable in that channel.
 //
@@ -36,7 +36,7 @@ import (
 
 // TeamWikiLinkArgs is the contract for link_task_wiki.
 type TeamWikiLinkArgs struct {
-	MySlug string   `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug string   `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	TaskID string   `json:"task_id" jsonschema:"The task (Issue) id whose linked wiki articles you are changing."`
 	Action string   `json:"action" jsonschema:"One of: link (add the given paths to the current set), replace (set the linked set to exactly the given paths), unlink (remove the given paths)."`
 	Paths  []string `json:"paths" jsonschema:"Wiki-relative article paths, e.g. team/playbooks/onboarding.md. Each must be a real article under team/ ending in .md. For link/replace, every path is validated; invalid or missing articles are rejected."`
@@ -45,7 +45,7 @@ type TeamWikiLinkArgs struct {
 func registerWikiLinkTool(server *mcp.Server) {
 	mcp.AddTool(server, officeWriteTool(
 		"link_task_wiki",
-		"Link, replace, or unlink the wiki articles attached to a task. The context-packer treats these explicitly task-linked articles as the ONLY wiki content first-party agents may receive for the task, so link the canonical references an agent needs and nothing more. action=link adds paths, action=replace sets the exact set, action=unlink removes paths. Each linked path must be a real article under team/ ending in .md; invalid or missing paths are rejected. Returns the resulting linked set.",
+		"Link, replace, or unlink the wiki articles attached to a task. The context-packer treats these explicitly task-linked articles as the ONLY wiki content first-party bots may receive for the task, so link the canonical references a bot needs and nothing more. action=link adds paths, action=replace sets the exact set, action=unlink removes paths. Each linked path must be a real article under team/ ending in .md; invalid or missing paths are rejected. Returns the resulting linked set.",
 	), handleTeamWikiLink)
 }
 
@@ -75,7 +75,7 @@ func handleTeamWikiLink(ctx context.Context, _ *mcp.CallToolRequest, args TeamWi
 	// Validate the requested paths before doing anything that touches task
 	// state. unlink never validates: detaching a stale or even malformed ref
 	// must always be possible (it just won't match anything live). link and
-	// replace MUST validate, because they make an article readable to agents.
+	// replace MUST validate, because they make an article readable to bots.
 	if action != "unlink" {
 		for _, p := range requested {
 			// Cheap structural pre-check first so a clearly-bad path fails

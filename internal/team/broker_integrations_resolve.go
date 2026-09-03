@@ -20,7 +20,7 @@ type integrationResolveRequest struct {
 	Provider        string         `json:"provider,omitempty"`
 	Platform        string         `json:"platform"`
 	ActionID        string         `json:"action_id"`
-	Agent           string         `json:"agent,omitempty"`
+	Bot             string         `json:"agent,omitempty"`
 	Channel         string         `json:"channel,omitempty"`
 	Summary         string         `json:"summary,omitempty"`
 	Data            map[string]any `json:"data,omitempty"`
@@ -57,7 +57,7 @@ type integrationResolveResponse struct {
 	RawEnvelope *integrationResolveEnvelope `json:"raw_envelope,omitempty"`
 	Detail      string                      `json:"detail,omitempty"`
 	// RequestID is the connect card the resolver raised for a `connect` decision.
-	// The gate surfaces it to the agent so it can point the human at the waiting
+	// The gate surfaces it to the bot so it can point the human at the waiting
 	// card instead of retrying blind. Empty for every other decision.
 	RequestID string `json:"request_id,omitempty"`
 }
@@ -137,12 +137,12 @@ func (b *Broker) resolveExternalAction(ctx context.Context, req integrationResol
 	}
 	lastFresh := hasLast && connectionRegistryFresh(lastEntry, time.Now().UTC())
 
-	// A standing, human-issued grant for this exact (agent, platform, action_id)
+	// A standing, human-issued grant for this exact (bot, platform, action_id)
 	// lets a connected mutating action skip the approval modal. Read-only actions
 	// already proceed without a grant, so only evaluate it for mutating actions.
 	// The grant is re-read on every resolve, which runs immediately before
 	// execute — the accepted TOCTOU window is just the resolve→execute gap.
-	hasGrant := !readOnly && b.hasActiveActionGrant(req.Agent, platform, actionID, time.Now().UTC())
+	hasGrant := !readOnly && b.hasActiveActionGrant(req.Bot, platform, actionID, time.Now().UTC())
 
 	decision, effective := action.Resolve(action.ResolveInput{
 		ReadOnly:       readOnly,
@@ -182,14 +182,14 @@ func (b *Broker) resolveExternalAction(ctx context.Context, req integrationResol
 	// the human has a concrete OAuth call-to-action. Dedupe is workspace-wide, so
 	// repeated resolves of the same missing platform collapse onto one card.
 	if decision == action.DecisionConnect {
-		resp.RequestID = b.ensureConnectRequest(platform, req.Channel, req.Agent, resp.Name, resp.LogoURL)
+		resp.RequestID = b.ensureConnectRequest(platform, req.Channel, req.Bot, resp.Name, resp.LogoURL)
 	}
 
 	// A `fallback` decision means the platform has no Composio path at all: raise
 	// a manual-handoff card scoped to this (platform, action) so the human can
 	// complete it by hand and mark it done.
 	if decision == action.DecisionFallback {
-		resp.RequestID = b.ensureFallbackRequest(platform, actionID, req.Channel, req.Agent, resp.Name, resp.LogoURL, req.Summary)
+		resp.RequestID = b.ensureFallbackRequest(platform, actionID, req.Channel, req.Bot, resp.Name, resp.LogoURL, req.Summary)
 	}
 
 	// Build the preview envelope only when the human will actually see the modal.

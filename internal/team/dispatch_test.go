@@ -19,7 +19,7 @@ func TestNormalizeProviderKind(t *testing.T) {
 		{"claude-code", provider.KindClaudeCode},
 		{"openclaw", provider.KindOpenclaw},
 		{"openclaw-http", provider.KindOpenclawHTTP},
-		{"hermes-agent", provider.KindHermesAgent},
+		{"hermes-agent", provider.KindHermesBot},
 		{"gemini", "gemini"}, // unknown passes through so dispatch can error
 	}
 	for _, tt := range tests {
@@ -42,7 +42,7 @@ func TestMemberEffectiveProviderKind_PerAgentWins(t *testing.T) {
 
 	l := &Launcher{broker: b, provider: "claude-code"}
 	if got := l.targeter().MemberEffectiveProviderKind("pm-codex"); got != provider.KindCodex {
-		t.Fatalf("per-agent should win over global, got %q", got)
+		t.Fatalf("per-bot should win over global, got %q", got)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestMemberEffectiveProviderKind_DefaultsToClaudeWhenAllEmpty(t *testing.T) 
 	b := newTestBroker(t)
 	l := &Launcher{broker: b, provider: ""}
 	// Fully empty globals fall through to claude-code. This preserves the
-	// install-default behavior that predated per-agent providers.
+	// install-default behavior that predated per-bot providers.
 	if got := l.targeter().MemberEffectiveProviderKind("anybody"); got != provider.KindClaudeCode {
 		t.Fatalf("default fallback should be claude-code, got %q", got)
 	}
@@ -80,15 +80,15 @@ func TestMemberEffectiveProviderKind_DefaultsToClaudeWhenAllEmpty(t *testing.T) 
 func TestShouldUseHeadlessDispatch(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name             string
-		provider         string
-		webMode          bool
-		paneBackedAgents bool
-		want             bool
+		name           string
+		provider       string
+		webMode        bool
+		paneBackedBots bool
+		want           bool
 	}{
 		// Both web and TUI modes default to headless: `claude --print` per turn
 		// is the primary dispatch path; pane-backed dispatch is reserved as an
-		// internal fallback that sets paneBackedAgents=true.
+		// internal fallback that sets paneBackedBots=true.
 		{"tui mode, claude, no panes → headless", "claude-code", false, false, true},
 		{"tui mode, codex → headless", "codex", false, false, true},
 		{"tui mode with panes (fallback active) → pane", "claude-code", false, true, false},
@@ -98,9 +98,9 @@ func TestShouldUseHeadlessDispatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		l := &Launcher{
-			provider:         tt.provider,
-			webMode:          tt.webMode,
-			paneBackedAgents: tt.paneBackedAgents,
+			provider:       tt.provider,
+			webMode:        tt.webMode,
+			paneBackedBots: tt.paneBackedBots,
 		}
 		if got := l.targeter().ShouldUseHeadless(); got != tt.want {
 			t.Errorf("%s: shouldUseHeadlessDispatch() = %v, want %v", tt.name, got, tt.want)

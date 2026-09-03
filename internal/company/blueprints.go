@@ -44,7 +44,7 @@ func materializeManifestFromBlueprintRefs(manifest Manifest, repoRoot string) (M
 
 	resolved := Manifest{
 		Name:          firstNonTemplateNonEmpty(strings.TrimSpace(cfg.CompanyName), strings.TrimSpace(manifest.Name), strings.TrimSpace(operationBlueprint.Name), "Your gawkbot team"),
-		Description:   firstNonTemplateNonEmpty(strings.TrimSpace(cfg.CompanyDescription), strings.TrimSpace(manifest.Description), strings.TrimSpace(operationBlueprint.Description), strings.TrimSpace(operationBlueprint.Objective), "Autonomous agent team runtime."),
+		Description:   firstNonTemplateNonEmpty(strings.TrimSpace(cfg.CompanyDescription), strings.TrimSpace(manifest.Description), strings.TrimSpace(operationBlueprint.Description), strings.TrimSpace(operationBlueprint.Objective), "Autonomous bot team runtime."),
 		Lead:          firstNonEmpty(strings.TrimSpace(operationBlueprint.Starter.LeadSlug), strings.TrimSpace(manifest.Lead), "ceo"),
 		BlueprintRefs: refs,
 		UpdatedAt:     manifest.UpdatedAt,
@@ -73,10 +73,10 @@ func loadPrimaryOperationBlueprint(repoRoot string, refs []BlueprintRef) (operat
 }
 
 func buildMembersFromBlueprints(repoRoot string, blueprint operations.Blueprint, refs []BlueprintRef) []MemberSpec {
-	if len(blueprint.Starter.Agents) > 0 {
-		members := make([]MemberSpec, 0, len(blueprint.Starter.Agents))
+	if len(blueprint.Starter.Bots) > 0 {
+		members := make([]MemberSpec, 0, len(blueprint.Starter.Bots))
 		lead := firstNonEmpty(strings.TrimSpace(blueprint.Starter.LeadSlug), "ceo")
-		for _, starter := range blueprint.Starter.Agents {
+		for _, starter := range blueprint.Starter.Bots {
 			if employeeID := normalizeSlug(starter.EmployeeBlueprint); employeeID != "" {
 				if employeeBlueprint, err := operations.LoadEmployeeBlueprint(repoRoot, employeeID); err == nil {
 					members = append(members, memberSpecFromEmployeeBlueprint(employeeBlueprint, starter, lead))
@@ -84,7 +84,7 @@ func buildMembersFromBlueprints(repoRoot string, blueprint operations.Blueprint,
 				}
 			}
 			if slug := normalizeSlug(starter.Slug); slug != "" {
-				members = append(members, memberSpecFromStarterAgent(starter, lead))
+				members = append(members, memberSpecFromStarterBot(starter, lead))
 			}
 		}
 		return members
@@ -105,7 +105,7 @@ func buildMembersFromBlueprints(repoRoot string, blueprint operations.Blueprint,
 			if err != nil {
 				continue
 			}
-			members = append(members, memberSpecFromEmployeeBlueprint(employeeBlueprint, operations.StarterAgent{}, "ceo"))
+			members = append(members, memberSpecFromEmployeeBlueprint(employeeBlueprint, operations.StarterBot{}, "ceo"))
 		}
 		if len(members) > 0 {
 			lead := firstNonEmpty(strings.TrimSpace(blueprint.Starter.LeadSlug), "ceo")
@@ -124,7 +124,7 @@ func buildMembersFromBlueprints(repoRoot string, blueprint operations.Blueprint,
 	return nil
 }
 
-func memberSpecFromEmployeeBlueprint(blueprint operations.EmployeeBlueprint, starter operations.StarterAgent, lead string) MemberSpec {
+func memberSpecFromEmployeeBlueprint(blueprint operations.EmployeeBlueprint, starter operations.StarterBot, lead string) MemberSpec {
 	slug := normalizeSlug(starter.Slug)
 	if slug == "" {
 		slug = normalizeSlug(blueprint.ID)
@@ -146,7 +146,7 @@ func memberSpecFromEmployeeBlueprint(blueprint operations.EmployeeBlueprint, sta
 	}
 }
 
-func memberSpecFromStarterAgent(starter operations.StarterAgent, lead string) MemberSpec {
+func memberSpecFromStarterBot(starter operations.StarterBot, lead string) MemberSpec {
 	slug := normalizeSlug(starter.Slug)
 	if slug == "" {
 		return MemberSpec{}

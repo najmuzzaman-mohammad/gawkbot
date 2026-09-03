@@ -416,21 +416,21 @@ func TestHandleCompletePostPersistsCompletedState(t *testing.T) {
 	})
 }
 
-// TestHandleCompleteDecodesBlueprintAndAgents verifies that POST
-// /onboarding/complete now decodes the blueprint id and selected agent
+// TestHandleCompleteDecodesBlueprintAndBots verifies that POST
+// /onboarding/complete now decodes the blueprint id and selected bot
 // slugs from the body and threads them into completeFn. Previously these
 // fields were silently dropped, causing every user's team to collapse to
 // the DefaultManifest roster regardless of what they picked in the wizard.
-func TestHandleCompleteDecodesBlueprintAndAgents(t *testing.T) {
+func TestHandleCompleteDecodesBlueprintAndBots(t *testing.T) {
 	withTempHome(t, func(_ string) {
 		var gotTask, gotBlueprint string
 		var gotSkipTask bool
-		var gotAgents []string
-		captured := func(task string, skipTask bool, blueprintID string, selectedAgents []string, _ string) error {
+		var gotBots []string
+		captured := func(task string, skipTask bool, blueprintID string, selectedBots []string, _ string) error {
 			gotTask = task
 			gotSkipTask = skipTask
 			gotBlueprint = blueprintID
-			gotAgents = selectedAgents
+			gotBots = selectedBots
 			return nil
 		}
 
@@ -457,23 +457,23 @@ func TestHandleCompleteDecodesBlueprintAndAgents(t *testing.T) {
 		if gotBlueprint != "niche-crm" {
 			t.Errorf("blueprint: got %q want %q", gotBlueprint, "niche-crm")
 		}
-		if len(gotAgents) != 2 || gotAgents[0] != "operator" || gotAgents[1] != "builder" {
-			t.Errorf("agents: got %v want [operator builder]", gotAgents)
+		if len(gotBots) != 2 || gotBots[0] != "operator" || gotBots[1] != "builder" {
+			t.Errorf("bots: got %v want [operator builder]", gotBots)
 		}
 	})
 }
 
 // TestHandleCompleteBackwardCompatWithLegacyClient verifies that a POST
-// body without the new blueprint/agents fields (e.g. from an older client)
-// is still accepted, with blueprintID empty and selectedAgents nil. The
+// body without the new blueprint/bots fields (e.g. from an older client)
+// is still accepted, with blueprintID empty and selectedBots nil. The
 // downstream onboardingCompleteFn must treat these as "from scratch".
 func TestHandleCompleteBackwardCompatWithLegacyClient(t *testing.T) {
 	withTempHome(t, func(_ string) {
 		var gotBlueprint string
-		var gotAgents []string
-		captured := func(task string, skipTask bool, blueprintID string, selectedAgents []string, _ string) error {
+		var gotBots []string
+		captured := func(task string, skipTask bool, blueprintID string, selectedBots []string, _ string) error {
 			gotBlueprint = blueprintID
-			gotAgents = selectedAgents
+			gotBots = selectedBots
 			return nil
 		}
 
@@ -489,8 +489,8 @@ func TestHandleCompleteBackwardCompatWithLegacyClient(t *testing.T) {
 		if gotBlueprint != "" {
 			t.Errorf("blueprint: got %q want empty", gotBlueprint)
 		}
-		if len(gotAgents) != 0 {
-			t.Errorf("agents: got %v want empty/nil", gotAgents)
+		if len(gotBots) != 0 {
+			t.Errorf("bots: got %v want empty/nil", gotBots)
 		}
 	})
 }
@@ -518,7 +518,7 @@ func TestApplyFormAnswerNormalizesScratchBlueprintIDs(t *testing.T) {
 func TestHandleCompleteReturns500OnCompleteFnError(t *testing.T) {
 	withTempHome(t, func(_ string) {
 		const secretDetail = "secret-path-/etc/wuphf/state.yaml"
-		failing := func(task string, skipTask bool, blueprintID string, selectedAgents []string, _ string) error {
+		failing := func(task string, skipTask bool, blueprintID string, selectedBots []string, _ string) error {
 			return fmt.Errorf("%s: simulated loader failure for %q", secretDetail, blueprintID)
 		}
 
@@ -568,10 +568,10 @@ func TestHandleCompleteSkipTaskPersistsOnboardedState(t *testing.T) {
 }
 
 // TestHandleBlueprintsMarksLeadBuiltIn verifies that GET /onboarding/blueprints
-// surfaces built_in=true for the blueprint's lead agent. The wizard UI
+// surfaces built_in=true for the blueprint's lead bot. The wizard UI
 // uses this flag to lock the lead's checkbox so it cannot be unchecked
 // on the Team step. Without this, a user could uncheck the lead, the POST
-// body would carry an empty agents list, and the broker would fall back
+// body would carry an empty bots list, and the broker would fall back
 // to lead-only — the opposite of what the user asked for, silently.
 func TestHandleBlueprintsMarksLeadBuiltIn(t *testing.T) {
 	withTempHome(t, func(_ string) {
@@ -587,8 +587,8 @@ func TestHandleBlueprintsMarksLeadBuiltIn(t *testing.T) {
 
 		var resp struct {
 			Templates []struct {
-				ID     string `json:"id"`
-				Agents []struct {
+				ID   string `json:"id"`
+				Bots []struct {
 					Slug    string `json:"slug"`
 					BuiltIn bool   `json:"built_in"`
 				} `json:"agents"`
@@ -606,7 +606,7 @@ func TestHandleBlueprintsMarksLeadBuiltIn(t *testing.T) {
 				continue
 			}
 			var leadCount int
-			for _, a := range tpl.Agents {
+			for _, a := range tpl.Bots {
 				if a.BuiltIn {
 					leadCount++
 					if a.Slug != "ceo" {
@@ -615,7 +615,7 @@ func TestHandleBlueprintsMarksLeadBuiltIn(t *testing.T) {
 				}
 			}
 			if leadCount == 0 {
-				t.Error("niche-crm has no built_in lead agent — wizard would allow unchecking the lead")
+				t.Error("niche-crm has no built_in lead bot — wizard would allow unchecking the lead")
 			}
 			if leadCount > 1 {
 				t.Errorf("niche-crm has %d built_in leads; expected exactly 1", leadCount)

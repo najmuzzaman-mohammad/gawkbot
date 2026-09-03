@@ -11,7 +11,7 @@ import (
 // to. Order of preference: (1) caller-supplied IssueID that actually exists,
 // (2) most-recently-updated open Issue in the channel, (3) auto-create an
 // Issue scoped to the action — creation is the authorization, so the
-// auto-created Issue lands running with the agent as owner. Returns
+// auto-created Issue lands running with the bot as owner. Returns
 // (issueID, lifecycleState, error). The lifecycle state lets the caller
 // enforce the parked-Issue gate without a follow-up GET.
 func resolveActionIssue(ctx context.Context, slug, channel string, args TeamActionExecuteArgs) (string, string, error) {
@@ -90,7 +90,7 @@ func resolveActionIssue(ctx context.Context, slug, channel string, args TeamActi
 	title := titleCaser.String(verb) + " via " + platformLabel
 	details := strings.TrimSpace(args.Summary)
 	if details == "" {
-		details = "Auto-created by the broker to scope an external action the agent kicked off without an explicit Issue. " +
+		details = "Auto-created by the broker to scope an external action the bot kicked off without an explicit Issue. " +
 			"Action: " + strings.TrimSpace(args.ActionID) + " via " + platformLabel + "."
 	}
 	createBody := map[string]any{

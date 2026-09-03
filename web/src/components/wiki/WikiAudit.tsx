@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchAuditLog, type WikiAuditEntry } from "../../api/wiki";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 import { formatRelativeTime } from "../../lib/format";
 import PixelAvatar from "./PixelAvatar";
 
@@ -15,7 +15,7 @@ import PixelAvatar from "./PixelAvatar";
  * UX goals, in priority order:
  *   1. You can find one edit fast. Filters compose (author + path + since).
  *   2. You can see the shape of activity at a glance. Bootstrap commits
- *      are visually distinct from agent writes; system / recovery commits
+ *      are visually distinct from bot writes; system / recovery commits
  *      too. No color soup — it's a serious page.
  *   3. You can export. The CSV copy button dumps exactly what's filtered.
  *
@@ -116,7 +116,7 @@ export default function WikiAudit({ onNavigate }: WikiAuditProps) {
             onChange={(e) => setAuthorFilter(e.target.value as AuthorBucket)}
           >
             <option value="all">All</option>
-            <option value="agents">Agents only</option>
+            <option value="agents">Bots only</option>
             <option value="system">System (bootstrap + recovery + init)</option>
             {knownAuthors.map((a) => (
               <option key={a} value={a}>
@@ -179,7 +179,7 @@ export default function WikiAudit({ onNavigate }: WikiAuditProps) {
       ) : filtered.length === 0 ? (
         <div className="wk-audit-empty">
           {entries && entries.length === 0
-            ? "No edits yet. This page will populate as soon as any agent (or bootstrap pass) commits to the wiki."
+            ? "No edits yet. This page will populate as soon as any bot (or bootstrap pass) commits to the wiki."
             : "No entries match your filters."}
         </div>
       ) : (
@@ -204,7 +204,7 @@ export default function WikiAudit({ onNavigate }: WikiAuditProps) {
                 </td>
                 <td className="wk-audit-author">
                   <PixelAvatar slug={e.author_slug} size={16} />
-                  <span>{formatAgentName(e.author_slug)}</span>
+                  <span>{formatBotName(e.author_slug)}</span>
                   {authorTag(e.author_slug) && (
                     <span className="wk-audit-tag">
                       {authorTag(e.author_slug)}

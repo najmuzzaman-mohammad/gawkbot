@@ -2,7 +2,7 @@ package team
 
 // launcher_loops.go owns the long-running poll loops that the
 // Launcher kicks off in goroutines: watchChannelPaneLoop watches the
-// channel TUI pane and respawns it on death; primeVisibleAgents
+// channel TUI pane and respawns it on death; primeVisibleBots
 // clears claude's startup interactivity (delegate to paneLifecycle
 // + replay-catchup); pollOneRelayEventsLoop +
 // fetchAndRecordOneRelayEvents polls the OneRelay backlog and
@@ -70,14 +70,14 @@ func (l *Launcher) captureDeadChannelPane(status string) error {
 	return l.panes().CaptureDeadChannelPane(status)
 }
 
-// primeVisibleAgents clears Claude startup interactivity in newly spawned panes and
+// primeVisibleBots clears Claude startup interactivity in newly spawned panes and
 // replays a catch-up channel nudge once they are actually ready to read it.
-// primeVisibleAgents delegates the pane-priming loop to paneLifecycle
+// primeVisibleBots delegates the pane-priming loop to paneLifecycle
 // (PLAN.md §C5e), then runs the launcher-side replay-catchup so the
 // first message that arrived during claude's startup window isn't lost
 // behind the trust prompt.
-func (l *Launcher) primeVisibleAgents() {
-	l.panes().PrimeVisibleAgents()
+func (l *Launcher) primeVisibleBots() {
+	l.panes().PrimeVisibleBots()
 	if l.broker == nil {
 		return
 	}

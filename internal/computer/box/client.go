@@ -1,5 +1,5 @@
 // Package box rents a bot its cloud computer from ascii.dev Box: one
-// persistent Linux VM per agent with a desktop, reached only through the
+// persistent Linux VM per bot with a desktop, reached only through the
 // provider's REST command endpoint. Stop pauses billing while the disk
 // survives; Join always mints a fresh desktop URL because stream tokens
 // rotate on every state change.
@@ -65,7 +65,7 @@ type Client struct {
 	HTTP  *http.Client
 
 	mu  sync.Mutex
-	ids map[string]string // agent slug -> box id
+	ids map[string]string // bot slug -> box id
 }
 
 // NewClient returns a client for a token.
@@ -136,7 +136,7 @@ func boxFrom(body map[string]any) *Box {
 	return b
 }
 
-// NameFor is the deterministic per-agent box name; the digest suffix
+// NameFor is the deterministic per-bot box name; the digest suffix
 // prevents truncated-slug collisions.
 func NameFor(slug string) string {
 	digest := sha256.Sum256([]byte(slug))
@@ -153,7 +153,7 @@ func NameFor(slug string) string {
 	return "gb-" + clean + "-" + hash
 }
 
-// Find resolves the agent's box. Listing is the most expensive call on
+// Find resolves the bot's box. Listing is the most expensive call on
 // any hot path, so the id is cached once known and re-listed only when a
 // direct read fails.
 func (c *Client) Find(ctx context.Context, slug string) (*Box, error) {
@@ -354,7 +354,7 @@ func (c *Client) Create(ctx context.Context) (*Box, error) {
 	return b, nil
 }
 
-// Rename sets the deterministic per-agent name.
+// Rename sets the deterministic per-bot name.
 func (c *Client) Rename(ctx context.Context, boxID, name string) error {
 	status, body, err := c.do(ctx, http.MethodPatch, "/boxes/"+boxID, map[string]any{"name": name}, 30*time.Second)
 	if err != nil {

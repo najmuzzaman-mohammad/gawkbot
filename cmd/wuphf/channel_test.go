@@ -44,10 +44,10 @@ func TestHighlightMentionsLeavesUnknownSlugsPlain(t *testing.T) {
 }
 
 func TestThreadParticipantDisplayNamesUseCanonicalColors(t *testing.T) {
-	if got, want := threadParticipantColor("Product Manager"), channelui.AgentColor("pm"); got != want {
+	if got, want := threadParticipantColor("Product Manager"), channelui.BotColor("pm"); got != want {
 		t.Fatalf("Product Manager color = %q, want canonical pm color %q", got, want)
 	}
-	if got, want := threadParticipantColor("@custom-ops-agent"), channelui.AgentColor("custom-ops-agent"); got != want {
+	if got, want := threadParticipantColor("@custom-ops-agent"), channelui.BotColor("custom-ops-agent"); got != want {
 		t.Fatalf("custom participant color = %q, want procedural color %q", got, want)
 	}
 }
@@ -236,7 +236,7 @@ func TestChannelViewUsesOneOnOneChrome(t *testing.T) {
 	m.width = 120
 	m.height = 30
 	m.sessionMode = team.SessionModeOneOnOne
-	m.oneOnOneAgent = "ceo"
+	m.oneOnOneBot = "ceo"
 	m.sidebarCollapsed = true
 	m.refreshSlashCommands()
 
@@ -264,7 +264,7 @@ func TestOneOnOneViewShowsExecutionTimeline(t *testing.T) {
 	m.width = 120
 	m.height = 30
 	m.sessionMode = team.SessionModeOneOnOne
-	m.oneOnOneAgent = "ceo"
+	m.oneOnOneBot = "ceo"
 	m.sidebarCollapsed = true
 	m.refreshSlashCommands()
 	m.actions = []channelui.Action{
@@ -286,7 +286,7 @@ func TestOneOnOneStatusBarShowsRuntimeSummary(t *testing.T) {
 	m.width = 120
 	m.height = 30
 	m.sessionMode = team.SessionModeOneOnOne
-	m.oneOnOneAgent = "ceo"
+	m.oneOnOneBot = "ceo"
 	m.sidebarCollapsed = true
 	m.refreshSlashCommands()
 	m.brokerConnected = true
@@ -312,7 +312,7 @@ func TestOneOnOneStatusBarShowsRuntimeSummary(t *testing.T) {
 func TestOneOnOneModeBlocksOfficeCommands(t *testing.T) {
 	m := newChannelModel(false)
 	m.sessionMode = team.SessionModeOneOnOne
-	m.oneOnOneAgent = "ceo"
+	m.oneOnOneBot = "ceo"
 	m.refreshSlashCommands()
 
 	next, _ := m.runCommand("/channels", "")
@@ -548,7 +548,7 @@ func TestOneOnOneCommandOpensModePicker(t *testing.T) {
 	}
 }
 
-func TestOneOnOnePickerEnableOpensAgentPicker(t *testing.T) {
+func TestOneOnOnePickerEnableOpensBotPicker(t *testing.T) {
 	m := newChannelModel(false)
 	m.picker = tui.NewPicker("Direct Session", m.buildOneOnOneModePickerOptions())
 	m.picker.SetActive(true)
@@ -556,15 +556,15 @@ func TestOneOnOnePickerEnableOpensAgentPicker(t *testing.T) {
 
 	next, cmd := m.Update(tui.PickerSelectMsg{Value: "enable"})
 	if cmd != nil {
-		t.Fatalf("expected no immediate command when opening agent picker, got %v", cmd)
+		t.Fatalf("expected no immediate command when opening bot picker, got %v", cmd)
 	}
 	got := next.(channelModel)
-	if !got.picker.IsActive() || got.pickerMode != channelPickerOneOnOneAgent {
-		t.Fatalf("expected 1o1 agent picker, got active=%v mode=%q", got.picker.IsActive(), got.pickerMode)
+	if !got.picker.IsActive() || got.pickerMode != channelPickerOneOnOneBot {
+		t.Fatalf("expected 1o1 bot picker, got active=%v mode=%q", got.picker.IsActive(), got.pickerMode)
 	}
 	view := stripANSI(got.picker.View())
 	if !strings.Contains(view, "Chief of Staff") {
-		t.Fatalf("expected agent options in picker, got %q", view)
+		t.Fatalf("expected bot options in picker, got %q", view)
 	}
 }
 
@@ -587,7 +587,7 @@ func TestOneOnOnePickerDisableInOfficeIsNoop(t *testing.T) {
 func TestOneOnOnePickerDisableInDirectModeRequiresConfirmation(t *testing.T) {
 	m := newChannelModel(false)
 	m.sessionMode = team.SessionModeOneOnOne
-	m.oneOnOneAgent = "be"
+	m.oneOnOneBot = "be"
 	m.picker = tui.NewPicker("Direct Session", m.buildOneOnOneModePickerOptions())
 	m.picker.SetActive(true)
 	m.pickerMode = channelPickerOneOnOneMode
@@ -605,21 +605,21 @@ func TestOneOnOnePickerDisableInDirectModeRequiresConfirmation(t *testing.T) {
 	}
 }
 
-func TestOneOnOneAgentSelectionRequiresConfirmation(t *testing.T) {
+func TestOneOnOneBotSelectionRequiresConfirmation(t *testing.T) {
 	m := newChannelModel(false)
-	m.picker = tui.NewPicker("Choose Direct Agent", m.buildOneOnOneAgentPickerOptions())
+	m.picker = tui.NewPicker("Choose Direct Bot", m.buildOneOnOneBotPickerOptions())
 	m.picker.SetActive(true)
-	m.pickerMode = channelPickerOneOnOneAgent
+	m.pickerMode = channelPickerOneOnOneBot
 
 	next, cmd := m.Update(tui.PickerSelectMsg{Value: "ceo"})
 	if cmd != nil {
-		t.Fatalf("expected no immediate command when picking direct agent, got %v", cmd)
+		t.Fatalf("expected no immediate command when picking direct bot, got %v", cmd)
 	}
 	got := next.(channelModel)
 	if got.confirm == nil {
 		t.Fatal("expected confirmation card to open")
 	}
-	if got.confirm.Action != channelui.ChannelConfirmActionSwitchMode || got.confirm.Agent != "ceo" {
+	if got.confirm.Action != channelui.ChannelConfirmActionSwitchMode || got.confirm.Bot != "ceo" {
 		t.Fatalf("unexpected confirmation: %+v", got.confirm)
 	}
 }
@@ -1176,8 +1176,8 @@ func TestRenderSidebarUsesCompactRosterWhenSpaceIsTight(t *testing.T) {
 		36,
 		22,
 	))
-	if !strings.Contains(sidebar, "Agents · office roster") {
-		t.Fatalf("expected compact sidebar still to render agents section, got %q", sidebar)
+	if !strings.Contains(sidebar, "Bots · office roster") {
+		t.Fatalf("expected compact sidebar still to render bots section, got %q", sidebar)
 	}
 	if strings.Contains(sidebar, "\u201c") {
 		t.Fatalf("expected compact sidebar to omit speech bubbles, got %q", sidebar)
@@ -1213,7 +1213,7 @@ func TestRenderSidebarFallsBackToOfficeRosterWhenPeopleListIsEmpty(t *testing.T)
 		42,
 		20,
 	))
-	if !strings.Contains(sidebar, "Agents · office roster") {
+	if !strings.Contains(sidebar, "Bots · office roster") {
 		t.Fatalf("expected office roster header, got %q", sidebar)
 	}
 	if !strings.Contains(sidebar, "Chief of Staff") {
@@ -1538,7 +1538,7 @@ func TestChannelDoctorDoneShowsDoctorCard(t *testing.T) {
 	}
 }
 
-func TestOfficeSlashAutocompleteIncludesAgentsInVisibleMatches(t *testing.T) {
+func TestOfficeSlashAutocompleteIncludesBotsInVisibleMatches(t *testing.T) {
 	t.Setenv("WUPHF_API_KEY", "test-key")
 	m := newChannelModel(false)
 	m.input = []rune("/")
@@ -1546,8 +1546,8 @@ func TestOfficeSlashAutocompleteIncludesAgentsInVisibleMatches(t *testing.T) {
 	m.updateInputOverlays()
 
 	view := stripANSI(m.autocomplete.View())
-	if !strings.Contains(view, "/agents") {
-		t.Fatalf("expected /agents in visible office autocomplete, got %q", view)
+	if !strings.Contains(view, "/bots") {
+		t.Fatalf("expected /bots in visible office autocomplete, got %q", view)
 	}
 }
 
@@ -1561,7 +1561,7 @@ func TestOfficeViewRendersSlashAutocompletePopup(t *testing.T) {
 	m.updateInputOverlays()
 
 	view := stripANSI(m.View())
-	if !strings.Contains(view, "/integrate") || !strings.Contains(view, "/agents") {
+	if !strings.Contains(view, "/integrate") || !strings.Contains(view, "/bots") {
 		t.Fatalf("expected office view to render slash popup, got %q", view)
 	}
 }
@@ -1570,7 +1570,7 @@ func TestOneOnOneSlashAutocompleteShowsResetAndHidesChannels(t *testing.T) {
 	t.Setenv("WUPHF_API_KEY", "test-key")
 	m := newChannelModel(false)
 	m.sessionMode = team.SessionModeOneOnOne
-	m.oneOnOneAgent = "pm"
+	m.oneOnOneBot = "pm"
 	m.sidebarCollapsed = true
 	m.refreshSlashCommands()
 	m.input = []rune("/")
@@ -1662,7 +1662,7 @@ func TestCtrlCRequiresDoublePress(t *testing.T) {
 	}
 }
 
-func TestMentionAutocompleteFiltersAgents(t *testing.T) {
+func TestMentionAutocompleteFiltersBots(t *testing.T) {
 	m := newChannelModel(false)
 	m.members = []channelui.Member{{Slug: "designer"}, {Slug: "cmo"}}
 	m.input = []rune("@de")
@@ -2560,9 +2560,9 @@ func TestChannelResetDoneImmediatelyRehydratesDirectMode(t *testing.T) {
 	m.height = 30
 
 	next, _ := m.Update(channelResetDoneMsg{
-		notice:        "Direct 1:1 with Backend Engineer is ready.",
-		sessionMode:   team.SessionModeOneOnOne,
-		oneOnOneAgent: "be",
+		notice:      "Direct 1:1 with Backend Engineer is ready.",
+		sessionMode: team.SessionModeOneOnOne,
+		oneOnOneBot: "be",
 	})
 	got := next.(channelModel)
 
@@ -2571,7 +2571,7 @@ func TestChannelResetDoneImmediatelyRehydratesDirectMode(t *testing.T) {
 	}
 
 	view := stripANSI(got.View())
-	if !strings.Contains(view, "Direct session reset. Agent pane reloaded in place.") {
+	if !strings.Contains(view, "Direct session reset. Bot pane reloaded in place.") {
 		t.Fatalf("expected direct-session empty state, got %q", view)
 	}
 	if strings.Contains(view, "Welcome to gawkbot.") {
@@ -2630,7 +2630,7 @@ func TestChannelViewShowsUsageTotals(t *testing.T) {
 	m.usage = channelui.UsageState{
 		Session: channelui.UsageTotals{TotalTokens: 3200, CostUsd: 0.41},
 		Total:   channelui.UsageTotals{TotalTokens: 12500, CostUsd: 1.23},
-		Agents: map[string]channelui.UsageTotals{
+		Bots: map[string]channelui.UsageTotals{
 			"ceo": {TotalTokens: 5000, CostUsd: 0.62},
 			"fe":  {TotalTokens: 7500, CostUsd: 0.61},
 		},
@@ -2641,7 +2641,7 @@ func TestChannelViewShowsUsageTotals(t *testing.T) {
 		t.Fatalf("expected overall spend summary, got %q", view)
 	}
 	if !strings.Contains(view, "◆ 5.0k tok · $0.62") {
-		t.Fatalf("expected per-agent usage pill, got %q", view)
+		t.Fatalf("expected per-bot usage pill, got %q", view)
 	}
 	if !strings.Contains(view, "▤ 7.5k tok · $0.61") {
 		t.Fatalf("expected frontend usage pill, got %q", view)

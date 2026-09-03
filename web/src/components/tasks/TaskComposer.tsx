@@ -2,7 +2,7 @@
  * TaskComposer — the new-task home composer.
  *
  * This is the app's landing surface: a single centered chatbox where a human
- * describes an outcome, picks who owns it and how it runs (owner agent /
+ * describes an outcome, picks who owns it and how it runs (owner bot /
  * provider / model / reasoning effort), and chooses how to start it — now, on
  * the backlog, or as a recurring routine.
  *
@@ -11,7 +11,7 @@
  * offers only the levels that runtime applies at dispatch (see effortCatalog).
  *
  * The provider/model/effort are sent ON THE TASK — the model is a property of
- * the task, not the agent, so nothing here mutates an agent's binding. Dispatch
+ * the task, not the bot, so nothing here mutates a bot's binding. Dispatch
  * prefers the task's runtime over the owner's (soft-default) binding.
  *
  * Every task is assigned: the owner chip defaults to the CEO (the team lead)
@@ -132,7 +132,7 @@ export function TaskComposer() {
   // The selected owner's stored binding seeds the chips as a starting point.
   // "auto" (and any owner without a binding) seeds from the global default
   // runtime. Whatever the user picks is sent ON THE TASK — it never mutates the
-  // agent's binding (the model is a property of the task, not the agent).
+  // bot's binding (the model is a property of the task, not the bot).
   const ownerMember = members.find((m) => m.slug === ownerSlug);
   const ownerBinding = bindingFromMember(ownerMember?.provider);
   const ownerKind = runtimeKindFromMember(ownerMember?.provider, llmKinds);
@@ -191,7 +191,7 @@ export function TaskComposer() {
   }
 
   // createAndRoute creates the task and hands the user off. The task carries
-  // its own provider/model/effort, so nothing here mutates an agent binding.
+  // its own provider/model/effort, so nothing here mutates a bot binding.
   //   Start now → dispatch the owner (a real owner runs; Auto → CEO triages).
   //   Backlog   → park=true: assigned but parked in the backlog until started.
   async function createAndRoute(mode: "start" | "backlog", owner: string) {

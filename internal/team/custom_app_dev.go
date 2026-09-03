@@ -8,7 +8,7 @@ package team
 // with HMR: edits hot-reload in milliseconds. The single-file build stays as the
 // sealed "ship" artifact (register_app); this is purely the live preview.
 //
-// Security: the dev server runs the agent's own source on 127.0.0.1, but a
+// Security: the dev server runs the bot's own source on 127.0.0.1, but a
 // generated app must still be unable to exfiltrate. We do NOT trust the app's
 // own vite.config for that — the CSP is injected by a broker-owned reverse proxy
 // (httputil.ReverseProxy, which also tunnels Vite's HMR WebSocket for free), so
@@ -281,8 +281,8 @@ func (s *appDevServer) installIfNeeded() error {
 	if devTreeFresh(s.srcDir) {
 		return nil
 	}
-	// --ignore-scripts: agent-authored package.json is not host-protected, so a
-	// lifecycle hook would run arbitrary agent code in the broker process. Matches
+	// --ignore-scripts: bot-authored package.json is not host-protected, so a
+	// lifecycle hook would run arbitrary bot code in the broker process. Matches
 	// buildAppBundle's install step.
 	cmd := exec.CommandContext(context.Background(), "bun", "install", "--ignore-scripts")
 	cmd.Dir = s.srcDir
@@ -378,7 +378,7 @@ func (s *appDevServer) onDevChunk(_ []byte) {
 	}
 }
 
-// serveProxy fronts the Vite dev server, injecting the agent-proof CSP. Returns
+// serveProxy fronts the Vite dev server, injecting the bot-proof CSP. Returns
 // 503 while the dev server is still starting (target not yet scraped).
 func (s *appDevServer) serveProxy(w http.ResponseWriter, r *http.Request) {
 	// DNS-rebinding guard: the ephemeral preview proxy is loopback-only, so a

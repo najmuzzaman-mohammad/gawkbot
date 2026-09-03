@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { sseURL } from "../../api/client";
-import { useAgentStream } from "../../hooks/useAgentStream";
+import { useBotStream } from "../../hooks/useBotStream";
 import { APP_BUILDER_SLUG } from "../../lib/constants";
 import {
   type BuildActivityItem,
@@ -30,7 +30,7 @@ export function AppActivity({ appId }: AppActivityProps) {
   const url = id
     ? sseURL(`/apps/${encodeURIComponent(id)}/activity`)
     : undefined;
-  const { lines, connected } = useAgentStream(
+  const { lines, connected } = useBotStream(
     id ? APP_BUILDER_SLUG : null,
     null,
     {

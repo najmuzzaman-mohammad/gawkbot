@@ -62,7 +62,7 @@ function EmptyState({ query }: { query: string }) {
     <div className="cmd-palette-empty" data-testid="cmd-palette-empty">
       {query.trim()
         ? `No results for "${query.trim()}". Try a shorter search or use the full search with Cmd+F.`
-        : "Type to search agents, channels, wiki, and more — or jump to an action."}
+        : "Type to search bots, channels, wiki, and more — or jump to an action."}
     </div>
   );
 }
@@ -79,7 +79,7 @@ interface CommandPaletteProps {
  *
  * Command categories:
  * - Actions  — static shortcuts (settings, health, copy link, etc.)
- * - Agents   — open any agent from the roster
+ * - Bots   — open any bot from the roster
  * - Channels — jump to any channel
  * - Tasks    — open task board / specific task
  * - Wiki     — open any wiki page from the catalog (query ≥ 2 chars)
@@ -245,7 +245,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             aria-expanded={items.length > 0}
             aria-autocomplete="list"
             aria-haspopup="listbox"
-            placeholder="Jump to agent, channel, wiki, action..."
+            placeholder="Jump to bot, channel, wiki, action..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

@@ -14,7 +14,7 @@
  *
  * Surfaces mounted here: the bubble menu (text selection), the slash menu
  * (`/`), the `@`-mention picker, the gawkbot insert dialogs (citation / fact /
- * decision / related / wiki-link / agent-mention pickers), and the link /
+ * decision / related / wiki-link / bot-mention pickers), and the link /
  * image popovers.
  */
 
@@ -188,7 +188,7 @@ export default function TiptapWikiEditor({
   // handler doesn't fight the dialog's own inputs.
   const slash = useSlashMenu(inserts.dialog === null ? editor : null);
 
-  // Wiki-link / agent-mention / task-ref slash actions open the mention
+  // Wiki-link / bot-mention / task-ref slash actions open the mention
   // picker; stash which bucket to surface so it defaults correctly.
   const [pickerCategory, setPickerCategory] = useState<MentionCategory | null>(
     null,

@@ -8,11 +8,11 @@ Avoid hype, buzzwords, and generic SaaS phrasing. When in doubt, explain the off
 
 ## Users
 
-WUPHF is for developers, technical founders, and AI-tool builders who want AI agents to work in a visible shared office instead of disappearing behind an API or hidden automation loop. They are evaluating whether WUPHF feels credible, local-first, source-available, and easy enough to try from one terminal command.
+WUPHF is for developers, technical founders, and AI-tool builders who want AI bots to work in a visible shared office instead of disappearing behind an API or hidden automation loop. They are evaluating whether WUPHF feels credible, local-first, source-available, and easy enough to try from one terminal command.
 
 ## Product Purpose
 
-WUPHF is a source-available collaborative office for AI employees with a shared brain. The marketing site should make the core promise tangible: one command opens an office where CEO, PM, engineers, designer, CMO, and CRO agents are visible, claim tasks, argue, and ship work. Success means visitors understand the product through the scene itself, trust that it is real and installable, and know the next action is `npx wuphf`.
+WUPHF is a source-available collaborative office for AI employees with a shared brain. The marketing site should make the core promise tangible: one command opens an office where CEO, PM, engineers, designer, CMO, and CRO bots are visible, claim tasks, argue, and ship work. Success means visitors understand the product through the scene itself, trust that it is real and installable, and know the next action is `npx wuphf`.
 
 ## Brand Personality
 

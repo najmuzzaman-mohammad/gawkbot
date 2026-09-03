@@ -11,7 +11,7 @@ package migration
 // The writer passes MigrateAuthor ("migrate") as the author slug. The
 // wiki git layer derives the commit author as `migrate <migrate@wuphf.local>`
 // via runGitLocked's identity flags. That keeps migration commits visually
-// distinct from human / archivist / agent commits in audit views, and
+// distinct from human / archivist / bot commits in audit views, and
 // matches the CLI spec without any changes to runGitLocked itself.
 //
 // Dedup
@@ -39,7 +39,7 @@ import (
 // identity derivation, in line with the HumanAuthor / ArchivistAuthor
 // pattern in internal/team/. Defined here (not in internal/team/) so
 // the migration package owns its own identity without editing files
-// reserved for sibling agents.
+// reserved for sibling bots.
 const MigrateAuthor = "migrate"
 
 // WikiWriter is the slice of team.WikiWorker this package needs. Kept

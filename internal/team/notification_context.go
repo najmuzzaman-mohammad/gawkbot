@@ -6,7 +6,7 @@ package team
 // no goroutines, no tmux, no broker writes — so it can be exercised with
 // stub callbacks instead of a fully-wired Broker fixture.
 //
-// State sharing notes (PLAN.md §5.7): primeVisibleAgents and
+// State sharing notes (PLAN.md §5.7): primeVisibleBots and
 // respawnPanesAfterReseed straddle this cluster and the future
 // paneLifecycle (C5). Both stay on Launcher (and call the builder) so
 // the dependency direction is paneLifecycle → notificationContext, never
@@ -28,7 +28,7 @@ import (
 // (docs/specs/sota-uplift.md, U0.2) inverts that: packets are sized for
 // outcome quality, and token cost is no longer a design constraint.
 const (
-	// threadContextLimit is how many recent thread messages every agent
+	// threadContextLimit is how many recent thread messages every bot
 	// (lead and specialist alike) receives in a work packet.
 	threadContextLimit = 20
 	// threadMessageClipChars clips a single message inside the context block.
@@ -37,7 +37,7 @@ const (
 	taskDetailsClipChars = 4096
 	// taskListDetailsClipChars clips per-task DETAIL lines in multi-task
 	// summary lists. Titles are deliberately NOT display-clipped in any
-	// agent-facing string: the live $61k→"$6…" failure (ICP-eval v2
+	// bot-facing string: the live $61k→"$6…" failure (ICP-eval v2
 	// [00:00]) came from a lane working off a truncated title as if it
 	// were the work contract. Titles render full (bounded only by
 	// taskDetailsClipChars as an overflow guard); UI surfaces may clip
@@ -47,7 +47,7 @@ const (
 	triggerContentClipChars = 4000
 	// changesRequestedClipChars clips the latest request-changes feedback
 	// rendered in execution packets. Generous on purpose: ICP-eval v2 J2
-	// found agents reworking blind because the human's typed feedback was
+	// found bots reworking blind because the human's typed feedback was
 	// invisible or truncated ("The feedback text is truncated in the
 	// packet"), so this block must carry the full review verbatim for any
 	// realistic comment length.
@@ -85,7 +85,7 @@ func recipientHasTaskVisibility(recipient string, task *teamTask) bool {
 
 // notificationContextBuilder assembles the strings (notification context,
 // work packets, response instructions, task content) that get typed into
-// agent panes or sent through the headless dispatch queue. Constructed
+// bot panes or sent through the headless dispatch queue. Constructed
 // fresh per call from launcher state so it always sees current broker
 // reads.
 type notificationContextBuilder struct {
@@ -103,12 +103,12 @@ type notificationContextBuilder struct {
 	// callback; the builder doesn't need to know about routing internals.
 	scoreTaskCandidate func(msg channelMessage, task teamTask) float64
 
-	// activeHeadlessAgents returns slugs that have non-empty headless
+	// activeHeadlessBots returns slugs that have non-empty headless
 	// queues or active turns at the moment of the call. The launcher
 	// implements this with the headlessMu lock held; the builder treats
 	// it as opaque. The except parameter is the slug being notified —
 	// the lead must not list itself as "already active".
-	activeHeadlessAgents func(except string) map[string]struct{}
+	activeHeadlessBots func(except string) map[string]struct{}
 
 	// searchLearnings / searchWiki feed the task-scoped knowledge block
 	// (context_assembler.go, U2.2). Nil-safe: when unset the packet simply
@@ -140,12 +140,12 @@ type notificationContextBuilder struct {
 // when threadRoot is non-empty (anchors at root + most-recent thread
 // activity); recent-channel fallback otherwise.
 //
-// recipientSlug is the agent the context is being built for. When set,
+// recipientSlug is the bot the context is being built for. When set,
 // the builder additionally suppresses messages whose source task is in
 // a pre-merge lifecycle state and the recipient is NOT the task owner
-// or one of its reviewers. This prevents Agent B from picking up Agent
+// or one of its reviewers. This prevents Bot B from picking up Bot
 // A's in-stream pre-review commentary as if it were canonical output —
-// agents subscribed to merged-state results read the wiki, not the
+// bots subscribed to merged-state results read the wiki, not the
 // channel scrollback. Pass empty recipient for backwards-compatible
 // "no filter" semantics.
 func (b *notificationContextBuilder) NotificationContext(recipientSlug, channel, triggerMsgID, threadRootID string, limit int) string {
@@ -176,7 +176,7 @@ func (b *notificationContextBuilder) NotificationContext(recipientSlug, channel,
 			return false
 		}
 		// Pre-review-message filter: hide pre-merge chatter from
-		// agents who aren't authoritatively involved in the source
+		// bots who aren't authoritatively involved in the source
 		// task. System and merged-decision broadcasts pass through
 		// because SourceTaskID is either empty or the task is no
 		// longer pre-merge.
@@ -196,7 +196,7 @@ func (b *notificationContextBuilder) NotificationContext(recipientSlug, channel,
 			// Human-authored messages render in FULL — the human's words are
 			// the work contract, and clipping them is how the v3 run absorbed
 			// half a redline message and re-asked for the other half
-			// (ten-out-of-ten Wave E handoff). Agent/system chatter keeps the
+			// (ten-out-of-ten Wave E handoff). Bot/system chatter keeps the
 			// clip as a token-overflow guard.
 			content := m.Content
 			if !isHumanMessageSender(m.From) {
@@ -317,9 +317,9 @@ func (b *notificationContextBuilder) ThreadMessageIDs(channelSlug, rootID string
 }
 
 // TaskNotificationContext returns the "Active tasks:" block for the given
-// agent. Lead agents see all-channel tasks (sort by UpdatedAt desc),
+// bot. Lead bots see all-channel tasks (sort by UpdatedAt desc),
 // non-leads see their own owned work first then a short fallback list.
-// Lead agents also get a review-backlog hint when tasks are stuck waiting
+// Lead bots also get a review-backlog hint when tasks are stuck waiting
 // on review.
 func (b *notificationContextBuilder) TaskNotificationContext(channelSlug, slug string, limit int) string {
 	if b == nil || limit <= 0 {
@@ -528,7 +528,7 @@ func (b *notificationContextBuilder) RelevantTaskForTarget(msg channelMessage, s
 	return teamTask{}, false
 }
 
-// ResponseInstructionForTarget returns the per-agent guidance string
+// ResponseInstructionForTarget returns the per-bot guidance string
 // appended to a notification. Branches: lead-from-human, lead-from-
 // specialist, DM, tagged, owns-matching-task, default-domain-chime-in.
 func (b *notificationContextBuilder) ResponseInstructionForTarget(msg channelMessage, slug string) string {
@@ -542,10 +542,10 @@ func (b *notificationContextBuilder) ResponseInstructionForTarget(msg channelMes
 		return fmt.Sprintf("You are @%s. Give the first top-level reply quickly, then pull in specialists only when needed. For build/ship/end-to-end requests, the first engineering task itself must be a single smallest runnable feature slice, not an MVP umbrella or a multi-output minimum bar. Do not put a separate repo audit, architecture, or cut-line research task in front of that first feature unless the human explicitly asked for analysis first or the repo truly has no identifiable implementation target. Do not spend the whole first turn on `pwd`, `ls`, `rg --files`, `find .`, or another repo-wide inventory; use the named docs/configs in the packet or at most one or two targeted reads, then create the first durable task/channel state in that same turn. %s", slug, capabilityGapCoachingBlock())
 	}
 	channelSlug := normalizeChannelSlug(msg.Channel)
-	if IsDMSlug(channelSlug) && DMTargetAgent(channelSlug) == slug {
+	if IsDMSlug(channelSlug) && DMTargetBot(channelSlug) == slug {
 		return fmt.Sprintf("You are @%s. The human is messaging you directly in a DM. Respond helpfully from your domain expertise.", slug)
 	}
-	if isDM, agentTarget := b.targeter.IsChannelDM(channelSlug); isDM && agentTarget == slug {
+	if isDM, botTarget := b.targeter.IsChannelDM(channelSlug); isDM && botTarget == slug {
 		return fmt.Sprintf("You are @%s. The human is messaging you directly in a DM. Respond helpfully from your domain expertise.", slug)
 	}
 	if containsSlug(msg.Tagged, slug) {
@@ -560,10 +560,10 @@ func (b *notificationContextBuilder) ResponseInstructionForTarget(msg channelMes
 	return fmt.Sprintf("You are @%s. You were woken because the thread brushes your domain. If you have a sharp take, a push-back from your expertise, or a quick observation that moves the work, drop it — short. Skip the turn only if you truly have nothing to add; do not reply just to acknowledge.", slug)
 }
 
-// BuildMessageWorkPacket returns the work packet a notified agent receives
+// BuildMessageWorkPacket returns the work packet a notified bot receives
 // for a channel message: header lines (thread / DM preamble / group
 // preamble / tagged hint / active task), recent-message context, and (for
-// the lead) a list of agents who have already acted in this thread or
+// the lead) a list of bots who have already acted in this thread or
 // have pending headless turns ("do NOT re-route").
 func (b *notificationContextBuilder) BuildMessageWorkPacket(msg channelMessage, slug string) string {
 	packet, _ := b.BuildMessageWorkPacketWithContext(msg, slug)
@@ -573,11 +573,11 @@ func (b *notificationContextBuilder) BuildMessageWorkPacket(msg channelMessage, 
 // BuildMessageWorkPacketWithContext is BuildMessageWorkPacket plus the
 // context manifest: the ids of every knowledge/upstream/journal item the
 // packet injected, recorded on the turn so the ledger (and the Activity
-// rail) can show the human what context the agent was handed (B4).
+// rail) can show the human what context the bot was handed (B4).
 func (b *notificationContextBuilder) BuildMessageWorkPacketWithContext(msg channelMessage, slug string) (string, []string) {
 	// This lands in the packet as "- Thread: #%s reply_to %s", i.e. it is the
-	// address the agent is told to answer at. A channel-less message used to
-	// render "#general", pointing the agent at the retired room; its own DM
+	// address the bot is told to answer at. A channel-less message used to
+	// render "#general", pointing the bot at the retired room; its own DM
 	// with the human is the conversation it is actually in.
 	channelSlug := normalizeChannelSlug(msg.Channel)
 	if strings.TrimSpace(msg.Channel) == "" {
@@ -591,7 +591,7 @@ func (b *notificationContextBuilder) BuildMessageWorkPacketWithContext(msg chann
 		dmPreamble := []string{
 			"Context: DIRECT MESSAGE",
 			"This is a private 1:1 conversation with the human. Respond to every message.",
-			"You do not need to coordinate with other agents.",
+			"You do not need to coordinate with other bots.",
 			"---",
 		}
 		lines = append(dmPreamble, lines...)
@@ -669,7 +669,7 @@ func (b *notificationContextBuilder) BuildMessageWorkPacketWithContext(msg chann
 		}
 	}
 	threadRoot := b.UltimateThreadRoot(channelSlug, msg.ReplyTo)
-	// Every agent gets the full thread window. Specialists used to be
+	// Every bot gets the full thread window. Specialists used to be
 	// capped at 4 messages "to stay token-efficient", which starved them
 	// into improvising from a keyhole view of the thread (sota-uplift U0.2).
 	if ctx := b.NotificationContext(slug, channelSlug, msg.ID, threadRoot, threadContextLimit); ctx != "" {
@@ -679,7 +679,7 @@ func (b *notificationContextBuilder) BuildMessageWorkPacketWithContext(msg chann
 		if taskCtx := b.TaskNotificationContext("", slug, leadTaskContextLimit); taskCtx != "" {
 			lines = append(lines, taskCtx)
 		}
-		activeAgents := map[string]struct{}{}
+		activeBots := map[string]struct{}{}
 		if b.channelMessages != nil {
 			threadRoot := strings.TrimSpace(b.UltimateThreadRoot(channelSlug, msg.ReplyTo))
 			if threadRoot == "" {
@@ -691,18 +691,18 @@ func (b *notificationContextBuilder) BuildMessageWorkPacketWithContext(msg chann
 					continue
 				}
 				if !isHumanMessageSender(tm.From) && tm.From != "nex" && tm.From != slug {
-					activeAgents[tm.From] = struct{}{}
+					activeBots[tm.From] = struct{}{}
 				}
 			}
 		}
-		if b.activeHeadlessAgents != nil {
-			for s := range b.activeHeadlessAgents(slug) {
-				activeAgents[s] = struct{}{}
+		if b.activeHeadlessBots != nil {
+			for s := range b.activeHeadlessBots(slug) {
+				activeBots[s] = struct{}{}
 			}
 		}
-		if len(activeAgents) > 0 {
-			names := make([]string, 0, len(activeAgents))
-			for name := range activeAgents {
+		if len(activeBots) > 0 {
+			names := make([]string, 0, len(activeBots))
+			for name := range activeBots {
 				names = append(names, "@"+name)
 			}
 			sort.Strings(names)
@@ -727,8 +727,8 @@ func (b *notificationContextBuilder) BuildTaskExecutionPacket(slug string, actio
 // stamped onto the task ledger entry when the turn settles.
 func (b *notificationContextBuilder) BuildTaskExecutionPacketWithContext(slug string, action officeActionLog, task teamTask, content string) (string, []string) {
 	// Same contract as BuildMessageWorkPacketWithContext: this is the address
-	// the agent is told to reply at, so a homeless task must resolve to the
-	// agent's DM rather than the retired shared room.
+	// the bot is told to reply at, so a homeless task must resolve to the
+	// bot's DM rather than the retired shared room.
 	channelSlug := normalizeChannelSlug(task.Channel)
 	if strings.TrimSpace(task.Channel) == "" {
 		channelSlug = DMSlugFor(slug)
@@ -757,7 +757,7 @@ func (b *notificationContextBuilder) BuildTaskExecutionPacketWithContext(slug st
 	// Latest request-changes feedback leads the packet (core-loop grader
 	// fix family #1, ICP-eval v2 J2): the reviewer's verbatim text rides
 	// on the task itself (teamTask.ChangesRequested) because the Decision
-	// Packet feedback log is invisible to the reworking agent. Rendered
+	// Packet feedback log is invisible to the reworking bot. Rendered
 	// BEFORE the definition so a bounced task's next turn opens with what
 	// the reviewer actually said, not a bare "changes requested" flag.
 	if lines2 := changesRequestedPacketLines(task); len(lines2) > 0 {
@@ -834,7 +834,7 @@ func (b *notificationContextBuilder) BuildTaskExecutionPacketWithContext(slug st
 		lines = append(lines,
 			"Lead execution rule: you are the coordinator, not the sole worker. For anything larger than a single owned step, DECOMPOSE this task instead of doing it all yourself:",
 			fmt.Sprintf("- Break the work into concrete sub-tasks with team_task action=create, each carrying parent_issue_id=%s so they nest under this task.", task.ID),
-			"- Give each sub-task an `owner`: REUSE the existing specialist whose expertise best fits (see AVAILABLE AGENTS). Only when no current teammate fits, propose a new specialist with team_member — creating a new agent ALWAYS requires explicit human approval (the tool blocks until the human decides), so prefer reusing the roster.",
+			"- Give each sub-task an `owner`: REUSE the existing specialist whose expertise best fits (see AVAILABLE AGENTS). Only when no current teammate fits, propose a new specialist with team_member — creating a new bot ALWAYS requires explicit human approval (the tool blocks until the human decides), so prefer reusing the roster.",
 			"- Sub-tasks spin off automatically: once created with an owner they wake that owner and run concurrently on their own lanes. You do not need to tag or chase each one separately.",
 			"- Keep THIS task as the umbrella: track its sub-tasks, aggregate their results here as they land, and complete the parent only after the children are done. Do not mark the parent complete while children are still open.",
 			"- Do the work directly yourself only when it is genuinely a single step in your own domain, or when decomposition would not help.",
@@ -877,7 +877,7 @@ func (b *notificationContextBuilder) BuildTaskExecutionPacketWithContext(slug st
 // stored on the task (teamTask.ChangesRequested) for the execution packet.
 // Returns nil when no verdict is pending. When the verdict is the open
 // HUMAN objection (teamTask.HumanObjection), the block also states the
-// sovereignty contract: no agent — including the lead — can approve or
+// sovereignty contract: no bot — including the lead — can approve or
 // complete the task until the human clears it.
 func changesRequestedPacketLines(task teamTask) []string {
 	obj := task.ChangesRequested
@@ -893,13 +893,13 @@ func changesRequestedPacketLines(task teamTask) []string {
 		"  Address this feedback FIRST — point by point, in the actual artifact — then resubmit with team_task action=submit_for_review. Do not guess at what the reviewer meant when the text above answers it.",
 	}
 	if task.HumanObjection != nil {
-		lines = append(lines, "  This objection is from the HUMAN and is sovereign: no agent (including the lead/Chief of Staff) can approve or complete this task while it stands. Only the human can clear it by approving or completing.")
+		lines = append(lines, "  This objection is from the HUMAN and is sovereign: no bot (including the lead/Chief of Staff) can approve or complete this task while it stands. Only the human can clear it by approving or completing.")
 	}
 	return lines
 }
 
 // humanNotePacketBlock renders the pending human note for the task owner's
-// packet. Empty for non-owners (the note is addressed to the working agent)
+// packet. Empty for non-owners (the note is addressed to the working bot)
 // and when no note is pending. The HALT variant names the standing stop
 // order explicitly. For a task in a terminal-done state the note is a
 // post-delivery follow-up (done-integrity fix family): the block leads with
@@ -933,7 +933,7 @@ func humanNotePacketBlock(task teamTask, slug string) string {
 	block := fmt.Sprintf("HUMAN POSTED WHILE YOU WORKED — read before continuing: @%s said: %s", note.From, body)
 	if note.Halt {
 		// V3-N6: a Stop is a PAUSE, never a license to "put things back".
-		// The v3 live run had the agent answer a Stop by running
+		// The v3 live run had the bot answer a Stop by running
 		// `git checkout HEAD` and silently destroying the session's
 		// deliverable while narrating "exactly as it was" ([20:03]).
 		block += "\nThis was a STOP order. PAUSE the work now. Do NOT discard or revert any work. Report state and wait." +

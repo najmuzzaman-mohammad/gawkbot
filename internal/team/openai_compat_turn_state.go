@@ -6,18 +6,18 @@ import (
 	"time"
 )
 
-// runtimeTurnSinks adapts the production Launcher / agentStream /
+// runtimeTurnSinks adapts the production Launcher / botStream /
 // log paths to the openAICompatTurnSinks interface. Tests inject a
 // fake sink instead.
 type runtimeTurnSinks struct {
 	l       *Launcher
 	slug    string
 	taskID  string
-	stream  *agentStreamBuffer
+	stream  *botStreamBuffer
 	metrics *headlessProgressMetrics
 }
 
-func (s *runtimeTurnSinks) pushAgentStream(line string) {
+func (s *runtimeTurnSinks) pushBotStream(line string) {
 	if s.stream == nil || line == "" {
 		return
 	}
@@ -36,19 +36,19 @@ func (s *runtimeTurnSinks) appendLog(line string) {
 }
 
 // openAICompatTurnSinks is the surface runHeadlessOpenAICompatTurn
-// needs to observe + drive a single turn — agent stream pushes, the
-// per-agent progress label, and the on-disk log. Pulled out as an
+// needs to observe + drive a single turn — bot stream pushes, the
+// per-bot progress label, and the on-disk log. Pulled out as an
 // interface so the turn-state machine can be unit-tested without a
 // Launcher / broker fixture.
 type openAICompatTurnSinks interface {
-	// pushAgentStream emits a raw text chunk (or a tool-use marker)
+	// pushBotStream emits a raw text chunk (or a tool-use marker)
 	// into the live-output panel via the broker SSE.
-	pushAgentStream(s string)
-	// updateProgressLabel flips the agent's sidebar label (e.g.
+	pushBotStream(s string)
+	// updateProgressLabel flips the bot's sidebar label (e.g.
 	// "drafting response · ~12 tok/s"). The state machine throttles
 	// these so the broker SSE isn't pummelled on fast streams.
 	updateProgressLabel(label string)
-	// appendLog records a line in the per-agent log (used for
+	// appendLog records a line in the per-bot log (used for
 	// post-mortem of unparsed tool calls etc).
 	appendLog(line string)
 }
@@ -164,7 +164,7 @@ func (s *openAICompatTurnState) maybeFlushLive(chunk string) {
 }
 
 func (s *openAICompatTurnState) pushLiveText(text string) {
-	s.sinks.pushAgentStream(text)
+	s.sinks.pushBotStream(text)
 	if s.liveChat != nil {
 		s.liveChat.OnText(text)
 	}
@@ -185,11 +185,11 @@ func (s *openAICompatTurnState) onToolUseChunk(toolName, rawInput string) {
 	if s.liveChat != nil {
 		s.liveChat.Flush()
 	}
-	s.sinks.pushAgentStream(fmt.Sprintf("[tool_use %s] %s", toolName, rawInput))
+	s.sinks.pushBotStream(fmt.Sprintf("[tool_use %s] %s", toolName, rawInput))
 }
 
 // onToolResult handles the result callback from openAICompatToolLoop:
-// records the success/failure in the per-agent log and flips the
+// records the success/failure in the per-bot log and flips the
 // broadcasted-this-turn gate when the tool was a user-visible post
 // (so the runner suppresses the post-loop final-text post).
 func (s *openAICompatTurnState) onToolResult(name, result string, err error) {
@@ -213,7 +213,7 @@ func (s *openAICompatTurnState) onToolResult(name, result string, err error) {
 // panel so the user sees the failure inline rather than a silent
 // stall.
 func (s *openAICompatTurnState) onError(msg string) {
-	s.sinks.pushAgentStream("[error] " + msg)
+	s.sinks.pushBotStream("[error] " + msg)
 	if s.liveChat != nil {
 		s.liveChat.ReportIssue(msg)
 	}
@@ -223,7 +223,7 @@ func (s *openAICompatTurnState) onError(msg string) {
 // runner post finalText to the channel?". Returns false when a
 // user-visible posting tool already ran in this turn — the runner
 // uses this to avoid double-posting (and to break the broker
-// fan-out loop where the agent's own post re-fires it).
+// fan-out loop where the bot's own post re-fires it).
 func (s *openAICompatTurnState) shouldPostFinalText() bool {
 	return !s.broadcastedThisTurn
 }

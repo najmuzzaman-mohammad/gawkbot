@@ -1,6 +1,6 @@
-# Agent Navigability
+# Bot Navigability
 
-WUPHF should be easy for several agents to change without each agent rebuilding
+WUPHF should be easy for several bots to change without each bot rebuilding
 the whole product model from scattered handlers. This guide defines domain
 boundaries, file ownership, and the evidence expected when a task changes code.
 
@@ -15,13 +15,13 @@ Each domain should converge on the same shape:
 
 | Domain | Owns | State | Service and route files | Web consumers | TUI consumers | Required tests |
 |---|---|---|---|---|---|---|
-| office | channels, roster, channel membership, DMs, office member generation | `teamChannel`, `officeMember`, channel store, member index, channel access rules | `internal/team/broker_office_channels.go`, `internal/team/broker_office_members.go`, `internal/team/broker_channel_access.go`, `internal/channel/*` | sidebar channel/member hooks, shell channel state, agent and channel wizards | `cmd/wuphf/channel_*`, channel picker, sidebar, member draft views | office channel tests, provider/channel tests, Web sidebar tests, TUI channel tests |
+| office | channels, roster, channel membership, DMs, office member generation | `teamChannel`, `officeMember`, channel store, member index, channel access rules | `internal/team/broker_office_channels.go`, `internal/team/broker_office_members.go`, `internal/team/broker_channel_access.go`, `internal/channel/*` | sidebar channel/member hooks, shell channel state, bot and channel wizards | `cmd/wuphf/channel_*`, channel picker, sidebar, member draft views | office channel tests, provider/channel tests, Web sidebar tests, TUI channel tests |
 | messages | channel messages, inbox/outbox views, threads, reactions, message SSE | `channelMessage`, message subscribers, reaction state, thread fields | `internal/team/broker_messages.go`, `internal/team/broker_streams.go`, `internal/team/broker_sse.go`, `internal/channel/*` | message feed, composer, thread panel, message hooks | channel mailbox, thread, composer, unread and render files | broker message tests, stream/SSE tests, Web message tests, TUI message/thread tests |
-| tasks | task lifecycle, work evidence, worktrees, task memory workflow, task logs | `teamTask`, typed task HTTP envelopes, worktree fields, task memory workflow, agent log root | `internal/team/broker_tasks*.go`, `internal/team/broker_tasks_contracts.go`, `internal/team/broker_tasks_service.go`, `internal/team/broker_tasks_mutation_service.go`, `internal/team/task_pipeline.go`, `internal/team/worktree.go` | `web/src/api/tasks.ts`, `web/src/components/apps/TasksApp.tsx`, `TaskDetailModal.tsx`, receipts/activity task views | `cmd/wuphf/channelui/task_workflow_builders.go`, task/policy line builders, channel task views | `internal/team/broker_route_contracts_test.go`, `internal/team/broker_tasks_service_test.go`, `internal/team/broker_tasks_test.go`, `internal/team/task_pipeline_test.go`, `web/src/api/tasks.test.ts`, Web/TUI task rendering tests |
+| tasks | task lifecycle, work evidence, worktrees, task memory workflow, task logs | `teamTask`, typed task HTTP envelopes, worktree fields, task memory workflow, bot log root | `internal/team/broker_tasks*.go`, `internal/team/broker_tasks_contracts.go`, `internal/team/broker_tasks_service.go`, `internal/team/broker_tasks_mutation_service.go`, `internal/team/task_pipeline.go`, `internal/team/worktree.go` | `web/src/api/tasks.ts`, `web/src/components/apps/TasksApp.tsx`, `TaskDetailModal.tsx`, receipts/activity task views | `cmd/wuphf/channelui/task_workflow_builders.go`, task/policy line builders, channel task views | `internal/team/broker_route_contracts_test.go`, `internal/team/broker_tasks_service_test.go`, `internal/team/broker_tasks_test.go`, `internal/team/task_pipeline_test.go`, `web/src/api/tasks.test.ts`, Web/TUI task rendering tests |
 | requests | human gates, approvals, interviews, team-member sharing, blocking request state | `humanInterview`, `pendingInterview`, human invite/session state, scheduler request jobs | `internal/team/broker_requests_interviews.go`, `internal/team/broker_human.go`, `internal/team/broker_human_share.go` | `RequestsApp`, `InterviewBar`, `HumanInterviewOverlay`, shared office session surfaces | `cmd/wuphf/channel_interview.go`, `cmd/wuphf/channelui/interview*`, `cmd/wuphf/share.go` | request service tests, share invite tests, route method/status tests, Web/TUI interview tests |
 | reviews | promotion review state, comments, state transitions | `ReviewLog`, `Promotion`, review subscribers | `internal/team/broker_review.go`, `internal/team/promotion_state.go`, `internal/team/promotion_log.go` | `web/src/components/review/*`, notebook promote controls | no renderer yet | review state tests, promote route tests, future TUI review tests |
 | wiki | local markdown wiki, search, article read/write, audit, lint, archive, sections | wiki repo, `WikiWorker`, `WikiIndex`, `ReadLog`, `DLQ` | `internal/team/wiki_*.go`, `internal/team/broker_wiki_*.go`, `internal/team/broker_human.go` | `web/src/components/wiki/*`, `web/src/api/wiki.ts`, search modal | planned terminal search/read/write | wiki worker/index/service tests, route tests, Web article/search tests |
-| notebook | agent notebook entries, catalog, search, promotion source | notebook files under wiki repo, notebook events | `internal/team/broker_notebook.go`, `internal/team/notebook_worker.go`, review promotion files | `web/src/components/notebook/*`, `web/src/api/notebook.ts` | planned terminal catalog/read/promote | notebook worker tests, broker notebook route tests, Web notebook tests |
+| notebook | bot notebook entries, catalog, search, promotion source | notebook files under wiki repo, notebook events | `internal/team/broker_notebook.go`, `internal/team/notebook_worker.go`, review promotion files | `web/src/components/notebook/*`, `web/src/api/notebook.ts` | planned terminal catalog/read/promote | notebook worker tests, broker notebook route tests, Web notebook tests |
 | workspaces | workspace list/create/switch/pause/resume/shred/restore and admin pause | workspace orchestrator, launcher drain hooks, workspace state rows | `internal/team/broker_workspaces.go`, `cmd/wuphf/workspace*.go`, `internal/workspace/*` | workspace rail and modals, settings danger zone, `web/src/api/workspaces.ts` | workspace commands and adapter | broker workspace tests, CLI workspace tests, Web workspace tests |
 | providers | runtime/provider config, local provider status, image providers, external integrations | config file, provider bindings, local provider probes, bridge state | `internal/team/local_providers_status.go`, `internal/team/broker_image_providers.go`, provider config/integration handlers; channel-provider routing lives in `internal/team/broker_office_channels.go` under `office` | settings app, onboarding provider picker, integration modals | doctor, onboarding probes, integration helpers | config/provider endpoint tests, local provider tests, onboarding tests |
 | integrations | entity graph, facts, learning, signals, decisions, watchdogs, external events | `FactLog`, `EntityGraph`, learning log, signals/actions/decisions/watchdogs | `internal/team/broker_entity.go`, `internal/team/entity_*.go`, `internal/team/broker_learning.go`, misc handlers | graph app, entity panels, activity/artifacts views | text summaries in channel views | entity graph/fact tests, learning tests, route tests |
@@ -49,20 +49,20 @@ Use this sequence when adding or refactoring behavior:
 
 ## Ownership Rules
 
-When several agents work in parallel, split ownership by domain and file class:
+When several bots work in parallel, split ownership by domain and file class:
 
-- Broker/domain service files: one agent owns the domain's `internal/team/*`
+- Broker/domain service files: one bot owns the domain's `internal/team/*`
   service and route files for the PR.
-- Shared API/type files: one agent owns the contract shape and coordinates all
+- Shared API/type files: one bot owns the contract shape and coordinates all
   consumers before merge.
-- Web component files: a Web agent owns `web/src/components/...`,
+- Web component files: a Web bot owns `web/src/components/...`,
   `web/src/hooks/...`, and Web tests for that capability.
-- TUI component files: a TUI agent owns `cmd/wuphf/...` and
+- TUI component files: a TUI bot owns `cmd/wuphf/...` and
   `cmd/wuphf/channelui/...` rendering and input tests.
 - Docs/tests: each domain owner updates the docs and tests for their own
   changed behavior.
 
-Agents should not edit another agent's owned files unless the owners coordinate
+Bots should not edit another bot's owned files unless the owners coordinate
 the handoff in the task or PR description.
 
 ## Canonical Repo Task Pipeline
@@ -71,7 +71,7 @@ Repo work should stay on one product pipeline:
 
 `task -> local_worktree -> checks -> review -> draft_pr -> CI -> human gate`
 
-Do not create separate state machines for "agent coding mode", "PR mode", and
+Do not create separate state machines for "bot coding mode", "PR mode", and
 "CI mode". Extend the task model with explicit fields only when the existing
 task, review, worktree, scheduler, and receipt fields cannot represent the
 state.
@@ -87,7 +87,7 @@ A repo task should not move to review or done without evidence:
 
 ## Test Runner Contract
 
-Use one runner per test class so agent evidence is comparable:
+Use one runner per test class so bot evidence is comparable:
 
 - Go package tests: `bash scripts/test-go.sh` or
   `bash scripts/test-go.sh ./path/to/package`.
@@ -103,16 +103,16 @@ Use one runner per test class so agent evidence is comparable:
 ## Context Provenance
 
 Nex context and integrations are additive to local-first state. A context item
-shown to agents or humans should always expose its origin:
+shown to bots or humans should always expose its origin:
 
 - local markdown wiki
 - Nex context graph
 - integration signal
 - human note
-- agent notebook
+- bot notebook
 
 Do not hide provenance behind global behavior. Collaboration is debuggable only
-when an agent can explain why it believes a fact and where that fact came from.
+when a bot can explain why it believes a fact and where that fact came from.
 
 ## Typed Contract Direction
 

@@ -217,7 +217,7 @@ func TestScanSkill_TrustLevelStamped(t *testing.T) {
 	t.Parallel()
 
 	for _, trust := range []GuardTrustLevel{
-		TrustBuiltin, TrustTrusted, TrustCommunity, TrustAgentCreated,
+		TrustBuiltin, TrustTrusted, TrustCommunity, TrustBotCreated,
 	} {
 		trust := trust
 		t.Run(string(trust), func(t *testing.T) {

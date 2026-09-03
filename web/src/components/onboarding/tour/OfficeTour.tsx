@@ -24,7 +24,7 @@ import {
 } from "react";
 
 import { Button } from "../../ui/Button";
-import { SlideAgents } from "./SlideAgents";
+import { SlideBots } from "./SlideBots";
 import { SlideIntro } from "./SlideIntro";
 import { SlideIssues } from "./SlideIssues";
 import { SlideWiki } from "./SlideWiki";
@@ -88,7 +88,7 @@ function trapFocus(event: KeyboardEvent, root: HTMLElement | null): void {
  */
 const SLIDES: Record<OfficeTourSlideId, ComponentType<OfficeTourSlideProps>> = {
   intro: SlideIntro,
-  agents: SlideAgents,
+  agents: SlideBots,
   issues: SlideIssues,
   wiki: SlideWiki,
 };

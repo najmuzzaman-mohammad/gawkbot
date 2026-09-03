@@ -129,7 +129,7 @@ export function PacketActionSidebar({
         placeholder={
           trimmedComment.length > 0
             ? ""
-            : "Why are you approving / requesting changes? The agent reads this."
+            : "Why are you approving / requesting changes? The bot reads this."
         }
         value={comment}
         disabled={isDecisionLocked}
@@ -203,7 +203,7 @@ export function PacketActionSidebar({
 
       <h3>Context</h3>
       <div className="packet-aside-card">
-        <div className="label">Owner agent</div>
+        <div className="label">Owner bot</div>
         <div className="value">{ownerSummary}</div>
       </div>
       <div className="packet-aside-card">

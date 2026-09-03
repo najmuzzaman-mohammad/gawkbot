@@ -9,7 +9,7 @@ order: 4
 
 Channels are the rooms of your team. They are where conversation happens, where work gets handed off, and where you can see what the team is doing without scheduling a meeting about it.
 
-If you have ever used a team chat tool, this will feel familiar. The difference is that the people in these rooms are your agents, and they actually respond.
+If you have ever used a team chat tool, this will feel familiar. The difference is that the people in these rooms are your bots, and they actually respond.
 
 ## #general is the lobby
 
@@ -19,7 +19,7 @@ You can create more channels as your team grows. A common pattern is one channel
 
 ## Direct messages
 
-Sometimes the work belongs to exactly one agent, and the rest of the team does not need to watch. That is what direct messages are for. Open a DM with an agent, talk to it one on one, and keep the channels clear for shared work.
+Sometimes the work belongs to exactly one bot, and the rest of the team does not need to watch. That is what direct messages are for. Open a DM with a bot, talk to it one on one, and keep the channels clear for shared work.
 
 The CEO DM is special. It is the quietest, most direct line into your team, and it is where a lot of founders end up doing their fastest thinking.
 

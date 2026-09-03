@@ -17,40 +17,40 @@ import (
 	"time"
 )
 
-// SpawnVisibleAgents creates the visible agent panes (PLAN.md §C5e).
+// SpawnVisibleBots creates the visible bot panes (PLAN.md §C5e).
 // One-on-one mode: a single split, channel-pane title becomes "📢
-// direct". Multi-agent mode: first agent split-h-65, additional agents
+// direct". Multi-bot mode: first bot split-h-65, additional bots
 // split vertically off pane 1, then main-vertical layout normalizes
-// the column. Returns the slugs of agents whose first split succeeded;
+// the column. Returns the slugs of bots whose first split succeeded;
 // later splits may individually fail (recorded via recordFailure
-// callback so the targeter routes those agents headless).
-func (p *paneLifecycle) SpawnVisibleAgents() ([]string, error) {
+// callback so the targeter routes those bots headless).
+func (p *paneLifecycle) SpawnVisibleBots() ([]string, error) {
 	channelPane := p.sessionName + ":team.0"
 	if p.deps.isOneOnOne != nil && p.deps.isOneOnOne() {
-		slug := p.deps.oneOnOneAgent()
+		slug := p.deps.oneOnOneBot()
 		firstCmd, err := p.deps.claudeCommand(slug, p.deps.buildPrompt(slug))
 		if err != nil {
 			return nil, err
 		}
-		out, err := p.SplitFirstAgent(p.deps.cwd, firstCmd)
+		out, err := p.SplitFirstBot(p.deps.cwd, firstCmd)
 		if err != nil {
 			detail := strings.TrimSpace(string(out))
 			if detail == "" {
-				return nil, fmt.Errorf("spawn one-on-one agent: %w", err)
+				return nil, fmt.Errorf("spawn one-on-one bot: %w", err)
 			}
-			return nil, fmt.Errorf("spawn one-on-one agent: %w (tmux: %s)", err, detail)
+			return nil, fmt.Errorf("spawn one-on-one bot: %w (tmux: %s)", err, detail)
 		}
 		p.ApplyMainVerticalLayout()
 		p.SetPaneTitle(channelPane, "📢 direct")
 		p.SetPaneTitle(fmt.Sprintf("%s:team.1", p.sessionName),
-			fmt.Sprintf("🤖 %s (@%s)", p.deps.agentName(slug), slug),
+			fmt.Sprintf("🤖 %s (@%s)", p.deps.botName(slug), slug),
 		)
 		p.SelectTeamWindow()
 		p.FocusPane(channelPane)
 		return []string{slug}, nil
 	}
 
-	// Layout: channel (left 35%) | agents in 2-column grid (right 65%)
+	// Layout: channel (left 35%) | bots in 2-column grid (right 65%)
 	//
 	// ┌─ channel ──┬─ CEO ───┬─ PM ────┐
 	// │            │         │         │
@@ -65,34 +65,34 @@ func (p *paneLifecycle) SpawnVisibleAgents() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	out, err := p.SplitFirstAgent(p.deps.cwd, firstCmd)
+	out, err := p.SplitFirstBot(p.deps.cwd, firstCmd)
 	if err != nil {
 		detail := strings.TrimSpace(string(out))
 		if detail == "" {
-			return nil, fmt.Errorf("spawn first agent: %w", err)
+			return nil, fmt.Errorf("spawn first bot: %w", err)
 		}
-		return nil, fmt.Errorf("spawn first agent: %w (tmux: %s)", err, detail)
+		return nil, fmt.Errorf("spawn first bot: %w (tmux: %s)", err, detail)
 	}
 
-	// Remaining agents: split from agent area, then use "tiled" layout. First
-	// agent (pane 1) is mandatory — a failure there aborts the whole launch.
+	// Remaining bots: split from bot area, then use "tiled" layout. First
+	// bot (pane 1) is mandatory — a failure there aborts the whole launch.
 	// Subsequent splits can fail individually (e.g. terminal too small to
-	// accommodate another tile); record the failure and fall those agents
+	// accommodate another tile); record the failure and fall those bots
 	// back to headless dispatch so the capture loop doesn't hunt ghost panes.
 	//
 	// Track which members actually got a pane so the title-set loop and
 	// the returned visibleSlugs only reference live panes. Without this
 	// distinction, `visible[1]` failing while `visible[2]` succeeds would
-	// title pane index 2 as the failed agent and the caller would think
+	// title pane index 2 as the failed bot and the caller would think
 	// both panes existed.
 	spawned := []officeMember{visible[0]}
 	for i := 1; i < len(visible); i++ {
-		agentCmd, err := p.deps.claudeCommand(visible[i].Slug, p.deps.buildPrompt(visible[i].Slug))
+		botCmd, err := p.deps.claudeCommand(visible[i].Slug, p.deps.buildPrompt(visible[i].Slug))
 		if err != nil {
 			p.deps.recordFailure(visible[i].Slug, fmt.Sprintf("claudeCommand: %v", err))
 			continue
 		}
-		out, err := p.SplitAdditionalAgent(p.deps.cwd, agentCmd)
+		out, err := p.SplitAdditionalBot(p.deps.cwd, botCmd)
 		if err != nil {
 			detail := strings.TrimSpace(string(out))
 			reason := err.Error()
@@ -100,7 +100,7 @@ func (p *paneLifecycle) SpawnVisibleAgents() ([]string, error) {
 				reason = fmt.Sprintf("%s (tmux: %s)", reason, detail)
 			}
 			fmt.Fprintf(os.Stderr,
-				"  Agents:  visible pane for %s failed to spawn; falling back to headless (%s)\n",
+				"  Bots:  visible pane for %s failed to spawn; falling back to headless (%s)\n",
 				visible[i].Slug, reason,
 			)
 			p.deps.recordFailure(visible[i].Slug, reason)
@@ -115,7 +115,7 @@ func (p *paneLifecycle) SpawnVisibleAgents() ([]string, error) {
 	p.SetPaneTitle(channelPane, "📢 channel")
 	for i, a := range spawned {
 		paneIdx := i + 1 // pane 0 is channel
-		name := p.deps.agentName(a.Slug)
+		name := p.deps.botName(a.Slug)
 		p.SetPaneTitle(
 			fmt.Sprintf("%s:team.%d", p.sessionName, paneIdx),
 			fmt.Sprintf("🤖 %s (@%s)", name, a.Slug),
@@ -127,25 +127,25 @@ func (p *paneLifecycle) SpawnVisibleAgents() ([]string, error) {
 	return visibleSlugs, nil
 }
 
-// SpawnOverflowAgents creates a hidden tmux window per overflow agent
-// (PLAN.md §C5e). Overflow agents are members beyond the visible team
+// SpawnOverflowBots creates a hidden tmux window per overflow bot
+// (PLAN.md §C5e). Overflow bots are members beyond the visible team
 // grid; they still need a live claude pane in pane-backed mode.
 // Codex/Opencode-bound members are skipped because they use the
 // headless one-shot pipeline. Failures are recorded but don't abort —
-// each agent falls back to headless individually.
-func (p *paneLifecycle) SpawnOverflowAgents() {
+// each bot falls back to headless individually.
+func (p *paneLifecycle) SpawnOverflowBots() {
 	for _, member := range p.deps.overflowOfficeMembers() {
 		if p.deps.memberUsesHeadlessOneShotRuntime(member.Slug) {
 			continue
 		}
-		agentCmd, err := p.deps.claudeCommand(member.Slug, p.deps.buildPrompt(member.Slug))
+		botCmd, err := p.deps.claudeCommand(member.Slug, p.deps.buildPrompt(member.Slug))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "spawn overflow agent %s: %v\n", member.Slug, err)
+			fmt.Fprintf(os.Stderr, "spawn overflow bot %s: %v\n", member.Slug, err)
 			p.deps.recordFailure(member.Slug, fmt.Sprintf("claudeCommand: %v", err))
 			continue
 		}
 		windowName := overflowWindowName(member.Slug)
-		out, err := p.NewOverflowWindow(windowName, p.deps.cwd, agentCmd)
+		out, err := p.NewOverflowWindow(windowName, p.deps.cwd, botCmd)
 		if err != nil {
 			detail := strings.TrimSpace(string(out))
 			reason := err.Error()
@@ -153,7 +153,7 @@ func (p *paneLifecycle) SpawnOverflowAgents() {
 				reason = fmt.Sprintf("%s (tmux: %s)", reason, detail)
 			}
 			fmt.Fprintf(os.Stderr,
-				"  Agents:  overflow pane for %s failed to spawn; falling back to headless for this agent (%s)\n",
+				"  Bots:  overflow pane for %s failed to spawn; falling back to headless for this bot (%s)\n",
 				member.Slug, reason,
 			)
 			p.deps.recordFailure(member.Slug, reason)
@@ -171,7 +171,7 @@ func (p *paneLifecycle) DetectDeadPanesAfterSpawn(members []officeMember) {
 		return
 	}
 	<-p.clock.After(1500 * time.Millisecond)
-	targets := p.deps.agentPaneTargets()
+	targets := p.deps.botPaneTargets()
 	for _, m := range members {
 		target, ok := targets[m.Slug]
 		if !ok || target.PaneTarget == "" {
@@ -187,31 +187,31 @@ func (p *paneLifecycle) DetectDeadPanesAfterSpawn(members []officeMember) {
 			snippet = snippet[:400] + "..."
 		}
 		fmt.Fprintf(os.Stderr,
-			"  Agents:  pane for %s (%s) died on launch; falling back to headless. Last output: %q\n",
+			"  Bots:  pane for %s (%s) died on launch; falling back to headless. Last output: %q\n",
 			m.Slug, target.PaneTarget, snippet,
 		)
 		p.deps.recordFailure(m.Slug, "pane died on launch; last output: "+snippet)
 		if p.deps.postSystemMessage != nil {
 			p.deps.postSystemMessage("general",
-				fmt.Sprintf("Agent @%s did not start cleanly; running in headless fallback. Check the launcher log for details.", m.Slug),
+				fmt.Sprintf("Bot @%s did not start cleanly; running in headless fallback. Check the launcher log for details.", m.Slug),
 				"runtime",
 			)
 		}
 	}
 }
 
-// TrySpawnWebAgentPanes attempts to spawn the pane-backed session
+// TrySpawnWebBotPanes attempts to spawn the pane-backed session
 // (PLAN.md §C5e). On success flips the paneBackedFlag *bool true so
 // the targeter routes through pane dispatch. On failure, calls
 // reportPaneFallback which prints the stderr banner and posts the
 // broker-side advisory — the launcher continues in headless
-// `claude --print` mode for that agent (or for every agent, when the
+// `claude --print` mode for that bot (or for every bot, when the
 // failure was session-wide).
 //
 // No-op when there are zero visible members (blank-slate web launches
 // before onboarding finishes); reconfiguration after the user adds
-// agents picks up the panes via launcher_reconfigure.go.
-func (p *paneLifecycle) TrySpawnWebAgentPanes() {
+// bots picks up the panes via launcher_reconfigure.go.
+func (p *paneLifecycle) TrySpawnWebBotPanes() {
 	if p.deps.postSystemMessage == nil {
 		// Production wires postSystemMessage from a non-nil broker;
 		// nil here matches the legacy "broker == nil" early return.
@@ -221,7 +221,7 @@ func (p *paneLifecycle) TrySpawnWebAgentPanes() {
 		return
 	}
 	if p.deps.visibleOfficeMembers != nil && len(p.deps.visibleOfficeMembers()) == 0 {
-		// Blank-slate launch: no agents to host yet. Skip rather than
+		// Blank-slate launch: no bots to host yet. Skip rather than
 		// open an empty tmux session with only the placeholder pane.
 		return
 	}
@@ -239,31 +239,31 @@ func (p *paneLifecycle) TrySpawnWebAgentPanes() {
 	p.SetSessionOption("status", "off")
 	p.SetTeamWindowOption("remain-on-exit", "on")
 
-	if _, err := p.SpawnVisibleAgents(); err != nil {
+	if _, err := p.SpawnVisibleBots(); err != nil {
 		p.KillSession()
-		p.ReportPaneFallback(true, "spawn visible agents failed", err)
+		p.ReportPaneFallback(true, "spawn visible bots failed", err)
 		return
 	}
-	p.SpawnOverflowAgents()
+	p.SpawnOverflowBots()
 
 	if p.deps.paneBackedFlag != nil {
 		*p.deps.paneBackedFlag = true
 	}
 	go p.DetectDeadPanesAfterSpawn(append(p.deps.visibleOfficeMembers(), p.deps.overflowOfficeMembers()...))
-	fmt.Printf("  Agents:  interactive Claude panes in tmux session %q (pane-backed mode active)\n", p.sessionName)
+	fmt.Printf("  Bots:  interactive Claude panes in tmux session %q (pane-backed mode active)\n", p.sessionName)
 }
 
-// PrimeVisibleAgents waits for visible agent panes to clear claude's
+// PrimeVisibleBots waits for visible bot panes to clear claude's
 // startup interactivity (folder-trust, security-guide, "press Enter")
 // so dispatch can type into the pane. Returns once all panes report
 // ready or after 3 attempts. Replay of the latest broker message
 // (the "first message lost behind startup" recovery) stays on
-// Launcher.primeVisibleAgents because it depends on broker
+// Launcher.primeVisibleBots because it depends on broker
 // state and the headless-resume path.
-func (p *paneLifecycle) PrimeVisibleAgents() {
+func (p *paneLifecycle) PrimeVisibleBots() {
 	<-p.clock.After(1 * time.Second)
 
-	targets := p.deps.agentPaneTargets()
+	targets := p.deps.botPaneTargets()
 	if len(targets) == 0 {
 		return
 	}
@@ -291,7 +291,7 @@ func (p *paneLifecycle) PrimeVisibleAgents() {
 // ReportPaneFallback prints the stderr banner and posts the
 // broker-side fallback advisory (PLAN.md §C5e). Pure thin wrapper
 // around paneFallbackMessages + the postSystemMessage callback so
-// trySpawnWebAgentPanes can surface failures without re-reaching
+// trySpawnWebBotPanes can surface failures without re-reaching
 // into Launcher state.
 func (p *paneLifecycle) ReportPaneFallback(tmuxInstalled bool, summary string, err error) {
 	detail := summary

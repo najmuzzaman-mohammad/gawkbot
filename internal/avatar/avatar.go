@@ -20,7 +20,7 @@ import (
 //   0 = transparent
 //   1 = outline (dark)
 //   2 = skin tone
-//   3 = accent (agent color)
+//   3 = accent (bot color)
 //   4 = hair/hat
 //   5 = prop/accessory
 //   6 = white/highlight
@@ -226,7 +226,7 @@ func spriteForSlug(slug string, frame ...int) Sprite {
 	case "cro":
 		sprite = cloneSprite(spriteCRO)
 	default:
-		// Unknown slug — compose from modular layers so every agent is unique.
+		// Unknown slug — compose from modular layers so every bot is unique.
 		sprite = proceduralSpriteForSlug(slug)
 	}
 
@@ -425,7 +425,7 @@ func proceduralOfficePalette(base map[int][3]int, slug string) map[int][3]int {
 
 // ProceduralOfficeAccentForSlug deterministically picks an accent
 // color from the procedural pool for a non-canonical slug. Used by
-// channelui.AgentColor to give dynamic agents (operation-created,
+// channelui.BotColor to give dynamic bots (operation-created,
 // custom roles) a stable color identity.
 func ProceduralOfficeAccentForSlug(slug string) string {
 	hash := proceduralHash(slug)

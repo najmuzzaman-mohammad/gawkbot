@@ -2,12 +2,12 @@ package operations
 
 import "strings"
 
-// ResolveReviewer returns the agent slug that should review a promotion
+// ResolveReviewer returns the bot slug that should review a promotion
 // for the given wiki path. It walks ReviewerPaths in declaration order
 // (first match wins), falls through to DefaultReviewer, and finally to
 // ReviewerFallback ("ceo") when nothing else is configured.
 //
-// A return value of ReviewerHumanOnly ("human-only") means agent approval
+// A return value of ReviewerHumanOnly ("human-only") means bot approval
 // is disabled and the promotion must wait for a human click.
 func (b *Blueprint) ResolveReviewer(wikiPath string) string {
 	path := strings.TrimSpace(wikiPath)

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { type AgentRequest, getConfig } from "../../api/client";
+import { type BotRequest, getConfig } from "../../api/client";
 import {
   type ComposioSigninState,
   getComposioSigninStatus,
@@ -17,7 +17,7 @@ import {
 import { showNotice } from "../ui/Toast";
 
 // ConnectIntegrationCard is the human-facing side of a `connect` decision: an
-// agent tried a mutating action against an integration that is not connected, so
+// bot tried a mutating action against an integration that is not connected, so
 // the resolver raised this blocking card.
 //
 // Two gates, in order:
@@ -33,7 +33,7 @@ import { showNotice } from "../ui/Toast";
 //      action resumes with no second prompt.
 
 interface ConnectIntegrationCardProps {
-  request: AgentRequest;
+  request: BotRequest;
   submitting: boolean;
   /** Answer the card with "skip" — abandon the action. */
   onSkip: () => void;
@@ -49,7 +49,7 @@ interface ConnectIntegrationCardProps {
   onConnected?: () => void;
 }
 
-function platformName(request: AgentRequest): string {
+function platformName(request: BotRequest): string {
   const slug = (request.platform ?? "").trim();
   const fromTitle = (request.title ?? "").replace(/^connect\s+/i, "").trim();
   return (

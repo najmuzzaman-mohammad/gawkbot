@@ -1,7 +1,7 @@
 package team
 
 // playbook_executions.go is the append-only execution log for v1.3
-// playbooks. Every time an agent invokes a compiled skill, it is expected
+// playbooks. Every time a bot invokes a compiled skill, it is expected
 // to record one outcome entry back through the playbook_execution_record
 // MCP tool; that entry lands here.
 //
@@ -28,7 +28,7 @@ import (
 
 // MaxExecutionSummaryLen is the hard cap on the summary field. Picked to
 // leave room for a real debrief paragraph without blowing up prompt budgets
-// when the next agent reads the log.
+// when the next bot reads the log.
 const MaxExecutionSummaryLen = 4000
 
 // MaxExecutionNotesLen bounds the optional free-form notes field.

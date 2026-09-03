@@ -85,7 +85,7 @@ func TestBrokerRouteContracts_TaskRoutes(t *testing.T) {
 			path:         "/agent-logs",
 			method:       http.MethodGet,
 			requestType:  "query: task, limit",
-			responseType: "team.AgentLogTasksResponse | team.AgentLogEntriesResponse",
+			responseType: "team.BotLogTasksResponse | team.BotLogEntriesResponse",
 		},
 		{
 			path:         "/task-plan",

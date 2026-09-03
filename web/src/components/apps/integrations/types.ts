@@ -8,8 +8,8 @@ import type { ConfigSnapshot, LocalProviderStatus } from "../../../api/client";
 // new integrations should land in an existing bucket so users always know
 // where to look.
 //
-//   - external-agents: Gateways that import existing agents into the team
-//     (OpenClaw, Hermes). The agent's runtime is gateway-managed; gawkbot
+//   - external-bots: Gateways that import existing bots into the team
+//     (OpenClaw, Hermes). The bot's runtime is gateway-managed; gawkbot
 //     speaks to the gateway's transport rather than dispatching directly.
 //
 //   - channels: Inbound messaging streams that become channels in the
@@ -26,9 +26,9 @@ export interface IntegrationCategoryMeta {
 export const INTEGRATION_CATEGORIES: readonly IntegrationCategoryMeta[] = [
   {
     id: "external-agents",
-    title: "External Agents",
+    title: "External Bots",
     description:
-      "Gateways that import agents from another system into the team. The imported agent's runtime is managed by the gateway, not WUPHF.",
+      "Gateways that import bots from another system into the team. The imported bot's runtime is managed by the gateway, not WUPHF.",
   },
   {
     id: "channels",

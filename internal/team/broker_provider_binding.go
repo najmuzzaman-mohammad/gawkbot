@@ -6,9 +6,9 @@ import (
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
-// Per-agent provider binding. The launcher's dispatch switch consults
+// Per-bot provider binding. The launcher's dispatch switch consults
 // MemberProviderKind to decide which runtime to invoke for a given
-// agent — one team can mix Codex agents and Claude Code agents and
+// bot — one team can mix Codex bots and Claude Code bots and
 // OpenClaw bridges, each with their own ProviderBinding.
 //
 // SetMemberProvider is the write path used by:
@@ -34,7 +34,7 @@ func (b *Broker) SetMemberProvider(slug string, binding provider.ProviderBinding
 	return b.saveLocked()
 }
 
-// MemberProviderBinding returns the per-agent provider binding for slug, or
+// MemberProviderBinding returns the per-bot provider binding for slug, or
 // the zero value if the member does not exist. Safe to call from outside the
 // broker; takes the mutex internally.
 func (b *Broker) MemberProviderBinding(slug string) provider.ProviderBinding {
@@ -50,8 +50,8 @@ func (b *Broker) MemberProviderBinding(slug string) provider.ProviderBinding {
 // MemberProviderKind returns the per-member runtime kind for the given slug,
 // or "" if the member does not exist or has no explicit binding. Callers
 // should fall back to the global runtime when the return value is empty.
-// Used by the launcher's dispatch switch so each agent can run on its own
-// provider (e.g., one Codex agent + one Claude Code agent in the same team).
+// Used by the launcher's dispatch switch so each bot can run on its own
+// provider (e.g., one Codex bot + one Claude Code bot in the same team).
 func (b *Broker) MemberProviderKind(slug string) string {
 	b.mu.Lock()
 	defer b.mu.Unlock()

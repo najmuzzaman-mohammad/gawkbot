@@ -62,10 +62,10 @@ func (b *OpenclawBridge) Run(ctx context.Context, host transport.Host) error {
 	return nil
 }
 
-// Send delivers one outbound message from the office to the bridged agent.
+// Send delivers one outbound message from the office to the bridged bot.
 // Routes via OnOfficeMessage, which handles retries with a single reused
 // idempotency key. The Outbound.Binding.MemberSlug identifies the target
-// agent; ChannelSlug carries the reply-routing hint that handleClientEvent
+// bot; ChannelSlug carries the reply-routing hint that handleClientEvent
 // uses when the assistant reply arrives via the async event stream.
 func (b *OpenclawBridge) Send(ctx context.Context, msg transport.Outbound) error {
 	if b == nil {

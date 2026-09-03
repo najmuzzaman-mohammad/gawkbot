@@ -2,8 +2,8 @@
 
 **Status:** ACTIVE — master tracker for the SOTA uplift lane
 **Author:** Najmuzzaman + Claude, 2026-06-09
-**Source analysis:** 30-agent gap analysis vs SOTA (Anthropic multi-agent research system, Cognition/Devin, LangGraph/OpenAI Agents SDK/Magentic-One, Letta/Mem0/ACE/Voyager, Codex/Cursor/Factory). 14 claims adversarially verified against `main@b9d0c878`.
-**Supersedes:** the sequencing of the 2026-06-09 multi-agent overhaul plan. Its Phase 1 (chat-only tasks, PR #1052) lands independently; its Phases 2–4 are absorbed below (U3.4, U5.1).
+**Source analysis:** 30-bot gap analysis vs SOTA (Anthropic multi-bot research system, Cognition/Devin, LangGraph/OpenAI Bots SDK/Magentic-One, Letta/Mem0/ACE/Voyager, Codex/Cursor/Factory). 14 claims adversarially verified against `main@b9d0c878`.
+**Supersedes:** the sequencing of the 2026-06-09 multi-bot overhaul plan. Its Phase 1 (chat-only tasks, PR #1052) lands independently; its Phases 2–4 are absorbed below (U3.4, U5.1).
 
 **SUPERSEDED 2026-06-10:** phasing superseded by `core-loop.md` (subtraction-first rebuild around the canonical core loop). The shipped substrate below (U0-U4.1) survives as the loop's enforcement layer; unstarted U-phases are absorbed or cancelled by core-loop.md R/B phases.
 
@@ -13,19 +13,19 @@ Shipped: U0.1 eval harness (`internal/team/office_eval.go` + `cmd/office-eval`, 
 
 Review follow-ups (staff review 2026-06-10, MEDIUM/LOW deferred with reason): ActionsSince is O(N) under b.mu per turn-ledger write — add ActionsSinceForTask or per-task index when the action log grows; upstreamOutcomesContext injects upstream Details verbatim — run packet-bound Details through the secret redactor as defense-in-depth.
 
-Next unstarted: U3.1 rest (objective/inputs/expected_artifact on team_task — reconcile with PR #1057's surface after it merges) · U3.4 (covered by open PR #1057) · U3.5 prompt-rule demolition · U4.2 one knowledge view · U4.3 skills-from-verified-runs · U4.4 human-facing knowledge-used UI (agent-side citation already in packets) · U5.1 (covered by open PR #1060) · U5.2/U5.3. NOTE: open PRs #1052/#1053/#1057/#1060 overlap prompt_builder/broker/queue — merge main promptly after any of them lands.
+Next unstarted: U3.1 rest (objective/inputs/expected_artifact on team_task — reconcile with PR #1057's surface after it merges) · U3.4 (covered by open PR #1057) · U3.5 prompt-rule demolition · U4.2 one knowledge view · U4.3 skills-from-verified-runs · U4.4 human-facing knowledge-used UI (bot-side citation already in packets) · U5.1 (covered by open PR #1060) · U5.2/U5.3. NOTE: open PRs #1052/#1053/#1057/#1060 overlap prompt_builder/broker/queue — merge main promptly after any of them lands.
 
 ---
 
 ## The decision
 
-We stop optimizing for token cost and start optimizing for outcome quality. The fresh-session/keyhole-packet/cache-stable-prefix economics were the right call for a cheap demo and are the wrong call for the product. SOTA systems spend 4–15× chat-level tokens and that spend is what buys reliability (Anthropic's multi-agent research numbers). Token budgeting is no longer a design constraint anywhere in this plan.
+We stop optimizing for token cost and start optimizing for outcome quality. The fresh-session/keyhole-packet/cache-stable-prefix economics were the right call for a cheap demo and are the wrong call for the product. SOTA systems spend 4–15× chat-level tokens and that spend is what buys reliability (Anthropic's multi-bot research numbers). Token budgeting is no longer a design constraint anywhere in this plan.
 
 ## North-star metrics (built in U0, gate every phase)
 
 1. **Verified-done rate** — % of eval jobs reaching a machine-verified done state.
 2. **Compounding delta (THE MOAT METRIC)** — eval suite run cold (fresh office) vs warm (office with accumulated learnings/skills/wiki): success-rate and turn-count delta. If warm isn't measurably better, the moat doesn't exist yet.
-3. **Coordination multiplier** — multi-agent task success vs the same job given to one agent in one window. The "10x over single-window chat" claim, measured.
+3. **Coordination multiplier** — multi-bot task success vs the same job given to one bot in one window. The "10x over single-window chat" claim, measured.
 4. **Trust cost** — human interventions (approvals, corrections, re-asks) per verified-done task.
 
 ## Root causes being fixed (verified, file:line)
@@ -34,17 +34,17 @@ We stop optimizing for token cost and start optimizing for outcome quality. The 
 2. **Prose substrate.** Coordination via chat + ~71 numbered prompt patch-rules (~977-line `prompt_builder.go`); delegation parsed by regex (`internal/orchestration/delegator.go`); dependency edges carry scheduling only — upstream outcomes never injected into dependents (`notification_context.go` BuildTaskExecutionPacket).
 3. **No ground truth.** `complete/approve` are unchecked string flips (`broker_tasks_mutation_service.go` markTaskDone); learning injection is a global top-8 with no query/task scoping (`prompts.go:68-82`); embeddings exist but unwired to search (`wiki_query_retrieve.go`); only token costs are benchmarked, never outcomes.
 
-**Keep (good bones):** typed LifecycleState machine + dependency cascade, persistent scheduler jobs, signals/decisions audit ledger, per-agent worktrees, the deterministic-integrations gate, `rejectTheaterTaskForLiveBusiness` enforcement instinct.
+**Keep (good bones):** typed LifecycleState machine + dependency cascade, persistent scheduler jobs, signals/decisions audit ledger, per-bot worktrees, the deterministic-integrations gate, `rejectTheaterTaskForLiveBusiness` enforcement instinct.
 
 ---
 
 ## Phases
 
-Sequencing logic: measurement first (U0), then ground truth (U1) because unverified claims poison every store downstream, then context (U2) because every other behavior is capped by what agents can see, then coordination (U3), then the compounding loop (U4) which now compounds *verified* knowledge through *rich* context, then agent definition (U5).
+Sequencing logic: measurement first (U0), then ground truth (U1) because unverified claims poison every store downstream, then context (U2) because every other behavior is capped by what bots can see, then coordination (U3), then the compounding loop (U4) which now compounds *verified* knowledge through *rich* context, then bot definition (U5).
 
 ### U0 — Foundations flip (economics inversion + measurement)
 
-- **U0.1 Outcome eval harness** (`evals/office/`). 6–8 canonical office jobs derived from `docs/specs/canonical-agent-workflow.md` beats (draft replies + capture contacts; research-and-publish wiki; build-and-verify small feature; multi-agent launch package; etc.). Runner boots a scratch office, submits the job, machine-scores the outcome (artifact exists, check passes, external record present). Two modes: `--cold` (fresh workspace) and `--warm` (workspace pre-loaded with accumulated knowledge) → emits the compounding delta. Wire into CI as non-blocking report first.
+- **U0.1 Outcome eval harness** (`evals/office/`). 6–8 canonical office jobs derived from `docs/specs/canonical-agent-workflow.md` beats (draft replies + capture contacts; research-and-publish wiki; build-and-verify small feature; multi-bot launch package; etc.). Runner boots a scratch office, submits the job, machine-scores the outcome (artifact exists, check passes, external record present). Two modes: `--cold` (fresh workspace) and `--warm` (workspace pre-loaded with accumulated knowledge) → emits the compounding delta. Wire into CI as non-blocking report first.
 - **U0.2 Context starvation quick-flip** (shippable immediately, no new architecture):
   - `notification_context.go`: specialist `contextLimit` 4 → 20 (parity with lead); task details truncation 512 → 4096; trigger content 1000 → 4000; active-task details 96 → 512.
   - `prompt_builder.go`: delete "Every tool call pays full turn cost" and the team_poll "LAST RESORT" framing — replace with "gather the context you need; prefer pushed context but pull freely when it's missing."
@@ -60,18 +60,18 @@ Sequencing logic: measurement first (U0), then ground truth (U1) because unverif
 ### U2 — Context spine (task-scoped, ranked, budgeted-by-relevance)
 
 - **U2.1 Hybrid retrieval.** Wire `internal/embedding` into wiki + learning search; fuse with bleve BM25 via RRF (recorded house lesson). One retrieval API over wiki/notebook/learnings — physical store unification deferred to U4.2.
-- **U2.2 Context assembler.** Replace fixed-count packets in `BuildMessageWorkPacket`/`BuildTaskExecutionPacket` with an assembler that ranks candidates against the trigger + task spec: full task thread tail, full spec, top-k learnings (query = task title+details — kills the global top-8 in `prompts.go:68`), top-k wiki hits, upstream dependency artifacts, the agent's task ledger (U2.3). Generous packet budget (~40k tokens), relevance-ordered.
-- **U2.3 Per-(agent,task) state ledger.** At turn end, distill what was tried/decided/failed into a structured ledger record; inject verbatim on next wake for that task. Substrate for U3 handoffs and U5 legibility. (Provider `--resume` sessions stay a later optimization — the ledger is provider-agnostic and doubles as the audit artifact.)
-- **U2.4 Done:** cold eval turn-counts drop (agents stop re-discovering); compounding delta becomes nonzero for the first time.
+- **U2.2 Context assembler.** Replace fixed-count packets in `BuildMessageWorkPacket`/`BuildTaskExecutionPacket` with an assembler that ranks candidates against the trigger + task spec: full task thread tail, full spec, top-k learnings (query = task title+details — kills the global top-8 in `prompts.go:68`), top-k wiki hits, upstream dependency artifacts, the bot's task ledger (U2.3). Generous packet budget (~40k tokens), relevance-ordered.
+- **U2.3 Per-(bot,task) state ledger.** At turn end, distill what was tried/decided/failed into a structured ledger record; inject verbatim on next wake for that task. Substrate for U3 handoffs and U5 legibility. (Provider `--resume` sessions stay a later optimization — the ledger is provider-agnostic and doubles as the audit artifact.)
+- **U2.4 Done:** cold eval turn-counts drop (bots stop re-discovering); compounding delta becomes nonzero for the first time.
 
 ### U3 — Real coordination (typed handoffs, data-carrying edges)
 
 - **U3.1 Typed delegation.** Extend `team_task` create with `objective`, `inputs` (artifact refs), `expected_artifact`, `verification` (from U1). Retire the regex delegator path (`internal/orchestration/delegator.go`) for office dispatch.
 - **U3.2 Dependency edges carry data.** On approve/unblock, attach the upstream task's outcome (result summary, artifact body/link, verification proof) to every dependent's execution packet. Cheapest, highest-leverage collaboration fix.
-- **U3.3 Living task brief.** Per-task compressed running brief (decisions, current state, open questions) updated each turn by the acting agent's distillation step (reuses U2.3); every participant — agent or human — wakes with the full brief. This is the shared-context contract Cognition's principles demand.
-- **U3.4 CEO decomposition upgrade.** Parallel sub-task creation with joins, re-planning on verification failure, effort-scaling guidance (Anthropic's rubric: simple = 1 agent, complex = parallel lanes). Absorbs overhaul Phase 3.
-- **U3.5 Prompt-rule demolition pass.** Every invariant that moved into code (U1.2, U3.1, U3.2) gets its prompt rule deleted; personality/banter mandates (`officeVibeBlock`, `teamVoiceForSlug`) confined to human-facing surfaces, stripped from agent-to-agent turns. Target: prompt_builder.go under ~400 lines.
-- **U3.6 Done:** coordination multiplier measured on a multi-agent eval job; transcript review shows zero re-asked questions across a 3-agent task.
+- **U3.3 Living task brief.** Per-task compressed running brief (decisions, current state, open questions) updated each turn by the acting bot's distillation step (reuses U2.3); every participant — bot or human — wakes with the full brief. This is the shared-context contract Cognition's principles demand.
+- **U3.4 CEO decomposition upgrade.** Parallel sub-task creation with joins, re-planning on verification failure, effort-scaling guidance (Anthropic's rubric: simple = 1 bot, complex = parallel lanes). Absorbs overhaul Phase 3.
+- **U3.5 Prompt-rule demolition pass.** Every invariant that moved into code (U1.2, U3.1, U3.2) gets its prompt rule deleted; personality/banter mandates (`officeVibeBlock`, `teamVoiceForSlug`) confined to human-facing surfaces, stripped from bot-to-bot turns. Target: prompt_builder.go under ~400 lines.
+- **U3.6 Done:** coordination multiplier measured on a multi-bot eval job; transcript review shows zero re-asked questions across a 3-bot task.
 
 ### U4 — Compounding loop (the moat)
 
@@ -81,10 +81,10 @@ Sequencing logic: measurement first (U0), then ground truth (U1) because unverif
 - **U4.4 Attribution surface.** Each Issue shows "knowledge used: learnings X,Y · skill Z · wiki A" and each knowledge item shows its impact stats. Compounding becomes *witnessed*, not just real.
 - **U4.5 Done:** warm-vs-cold delta is positive and visible in-product; a returning user can point at the screen and say "it got better."
 
-### U5 — Agent definition & working spaces
+### U5 — Bot definition & working spaces
 
-- **U5.1 Agent file framework.** SOUL / IDENTITY / OPERATIONS / TOOLS + USER files per agent (absorbs overhaul Phase 4, NO heartbeat). Agent definitions become legible, editable artifacts instead of Go-string prompt blocks.
-- **U5.2 Legible workspaces.** Each agent subspace surfaces its ledger, notebook, skills, active work, and a structured decision timeline rendered from the headless event stream (tool call → result → state change) — work becomes inspectable data, not narrated chat.
+- **U5.1 Bot file framework.** SOUL / IDENTITY / OPERATIONS / TOOLS + USER files per bot (absorbs overhaul Phase 4, NO heartbeat). Bot definitions become legible, editable artifacts instead of Go-string prompt blocks.
+- **U5.2 Legible workspaces.** Each bot subspace surfaces its ledger, notebook, skills, active work, and a structured decision timeline rendered from the headless event stream (tool call → result → state change) — work becomes inspectable data, not narrated chat.
 - **U5.3 Risk-tiered gates.** Collapse the ~9 approval ceremonies: read-only/reversible actions auto-run under standing policy, Issue-approval and first-action approval merge, inbox ceremony reserved for irreversible/external actions (extends the deterministic-integrations grant model).
 - **U5.4 Done:** trust-cost metric drops while verified-done rate holds.
 

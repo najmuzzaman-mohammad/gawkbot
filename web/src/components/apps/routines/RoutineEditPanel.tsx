@@ -153,7 +153,7 @@ export function RoutineEditPanel({
 
       <Field
         label="Owner"
-        hint="The agent that runs this scheduled task when it fires."
+        hint="The bot that runs this scheduled task when it fires."
       >
         <select
           className="input"
@@ -165,7 +165,7 @@ export function RoutineEditPanel({
         >
           {membersQuery.isLoading && <option value="">Loading…</option>}
           {!membersQuery.isLoading && allOwnerOptions.length === 0 && (
-            <option value="">No agents available</option>
+            <option value="">No bots available</option>
           )}
           {allOwnerOptions.map((m) => (
             <option key={m.slug} value={m.slug}>
@@ -191,7 +191,7 @@ export function RoutineEditPanel({
         <ScheduleBuilder value={schedule} onChange={setSchedule} />
       </Field>
 
-      <Field label="Instructions" hint="What the agent should do on each fire.">
+      <Field label="Instructions" hint="What the bot should do on each fire.">
         <textarea
           className="input"
           rows={5}

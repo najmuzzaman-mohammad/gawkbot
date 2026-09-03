@@ -2,8 +2,8 @@
  * SystemErrorCard — banner-style card for system-authored runtime errors.
  *
  * Issue #933. Provider auth failures ("Not logged in - Please run /login")
- * previously surfaced as agent-authored chat bubbles inside `#general`,
- * conflating in-character agent output with a system-level error. The
+ * previously surfaced as bot-authored chat bubbles inside `#general`,
+ * conflating in-character bot output with a system-level error. The
  * broker now emits these as system-authored messages with
  * kind="system_auth_error" carrying a structured payload; the SPA dispatches
  * here so they read as a clearly-separate "the system needs you to do
@@ -23,7 +23,7 @@ export interface SystemAuthErrorPayload {
   sign_in_command?: string;
   /** Truncated detail from the upstream error. Plain text. */
   detail?: string;
-  /** Slug of the agent whose loop surfaced the auth failure. Plain text. */
+  /** Slug of the bot whose loop surfaced the auth failure. Plain text. */
   reporter?: string;
 }
 

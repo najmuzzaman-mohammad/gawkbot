@@ -2,7 +2,7 @@
  * TaskNewForm — manual task draft creation surface (/tasks/new).
  *
  * Lets a human file a spec-level task without going through the CEO chat.
- * The resulting task starts in the broker's intake bucket so the owner agent
+ * The resulting task starts in the broker's intake bucket so the owner bot
  * can pick it up; on success we hand the user straight to the new task's
  * detail surface so they can iterate from there.
  */
@@ -192,7 +192,7 @@ export function TaskNewForm() {
               type="text"
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
-              placeholder="agent slug — leave blank for Chief of Staff to triage"
+              placeholder="bot slug — leave blank for Chief of Staff to triage"
               data-testid="issue-new-assignee"
             />
           </div>

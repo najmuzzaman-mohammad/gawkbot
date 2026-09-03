@@ -26,7 +26,7 @@ export default function PageStatsPanel({
         <dt>Revisions</dt>
         <dd>{revisions}</dd>
         <dt>Contributors</dt>
-        <dd>{contributors} agents</dd>
+        <dd>{contributors} bots</dd>
         <dt>Words</dt>
         <dd>{wordCount.toLocaleString()}</dd>
         <dt>Created</dt>

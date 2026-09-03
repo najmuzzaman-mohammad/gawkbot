@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/company"
 	"github.com/nex-crm/wuphf/internal/onboarding"
 )
@@ -40,9 +40,9 @@ func isOnboarded() bool {
 // resetManifestToPack overwrites company.json with the members defined in the
 // given legacy pack. Called when the user passes --pack explicitly so the flag
 // remains authoritative over any previously saved company configuration.
-func resetManifestToPack(pack *agent.PackDefinition) error {
-	members := make([]company.MemberSpec, 0, len(pack.Agents))
-	for _, cfg := range pack.Agents {
+func resetManifestToPack(pack *bot.PackDefinition) error {
+	members := make([]company.MemberSpec, 0, len(pack.Bots))
+	for _, cfg := range pack.Bots {
 		members = append(members, company.MemberSpec{
 			Slug:         cfg.Slug,
 			Name:         cfg.Name,
@@ -100,33 +100,33 @@ func resolveRepoRoot(start string) string {
 func loadRunningSessionMode() (string, string) {
 	token := strings.TrimSpace(os.Getenv("WUPHF_BROKER_TOKEN"))
 	if token == "" {
-		return SessionModeOffice, DefaultOneOnOneAgent
+		return SessionModeOffice, DefaultOneOnOneBot
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, brokerBaseURL()+"/session-mode", nil)
 	if err != nil {
-		return SessionModeOffice, DefaultOneOnOneAgent
+		return SessionModeOffice, DefaultOneOnOneBot
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	client := &http.Client{Timeout: time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return SessionModeOffice, DefaultOneOnOneAgent
+		return SessionModeOffice, DefaultOneOnOneBot
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return SessionModeOffice, DefaultOneOnOneAgent
+		return SessionModeOffice, DefaultOneOnOneBot
 	}
 
 	var result struct {
-		SessionMode   string `json:"session_mode"`
-		OneOnOneAgent string `json:"one_on_one_agent"`
+		SessionMode string `json:"session_mode"`
+		OneOnOneBot string `json:"one_on_one_agent"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return SessionModeOffice, DefaultOneOnOneAgent
+		return SessionModeOffice, DefaultOneOnOneBot
 	}
-	return NormalizeSessionMode(result.SessionMode), NormalizeOneOnOneAgent(result.OneOnOneAgent)
+	return NormalizeSessionMode(result.SessionMode), NormalizeOneOnOneBot(result.OneOnOneBot)
 }

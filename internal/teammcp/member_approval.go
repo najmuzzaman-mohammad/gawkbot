@@ -6,16 +6,16 @@ import (
 	"strings"
 )
 
-// requireTeamMemberApproval gates agent-initiated office-member creation behind
+// requireTeamMemberApproval gates bot-initiated office-member creation behind
 // a blocking human approval. Spinning up a new specialist is a durable,
-// cost-incurring, persistent act, so an agent (the CEO included) may PROPOSE a
+// cost-incurring, persistent act, so a bot (the CEO included) may PROPOSE a
 // new member, but a human must approve before it is created.
 //
 // The card and polling live in requireHumanCreateApproval (create_approval.go),
 // shared with the channel gate so the two cannot drift.
 //
 // Returns nil when approved (the caller then creates the member). Returns a
-// descriptive error on reject / hold / cancel / timeout so the agent routes to
+// descriptive error on reject / hold / cancel / timeout so the bot routes to
 // "reuse an existing specialist instead" rather than retrying the create.
 func requireTeamMemberApproval(ctx context.Context, actor string, args TeamMemberArgs) error {
 	slug := normalizeSlug(args.Slug)
@@ -30,7 +30,7 @@ func requireTeamMemberApproval(ctx context.Context, actor string, args TeamMembe
 	role := strings.TrimSpace(args.Role)
 
 	ctxLines := []string{
-		fmt.Sprintf("@%s wants to add a NEW office member (a new agent, not a task).", actor),
+		fmt.Sprintf("@%s wants to add a NEW office member (a new bot, not a task).", actor),
 		fmt.Sprintf("- Slug: %s", slug),
 		fmt.Sprintf("- Name: %s", name),
 	}

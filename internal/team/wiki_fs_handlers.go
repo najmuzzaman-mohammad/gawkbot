@@ -121,7 +121,7 @@ func (b *Broker) handleWikiFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	// Script-capable, user-authored content (HTML/SVG/XML) is served from the
 	// SAME ORIGIN as the app, so a naive inline response is a stored-XSS sink:
-	// a wiki author or agent could store <script> that, on direct navigation to
+	// a wiki author or bot could store <script> that, on direct navigation to
 	// /wiki/file, runs in our origin and calls authenticated /wiki/* endpoints.
 	// The CSP `sandbox` directive WITHOUT allow-scripts neutralizes scripts,
 	// plugins, and forms and forces an opaque origin — for top-level navigation

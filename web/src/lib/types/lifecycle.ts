@@ -1,8 +1,8 @@
 /**
  * Decision Inbox + Decision Packet — Lane G TS types
  *
- * Mirrors the Go shapes from the multi-agent control loop design
- * (feat/multi-agent-harness, design doc 2026-05-09). The Go side is
+ * Mirrors the Go shapes from the multi-bot control loop design
+ * (feat/multi-bot-harness, design doc 2026-05-09). The Go side is
  * Lane A/C; until those merge the web routes consume mocked fixtures
  * matching this shape, then will swap to the real `/api/tasks/*`
  * surface without prop changes.
@@ -143,7 +143,7 @@ export type InboxFilter =
   | "unread";
 
 /**
- * One acceptance-criterion checkbox. Toggled by the owner agent during
+ * One acceptance-criterion checkbox. Toggled by the owner bot during
  * `running`; humans never toggle these directly.
  */
 export interface ACItem {
@@ -153,7 +153,7 @@ export interface ACItem {
 
 /**
  * Feedback appended on `changes_requested` re-entry. Each entry is one
- * round-trip of human-to-agent redirection.
+ * round-trip of human-to-bot redirection.
  */
 export interface FeedbackItem {
   appendedAt: string; // RFC3339
@@ -161,7 +161,7 @@ export interface FeedbackItem {
   body: string;
 }
 
-/** Spec produced by the intake agent and refined during the run. */
+/** Spec produced by the intake bot and refined during the run. */
 export interface Spec {
   problem: string;
   targetOutcome: string;
@@ -181,7 +181,7 @@ export interface Win {
 /** One item in the "what didn't work" dead-ends list.
  *
  * Wire shape mirrors the Go broker's `team.DeadEnd` struct verbatim:
- * `tried` is the path the agent attempted, `reason` is why it was
+ * `tried` is the path the bot attempted, `reason` is why it was
  * abandoned. The Decision Packet view renders these in the "What I
  * tried that didn't work (dead ends)" panel.
  */
@@ -190,7 +190,7 @@ export interface DeadEnd {
   reason: string;
 }
 
-/** Owner agent's self-authored session report. */
+/** Owner bot's self-authored session report. */
 export interface SessionReport {
   highlights: string;
   topWins: Win[];
@@ -289,7 +289,7 @@ export interface InboxRow {
   blockedOn?: string[];
   /**
    * Free-text reason the broker attached to the task. For blocked
-   * tasks this is the actual "why" (agent timeout, manual block).
+   * tasks this is the actual "why" (bot timeout, manual block).
    * Truncated by the broker for inbox payload size.
    */
   details?: string;
@@ -350,7 +350,7 @@ export interface DecisionPacket {
   dependencies: Dependencies;
   /** Sub-issues children of this task. */
   subIssues: SubIssue[];
-  /** Set of agent + human reviewers, for the left column summary. */
+  /** Set of bot + human reviewers, for the left column summary. */
   reviewers: ReviewerSummary[];
   /** Banners surfaced at the top of the packet (timeout, persistence, etc.). */
   banners: PacketBanner[];
@@ -365,7 +365,7 @@ export const STATE_PILL_TOKENS: Record<
 > = {
   /**
    * drafting: explicitly PARKED (composer Backlog/park, or a legacy
-   * persisted draft) — agents can comment but not dispatch; the human
+   * persisted draft) — bots can comment but not dispatch; the human
    * starts it from the task page. Uses brand-accent tokens (--accent-bg /
    * --accent) to signal "yours to start" — distinct from intake/ready
    * (--bg-row-active) which use a neutral palette.
@@ -451,7 +451,7 @@ export const STATE_PILL_TOKENS: Record<
  * Severity tier color tokens. Read by SeverityGradeCard + InboxRow chip.
  *
  * Yellow AA decision (option b): we add `--yellow-aa-200/--yellow-aa-500`
- * tokens in `multi-agent-harness.css` (verified ≥4.5:1 against
+ * tokens in `multi-bot-harness.css` (verified ≥4.5:1 against
  * `--bg-card` in both nex + nex-dark) instead of using `--warning-*` for
  * minor (which collapses with `major`'s orange) or the failing
  * `--yellow-500/--yellow-200` pair. See lifecycle.css for the values.

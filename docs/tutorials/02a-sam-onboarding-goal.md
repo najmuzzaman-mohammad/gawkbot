@@ -5,7 +5,7 @@
 **Persona:** Sam Rivera, CTO at an eight-person startup. Already has
 WUPHF running on a small office server. They are spending the morning
 delegating one concrete deliverable — the new-user onboarding flow —
-to the office and watching how the agents decompose it.
+to the office and watching how the bots decompose it.
 
 **Outcome they came for:** see ENG declare a real dependency
 ("Need copy from CMO first") rather than producing a confident chunk
@@ -61,6 +61,6 @@ Sidebar → **Inbox**.
 
 Sam sees ENG self-declare the CMO dependency *in writing* in `#general`
 within the first two minutes, AND the same dependency shows up in the
-Inbox detail pane. The "agents coordinate, they do not invent code in
+Inbox detail pane. The "bots coordinate, they do not invent code in
 isolation" claim is verified by both the channel transcript and the
 structured packet view.

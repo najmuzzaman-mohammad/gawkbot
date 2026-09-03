@@ -65,7 +65,7 @@ func parseSlackGateValue(value string) (interviewID, optionID string, ok bool) {
 // summary when the request carries a structured external action, a warning when
 // the connection is unverified, and one button per option. The recommended option
 // is styled primary. Every dynamic field is escaped with slackEscape so hostile
-// agent-authored text cannot smuggle Slack control sequences into the rendered
+// bot-authored text cannot smuggle Slack control sequences into the rendered
 // card.
 func formatSlackInterviewBlocks(req humanInterview) []slack.Block {
 	var blocks []slack.Block

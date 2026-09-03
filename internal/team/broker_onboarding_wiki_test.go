@@ -68,7 +68,7 @@ func TestOnboardingCompleteMaterializesWiki(t *testing.T) {
 // TestOnboardingCompleteWikiIsIdempotent verifies the re-pick scenario:
 // running onboarding twice against the same blueprint does not overwrite
 // existing article bytes. A user who re-selects a blueprint keeps their
-// earlier agent notes.
+// earlier bot notes.
 func TestOnboardingCompleteWikiIsIdempotent(t *testing.T) {
 	ensureOperationsFallbackFS(t)
 

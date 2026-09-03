@@ -6,7 +6,7 @@ import {
   restoreWikiVersion,
   type WikiHistoryCommit,
 } from "../../api/wiki";
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 import { formatRelativeTime } from "../../lib/format";
 import { keyedByOccurrence } from "../../lib/reactKeys";
 
@@ -235,7 +235,7 @@ function CommitList({
               </span>
               <span className="wk-history-meta">
                 <span className="wk-history-author">
-                  {formatAgentName(commit.author_slug)}
+                  {formatBotName(commit.author_slug)}
                 </span>
                 <span className="wk-history-sep" aria-hidden="true">
                   ·

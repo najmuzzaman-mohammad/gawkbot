@@ -202,12 +202,12 @@ func humanRouteAllowed(r *http.Request) bool {
 			// identity is resolved server-side. Allowed here so the restore
 			// action does not 403 in a human session.
 			"/wiki/restore",
-			// POST /agent-files/write — a human edit to an agent's instruction
+			// POST /bot-files/write — a human edit to a bot's instruction
 			// file. On the same footing as /wiki/write-human: HTTP-only, never
 			// exposed via MCP, identity resolved server-side. Allowed here so the
-			// agent-profile editor does not 403 in a human session.
+			// bot-profile editor does not 403 in a human session.
 			"/agent-files/write",
-			// POST /agent-files/generate — human-triggered LLM authoring of a
+			// POST /bot-files/generate — human-triggered LLM authoring of a
 			// prose instruction file (returns a draft for review, never commits).
 			"/agent-files/generate",
 			"/visual-artifacts":

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 type codexHelperRecord struct {
@@ -45,7 +45,7 @@ func TestCreateCodexCLIStreamFnStreamsFinalMessage(t *testing.T) {
 	defer restore()
 
 	fn := CreateCodexCLIStreamFn("ceo")
-	chunks := collectStreamChunks(fn([]agent.Message{
+	chunks := collectStreamChunks(fn([]bot.Message{
 		{Role: "system", Content: "You are the CEO."},
 		{Role: "user", Content: "Ship it."},
 	}, nil))
@@ -74,7 +74,7 @@ func TestCreateCodexCLIStreamFnShowsLoginError(t *testing.T) {
 	defer restore()
 
 	fn := CreateCodexCLIStreamFn("ceo")
-	chunks := collectStreamChunks(fn([]agent.Message{{Role: "user", Content: "hello"}}, nil))
+	chunks := collectStreamChunks(fn([]bot.Message{{Role: "user", Content: "hello"}}, nil))
 	if !hasErrorChunkContaining(chunks, "Codex CLI requires login") {
 		t.Fatalf("expected login guidance error, got %#v", chunks)
 	}
@@ -88,7 +88,7 @@ func TestCreateCodexCLIStreamFnStreamsToolLifecycleAndTextDeltas(t *testing.T) {
 	defer restore()
 
 	fn := CreateCodexCLIStreamFn("fe")
-	chunks := collectStreamChunks(fn([]agent.Message{{Role: "user", Content: "Ship the UI update."}}, nil))
+	chunks := collectStreamChunks(fn([]bot.Message{{Role: "user", Content: "Ship the UI update."}}, nil))
 
 	if !containsChunk(chunks, "tool_use", "apply_patch") {
 		t.Fatalf("expected tool_use chunk, got %#v", chunks)
@@ -226,7 +226,7 @@ func TestCodexHelperProcess(t *testing.T) {
 	}
 }
 
-func containsChunk(chunks []agent.StreamChunk, chunkType string, needle string) bool {
+func containsChunk(chunks []bot.StreamChunk, chunkType string, needle string) bool {
 	for _, chunk := range chunks {
 		if chunk.Type != chunkType {
 			continue

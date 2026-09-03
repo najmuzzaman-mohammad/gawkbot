@@ -7,7 +7,7 @@ import (
 
 // drainActivityKind reads from ch until it sees a snapshot for slug with
 // Kind == wantKind or the deadline passes. Returns true on match.
-func drainActivityKind(ch <-chan agentActivitySnapshot, slug, wantKind string, deadline time.Duration) bool {
+func drainActivityKind(ch <-chan botActivitySnapshot, slug, wantKind string, deadline time.Duration) bool {
 	limit := time.After(deadline)
 	for {
 		select {
@@ -25,7 +25,7 @@ func drainActivityKind(ch <-chan agentActivitySnapshot, slug, wantKind string, d
 }
 
 // activityKindNow reads the in-memory activity map under the broker lock.
-// The mutation helpers (markAgentStuckFromWatchdogLocked etc.) write to
+// The mutation helpers (markBotStuckFromWatchdogLocked etc.) write to
 // b.activity synchronously before returning, so a post-call lock read is
 // the authoritative check without channel timing.
 func activityKindNow(b *Broker, slug string) string {

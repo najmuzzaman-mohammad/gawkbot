@@ -2,16 +2,16 @@ package team
 
 // broker_inbox_threads.go is Phase 3 of the unified Inbox plan. It
 // reframes the Decision Inbox from "list of artifacts" into "list of
-// conversations with AI agents" — one thread per agent, each thread
-// carrying every InboxItem that agent has waiting on the human plus
-// recent message context from the agent's DM channel.
+// conversations with AI bots" — one thread per bot, each thread
+// carrying every InboxItem that bot has waiting on the human plus
+// recent message context from the bot's DM channel.
 //
 // The endpoint composes on top of Phase 2:
 //
 //   inboxItemsForActor (Phase 2)
 //       ↓ items
-//   groupItemsByAgent
-//       ↓ per-agent buckets
+//   groupItemsByBot
+//       ↓ per-bot buckets
 //   buildThreadLocked (enrich with DM messages + member name)
 //       ↓ Threads
 //   GET /inbox/threads
@@ -29,16 +29,16 @@ import (
 	"time"
 )
 
-// InboxThread groups every attention item from one agent under a
+// InboxThread groups every attention item from one bot under a
 // single conversation surface. Phase 3 frontend renders one row per
 // thread (avatar + name + preview + time) and a chat-style detail
-// pane that interleaves agent messages with inline action cards for
+// pane that interleaves bot messages with inline action cards for
 // the pending items.
 type InboxThread struct {
-	Key            string      `json:"key"` // "agent:<slug>"
-	AgentSlug      string      `json:"agentSlug"`
-	AgentName      string      `json:"agentName"`
-	AgentRole      string      `json:"agentRole,omitempty"`
+	Key            string      `json:"key"` // "bot:<slug>"
+	BotSlug        string      `json:"agentSlug"`
+	BotName        string      `json:"agentName"`
+	BotRole        string      `json:"agentRole,omitempty"`
 	DMChannel      string      `json:"dmChannel,omitempty"`
 	LastActivityAt string      `json:"lastActivityAt"` // RFC3339
 	Preview        string      `json:"preview"`        // truncated last activity
@@ -82,20 +82,20 @@ type InboxThreadsResponse struct {
 const threadPreviewMaxLen = 140
 const threadMessageBackfillLimit = 24
 
-// inboxThreadsForActor wraps inboxItemsForActor with per-agent
+// inboxThreadsForActor wraps inboxItemsForActor with per-bot
 // grouping + DM message enrichment.
 func (b *Broker) inboxThreadsForActor(actor requestActor) (InboxThreadsResponse, error) {
 	items, err := b.inboxItemsForActor(actor, InboxFilterAll)
 	if err != nil {
 		return InboxThreadsResponse{}, err
 	}
-	byAgent := map[string][]InboxItem{}
+	byBot := map[string][]InboxItem{}
 	for _, item := range items {
-		slug := normalizeReviewerSlug(item.AgentSlug)
+		slug := normalizeReviewerSlug(item.BotSlug)
 		if slug == "" {
 			slug = "system"
 		}
-		byAgent[slug] = append(byAgent[slug], item)
+		byBot[slug] = append(byBot[slug], item)
 	}
 
 	// counts come from the caller's auth-filtered items so threads
@@ -113,8 +113,8 @@ func (b *Broker) inboxThreadsForActor(actor requestActor) (InboxThreadsResponse,
 		memberByCanonicalSlug[normalizeReviewerSlug(m.Slug)] = m
 	}
 
-	threads := make([]InboxThread, 0, len(byAgent))
-	for slug, bucket := range byAgent {
+	threads := make([]InboxThread, 0, len(byBot))
+	for slug, bucket := range byBot {
 		thread := buildInboxThread(slug, bucket, memberByCanonicalSlug, messages)
 		threads = append(threads, thread)
 	}
@@ -124,7 +124,7 @@ func (b *Broker) inboxThreadsForActor(actor requestActor) (InboxThreadsResponse,
 		tj := parseBrokerTimestamp(threads[j].LastActivityAt)
 		switch {
 		case ti.IsZero() && tj.IsZero():
-			return strings.Compare(threads[i].AgentSlug, threads[j].AgentSlug) < 0
+			return strings.Compare(threads[i].BotSlug, threads[j].BotSlug) < 0
 		case ti.IsZero():
 			return false
 		case tj.IsZero():
@@ -144,10 +144,10 @@ func (b *Broker) inboxThreadsForActor(actor requestActor) (InboxThreadsResponse,
 // inboxThreadDetailForActor returns one thread with its interleaved
 // event stream (messages + action cards in chronological order). The
 // frontend calls this when a thread row is opened.
-func (b *Broker) inboxThreadDetailForActor(actor requestActor, agentSlug string) (InboxThreadDetail, error) {
-	slug := normalizeReviewerSlug(agentSlug)
+func (b *Broker) inboxThreadDetailForActor(actor requestActor, botSlug string) (InboxThreadDetail, error) {
+	slug := normalizeReviewerSlug(botSlug)
 	if slug == "" {
-		return InboxThreadDetail{}, errors.New("inbox: thread agentSlug required")
+		return InboxThreadDetail{}, errors.New("inbox: thread botSlug required")
 	}
 	items, err := b.inboxItemsForActor(actor, InboxFilterAll)
 	if err != nil {
@@ -155,7 +155,7 @@ func (b *Broker) inboxThreadDetailForActor(actor requestActor, agentSlug string)
 	}
 	bucket := make([]InboxItem, 0, len(items))
 	for _, item := range items {
-		if normalizeReviewerSlug(item.AgentSlug) == slug {
+		if normalizeReviewerSlug(item.BotSlug) == slug {
 			bucket = append(bucket, item)
 		}
 	}
@@ -172,8 +172,8 @@ func (b *Broker) inboxThreadDetailForActor(actor requestActor, agentSlug string)
 
 	thread := buildInboxThread(slug, bucket, memberByCanonicalSlug, messages)
 
-	// Pull recent messages from the agent's DM channel + any channel
-	// messages where the agent is the sender. Interleave with items.
+	// Pull recent messages from the bot's DM channel + any channel
+	// messages where the bot is the sender. Interleave with items.
 	dmChannel := thread.DMChannel
 	relevantMessages := make([]channelMessage, 0, threadMessageBackfillLimit)
 	for i := len(messages) - 1; i >= 0 && len(relevantMessages) < threadMessageBackfillLimit; i-- {
@@ -218,21 +218,21 @@ func (b *Broker) inboxThreadDetailForActor(actor requestActor, agentSlug string)
 	}, nil
 }
 
-// buildInboxThread assembles a thread row from one agent's items
+// buildInboxThread assembles a thread row from one bot's items
 // plus their most recent DM/channel activity for the preview line.
 func buildInboxThread(slug string, items []InboxItem, memberBySlug map[string]officeMember, messages []channelMessage) InboxThread {
 	member := memberBySlug[slug]
 	name := strings.TrimSpace(member.Name)
 	if name == "" {
-		// Fallback when the agent isn't in the office roster (legacy
+		// Fallback when the bot isn't in the office roster (legacy
 		// task created by a removed member).
 		name = slug
 	}
 	thread := InboxThread{
 		Key:          "agent:" + slug,
-		AgentSlug:    slug,
-		AgentName:    name,
-		AgentRole:    strings.TrimSpace(member.Role),
+		BotSlug:      slug,
+		BotName:      name,
+		BotRole:      strings.TrimSpace(member.Role),
 		PendingCount: len(items),
 		Items:        items,
 	}
@@ -241,7 +241,7 @@ func buildInboxThread(slug string, items []InboxItem, memberBySlug map[string]of
 	}
 
 	// Last activity = newest of (item.CreatedAt, latest message from
-	// this agent). The preview prefers a message snippet, falling back
+	// this bot). The preview prefers a message snippet, falling back
 	// to the newest item's title.
 	var lastTS time.Time
 	var preview string
@@ -303,7 +303,7 @@ func (b *Broker) handleInboxThreads(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, payload)
 }
 
-// handleInboxThreadDetail serves GET /inbox/threads/{agentSlug}.
+// handleInboxThreadDetail serves GET /inbox/threads/{botSlug}.
 func (b *Broker) handleInboxThreadDetail(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
@@ -318,15 +318,15 @@ func (b *Broker) handleInboxThreadDetail(w http.ResponseWriter, r *http.Request)
 	slug := strings.TrimPrefix(r.URL.Path, "/inbox/threads/")
 	slug = strings.TrimSpace(slug)
 	if slug == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "agent slug required"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bot slug required"})
 		return
 	}
 	detail, err := b.inboxThreadDetailForActor(actor, slug)
 	if err != nil {
 		// inboxThreadDetailForActor returns one validation error
-		// ("thread agentSlug required", maps to 400) and otherwise
+		// ("thread botSlug required", maps to 400) and otherwise
 		// surfaces broker / persistence errors that should land as 500.
-		if strings.Contains(err.Error(), "agentSlug required") {
+		if strings.Contains(err.Error(), "botSlug required") {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

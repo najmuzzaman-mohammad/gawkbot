@@ -19,16 +19,16 @@ func (b *Broker) handleUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b.mu.Lock()
-	// Deep-clone the Agents map: `usage := b.usage` only copies the
+	// Deep-clone the Bots map: `usage := b.usage` only copies the
 	// teamUsageState header, so the inner map still aliases broker state.
 	// Encoding it after Unlock would race a concurrent recordUsageLocked
 	// and panic with "concurrent map iteration and map write".
 	usage := b.usage
-	cloned := make(map[string]usageTotals, len(b.usage.Agents))
-	for k, v := range b.usage.Agents {
+	cloned := make(map[string]usageTotals, len(b.usage.Bots))
+	for k, v := range b.usage.Bots {
 		cloned[k] = v
 	}
-	usage.Agents = cloned
+	usage.Bots = cloned
 	b.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -36,7 +36,7 @@ func (b *Broker) handleUsage(w http.ResponseWriter, r *http.Request) {
 }
 
 // otlpLogsMaxBodyBytes caps incoming OTLP-log payloads so an authenticated
-// agent that emits a runaway batch can't grow broker memory unbounded.
+// bot that emits a runaway batch can't grow broker memory unbounded.
 // 4 MiB comfortably fits a normal claude-code turn's telemetry; anything
 // larger is almost certainly a bug or hostile input.
 const otlpLogsMaxBodyBytes = 4 << 20
@@ -68,7 +68,7 @@ func (b *Broker) handleOTLPLogs(w http.ResponseWriter, r *http.Request) {
 	events := parseOTLPUsageEvents(payload)
 	b.mu.Lock()
 	for _, event := range events {
-		if strings.TrimSpace(event.AgentSlug) == "" {
+		if strings.TrimSpace(event.BotSlug) == "" {
 			continue
 		}
 		b.recordUsageLocked(event)
@@ -85,7 +85,7 @@ func (b *Broker) handleOTLPLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 type usageEvent struct {
-	AgentSlug           string
+	BotSlug             string
 	InputTokens         int
 	OutputTokens        int
 	CacheReadTokens     int
@@ -102,15 +102,15 @@ type usageEvent struct {
 const messageUsageAttachMaxAge = 15 * time.Minute
 
 func (b *Broker) recordUsageLocked(event usageEvent) {
-	if b.usage.Agents == nil {
-		b.usage.Agents = make(map[string]usageTotals)
+	if b.usage.Bots == nil {
+		b.usage.Bots = make(map[string]usageTotals)
 	}
 	if b.usage.Since == "" {
 		b.usage.Since = time.Now().UTC().Format(time.RFC3339)
 	}
-	agentTotal := b.usage.Agents[event.AgentSlug]
-	applyUsageEvent(&agentTotal, event)
-	b.usage.Agents[event.AgentSlug] = agentTotal
+	botTotal := b.usage.Bots[event.BotSlug]
+	applyUsageEvent(&botTotal, event)
+	b.usage.Bots[event.BotSlug] = botTotal
 
 	session := b.usage.Session
 	applyUsageEvent(&session, event)
@@ -174,7 +174,7 @@ func (b *Broker) attachUsageToRecentMessagesLocked(event usageEvent) {
 	if usage == nil {
 		return
 	}
-	slug := strings.TrimSpace(event.AgentSlug)
+	slug := strings.TrimSpace(event.BotSlug)
 	if slug == "" {
 		return
 	}
@@ -201,15 +201,15 @@ func (b *Broker) attachUsageToRecentMessagesLocked(event usageEvent) {
 	}
 }
 
-// RecordAgentUsage records token usage from a provider stream result for a given agent.
+// RecordBotUsage records token usage from a provider stream result for a given bot.
 //
 // model is currently unused; it's kept on the signature so callers can pass
 // the model name without a future per-model attribution change rippling
 // through every headless launcher's call site.
-func (b *Broker) RecordAgentUsage(slug, model string, usage provider.ClaudeUsage) {
+func (b *Broker) RecordBotUsage(slug, model string, usage provider.ClaudeUsage) {
 	_ = model
 	event := usageEvent{
-		AgentSlug:           slug,
+		BotSlug:             slug,
 		InputTokens:         usage.InputTokens,
 		OutputTokens:        usage.OutputTokens,
 		CacheReadTokens:     usage.CacheReadTokens,
@@ -218,13 +218,13 @@ func (b *Broker) RecordAgentUsage(slug, model string, usage provider.ClaudeUsage
 	}
 	b.mu.Lock()
 	b.recordUsageLocked(event)
-	// RecordAgentUsage is called from headless launchers that have no
+	// RecordBotUsage is called from headless launchers that have no
 	// HTTP path to surface a 500. Log the persistence failure so it
 	// shows up in operator logs; in-memory state still reflects the
 	// usage and the next saveLocked call (next message, next request)
 	// will retry the snapshot.
 	if err := b.saveLocked(); err != nil {
-		log.Printf("broker: saveLocked after RecordAgentUsage(%q): %v", slug, err)
+		log.Printf("broker: saveLocked after RecordBotUsage(%q): %v", slug, err)
 	}
 	b.mu.Unlock()
 }
@@ -258,7 +258,7 @@ func parseOTLPUsageEvents(payload map[string]any) []usageEvent {
 					continue
 				}
 				events = append(events, usageEvent{
-					AgentSlug:           slug,
+					BotSlug:             slug,
 					InputTokens:         otlpIntValue(attrs["input_tokens"]),
 					OutputTokens:        otlpIntValue(attrs["output_tokens"]),
 					CacheReadTokens:     otlpIntValue(attrs["cache_read_tokens"]),

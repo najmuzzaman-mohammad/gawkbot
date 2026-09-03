@@ -133,10 +133,10 @@ describe("SidebarPreviewOverlay", () => {
     render(<SidebarPreviewOverlay />, { wrapper });
 
     const overlay = await screen.findByTestId("sidebar-preview-overlay");
-    const agentRows = overlay.querySelectorAll(
+    const botRows = overlay.querySelectorAll(
       '[data-testid="sidebar-preview-row-agent"]',
     );
-    expect(agentRows.length).toBe(2);
+    expect(botRows.length).toBe(2);
   });
 
   it("renders workspace label as plain text (XSS protection)", async () => {

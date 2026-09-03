@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NavArrowDown, NavArrowUp } from "iconoir-react";
 
 import { useMessages } from "../../hooks/useMessages";
-import { AgentWorkbenchPane } from "../agents/AgentWorkbenchPane";
+import { BotWorkbenchPane } from "../bots/BotWorkbenchPane";
 import { Composer } from "./Composer";
 import { InterviewBar } from "./InterviewBar";
 import { MessageBubble } from "./MessageBubble";
@@ -15,12 +15,12 @@ interface DMViewProps {
 
 /**
  * DMView is rendered only when MainContent's route dispatch matches the
- * `dm` kind. Receiving the agent + channel slugs as props keeps the
+ * `dm` kind. Receiving the bot + channel slugs as props keeps the
  * route discrimination in one place — and prevents an empty channel
  * slug from ever reaching useMessages, which would issue a real broker
  * request for `["messages", ""]`.
  *
- * Layout: the agent workbench fills the page (active tasks, live
+ * Layout: the bot workbench fills the page (active tasks, live
  * stream, recent activity — each section collapsible). A chat drawer
  * sits at the bottom: collapsed it shows the composer plus the latest
  * message so the user can still send and reply with one keystroke;
@@ -53,7 +53,7 @@ export function DMView({ agentSlug, channelSlug }: DMViewProps) {
   return (
     <div className="dm-workbench" data-testid="dm-workbench">
       <div className="dm-workbench-body">
-        <AgentWorkbenchPane agentSlug={agentSlug} />
+        <BotWorkbenchPane agentSlug={agentSlug} />
       </div>
 
       <div
@@ -86,7 +86,7 @@ export function DMView({ agentSlug, channelSlug }: DMViewProps) {
               {messages.map((msg) => (
                 <MessageBubble key={msg.id} message={msg} />
               ))}
-              {/* Inline at the foot of the scroll — the spot the agent's
+              {/* Inline at the foot of the scroll — the spot the bot's
                   reply will land, so the loader is replaced in place. */}
               <TypingIndicator />
             </div>

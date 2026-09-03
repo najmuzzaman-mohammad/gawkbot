@@ -9,7 +9,7 @@ gawkbot is an independent, source-available project under the Sustainable Use Li
 - Install: `npx gawkbot@latest` (needs Claude Code, Codex CLI, or Opencode signed in)
 - Price: free, no account, no cloud, no seats, no usage fees
 - Runs on: your machine, with your keys; local models keep everything offline
-- Models: Claude Code (default), Codex CLI, Opencode, local models, Hermes Agent, OpenClaw
+- Models: Claude Code (default), Codex CLI, Opencode, local models, Hermes Bot, OpenClaw
 - Bot computers: not yet; each bot has its own directory and tool allowlist on your machine
 - Approvals: per action on every external write, never a blanket grant
 - Platforms: macOS and Windows desktop apps, Linux via the CLI

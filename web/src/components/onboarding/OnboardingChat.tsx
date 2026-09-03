@@ -5,7 +5,7 @@
  * `onboarded=true`, RootRoute mounts this component instead of the office
  * Shell. It masquerades as a chat with the CEO, but the only valid input
  * zone is the chip / form-field card surfaced by InterviewBar (which falls
- * back to CeoCardSection when no agent interview request is pending). No
+ * back to CeoCardSection when no bot interview request is pending). No
  * sidebar, no workspace rail, no workbench panes — those are the
  * destination, not the wizard.
  *
@@ -14,7 +14,7 @@
  *    the team yet until onboarding finishes."
  *
  * Component shape mirrors DMView's chat region but drops the workbench
- * (`AgentWorkbenchPane`) and the free-form `Composer`. We keep the same
+ * (`BotWorkbenchPane`) and the free-form `Composer`. We keep the same
  * `useMessages` / `MessageBubble` / `InterviewBar` plumbing so streaming
  * updates and pending-suggestion cards behave identically.
  */
@@ -30,7 +30,7 @@ import { OnboardingDMContextProvider } from "./OnboardingDMRoute";
 import type { CeoSuggestion } from "./types";
 import { useOnboardingState } from "./useOnboardingState";
 
-/** Agent slug used in the broker for the onboarding CEO. */
+/** Bot slug used in the broker for the onboarding CEO. */
 const CEO_AGENT_SLUG = "ceo";
 
 /** The broker canonicalises DM channels as pair-sorted slugs. */
@@ -120,7 +120,7 @@ export function OnboardingChat() {
         <footer className="onboarding-chat-footer">
           <div className="onboarding-chat-footer-inner">
             <InterviewBar channelSlug={CEO_ONBOARDING_CHANNEL} />
-            {/* When there's no pending suggestion AND no agent interview
+            {/* When there's no pending suggestion AND no bot interview
                 request, InterviewBar renders nothing. Surface a hint so the
                 user knows the wizard is mid-transition rather than stuck. */}
             {!pendingSuggestion && (

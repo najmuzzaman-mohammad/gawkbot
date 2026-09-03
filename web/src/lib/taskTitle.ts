@@ -2,8 +2,8 @@
  * Formatting helpers for Task titles surfaced in the UI.
  *
  * The broker may persist a self-heal title with a "[@<slug>] " provenance
- * prefix — that prefix is for backend recognition + per-agent overflow
- * lookups. Humans don't need to see it: the assigned-agent chip already
+ * prefix — that prefix is for backend recognition + per-bot overflow
+ * lookups. Humans don't need to see it: the assigned-bot chip already
  * shows ownership.
  */
 
@@ -15,7 +15,7 @@ const SELF_HEAL_TITLE_PREFIX_RE = /^\[@([a-z0-9_-]+)\]\s+/i;
  * sub-task rows). Returns the original title unchanged when no prefix
  * is present.
  *
- *   "[@ceo] Agent stuck on: Send VC outreach" → "Agent stuck on: Send VC outreach"
+ *   "[@ceo] Bot stuck on: Send VC outreach" → "Bot stuck on: Send VC outreach"
  *   "Send VC outreach email"                   → "Send VC outreach email"
  */
 export function formatTaskTitleForDisplay(
@@ -36,10 +36,10 @@ export function isSelfHealTaskTitle(title: string | undefined | null): boolean {
 }
 
 /**
- * Extracts the agent slug from a self-heal title's "[@<slug>] " prefix.
+ * Extracts the bot slug from a self-heal title's "[@<slug>] " prefix.
  * Returns null when the prefix isn't present.
  */
-export function selfHealAgentFromTitle(
+export function selfHealBotFromTitle(
   title: string | undefined | null,
 ): string | null {
   if (!title) return null;

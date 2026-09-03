@@ -105,7 +105,7 @@ export function humanizeToolEvent(
     case "glob":
     case "grep":
       // Raw regex/glob patterns are developer material; the operator just
-      // needs to know the agent is looking around.
+      // needs to know the bot is looking around.
       return { verb: "Searching", target: "the project" };
     case "todowrite":
       return { verb: "Planning", target: "" };
@@ -203,7 +203,7 @@ export function reduceBuildActivity(
 
   // Most native tools (Read/Write/Bash) emit a tool_result that references its
   // call by id, not name, so the runner can't tag it and drops the event — rows
-  // would otherwise spin until the turn ends. The agent works one tool at a
+  // would otherwise spin until the turn ends. The bot works one tool at a
   // time, so the arrival of the NEXT tool_use means the prior tool finished:
   // resolve still-running rows in the turn to "done". The open queue is left
   // intact, so a named tool_result (when one arrives) still attaches its note.

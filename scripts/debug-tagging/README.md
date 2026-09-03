@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The user-reported bug: *"Tagging any specialist agent apart from CEO is not
+The user-reported bug: *"Tagging any specialist bot apart from CEO is not
 working. No response comes back."* PR #218 and PR #223 merged fixes and 17+
 regression tests in `internal/team/mention_routing_bug_test.go` and
 `internal/team/mention_auto_promote_test.go`. Those tests all pass on
@@ -70,9 +70,9 @@ fixed *half* the round-trip:
 
 The broker's `/messages` POST handler enforces
 `canAccessChannelLocked(from, channel)`, which requires the sender slug to
-be in `ch.Members` for every non-CEO agent. `handleOfficeMembers` with
+be in `ch.Members` for every non-CEO bot. `handleOfficeMembers` with
 `action: create` appended the new member to `b.members` but **never added
-them to any channel's `Members` array** — so the agent was hireable,
+them to any channel's `Members` array** — so the bot was hireable,
 taggable, and dispatches correctly, but its reply was silently 403'd and
 the human saw nothing.
 
@@ -83,7 +83,7 @@ Two fix directions were considered:
    pack-launch seeding in `normalizeLoadedStateLocked`, and with how
    `/channel-members` already handles the reverse. **This is what this
    PR ships.**
-2. `canAccessChannelLocked` — treat the agent's own reply to a thread
+2. `canAccessChannelLocked` — treat the bot's own reply to a thread
    they were tagged in as allowed even if not in `ch.Members`. Parallel to
    PR #218's explicit-tag bypass on the read side. Not chosen: the bug is
    a missing side-effect on hire, not a missing permission carve-out.

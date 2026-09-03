@@ -34,7 +34,7 @@ var (
 			Foreground(lipgloss.Color("#60A5FA")).
 			Bold(true)
 
-	AgentStyle = lipgloss.NewStyle().
+	BotStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#34D399")).
 			Bold(true)
 

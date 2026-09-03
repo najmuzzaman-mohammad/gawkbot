@@ -4,7 +4,7 @@
  * Owns:
  *   - The working `answers` object and an immutable patch setter.
  *   - The current step index plus next / back / goTo navigation.
- *   - `canAdvance` gating per step (team needs a blueprint or a named agent;
+ *   - `canAdvance` gating per step (team needs a blueprint or a named bot;
  *     first-issue needs text).
  *   - The blueprint roster fetched once from GET /onboarding/blueprints, and
  *     only while ONBOARDING_TEAM_PACKS_ENABLED is on. With packs hidden the
@@ -20,9 +20,9 @@
  *      MUST happen first. owner_name / owner_role are persisted the same way
  *      when collected.
  *   2. POST /onboarding/complete { task: firstIssue, skip_task: false,
- *      blueprint: blueprintId, agents: pickedAgents }. The broker seeds the
+ *      blueprint: blueprintId, bots: pickedBots }. The broker seeds the
  *      team from that blueprint (or synthesizes one when blueprint is empty),
- *      honors the agents filter, posts the first CEO turn, and flips
+ *      honors the bots filter, posts the first CEO turn, and flips
  *      onboarded=true. An already_completed response is treated as success.
  *   3. Seed the home composer with the first issue (pendingComposerDraft on the
  *      app store, keyed to HOME_COMPOSER_DRAFT_CHANNEL, which the home
@@ -107,7 +107,7 @@ function maybeRecordOnboardingEmail(email: string, keepInTouch: boolean): void {
  *
  * With starter packs hidden (ONBOARDING_TEAM_PACKS_ENABLED off) the scratch
  * path is the only path, so it starts already chosen: no blueprint, no picked
- * agents. That is the broker's lead-only seed — a CEO and #general — which is
+ * bots. That is the broker's lead-only seed — a CEO and #general — which is
  * exactly where the wizard is meant to deposit the user.
  */
 function initialAnswers(): OnboardingAnswers {
@@ -118,10 +118,10 @@ function initialAnswers(): OnboardingAnswers {
     email: "",
     keepInTouch: true,
     blueprintId: "",
-    pickedAgents: [],
+    pickedBots: [],
     startFromScratch: !ONBOARDING_TEAM_PACKS_ENABLED,
     agentName: "",
-    agentInstructions: "",
+    botInstructions: "",
     firstIssue: ONBOARDING_FIRST_ISSUE_EXAMPLE,
     telemetryConsent: true,
     recordingConsent: true,
@@ -207,7 +207,7 @@ export function useOnboardingWizard(
   }, []);
 
   // Per-step advance gate. The team step needs a chosen blueprint OR a named
-  // first agent (the "I will set this up later" escape sets neither and uses
+  // first bot (the "I will set this up later" escape sets neither and uses
   // the scratch path, so that escape is wired in the host, not here). The
   // first-issue step needs non-empty text. Every other step is informational.
   const canAdvance = useMemo(() => {
@@ -275,7 +275,7 @@ export function useOnboardingWizard(
         );
 
         // 2. Seed the team + post the first CEO turn + flip onboarded=true.
-        //    blueprint empty => scratch path; agents filters the roster.
+        //    blueprint empty => scratch path; bots filters the roster.
         //    owner_name / owner_role are also sent on the complete body so a
         //    fresh broker persists them to config even if the answer writes
         //    above raced; the broker merges, it does not require them.
@@ -283,7 +283,7 @@ export function useOnboardingWizard(
           task: skipTask ? "" : firstIssue,
           skip_task: skipTask,
           blueprint: blueprintId,
-          agents: answers.pickedAgents,
+          agents: answers.pickedBots,
           owner_name: ownerName || undefined,
           owner_role: ownerRole || undefined,
           analytics_telemetry_enabled: telemetryConsent,
@@ -307,7 +307,7 @@ export function useOnboardingWizard(
         //     telemetry is off). No content, only counts + the chosen flags.
         track("onboarding_completed", {
           blueprint_id: blueprintId,
-          agent_count: answers.pickedAgents.length,
+          agent_count: answers.pickedBots.length,
           skipped_first_task: skipTask,
           telemetry_consent: telemetryConsent,
           recording_consent: recordingConsent,
@@ -360,7 +360,7 @@ export function useOnboardingWizard(
       answers.keepInTouch,
       answers.firstIssue,
       answers.blueprintId,
-      answers.pickedAgents,
+      answers.pickedBots,
       answers.telemetryConsent,
       answers.recordingConsent,
       onComplete,

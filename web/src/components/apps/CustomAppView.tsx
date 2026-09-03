@@ -53,7 +53,7 @@ export function buildSelectSeed(sel: AppSelectPayload): string {
 }
 
 /**
- * CustomAppView renders one agent-generated internal tool: a header (icon, name,
+ * CustomAppView renders one bot-generated internal tool: a header (icon, name,
  * version, Select-to-edit, History, Edit, an overflow menu) above the app
  * surface. There is ONE app surface, not a mode toggle: a finished app shows its
  * published (sealed) bundle. The destructive Delete lives in the overflow menu
@@ -62,7 +62,7 @@ export function buildSelectSeed(sel: AppSelectPayload): string {
  * Edit is the modify wedge: it opens a persistent, per-app chat with the App
  * Builder in a right-side panel (v0/Cursor-style). While that panel is open the
  * main stage switches to the LIVE dev-server preview so the human watches edits
- * hot-reload as the agent republishes; closing the panel returns to the sealed
+ * hot-reload as the bot republishes; closing the panel returns to the sealed
  * bundle. "Select to edit" is the same wedge primed with a precise element ref.
  *
  * History is the trust net behind editing: it opens an append-only version

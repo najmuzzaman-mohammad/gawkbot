@@ -37,7 +37,7 @@ describe("<MentionMenu>", () => {
     );
     expect(screen.getByText("People")).toBeInTheDocument();
     expect(screen.getByText("Projects")).toBeInTheDocument();
-    expect(screen.getByText("Agents")).toBeInTheDocument();
+    expect(screen.getByText("Bots")).toBeInTheDocument();
   });
 
   it("filters items by query", () => {

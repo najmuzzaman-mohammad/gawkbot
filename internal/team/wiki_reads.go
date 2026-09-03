@@ -7,9 +7,9 @@ package team
 // repo and does not go through the WikiWorker queue. It is ephemeral telemetry,
 // not canonical content.
 //
-// Both human (web UI) and agent (MCP team_wiki_read) accesses are tracked.
-// An article accessed by agents only is still valuable — it is being consumed.
-// Staleness means "not accessed by anyone (human or agent)".
+// Both human (web UI) and bot (MCP team_wiki_read) accesses are tracked.
+// An article accessed by bots only is still valuable — it is being consumed.
+// Staleness means "not accessed by anyone (human or bot)".
 //
 // Concurrency: ReadLog uses a sync.Mutex. The broker is a single process;
 // no cross-process locking is needed.
@@ -27,7 +27,7 @@ import (
 )
 
 // ReaderHuman is the reader identifier used when a human opens an article in
-// the web UI. Any other non-empty reader value is treated as an agent slug.
+// the web UI. Any other non-empty reader value is treated as a bot slug.
 const ReaderHuman = "web"
 
 // CatalogSortLastRead is the sort key accepted by BuildCatalog to sort
@@ -44,18 +44,18 @@ const CatalogSortPruneScore = "prune_score"
 type ReadEvent struct {
 	Path      string    `json:"path"`
 	Timestamp time.Time `json:"ts"`
-	// Reader is "web" for human browser access or an agent slug (e.g.
-	// "slack-agent"). Empty string is never written — Append is a no-op
+	// Reader is "web" for human browser access or a bot slug (e.g.
+	// "slack-bot"). Empty string is never written — Append is a no-op
 	// when reader is empty.
-	Reader  string `json:"reader"`
-	IsAgent bool   `json:"is_agent"` // true when Reader != "web"
+	Reader string `json:"reader"`
+	IsBot  bool   `json:"is_agent"` // true when Reader != "web"
 }
 
 // ReadStats summarises access history for one article path.
 type ReadStats struct {
 	LastRead       *time.Time // nil if the article has never been accessed
-	HumanReadCount int        // reads where IsAgent == false
-	AgentReadCount int        // reads where IsAgent == true
+	HumanReadCount int        // reads where IsBot == false
+	BotReadCount   int        // reads where IsBot == true
 	DaysUnread     int        // whole days since LastRead; 0 if accessed today or never
 }
 
@@ -86,7 +86,7 @@ func (l *ReadLog) Append(relPath, reader string) {
 		Path:      relPath,
 		Timestamp: time.Now().UTC(),
 		Reader:    reader,
-		IsAgent:   reader != ReaderHuman,
+		IsBot:     reader != ReaderHuman,
 	}
 	line, err := json.Marshal(ev)
 	if err != nil {
@@ -174,8 +174,8 @@ func (l *ReadLog) AllStats() map[string]ReadStats {
 			t := ev.Timestamp
 			s.LastRead = &t
 		}
-		if ev.IsAgent {
-			s.AgentReadCount++
+		if ev.IsBot {
+			s.BotReadCount++
 		} else {
 			s.HumanReadCount++
 		}

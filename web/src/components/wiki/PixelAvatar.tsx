@@ -4,7 +4,7 @@ import { PixelAvatar as CanvasPixelAvatar } from "../ui/PixelAvatar";
  * Wiki-surface pixel avatar — default-export wrapper over the shared canvas
  * sprite compositor in `components/ui/PixelAvatar`. Keeps the wiki's byline,
  * backlinks, edit-log entries, Sources list, and catalog cards visually in
- * sync with agent avatars rendered elsewhere in the app.
+ * sync with bot avatars rendered elsewhere in the app.
  */
 
 interface PixelAvatarProps {
@@ -21,7 +21,7 @@ export default function PixelAvatar({
   title,
 }: PixelAvatarProps) {
   // The underlying component is aria-hidden; the wiki uses avatars purely
-  // decorative next to agent slug labels, so no extra role/title is needed.
+  // decorative next to bot slug labels, so no extra role/title is needed.
   // `title` is accepted for API compatibility with the legacy stub and set
   // via a wrapping span when provided.
   const avatar = (

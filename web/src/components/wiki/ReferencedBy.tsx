@@ -1,4 +1,4 @@
-import { formatAgentName } from "../../lib/agentName";
+import { formatBotName } from "../../lib/botName";
 import PixelAvatar from "./PixelAvatar";
 
 /** Right-rail backlinks: articles that link TO this article. */
@@ -40,7 +40,7 @@ export default function ReferencedBy({
           >
             <PixelAvatar slug={b.author_slug} size={16} />
             {b.title}
-            <span className="wk-path">{formatAgentName(b.author_slug)}</span>
+            <span className="wk-path">{formatBotName(b.author_slug)}</span>
           </a>
         ))}
       </div>

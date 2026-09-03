@@ -6,10 +6,10 @@ import (
 )
 
 // Regression guard (ten-out-of-ten Wave E handoff-2): the 800-char poll
-// clip silently dropped the tail of long human messages — agents absorbed
+// clip silently dropped the tail of long human messages — bots absorbed
 // half a redline and re-asked for the other half (ICP-eval v3
-// [18:05–18:10]). Human-authored content must reach agents IN FULL; only
-// agent/system chatter keeps the clip as a token-overflow guard.
+// [18:05–18:10]). Human-authored content must reach bots IN FULL; only
+// bot/system chatter keeps the clip as a token-overflow guard.
 func TestFormatMessagesNeverClipsHumanContent(t *testing.T) {
 	tail := "FINAL-REDLINE-OMEGA: sender name is Maya."
 	long := strings.Repeat("redline detail ", 80) + tail // ~1.2k chars, past the 800 clip
@@ -30,20 +30,20 @@ func TestFormatMessagesNeverClipsHumanContent(t *testing.T) {
 	}
 }
 
-// Agent and automation content keeps the 800-char clip — the exemption is
+// Bot and automation content keeps the 800-char clip — the exemption is
 // scoped to humans only.
-func TestFormatMessagesStillClipsAgentContent(t *testing.T) {
+func TestFormatMessagesStillClipsBotContent(t *testing.T) {
 	tail := "AGENT-TAIL-MARKER"
-	long := strings.Repeat("agent report detail ", 60) + tail // ~1.2k chars
+	long := strings.Repeat("bot report detail ", 60) + tail // ~1.2k chars
 
 	out := formatMessages([]brokerMessage{
 		{ID: "msg-2", From: "eng", Content: long, Timestamp: "2026-06-12T10:00:00Z"},
 	}, "ceo")
 	if strings.Contains(out, tail) {
-		t.Errorf("agent message was not clipped: tail marker should be truncated away")
+		t.Errorf("bot message was not clipped: tail marker should be truncated away")
 	}
 	if !strings.Contains(out, "…") {
-		t.Errorf("agent message missing the clip ellipsis")
+		t.Errorf("bot message missing the clip ellipsis")
 	}
 
 	auto := formatMessages([]brokerMessage{

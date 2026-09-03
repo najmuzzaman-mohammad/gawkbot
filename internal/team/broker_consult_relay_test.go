@@ -7,7 +7,7 @@ import (
 )
 
 // The consult relay markers exist so a human can tell a researched answer from
-// an invented one: if your agent says "Social says X", there is a marker
+// an invented one: if your bot says "Social says X", there is a marker
 // showing it actually asked. These tests pin the properties that claim rests
 // on — that a marker appears only when a real message exists, that it names
 // the right peer and direction, and that it never becomes somebody talking.
@@ -39,8 +39,8 @@ func relayPayload(t *testing.T, msg channelMessage) consultRelayPayload {
 	return p
 }
 
-// The mockup: your agent messages a peer, the peer answers, and both markers
-// land in your DM with your agent — outbound then inbound, in order.
+// The mockup: your bot messages a peer, the peer answers, and both markers
+// land in your DM with your bot — outbound then inbound, in order.
 func TestConsultMarkersRenderBothDirections(t *testing.T) {
 	b := relayBroker(t)
 	b.mu.Lock()
@@ -56,11 +56,11 @@ func TestConsultMarkersRenderBothDirections(t *testing.T) {
 	}
 
 	sent := relayPayload(t, markers[0])
-	if sent.Direction != consultRelayDirectionSent || sent.Agent != "social" {
+	if sent.Direction != consultRelayDirectionSent || sent.Bot != "social" {
 		t.Errorf("first marker should be sent->social, got %+v", sent)
 	}
 	got := relayPayload(t, markers[1])
-	if got.Direction != consultRelayDirectionReceived || got.Agent != "social" {
+	if got.Direction != consultRelayDirectionReceived || got.Bot != "social" {
 		t.Errorf("second marker should be received-from social, got %+v", got)
 	}
 	// Both point at the real conversation so the click-through has somewhere
@@ -100,13 +100,13 @@ func TestConsultMarkerHasNoAuthor(t *testing.T) {
 	}
 }
 
-// The honesty property: derived means an agent cannot fabricate one. There is
-// no marker without a real message in a real agent-to-agent DM.
+// The honesty property: derived means a bot cannot fabricate one. There is
+// no marker without a real message in a real bot-to-bot DM.
 func TestNoConsultNoMarker(t *testing.T) {
 	b := relayBroker(t)
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	// The agent CLAIMS to have consulted, in its own DM with the human, but
+	// The bot CLAIMS to have consulted, in its own DM with the human, but
 	// never messaged anyone. Its word alone must produce nothing.
 	b.messages = []channelMessage{
 		{ID: "m1", From: "ops", Channel: "ops__human", Content: "I asked Social and they said yes", Timestamp: "2026-08-23T10:00:00Z"},
@@ -117,8 +117,8 @@ func TestNoConsultNoMarker(t *testing.T) {
 }
 
 // Markers follow the participant, not the room: a consult between two OTHER
-// agents must not surface in an uninvolved agent's DM.
-func TestConsultMarkersDoNotLeakToUninvolvedAgents(t *testing.T) {
+// bots must not surface in an uninvolved bot's DM.
+func TestConsultMarkersDoNotLeakToUninvolvedBots(t *testing.T) {
 	b := relayBroker(t)
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -133,7 +133,7 @@ func TestConsultMarkersDoNotLeakToUninvolvedAgents(t *testing.T) {
 	}
 }
 
-// Only human-to-agent DMs carry markers. A regular channel, and the pair DM
+// Only human-to-bot DMs carry markers. A regular channel, and the pair DM
 // itself, are not where the relay is narrated.
 func TestConsultMarkersOnlyInHumanDMs(t *testing.T) {
 	b := relayBroker(t)
@@ -174,7 +174,7 @@ func TestConsultMarkerIDsAreStable(t *testing.T) {
 
 // Derivation is response-only: it must never mutate the stored message log.
 // A marker that got persisted would double up on the next read and would also
-// reach the notifier and the agent-context builder, which it has no business
+// reach the notifier and the bot-context builder, which it has no business
 // touching.
 func TestConsultMarkersAreNotPersisted(t *testing.T) {
 	b := relayBroker(t)

@@ -53,13 +53,13 @@ func ResetClaudeSessions() error {
 }
 
 // ResetClaudeSessionFor clears the persisted Claude resume entry for a
-// single agent slug. Used after a per-agent provider switch so a slug that
+// single bot slug. Used after a per-bot provider switch so a slug that
 // just moved away from claude-code doesn't carry a stale Claude session id
 // into the new runtime — the next dispatch starts clean.
 //
 // Idempotent: clearing a slug with no recorded session is a no-op.
-func ResetClaudeSessionFor(agentSlug string) {
-	if strings.TrimSpace(agentSlug) == "" {
+func ResetClaudeSessionFor(botSlug string) {
+	if strings.TrimSpace(botSlug) == "" {
 		return
 	}
 	claudeSessionStoreMu.Lock()
@@ -70,7 +70,7 @@ func ResetClaudeSessionFor(agentSlug string) {
 	}
 	claudeSessionStoreMu.Unlock()
 
-	store.clear(agentSlug)
+	store.clear(botSlug)
 }
 
 func newClaudeSessionStore() *claudeSessionStore {
@@ -90,14 +90,14 @@ func newClaudeSessionStoreAt(path string) *claudeSessionStore {
 	return store
 }
 
-func (s *claudeSessionStore) resumeSessionID(agentSlug string, cwd string) string {
+func (s *claudeSessionStore) resumeSessionID(botSlug string, cwd string) string {
 	if s == nil {
 		return ""
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	record, ok := s.sessions[agentSlug]
+	record, ok := s.sessions[botSlug]
 	if !ok || record.SessionID == "" {
 		return ""
 	}
@@ -107,14 +107,14 @@ func (s *claudeSessionStore) resumeSessionID(agentSlug string, cwd string) strin
 	return record.SessionID
 }
 
-func (s *claudeSessionStore) save(agentSlug string, sessionID string, cwd string) {
-	if s == nil || agentSlug == "" || sessionID == "" {
+func (s *claudeSessionStore) save(botSlug string, sessionID string, cwd string) {
+	if s == nil || botSlug == "" || sessionID == "" {
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.sessions[agentSlug] = claudeSessionRecord{
+	s.sessions[botSlug] = claudeSessionRecord{
 		SessionID: sessionID,
 		Cwd:       cwd,
 		UpdatedAt: time.Now().UnixMilli(),
@@ -122,14 +122,14 @@ func (s *claudeSessionStore) save(agentSlug string, sessionID string, cwd string
 	s.persist()
 }
 
-func (s *claudeSessionStore) clear(agentSlug string) {
-	if s == nil || agentSlug == "" {
+func (s *claudeSessionStore) clear(botSlug string) {
+	if s == nil || botSlug == "" {
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.sessions, agentSlug)
+	delete(s.sessions, botSlug)
 	s.persist()
 }
 

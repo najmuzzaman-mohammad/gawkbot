@@ -14,15 +14,15 @@ import (
 )
 
 // broker_apps_knowledge_legacy.go — preserve the previous product's wiki
-// articles and per-agent notebook notes as Knowledge pages.
+// articles and per-bot notebook notes as Knowledge pages.
 //
 // The office-era wuphf kept a files-on-disk knowledge base under
 // <runtime home>/.wuphf/wiki: team articles in team/<category>/*.md and each
-// agent's draft notes in agents/<agent>/notebook/*.md. The operator product
+// bot's draft notes in bots/<bot>/notebook/*.md. The operator product
 // synthesizes cited pages instead — but an upgrading workspace must not lose
 // what it already wrote. Every knowledge response therefore appends the legacy
 // pages, preserved VERBATIM (no synthesis, no fabricated citations), under
-// "Team wiki · <category>" / "Notebook · <agent>" categories. A workspace
+// "Team wiki · <category>" / "Notebook · <bot>" categories. A workspace
 // without a legacy tree contributes nothing.
 
 // legacyKnowledgeMaxPages bounds the payload for enormous legacy trees. The cap
@@ -83,16 +83,16 @@ func loadLegacyKnowledgePages(root string) []appKnowledgePage {
 		return nil
 	})
 
-	// Notebook notes: agents/<agent>/notebook/*.md — each agent's draft notes,
-	// kept under that agent's name. This is the SAME tree the per-agent
+	// Notebook notes: bots/<bot>/notebook/*.md — each bot's draft notes,
+	// kept under that bot's name. This is the SAME tree the per-bot
 	// Knowledge surface reads (broker_agent_knowledge.go); the shared parser
-	// lives in loadAgentNotebookPages so both callers see identical pages.
-	agentDirs, _ := os.ReadDir(filepath.Join(root, "agents"))
-	for _, agentDir := range agentDirs {
-		if !agentDir.IsDir() || strings.HasPrefix(agentDir.Name(), ".") {
+	// lives in loadBotNotebookPages so both callers see identical pages.
+	botDirs, _ := os.ReadDir(filepath.Join(root, "agents"))
+	for _, botDir := range botDirs {
+		if !botDir.IsDir() || strings.HasPrefix(botDir.Name(), ".") {
 			continue
 		}
-		for _, page := range loadAgentNotebookPages(root, agentDir.Name()) {
+		for _, page := range loadBotNotebookPages(root, botDir.Name()) {
 			byRel[page.SourcePath] = len(pages)
 			pages = append(pages, page)
 		}

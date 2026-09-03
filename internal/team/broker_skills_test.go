@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // TestHandlePostSkill_RejectsDuplicateName pins the 409 path. Two skill
@@ -53,7 +53,7 @@ func TestHandlePostSkill_RejectsDuplicateName(t *testing.T) {
 // regression here would multiply seeded skills across restarts.
 func TestSeedDefaultSkills_IsIdempotent(t *testing.T) {
 	b := newTestBroker(t)
-	specs := []agent.PackSkillSpec{
+	specs := []bot.PackSkillSpec{
 		{Name: "deploy", Title: "Deploy", Description: "Deploy app", Content: "1. push tag"},
 		{Name: "rollback", Title: "Rollback", Description: "Roll back app", Content: "1. revert"},
 	}
@@ -213,12 +213,12 @@ func TestInvokeSkillCreatesSkillRunTask(t *testing.T) {
 	}
 }
 
-// Test 10: buildPrompt for the lead includes SKILL & AGENT AWARENESS section.
+// Test 10: buildPrompt for the lead includes SKILL & BOT AWARENESS section.
 func TestBuildPromptLeadIncludesSkillAwareness(t *testing.T) {
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend Engineer"},
 			},

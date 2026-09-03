@@ -4,7 +4,7 @@ package team
 // headless dispatch (PLAN.md §C18): durability checks (did the turn
 // actually persist its work?), the retry-prompt builders (timeout vs
 // failure shapes), the recovery dispatchers that re-enqueue with
-// updated attempt counts, and the agent-posting heuristics used to
+// updated attempt counts, and the bot-posting heuristics used to
 // decide whether a "final message" should be auto-posted on silent
 // turns. Split out of headless_codex.go so the entry-point file
 // stays focused on dispatch + types.
@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 func taskHasDurableCompletionState(task *teamTask) bool {
@@ -39,7 +39,7 @@ func (l *Launcher) headlessTurnCompletedDurably(slug string, active *headlessCod
 		return true, ""
 	}
 	task := l.timedOutTaskForTurn(slug, active.Turn)
-	requiresDurableGuard := codingAgentSlugs[slug]
+	requiresDurableGuard := codingBotSlugs[slug]
 	requiresExternalExecution := taskRequiresRealExternalExecution(task)
 	if task != nil && strings.EqualFold(strings.TrimSpace(task.ExecutionMode), "local_worktree") {
 		requiresDurableGuard = true
@@ -81,13 +81,13 @@ func (l *Launcher) headlessTurnCompletedDurably(slug string, active *headlessCod
 	// The App Builder's durable evidence IS the app registry: a manifest
 	// created or republished during this turn proves the work landed, no
 	// office task-state write required. Without this, every successful build
-	// was judged by office-agent evidence (task writes, channel posts) the
+	// was judged by office-bot evidence (task writes, channel posts) the
 	// App Builder never produces, got "blocked", and burned a retry turn —
 	// observed on every build in the 2026-08-15 QA pass.
 	if isAppBuilderSlug(slug) && l.appRegistryTouchedSince(active.StartedAt, task) {
 		return true, ""
 	}
-	if l.agentPostedSubstantiveMessageSince(slug, active.StartedAt) {
+	if l.botPostedSubstantiveMessageSince(slug, active.StartedAt) {
 		return true, ""
 	}
 	if workspaceDir := strings.TrimSpace(active.WorkspaceDir); workspaceDir != "" {
@@ -164,19 +164,19 @@ func (l *Launcher) taskHasExternalWorkflowEvidenceSince(task *teamTask, startedA
 	return executed, attempted
 }
 
-// isSubstantiveAgentProgressMessage rejects messages that don't count
-// as durable evidence the agent made progress. STATUS pings and
+// isSubstantiveBotProgressMessage rejects messages that don't count
+// as durable evidence the bot made progress. STATUS pings and
 // agent_issue helpdesk pings are explicitly out — they're noise the
-// human asks the agent to clarify, not turn output.
-func isSubstantiveAgentProgressMessage(msg channelMessage) bool {
-	if strings.TrimSpace(msg.Kind) == agentIssueMessageKind {
+// human asks the bot to clarify, not turn output.
+func isSubstantiveBotProgressMessage(msg channelMessage) bool {
+	if strings.TrimSpace(msg.Kind) == botIssueMessageKind {
 		return false
 	}
 	content := strings.TrimSpace(msg.Content)
 	return content != "" && !strings.HasPrefix(content, "[STATUS]")
 }
 
-func (l *Launcher) agentPostedSubstantiveMessageSince(slug string, startedAt time.Time) bool {
+func (l *Launcher) botPostedSubstantiveMessageSince(slug string, startedAt time.Time) bool {
 	if l == nil || l.broker == nil {
 		return false
 	}
@@ -184,7 +184,7 @@ func (l *Launcher) agentPostedSubstantiveMessageSince(slug string, startedAt tim
 		if msg.From != slug {
 			continue
 		}
-		if !isSubstantiveAgentProgressMessage(msg) {
+		if !isSubstantiveBotProgressMessage(msg) {
 			continue
 		}
 		// parseBrokerTimestamp (broker.go) accepts RFC3339 + RFC3339Nano
@@ -201,14 +201,14 @@ func (l *Launcher) agentPostedSubstantiveMessageSince(slug string, startedAt tim
 	return false
 }
 
-func (l *Launcher) agentPostedSubstantiveMessageToChannelSince(slug string, targetChannel string, startedAt time.Time) bool {
+func (l *Launcher) botPostedSubstantiveMessageToChannelSince(slug string, targetChannel string, startedAt time.Time) bool {
 	if l == nil || l.broker == nil {
 		return false
 	}
 	targetChannel = normalizeChannelSlug(targetChannel)
 	if IsDMSlug(targetChannel) {
-		if targetAgent := DMTargetAgent(targetChannel); targetAgent != "" {
-			targetChannel = DMSlugFor(targetAgent)
+		if targetBot := DMTargetBot(targetChannel); targetBot != "" {
+			targetChannel = DMSlugFor(targetBot)
 		}
 	}
 	for _, msg := range l.broker.AllMessages() {
@@ -218,7 +218,7 @@ func (l *Launcher) agentPostedSubstantiveMessageToChannelSince(slug string, targ
 		if targetChannel != "" && normalizeChannelSlug(msg.Channel) != targetChannel {
 			continue
 		}
-		if !isSubstantiveAgentProgressMessage(msg) {
+		if !isSubstantiveBotProgressMessage(msg) {
 			continue
 		}
 		when := parseBrokerTimestamp(msg.Timestamp)
@@ -245,11 +245,11 @@ func (l *Launcher) postHeadlessFinalMessageIfSilent(slug string, targetChannel s
 		targetChannel = "general"
 	}
 	if IsDMSlug(targetChannel) {
-		if targetAgent := DMTargetAgent(targetChannel); targetAgent != "" {
-			targetChannel = DMSlugFor(targetAgent)
+		if targetBot := DMTargetBot(targetChannel); targetBot != "" {
+			targetChannel = DMSlugFor(targetBot)
 		}
 	}
-	if l.agentPostedSubstantiveMessageToChannelSince(slug, targetChannel, startedAt) {
+	if l.botPostedSubstantiveMessageToChannelSince(slug, targetChannel, startedAt) {
 		return channelMessage{}, false, nil
 	}
 	msg, err := l.broker.PostMessage(slug, targetChannel, text, nil, headlessReplyToID(notification))
@@ -285,7 +285,7 @@ func (l *Launcher) timedOutTaskForTurn(slug string, turn headlessCodexTurn) *tea
 			}
 		}
 	}
-	return l.agentActiveTask(slug)
+	return l.botActiveTask(slug)
 }
 
 func (l *Launcher) shouldRetryTimedOutHeadlessTurn(task *teamTask, turn headlessCodexTurn) bool {
@@ -353,7 +353,7 @@ func shouldRetryHeadlessTurn(task *teamTask, turn headlessCodexTurn, transientFa
 	if transientFailure {
 		// Office-mode tasks historically never retried, which turned every
 		// provider connection blip into a blocked task. A transient failure
-		// is not the agent's fault — allow ONE recovery retry before blocking.
+		// is not the bot's fault — allow ONE recovery retry before blocking.
 		return turn.Attempts < headlessCodexOfficeTransientRetryLimit
 	}
 	return false
@@ -379,7 +379,7 @@ func (l *Launcher) recoverTimedOutHeadlessTurn(slug string, turn headlessCodexTu
 	// App Builder builds are the exception: a timed-out build blocked into
 	// the self-heal lane cost the operator a 41-minute silent "Building"
 	// on the 2026-08-16 fresh-workspace QA pass. A prompt requeue (with the
-	// timed-out retry prompt telling the agent to resume, not restart) is
+	// timed-out retry prompt telling the bot to resume, not restart) is
 	// strictly better than the slow escalation for a first-build task.
 	retryable := shouldRetryHeadlessTurn(task, turn, false) ||
 		(isAppBuilderSlug(slug) && turn.Attempts < headlessCodexLocalWorktreeRetryLimit)
@@ -396,7 +396,7 @@ func (l *Launcher) recoverTimedOutHeadlessTurn(slug string, turn headlessCodexTu
 		l.enqueueHeadlessCodexTurnRecord(slug, retryTurn)
 		return
 	}
-	reason := fmt.Sprintf("@%s ran out of time (about %d minutes) without finishing. Restart it from here, or hand it to another agent.", slug, int(timeout.Round(time.Minute).Minutes()))
+	reason := fmt.Sprintf("@%s ran out of time (about %d minutes) without finishing. Restart it from here, or hand it to another bot.", slug, int(timeout.Round(time.Minute).Minutes()))
 	if _, changed, err := l.broker.BlockTask(task.ID, slug, reason, ""); err != nil {
 		appendHeadlessCodexLog(slug, fmt.Sprintf("timeout-recovery-error: could not block %s: %v", task.ID, err))
 		return
@@ -405,7 +405,7 @@ func (l *Launcher) recoverTimedOutHeadlessTurn(slug string, turn headlessCodexTu
 		if isAppBuilderSlug(slug) {
 			l.markAppBuildFailedForTask(task)
 		}
-		_, _, _ = l.requestSelfHealing(slug, task.ID, agent.EscalationStuck, reason)
+		_, _, _ = l.requestSelfHealing(slug, task.ID, bot.EscalationStuck, reason)
 	}
 }
 
@@ -455,7 +455,7 @@ func classifyFailureForOperator(detail string) string {
 }
 
 // isDurabilityFailure reports whether detail came from headlessTurnCompletedDurably
-// ("completed without durable task state"). These failures mean the agent ran but did
+// ("completed without durable task state"). These failures mean the bot ran but did
 // nothing observable — retrying produces the same result, so we block instead.
 func isDurabilityFailure(detail string) bool {
 	return strings.Contains(strings.TrimSpace(detail), "completed without durable task state")
@@ -505,7 +505,7 @@ func (l *Launcher) recoverFailedHeadlessTurn(slug string, turn headlessCodexTurn
 	// The reason reaches the operator (task details + incident body): plain
 	// language, classified cause, no raw stderr — that goes to the log.
 	appendHeadlessCodexLog(slug, "error-recovery: raw failure detail: "+truncate(trimmed, 400))
-	reason := fmt.Sprintf("@%s hit an error and stopped after retrying (%s). Restart it from here, or hand it to another agent.", slug, classifyFailureForOperator(trimmed))
+	reason := fmt.Sprintf("@%s hit an error and stopped after retrying (%s). Restart it from here, or hand it to another bot.", slug, classifyFailureForOperator(trimmed))
 	if _, changed, err := l.broker.BlockTask(task.ID, slug, reason, ""); err != nil {
 		appendHeadlessCodexLog(slug, fmt.Sprintf("error-recovery-error: could not block %s: %v", task.ID, err))
 		return
@@ -514,7 +514,7 @@ func (l *Launcher) recoverFailedHeadlessTurn(slug string, turn headlessCodexTurn
 		if isAppBuilderSlug(slug) {
 			l.markAppBuildFailedForTask(task)
 		}
-		_, _, _ = l.requestSelfHealing(slug, task.ID, agent.EscalationMaxRetries, reason)
+		_, _, _ = l.requestSelfHealing(slug, task.ID, bot.EscalationMaxRetries, reason)
 	}
 }
 
@@ -537,7 +537,7 @@ func (l *Launcher) timedOutTurnAlreadyRecovered(task *teamTask, slug string, sta
 			status == "canceled" || status == "cancelled" ||
 			review == "ready_for_review" || review == "approved"
 	}
-	return l.agentPostedSubstantiveMessageSince(slug, startedAt)
+	return l.botPostedSubstantiveMessageSince(slug, startedAt)
 }
 
 // appRegistryTouchedSince reports whether any custom app's manifest was

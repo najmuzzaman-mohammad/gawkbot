@@ -2,11 +2,11 @@ package team
 
 // broker_apps_proposal.go — the implicit-intent permission gate for Apps.
 //
-// When an agent notices a repeatable workflow it does NOT build silently. It
+// When a bot notices a repeatable workflow it does NOT build silently. It
 // raises a non-blocking approval request (propose_app -> POST /requests with an
 // app_proposal payload). The human can approve, reject, or "add context and
 // approve" (approve_with_note). Only on an approve does the broker spawn a task
-// owned by the App Builder agent to actually build (or improve) the app.
+// owned by the App Builder bot to actually build (or improve) the app.
 //
 // Explicit paths (the /create-app, /update-app slash commands and the Edit
 // button on an app screen) skip this gate — the human initiated the build — and
@@ -19,7 +19,7 @@ import (
 )
 
 // appBuilderSlug is the team-package mirror of company.AppBuilderSlug — the
-// slug of the built-in App Builder agent. Kept as a local const so the hot
+// slug of the built-in App Builder bot. Kept as a local const so the hot
 // broker paths don't import the company package just for one identifier; the
 // two MUST stay in sync.
 const appBuilderSlug = "app-builder"
@@ -33,18 +33,18 @@ type appProposalSpec struct {
 	Summary     string `json:"summary,omitempty"`
 	Description string `json:"description"`
 	// AppID is set when the proposal improves an EXISTING app rather than
-	// creating a new one — the agent is expected to have checked list_apps
+	// creating a new one — the bot is expected to have checked list_apps
 	// first and found a related app to extend instead of duplicating.
 	AppID string `json:"app_id,omitempty"`
 	// ObservedSteps is the deterministic tool-shape the detector mined for this
-	// proposal (e.g. ["crm_fetch_leads", "score_leads"]). Empty for agent-raised
+	// proposal (e.g. ["crm_fetch_leads", "score_leads"]). Empty for bot-raised
 	// proposals. Passed through to the App Builder's brief as concrete, proven
 	// build targets so the generator works from the real steps, not just prose.
 	ObservedSteps []string `json:"observed_steps,omitempty"`
 	// Fingerprint is the mined shape's stable identity. The detector records it so
 	// a proposal that was already raised — even after the human ANSWERED (incl.
 	// rejected) it — is not re-pitched or re-judged for the same shape. Empty for
-	// agent-raised proposals.
+	// bot-raised proposals.
 	Fingerprint string `json:"fingerprint,omitempty"`
 }
 

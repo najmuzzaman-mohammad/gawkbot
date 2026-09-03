@@ -25,7 +25,7 @@ const APPS_POLL_MS = 4000;
  * How long a "building" app may sit unpublished before we treat the build as
  * FAILED rather than still in progress. A real build publishes in ~6 min (warm
  * builds are seconds); past this it is not actually building anymore — the
- * agent stalled — so the operator should see a failure it can clear, not a
+ * bot stalled — so the operator should see a failure it can clear, not a
  * forever-spinning "building" row.
  */
 // The broker's build budget is 25 minutes per attempt with up to two
@@ -62,10 +62,10 @@ export function appBuildState(
   return "building";
 }
 
-/** Uniquify a derived agent name against the existing roster: a second
- * workflow that derives the same name must not LOOK like the same agent —
- * and the broker refuses to hand a published agent's id to a new build
- * (2026-08-16 VP-RevOps QA). "Pipeline Agent" -> "Pipeline Agent 2". */
+/** Uniquify a derived bot name against the existing roster: a second
+ * workflow that derives the same name must not LOOK like the same bot —
+ * and the broker refuses to hand a published bot's id to a new build
+ * (2026-08-16 VP-RevOps QA). "Pipeline Bot" -> "Pipeline Bot 2". */
 export function uniquifyAppName(
   name: string,
   existing: readonly { name: string }[],
@@ -155,7 +155,7 @@ export function useDeleteApp() {
 
 /**
  * Pick the app a just-started build produced: the newest app whose id was NOT
- * present before the build began. Robust to the agent tweaking the display name
+ * present before the build began. Robust to the bot tweaking the display name
  * (a name-only match would miss "Open tasks" vs "Open Tasks dashboard"); the
  * only app that can appear after we snapshot the existing ids is the one we just
  * asked to build. Newest-first by updatedAt, then createdAt, as a tiebreak.
@@ -177,68 +177,68 @@ export function resolveNewAppId(
 /**
  * Derive a short, stable app name from the operator's free-text description, so
  * a chat-first "describe it" flow still gives requestAppBuild an explicit name
- * (the brief instructs the agent to register under it). Take the first clause,
+ * (the brief instructs the bot to register under it). Take the first clause,
  * strip filler lead-ins, title-case, and cap to a handful of words.
  */
-// Agents are named for their PURPOSE — a role, not an app title: "Sales Agent",
-// "CRM Hygiene Agent", "Support Triage Agent". A domain table catches the common
-// operator jobs; anything else becomes "<Lead words> Agent".
+// Bots are named for their PURPOSE — a role, not an app title: "Sales Bot",
+// "CRM Hygiene Bot", "Support Triage Bot". A domain table catches the common
+// operator jobs; anything else becomes "<Lead words> Bot".
 const AGENT_ROLES: ReadonlyArray<[RegExp, string]> = [
   [
     // NOT "crm": a bare CRM mention (or a HubSpot/Salesforce endpoint like
     // /crm/v3/... in the captured build seed) means the workflow USES a CRM,
     // not that it cleans one. Hygiene is signalled by dedupe/cleanup terms.
     /\b(hygiene|dedupe|duplicate|clean[- ]?up|data quality)\b/i,
-    "CRM Hygiene Agent",
+    "CRM Hygiene Bot",
   ],
   // Deal desk outranks pipeline: approval workflows mention deals constantly
   // ("deal desk", "discount approvals") but they are not pipeline reporting.
   // Bare "approval(s)" is too generic (a "refund-approval form" is a form
   // app, not a deal desk) — the desk needs its own nouns.
-  [/\b(deal desk|discounts?)\b/i, "Deal Desk Agent"],
+  [/\b(deal desk|discounts?)\b/i, "Deal Desk Bot"],
   // Recruiting outranks lead routing: hiring language ("score fit", "inbound
   // applicants") reuses scoring/routing verbs, so the noun cues must win.
   [
     /\b(hiring|recruit(?:ing|er)?|candidates?|interviews?|applicants?|job applications?)\b/i,
-    "Recruiting Agent",
+    "Recruiting Bot",
   ],
   // Nouns accept plurals; bare verbs ("score", "route", "inbound") are gone —
   // they collide with every other domain ("score a task", "inbound tickets").
-  [/\b(leads?|lead routing|demo requests?)\b/i, "Lead Routing Agent"],
+  [/\b(leads?|lead routing|demo requests?)\b/i, "Lead Routing Bot"],
   // Forecast discipline is its own job — commits, quota, accuracy — not
   // pipeline reporting.
-  [/\b(forecasts?|commits?|quotas?)\b/i, "Forecast Agent"],
-  [/\b(pipelines?|deals?)\b/i, "Pipeline Agent"],
-  [/\b(sales|quotas?|outreach|prospects?)\b/i, "Sales Agent"],
+  [/\b(forecasts?|commits?|quotas?)\b/i, "Forecast Bot"],
+  [/\b(pipelines?|deals?)\b/i, "Pipeline Bot"],
+  [/\b(sales|quotas?|outreach|prospects?)\b/i, "Sales Bot"],
   // Engineering-team rituals get their own names, not a generic bucket.
-  [/\b(stand-?ups?)\b/i, "Standup Agent"],
-  [/\b(sprints?|velocity|story points?)\b/i, "Sprint Planning Agent"],
-  [/\b(retros?|retrospectives?)\b/i, "Retro Agent"],
+  [/\b(stand-?ups?)\b/i, "Standup Bot"],
+  [/\b(sprints?|velocity|story points?)\b/i, "Sprint Planning Bot"],
+  [/\b(retros?|retrospectives?)\b/i, "Retro Bot"],
   // Inventory/reorder vocabulary — stock levels, reorder points, purchase
   // orders — is its own job, distinct from generic "track" workflows.
   [
     /\b(inventory|reorders?|stock levels?|reorder points?|purchase orders?|restock)\b/i,
-    "Inventory Agent",
+    "Inventory Bot",
   ],
   // Facilities vocabulary ("tenant maintenance requests") reuses request/
   // ticket verbs, so its nouns must outrank support triage.
-  [/\b(maintenance|tenants?|work orders?|facilities)\b/i, "Maintenance Agent"],
+  [/\b(maintenance|tenants?|work orders?|facilities)\b/i, "Maintenance Bot"],
   // Incident management (SRE vocabulary) is not support triage.
   // "on-call" deliberately absent: rotation staffing shows up in sprint
   // planning too, and the strong nouns below carry incident management.
-  [/\b(incidents?|postmortems?|outages?|mttr)\b/i, "Incident Agent"],
-  [/\b(support|tickets?|escalations?)\b/i, "Support Triage Agent"],
+  [/\b(incidents?|postmortems?|outages?|mttr)\b/i, "Incident Bot"],
+  [/\b(support|tickets?|escalations?)\b/i, "Support Triage Bot"],
   // Renewals outrank follow-up: a renewals radar drafts check-ins, but the
   // job is the renewal book, not the email.
-  [/\b(renewals?|churn)\b/i, "Renewals Agent"],
-  [/\b(invoices?|billing|receivables?|dunning)\b/i, "Invoice Agent"],
-  [/\b(expenses?|reimburse|spend)\b/i, "Expense Agent"],
-  [/\b(email|inbox|follow[- ]?ups?|replies|nurture)\b/i, "Follow-up Agent"],
+  [/\b(renewals?|churn)\b/i, "Renewals Bot"],
+  [/\b(invoices?|billing|receivables?|dunning)\b/i, "Invoice Bot"],
+  [/\b(expenses?|reimburse|spend)\b/i, "Expense Bot"],
+  [/\b(email|inbox|follow[- ]?ups?|replies|nurture)\b/i, "Follow-up Bot"],
   [
     /\b(reports?|summar|digests?|dashboards?|recaps?|kpis?|metrics?)\b/i,
-    "Reporting Agent",
+    "Reporting Bot",
   ],
-  [/\b(onboard|welcome|signups?|sign-ups?)\b/i, "Onboarding Agent"],
+  [/\b(onboard|welcome|signups?|sign-ups?)\b/i, "Onboarding Bot"],
 ];
 
 // Relative pronouns, prepositions, and other connectives that must never land
@@ -267,8 +267,8 @@ const NAME_FUNCTION_WORDS = new Set([
 // Leading imperative verbs a description often opens with ("Track our stock…",
 // "Handle our tickets…"). When the first word is one of these AND the next word
 // is a possessive/article, the plain word-cap collapses to a verb-only name
-// ("Track Agent") — so skip the verb (and one following our/the/my/all/any) and
-// let the noun phrase name the agent. The high-confidence AGENT_ROLES table
+// ("Track Bot") — so skip the verb (and one following our/the/my/all/any) and
+// let the noun phrase name the bot. The high-confidence AGENT_ROLES table
 // still wins first; this only improves the generic fallback.
 const NAME_LEADING_VERBS = new Set([
   "track",
@@ -340,9 +340,9 @@ export function deriveAppName(description: string): string {
   );
   const words =
     cut > 0 ? allWords.slice(0, Math.min(cut, 4)) : allWords.slice(0, 3);
-  if (words.length === 0) return "Untitled Agent";
+  if (words.length === 0) return "Untitled Bot";
   const titled = words
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
-  return `${titled.slice(0, 100)} Agent`;
+  return `${titled.slice(0, 100)} Bot`;
 }

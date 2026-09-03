@@ -11,7 +11,7 @@ privacy guarantees we make to operators and end users.
 Understand how the **human operator** uses WUPHF so we can drive product
 development: where activation succeeds or stalls, whether people delegate work
 and come back, how they exercise the human-oversight gates (the load-bearing
-trust surface of a multi-agent product), and whether the knowledge loop
+trust surface of a multi-bot product), and whether the knowledge loop
 compounds. Not over-tracked, not under-tracked — every event maps to a product
 question, and rich properties let one event answer many.
 
@@ -104,7 +104,7 @@ human-initiated UI events).
 | `notebook_entry_promoted` | `reviewer_assigned` |
 | `review_action` | `action` (approve/request_changes/reject/resubmit/comment), `target` (notebook) |
 | `agent_created` | `source` (wizard/generate), `from_blueprint` |
-| `skill_state_changed` | `action` (enable/disable/approve/reject/archive/restore/enable_for_agent/edit), `scope` (global/agent) |
+| `skill_state_changed` | `action` (enable/disable/approve/reject/archive/restore/enable_for_agent/edit), `scope` (global/bot) |
 | `routine_created` | `schedule_type` (cron/interval) |
 | `channel_created` | `kind` (channel/dm/generated) |
 | `integration_action` | `action` (connect/grant/revoke), `platform` |
@@ -123,7 +123,7 @@ human-initiated UI events).
 ### Deliberately NOT tracked
 Raw message/wiki/task content; message reactions; inbox-cursor pings; every
 sidebar click; keystrokes; search query text; memory KV writes; and **all
-agent-execution internals** (turns, tokens) — that is observability, not
+bot-execution internals** (turns, tokens) — that is observability, not
 human-behavior product analytics, and would multiply volume.
 
 ## Consent surfaces

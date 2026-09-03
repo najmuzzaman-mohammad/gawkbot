@@ -303,7 +303,7 @@ func TestPamDispatcher_EnrichArticleCommitsAsArchivist(t *testing.T) {
 // signal from the runner instead of a sleep to deterministically wait
 // until the first job is inflight before enqueuing the follow-up.
 //
-// Post-Agent-1 contract: the second Enqueue for the same (action, path)
+// Post-Bot-1 contract: the second Enqueue for the same (action, path)
 // returns the *existing* job id rather than zero.
 func TestPamDispatcher_CoalescesRepeatedEnqueuesPerArticle(t *testing.T) {
 	release := make(chan struct{})

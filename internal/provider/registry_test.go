@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 	"github.com/nex-crm/wuphf/internal/providertest"
 )
@@ -29,10 +29,10 @@ func TestRegistry_FakeKindRoutesEverywhere(t *testing.T) {
 	var streamFnHits, oneShotHits int
 	providertest.RegisterForTest(t, &provider.Entry{
 		Kind: fakeKind,
-		StreamFn: func(slug string) agent.StreamFn {
-			return func([]agent.Message, []agent.AgentTool) <-chan agent.StreamChunk {
+		StreamFn: func(slug string) bot.StreamFn {
+			return func([]bot.Message, []bot.BotTool) <-chan bot.StreamChunk {
 				streamFnHits++
-				ch := make(chan agent.StreamChunk)
+				ch := make(chan bot.StreamChunk)
 				close(ch)
 				return ch
 			}
@@ -78,9 +78,9 @@ func TestRunConfiguredOneShotCtxRoutesContextToProvider(t *testing.T) {
 	started := make(chan context.Context, 1)
 	providertest.RegisterForTest(t, &provider.Entry{
 		Kind: fakeKind,
-		StreamFn: func(slug string) agent.StreamFn {
-			return func([]agent.Message, []agent.AgentTool) <-chan agent.StreamChunk {
-				ch := make(chan agent.StreamChunk)
+		StreamFn: func(slug string) bot.StreamFn {
+			return func([]bot.Message, []bot.BotTool) <-chan bot.StreamChunk {
+				ch := make(chan bot.StreamChunk)
 				close(ch)
 				return ch
 			}
@@ -132,40 +132,40 @@ func TestRegistry_LookupReturnsNilForUnknown(t *testing.T) {
 }
 
 // TestStreamFnResolver_PerAgentKindOverridesInstallWide is the epicentric red
-// test for P0.3: a per-agent ProviderBinding must take priority over the
+// test for P0.3: a per-bot ProviderBinding must take priority over the
 // install-wide default when the streaming resolver routes a turn.
 //
-// Today the resolver ignores its agentSlug argument and reads only
-// config.ResolveLLMProvider, so an Ollama-bound agent on a claude-default
-// install gets routed to claude — the broker's per-agent ProviderBinding
+// Today the resolver ignores its botSlug argument and reads only
+// config.ResolveLLMProvider, so an Ollama-bound bot on a claude-default
+// install gets routed to claude — the broker's per-bot ProviderBinding
 // data layer (broker.MemberProviderKind / memberEffectiveProviderKind in
 // the launcher) doesn't reach the StreamFn dispatch.
 //
 // The fix threads an optional ProviderKindResolver through
-// DefaultStreamFnResolver. When set, the per-agent kind wins; when nil,
+// DefaultStreamFnResolver. When set, the per-bot kind wins; when nil,
 // resolution falls back to the install-wide ResolveLLMProvider.
 func TestStreamFnResolver_PerAgentKindOverridesInstallWide(t *testing.T) {
 	const installKind = "wuphf-test-install-wide-kind"
-	const agentKind = "wuphf-test-per-agent-kind"
+	const botKind = "wuphf-test-per-agent-kind"
 
-	var installHits, agentHits int
+	var installHits, botHits int
 	providertest.RegisterForTest(t, &provider.Entry{
 		Kind: installKind,
-		StreamFn: func(slug string) agent.StreamFn {
-			return func([]agent.Message, []agent.AgentTool) <-chan agent.StreamChunk {
+		StreamFn: func(slug string) bot.StreamFn {
+			return func([]bot.Message, []bot.BotTool) <-chan bot.StreamChunk {
 				installHits++
-				ch := make(chan agent.StreamChunk)
+				ch := make(chan bot.StreamChunk)
 				close(ch)
 				return ch
 			}
 		},
 	})
 	providertest.RegisterForTest(t, &provider.Entry{
-		Kind: agentKind,
-		StreamFn: func(slug string) agent.StreamFn {
-			return func([]agent.Message, []agent.AgentTool) <-chan agent.StreamChunk {
-				agentHits++
-				ch := make(chan agent.StreamChunk)
+		Kind: botKind,
+		StreamFn: func(slug string) bot.StreamFn {
+			return func([]bot.Message, []bot.BotTool) <-chan bot.StreamChunk {
+				botHits++
+				ch := make(chan bot.StreamChunk)
 				close(ch)
 				return ch
 			}
@@ -176,21 +176,21 @@ func TestStreamFnResolver_PerAgentKindOverridesInstallWide(t *testing.T) {
 
 	kindResolver := func(slug string) string {
 		if slug == "agent-on-per-agent-binding" {
-			return agentKind
+			return botKind
 		}
 		return "" // empty → fall back to install-wide
 	}
 
 	resolver := provider.DefaultStreamFnResolver(kindResolver)
 
-	// Agent with a per-agent binding routes to agentKind, not installKind.
+	// Bot with a per-bot binding routes to botKind, not installKind.
 	for range resolver("agent-on-per-agent-binding")(nil, nil) {
 	}
-	if agentHits != 1 || installHits != 0 {
-		t.Fatalf("per-agent override did not take priority: agentHits=%d installHits=%d", agentHits, installHits)
+	if botHits != 1 || installHits != 0 {
+		t.Fatalf("per-bot override did not take priority: botHits=%d installHits=%d", botHits, installHits)
 	}
 
-	// Agent without a per-agent binding falls back to install-wide kind.
+	// Bot without a per-bot binding falls back to install-wide kind.
 	for range resolver("agent-using-install-default")(nil, nil) {
 	}
 	if installHits != 1 {

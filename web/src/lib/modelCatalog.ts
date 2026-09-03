@@ -1,9 +1,9 @@
 import type { LLMRuntimeKind, LocalProviderStatus } from "../api/client";
 
 // MODEL_CATALOG is a curated suggestion list per LLM runtime. We let users
-// pick from these in the AgentProfilePanel + AgentWizard dropdowns instead
+// pick from these in the BotProfilePanel + BotWizard dropdowns instead
 // of free-typing a model identifier — typos in model ids are a real failure
-// mode (codex/claude refuse the request, the agent appears silent).
+// mode (codex/claude refuse the request, the bot appears silent).
 //
 // Cloud runtimes ship a fixed list of well-known ids. They drift as new
 // model families launch, but the "Custom…" escape hatch in the picker

@@ -71,9 +71,9 @@ function useShredAction() {
 }
 
 // TeamLeadPicker reads the office roster so the human picks from real
-// agents rather than typing a slug. The saved value persists as a slug on
+// bots rather than typing a slug. The saved value persists as a slug on
 // the wire (cfg.team_lead_slug) — the picker round-trips through the slug
-// even when the agent's display name later changes, so renaming an agent
+// even when the bot's display name later changes, so renaming a bot
 // doesn't break the Team Lead binding. Falls back to a free-text input
 // while the roster is still loading or empty, so the field is never a
 // dead end on a brand-new install.
@@ -102,7 +102,7 @@ function TeamLeadPicker({
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      <option value="">— pick an agent —</option>
+      <option value="">— pick a bot —</option>
       {members.map((m) => (
         <option key={m.slug} value={m.slug}>
           {m.name ? `${m.name} (@${m.slug})` : `@${m.slug}`}
@@ -178,11 +178,11 @@ function GeneralSection({ cfg, save }: SectionProps) {
         onSelectedProvidersChange={setProviders}
         onConnectedProvidersChange={updateConnectedProviders}
       />
-      <div style={{ ...styles.groupTitle, marginTop: 24 }}>Agents</div>
-      <Field label="Team Lead" hint="Agent that leads operations">
+      <div style={{ ...styles.groupTitle, marginTop: 24 }}>Bots</div>
+      <Field label="Team Lead" hint="Bot that leads operations">
         <TeamLeadPicker value={teamLead} onChange={setTeamLead} />
       </Field>
-      <Field label="Max Concurrent" hint="Parallel agent limit">
+      <Field label="Max Concurrent" hint="Parallel bot limit">
         <input
           style={styles.input}
           type="number"
@@ -257,10 +257,10 @@ interface LocalProviderMeta {
 }
 
 // LOCAL_PROVIDERS lists directly-dispatched local LLM runtimes only. The
-// Hermes Agent and OpenClaw Gateway entries that used to live here were
+// Hermes Bot and OpenClaw Gateway entries that used to live here were
 // gateway-controlled — they belong in the Integrations app, not the
-// runtime picker, because their job is to import existing agents into the
-// team rather than to back a WUPHF-created agent's turns.
+// runtime picker, because their job is to import existing bots into the
+// team rather than to back a WUPHF-created bot's turns.
 const LOCAL_PROVIDERS: LocalProviderMeta[] = [
   {
     kind: "mlx-lm",
@@ -839,7 +839,7 @@ function IntegrationsSection({ cfg, save }: SectionProps) {
   // Gateway-style integrations (OpenClaw, Hermes, Telegram) now live in the
   // dedicated Integrations app. We keep Action Provider + Workspace here
   // because they're install-wide config knobs, not gateways — they configure
-  // routing for an existing action surface rather than importing agents.
+  // routing for an existing action surface rather than importing bots.
   return (
     <div>
       <h2 style={styles.sectionTitle}>Integrations</h2>
@@ -987,10 +987,10 @@ const CLI_FLAGS: [string, string][] = [
   ["--tui", "Launch tmux TUI instead of web UI"],
   ["--web-port <port>", "Web UI port (default: 7891)"],
   ["--broker-port <port>", "Local broker port (default: 7890)"],
-  ["--opus-ceo", "Upgrade Chief of Staff agent to Opus model"],
-  ["--collab", "Collaborative mode (all agents see all messages)"],
-  ["--1o1", "Direct 1:1 session with a single agent"],
-  ["--unsafe", "Bypass agent permission checks (dev only)"],
+  ["--opus-ceo", "Upgrade Chief of Staff bot to Opus model"],
+  ["--collab", "Collaborative mode (all bots see all messages)"],
+  ["--1o1", "Direct 1:1 session with a single bot"],
+  ["--unsafe", "Bypass bot permission checks (dev only)"],
   ["--no-open", "Skip auto-opening browser on launch"],
   ["--from-scratch", "Start without saved blueprint"],
   ["--threads-collapsed", "Start with threads collapsed"],

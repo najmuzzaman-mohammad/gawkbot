@@ -52,7 +52,7 @@ type QueryProvider interface {
 // QueryRequest carries all inputs to QueryHandler.Answer.
 type QueryRequest struct {
 	Query       string        // natural-language question
-	RequestedBy string        // slug of agent or human asking
+	RequestedBy string        // slug of bot or human asking
 	TopK        int           // default 20 if zero
 	Timeout     time.Duration // default 10s if zero
 }

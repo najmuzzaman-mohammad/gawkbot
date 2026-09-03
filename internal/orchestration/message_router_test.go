@@ -40,15 +40,15 @@ func TestMessageRouter_ExtractSkills(t *testing.T) {
 	}
 }
 
-func TestRoutingTermsAndScoreMessageAgainstTermsMatchAgentScoring(t *testing.T) {
+func TestRoutingTermsAndScoreMessageAgainstTermsMatchBotScoring(t *testing.T) {
 	message := "Need a go to market customer handoff and billing operations plan."
 	expertise := []string{"customer success", "invoicing"}
 	roleTerms := []string{"customer handoff", "billing operations"}
 
 	got := ScoreMessageAgainstTerms(message, RoutingTerms("ops-planner", expertise, roleTerms, nil))
-	want := ScoreMessageAgainstAgent(message, "ops-planner", expertise, roleTerms)
+	want := ScoreMessageAgainstBot(message, "ops-planner", expertise, roleTerms)
 	if got != want {
-		t.Fatalf("expected shared term scoring %v to equal agent scoring %v", got, want)
+		t.Fatalf("expected shared term scoring %v to equal bot scoring %v", got, want)
 	}
 }
 
@@ -74,14 +74,14 @@ func TestRoutingTermsNormalizeExtraTerms(t *testing.T) {
 func TestNewDirectiveGoesToTeamLead(t *testing.T) {
 	mr := NewMessageRouter()
 	mr.SetTeamLeadSlug("ceo")
-	agents := []AgentInfo{
+	bots := []BotInfo{
 		{Slug: "ceo", Expertise: []string{"strategy"}},
 		{Slug: "researcher", Expertise: []string{"market-research", "competitive-analysis"}},
 		{Slug: "coder", Expertise: []string{"general", "planning"}},
 	}
 
 	// Even when a specialist matches, new directives should go to team-lead.
-	result := mr.Route("Can you research our market?", agents)
+	result := mr.Route("Can you research our market?", bots)
 	if result.Primary != "ceo" {
 		t.Errorf("expected primary='ceo' (team-lead), got '%s'", result.Primary)
 	}
@@ -96,14 +96,14 @@ func TestNewDirectiveGoesToTeamLead(t *testing.T) {
 func TestRouteSuggestsCollaboratorsForProductLaunchWork(t *testing.T) {
 	mr := NewMessageRouter()
 	mr.SetTeamLeadSlug("ceo")
-	agents := []AgentInfo{
+	bots := []BotInfo{
 		{Slug: "ceo", Expertise: []string{"strategy", "delegation"}},
 		{Slug: "growth-ops", Expertise: []string{"pipeline optimization", "customer onboarding"}, RoleTerms: []string{"go-to-market", "growth operations"}},
 		{Slug: "automation-builder", Expertise: []string{"workflow automation", "integrations"}, RoleTerms: []string{"automation", "workflow orchestration"}},
 		{Slug: "bookkeeper", Expertise: []string{"invoicing", "billing"}, RoleTerms: []string{"accounts receivable", "reconciliation"}},
 	}
 
-	result := mr.Route("Set up a go to market workflow that automates customer onboarding and workflow orchestration.", agents)
+	result := mr.Route("Set up a go to market workflow that automates customer onboarding and workflow orchestration.", bots)
 	if result.Primary != "ceo" {
 		t.Fatalf("expected primary='ceo', got %q", result.Primary)
 	}
@@ -123,14 +123,14 @@ func TestRouteSuggestsCollaboratorsForProductLaunchWork(t *testing.T) {
 func TestRouteUsesRoleTermsAndExpertiseMetadata(t *testing.T) {
 	mr := NewMessageRouter()
 	mr.SetTeamLeadSlug("ceo")
-	agents := []AgentInfo{
+	bots := []BotInfo{
 		{Slug: "ceo", Expertise: []string{"strategy", "delegation"}},
 		{Slug: "ops-planner", Expertise: []string{"customer success", "invoicing"}, RoleTerms: []string{"customer handoff", "billing operations"}},
 		{Slug: "rev-ops", Expertise: []string{"pipeline management"}, RoleTerms: []string{"go-to-market", "lead routing"}},
 		{Slug: "support", Expertise: []string{"ticket triage"}, RoleTerms: []string{"customer support"}},
 	}
 
-	result := mr.Route("Need a go to market customer handoff and billing operations plan.", agents)
+	result := mr.Route("Need a go to market customer handoff and billing operations plan.", bots)
 	if result.Primary != "ceo" {
 		t.Fatalf("expected primary='ceo', got %q", result.Primary)
 	}
@@ -155,16 +155,16 @@ func TestFollowUpGoesToLastActive(t *testing.T) {
 	mr.SetTeamLeadSlug("ceo")
 	mr.mu.Lock()
 	mr.recentThreads["fe"] = &threadContext{
-		agentSlug:    "fe",
+		botSlug:      "fe",
 		lastActivity: time.Now(),
 	}
 	mr.mu.Unlock()
 
-	agents := []AgentInfo{
+	bots := []BotInfo{
 		{Slug: "ceo", Expertise: []string{"strategy"}},
 		{Slug: "fe", Expertise: []string{"frontend"}},
 	}
-	result := mr.Route("Also add a dark mode toggle", agents)
+	result := mr.Route("Also add a dark mode toggle", bots)
 	if !result.IsFollowUp {
 		t.Error("should be detected as follow-up")
 	}
@@ -176,13 +176,13 @@ func TestFollowUpGoesToLastActive(t *testing.T) {
 func TestExplicitMentionRoutes(t *testing.T) {
 	mr := NewMessageRouter()
 	mr.SetTeamLeadSlug("ceo")
-	agents := []AgentInfo{
+	bots := []BotInfo{
 		{Slug: "ceo", Expertise: []string{"strategy"}},
 		{Slug: "fe", Expertise: []string{"frontend"}},
 		{Slug: "be", Expertise: []string{"backend"}},
 	}
 
-	result := mr.Route("@fe build the login page", agents)
+	result := mr.Route("@fe build the login page", bots)
 	if result.Primary != "fe" {
 		t.Errorf("expected primary='fe' (explicit @mention), got '%s'", result.Primary)
 	}
@@ -193,7 +193,7 @@ func TestExplicitMentionRoutes(t *testing.T) {
 
 func TestMessageRouter_RoutesToTeamLeadWhenNoSkills(t *testing.T) {
 	mr := NewMessageRouter()
-	result := mr.Route("Hello there", []AgentInfo{
+	result := mr.Route("Hello there", []BotInfo{
 		{Slug: "researcher", Expertise: []string{"market-research"}},
 	})
 	if result.Primary != "team-lead" {
@@ -205,15 +205,15 @@ func TestMessageRouter_DetectsFollowUp(t *testing.T) {
 	mr := NewMessageRouter()
 	mr.mu.Lock()
 	mr.recentThreads["researcher"] = &threadContext{
-		agentSlug:    "researcher",
+		botSlug:      "researcher",
 		lastActivity: time.Now(),
 	}
 	mr.mu.Unlock()
 
-	agents := []AgentInfo{
+	bots := []BotInfo{
 		{Slug: "researcher", Expertise: []string{"market-research"}},
 	}
-	result := mr.Route("Also what about their pricing?", agents)
+	result := mr.Route("Also what about their pricing?", bots)
 	if !result.IsFollowUp {
 		t.Error("should be detected as follow-up")
 	}
@@ -227,12 +227,12 @@ func TestMessageRouter_FollowUpExpires(t *testing.T) {
 	mr.followUpWindow = 10 * time.Millisecond
 	mr.mu.Lock()
 	mr.recentThreads["researcher"] = &threadContext{
-		agentSlug:    "researcher",
+		botSlug:      "researcher",
 		lastActivity: time.Now().Add(-100 * time.Millisecond),
 	}
 	mr.mu.Unlock()
 
-	result := mr.Route("Also what about their pricing?", []AgentInfo{
+	result := mr.Route("Also what about their pricing?", []BotInfo{
 		{Slug: "team-lead", Expertise: []string{}},
 	})
 	if result.IsFollowUp {
@@ -243,15 +243,15 @@ func TestMessageRouter_FollowUpExpires(t *testing.T) {
 func TestRouteUsesConfiguredTeamLead(t *testing.T) {
 	router := NewMessageRouter()
 	router.SetTeamLeadSlug("ceo")
-	router.RegisterAgent("ceo", []string{"strategy", "delegation"})
-	router.RegisterAgent("pm", []string{"roadmap", "requirements"})
+	router.RegisterBot("ceo", []string{"strategy", "delegation"})
+	router.RegisterBot("pm", []string{"roadmap", "requirements"})
 
-	agents := []AgentInfo{
+	bots := []BotInfo{
 		{Slug: "ceo", Expertise: []string{"strategy"}},
 		{Slug: "pm", Expertise: []string{"roadmap"}},
 	}
 
-	result := router.Route("do something random", agents)
+	result := router.Route("do something random", bots)
 	if result.Primary != "ceo" {
 		t.Errorf("expected primary='ceo', got '%s'", result.Primary)
 	}
@@ -259,7 +259,7 @@ func TestRouteUsesConfiguredTeamLead(t *testing.T) {
 
 func TestMessageRouter_RecordActivity(t *testing.T) {
 	mr := NewMessageRouter()
-	mr.RecordAgentActivity("agent-x")
+	mr.RecordBotActivity("agent-x")
 	mr.mu.Lock()
 	tc, ok := mr.recentThreads["agent-x"]
 	mr.mu.Unlock()

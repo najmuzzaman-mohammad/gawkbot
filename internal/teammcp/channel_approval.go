@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// requireTeamChannelApproval gates agent-initiated office-channel creation
+// requireTeamChannelApproval gates bot-initiated office-channel creation
 // behind a blocking human approval, exactly like the member gate.
 //
 // Why: a channel is durable office structure, not a per-task artifact. The CEO
@@ -18,7 +18,7 @@ import (
 // called it. Now the CEO proposes and the human decides, the same way it must
 // for a new teammate.
 //
-// Scope: office channels created through the agent-facing team_channel tool
+// Scope: office channels created through the bot-facing team_channel tool
 // with action="create". NOT gated, because none of these are the CEO inventing
 // structure: DMs (team_dm_open -> /channels/dm), the roster/channels seeded
 // from the onboarding blueprint
@@ -26,7 +26,7 @@ import (
 // (which posts to /channels directly and never reaches this path).
 //
 // Returns nil when approved (the caller then creates the channel). Returns a
-// descriptive error on reject / hold / cancel / timeout so the agent posts in an
+// descriptive error on reject / hold / cancel / timeout so the bot posts in an
 // existing channel instead of retrying the create.
 func requireTeamChannelApproval(ctx context.Context, actor string, args TeamChannelArgs) error {
 	slug := normalizeSlug(args.Channel)

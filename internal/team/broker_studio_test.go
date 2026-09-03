@@ -209,7 +209,7 @@ func TestHandleStudioGeneratePackage_RejectsOversizedBody(t *testing.T) {
 // TestHandleStudioRunWorkflow_RejectsOversizedBody pins the 1 MiB body
 // cap on /studio/run-workflow. The endpoint can spawn external workflow
 // providers and consume budget; an unbounded body would let an
-// authenticated agent ship a massive workflow_definition into the
+// authenticated bot ship a massive workflow_definition into the
 // runner.
 func TestHandleStudioRunWorkflow_RejectsOversizedBody(t *testing.T) {
 	b := newTestBroker(t)
@@ -535,8 +535,8 @@ func TestBuildOperationBootstrapPackageFromRepoIncludesStarterPlan(t *testing.T)
 	if pkg.Starter.ID == "" || pkg.Starter.Name == "" {
 		t.Fatalf("expected starter metadata, got %+v", pkg.Starter)
 	}
-	if len(pkg.Starter.Agents) < 2 || len(pkg.Starter.Channels) == 0 || len(pkg.Starter.Tasks) == 0 {
-		t.Fatalf("expected starter plan to include agents, channels, and tasks, got %+v", pkg.Starter)
+	if len(pkg.Starter.Bots) < 2 || len(pkg.Starter.Channels) == 0 || len(pkg.Starter.Tasks) == 0 {
+		t.Fatalf("expected starter plan to include bots, channels, and tasks, got %+v", pkg.Starter)
 	}
 	if len(pkg.WorkflowDrafts) != len(pkg.Blueprint.Workflows) {
 		t.Fatalf("expected workflow drafts to come from blueprint, got %d drafts for %d workflows", len(pkg.WorkflowDrafts), len(pkg.Blueprint.Workflows))
@@ -648,18 +648,18 @@ func TestBuildOperationBootstrapPackageSynthesizesWhenNoPackSeedExists(t *testin
 	// to 2 when synthesis stopped minting the planner/executor/reviewer trio
 	// and their per-specialist tasks.
 	//
-	// Agents are asserted by NAME, not by count. The synthesizer pads the
-	// roster with one agent per CONNECTED INTEGRATION, so a count threshold
-	// is a hermeticity bug: "agents >= 4" passed on a dev machine whose
+	// Bots are asserted by NAME, not by count. The synthesizer pads the
+	// roster with one bot per CONNECTED INTEGRATION, so a count threshold
+	// is a hermeticity bug: "bots >= 4" passed on a dev machine whose
 	// Composio config added gmail/drive/notion/slack and failed on CI, which
-	// has none. The environment-independent invariant is the two agents the
+	// has none. The environment-independent invariant is the two bots the
 	// synthesizer always mints.
-	agents := map[string]bool{}
-	for _, a := range pkg.Starter.Agents {
-		agents[a.Slug] = true
+	bots := map[string]bool{}
+	for _, a := range pkg.Starter.Bots {
+		bots[a.Slug] = true
 	}
-	if !agents["operator"] || !agents["capability-scout"] {
-		t.Fatalf("expected synthesized starter agents to include operator and capability-scout, got %+v", pkg.Starter.Agents)
+	if !bots["operator"] || !bots["capability-scout"] {
+		t.Fatalf("expected synthesized starter bots to include operator and capability-scout, got %+v", pkg.Starter.Bots)
 	}
 	if len(pkg.Starter.Channels) != 0 || len(pkg.Starter.Tasks) < 2 {
 		t.Fatalf("expected synthesized starter plan (channels==0, tasks>=2), got %+v", pkg.Starter)

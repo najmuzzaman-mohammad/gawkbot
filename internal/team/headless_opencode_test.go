@@ -33,13 +33,13 @@ func TestBuildHeadlessOpencodeArgsOmitsModelWhenUnset(t *testing.T) {
 
 // TestWriteHeadlessOpencodeMCPConfigConcurrent verifies that concurrent calls
 // to writeHeadlessOpencodeMCPConfig (as happen when CEO + planner + reviewer
-// all spawn at the same time) write agent-scoped configs with the right MCP
+// all spawn at the same time) write bot-scoped configs with the right MCP
 // environment instead of racing to rewrite one shared opencode.json.
 func TestWriteHeadlessOpencodeMCPConfigConcurrent(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	// Pair WUPHF_RUNTIME_HOME with HOME so the post-Phase-0 opencode race fix
-	// (per-agent configs under <runtime_home>/.wuphf/opencode-configs/) lands
+	// (per-bot configs under <runtime_home>/.wuphf/opencode-configs/) lands
 	// in the test tempdir and not the worktree_guard_test process-wide pin.
 	t.Setenv("WUPHF_RUNTIME_HOME", home)
 
@@ -94,7 +94,7 @@ func TestWriteHeadlessOpencodeMCPConfigConcurrent(t *testing.T) {
 		t.Fatalf("base opencode.json is not valid JSON after concurrent writes: %v\n\ncontent:\n%s", err, raw)
 	}
 	if _, ok := base["mcp"]; ok {
-		t.Fatal("base opencode.json should not be rewritten with WUPHF's agent-scoped MCP entry")
+		t.Fatal("base opencode.json should not be rewritten with WUPHF's bot-scoped MCP entry")
 	}
 
 	for _, slug := range slugs {
@@ -102,7 +102,7 @@ func TestWriteHeadlessOpencodeMCPConfigConcurrent(t *testing.T) {
 		if path == "" {
 			t.Fatalf("missing generated config path for %s", slug)
 		}
-		if want := headlessOpencodeAgentConfigPath(home, slug); path != want {
+		if want := headlessOpencodeBotConfigPath(home, slug); path != want {
 			t.Fatalf("config path for %s = %q, want %q", slug, path, want)
 		}
 		raw, err := os.ReadFile(path)
@@ -136,7 +136,7 @@ func TestWriteHeadlessOpencodeMCPConfigConcurrent(t *testing.T) {
 
 // TestWriteHeadlessOpencodeMCPConfigLogsBaseConfigParseFailure verifies that a
 // malformed base ~/.config/opencode/opencode.json (e.g. trailing comma) causes
-// writeHeadlessOpencodeMCPConfig to surface the parse error via the agent
+// writeHeadlessOpencodeMCPConfig to surface the parse error via the bot
 // log instead of silently dropping the user's `model`/`provider` blocks. (#313)
 func TestWriteHeadlessOpencodeMCPConfigLogsBaseConfigParseFailure(t *testing.T) {
 	home := t.TempDir()
@@ -169,13 +169,13 @@ func TestWriteHeadlessOpencodeMCPConfigLogsBaseConfigParseFailure(t *testing.T) 
 
 	logBytes, err := os.ReadFile(filepath.Join(logDir, "headless-codex-ceo.log"))
 	if err != nil {
-		t.Fatalf("read agent log: %v", err)
+		t.Fatalf("read bot log: %v", err)
 	}
 	logStr := string(logBytes)
 	if !strings.Contains(logStr, "opencode_base-config-parse-failed") {
-		t.Fatalf("expected opencode_base-config-parse-failed in agent log, got:\n%s", logStr)
+		t.Fatalf("expected opencode_base-config-parse-failed in bot log, got:\n%s", logStr)
 	}
 	if !strings.Contains(logStr, configPath) {
-		t.Fatalf("expected base config path %q in agent log, got:\n%s", configPath, logStr)
+		t.Fatalf("expected base config path %q in bot log, got:\n%s", configPath, logStr)
 	}
 }

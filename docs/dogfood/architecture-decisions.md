@@ -2,7 +2,7 @@
 
 ## Durable Decisions
 
-- WUPHF is a context graph platform for AI agents. Do not describe it as a
+- WUPHF is a context graph platform for AI bots. Do not describe it as a
   different product category in code, docs, comments, or copy.
 - Local-first behavior is the default. External context providers are additive
   and must expose provenance.

@@ -24,16 +24,16 @@ npx wuphf --pack founding-team
 - A browser opens at `http://localhost:7891`.
 - The office name reads "founding-team" (not "default").
 
-### 2. Confirm the pack agents
+### 2. Confirm the pack bots
 
 In the browser:
 
 #### Verify
 
-- Agent participants list includes the founding-team roster (CEO, ENG,
+- Bot participants list includes the founding-team roster (CEO, ENG,
   DSG, CMO — plus any pack-specific extras).
 - `#general`, `#dev`, `#marketing` channels exist out of the box.
-- Each agent has a non-empty bio when clicked.
+- Each bot has a non-empty bio when clicked.
 
 ### 3. Hover the version chip in the bottom-left sidebar
 
@@ -53,12 +53,12 @@ visuals, CMO to draft the launch tweet.
 
 - The message lands in `#general`.
 - Within ~60s, CEO acknowledges and dispatches three subgoals — one per
-  named agent.
+  named bot.
 - The Inbox sidebar entry shows a non-zero badge once CEO has dispatched.
 
 ## What success looks like
 
-Jordan's office matches the pack name. Channels and agents arrive
+Jordan's office matches the pack name. Channels and bots arrive
 pre-configured for the maker workflow rather than as generic templates
 they have to rename. CEO's first reply names ENG, DSG, and CMO by the
 verbs Jordan used ("scope", "hero visuals", "launch tweet").

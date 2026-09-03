@@ -1,12 +1,12 @@
 package teammcp
 
-// routine_tools.go — team_routine: the agent-reachable path for standing
+// routine_tools.go — team_routine: the bot-reachable path for standing
 // automations (ten-out-of-ten Wave D / D1).
 //
-// ICP-eval v3 [18:30–18:36]: asked for one weekly summary, agents
+// ICP-eval v3 [18:30–18:36]: asked for one weekly summary, bots
 // registered TWO provider-session cron jobs ("live only for 7 days in the
 // current session") that the Scheduled Tasks app could not see. The office
-// scheduler was persistent the whole time; agents just had no tool that
+// scheduler was persistent the whole time; bots just had no tool that
 // reached it for general recurring work (team_action_workflow_schedule
 // only schedules saved EXTERNAL workflows and is gated on an action
 // provider).
@@ -14,7 +14,7 @@ package teammcp
 // team_routine routes into POST /scheduler/routines on the broker:
 // persistent across restarts and session ends, visible + editable in the
 // Scheduled Tasks app, and deduped server-side by normalized
-// purpose+schedule, so a second agent registering the same automation
+// purpose+schedule, so a second bot registering the same automation
 // updates the existing job instead of minting a duplicate.
 
 import (
@@ -33,9 +33,9 @@ type TeamRoutineArgs struct {
 	Purpose  string `json:"purpose" jsonschema:"One line describing what the standing automation does, e.g. 'Weekly Monday 9am renewal risk summary to #general'. Re-registering the same purpose and schedule updates the existing routine instead of creating a duplicate."`
 	Schedule string `json:"schedule" jsonschema:"Cron expression or shorthand like daily, hourly, 4h, or 0 9 * * 1"`
 	Channel  string `json:"channel,omitempty" jsonschema:"Office channel the routine posts into on each run. Defaults to the current conversation channel."`
-	Owner    string `json:"owner,omitempty" jsonschema:"Agent slug that handles each scheduled run. Defaults to you."`
+	Owner    string `json:"owner,omitempty" jsonschema:"Bot slug that handles each scheduled run. Defaults to you."`
 	Prompt   string `json:"prompt,omitempty" jsonschema:"Instructions posted to the owner on every scheduled run. Be specific: this is the whole work order the owner receives."`
-	MySlug   string `json:"my_slug,omitempty" jsonschema:"Agent slug registering the routine. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug   string `json:"my_slug,omitempty" jsonschema:"Bot slug registering the routine. Defaults to WUPHF_AGENT_SLUG."`
 	Summary  string `json:"summary,omitempty" jsonschema:"Optional short office log summary"`
 }
 
@@ -115,7 +115,7 @@ func handleTeamRoutine(ctx context.Context, _ *mcp.CallToolRequest, args TeamRou
 		fallbackSummary(args.Summary, fmt.Sprintf("Standing automation %q %s (%s)", purpose, verb, scheduleExpr)),
 		resp.Job.Slug)
 
-	// The confirmation the agent relays to the human MUST be truthful:
+	// The confirmation the bot relays to the human MUST be truthful:
 	// the job is persistent and human-visible. No session-death caveat
 	// applies — if one ever does again, the registration path regressed.
 	result := map[string]any{

@@ -1,4 +1,4 @@
-// blobAvatar.ts — retro blob agent marks.
+// blobAvatar.ts — retro blob bot marks.
 //
 // WHAT THIS IS COPYING, AND WHERE IT DELIBERATELY DIVERGES.
 //
@@ -14,10 +14,10 @@
 //     product's whole visual language is pixel-art and a smooth blob would be
 //     the one un-pixelled thing on the screen.
 //  2. DERIVED, NOT PICKED. Theirs asks the user for a shape and a colour at
-//     creation. Ours derives both from the agent's slug, so an agent looks the
-//     same everywhere forever without anyone choosing, and a roster of agents
+//     creation. Ours derives both from the bot's slug, so a bot looks the
+//     same everywhere forever without anyone choosing, and a roster of bots
 //     is automatically varied. Nobody wants to fill in a colour field for
-//     their eleventh agent.
+//     their eleventh bot.
 //  3. NOT THEIR GEOMETRY. The silhouettes and palette here are ours. We are
 //     not reproducing a measured copy of their mark.
 //
@@ -211,7 +211,7 @@ export const SILHOUETTES: readonly Silhouette[] = [
 
 /**
  * Body colours. Muted and slightly desaturated rather than primary, so a
- * sidebar of a dozen agents reads as a set instead of a paint chart, and so
+ * sidebar of a dozen bots reads as a set instead of a paint chart, and so
  * the black eyes stay the highest-contrast thing on the mark.
  */
 export const BLOB_COLORS: readonly string[] = [
@@ -242,7 +242,7 @@ function hashSlug(slug: string): number {
 
 /**
  * Shape and colour are drawn from SEPARATE bits of the hash. Deriving both
- * from the same value correlates them, so every olive agent would also be a
+ * from the same value correlates them, so every olive bot would also be a
  * dome and the roster would look like half as many variants as it has.
  */
 export function blobShapeIndex(slug: string): number {
@@ -278,7 +278,7 @@ export function eyeSpec(openness: number): EyeSpec {
 }
 
 export interface DrawBlobOptions {
-  /** 1 wide open, 0 narrowed. Only the working agent should animate. */
+  /** 1 wide open, 0 narrowed. Only the working bot should animate. */
   readonly openness?: number;
   /** Override the derived colour (theme previews, stories). */
   readonly color?: string;

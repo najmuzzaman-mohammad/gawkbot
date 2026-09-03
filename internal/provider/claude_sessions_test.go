@@ -6,8 +6,8 @@ import (
 )
 
 // TestResetClaudeSessionFor_ClearsOnlyTargetSlug locks in the per-slug
-// reset hand-off used by the per-agent runtime picker. Switching one agent
-// from claude-code to codex must not clobber another agent's resume id —
+// reset hand-off used by the per-bot runtime picker. Switching one bot
+// from claude-code to codex must not clobber another bot's resume id —
 // they're independent dispatches that just happen to share the same store.
 func TestResetClaudeSessionFor_ClearsOnlyTargetSlug(t *testing.T) {
 	// Isolate the store to a temp file so this test doesn't read or write

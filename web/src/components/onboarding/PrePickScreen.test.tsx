@@ -282,7 +282,7 @@ describe("PrePickScreen runtime selection", () => {
   // Regression guard for CodeRabbit #985 (#3284960848 + #3284960843): even
   // when sign_in_command is missing from the prereq payload, an un-signed-in
   // tile must still block the pick. Falling through to onPick would land
-  // the user in an office that fails on the first agent LLM call.
+  // the user in an office that fails on the first bot LLM call.
   it("blocks pick when signed_in=false and sign_in_command is missing", async () => {
     mockPrereqs(
       { codex: true },
@@ -669,7 +669,7 @@ describe("CodeRabbit click-handler guard (PR #889)", () => {
         },
         {
           title: "Sign in to Claude",
-          detail: "Sign in once and your agents run on your account.",
+          detail: "Sign in once and your bots run on your account.",
           command: "claude auth login",
         },
         { title: "Verify", detail: "Press Verify and we confirm." },

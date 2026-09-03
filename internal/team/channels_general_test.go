@@ -224,7 +224,7 @@ func TestHomeChannelForHasExactlyThreeOutcomes(t *testing.T) {
 		if got == GeneralChannelSlug || got == "" {
 			t.Fatalf("expected a DM slug, got %q", got)
 		}
-		if DMTargetAgent(got) != "ceo" {
+		if DMTargetBot(got) != "ceo" {
 			t.Errorf("routed to %q, which is not the CEO's DM", got)
 		}
 		// The DM must actually exist afterwards, not just be named.
@@ -451,7 +451,7 @@ func withGroupSwitch(t *testing.T, enabled bool, fn func()) {
 // the product if it is wrong is what must survive:
 //
 //   - Slack and Telegram bridge channels are how EXTERNAL messages arrive, not
-//     rooms agents chat in. Hide one and every message that came in through it
+//     rooms bots chat in. Hide one and every message that came in through it
 //     is stranded.
 //   - app-<id> edit threads are hidden plumbing that apps need to be editable.
 //   - DMs are the surface the whole change exists to move everything onto.

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
@@ -15,9 +15,9 @@ import (
 // officeLeadSlug() always returns "ceo".
 func minimalLauncher(opusCEO bool) *Launcher {
 	return &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "eng", Name: "Engineer"},
 				{Slug: "pm", Name: "Product Manager"},
@@ -35,7 +35,7 @@ func minimalLauncher(opusCEO bool) *Launcher {
 // ─── headlessClaudeMaxTurns ───────────────────────────────────────────────
 
 // TestHeadlessClaudeMaxTurns_AppBuilderGetsBuildHeadroom pins the fix for the
-// App Builder running out of turns mid-build: a coding/build agent needs far
+// App Builder running out of turns mid-build: a coding/build bot needs far
 // more than a chat specialist's budget.
 func TestHeadlessClaudeMaxTurns_AppBuilderGetsBuildHeadroom(t *testing.T) {
 	l := minimalLauncher(false)
@@ -52,7 +52,7 @@ func TestHeadlessClaudeMaxTurns_AppBuilderGetsBuildHeadroom(t *testing.T) {
 
 // ─── headlessClaudeModel ──────────────────────────────────────────────────
 
-// TestHeadlessClaudeModel_SonnetByDefault verifies that every agent, including
+// TestHeadlessClaudeModel_SonnetByDefault verifies that every bot, including
 // the lead, uses the Sonnet model when opusCEO is false.
 func TestHeadlessClaudeModel_SonnetByDefault(t *testing.T) {
 	l := minimalLauncher(false)
@@ -66,7 +66,7 @@ func TestHeadlessClaudeModel_SonnetByDefault(t *testing.T) {
 }
 
 // TestHeadlessClaudeModel_OpusForLeadOnly verifies that only the lead (CEO)
-// gets upgraded to Opus when opusCEO is true; non-lead agents stay on Sonnet.
+// gets upgraded to Opus when opusCEO is true; non-lead bots stay on Sonnet.
 func TestHeadlessClaudeModel_OpusForLeadOnly(t *testing.T) {
 	l := minimalLauncher(true)
 	tests := []struct {
@@ -91,9 +91,9 @@ func TestHeadlessClaudeModel_OpusForLeadOnly(t *testing.T) {
 // officeMembersSnapshot() falls through to the pack definition.
 func TestHeadlessClaudeModel_CustomLeadSlug(t *testing.T) {
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "captain",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "captain", Name: "Captain"},
 				{Slug: "crew", Name: "Crew"},
 			},
@@ -123,7 +123,7 @@ func TestHeadlessClaudeModel_CustomLeadSlug(t *testing.T) {
 }
 
 // TestHeadlessClaudeModel_PerAgentBindingOverride covers the broker-driven
-// override path that ships with the AgentProfilePanel runtime picker. When
+// override path that ships with the BotProfilePanel runtime picker. When
 // a member has ProviderBinding{Kind: "claude-code", Model: "<custom>"},
 // the next claude turn must dispatch against <custom>, not the hardcoded
 // opus/sonnet default. The kind guard also matters: a stale Model left
@@ -228,7 +228,7 @@ func TestRunHeadlessClaudeTurn_NoResumeFlag(t *testing.T) {
 	l.broker = b
 	l.cwd = tmpDir
 
-	// Write a valid (empty) MCP config so ensureAgentMCPConfig succeeds.
+	// Write a valid (empty) MCP config so ensureBotMCPConfig succeeds.
 	mcpPath := filepath.Join(tmpDir, "mcp.json")
 	_ = os.WriteFile(mcpPath, []byte(`{"mcpServers":{}}`), 0o600)
 	l.mcpConfig = mcpPath

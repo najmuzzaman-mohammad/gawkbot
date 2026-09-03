@@ -152,7 +152,7 @@ func TestResolveRaisesAndDedupesConnectCard(t *testing.T) {
 		body, _ := json.Marshal(integrationResolveRequest{
 			Platform: "gmail",
 			ActionID: "GMAIL_SEND_EMAIL",
-			Agent:    "ceo",
+			Bot:      "ceo",
 			Channel:  "team",
 			Data:     map[string]any{"to": "lead@acme.com"},
 		})

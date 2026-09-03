@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 
-import type { StreamLine } from "../../hooks/useAgentStream";
+import type { StreamLine } from "../../hooks/useBotStream";
 import { keyedByOccurrence } from "../../lib/reactKeys";
 import { useAppStore } from "../../stores/app";
 
@@ -10,7 +10,7 @@ interface StreamLineViewProps {
   compact?: boolean;
   /**
    * Whose stream this is. Computer tool cards show that bot's live frame as
-   * a thumbnail; the HeadlessEvent `agent` field wins when present.
+   * a thumbnail; the HeadlessEvent `bot` field wins when present.
    */
   agentSlug?: string;
 }
@@ -18,8 +18,8 @@ interface StreamLineViewProps {
 const COMPUTER_TOOL_PREFIX = "mcp__computer__";
 
 /**
- * Renders one SSE line from the agent stream. Understands the broker's
- * OpenAI-Responses-style events — agent messages render as dim thinking
+ * Renders one SSE line from the bot stream. Understands the broker's
+ * OpenAI-Responses-style events — bot messages render as dim thinking
  * lines, tool calls render as collapsible cards. Everything else falls
  * back to pretty-printed JSON.
  */
@@ -31,8 +31,8 @@ export function StreamLineView({
 }: StreamLineViewProps) {
   const { data, parsed } = line;
   if (!parsed) {
-    // Raw chunks from agentStream.Push (local-LLM streaming text). The
-    // useAgentStream hook coalesces consecutive raw events into a
+    // Raw chunks from botStream.Push (local-LLM streaming text). The
+    // useBotStream hook coalesces consecutive raw events into a
     // single StreamLine, so this branch renders the running model
     // output as a continuous text block \u2014 not one chunk per row.
     // Trailing ellipsis keeps the live-output panel visually capped.
@@ -55,7 +55,7 @@ export function StreamLineView({
   }
 
   // Settled frame appended at turn end when the turn touched the screen.
-  // Wire: docs/specs/gawkbot-bot-computers.md, "Agent stream lines".
+  // Wire: docs/specs/gawkbot-bot-computers.md, "Bot stream lines".
   if (parsed.kind === "computer_frame") {
     return <ComputerFrameCard parsed={parsed} />;
   }
@@ -144,7 +144,7 @@ export function StreamLineView({
     return null;
   }
 
-  // Fallback: structured event with type/phase/agent + detail + extras
+  // Fallback: structured event with type/phase/bot + detail + extras
   return <GenericEventCard parsed={parsed} compact={compact} />;
 }
 

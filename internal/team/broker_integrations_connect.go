@@ -27,17 +27,17 @@ func connectRequestDedupeKey(platform string) string {
 
 // ensureConnectRequest returns the ID of the active connect card for platform,
 // creating one if none exists. Locks b.mu; callers must not already hold it.
-func (b *Broker) ensureConnectRequest(platform, channel, agent, name, logoURL string) string {
+func (b *Broker) ensureConnectRequest(platform, channel, bot, name, logoURL string) string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.ensureConnectRequestLocked(platform, channel, agent, name, logoURL)
+	return b.ensureConnectRequestLocked(platform, channel, bot, name, logoURL)
 }
 
 // ensureConnectRequestLocked is the idempotent body: it finds an active connect
 // card for the platform (dedupe is workspace-wide) and returns its ID, or mints
 // one. The card is a blocking human decision so the channel gates on it — the
 // user's "block on a typed Connect decision" call. Caller holds b.mu.
-func (b *Broker) ensureConnectRequestLocked(platform, channel, agent, name, logoURL string) string {
+func (b *Broker) ensureConnectRequestLocked(platform, channel, bot, name, logoURL string) string {
 	platform = strings.TrimSpace(platform)
 	if platform == "" {
 		return ""
@@ -51,7 +51,7 @@ func (b *Broker) ensureConnectRequestLocked(platform, channel, agent, name, logo
 		DedupeKey: connectRequestDedupeKey(platform),
 		Platform:  platform,
 		Channel:   channel,
-		Agent:     agent,
+		Bot:       bot,
 		Title:     "Connect " + display,
 		Question:  fmt.Sprintf("Connect %s so the team can run this action.", display),
 		LogoURL:   logoURL,
@@ -69,7 +69,7 @@ type integrationDecisionCard struct {
 	DedupeKey string
 	Platform  string
 	Channel   string
-	Agent     string
+	Bot       string
 	Title     string
 	Question  string
 	Context   string
@@ -98,12 +98,12 @@ func (b *Broker) ensureIntegrationDecisionLocked(spec integrationDecisionCard) s
 		}
 	}
 
-	from := strings.TrimSpace(spec.Agent)
+	from := strings.TrimSpace(spec.Bot)
 	if from == "" {
 		from = "office"
 	}
-	// The requesting agent's DM. Blocking + Required: an invisible connect
-	// card means the agent waits forever for a credential the human was never
+	// The requesting bot's DM. Blocking + Required: an invisible connect
+	// card means the bot waits forever for a credential the human was never
 	// asked for.
 	channel := normalizeChannelSlug(spec.Channel)
 	if strings.TrimSpace(spec.Channel) == "" {
@@ -262,7 +262,7 @@ const integrationDecisionTimeout = 60 * time.Minute
 // the blocking channel. Caller holds b.mu. Returns true if anything changed.
 //
 // Slice 3b's "task back to backlog" reduces to cancel + audit here: the connect
-// flow does not park a task (the agent already got its tool error when the
+// flow does not park a task (the bot already got its tool error when the
 // action was blocked), so there is no task to re-queue — the realized behavior
 // is unblock + an integration_*_timed_out audit trail.
 func (b *Broker) expireStaleIntegrationDecisionsLocked(now time.Time) bool {

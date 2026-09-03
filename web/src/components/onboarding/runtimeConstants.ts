@@ -14,21 +14,21 @@ export const API_KEY_FIELDS = [
   {
     key: "ANTHROPIC_API_KEY" as const,
     label: "Anthropic",
-    hint: "Powers Claude-based agents",
+    hint: "Powers Claude-based bots",
     cliLoginCmd: "claude login",
     configField: "anthropic_api_key" as const,
   },
   {
     key: "OPENAI_API_KEY" as const,
     label: "OpenAI",
-    hint: "Powers GPT-based agents",
+    hint: "Powers GPT-based bots",
     cliLoginCmd: "codex login",
     configField: "openai_api_key" as const,
   },
   {
     key: "GOOGLE_API_KEY" as const,
     label: "Google",
-    hint: "Powers Gemini-based agents",
+    hint: "Powers Gemini-based bots",
     cliLoginCmd: "gcloud auth application-default login",
     configField: "gemini_api_key" as const,
   },
@@ -40,12 +40,12 @@ export type ApiKeyFieldDef = (typeof API_KEY_FIELDS)[number];
 // PrePickScreen submit logic. Kept here to avoid three-way drift if a
 // runtime is renamed or added.
 //
-// Gateway-style runtimes (Hermes Agent, OpenClaw Gateway) used to live here
+// Gateway-style runtimes (Hermes Bot, OpenClaw Gateway) used to live here
 // alongside the directly-dispatchable local LLMs. They were removed because
-// they are gateways for importing existing agents into the team, not LLM
-// runtimes for backing WUPHF-created agents. Surfacing them as runtime tiles
-// confused users about whether picking "OpenClaw" meant "host my agents on
-// OpenClaw" or "import OpenClaw agents into the team." The Integrations app
+// they are gateways for importing existing bots into the team, not LLM
+// runtimes for backing WUPHF-created bots. Surfacing them as runtime tiles
+// confused users about whether picking "OpenClaw" meant "host my bots on
+// OpenClaw" or "import OpenClaw bots into the team." The Integrations app
 // (Settings → Integrations) is now the single place gateways are configured.
 export const LOCAL_PROVIDER_LABELS = [
   { kind: "mlx-lm" as const, label: "MLX-LM", blurb: "macOS / Apple Silicon" },

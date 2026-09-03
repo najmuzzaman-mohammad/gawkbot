@@ -35,7 +35,7 @@ func TestLoadManifestFallsBackToDefault(t *testing.T) {
 	}
 	// Channels are NOT asserted. #general is retired, so the default manifest
 	// ships a roster and no shared room -- conversations are DMs, which the
-	// broker seeds per agent rather than the manifest declaring them.
+	// broker seeds per bot rather than the manifest declaring them.
 	if manifest.Name == "" || len(manifest.Members) == 0 {
 		t.Fatalf("expected default manifest, got %+v", manifest)
 	}
@@ -318,7 +318,7 @@ func TestLoadRuntimeManifestMaterializesEveryOperationFixture(t *testing.T) {
 			}
 			// Was: #general must be the first channel. With the lobby retired
 			// a blueprint declares only its own working channels, and the
-			// team reaches each agent through its DM.
+			// team reaches each bot through its DM.
 			for _, ch := range runtimeManifest.Channels {
 				if ch.Slug == "general" && !channel.GeneralEnabled() {
 					t.Fatalf("#general is retired but %s still declares it: %+v", id, runtimeManifest.Channels)

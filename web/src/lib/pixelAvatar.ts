@@ -1,4 +1,4 @@
-// Office-sheet avatar portraits for built-in agents and dynamic agents.
+// Office-sheet avatar portraits for built-in bots and dynamic bots.
 // Unknown slugs deterministically pick from the generated office catalog so
 // newly created teammates do not fall back to the deprecated legacy sprites.
 
@@ -68,9 +68,9 @@ function hexToRgb(hex: string): Rgb {
 /* ─────────────────────────────────────────────────────────────────────────
    GAWK EYES
 
-   Agents wear the gawkbot mark's hollow eyes, tinted per agent so you can
+   Bots wear the gawkbot mark's hollow eyes, tinted per bot so you can
    tell teammates apart at a glance, and the eyes narrow and widen only on
-   the agent that is working right now.
+   the bot that is working right now.
 
    WHY THE SPRITE IS SUPERSAMPLED BEFORE THE EYES ARE DRAWN
    --------------------------------------------------------
@@ -118,7 +118,7 @@ export const EYE_OPENNESS_MIN = 0.42;
  * Every entry below was derived from the sprite data and then verified by
  * rendering all twenty-one with the chosen cells marked.
  *
- * Keyed by sprite id, not agent slug, because many slugs share one sprite.
+ * Keyed by sprite id, not bot slug, because many slugs share one sprite.
  * Sprites absent from this table simply render without eyes.
  */
 export const SPRITE_EYE_CELLS: Record<
@@ -223,10 +223,10 @@ export const SPRITE_EYE_CELLS: Record<
 };
 
 /**
- * Hue arcs the per-agent eye colour is allowed to land in.
+ * Hue arcs the per-bot eye colour is allowed to land in.
  *
  * A fixed list of N swatches was tried first and rejected: with ten swatches a
- * ten-agent roster collided four ways, which defeats the entire purpose of
+ * ten-bot roster collided four ways, which defeats the entire purpose of
  * colouring the eyes. Sampling a continuous arc instead gives effectively
  * unlimited distinct identities from the same deterministic hash.
  *
@@ -305,13 +305,13 @@ function eyeColourForHue(hue: number): string {
 const eyeColourCache = new Map<string, string>();
 
 /**
- * Deterministic per-agent eye colour, derived from the slug alone.
+ * Deterministic per-bot eye colour, derived from the slug alone.
  *
  * Slug-derived rather than roster-index-derived on purpose: the same teammate
  * must be the same colour on every machine and every reload, and adding an
- * agent must not re-colour everyone else.
+ * bot must not re-colour everyone else.
  */
-export function getAgentEyeColor(slug: string): string {
+export function getBotEyeColor(slug: string): string {
   const normalized = slug.trim().toLowerCase();
   const key = AGENT_COLOR_ALIASES[normalized] ?? (normalized || "unknown");
   const cached = eyeColourCache.get(key);
@@ -345,7 +345,7 @@ function paletteFromHexes(palette: string[]): Record<number, Rgb> {
   );
 }
 
-export function getAgentColor(slug: string): string {
+export function getBotColor(slug: string): string {
   const normalized = slug.trim().toLowerCase();
   const key = AGENT_COLOR_ALIASES[normalized] ?? normalized;
   return AGENT_COLORS[key] ?? proceduralAccentForSlug(key);
@@ -651,8 +651,8 @@ export interface PixelAvatarOptions {
 }
 
 /**
- * Paint a pixel-art agent avatar into an existing canvas element.
- * Known agents render from the generated avatar catalog; everything else gets
+ * Paint a pixel-art bot avatar into an existing canvas element.
+ * Known bots render from the generated avatar catalog; everything else gets
  * a deterministic generated office portrait.
  */
 export function drawPixelAvatar(
@@ -662,7 +662,7 @@ export function drawPixelAvatar(
   options: PixelAvatarOptions = {},
 ): void {
   const avatar = resolvePortraitSprite(slug);
-  drawPixelAvatarSprite(canvas, avatar, size, getAgentEyeColor(slug), options);
+  drawPixelAvatarSprite(canvas, avatar, size, getBotEyeColor(slug), options);
 }
 
 export function drawKnownPixelAvatar(
@@ -678,7 +678,7 @@ export function drawKnownPixelAvatar(
     canvas,
     avatar,
     size,
-    getAgentEyeColor(spriteID),
+    getBotEyeColor(spriteID),
     options,
   );
 }

@@ -79,9 +79,9 @@ const JIM_PAM_CONVERSATIONS: readonly (readonly JimPamLine[])[] = [
   [
     {
       who: "jim",
-      text: "Michael is giving the Chief of Staff agent a performance review.",
+      text: "Michael is giving the Chief of Staff bot a performance review.",
     },
-    { who: "pam", text: "The AI agent." },
+    { who: "pam", text: "The AI bot." },
     { who: "jim", text: "It scored Outstanding. Michael cried." },
   ],
 ];

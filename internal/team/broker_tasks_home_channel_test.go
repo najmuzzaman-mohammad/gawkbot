@@ -17,15 +17,15 @@ import (
 // longer exists, so that failed too with "channel not found". Every task-create
 // path from the UI was broken in both directions at once.
 
-// brokerWithAgents is NewBrokerAt plus a roster these routing rules can
+// brokerWithBots is NewBrokerAt plus a roster these routing rules can
 // actually resolve against.
 //
 // The owners below — app-builder, planner, librarian — used to arrive free as
-// seeded defaults. They are retired as DEFAULTS, not as agents: a user still
+// seeded defaults. They are retired as DEFAULTS, not as bots: a user still
 // creates them, and the routing rule is the same either way. Without hiring
 // them the creates fail with "channel is required" before the rule under test
 // ever runs, so these would have become tests of an error message.
-func brokerWithAgents(t *testing.T, slugs ...string) *Broker {
+func brokerWithBots(t *testing.T, slugs ...string) *Broker {
 	t.Helper()
 	b := NewBrokerAt(filepath.Join(t.TempDir(), "broker-state.json"))
 	hireSpecialists(t, b, slugs...)
@@ -33,7 +33,7 @@ func brokerWithAgents(t *testing.T, slugs ...string) *Broker {
 }
 
 func TestTaskCreateWithoutChannelLandsInOwnerDM(t *testing.T) {
-	b := brokerWithAgents(t, appBuilderSlug)
+	b := brokerWithBots(t, appBuilderSlug)
 
 	resp, err := b.MutateTask(TaskPostRequest{
 		Action:    "create",
@@ -55,10 +55,10 @@ func TestTaskCreateWithoutChannelLandsInOwnerDM(t *testing.T) {
 }
 
 // The owner is preferred over the creator when the creator may post there.
-// The human is a party to every human__<agent> DM, so a human-created task
+// The human is a party to every human__<bot> DM, so a human-created task
 // lands on its owner.
 func TestTaskCreateChannelPrefersOwnerOverCreator(t *testing.T) {
-	b := brokerWithAgents(t, "planner")
+	b := brokerWithBots(t, "planner")
 
 	resp, err := b.MutateTask(TaskPostRequest{
 		Action:    "create",
@@ -75,13 +75,13 @@ func TestTaskCreateChannelPrefersOwnerOverCreator(t *testing.T) {
 	}
 }
 
-// But a DM has exactly two participants, so an agent opening a task for a
-// DIFFERENT agent must not be routed into a private conversation it cannot
+// But a DM has exactly two participants, so a bot opening a task for a
+// DIFFERENT bot must not be routed into a private conversation it cannot
 // post in. It falls back to its own DM rather than failing the create.
-func TestTaskCreateByAgentForAnotherAgentUsesTheCreatorsOwnDM(t *testing.T) {
+func TestTaskCreateByBotForAnotherBotUsesTheCreatorsOwnDM(t *testing.T) {
 	// planner is hired, so the fallback below is genuinely "the creator cannot
 	// post in the owner's DM" and not "the owner does not exist".
-	b := brokerWithAgents(t, "planner")
+	b := brokerWithBots(t, "planner")
 
 	resp, err := b.MutateTask(TaskPostRequest{
 		Action:    "create",
@@ -121,7 +121,7 @@ func TestTaskCreateWithNoResolvableActorFailsLoudly(t *testing.T) {
 // A mutation on an EXISTING task carries no channel and must not need one:
 // the task already knows where it lives.
 func TestTaskMutationWithoutChannelUsesTheTasksOwnChannel(t *testing.T) {
-	b := brokerWithAgents(t, "planner")
+	b := brokerWithBots(t, "planner")
 
 	created, err := b.MutateTask(TaskPostRequest{
 		Action:    "create",
@@ -151,7 +151,7 @@ func TestTaskMutationWithoutChannelUsesTheTasksOwnChannel(t *testing.T) {
 func TestTaskCreateIntoRetiredGeneralIsRefused(t *testing.T) {
 	// The owner is on the roster, so the refusal below can only come from
 	// #general being unroutable — not from an unresolvable owner.
-	b := brokerWithAgents(t, appBuilderSlug)
+	b := brokerWithBots(t, appBuilderSlug)
 
 	_, err := b.MutateTask(TaskPostRequest{
 		Action:    "create",
@@ -167,7 +167,7 @@ func TestTaskCreateIntoRetiredGeneralIsRefused(t *testing.T) {
 }
 
 func TestHomeChannelForWriterSkipsUnresolvableAndInaccessible(t *testing.T) {
-	b := brokerWithAgents(t, LibrarianSlug)
+	b := brokerWithBots(t, LibrarianSlug)
 
 	// "" is skipped as empty, "human" as a non-member; the librarian resolves.
 	got, err := b.homeChannelForWriter("human", "", "human", "librarian")

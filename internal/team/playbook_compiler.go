@@ -4,7 +4,7 @@ package team
 //
 // Flow:
 //
-//	team/playbooks/{slug}.md            (human/agent-authored wiki article)
+//	team/playbooks/{slug}.md            (human/bot-authored wiki article)
 //	          │
 //	          │ CompilePlaybook(repo, wikiPath)
 //	          ▼
@@ -16,11 +16,11 @@ package team
 // audit trail matches the entity-brief pattern (see entity_synthesizer.go).
 //
 // The compiled skill is NOT an independent document — it is a prompt that
-// instructs any invoking agent to (a) read the source playbook, (b) execute
+// instructs any invoking bot to (a) read the source playbook, (b) execute
 // the "What to do" steps, and (c) record the outcome via the
 // playbook_execution_record MCP tool. That closes the loop:
 //
-//	read playbook → execute → record outcome → recompile → next agent starts smarter.
+//	read playbook → execute → record outcome → recompile → next bot starts smarter.
 
 import (
 	"context"
@@ -39,7 +39,7 @@ const PlaybookCompiledDirRel = "team/playbooks/.compiled"
 
 // ArchivistAuthor is defined in entity_synthesizer.go — compilation reuses
 // the same synthetic identity. Any write to team/playbooks/.compiled/...
-// should be authored by the archivist, never by a roster agent.
+// should be authored by the archivist, never by a roster bot.
 
 // ErrNotAPlaybook is returned when CompilePlaybook is called on a path that
 // is not a team/playbooks/*.md article.
@@ -152,7 +152,7 @@ func CompilePlaybookAndCommit(ctx context.Context, repo *Repo, wikiPath string) 
 // Frontmatter keys:
 //   - name            slug, kebab-case
 //   - description     one-line extracted from the source (first paragraph)
-//     — agents see this when deciding whether to invoke
+//     — bots see this when deciding whether to invoke
 //   - allowed-tools   the MCP tools an execution run needs:
 //     team_wiki_read (read the playbook), playbook_* tools
 //     (list/record outcome), and team_learning_record for durable lessons.

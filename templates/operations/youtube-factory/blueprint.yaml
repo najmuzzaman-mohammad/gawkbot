@@ -30,11 +30,11 @@ requirements:
   - kind: api-key
     name: "ANTHROPIC_API_KEY or OPENAI_API_KEY"
     required: true
-    detail: "Powers the research, script, and editor agents."
+    detail: "Powers the research, script, and editor bots."
   - kind: runtime
     name: "Claude Code or Codex CLI"
     required: true
-    detail: "Runs the agent loops locally."
+    detail: "Runs the bot loops locally."
 example_artifacts:
   - kind: plan
     title: "10-video content slate"
@@ -196,17 +196,17 @@ starter:
 bootstrap_config:
   channel_name: "{{brand_name}}"
   channel_slug: "{{brand_slug}}"
-  niche: "The YouTube channel for people running AI agents like a real team, not a ticket queue."
-  audience: "AI operators, GTM engineers, technical founders, Claude Pro and Max users running 3+ agents, teams looking for better multi-agent visibility"
-  positioning: "Operator-grade multi-agent demos, migration breakdowns, and runbooks for teams that need visibility and control."
+  niche: "The YouTube channel for people running AI bots like a real team, not a ticket queue."
+  audience: "AI operators, GTM engineers, technical founders, Claude Pro and Max users running 3+ bots, teams looking for better multi-bot visibility"
+  positioning: "Operator-grade multi-bot demos, migration breakdowns, and runbooks for teams that need visibility and control."
   content_pillars:
-    - "Show me how to see and interrupt agents before bad work compounds."
+    - "Show me how to see and interrupt bots before bad work compounds."
     - "Give me the shortest path away from blind orchestration and ticket-queue workflows."
-    - "Help me run 3+ agents without idle burn, workspace chaos, or fake completion."
+    - "Help me run 3+ bots without idle burn, workspace chaos, or fake completion."
   content_series:
     - "Live Steering Demos"
     - "Migration and Comparison"
-    - "Agent Ops Fixes"
+    - "Bot Ops Fixes"
     - "AI Team Builds"
   monetization_hooks:
     - "free_benchmark"
@@ -236,13 +236,13 @@ bootstrap_config:
       slot: "description_links"
       cta: "Open Migration Kit"
     - stage: "Support"
-      name: "Agent Manager Scorecard"
+      name: "Bot Manager Scorecard"
       slot: "description_links"
-      cta: "Open Agent Manager Scorecard"
+      cta: "Open Bot Manager Scorecard"
     - stage: "Support"
-      name: "Multi-Agent Operating Playbook"
+      name: "Multi-Bot Operating Playbook"
       slot: "description_links"
-      cta: "Open Multi-Agent Operating Playbook"
+      cta: "Open Multi-Bot Operating Playbook"
   kpi_tracking:
     - name: "Primary CTA conversions"
       target: "25+ monthly"
@@ -313,8 +313,8 @@ monetization_ladder:
     copy: "Turn digital products into a reusable commercial lane in the operating system."
     footer: "Loaded from the channel pack revenue ladder."
   - kicker: "Step 5"
-    title: "agent ops teardown"
-    copy: "Turn agent ops teardown into a reusable commercial lane in the operating system."
+    title: "bot ops teardown"
+    copy: "Turn bot ops teardown into a reusable commercial lane in the operating system."
     footer: "Loaded from the channel pack revenue ladder."
   - kicker: "Step 6"
     title: "implementation sprint"

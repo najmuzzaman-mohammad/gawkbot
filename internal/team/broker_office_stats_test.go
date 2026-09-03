@@ -45,7 +45,7 @@ func TestOfficeStats_MatchesListEndpoints(t *testing.T) {
 
 	b := newTestBroker(t)
 
-	// Roster: two agents + the human seat. ceo has a live "active"
+	// Roster: two bots + the human seat. ceo has a live "active"
 	// snapshot; ada is idle.
 	b.mu.Lock()
 	b.members = []officeMember{
@@ -53,7 +53,7 @@ func TestOfficeStats_MatchesListEndpoints(t *testing.T) {
 		{Slug: "ada", Name: "Ada"},
 		{Slug: "human", Name: "You"},
 	}
-	b.activity = map[string]agentActivitySnapshot{
+	b.activity = map[string]botActivitySnapshot{
 		"ceo": {Slug: "ceo", Status: "active", Activity: "tool_use"},
 		"ada": {Slug: "ada", Status: "idle"},
 	}
@@ -186,7 +186,7 @@ func TestOfficeStats_MatchesListEndpoints(t *testing.T) {
 		t.Fatal("inbox-derived attention count is 0; seed should have produced attention items")
 	}
 
-	// ── Agents: derive truth from /office-members live status.
+	// ── Bots: derive truth from /office-members live status.
 	var memberList struct {
 		Members []struct {
 			Slug   string `json:"slug"`
@@ -203,11 +203,11 @@ func TestOfficeStats_MatchesListEndpoints(t *testing.T) {
 			wantActive++
 		}
 	}
-	if stats.AgentsActive != wantActive {
-		t.Fatalf("stats.AgentsActive = %d, want members-derived %d", stats.AgentsActive, wantActive)
+	if stats.BotsActive != wantActive {
+		t.Fatalf("stats.BotsActive = %d, want members-derived %d", stats.BotsActive, wantActive)
 	}
-	if stats.AgentsActive != 1 {
-		t.Fatalf("stats.AgentsActive = %d, want seeded 1 (ceo active, ada idle)", stats.AgentsActive)
+	if stats.BotsActive != 1 {
+		t.Fatalf("stats.BotsActive = %d, want seeded 1 (ceo active, ada idle)", stats.BotsActive)
 	}
 
 	// No wiki worker in this fixture: count must degrade to zero, not error.

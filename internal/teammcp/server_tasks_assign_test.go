@@ -43,7 +43,7 @@ func TestTeamTaskAssignRoutesToReassign(t *testing.T) {
 }
 
 // TestTeamTaskClaimTakesItForMe is assign's counterpart: claim ignores the
-// owner arg entirely and always names the calling agent, so the two verbs stay
+// owner arg entirely and always names the calling bot, so the two verbs stay
 // distinct concepts rather than two spellings of one.
 func TestTeamTaskClaimTakesItForMe(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())

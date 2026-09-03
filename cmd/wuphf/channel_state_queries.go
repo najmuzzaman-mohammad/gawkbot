@@ -21,7 +21,7 @@ func (m channelModel) visiblePendingRequest() *channelui.Interview {
 
 func (m channelModel) composerTargetLabel() string {
 	if m.isOneOnOne() {
-		return "1:1 with " + m.oneOnOneAgentName()
+		return "1:1 with " + m.oneOnOneBotName()
 	}
 	if chInfo := m.currentChannelInfo(); chInfo != nil && chInfo.IsDM() {
 		name := chInfo.Name

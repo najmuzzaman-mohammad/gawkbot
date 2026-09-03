@@ -295,7 +295,7 @@ func (b *Broker) handlePamAction(w http.ResponseWriter, r *http.Request) {
 
 	actor := strings.TrimSpace(body.ActorSlug)
 	if actor == "" {
-		actor = strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
+		actor = strings.TrimSpace(r.Header.Get(botRateLimitHeader))
 	}
 	if actor == "" {
 		actor = "human"

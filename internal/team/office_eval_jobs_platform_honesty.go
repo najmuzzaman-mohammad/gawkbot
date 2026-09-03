@@ -108,7 +108,7 @@ func evalJobPlatformHonesty(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	// Fresh observable trace (a ledger bump, as a real turn produces)
 	// clears the marker on the next sweep.
 	fx.broker.AppendTaskLedgerEntry(taskID, TaskLedgerEntry{
-		Agent:   "eng",
+		Bot:     "eng",
 		At:      stallNow.Add(2 * time.Minute).Format(time.RFC3339),
 		Outcome: "ok",
 		Said:    "back to work — drafting the plan now",

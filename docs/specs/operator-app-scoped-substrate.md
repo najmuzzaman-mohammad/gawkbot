@@ -21,7 +21,7 @@ place, flaky refine stream) are one wrong shape. Fix the shape, not the symptoms
 
 An **App** is the unit. It owns its parts, scoped inside it: **UI**, **Workflow**,
 **Data**, **Knowledge**, plus versions and a build/edit conversation. Building or
-editing is an **app-scoped agent run**, addressed by `app_<id>`, streamed by app,
+editing is an **app-scoped bot run**, addressed by `app_<id>`, streamed by app,
 surfaced in the app's own chat. No office task, channel, CEO, or governor in the
 app path. The FE keys off **one** identifier (the app), not three.
 
@@ -44,7 +44,7 @@ app path. The FE keys off **one** identifier (the app), not three.
 ### S1 — backend: app-scoped activity stream  ← START HERE
 Add `GET /apps/{id}/activity` (SSE). Resolve the app → its backing app-builder
 run (via `EditChannel` → the app-builder task whose `Channel == EditChannel` →
-that task's id), then stream that run's agent events using the existing
+that task's id), then stream that run's bot events using the existing
 `subscribeTaskWithRecent` machinery. Task id stays internal; the FE only sees
 `/apps/{id}/activity`. Returns an empty SSE stream that stays open (replay-end +
 heartbeat) when the app has no active run, so the UI can attach before the build

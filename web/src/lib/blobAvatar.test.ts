@@ -50,15 +50,15 @@ describe("blob silhouettes", () => {
   });
 });
 
-describe("per-agent identity", () => {
+describe("per-bot identity", () => {
   it("is stable for a slug", () => {
-    // The whole point of deriving rather than storing: an agent looks the same
+    // The whole point of deriving rather than storing: a bot looks the same
     // in every surface, in every session, forever.
     expect(blobShapeIndex("ceo")).toBe(blobShapeIndex("ceo"));
     expect(blobColor("ceo")).toBe(blobColor("ceo"));
   });
 
-  it("does not change when other agents are added", () => {
+  it("does not change when other bots are added", () => {
     // Derived from the slug alone, never from roster position. Roster-indexed
     // assignment recolours everyone when somebody joins, which breaks the one
     // thing colour is for.
@@ -85,7 +85,7 @@ describe("per-agent identity", () => {
     const shapes = new Set(roster.map(blobShapeIndex));
     const colors = new Set(roster.map(blobColor));
     // Two axes, so near-collisions on one are usually rescued by the other.
-    // Not asserting all-distinct: with 8 shapes and 7 agents a collision is
+    // Not asserting all-distinct: with 8 shapes and 7 bots a collision is
     // ordinary, and a test that demanded uniqueness would be pinning luck.
     expect(shapes.size).toBeGreaterThanOrEqual(4);
     expect(colors.size).toBeGreaterThanOrEqual(5);

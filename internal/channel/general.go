@@ -25,10 +25,10 @@ const GeneralSlug = "general"
 // listed. It is THE flip for the whole kill switch: every gate in every
 // package funnels through this one return.
 //
-// Why #general is going away: the product is moving to per-agent DMs. A human
-// talks to exactly one agent at a time, 1:1. Tagging another agent inside that
-// DM makes the agent you are talking to go consult the tagged agent and report
-// back; the tagged agent does not walk into your conversation. A shared room
+// Why #general is going away: the product is moving to per-bot DMs. A human
+// talks to exactly one bot at a time, 1:1. Tagging another bot inside that
+// DM makes the bot you are talking to go consult the tagged bot and report
+// back; the tagged bot does not walk into your conversation. A shared room
 // undercuts that model — it re-creates the many-to-many surface the DM design
 // exists to replace, and it gives every write path a silent dumping ground to
 // fall back to.
@@ -97,18 +97,18 @@ var ErrGroupDMsDisabled = errors.New("channel: group DMs are disabled")
 
 // GroupDMsEnabled reports whether a group DM may be created, routed to, or
 // listed. Separate from GeneralEnabled on purpose: bringing back the shared
-// room and bringing back multi-agent DMs are two different product decisions.
+// room and bringing back multi-bot DMs are two different product decisions.
 //
 // Why group DMs are going away, in the founder's terms: a group DM is a
 // channel by another name. ChannelTypeGroup is documented right here in
-// types.go as "Group DMs (human + N agents)" — several agents in one room,
+// types.go as "Group DMs (human + N bots)" — several bots in one room,
 // which is precisely the shape #general is being retired to stop. Left alive
 // it becomes the new #general within a week.
 //
 // The point of DM-first is that every conversation has exactly two
-// participants, so the human can actually follow it. Tagging another agent
-// inside a DM makes the agent you are talking to go consult that agent and
-// report back; it does not pull them into the room. Agent-to-agent 1:1 DMs
+// participants, so the human can actually follow it. Tagging another bot
+// inside a DM makes the bot you are talking to go consult that bot and
+// report back; it does not pull them into the room. Bot-to-bot 1:1 DMs
 // stay as a MECHANISM for exactly that consult, but they are not rooms the
 // human hangs out in.
 //
@@ -152,7 +152,7 @@ func SetGroupDMsEnabledForTest(enabled bool) (restore func()) {
 // This one carries a caveat the other two do not, and it belongs in the code
 // rather than in a review thread. The founder retired #general and group DMs by
 // NAME. He did not say this sentence about named channels. The retirement is
-// inferred from the stated model — "all chats will be in agent DMs", and "even
+// inferred from the stated model — "all chats will be in bot DMs", and "even
 // group DMs should be retired because they are essentially channels" — on the
 // reasoning that a #product room is the same object as a group DM wearing a
 // different label. That inference is the team lead's call, made explicitly and
@@ -163,9 +163,9 @@ func SetGroupDMsEnabledForTest(enabled bool) (restore func()) {
 // GeneralEnabled on the grounds that they always move together.
 //
 // NOT covered by this switch, deliberately:
-//   - Slack and Telegram bridge channels. Those are not rooms agents chat in,
+//   - Slack and Telegram bridge channels. Those are not rooms bots chat in,
 //     they are how EXTERNAL messages arrive. Retiring them breaks integrations
-//     and has nothing to do with agents piling into a conversation.
+//     and has nothing to do with bots piling into a conversation.
 //   - app-<id> edit threads. Hidden plumbing, never listed, and load-bearing
 //     for apps being editable at all.
 //

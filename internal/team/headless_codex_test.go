@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -96,7 +96,7 @@ func TestBuildCodexOfficeConfigOverridesIncludesOfficeMCPEnv(t *testing.T) {
 	}
 	l := &Launcher{
 		broker:      broker,
-		pack:        agent.GetPack("founding-team"),
+		pack:        bot.GetPack("founding-team"),
 		sessionMode: SessionModeOneOnOne,
 		oneOnOne:    "pm",
 	}
@@ -164,7 +164,7 @@ func TestRunHeadlessCodexTurnUsesHeadlessOfficeRuntime(t *testing.T) {
 	t.Setenv("WUPHF_ONE_IDENTITY_TYPE", "user")
 
 	l := &Launcher{
-		pack:     agent.GetPack("founding-team"),
+		pack:     bot.GetPack("founding-team"),
 		cwd:      t.TempDir(),
 		broker:   newTestBroker(t),
 		headless: headlessWorkerPool{ctx: t.Context()},
@@ -200,14 +200,14 @@ func TestRunHeadlessCodexTurnUsesHeadlessOfficeRuntime(t *testing.T) {
 		t.Fatalf("a retired nex MCP server must never be mounted, got %#v", record.Args)
 	}
 	// V3-N5 isolation contract: a turn without a task worktree runs in the
-	// agent's scratch dir under the runtime home — NEVER the broker
+	// bot's scratch dir under the runtime home — NEVER the broker
 	// process launch cwd (l.cwd).
 	wantScratch := filepath.Join(tmpHome, ".wuphf", "agent-scratch", "ceo")
 	if got := argValue(record.Args, "-C"); !samePath(got, wantScratch) {
-		t.Fatalf("expected codex workspace root %q (agent scratch), got %q", wantScratch, got)
+		t.Fatalf("expected codex workspace root %q (bot scratch), got %q", wantScratch, got)
 	}
 	if !samePath(record.Dir, wantScratch) {
-		t.Fatalf("expected command dir %q (agent scratch), got %q", wantScratch, record.Dir)
+		t.Fatalf("expected command dir %q (bot scratch), got %q", wantScratch, record.Dir)
 	}
 	if samePath(record.Dir, l.cwd) {
 		t.Fatalf("command dir must never be the broker launch cwd %q", l.cwd)
@@ -216,7 +216,7 @@ func TestRunHeadlessCodexTurnUsesHeadlessOfficeRuntime(t *testing.T) {
 		t.Fatalf("scratch-dir turn must not advertise WUPHF_WORKTREE_PATH, got %#v", record.Env)
 	}
 	if !containsEnv(record.Env, "WUPHF_AGENT_SLUG=ceo") {
-		t.Fatalf("expected agent env, got %#v", record.Env)
+		t.Fatalf("expected bot env, got %#v", record.Env)
 	}
 	wantCodexHome := filepath.Join(os.Getenv("HOME"), ".wuphf", "codex-headless")
 	if !containsEnv(record.Env, "HOME="+wantCodexHome) {
@@ -252,16 +252,16 @@ func TestRunHeadlessCodexTurnUsesHeadlessOfficeRuntime(t *testing.T) {
 	if !strings.Contains(record.Stdin, "<system>") || !strings.Contains(record.Stdin, "You have new work in #launch.") {
 		t.Fatalf("expected notification prompt in stdin, got %q", record.Stdin)
 	}
-	if got := l.broker.usage.Agents["ceo"].TotalTokens; got != 174 {
+	if got := l.broker.usage.Bots["ceo"].TotalTokens; got != 174 {
 		t.Fatalf("expected recorded codex usage total 174, got %d", got)
 	}
-	if got := l.broker.usage.Agents["ceo"].InputTokens; got != 123 {
+	if got := l.broker.usage.Bots["ceo"].InputTokens; got != 123 {
 		t.Fatalf("expected recorded input tokens 123, got %d", got)
 	}
-	if got := l.broker.usage.Agents["ceo"].CacheReadTokens; got != 45 {
+	if got := l.broker.usage.Bots["ceo"].CacheReadTokens; got != 45 {
 		t.Fatalf("expected recorded cached input tokens 45, got %d", got)
 	}
-	if got := l.broker.usage.Agents["ceo"].OutputTokens; got != 6 {
+	if got := l.broker.usage.Bots["ceo"].OutputTokens; got != 6 {
 		t.Fatalf("expected recorded output tokens 6, got %d", got)
 	}
 }
@@ -313,7 +313,7 @@ func TestRunHeadlessCodexTurnMetricsNoDataRace(t *testing.T) {
 	t.Setenv("WUPHF_OPENAI_API_KEY", "openai-secret-key")
 
 	l := &Launcher{
-		pack:     agent.GetPack("founding-team"),
+		pack:     bot.GetPack("founding-team"),
 		cwd:      t.TempDir(),
 		broker:   newTestBroker(t),
 		headless: headlessWorkerPool{ctx: t.Context()},
@@ -324,7 +324,7 @@ func TestRunHeadlessCodexTurnMetricsNoDataRace(t *testing.T) {
 	}
 }
 
-func TestRunHeadlessCodexTurnUsesAssignedWorktreeForCodingAgents(t *testing.T) {
+func TestRunHeadlessCodexTurnUsesAssignedWorktreeForCodingBots(t *testing.T) {
 	recordFile := filepath.Join(t.TempDir(), "headless-codex-record.jsonl")
 	worktreeDir := t.TempDir()
 	repoRoot := t.TempDir()
@@ -391,7 +391,7 @@ func TestRunHeadlessCodexTurnUsesAssignedWorktreeForCodingAgents(t *testing.T) {
 	}
 
 	l := &Launcher{
-		pack:     agent.GetPack("founding-team"),
+		pack:     bot.GetPack("founding-team"),
 		cwd:      repoRoot,
 		broker:   broker,
 		headless: headlessWorkerPool{ctx: t.Context()},
@@ -507,7 +507,7 @@ func TestRunHeadlessCodexTurnUsesAssignedWorktreeForLocalWorktreeBuilder(t *test
 	}
 
 	l := &Launcher{
-		pack:     agent.GetPack("founding-team"),
+		pack:     bot.GetPack("founding-team"),
 		cwd:      repoRoot,
 		broker:   broker,
 		headless: headlessWorkerPool{ctx: t.Context()},
@@ -565,7 +565,7 @@ func TestRunHeadlessCodexTurnPassesScopedChannelEnv(t *testing.T) {
 	t.Setenv("WUPHF_CHANNEL", "team")
 
 	l := &Launcher{
-		pack:     agent.GetPack("founding-team"),
+		pack:     bot.GetPack("founding-team"),
 		cwd:      t.TempDir(),
 		broker:   newTestBroker(t),
 		headless: headlessWorkerPool{ctx: t.Context()},
@@ -677,7 +677,7 @@ func TestEnqueueHeadlessCodexTurnProcessesFIFO(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
 
 	// Use a specialist slug (not the lead/ceo) so the cap-at-1 and queue-hold
-	// logic for the lead agent does not interfere with this FIFO test.
+	// logic for the lead bot does not interfere with this FIFO test.
 	l.enqueueHeadlessCodexTurn("fe", "first")
 	l.enqueueHeadlessCodexTurn("fe", "second")
 
@@ -691,7 +691,7 @@ func TestEnqueueHeadlessCodexTurnProcessesFIFO(t *testing.T) {
 func TestPostHeadlessFinalMessageIfSilentPostsFinalOutput(t *testing.T) {
 	// Isolate state from the user's real ~/.wuphf/team/broker-state.json.
 	// Without isolation NewBroker could still pick up state from a shared
-	// ~/.wuphf/team/broker-state.json, and agentPostedSubstantiveMessageToChannelSince
+	// ~/.wuphf/team/broker-state.json, and botPostedSubstantiveMessageToChannelSince
 	// could observe an unrelated ceo message, making the "expected posted=true"
 	// assertion fail non-deterministically depending on machine history.
 	b := newTestBroker(t)
@@ -725,7 +725,7 @@ func TestPostHeadlessFinalMessageIfSilentPostsFinalOutput(t *testing.T) {
 		t.Fatalf("second fallback post: %v", err)
 	}
 	if posted {
-		t.Fatal("expected fallback to skip when the agent already posted to the target channel")
+		t.Fatal("expected fallback to skip when the bot already posted to the target channel")
 	}
 }
 
@@ -741,7 +741,7 @@ func TestSendTaskUpdatePassesTaskChannelToHeadlessTurn(t *testing.T) {
 
 	l := newHeadlessLauncherForTest(t)
 	l.provider = "codex"
-	l.pack = agent.GetPack("founding-team")
+	l.pack = bot.GetPack("founding-team")
 
 	l.sendTaskUpdate(notificationTarget{Slug: "eng"}, officeActionLog{
 		Kind:    "task_updated",
@@ -973,7 +973,7 @@ func newHeadlessLauncherForTest(t *testing.T) *Launcher {
 			active:  make(map[headlessLane]*headlessCodexActiveTurn),
 			queues:  make(map[headlessLane][]headlessCodexTurn),
 		},
-		pack: &agent.PackDefinition{LeadSlug: "ceo"}, // deterministic lead; avoids reading global broker state
+		pack: &bot.PackDefinition{LeadSlug: "ceo"}, // deterministic lead; avoids reading global broker state
 	}
 	// Drain queue workers before the test's t.TempDir cleanup runs.
 	// t.Cleanup is LIFO, and t.TempDir registers its cleanup at the
@@ -1071,7 +1071,7 @@ func TestFinishHeadlessTurnDoesNotWakeLeadWhenLeadAlreadyQueued(t *testing.T) {
 
 func TestEnqueueHeadlessCodexTurnRecordDropsDuplicateLeadTaskWhileActive(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
 	l.headless.active[headlessLane{slug: "ceo"}] = &headlessCodexActiveTurn{
 		Turn: headlessCodexTurn{
 			Prompt: "first prompt about #task-3",
@@ -1117,7 +1117,7 @@ func TestEnqueueHeadlessCodexTurnRecordQueuesUrgentLeadWakeForSameTask(t *testin
 
 	cancelled := false
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
 	l.broker = b
 	// The lead now runs office tasks on their own per-task lane (CEO
 	// multitasking), so the in-flight turn for this task lives on taskLane,
@@ -1149,9 +1149,9 @@ func TestEnqueueHeadlessCodexTurnRecordQueuesUrgentLeadWakeForSameTask(t *testin
 	}
 }
 
-func TestEnqueueHeadlessCodexTurnRecordDropsDuplicateAgentTaskWhileActive(t *testing.T) {
+func TestEnqueueHeadlessCodexTurnRecordDropsDuplicateBotTaskWhileActive(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
 	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
 		Turn: headlessCodexTurn{
 			Prompt: "first prompt about #task-11",
@@ -1167,13 +1167,13 @@ func TestEnqueueHeadlessCodexTurnRecordDropsDuplicateAgentTaskWhileActive(t *tes
 	})
 
 	if got := len(l.headless.queues[headlessLane{slug: "eng"}]); got != 0 {
-		t.Fatalf("expected no queued duplicate agent turn for same task, got %d", got)
+		t.Fatalf("expected no queued duplicate bot turn for same task, got %d", got)
 	}
 }
 
-func TestEnqueueHeadlessCodexTurnRecordReplacesPendingAgentTaskTurn(t *testing.T) {
+func TestEnqueueHeadlessCodexTurnRecordReplacesPendingBotTaskTurn(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
 	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.queues[headlessLane{slug: "eng"}] = []headlessCodexTurn{{
 		Prompt:     "older prompt about #task-11",
@@ -1191,16 +1191,16 @@ func TestEnqueueHeadlessCodexTurnRecordReplacesPendingAgentTaskTurn(t *testing.T
 
 	queue := l.headless.queues[headlessLane{slug: "eng"}]
 	if got := len(queue); got != 1 {
-		t.Fatalf("expected single queued agent turn for same task, got %d", got)
+		t.Fatalf("expected single queued bot turn for same task, got %d", got)
 	}
 	if got := queue[0].Prompt; got != "newer prompt about #task-11" {
-		t.Fatalf("expected queued agent turn to be replaced, got %q", got)
+		t.Fatalf("expected queued bot turn to be replaced, got %q", got)
 	}
 }
 
-func TestEnqueueHeadlessCodexTurnRecordAllowsRetryBehindActiveAgentTask(t *testing.T) {
+func TestEnqueueHeadlessCodexTurnRecordAllowsRetryBehindActiveBotTask(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
 	l.headless.workers[headlessLane{slug: "eng"}] = true
 	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
 		Turn: headlessCodexTurn{
@@ -1233,13 +1233,13 @@ func TestEnqueueHeadlessCodexTurnRecordAllowsRetryBehindActiveAgentTask(t *testi
 
 func TestEnqueueHeadlessCodexTurnRecordHumanBypassesLeadQueueCap(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
 	l.headless.workers[headlessLane{slug: "ceo"}] = true
-	// Lead queue is already at the cap (1 pending) with an agent-originated
+	// Lead queue is already at the cap (1 pending) with a bot-originated
 	// turn. Without the human bypass, a follow-up human chat would be dropped
 	// with "queue-drop: lead queue at cap" — the exact symptom reported.
 	l.headless.queues[headlessLane{slug: "ceo"}] = []headlessCodexTurn{{
-		Prompt:     "agent-originated catchup",
+		Prompt:     "bot-originated catchup",
 		EnqueuedAt: time.Now(),
 	}}
 
@@ -1263,8 +1263,8 @@ func TestEnqueueHeadlessCodexTurnRecordHumanBypassesLeadQueueCap(t *testing.T) {
 
 func TestEnqueueHeadlessCodexTurnRecordHumanBypassesLeadQueueHold(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
-	// A specialist is still active. An agent-originated lead turn would be
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
+	// A specialist is still active. A bot-originated lead turn would be
 	// deferred via deferredLead; a human chat must skip the hold and queue
 	// immediately so the lead absorbs the message right away.
 	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
@@ -1293,7 +1293,7 @@ func TestEnqueueHeadlessCodexTurnRecordHumanBypassesLeadQueueHold(t *testing.T) 
 
 func TestEnqueueHeadlessCodexTurnRecordHumanPreemptsActiveTurn(t *testing.T) {
 	l := newHeadlessLauncherForTest(t)
-	l.pack = &agent.PackDefinition{LeadSlug: "ceo"}
+	l.pack = &bot.PackDefinition{LeadSlug: "ceo"}
 	l.headless.workers[headlessLane{slug: "eng"}] = true
 
 	cancelled := false
@@ -1301,7 +1301,7 @@ func TestEnqueueHeadlessCodexTurnRecordHumanPreemptsActiveTurn(t *testing.T) {
 	// without the human bypass, it would never be cancelled by a follow-up
 	// enqueue.
 	l.headless.active[headlessLane{slug: "eng"}] = &headlessCodexActiveTurn{
-		Turn:      headlessCodexTurn{Prompt: "agent-originated work in progress"},
+		Turn:      headlessCodexTurn{Prompt: "bot-originated work in progress"},
 		StartedAt: time.Now(),
 		Cancel:    func() { cancelled = true },
 	}
@@ -2475,7 +2475,7 @@ func TestPreflightHeadlessCodexAuthFailsAndPostsSystemMessage(t *testing.T) {
 		t.Fatalf("expected 'codex auth missing' in error, got %v", err)
 	}
 
-	// The channel should now contain a system message naming the agent and
+	// The channel should now contain a system message naming the bot and
 	// the remediation the user needs to take. Without this the user sees
 	// nothing but "Routing..." forever.
 	messages := broker.ChannelMessages("team")

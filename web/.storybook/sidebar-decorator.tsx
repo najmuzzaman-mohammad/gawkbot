@@ -1,7 +1,7 @@
 /**
  * Sidebar story decorator.
  *
- * Mounts the REAL Sidebar / AgentList / ChannelList / AppList / IssuesGroup /
+ * Mounts the REAL Sidebar / BotList / ChannelList / AppList / IssuesGroup /
  * WorkspaceSummary etc. — no DOM duplication. We give them:
  *
  *   1. A fresh QueryClient seeded with sample data (members, channels, tasks,
@@ -14,7 +14,7 @@
  *      handed us via context — so RouterProvider mounts the story content
  *      instead of trying to load the real RootRoute shell.
  *   4. Pre-set sidebar-open Zustand state so all four collapsible sections
- *      (Agents / Channels / Issues / Tools) start expanded.
+ *      (Bots / Channels / Issues / Tools) start expanded.
  *
  * Net effect: stories render the real components and exercise the real CSS,
  * which is what we want when "sidebar in storybook is not from this reality"
@@ -216,7 +216,7 @@ export function SidebarContext({
   useEffect(() => {
     const initial = useAppStore.getState();
     useAppStore.setState({
-      sidebarAgentsOpen: true,
+      sidebarBotsOpen: true,
       sidebarChannelsOpen: true,
       sidebarTasksOpen: true,
       sidebarAppsOpen: true,
@@ -225,7 +225,7 @@ export function SidebarContext({
     });
     return () => {
       useAppStore.setState({
-        sidebarAgentsOpen: initial.sidebarAgentsOpen,
+        sidebarBotsOpen: initial.sidebarBotsOpen,
         sidebarChannelsOpen: initial.sidebarChannelsOpen,
         sidebarTasksOpen: initial.sidebarTasksOpen,
         sidebarAppsOpen: initial.sidebarAppsOpen,

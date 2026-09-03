@@ -1,10 +1,10 @@
-# wuphf-agent (pi-mono build agent)
+# wuphf-agent (pi-mono build bot)
 
 The BUILD half of the operator harness, on the **pi-mono** stack (`@mariozechner/pi-ai`):
 plain-language description → a deterministic `WorkflowSpec`. **Key-free, multi-provider.**
 
 This is the engine — the operator backend is fully pi-mono (see
-`docs/specs/operator-harness-clean-start.md` §Engine decision; the Python/deepagents
+`docs/specs/operator-harness-clean-start.md` §Engine decision; the Python/deepbots
 `harness/` fallback has been removed). It replaces driving `claude -p`/`codex` via
 stdout: pi-ai is an embeddable TypeScript SDK over one abstraction for **subscription
 OAuth** (Claude Pro/Max, ChatGPT/Codex, Copilot — `/login`, no API key), **BYOK** (env
@@ -52,7 +52,7 @@ bun run build:run "When a demo request comes in, score it; if over $5k route to 
 ## Auth (production)
 
 The operator runs pi `/login` once (Claude Pro/Max, ChatGPT/Codex, or Copilot) — no API
-key. pi-ai's OAuth is **Node-only** (not browser), so the agent runs in the Electron main
+key. pi-ai's OAuth is **Node-only** (not browser), so the bot runs in the Electron main
 process / a Node service, never the renderer. `HARNESS_PROVIDER` + `HARNESS_MODEL` select
 the model; default is local Ollama so it always runs out of the box.
 
@@ -67,11 +67,11 @@ bun run smoke     # boots it + exercises /health /providers /run /build/stream (
 ```
 
 The FE points its build/run calls here (same `WorkflowSpec` contract as the mock). This
-is the only operator backend — the Python `harness/` (deepagents) has been removed.
+is the only operator backend — the Python `harness/` (deepbots) has been removed.
 
 ### Persistence + routines routes
 
-Tools + artifacts persist as one JSON file per agent id (`src/store.ts`); chat
+Tools + artifacts persist as one JSON file per bot id (`src/store.ts`); chat
 sessions persist in pi's native session format (`src/sessions.ts`). Wire shapes
 live in `src/wire.ts` (`StoredTool`, `SessionMeta`, `SessionMessage`,
 `StoredArtifact`). Routine DEFINITIONS (prompt, cron, enable/disable, revision

@@ -44,7 +44,7 @@ type RuntimeMessage struct {
 type RuntimeSnapshot struct {
 	Channel      string
 	SessionMode  string
-	DirectAgent  string
+	DirectBot    string
 	GeneratedAt  time.Time
 	Tasks        []RuntimeTask
 	Requests     []RuntimeRequest
@@ -59,7 +59,7 @@ type RuntimeSnapshot struct {
 type RuntimeSnapshotInput struct {
 	Channel      string
 	SessionMode  string
-	DirectAgent  string
+	DirectBot    string
 	Tasks        []RuntimeTask
 	Requests     []RuntimeRequest
 	Recent       []RuntimeMessage
@@ -75,14 +75,14 @@ func BuildRuntimeSnapshot(input RuntimeSnapshotInput) RuntimeSnapshot {
 		now = time.Now()
 	}
 	sessionMode := NormalizeSessionMode(input.SessionMode)
-	directAgent := NormalizeOneOnOneAgent(input.DirectAgent)
+	directBot := NormalizeOneOnOneBot(input.DirectBot)
 	if sessionMode != SessionModeOneOnOne {
-		directAgent = ""
+		directBot = ""
 	}
 	snapshot := RuntimeSnapshot{
 		Channel:      strings.TrimSpace(input.Channel),
 		SessionMode:  sessionMode,
-		DirectAgent:  directAgent,
+		DirectBot:    directBot,
 		GeneratedAt:  now,
 		Tasks:        append([]RuntimeTask(nil), input.Tasks...),
 		Requests:     append([]RuntimeRequest(nil), input.Requests...),
@@ -94,7 +94,7 @@ func BuildRuntimeSnapshot(input RuntimeSnapshotInput) RuntimeSnapshot {
 	if len(snapshot.Registry.Entries) == 0 {
 		snapshot.Registry = BuildCapabilityRegistry(snapshot.Capabilities)
 	}
-	snapshot.Memory = BuildSessionMemorySnapshot(sessionMode, directAgent, snapshot.Tasks, snapshot.Requests, snapshot.Recent)
+	snapshot.Memory = BuildSessionMemorySnapshot(sessionMode, directBot, snapshot.Tasks, snapshot.Requests, snapshot.Recent)
 	snapshot.Recovery = snapshot.Memory.ToRecovery()
 	return snapshot
 }
@@ -109,7 +109,7 @@ func (s RuntimeSnapshot) FormatText() string {
 		fmt.Sprintf("Runtime state for #%s", channel),
 	}
 	if s.SessionMode == SessionModeOneOnOne {
-		lines = append(lines, fmt.Sprintf("- Session mode: 1:1 with @%s", s.DirectAgent))
+		lines = append(lines, fmt.Sprintf("- Session mode: 1:1 with @%s", s.DirectBot))
 	} else {
 		lines = append(lines, "- Session mode: office")
 	}

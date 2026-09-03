@@ -6,8 +6,8 @@ Always read this file before making any visual or UI decisions on the wiki. If a
 
 ## Product Context
 
-- **What this is:** the team wiki inside WUPHF — a git-native markdown knowledge base where AI agents write articles the user can read, `cat`, and `git clone`. Following Karpathy's "LLM wiki" pattern.
-- **Who it's for:** Claude Pro/Max power users running 3+ agents on WUPHF. Taste-maker slice — they noticed Karpathy's tweet, they care about files-over-apps, they ship.
+- **What this is:** the team wiki inside WUPHF — a git-native markdown knowledge base where AI bots write articles the user can read, `cat`, and `git clone`. Following Karpathy's "LLM wiki" pattern.
+- **Who it's for:** Claude Pro/Max power users running 3+ bots on WUPHF. Taste-maker slice — they noticed Karpathy's tweet, they care about files-over-apps, they ship.
 - **Memorable thing:** *"This feels like Wikipedia but for my company."* Every design decision should serve this.
 - **Project type:** In-app reading surface. Three-column layout. Reading-first editorial posture with live-update signals.
 
@@ -15,7 +15,7 @@ Always read this file before making any visual or UI decisions on the wiki. If a
 
 - **Direction:** Editorial-reference with Wikipedia fidelity. Paper-warm reading canvas + full Wikipedia information architecture (hat-bar, infobox, hatnote, TOC box, See also, Sources, categories, page footer) + modern typography.
 - **Decoration level:** Minimal — typography and structural chrome do the work. Zero gradients, zero texture, zero ornament.
-- **Mood:** A reference work that happens to be alive. Users feel "I have my own Wikipedia and I can see my agents writing it right now."
+- **Mood:** A reference work that happens to be alive. Users feel "I have my own Wikipedia and I can see my bots writing it right now."
 - **EUREKA:** Every team-knowledge UI (Notion, Linear, Obsidian, Confluence) converges on sans-serif + minimal chrome + rounded pills, which is why they all feel interchangeable. Going the opposite way (serif body + maximal Wikipedia-fidelity chrome + modern typography + live pulse signals) gives this wiki a face no competitor can copy without re-architecting.
 
 ## Color System
@@ -35,7 +35,7 @@ Always read this file before making any visual or UI decisions on the wiki. If a
 | `--border-strong` | `#B8B0A0` | Prominent box edges (infobox outline option) |
 | `--wikilink` | `#1264A3` | Functional wikilinks. Matches app's `--accent`. Dashed underline. |
 | `--wikilink-broken` | `#C94A4A` | Broken wikilinks. Subtle red. |
-| `--amber` | `#ECB22E` | Live-edit pulse, agent-identity cue. Matches app's `--yellow`. Used SPARINGLY. |
+| `--amber` | `#ECB22E` | Live-edit pulse, bot-identity cue. Matches app's `--yellow`. Used SPARINGLY. |
 | `--amber-bg` | `rgba(236,178,46,0.15)` | Timestamp background, "freshly edited" highlight |
 | `--amber-banner` | `#FDF6DC` | Status banner background at top of article |
 | `--code-bg` | `#F5F1E6` | Inline code + code block background |
@@ -128,7 +128,7 @@ Replaces Wikipedia's "cleanup template" banners. One-line amber-bordered context
 ### Hat-bar tabs
 Wikipedia's classic `Article | Talk | Edit | History`. WUPHF maps to:
 - **Article** (default, active) — read mode
-- **Talk** — agent commentary thread on this article (v1.1, show disabled in v1)
+- **Talk** — bot commentary thread on this article (v1.1, show disabled in v1)
 - **History** — git log for this file
 - **Raw markdown** — shows the actual `.md` source (honors file-over-app pitch; no Wikipedia equivalent)
 
@@ -138,7 +138,7 @@ Right rail on the hat-bar: short context metadata (e.g., `Cincinnati, OH · Mid-
 Fraunces title at 52px. Italic Source Serif 4 strapline directly below: *"From Team Wiki, your team's encyclopedia."* (The strapline text is fixed across all articles — changing it per article breaks the encyclopedic posture.) Thick horizontal divider (1px top, 1px bottom, 3px band) beneath the strapline — exact match to Wikipedia's Vector skin.
 
 ### Byline
-Agent pixel avatar (14×14 or 22×22, rendered with `image-rendering: pixelated`) + "Last edited by" + agent name + amber-background timestamp (`ts` class) with pulsing dot + dot-separator + started-date + contributors count.
+Bot pixel avatar (14×14 or 22×22, rendered with `image-rendering: pixelated`) + "Last edited by" + bot name + amber-background timestamp (`ts` class) with pulsing dot + dot-separator + started-date + contributors count.
 
 ### Hatnote
 Italic Source Serif 4 with left border. Points to related articles:
@@ -151,7 +151,7 @@ Bold `<strong>` on the first mention of the article subject. Superscript footnot
 ```
 
 ### Infobox (right-floated within article body)
-Dark title band (`--text` bg, `--paper` text) with Fraunces display title. Two-column dl inside. Secondary "ib-section" block for agent-ownership metadata. Width 260px. Border color `--text` (harder than paper border).
+Dark title band (`--text` bg, `--paper` text) with Fraunces display title. Two-column dl inside. Secondary "ib-section" block for bot-ownership metadata. Width 260px. Border color `--text` (harder than paper border).
 
 ### Section headings
 H2 with numbered counter (`<span class="num">1</span>`), inline with title, 1px border-bottom. H3 with nested numbering (`1.1`, `1.2`).
@@ -167,7 +167,7 @@ Wikilink syntax: `[[slug]]` → `team/slug.md`. `[[slug|Display]]` → renders "
 Italic Source Serif 4 list with disc bullets. Each item is a dashed-underline wikilink to a related article. H2 styled as section divider.
 
 ### Sources / References
-Numbered list. Each entry = one git commit that informed this article's content. Shape: `<commit-msg>` in body-serif + `<agent>` metadata (pixel avatar + agent name + commit hash link + date) in chrome font.
+Numbered list. Each entry = one git commit that informed this article's content. Shape: `<commit-msg>` in body-serif + `<agent>` metadata (pixel avatar + bot name + commit hash link + date) in chrome font.
 ```
 1. Initial account brief drafted from discovery calls.  [PM] • 3f9a21b • 2026-01-16
 2. Added signed-pilot fact and timeline.                [CEO] • 7c2e881 • 2026-01-17
@@ -179,11 +179,11 @@ Before the page footer. Tag-styled chips for categorical membership (Wikipedia c
 ### Page footer
 Wikipedia-style. Exact copy pattern:
 > *This article was last edited on 2026-04-19 at 16:24 UTC by **CEO**.
-> Text is available under the terms of your local workspace, written by your agent team.*
+> Text is available under the terms of your local workspace, written by your bot team.*
 
 Action links on a new line: `View git history · Cite this page · Download as markdown · Export PDF · Clone wiki locally`.
 
-Italic footer dim line: *"Every edit is a real git commit authored by the named agent. `git log team/people/customer-x.md` shows the full trail."*
+Italic footer dim line: *"Every edit is a real git commit authored by the named bot. `git log team/people/customer-x.md` shows the full trail."*
 
 ### TOC box (right rail)
 Bordered panel (`--border`, `--paper-dark` bg). Fraunces title "Contents" with a `[hide]` toggle link on the right. Numbered nested links (`1`, `1.1`, `1.2`, `2`, …) with mono-font numbers and serif-font titles.
@@ -195,7 +195,7 @@ Uppercase-small-caps label "Page stats". Two-column dl with chrome-font labels a
 Uppercase-small-caps label. Shows the canonical wikilink (`[[people/customer-x]]`) in a paper-dark bordered box with a Copy button. Hint text: *"Paste this in any article to link here."*
 
 ### Referenced by (right rail)
-Uppercase-small-caps label with count badge (`4`). List of backlinks — articles that link TO this article. Each entry: pixel avatar + article title + author agent tag on the right.
+Uppercase-small-caps label with count badge (`4`). List of backlinks — articles that link TO this article. Each entry: pixel avatar + article title + author bot tag on the right.
 
 ### Left nav — Tools section
 Below the thematic dir groups, separated by an `<hr>`. Monospace arrow bullets (`→`). Links to:
@@ -256,7 +256,7 @@ Custom React components:
 
 Typography loading: Google Fonts via `<link>` tags in `web/index.html`. No self-hosting in v1.
 
-Pixel avatars: reuse the existing `composeAvatar` routine from the WUPHF app (agent sprites at 14×14, scaled via `image-rendering: pixelated`). In DESIGN-WIKI.md's preview mocks, SVG rect approximations are used; the actual implementation uses the production sprite compositor.
+Pixel avatars: reuse the existing `composeAvatar` routine from the WUPHF app (bot sprites at 14×14, scaled via `image-rendering: pixelated`). In DESIGN-WIKI.md's preview mocks, SVG rect approximations are used; the actual implementation uses the production sprite compositor.
 
 ## Catalog view (`/wiki` landing)
 
@@ -344,8 +344,8 @@ reader, not a boxed widget.
 | 2026-04-19 | DESIGN-WIKI.md created | /design-consultation session. V3 (full Wikipedia IA + modern typography) selected over V1 (modernized only) and V2 (hybrid, partial Wikipedia IA). |
 | 2026-04-19 | Light mode only in v1 | Memorable-thing anchor is Wikipedia, which is light. Dark mode breaks the pattern-match. Revisit v1.1. |
 | 2026-04-19 | Serif body (Source Serif 4) over sans | Every team wiki is sans; serif body signals "reference material" vs "notes to self". Weightier, distinct. |
-| 2026-04-19 | Pixel agent avatars on bylines | Ties the wiki to the rest of the WUPHF app's agent identity. Nobody else does this. |
+| 2026-04-19 | Pixel bot avatars on bylines | Ties the wiki to the rest of the WUPHF app's bot identity. Nobody else does this. |
 | 2026-04-19 | Full Wikipedia IA primitives (infobox, hatnote, TOC box, Sources, Categories, page footer) | User direction: "exact UI and information architecture of Wikipedia with our nice styling." V3 maxes this out. |
-| 2026-04-19 | Per-agent wikis cut from v1 | See design doc §v1 scope. Team wiki only in v1. |
+| 2026-04-19 | Per-bot wikis cut from v1 | See design doc §v1 scope. Team wiki only in v1. |
 | 2026-04-19 | No dark mode toggle in v1 | Defer to v1.1. |
 | 2026-04-19 | react-markdown + remark-wiki-link library stack | No library replicates Wikipedia's full IA; we adopt remark/rehype ecosystem for markdown rendering and implement the chrome as custom React components. |

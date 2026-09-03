@@ -35,8 +35,8 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 	}
 
 	// Workspace isolation (V3-N5): task worktree when this turn's task has
-	// one, else the agent's scratch dir inside the office runtime home.
-	// NEVER the broker process launch cwd — the v3 live run had agents
+	// one, else the bot's scratch dir inside the office runtime home.
+	// NEVER the broker process launch cwd — the v3 live run had bots
 	// writing into (and `git checkout`-reverting) the founder's host repo.
 	workspaceDir, isTaskWorktree := l.headlessTurnWorkspace(slug, headlessTurnTaskID(ctx))
 
@@ -83,7 +83,7 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 		"--color", "never",
 		"--json",
 	)
-	if model := strings.TrimSpace(l.codexModelForAgent(ctx, slug)); model != "" {
+	if model := strings.TrimSpace(l.codexModelForBot(ctx, slug)); model != "" {
 		args = append(args, "--model", model)
 	}
 	// Per-task reasoning effort: when the active task carries a composer-set
@@ -114,13 +114,13 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 		return fmt.Errorf("attach codex stdout: %w", err)
 	}
 
-	// Tee raw stdout to the agent stream so the web UI can display live output.
+	// Tee raw stdout to the bot stream so the web UI can display live output.
 	// The ReadCodexJSONStream parser doesn't emit streaming events for exec mode's
 	// item.started/item.completed format, so we pipe raw lines directly.
-	var agentStream *agentStreamBuffer
+	var botStream *botStreamBuffer
 	taskID := l.turnTaskIDForCtx(ctx, slug)
 	if l.broker != nil {
-		agentStream = l.broker.AgentStream(slug)
+		botStream = l.broker.BotStream(slug)
 	}
 	pr, pw := io.Pipe()
 	// Ensure the pipe writer is always closed so the drain goroutine below
@@ -131,14 +131,14 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 	defer func() { _ = pw.Close() }()
 	teedStdout := io.TeeReader(stdout, pw)
 	// Pipe every raw line from the provider to the web UI's live stream.
-	// No filtering — the user sees everything the agent sees. The reader-
+	// No filtering — the user sees everything the bot sees. The reader-
 	// based drain in provider.DrainStreamLines guarantees an oversized
 	// line cannot stop the loop, so io.TeeReader cannot wedge cmd.Wait
 	// regardless of provider output size.
 	go func() {
 		err := provider.DrainStreamLines(pr, func(chunk string) {
-			if agentStream != nil && chunk != "" {
-				agentStream.PushTask(taskID, chunk)
+			if botStream != nil && chunk != "" {
+				botStream.PushTask(taskID, chunk)
 			}
 		})
 		if err != nil {
@@ -209,7 +209,7 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 	// at sentence/paragraph boundaries while the turn is still running.
 	// Codex doesn't expose a separate `thinking` event type — its `text`
 	// stream is the assistant's spoken output, which is exactly the
-	// surface "items that concern the user and other agents" should land
+	// surface "items that concern the user and other bots" should land
 	// on. Tool calls flush the buffer so a partial sentence doesn't get
 	// stranded across tool invocations.
 	target := firstNonEmpty(channel...)
@@ -256,7 +256,7 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 			}
 			relay.OnText(event.Text)
 			turnTextLen += len(event.Text)
-			emitHeadlessText(agentStream, turnID, HeadlessProviderCodex, slug, taskID, event.Text, event.RawType)
+			emitHeadlessText(botStream, turnID, HeadlessProviderCodex, slug, taskID, event.Text, event.RawType)
 		case "tool_use":
 			if isComputerTool(event.ToolName) {
 				l.pokeComputer(slug)
@@ -273,12 +273,12 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 			// Unwrap the proxy action_id into a domain token for the detection
 			// substrate (see manifestToolToken). The live event keeps the name.
 			turnToolNames = append(turnToolNames, manifestToolToken(event.ToolName, event.ToolInput))
-			emitHeadlessToolUse(agentStream, turnID, HeadlessProviderCodex, slug, taskID, event.ToolName, event.ToolInput, event.RawType)
+			emitHeadlessToolUse(botStream, turnID, HeadlessProviderCodex, slug, taskID, event.ToolName, event.ToolInput, event.RawType)
 		case "tool_result":
 			line := "tool_result: " + truncate(event.Text, 140)
 			appendHeadlessCodexLog(slug, line)
 			l.updateHeadlessProgress(slug, "active", "tool_result", progressDetail(event.Text, 140), snapshotMetrics())
-			emitHeadlessToolResult(agentStream, turnID, HeadlessProviderCodex, slug, taskID, event.ToolName, event.Text, event.RawType)
+			emitHeadlessToolResult(botStream, turnID, HeadlessProviderCodex, slug, taskID, event.ToolName, event.Text, event.RawType)
 		case "error":
 			appendHeadlessCodexLog(slug, "stream_error: "+event.Detail)
 			l.updateHeadlessProgress(slug, "error", "error", truncate(event.Detail, 180), snapshotMetrics())
@@ -299,12 +299,12 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 			))
 			appendHeadlessCodexLog(slug, "stderr: "+detail)
 			l.updateHeadlessProgress(slug, "error", "error", truncate(detail, 180), metricsSnap)
-			emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderCodex, slug, taskID, "", detail, metricsSnap, codexUsageToTokenUsage(result.Usage))
-			emitHeadlessManifest(agentStream, turnID, HeadlessProviderCodex, slug, taskID, detail, turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
+			emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderCodex, slug, taskID, "", detail, metricsSnap, codexUsageToTokenUsage(result.Usage))
+			emitHeadlessManifest(botStream, turnID, HeadlessProviderCodex, slug, taskID, detail, turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
 			if isCodexAuthError(detail) && l.broker != nil {
 				sysTarget := target
 				if strings.TrimSpace(sysTarget) == "" {
-					// The agent's own DM — this is the provider-auth banner
+					// The bot's own DM — this is the provider-auth banner
 					// the human has to act on, and #general is retired.
 					sysTarget = DMSlugFor(slug)
 				}
@@ -322,16 +322,16 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 			durationMillis(startedAt, firstToolAt),
 			err.Error(),
 		))
-		emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderCodex, slug, taskID, "", err.Error(), metricsSnap, codexUsageToTokenUsage(result.Usage))
-		emitHeadlessManifest(agentStream, turnID, HeadlessProviderCodex, slug, taskID, err.Error(), turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderCodex, slug, taskID, "", err.Error(), metricsSnap, codexUsageToTokenUsage(result.Usage))
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderCodex, slug, taskID, err.Error(), turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
 		return err
 	}
 	if parseErr != nil {
 		setMetric(func(m *headlessProgressMetrics) { m.TotalMs = time.Since(startedAt).Milliseconds() })
 		metricsSnap := snapshotMetrics()
 		l.updateHeadlessProgress(slug, "error", "error", truncate(parseErr.Error(), 180), metricsSnap)
-		emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderCodex, slug, taskID, "", parseErr.Error(), metricsSnap, codexUsageToTokenUsage(result.Usage))
-		emitHeadlessManifest(agentStream, turnID, HeadlessProviderCodex, slug, taskID, parseErr.Error(), turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
+		emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderCodex, slug, taskID, "", parseErr.Error(), metricsSnap, codexUsageToTokenUsage(result.Usage))
+		emitHeadlessManifest(botStream, turnID, HeadlessProviderCodex, slug, taskID, parseErr.Error(), turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
 		return parseErr
 	}
 	setMetric(func(m *headlessProgressMetrics) { m.TotalMs = time.Since(startedAt).Milliseconds() })
@@ -350,17 +350,17 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 		summary = "reply ready · " + summary
 	}
 	// Terminal turn event + manifest can fire now — they carry the turn's
-	// own latency/usage, not the agent's live status. The status flip to
+	// own latency/usage, not the bot's live status. The status flip to
 	// "idle" is deliberately deferred until AFTER the final gist+artifact
 	// post below (see the trailing updateHeadlessProgress). The chat's
-	// "agent is working" / skeleton indicator reads the OfficeMember
+	// "bot is working" / skeleton indicator reads the OfficeMember
 	// status; flipping to idle before the gist message lands would tear
 	// down the skeleton a beat too early and the final message would pop in
-	// against an already-idle agent. Keep status="active" through the post.
-	emitHeadlessTerminalWithTurn(agentStream, turnID, HeadlessProviderCodex, slug, taskID, summary, "", metricsSnap, codexUsageToTokenUsage(result.Usage))
-	emitHeadlessManifest(agentStream, turnID, HeadlessProviderCodex, slug, taskID, "", turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
+	// against an already-idle bot. Keep status="active" through the post.
+	emitHeadlessTerminalWithTurn(botStream, turnID, HeadlessProviderCodex, slug, taskID, summary, "", metricsSnap, codexUsageToTokenUsage(result.Usage))
+	emitHeadlessManifest(botStream, turnID, HeadlessProviderCodex, slug, taskID, "", turnToolNames, turnTextLen, metricsSnap, codexUsageToTokenUsage(result.Usage))
 	if l.broker != nil && (result.Usage.InputTokens != 0 || result.Usage.OutputTokens != 0 || result.Usage.CacheReadTokens != 0 || result.Usage.CacheCreationTokens != 0 || result.Usage.CostUSD != 0) {
-		l.broker.RecordAgentUsage(slug, l.codexModelForAgent(ctx, slug), result.Usage)
+		l.broker.RecordBotUsage(slug, l.codexModelForBot(ctx, slug), result.Usage)
 	}
 	relay.Flush()
 	planText := strings.TrimSpace(firstNonEmpty(result.FinalMessage, result.LastPlainLine))
@@ -371,7 +371,7 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 		// block MCP, so the owner may also have written its notebook + posted —
 		// the silent-gated post below avoids a duplicate channel message.
 		if planning {
-			emitHeadlessPlan(agentStream, turnID, HeadlessProviderCodex, slug, taskID, text)
+			emitHeadlessPlan(botStream, turnID, HeadlessProviderCodex, slug, taskID, text)
 		}
 		msg, posted, err := l.postHeadlessFinalMessageIfSilent(slug, target, notification, text, startedAt)
 		if err != nil {
@@ -387,7 +387,7 @@ func (l *Launcher) runHeadlessCodexTurn(ctx context.Context, slug string, notifi
 		l.raisePlanApprovalAfterTurn(taskID, slug, planText)
 	}
 	// Flip to idle last: the gist+artifact post above has now landed, so the
-	// frontend's "agent is working" skeleton stays up until the final message
+	// frontend's "bot is working" skeleton stays up until the final message
 	// is in the channel, then resolves cleanly to idle.
 	l.updateHeadlessProgress(slug, "idle", "idle", summary, metricsSnap)
 	return nil
@@ -407,7 +407,7 @@ func (l *Launcher) headlessCodexNeedsDangerousBypass(ctx context.Context, slug s
 	if l == nil || l.broker == nil {
 		return false
 	}
-	// Resolve THIS turn's task: with parallel instances an agent can run a
+	// Resolve THIS turn's task: with parallel instances a bot can run a
 	// worktree turn and a chat/office turn at once, and only the worktree turn
 	// should get the sandbox bypass.
 	task := l.turnTaskForCtx(ctx, slug)
@@ -418,7 +418,7 @@ func (l *Launcher) headlessCodexNeedsDangerousBypass(ctx context.Context, slug s
 }
 
 func (l *Launcher) buildHeadlessCodexEnv(slug string, workspaceDir string, channel string) []string {
-	// gitexec.CleanEnv: codex agents run `git` subcommands inside their
+	// gitexec.CleanEnv: codex bots run `git` subcommands inside their
 	// sandbox. If wuphf inherited GIT_DIR / GIT_WORK_TREE /
 	// GIT_CONFIG_PARAMETERS from a parent (git hook, nested wuphf call)
 	// every child git would retarget the outer repo. Clean those first,
@@ -432,7 +432,7 @@ func (l *Launcher) buildHeadlessCodexEnv(slug string, workspaceDir string, chann
 	}
 	if codexHome := prepareHeadlessCodexHome(); codexHome != "" {
 		// Use the isolated runtime home for the headless Codex process so it
-		// doesn't inherit user-global ~/.agents skills from the interactive shell.
+		// doesn't inherit user-global ~/.bots skills from the interactive shell.
 		env = setEnvValue(env, "HOME", codexHome)
 		_ = os.MkdirAll(filepath.Join(codexHome, "plugins", "cache"), 0o755)
 		env = setEnvValue(env, "CODEX_HOME", codexHome)
@@ -460,7 +460,7 @@ func (l *Launcher) buildHeadlessCodexEnv(slug string, workspaceDir string, chann
 	env = setEnvValue(env, "WUPHF_HEADLESS_PROVIDER", "codex")
 	if l.isOneOnOne() {
 		env = setEnvValue(env, "WUPHF_ONE_ON_ONE", "1")
-		env = setEnvValue(env, "WUPHF_ONE_ON_ONE_AGENT", l.oneOnOneAgent())
+		env = setEnvValue(env, "WUPHF_ONE_ON_ONE_AGENT", l.oneOnOneBot())
 	}
 	if secret := strings.TrimSpace(config.ResolveOneSecret()); secret != "" {
 		env = setEnvValue(env, "ONE_SECRET", secret)
@@ -620,8 +620,8 @@ func (l *Launcher) headlessCodexWorkspaceCacheDir(workspaceDir string) string {
 
 // headlessTaskWorkspaceDir resolves the git worktree a turn should run in.
 // taskID is the running turn's task (from the turn record / ctx); it disambiguates
-// when an agent has several in_progress tasks. An empty taskID falls back to the
-// agent's first in_progress task for non-turn / single-task callers.
+// when a bot has several in_progress tasks. An empty taskID falls back to the
+// bot's first in_progress task for non-turn / single-task callers.
 func (l *Launcher) headlessTaskWorkspaceDir(slug, taskID string) string {
 	if l == nil || l.broker == nil {
 		return ""
@@ -631,7 +631,7 @@ func (l *Launcher) headlessTaskWorkspaceDir(slug, taskID string) string {
 		task = l.broker.TaskByID(taskID)
 	}
 	if task == nil {
-		task = l.agentActiveTask(slug)
+		task = l.botActiveTask(slug)
 	}
 	if task == nil {
 		return ""
@@ -780,7 +780,7 @@ func dumpHeadlessCodexInvocation(slug, workspaceDir string, args []string, env [
 	}
 	var sh strings.Builder
 	sh.WriteString("#!/bin/bash\n")
-	fmt.Fprintf(&sh, "# Reproduces the exact codex invocation WUPHF builds for agent=%s\n", slug)
+	fmt.Fprintf(&sh, "# Reproduces the exact codex invocation WUPHF builds for bot=%s\n", slug)
 	sh.WriteString("set -e\n")
 	fmt.Fprintf(&sh, "cd %q\n", workspaceDir)
 	for _, kv := range env {
@@ -998,19 +998,19 @@ func codexToolProgressDetail(toolName string) string {
 	}
 }
 
-// codexModelForAgent returns the codex model the next dispatch should use
-// for slug. Per-agent ProviderBinding.Model wins when set and the binding
+// codexModelForBot returns the codex model the next dispatch should use
+// for slug. Per-bot ProviderBinding.Model wins when set and the binding
 // kind is codex; otherwise we fall back to the install-wide codex config
 // resolver (--model flag, $CODEX_MODEL env var, ~/.codex/config.toml).
 //
 // The kind check prevents a stale gpt-4o written when the user briefly
-// switched the agent to codex from being fed to codex on a later
-// switch-back if the per-agent binding wasn't fully cleared. In practice
-// the AgentProfilePanel save flow keeps Model and Kind aligned, but
+// switched the bot to codex from being fed to codex on a later
+// switch-back if the per-bot binding wasn't fully cleared. In practice
+// the BotProfilePanel save flow keeps Model and Kind aligned, but
 // belt-and-suspenders matches how headlessClaudeModel reads its binding.
-func (l *Launcher) codexModelForAgent(ctx context.Context, slug string) string {
-	// Per-task model wins over the agent binding (the model lives on the task,
-	// not the agent). Only when the task's provider is codex.
+func (l *Launcher) codexModelForBot(ctx context.Context, slug string) string {
+	// Per-task model wins over the bot binding (the model lives on the task,
+	// not the bot). Only when the task's provider is codex.
 	if model := l.taskModelForKind(ctx, slug, provider.KindCodex); model != "" {
 		return model
 	}

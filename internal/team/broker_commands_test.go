@@ -93,10 +93,10 @@ func TestHandleCommands_ReturnsRegistrySubset(t *testing.T) {
 	// TUI-only. These should show up in the payload for TUI discovery but
 	// must never leak into the web autocomplete.
 	tuiOnly := []string{
-		"agent",
+		"bot",
 		"config", "detect", "init", "messages",
 		"inbox", "outbox", "rewind", "insert", "switcher", "switch",
-		"channels", "channel", "agents", "queue",
+		"channels", "channel", "bots", "queue",
 		"artifacts", "skill", "reply", "expand", "collapse", "reset-dm",
 		"request", "integrate", "youtube-pack", "quit", "chat",
 	}

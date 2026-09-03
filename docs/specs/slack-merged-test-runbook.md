@@ -1,7 +1,7 @@
-# Slack agent-coordination — merged end-to-end test runbook
+# Slack bot-coordination — merged end-to-end test runbook
 
 This branch (`integ/slack-agent-coordination`) is the integration of the whole
-Slack agent-coordination stack on top of current `main`:
+Slack bot-coordination stack on top of current `main`:
 
 | Layer | PR | What |
 |---|---|---|

@@ -666,7 +666,7 @@ func (m onboardingModel) viewTask(w, h int) string {
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#E8E8EA")).Bold(true)
 	activeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#1264A3")).Bold(true).Padding(0, 1)
 	inactiveStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(channelui.SlackMuted)).Padding(0, 1)
-	agentStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#64748B"))
+	botStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#64748B"))
 
 	var lines []string
 	lines = append(lines, "")
@@ -677,7 +677,7 @@ func (m onboardingModel) viewTask(w, h int) string {
 		num := fmt.Sprintf("[%d]", i+1)
 		owner := ""
 		if tpl.OwnerSlug != "" {
-			owner = agentStyle.Render("  \u2192 " + tpl.OwnerSlug)
+			owner = botStyle.Render("  \u2192 " + tpl.OwnerSlug)
 		}
 		label := fmt.Sprintf("%s %s%s", num, tpl.Title, owner)
 		if m.selectedTpl == i {
@@ -727,8 +727,8 @@ func allRequiredPrereqsOk(prereqs []prereqResult) bool {
 // localRuntimeCandidates lists the supported local OpenAI-compatible runtimes
 // in priority order. The order is the user-facing tiebreak when more than one
 // is reachable: ollama wins because it's the most common install, Hermes
-// second because it is a full agent runtime, OpenClaw Gateway third because it
-// is a full agent runtime when its HTTP endpoint is enabled, mlx-lm fourth
+// second because it is a full bot runtime, OpenClaw Gateway third because it
+// is a full bot runtime when its HTTP endpoint is enabled, mlx-lm fourth
 // because it's Apple-Silicon-only, exo last because it's niche.
 //
 // These URLs intentionally duplicate the unexported defaultXxxBaseURL

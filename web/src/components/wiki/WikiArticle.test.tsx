@@ -220,7 +220,7 @@ describe("<WikiArticle content>", () => {
 
 describe("<WikiArticle inline visual-artifact markers>", () => {
   it("strips an inline visual-artifact marker and embeds the referenced artifact", async () => {
-    // Repro of the live bug: the agent hand-wrote a standalone
+    // Repro of the live bug: the bot hand-wrote a standalone
     // `visual-artifact:<id>` marker into the article body via team_wiki_write
     // instead of promoting. The marker must never render as raw text; the
     // referenced artifact must be embedded inline.
@@ -728,7 +728,7 @@ describe("<WikiArticle staleness badges>", () => {
         screen.getByRole("heading", { name: "Customer X" }),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByText("agents only")).toBeInTheDocument();
+    expect(screen.getByText("bots only")).toBeInTheDocument();
   });
 
   it("shows 'unread 30d+' badge when days_unread > 30", async () => {
@@ -886,7 +886,7 @@ describe("<WikiArticle staleness badges>", () => {
         screen.getByRole("heading", { name: "Customer X" }),
       ).toBeInTheDocument(),
     );
-    expect(screen.queryByText("agents only")).not.toBeInTheDocument();
+    expect(screen.queryByText("bots only")).not.toBeInTheDocument();
     expect(screen.queryByText("unread 30d+")).not.toBeInTheDocument();
     expect(screen.queryByText("unread 7d+")).not.toBeInTheDocument();
   });

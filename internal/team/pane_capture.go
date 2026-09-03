@@ -22,7 +22,7 @@ const (
 	// sleep this long then re-resolve the current pane target from the launcher
 	// and try again. Users running wuphf for hours see office reseeds and panes
 	// should recover without restarting the whole office. If the target is still
-	// stale after the long sleep, we repeat — cheaper than dropping the agent's
+	// stale after the long sleep, we repeat — cheaper than dropping the bot's
 	// live-stream feed.
 	paneCaptureRetryAfterDeath = 30 * time.Second
 	paneCaptureMaxDiffBytes    = 64 * 1024
@@ -79,15 +79,15 @@ func diffPaneLines(prev, next []string) []string {
 	return out
 }
 
-// startPaneCaptureLoops kicks off one goroutine per pane-backed agent. Each
+// startPaneCaptureLoops kicks off one goroutine per pane-backed bot. Each
 // goroutine polls tmux capture-pane on an interval, strips ANSI, diffs against
-// the previous snapshot, and pushes new lines to the per-agent broker stream
+// the previous snapshot, and pushes new lines to the per-bot broker stream
 // so the web UI's "live output" pane stays in sync with the real Claude
 // session running in the tmux pane.
 //
-// Safe to call only when l.paneBackedAgents == true.
+// Safe to call only when l.paneBackedBots == true.
 func (l *Launcher) startPaneCaptureLoops(ctx context.Context) {
-	if !l.paneBackedAgents || l.broker == nil {
+	if !l.paneBackedBots || l.broker == nil {
 		return
 	}
 	targets := l.targeter().PaneTargets()
@@ -106,7 +106,7 @@ func (l *Launcher) startPaneCaptureLoops(ctx context.Context) {
 // and the old pane id is stale), and tries again. The loop only exits
 // when the context is canceled.
 func (l *Launcher) paneCaptureLoop(ctx context.Context, slug, paneTarget string) {
-	stream := l.broker.AgentStream(slug)
+	stream := l.broker.BotStream(slug)
 	if stream == nil {
 		return
 	}
@@ -129,12 +129,12 @@ func (l *Launcher) paneCaptureLoop(ctx context.Context, slug, paneTarget string)
 			failures++
 			if failures >= paneCaptureMaxFailures {
 				fmt.Fprintf(os.Stderr,
-					"  Agents:  pane capture for %s (%s) paused after %d failures; will retry in %s: %v\n",
+					"  Bots:  pane capture for %s (%s) paused after %d failures; will retry in %s: %v\n",
 					slug, paneTarget, failures, paneCaptureRetryAfterDeath, err,
 				)
 				// Sleep, then re-resolve the pane target. Office reseeds and
 				// overflow-pane recreation change pane ids — the old target
-				// stays dead forever but the agent may have a live pane
+				// stays dead forever but the bot may have a live pane
 				// under a new address. Re-resolve before retrying.
 				select {
 				case <-ctx.Done():
@@ -175,7 +175,7 @@ func (l *Launcher) paneCaptureLoop(ctx context.Context, slug, paneTarget string)
 			if len(line) > paneCaptureMaxDiffBytes {
 				line = line[:paneCaptureMaxDiffBytes] + paneCaptureTruncateMarker
 			}
-			stream.PushTask(l.agentActiveTaskID(slug), line+"\n")
+			stream.PushTask(l.botActiveTaskID(slug), line+"\n")
 		}
 		prevLines = nextLines
 	}

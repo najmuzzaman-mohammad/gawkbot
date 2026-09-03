@@ -107,7 +107,7 @@ export async function prepareComputerRuntime(): Promise<{ building: boolean }> {
   return { building: res?.building === true };
 }
 
-// ── Per-agent computer ──────────────────────────────────────────
+// ── Per-bot computer ──────────────────────────────────────────
 
 export interface ComputerControl {
   held: boolean;

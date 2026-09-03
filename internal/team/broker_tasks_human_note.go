@@ -1,13 +1,13 @@
 package team
 
 // The human-note machinery: how a human's message in a task's room becomes a
-// halt the owning agent must acknowledge, and how that halt is cleared.
+// halt the owning bot must acknowledge, and how that halt is cleared.
 //
 // Split out of broker_tasks_mutation_service.go, which had grown to 1719 lines
 // and past the 1500-line budget. This is a pure move -- same package, same
 // identifiers, no signature changed -- chosen over an allowlist entry because
 // the cluster is genuinely cohesive: everything here is about one question,
-// "has a human said stop, and has the agent seen it".
+// "has a human said stop, and has the bot seen it".
 //
 // It is also the file most actively edited during the channel retirement, so
 // giving it a name it can be found by is worth more than the line count.
@@ -62,7 +62,7 @@ func taskInTerminalDoneState(task *teamTask) bool {
 
 // taskAwaitsHumanFollowUpWake reports whether a task sits in a waiting
 // state where a human post in its channel must WAKE the owner (the
-// task_followup path) because no naturally scheduled agent turn will ever
+// task_followup path) because no naturally scheduled bot turn will ever
 // carry the note: review, decision, changes_requested, blocked, and the
 // terminal done/approved states. Pre-execution states (drafting/intake/
 // ready/queued) are excluded — parked tasks stay parked until the human
@@ -98,14 +98,14 @@ func taskAwaitsHumanFollowUpWake(task *teamTask) bool {
 //
 // Running tasks: the live failure this closes is ICP-eval v2 [00:50] — a
 // typed "Stop — do not build a placeholder" was never seen by the mid-turn
-// agent and the fabricated one-pager shipped anyway. Per-task channels make
+// bot and the fabricated one-pager shipped anyway. Per-task channels make
 // this 1:1 in practice; #general's archived system task is excluded by the
 // status guard.
 //
 // Non-running tasks (done-integrity + utterance-routing fix families): a
 // human post into a task channel whose task sits in ANY waiting state —
 // review, decision, changes_requested, blocked, or terminal done/approved —
-// is steering with no natural next agent turn to ride. The note is stamped
+// is steering with no natural next bot turn to ride. The note is stamped
 // the same way AND a task_followup action is appended so the notify loop
 // re-engages the OWNER (ICP-eval v3 [17:51→18:02]: redlines posted into a
 // decision-state task channel got 14 minutes of dead air; v2's 22-minute
@@ -165,7 +165,7 @@ func (b *Broker) markHumanNoteOnChannelTasksLocked(msg channelMessage) {
 	//
 	// So named rooms and #general keep exactly today's behaviour, and only DMs
 	// get the count. That is also the only case that actually needed fixing: a
-	// DM with one agent can easily accumulate a dozen tasks, and without this
+	// DM with one bot can easily accumulate a dozen tasks, and without this
 	// every casual human line would stamp all of them.
 	//
 	// DO NOT "simplify" this into the universal version. That is the change
@@ -272,7 +272,7 @@ func (b *Broker) ConsumeTaskHumanNote(taskID string) {
 }
 
 // humanNoteHaltMessage names the unread stop order in the forbidden error
-// so the blocked agent knows exactly why the transition is refused.
+// so the blocked bot knows exactly why the transition is refused.
 func humanNoteHaltMessage(taskID, action string, note *TaskHumanNote) string {
 	excerpt := strings.TrimSpace(note.Body)
 	if len(excerpt) > 280 {

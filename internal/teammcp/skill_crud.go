@@ -1,7 +1,7 @@
 package teammcp
 
 // skill_crud.go exposes the broker's PR 1b skill CRUD surface as MCP tools so
-// agents can patch / edit / archive / write sub-resource files on existing
+// bots can patch / edit / archive / write sub-resource files on existing
 // skills without composing raw HTTP. Each tool proxies to the matching broker
 // endpoint registered in skill_crud_endpoints.go.
 

@@ -51,22 +51,22 @@ func (b *Broker) ensureDMConversationLocked(slug string) *teamChannel {
 	if !IsDMSlug(slug) {
 		return nil
 	}
-	agentSlug := DMTargetAgent(slug)
-	if agentSlug == "" {
-		// No human side. An agent-to-agent pair ("ceo__designer") is a real
-		// conversation — it is how one agent consults another — but
-		// DMTargetAgent is human-relative and returns "" for it, so without
+	botSlug := DMTargetBot(slug)
+	if botSlug == "" {
+		// No human side. A bot-to-bot pair ("ceo__designer") is a real
+		// conversation — it is how one bot consults another — but
+		// DMTargetBot is human-relative and returns "" for it, so without
 		// this branch the pair DM is never created and the first send 404s
 		// with "channel not found". Handled separately rather than by
-		// loosening DMTargetAgent, whose human-relative meaning a dozen call
+		// loosening DMTargetBot, whose human-relative meaning a dozen call
 		// sites depend on (see its doc comment).
-		return b.ensureAgentPairDMLocked(slug)
+		return b.ensureBotPairDMLocked(slug)
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	// Register in channelStore for proper type-based DM detection.
 	if b.channelStore != nil {
-		newSlug := DMSlugFor(agentSlug)
-		if _, err := b.channelStore.GetOrCreateDirect("human", agentSlug); err == nil {
+		newSlug := DMSlugFor(botSlug)
+		if _, err := b.channelStore.GetOrCreateDirect("human", botSlug); err == nil {
 			// Update slug in broker to the new deterministic format if different.
 			if newSlug != slug {
 				slug = newSlug
@@ -77,8 +77,8 @@ func (b *Broker) ensureDMConversationLocked(slug string) *teamChannel {
 		Slug:        slug,
 		Name:        slug,
 		Type:        "dm",
-		Description: "Direct messages with " + agentSlug,
-		Members:     []string{"human", agentSlug},
+		Description: "Direct messages with " + botSlug,
+		Members:     []string{"human", botSlug},
 		CreatedBy:   "wuphf",
 		CreatedAt:   now,
 		UpdatedAt:   now,

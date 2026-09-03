@@ -3,7 +3,7 @@
 ## Who and why
 
 **Persona:** Alex Chen, solo dev, ex-Stripe. Has spent two weeks trying
-to wire Python agents to coordinate. Saw WUPHF on a friend's Slack and
+to wire Python bots to coordinate. Saw WUPHF on a friend's Slack and
 opened the README at 11pm on a Tuesday.
 
 **Outcome they came for:** prove this is not another framework that
@@ -76,4 +76,4 @@ Ship the onboarding flow by Friday.
 Within five minutes of running `npx wuphf`, Alex picks a runtime, fills
 in the office name and blueprint through the CEO DM, and sees CEO mention
 `@ENG` and `@DSG` with a decomposed plan. The pre-pick screen to first
-agent reply is the activation arc.
+bot reply is the activation arc.

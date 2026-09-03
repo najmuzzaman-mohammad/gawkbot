@@ -86,7 +86,7 @@ func (b *Broker) handleCompany(w http.ResponseWriter, r *http.Request) {
 
 // validateProviderEndpointURL gates user-supplied base URLs persisted
 // to ~/.wuphf/config.json so a locally-authenticated client can't
-// pivot future agent turns to attacker-controlled targets via
+// pivot future bot turns to attacker-controlled targets via
 // schemes our HTTP client doesn't service (or persist URLs that
 // would surprise users on next launch). Allowed: http://… and
 // https://… with a non-empty host. Rejected: file://, gopher://,
@@ -96,7 +96,7 @@ func (b *Broker) handleCompany(w http.ResponseWriter, r *http.Request) {
 // Loopback hosts are allowed — wuphf's whole point is local-LLM
 // pointing at 127.0.0.1, and the runtime probe code already gates
 // reachability scans on isLoopbackBaseURL elsewhere. The threat we
-// care about here is "URL the agent runner will later POST a
+// care about here is "URL the bot runner will later POST a
 // system prompt + conversation to," which is governed by scheme +
 // host, not by loopback-vs-public.
 func validateProviderEndpointURL(raw string) error {
@@ -152,9 +152,9 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			"llm_provider_priority":   cfg.LLMProviderPriority,
 			// llm_provider_kinds is the non-gateway subset of the registered
 			// provider runtimes — the safe set to render in any UI runtime
-			// picker (Settings default-runtime, AgentProfilePanel runtime
-			// section, AgentWizard provider field). Gateway kinds (openclaw,
-			// hermes-agent) are excluded; the Integrations app surfaces them.
+			// picker (Settings default-runtime, BotProfilePanel runtime
+			// section, BotWizard provider field). Gateway kinds (openclaw,
+			// hermes-bot) are excluded; the Integrations app surfaces them.
 			"llm_provider_kinds": provider.LLMProviderKinds(),
 			// gateway_kinds is the inverse — registered kinds that are
 			// gateway-controlled. Consumed by the Integrations app to
@@ -532,7 +532,7 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 				// — that includes both directly-dispatchable LLMs
 				// (claude-code/codex/opencode/mlx-lm/ollama/exo) and
 				// gateway-controlled HTTP runtimes (openclaw-http,
-				// hermes-agent) whose base_url + model the operator may
+				// hermes-bot) whose base_url + model the operator may
 				// legitimately want to override. The legacy openclaw
 				// bridge kind has no Register entry (it dispatches via
 				// the WebSocket bridge, not /v1/chat/completions) so
@@ -552,7 +552,7 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 				ep.Model = strings.TrimSpace(ep.Model)
 				// Security gate: a malicious authenticated client (or
 				// anyone with write access to ~/.wuphf/config.json) must
-				// not be able to redirect future agent turns to file://,
+				// not be able to redirect future bot turns to file://,
 				// gopher://, unix://, or schemeless URLs. Allow only the
 				// two URL families our HTTP client actually services
 				// (http, https) and require a non-empty host so a
@@ -743,10 +743,10 @@ func (b *Broker) handleChannels(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			if typeFilter == "dm" {
-				// Human DMs only. Agent↔agent pair DMs never appear in
+				// Human DMs only. Bot↔bot pair DMs never appear in
 				// listings — their sole human surface is the consult
 				// markers' read-only thread view.
-				if _, _, pair := isAgentToAgentDM(ch.Slug); ch.isDM() && !pair {
+				if _, _, pair := isBotToBotDM(ch.Slug); ch.isDM() && !pair {
 					channels = append(channels, ch)
 				}
 			} else {
@@ -802,7 +802,7 @@ func (b *Broker) handleChannels(w http.ResponseWriter, r *http.Request) {
 			// createChannelLocked has five callers. Three of them must keep
 			// working while named channels are off: the Slack bridge, the
 			// Telegram bridge (both are how EXTERNAL messages arrive, not rooms
-			// agents chat in), and the app-<id> edit thread (hidden plumbing,
+			// bots chat in), and the app-<id> edit thread (hidden plumbing,
 			// load-bearing for apps being editable at all). Gating the shared
 			// helper would mean maintaining an exemption list inside it, and an
 			// exemption list is a thing that goes stale. Gating the one
@@ -812,7 +812,7 @@ func (b *Broker) handleChannels(w http.ResponseWriter, r *http.Request) {
 			// Do NOT "finish the job" by moving this into createChannelLocked.
 			if !namedChannelsEnabled() {
 				http.Error(w,
-					"named channels are retired: conversations happen in a DM with one agent. Open a DM and tag the others in it.",
+					"named channels are retired: conversations happen in a DM with one bot. Open a DM and tag the others in it.",
 					http.StatusConflict)
 				return
 			}
@@ -998,14 +998,14 @@ func (b *Broker) handleChannelMembers(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "member not found", http.StatusNotFound)
 			return
 		}
-		// Lead agents (BuiltIn) cannot be disabled or removed from any
+		// Lead bots (BuiltIn) cannot be disabled or removed from any
 		// channel. The blueprint's lead is the tag target for the onboarding
 		// kickoff and the default owner for channel membership; the UI locks
 		// these interactions too. Keeps the "ceo" literal as a legacy guard
 		// for team states that predate the BuiltIn field.
 		if (memberRecord.BuiltIn || member == "ceo") && (action == "remove" || action == "disable") {
 			b.mu.Unlock()
-			http.Error(w, "cannot remove or disable lead agent", http.StatusBadRequest)
+			http.Error(w, "cannot remove or disable lead bot", http.StatusBadRequest)
 			return
 		}
 		switch action {
@@ -1088,7 +1088,7 @@ func (b *Broker) handleMembers(w http.ResponseWriter, r *http.Request) {
 		disabled    bool
 	}
 	isOneOnOne := b.sessionMode == SessionModeOneOnOne
-	oneOnOneSlug := b.oneOnOneAgent
+	oneOnOneSlug := b.oneOnOneBot
 	memberProfiles := make(map[string]memberView, len(b.members))
 	for _, member := range b.members {
 		// Member slugs key this map, so all three touch points below use the
@@ -1127,7 +1127,7 @@ func (b *Broker) handleMembers(w http.ResponseWriter, r *http.Request) {
 	for slug, ts := range b.lastTaggedAt {
 		taggedAt[slug] = ts
 	}
-	activity := make(map[string]agentActivitySnapshot, len(b.activity))
+	activity := make(map[string]botActivitySnapshot, len(b.activity))
 	for slug, snapshot := range b.activity {
 		activity[slug] = snapshot
 	}
@@ -1169,7 +1169,7 @@ func (b *Broker) handleMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Capture pane activity via diff detection.
-	// If content changed since last poll, agent is active — return last 5 lines.
+	// If content changed since last poll, bot is active — return last 5 lines.
 	var paneActivity map[string]string
 	if isOneOnOne && oneOnOneSlug != "" {
 		paneActivity = b.capturePaneActivity(oneOnOneSlug)
@@ -1240,7 +1240,7 @@ func (b *Broker) EnabledMembers(channel string) []string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.sessionMode == SessionModeOneOnOne {
-		return []string{b.oneOnOneAgent}
+		return []string{b.oneOnOneBot}
 	}
 	channel = normalizeChannelSlug(channel)
 	if channel == "" {
@@ -1256,7 +1256,7 @@ func (b *Broker) EnabledMembers(channel string) []string {
 // members who were present in ch.Members at some point but have been muted
 // for this channel. Callers use this to distinguish "never added" (which an
 // explicit @-tag can bypass) from "deliberately muted" (which an @-tag must
-// respect — muting an agent is the user's explicit intent to silence them).
+// respect — muting a bot is the user's explicit intent to silence them).
 func (b *Broker) DisabledMembers(channel string) []string {
 	b.mu.Lock()
 	defer b.mu.Unlock()

@@ -13,9 +13,9 @@ import (
 
 func TestSidebarItems_OneOnOneReturnsNil(t *testing.T) {
 	m := channelModel{
-		sessionMode:   string(team.SessionModeOneOnOne),
-		oneOnOneAgent: "ceo",
-		channels:      []channelui.ChannelInfo{{Slug: "general"}},
+		sessionMode: string(team.SessionModeOneOnOne),
+		oneOnOneBot: "ceo",
+		channels:    []channelui.ChannelInfo{{Slug: "general"}},
 	}
 
 	if got := m.sidebarItems(); got != nil {

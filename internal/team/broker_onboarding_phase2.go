@@ -160,21 +160,21 @@ func (b *Broker) runSeedPhase(s *onboarding.State) error {
 		if err != nil {
 			return fmt.Errorf("load blueprint %q: %w", blueprintID, err)
 		}
-		var selectedAgents []string
-		if len(s.FormAnswers.PickedAgents) > 0 {
-			selectedAgents = s.FormAnswers.PickedAgents
+		var selectedBots []string
+		if len(s.FormAnswers.PickedBots) > 0 {
+			selectedBots = s.FormAnswers.PickedBots
 		}
 		// task is not known at seed time in Phase 2; skipTask=true posts a
 		// system welcome instead of a directive task.
 		const task = ""
 		const skipTask = true
 		b.mu.Lock()
-		seedErr := b.seedFromBlueprintLocked(loaded, selectedAgents, task, skipTask, false)
+		seedErr := b.seedFromBlueprintLocked(loaded, selectedBots, task, skipTask, false)
 		b.mu.Unlock()
 		if seedErr != nil {
 			return seedErr
 		}
-		b.backfillAgentFilesForRoster()
+		b.backfillBotFilesForRoster()
 		b.materializeBlueprintWiki(loaded)
 		// Seed the team/getting-started/ pages so a brand-new office is never
 		// empty. Mirrors the team/about/ seed and is gated identically (only
@@ -198,7 +198,7 @@ func (b *Broker) runSeedPhase(s *onboarding.State) error {
 	if seedErr != nil {
 		return seedErr
 	}
-	b.backfillAgentFilesForRoster()
+	b.backfillBotFilesForRoster()
 	// Materialize the about/ skeleton outside the broker lock. Mirrors the
 	// website-scan path's team/about/{README,company,owner}.md so the
 	// skip-website user lands in an office with a populated wiki section
@@ -305,7 +305,7 @@ func onboardingFirstIssueTitle(prompt string) string {
 }
 
 // seedMinimalScratchLocked seeds the absolute minimum for the scratch path:
-//   - CEO agent (BuiltIn, lead)
+//   - CEO bot (BuiltIn, lead)
 //   - #general channel (members: CEO)
 //   - 2 wiki stub files: README.md and team-charter.md (written to disk
 //     outside the lock via materializeScratchWikiStubs — called by the caller
@@ -370,7 +370,7 @@ func (b *Broker) seedMinimalScratchLocked(s *onboarding.State) error {
 	b.ensureBackupMigrationTaskLocked()
 	// The lead needs a DM, or this seed produces a workspace with one member
 	// and nowhere to talk to them once #general is retired.
-	b.ensureAgentDMsLocked()
+	b.ensureBotDMsLocked()
 
 	// Signal subscribers that the office roster was replaced.
 	b.publishOfficeChangeLocked(officeChangeEvent{Kind: "office_reseeded"})
@@ -383,7 +383,7 @@ func (b *Broker) seedMinimalScratchLocked(s *onboarding.State) error {
 // the files SeedCompanyContext writes on the with-website path so users
 // land in a populated wiki section regardless of which onboarding branch
 // they took. The README body is shared via operations.AboutReadmeContent;
-// company.md and owner.md are placeholder stubs an agent can enrich later.
+// company.md and owner.md are placeholder stubs a bot can enrich later.
 //
 // Caller must NOT hold b.mu. Best-effort: errors are logged, not returned,
 // so a file I/O failure does not fail the seed phase.
@@ -680,9 +680,9 @@ func ceoDeterministicMessages(phase string, s *onboarding.State) []ceoMessagePay
 		return out
 
 	case onboarding.PhaseTeam:
-		// The team trim checklist is built from the blueprint's agent roster.
+		// The team trim checklist is built from the blueprint's bot roster.
 		// We emit a generic checklist here; the broker bootstrap populates
-		// the actual agents from the picked blueprint when it wires this.
+		// the actual bots from the picked blueprint when it wires this.
 		return []ceoMessagePayload{{
 			Kind:         "ceo_team_trim",
 			Content:      "This blueprint comes with a team — keep or trim:",
@@ -822,23 +822,23 @@ func teamTrimItems(s *onboarding.State) []map[string]interface{} {
 		log.Printf("onboarding: load blueprint %q for team trim: %v", blueprintID, err)
 		return nil
 	}
-	items := make([]map[string]interface{}, 0, len(bp.Starter.Agents))
-	for _, agent := range bp.Starter.Agents {
-		// AGENT slug: actor normaliser, raw skip. See the sibling in
+	items := make([]map[string]interface{}, 0, len(bp.Starter.Bots))
+	for _, bot := range bp.Starter.Bots {
+		// BOT slug: actor normaliser, raw skip. See the sibling in
 		// broker_onboarding.go.
-		raw := operationFirstNonEmpty(agent.Slug, agent.EmployeeBlueprint, operationSlug(agent.Name))
+		raw := operationFirstNonEmpty(bot.Slug, bot.EmployeeBlueprint, operationSlug(bot.Name))
 		if strings.TrimSpace(raw) == "" {
 			continue
 		}
 		slug := normalizeChannelSlug(raw)
-		label := strings.TrimSpace(agent.Name)
+		label := strings.TrimSpace(bot.Name)
 		if label == "" {
 			label = humanizeSlug(slug)
 		}
 		items = append(items, map[string]interface{}{
 			"id":              slug,
 			"label":           label,
-			"default_checked": agent.Checked,
+			"default_checked": bot.Checked,
 		})
 	}
 	return items
@@ -897,7 +897,7 @@ func sanitizeJSONValue(v interface{}) interface{} {
 // imports this one; importing it back would create a cycle.
 //
 // Rule: collapse newlines, bullet chars, and multi-space runs so that a
-// forged "Action:" header embedded in agent input cannot land at line-start
+// forged "Action:" header embedded in bot input cannot land at line-start
 // where a card parser would interpret it as a structured field.
 func teamSanitizeContextValue(s string) string {
 	if s == "" {

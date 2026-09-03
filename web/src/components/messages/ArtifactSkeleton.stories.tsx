@@ -11,7 +11,7 @@ const meta: Meta<typeof ArtifactSkeleton> = {
     docs: {
       description: {
         component:
-          "Technical-manual draft preview rendered after an agent's gist message " +
+          "Technical-manual draft preview rendered after a bot's gist message " +
           "while the HTML artifact is still being generated. Frames the wait as " +
           "FIG_NNN being plotted live on a paper card — schematic SVG self-draws, " +
           "an accent dot pulses, an ellipsis ticks, and a thin accent sliver at the " +

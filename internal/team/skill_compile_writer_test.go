@@ -122,7 +122,7 @@ func TestWriteCompiledSkillLocked_NonSystemAuthorRequiresMember(t *testing.T) {
 	t.Parallel()
 	b := newTestBroker(t)
 
-	// "random-agent" is not in the system author whitelist and not a
+	// "random-bot" is not in the system author whitelist and not a
 	// registered team member — should return an error.
 	spec := compiledSkillSpec("my-skill", "A description.", "random-agent")
 	_, err := callWriteCompiledSkillLocked(b, spec)
@@ -501,7 +501,7 @@ func TestEnhanceSkillLocked_UpdateFirstThreshold(t *testing.T) {
 
 // TestWriteCompiledSkillLocked_AutoAssignsOwnerAgents pins core-loop step 8:
 // a compiled skill is auto-assigned to the office roster at creation so it
-// is loaded into every agent's prompt on the next build.
+// is loaded into every bot's prompt on the next build.
 func TestWriteCompiledSkillLocked_AutoAssignsOwnerAgents(t *testing.T) {
 	t.Parallel()
 	b := newTestBroker(t)
@@ -517,15 +517,15 @@ func TestWriteCompiledSkillLocked_AutoAssignsOwnerAgents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(sk.OwnerAgents) != len(roster) {
-		t.Fatalf("OwnerAgents: got %v, want full roster %v", sk.OwnerAgents, roster)
+	if len(sk.OwnerBots) != len(roster) {
+		t.Fatalf("OwnerBots: got %v, want full roster %v", sk.OwnerBots, roster)
 	}
 }
 
 // TestRegisterCompiledPlaybookSkill_AttributesToLibrarian pins ten-out-of-ten
 // E4: compiled artifacts are attributed to the real acting roster identity
 // (librarian), not the "@archivist" commit-author name no roster ever showed
-// (ICP-eval v3 [18:21:15]: 'Created by "@archivist" — an agent name never
+// (ICP-eval v3 [18:21:15]: 'Created by "@archivist" — a bot name never
 // shown in the roster').
 func TestRegisterCompiledPlaybookSkill_AttributesToLibrarian(t *testing.T) {
 	t.Parallel()

@@ -41,7 +41,7 @@ describe("<DecisionPacketView>", () => {
     renderView();
     expect(screen.getByText(/your call/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Owner agent committed the refactor/i),
+      screen.getByText(/Owner bot committed the refactor/i),
     ).toBeInTheDocument();
   });
 

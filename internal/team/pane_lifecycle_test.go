@@ -1,7 +1,7 @@
 package team
 
 // Tests for the pane-lifecycle pure helpers extracted in C5a. The shell-out
-// methods (spawnVisibleAgents, trySpawnWebAgentPanes, watchChannelPaneLoop,
+// methods (spawnVisibleBots, trySpawnWebBotPanes, watchChannelPaneLoop,
 // etc.) stay on Launcher pending the tmuxRunner interface introduced in C5b
 // per PLAN.md §C5; this PR's coverage focuses on the helpers that don't
 // need a tmux fake.
@@ -14,17 +14,17 @@ import (
 func TestParseAgentPaneIndices_SkipsZeroAndChannelPanes(t *testing.T) {
 	// pane 0 is the channel/observer; pane 1 is the lead, pane 2/3 are
 	// specialists. The "channel" string in the title also marks panes to
-	// skip — the launcher relies on this distinction when listing agent
+	// skip — the launcher relies on this distinction when listing bot
 	// panes for capture/dispatch.
 	out := "0 channel\n1 ceo\n2 fe\n3 channel-misc"
-	got := parseAgentPaneIndices(out)
+	got := parseBotPaneIndices(out)
 	want := []int{1, 2}
 	if len(got) != len(want) {
-		t.Fatalf("parseAgentPaneIndices = %v, want %v", got, want)
+		t.Fatalf("parseBotPaneIndices = %v, want %v", got, want)
 	}
 	for i := range want {
 		if got[i] != want[i] {
-			t.Errorf("parseAgentPaneIndices[%d] = %d, want %d", i, got[i], want[i])
+			t.Errorf("parseBotPaneIndices[%d] = %d, want %d", i, got[i], want[i])
 		}
 	}
 }
@@ -41,9 +41,9 @@ func TestParseAgentPaneIndices_ToleratesEmptyAndMalformed(t *testing.T) {
 		{" 7 ceo \n8 fe ", 2}, // whitespace and trailing newline
 	}
 	for _, tc := range cases {
-		got := parseAgentPaneIndices(tc.in)
+		got := parseBotPaneIndices(tc.in)
 		if len(got) != tc.want {
-			t.Errorf("parseAgentPaneIndices(%q) returned %d entries, want %d", tc.in, len(got), tc.want)
+			t.Errorf("parseBotPaneIndices(%q) returned %d entries, want %d", tc.in, len(got), tc.want)
 		}
 	}
 }

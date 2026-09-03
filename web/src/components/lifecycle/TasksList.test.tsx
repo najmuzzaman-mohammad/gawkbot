@@ -61,7 +61,7 @@ describe("<TasksList>", () => {
     renderList([
       makeTask({
         id: "task-issue",
-        title: "Spec the agent issue app",
+        title: "Spec the bot issue app",
         task_type: "issue",
       }),
       makeTask({
@@ -71,7 +71,7 @@ describe("<TasksList>", () => {
       }),
     ]);
 
-    expect(screen.getByText("Spec the agent issue app")).toBeInTheDocument();
+    expect(screen.getByText("Spec the bot issue app")).toBeInTheDocument();
     expect(screen.queryByText("Fix button spacing")).not.toBeInTheDocument();
   });
 
@@ -337,7 +337,7 @@ describe("<TasksList>", () => {
 
   it("folds blocking requests and pending reviews into the Needs-human lane", () => {
     // The standalone Inbox was consolidated into the board: its non-task
-    // attention items (agent questions + promotion reviews) render as cards
+    // attention items (bot questions + promotion reviews) render as cards
     // next to the decision-state tasks already in the Needs-human lane, and
     // the lane header count includes them.
     const inboxItems: InboxItem[] = [
@@ -403,7 +403,7 @@ describe("<TasksList>", () => {
     //
     // KNOWN GAP: the pending REVIEW renders as a card but is not counted.
     // /office/stats carries no human-review field to count it from
-    // (tasks.review is agent-side review, a different thing), so the shared
+    // (tasks.review is bot-side review, a different thing), so the shared
     // formula cannot see it. Counting it here instead would re-create the
     // per-surface arithmetic this change removed. Better: give stats a
     // reviews-pending field, then add it to needsYouCount once.

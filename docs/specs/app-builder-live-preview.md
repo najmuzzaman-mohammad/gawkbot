@@ -10,14 +10,14 @@ artifact.
 ## Shipped so far
 
 - **Phase 1 (PR #1099)** — `appDevManager` + per-app broker `httputil.ReverseProxy`
-  (agent-proof CSP injection, HMR WS tunnel, DNS-rebind guard), `CustomAppFrame`
+  (bot-proof CSP injection, HMR WS tunnel, DNS-rebind guard), `CustomAppFrame`
   dev mode, `AppLivePreview`. Existing apps preview live with HMR.
 - **Instant new-build (stacked PR)** — a new "Build app: X" task **pre-scaffolds**
   the app's editable source from the embedded `templates/app-scaffold` the moment
   the task is created (`customAppStore.Scaffold`, embedded via the `templates`
   package; `MutateTask` create hook `maybePrescaffoldAppForCreate`). The draft is
   recorded `status:"building"` (hidden from the sidebar, resolved by the build
-  task's preview) and the task brief carries the pre-created `app_id` so the agent
+  task's preview) and the task brief carries the pre-created `app_id` so the bot
   publishes onto the same app. `register_app` flips it to `ready` and bumps the
   version; `writeAppSourceLocked` now preserves `node_modules` so the running dev
   server survives a publish and hot-reloads the new source. **Live-verified:** a
@@ -36,10 +36,10 @@ instant for one reason: **it does not build for preview.** It runs a real Vite
 **dev server per app**, reverse-proxies it (tunneling Vite's HMR WebSocket), and
 loads that *live origin* in the iframe. Edits hot-reload in milliseconds.
 
-We adopt the same model, adapted to our Go broker + headless-agent + sandbox:
+We adopt the same model, adapted to our Go broker + headless-bot + sandbox:
 
 - **Preview = live dev server** (`bun run dev`) behind a broker reverse-proxy.
-  Boots in ~1–2s after deps install; reflects every agent edit via HMR with no
+  Boots in ~1–2s after deps install; reflects every bot edit via HMR with no
   rebuild. This is what the human watches.
 - **Ship artifact = the single-file build** (`vite-plugin-singlefile`), produced
   on "seal/publish". This is what gets stored, versioned, listed under Apps, and
@@ -99,7 +99,7 @@ A process manager mirroring dyad's `process_manager.ts` / `runningApps`.
 - Reuse `appWriterAllowed` semantics for stop; reads follow app read auth.
 
 ### Build/seal path (unchanged surface)
-`register_app` (the ship artifact) stays exactly as today: the agent runs
+`register_app` (the ship artifact) stays exactly as today: the bot runs
 `bun run build` → single-file `index.html` → `POST /apps`. The dev server is
 purely the preview; sealing is still the durable, versioned, shareable artifact.
 
@@ -141,7 +141,7 @@ re-establish the no-exfiltration guarantee at the proxy:
   to get a true separate origin, which is stronger). **Decision needed at build
   time:** distinct-port origin (stronger isolation, more infra) vs same-origin
   path (simpler). Default: distinct ephemeral port per broker, documented.
-- Trust model: the dev server runs the agent's own source on the user's machine —
+- Trust model: the dev server runs the bot's own source on the user's machine —
   the same code we already `bun build`. The CSP keeps the *rendered app* unable
   to exfiltrate; the dev server itself is local-only (bind 127.0.0.1).
 - Pin `event.origin` on the host bridge listener to the proxy origin in dev mode.
@@ -193,7 +193,7 @@ repo rules).
    Babel plugin stamps `data-wuphf-source="file:line:col"` on host JSX (React 19
    removed fiber `_debugSource`, so a DOM attribute is the version-proof source
    map); the inspector is injected at the HTML level (static module script) so it
-   survives the agent rewriting `main.tsx`, reads the nearest stamped ancestor on
+   survives the bot rewriting `main.tsx`, reads the nearest stamped ancestor on
    click, and posts a display-only `wuphf-select`/`wuphf-error` over the existing
    bridge (no new broker reach; tree-shaken from the sealed build). The host opens
    a human-gated prefilled edit dialog / dismissible error banner. **Live-verified:

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
@@ -44,7 +44,7 @@ func fixtureTargeter(t *testing.T, members []officeMember, opts ...func(*officeT
 	paneBacked := true
 	tg := &officeTargeter{
 		sessionName:    "test-sess",
-		pack:           &agent.PackDefinition{LeadSlug: "ceo"},
+		pack:           &bot.PackDefinition{LeadSlug: "ceo"},
 		provider:       provider.KindClaudeCode,
 		paneBackedFlag: &paneBacked,
 		isOneOnOne:     func() bool { return false },
@@ -55,7 +55,7 @@ func fixtureTargeter(t *testing.T, members []officeMember, opts ...func(*officeT
 			// production. Tests that need pure no-DM semantics override
 			// this hook explicitly.
 			if IsDMSlug(channelSlug) {
-				return true, DMTargetAgent(channelSlug)
+				return true, DMTargetBot(channelSlug)
 			}
 			return false, ""
 		},
@@ -93,7 +93,7 @@ func TestTargeter_LeadSlug_FallsBackToBuiltIn(t *testing.T) {
 	tg := fixtureTargeter(t, []officeMember{
 		{Slug: "alpha", BuiltIn: true},
 		{Slug: "beta"},
-	}, func(o *officeTargeter) { o.pack = &agent.PackDefinition{} })
+	}, func(o *officeTargeter) { o.pack = &bot.PackDefinition{} })
 	if got := tg.LeadSlug(); got != "alpha" {
 		t.Errorf("LeadSlug() = %q, want %q", got, "alpha")
 	}
@@ -103,14 +103,14 @@ func TestTargeter_LeadSlug_FallsBackToFirstMember(t *testing.T) {
 	tg := fixtureTargeter(t, []officeMember{
 		{Slug: "alpha"},
 		{Slug: "beta"},
-	}, func(o *officeTargeter) { o.pack = &agent.PackDefinition{} })
+	}, func(o *officeTargeter) { o.pack = &bot.PackDefinition{} })
 	if got := tg.LeadSlug(); got != "alpha" {
 		t.Errorf("LeadSlug() = %q, want %q", got, "alpha")
 	}
 }
 
 func TestTargeter_LeadSlug_EmptyWhenNoMembers(t *testing.T) {
-	tg := fixtureTargeter(t, nil, func(o *officeTargeter) { o.pack = &agent.PackDefinition{} })
+	tg := fixtureTargeter(t, nil, func(o *officeTargeter) { o.pack = &bot.PackDefinition{} })
 	if got := tg.LeadSlug(); got != "" {
 		t.Errorf("LeadSlug() = %q, want empty", got)
 	}
@@ -122,9 +122,9 @@ func TestTargeter_AgentOrder_LeadFirst(t *testing.T) {
 		{Slug: "ceo", BuiltIn: true},
 		{Slug: "be"},
 	})
-	got := tg.AgentOrder()
+	got := tg.BotOrder()
 	if len(got) == 0 || got[0].Slug != "ceo" {
-		t.Fatalf("AgentOrder()[0] = %v, want ceo first; full: %v", got, got)
+		t.Fatalf("BotOrder()[0] = %v, want ceo first; full: %v", got, got)
 	}
 }
 
@@ -148,18 +148,18 @@ func TestOfficeLeadSlugFrom_DeterministicAcrossInputOrders(t *testing.T) {
 	}
 }
 
-// Regression: when l.failedPaneSlugs is reset to nil (reconfigureVisibleAgents
+// Regression: when l.failedPaneSlugs is reset to nil (reconfigureVisibleBots
 // does this) and then rebuilt by recordPaneSpawnFailure, the targeter
 // reads the *new* map, not a stale snapshot. Pre-fix, the targeter
 // captured the old map pointer at construction time and missed all later
 // spawn failures after a reconfigure.
 func TestTargeter_FailedPaneSlugs_FollowsLauncherReconfigure(t *testing.T) {
 	l := &Launcher{
-		sessionName:      "test",
-		paneBackedAgents: true,
-		pack: &agent.PackDefinition{
+		sessionName:    "test",
+		paneBackedBots: true,
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend"},
 			},
@@ -178,7 +178,7 @@ func TestTargeter_FailedPaneSlugs_FollowsLauncherReconfigure(t *testing.T) {
 	}
 }
 
-// Regression: AgentOrder and PaneSlugs must follow pack.Agents order, not
+// Regression: BotOrder and PaneSlugs must follow pack.Bots order, not
 // the broker snapshot order. Pack indexing is the contract pane spawn
 // relies on, so a shuffled snapshot must not perturb the resulting order.
 func TestTargeter_AgentOrderAndPaneSlugs_FollowPackNotSnapshot(t *testing.T) {
@@ -190,21 +190,21 @@ func TestTargeter_AgentOrderAndPaneSlugs_FollowPackNotSnapshot(t *testing.T) {
 	}
 	tg := fixtureTargeter(t, members, func(o *officeTargeter) {
 		// Pack order: ceo, fe, be — different from snapshot order.
-		o.pack = &agent.PackDefinition{
+		o.pack = &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo"}, {Slug: "fe"}, {Slug: "be"},
 			},
 		}
 	})
-	gotOrder := tg.AgentOrder()
+	gotOrder := tg.BotOrder()
 	wantSlugs := []string{"ceo", "fe", "be"}
 	if len(gotOrder) != len(wantSlugs) {
-		t.Fatalf("AgentOrder length = %d, want %d (got %+v)", len(gotOrder), len(wantSlugs), gotOrder)
+		t.Fatalf("BotOrder length = %d, want %d (got %+v)", len(gotOrder), len(wantSlugs), gotOrder)
 	}
 	for i, want := range wantSlugs {
 		if gotOrder[i].Slug != want {
-			t.Errorf("AgentOrder[%d] = %q, want %q (full: %+v)", i, gotOrder[i].Slug, want, gotOrder)
+			t.Errorf("BotOrder[%d] = %q, want %q (full: %+v)", i, gotOrder[i].Slug, want, gotOrder)
 		}
 	}
 	gotPane := tg.PaneSlugs()
@@ -248,8 +248,8 @@ func TestTargeter_VisibleAndOverflow_RespectsCap(t *testing.T) {
 	tg := fixtureTargeter(t, members)
 	visible := tg.VisibleMembers()
 	overflow := tg.OverflowMembers()
-	if len(visible) != maxVisibleOfficeAgents {
-		t.Fatalf("VisibleMembers length = %d, want %d", len(visible), maxVisibleOfficeAgents)
+	if len(visible) != maxVisibleOfficeBots {
+		t.Fatalf("VisibleMembers length = %d, want %d", len(visible), maxVisibleOfficeBots)
 	}
 	if len(visible)+len(overflow) != len(members) {
 		t.Fatalf("visible+overflow = %d, want %d", len(visible)+len(overflow), len(members))
@@ -261,7 +261,7 @@ func TestTargeter_VisibleAndOverflow_RespectsCap(t *testing.T) {
 
 func TestTargeter_OverflowWindowName(t *testing.T) {
 	if got := overflowWindowName("designer"); got != "agent-designer" {
-		t.Errorf("overflowWindowName(designer) = %q, want agent-designer", got)
+		t.Errorf("overflowWindowName(designer) = %q, want bot-designer", got)
 	}
 }
 
@@ -302,7 +302,7 @@ func TestTargeter_PaneTargets_VisibleAndOverflowAddresses(t *testing.T) {
 			t.Errorf("PaneTarget[%s] = %q, want %q", m.Slug, got, want)
 		}
 	}
-	// Overflow: each in its own window addressed test-sess:agent-{slug}.0
+	// Overflow: each in its own window addressed test-sess:bot-{slug}.0
 	overflow := tg.OverflowMembers()
 	for _, m := range overflow {
 		want := "test-sess:agent-" + m.Slug + ".0"
@@ -549,11 +549,11 @@ func itoa(n int) string {
 // targeter and shares state with it.
 func TestLauncher_TargeterWiringMatchesPaneTargets(t *testing.T) {
 	l := &Launcher{
-		sessionName:      "wuphf-team",
-		paneBackedAgents: true,
-		pack: &agent.PackDefinition{
+		sessionName:    "wuphf-team",
+		paneBackedBots: true,
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "fe", Name: "Frontend"},
 			},

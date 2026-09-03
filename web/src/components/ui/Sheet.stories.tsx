@@ -19,7 +19,7 @@ const meta: Meta<typeof Sheet> = {
     docs: {
       description: {
         component:
-          "Slide-in side panel primitive wrapping `@radix-ui/react-dialog`. Four sides available (right, left, top, bottom). Use for Issue detail panels, agent settings, or any contextual side-pane workflow without leaving the chat surface.",
+          "Slide-in side panel primitive wrapping `@radix-ui/react-dialog`. Four sides available (right, left, top, bottom). Use for Issue detail panels, bot settings, or any contextual side-pane workflow without leaving the chat surface.",
       },
     },
   },

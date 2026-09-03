@@ -8,18 +8,18 @@ import (
 
 // ExecutorEvent is emitted when a task transitions state.
 type ExecutorEvent struct {
-	Type      string // "task:start", "task:complete", "task:fail", "task:timeout"
-	TaskID    string
-	AgentSlug string
-	Result    string
-	Error     string
+	Type    string // "task:start", "task:complete", "task:fail", "task:timeout"
+	TaskID  string
+	BotSlug string
+	Result  string
+	Error   string
 }
 
 // Executor manages task lifecycle with concurrency limits and timeout enforcement.
 type Executor struct {
 	config      OrchestratorConfig
 	tasks       map[string]*TaskDefinition
-	locks       map[string]string // taskID → agentSlug
+	locks       map[string]string // taskID → botSlug
 	activeCount int
 	listeners   []func(ExecutorEvent)
 	timers      map[string]*time.Timer
@@ -69,10 +69,10 @@ func (e *Executor) Submit(task TaskDefinition) error {
 	return nil
 }
 
-// Checkout atomically assigns taskID to agentSlug and starts the task.
+// Checkout atomically assigns taskID to botSlug and starts the task.
 // Returns (true, nil) on success, (false, nil) if the task is already locked
 // or the concurrency limit is reached, or (false, err) on other errors.
-func (e *Executor) Checkout(taskID, agentSlug string) (bool, error) {
+func (e *Executor) Checkout(taskID, botSlug string) (bool, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -90,28 +90,28 @@ func (e *Executor) Checkout(taskID, agentSlug string) (bool, error) {
 	if _, locked := e.locks[taskID]; locked {
 		return false, nil
 	}
-	if e.config.MaxConcurrentAgents > 0 && e.activeCount >= e.config.MaxConcurrentAgents {
+	if e.config.MaxConcurrentBots > 0 && e.activeCount >= e.config.MaxConcurrentBots {
 		return false, nil
 	}
 
 	task.Status = "in_progress"
-	task.AssignedAgent = agentSlug
-	e.locks[taskID] = agentSlug
+	task.AssignedBot = botSlug
+	e.locks[taskID] = botSlug
 	e.activeCount++
 
 	// Schedule timeout if configured.
 	if e.config.TaskTimeout > 0 {
 		timer := time.AfterFunc(e.config.TaskTimeout, func() {
-			e.handleTimeout(taskID, agentSlug)
+			e.handleTimeout(taskID, botSlug)
 		})
 		e.timers[taskID] = timer
 	}
 
-	e.emit(ExecutorEvent{Type: "task:start", TaskID: taskID, AgentSlug: agentSlug})
+	e.emit(ExecutorEvent{Type: "task:start", TaskID: taskID, BotSlug: botSlug})
 	return true, nil
 }
 
-// Release marks a task as completed or failed and frees the agent slot.
+// Release marks a task as completed or failed and frees the bot slot.
 // Pass a non-nil result string for success, a non-nil err string for failure.
 func (e *Executor) Release(taskID string, result *string, errStr *string) error {
 	e.mu.Lock()
@@ -125,7 +125,7 @@ func (e *Executor) Release(taskID string, result *string, errStr *string) error 
 		return fmt.Errorf("task %q is not checked out", taskID)
 	}
 
-	agentSlug := e.locks[taskID]
+	botSlug := e.locks[taskID]
 	delete(e.locks, taskID)
 	if e.activeCount > 0 {
 		e.activeCount--
@@ -142,10 +142,10 @@ func (e *Executor) Release(taskID string, result *string, errStr *string) error 
 	if errStr != nil && *errStr != "" {
 		task.Status = "failed"
 		e.emit(ExecutorEvent{
-			Type:      "task:fail",
-			TaskID:    taskID,
-			AgentSlug: agentSlug,
-			Error:     *errStr,
+			Type:    "task:fail",
+			TaskID:  taskID,
+			BotSlug: botSlug,
+			Error:   *errStr,
 		})
 	} else {
 		task.Status = "completed"
@@ -153,10 +153,10 @@ func (e *Executor) Release(taskID string, result *string, errStr *string) error 
 			task.Result = *result
 		}
 		e.emit(ExecutorEvent{
-			Type:      "task:complete",
-			TaskID:    taskID,
-			AgentSlug: agentSlug,
-			Result:    task.Result,
+			Type:    "task:complete",
+			TaskID:  taskID,
+			BotSlug: botSlug,
+			Result:  task.Result,
 		})
 	}
 	return nil
@@ -187,7 +187,7 @@ func (e *Executor) StopAll() error {
 		delete(e.timers, id)
 	}
 
-	for taskID, agentSlug := range e.locks {
+	for taskID, botSlug := range e.locks {
 		task := e.tasks[taskID]
 		task.Status = "failed"
 		task.CompletedAt = time.Now().UnixMilli()
@@ -196,17 +196,17 @@ func (e *Executor) StopAll() error {
 			e.activeCount--
 		}
 		e.emit(ExecutorEvent{
-			Type:      "task:fail",
-			TaskID:    taskID,
-			AgentSlug: agentSlug,
-			Error:     "executor stopped",
+			Type:    "task:fail",
+			TaskID:  taskID,
+			BotSlug: botSlug,
+			Error:   "executor stopped",
 		})
 	}
 	return nil
 }
 
 // handleTimeout is called by the per-task timer; fires a timeout event.
-func (e *Executor) handleTimeout(taskID, agentSlug string) {
+func (e *Executor) handleTimeout(taskID, botSlug string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -227,10 +227,10 @@ func (e *Executor) handleTimeout(taskID, agentSlug string) {
 	}
 
 	e.emit(ExecutorEvent{
-		Type:      "task:timeout",
-		TaskID:    taskID,
-		AgentSlug: agentSlug,
-		Error:     "task timed out",
+		Type:    "task:timeout",
+		TaskID:  taskID,
+		BotSlug: botSlug,
+		Error:   "task timed out",
 	})
 }
 

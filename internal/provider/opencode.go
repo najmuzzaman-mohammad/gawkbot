@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 	"github.com/nex-crm/wuphf/internal/runtimebin"
 )
@@ -41,20 +41,20 @@ func init() {
 //
 // Opencode emits plain text on stdout (no JSONL surface), so we stream stdout
 // line-by-line as text chunks rather than parsing structured events.
-func CreateOpencodeCLIStreamFn(agentSlug string) agent.StreamFn {
-	return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-		ch := make(chan agent.StreamChunk, 64)
+func CreateOpencodeCLIStreamFn(botSlug string) bot.StreamFn {
+	return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+		ch := make(chan bot.StreamChunk, 64)
 		go func() {
 			defer close(ch)
 
 			if _, err := opencodeLookPath("opencode"); err != nil {
-				ch <- agent.StreamChunk{Type: "error", Content: "Opencode CLI not found. Install opencode or use /provider to choose a different provider."}
+				ch <- bot.StreamChunk{Type: "error", Content: "Opencode CLI not found. Install opencode or use /provider to choose a different provider."}
 				return
 			}
 
 			cwd, err := opencodeGetwd()
 			if err != nil {
-				ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("resolve working directory: %v", err)}
+				ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("resolve working directory: %v", err)}
 				return
 			}
 
@@ -76,19 +76,19 @@ func CreateOpencodeCLIStreamFn(agentSlug string) agent.StreamFn {
 				if firstTextAt.IsZero() {
 					firstTextAt = time.Now()
 				}
-				ch <- agent.StreamChunk{Type: "text", Content: line}
+				ch <- bot.StreamChunk{Type: "text", Content: line}
 			})
 			if err != nil {
-				appendOpencodeLatencyLog(agentSlug, fmt.Sprintf("status=error total_ms=%d first_event_ms=%d first_text_ms=%d detail=%q",
+				appendOpencodeLatencyLog(botSlug, fmt.Sprintf("status=error total_ms=%d first_event_ms=%d first_text_ms=%d detail=%q",
 					time.Since(startedAt).Milliseconds(),
 					durationMillis(startedAt, firstEventAt),
 					durationMillis(startedAt, firstTextAt),
 					err.Error(),
 				))
-				ch <- agent.StreamChunk{Type: "error", Content: describeOpencodeFailure(err)}
+				ch <- bot.StreamChunk{Type: "error", Content: describeOpencodeFailure(err)}
 				return
 			}
-			appendOpencodeLatencyLog(agentSlug, fmt.Sprintf("status=ok total_ms=%d first_event_ms=%d first_text_ms=%d final_chars=%d",
+			appendOpencodeLatencyLog(botSlug, fmt.Sprintf("status=ok total_ms=%d first_event_ms=%d first_text_ms=%d final_chars=%d",
 				time.Since(startedAt).Milliseconds(),
 				durationMillis(startedAt, firstEventAt),
 				durationMillis(startedAt, firstTextAt),
@@ -276,7 +276,7 @@ func describeOpencodeFailure(err error) string {
 	return fmt.Sprintf("opencode exited with error: %v", err)
 }
 
-func appendOpencodeLatencyLog(agentSlug string, line string) {
+func appendOpencodeLatencyLog(botSlug string, line string) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return
@@ -291,5 +291,5 @@ func appendOpencodeLatencyLog(agentSlug string, line string) {
 		return
 	}
 	defer func() { _ = f.Close() }()
-	_, _ = fmt.Fprintf(f, "[%s] agent=%s %s\n", time.Now().Format(time.RFC3339), strings.TrimSpace(agentSlug), strings.TrimSpace(line))
+	_, _ = fmt.Fprintf(f, "[%s] bot=%s %s\n", time.Now().Format(time.RFC3339), strings.TrimSpace(botSlug), strings.TrimSpace(line))
 }

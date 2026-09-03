@@ -78,7 +78,7 @@ const grantApprovalMarker = "grant"
 // the caller's responsibility because only the caller knows the executed_at
 // timestamp and outcome chat message id.
 //
-// The point: a prompt-injected agent cannot send email, write to a CRM, or
+// The point: a prompt-injected bot cannot send email, write to a CRM, or
 // post a Slack message without the human explicitly clicking approve.
 func requireTeamActionApproval(ctx context.Context, slug, channel string, args TeamActionExecuteArgs, preApproved bool, actionCard *actionCardPayload, connectionUnverified bool) (approvalContext, error) {
 	if args.DryRun {
@@ -93,7 +93,7 @@ func requireTeamActionApproval(ctx context.Context, slug, channel string, args T
 
 	// Auto-resolve the Issue scoping this action. The product rule is
 	// "any work getting done has an Issue behind it." Rather than rejecting
-	// when the agent forgot to pass issue_id, the broker resolves the
+	// when the bot forgot to pass issue_id, the broker resolves the
 	// container automatically: pick the most recent open Issue in this
 	// channel, or auto-create a draft Issue from the action's intent.
 	// The resolved id rides on the approval request body so audit-trail
@@ -109,10 +109,10 @@ func requireTeamActionApproval(ctx context.Context, slug, channel string, args T
 		args.IssueID = resolvedIssueID
 		// Hard gate: an Issue in `drafting` was explicitly PARKED by the
 		// human (backlog/park path) — nothing lands there by default.
-		// The agent must NOT proceed with external actions on parked
-		// work. Surface a clear error back to the agent so its next-step
+		// The bot must NOT proceed with external actions on parked
+		// work. Surface a clear error back to the bot so its next-step
 		// reasoning routes to "wait + ping the human" instead of
-		// retrying the action. The agent will see this error in its
+		// retrying the action. The bot will see this error in its
 		// tool_result and is prompted (RULE ZERO) to back off.
 		if strings.EqualFold(strings.TrimSpace(resolvedState), "drafting") {
 			return approvalContext{}, fmt.Errorf(
@@ -144,7 +144,7 @@ func requireTeamActionApproval(ctx context.Context, slug, channel string, args T
 	options, recommendedID := normalizeHumanRequestOptions("approval", "", nil)
 
 	// Collapse retries onto a single approval. Without this dedupe key,
-	// every agent loop reconnect or retry of the same external-action
+	// every bot loop reconnect or retry of the same external-action
 	// call posts a fresh /requests entry, and the human ends up staring
 	// at 100+ stacked "Approve gmail action" cards for the same intent.
 	dedupeKey := actionApprovalDedupeKey(slug, args)
@@ -272,8 +272,8 @@ func requireTeamActionApproval(ctx context.Context, slug, channel string, args T
 }
 
 // actionApprovalDedupeKey collapses retries of the same external-action
-// call onto one approval request. Keyed on agent + platform + action_id +
-// connection so an in-flight retry by the agent loop folds onto the
+// call onto one approval request. Keyed on bot + platform + action_id +
+// connection so an in-flight retry by the bot loop folds onto the
 // existing pending approval instead of stacking duplicates. Pure for
 // testability — the broker dedupes on whatever string this function
 // returns.
@@ -303,7 +303,7 @@ type actionApprovalSpec struct {
 //
 //	Title:    "Send Email via Gmail"
 //	Question: "@growthops wants to send email via Gmail. Approve?"
-//	Context:  Why: <agent summary, if provided>
+//	Context:  Why: <bot summary, if provided>
 //	          What this will do:
 //	          • To: alex@nex.ai
 //	          • Subject: Welcome
@@ -329,9 +329,9 @@ func buildActionApprovalSpec(slug, channel string, args TeamActionExecuteArgs) a
 	title := titleCaser.String(verb) + " via " + platformLabel
 	question := fmt.Sprintf("@%s wants to %s via %s. Approve?", slug, verb, platformLabel)
 
-	// Agent-controlled fields are sanitized before injection so a malicious
+	// Bot-controlled fields are sanitized before injection so a malicious
 	// payload cannot forge structural sections in the rendered context.
-	// Without this the parser's first-match-wins regexes would let the agent
+	// Without this the parser's first-match-wins regexes would let the bot
 	// inject a fake "What this will do" block + footer, displaying one
 	// action while the broker executes a different one — a confused-deputy
 	// approval bypass that defeats the entire reason this gate exists.
@@ -372,12 +372,12 @@ func buildActionApprovalSpec(slug, channel string, args TeamActionExecuteArgs) a
 // sanitizeContextValue collapses any control character or structural
 // delimiter the approval-card parser keys off of into safe inline text.
 // Specifically: every newline variant becomes a space (so a forged
-// "Action:" embedded in agent input cannot land at a line start, where
+// "Action:" embedded in bot input cannot land at a line start, where
 // the parser's `^Action:\s+` regex would match it), the bullet glyph
 // becomes a middle dot (so a forged `• Label: value` cannot pose as a
 // row inside the "What this will do" block), and runs of whitespace
 // collapse to single spaces. Output stays as a single visible line, so
-// when an agent tries to forge structure the human sees one long
+// when a bot tries to forge structure the human sees one long
 // rambling sentence instead of authoritative-looking sections — a
 // secondary visual signal that something is off.
 func sanitizeContextValue(s string) string {
@@ -408,7 +408,7 @@ func actionVerbLabel(platform, actionID string) string {
 	}
 	// Defensive: if the actionID looks like an opaque internal identifier
 	// (contains `::`, long hash-like runs, base64-ish padding, etc.), the
-	// agent has passed a connection key or workflow handle instead of a
+	// bot has passed a connection key or workflow handle instead of a
 	// proper action_id. Title-casing that string verbatim would surface
 	// gibberish like "conn mod def::gj3odoe fdw::ijlww5s" to the human and
 	// leave them no way to decide whether to approve. Fall back to a
@@ -511,11 +511,11 @@ type TeamActionExecuteArgs struct {
 	FormURLEncoded  bool           `json:"form_url_encoded,omitempty" jsonschema:"Send as application/x-www-form-urlencoded"`
 	DryRun          bool           `json:"dry_run,omitempty" jsonschema:"Build the request without sending it"`
 	Channel         string         `json:"channel,omitempty" jsonschema:"Optional office channel for logging"`
-	MySlug          string         `json:"my_slug,omitempty" jsonschema:"Agent slug performing the action. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug          string         `json:"my_slug,omitempty" jsonschema:"Bot slug performing the action. Defaults to WUPHF_AGENT_SLUG."`
 	Summary         string         `json:"summary,omitempty" jsonschema:"Optional short office log summary"`
 	// IssueID is REQUIRED for any mutating (non-dry-run, non-read-only)
 	// action. The broker rejects mutating calls without an issue_id so the
-	// agent cannot do work that has no scoping artifact. The id must come
+	// bot cannot do work that has no scoping artifact. The id must come
 	// from a prior team_task action=create call in this conversation. See
 	// the ISSUE JUDGMENT block in the system prompt.
 	IssueID string `json:"issue_id,omitempty" jsonschema:"REQUIRED for mutating actions. Pass the team_task/Issue id this action executes under. Get it from a prior team_task action=create call. Read-only and dry_run actions may omit it."`
@@ -525,7 +525,7 @@ type TeamActionWorkflowCreateArgs struct {
 	Key              string   `json:"key" jsonschema:"Stable workflow key like daily-digest or escalate-renewal-risk"`
 	DefinitionJSON   string   `json:"definition_json" jsonschema:"Full WUPHF workflow JSON definition as a string"`
 	Channel          string   `json:"channel,omitempty" jsonschema:"Optional office channel for logging"`
-	MySlug           string   `json:"my_slug,omitempty" jsonschema:"Agent slug creating the workflow. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug           string   `json:"my_slug,omitempty" jsonschema:"Bot slug creating the workflow. Defaults to WUPHF_AGENT_SLUG."`
 	Summary          string   `json:"summary,omitempty" jsonschema:"Optional short office log summary"`
 	SkillName        string   `json:"skill_name,omitempty" jsonschema:"Optional WUPHF skill name. Defaults to the workflow key."`
 	SkillTitle       string   `json:"skill_title,omitempty" jsonschema:"Optional skill title shown in the Skills app."`
@@ -542,7 +542,7 @@ type TeamActionWorkflowExecuteArgs struct {
 	Mock      bool           `json:"mock,omitempty" jsonschema:"Mock external steps where supported"`
 	AllowBash bool           `json:"allow_bash,omitempty" jsonschema:"Allow bash/code steps in the workflow"`
 	Channel   string         `json:"channel,omitempty" jsonschema:"Optional office channel for logging"`
-	MySlug    string         `json:"my_slug,omitempty" jsonschema:"Agent slug executing the workflow. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug    string         `json:"my_slug,omitempty" jsonschema:"Bot slug executing the workflow. Defaults to WUPHF_AGENT_SLUG."`
 	Summary   string         `json:"summary,omitempty" jsonschema:"Optional short office log summary"`
 }
 
@@ -552,7 +552,7 @@ type TeamActionWorkflowScheduleArgs struct {
 	RunNow     bool           `json:"run_now,omitempty" jsonschema:"Also execute one immediate run after scheduling when the human asked for a manual test run now"`
 	Inputs     map[string]any `json:"inputs,omitempty" jsonschema:"Optional workflow inputs"`
 	Channel    string         `json:"channel,omitempty" jsonschema:"Optional office channel for logging"`
-	MySlug     string         `json:"my_slug,omitempty" jsonschema:"Agent slug scheduling the workflow. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug     string         `json:"my_slug,omitempty" jsonschema:"Bot slug scheduling the workflow. Defaults to WUPHF_AGENT_SLUG."`
 	Summary    string         `json:"summary,omitempty" jsonschema:"Optional short office log summary"`
 	SkillName  string         `json:"skill_name,omitempty" jsonschema:"Optional existing or new WUPHF skill name to mirror this workflow"`
 	SkillTitle string         `json:"skill_title,omitempty" jsonschema:"Optional skill title when creating or updating the mirrored skill"`
@@ -573,7 +573,7 @@ type TeamActionRelayCreateArgs struct {
 	EventFilters  []string `json:"event_filters,omitempty" jsonschema:"Optional list of event types to include"`
 	CreateWebhook bool     `json:"create_webhook,omitempty" jsonschema:"Whether One should create the webhook endpoint on the source platform where supported"`
 	Channel       string   `json:"channel,omitempty" jsonschema:"Optional office channel for logging"`
-	MySlug        string   `json:"my_slug,omitempty" jsonschema:"Agent slug creating the relay. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug        string   `json:"my_slug,omitempty" jsonschema:"Bot slug creating the relay. Defaults to WUPHF_AGENT_SLUG."`
 	Summary       string   `json:"summary,omitempty" jsonschema:"Optional short office log summary"`
 }
 
@@ -582,7 +582,7 @@ type TeamActionRelayActivateArgs struct {
 	ActionsJSON   string `json:"actions_json" jsonschema:"JSON array of relay forwarding actions"`
 	WebhookSecret string `json:"webhook_secret,omitempty" jsonschema:"Optional webhook secret"`
 	Channel       string `json:"channel,omitempty" jsonschema:"Optional office channel for logging"`
-	MySlug        string `json:"my_slug,omitempty" jsonschema:"Agent slug activating the relay. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug        string `json:"my_slug,omitempty" jsonschema:"Bot slug activating the relay. Defaults to WUPHF_AGENT_SLUG."`
 	Summary       string `json:"summary,omitempty" jsonschema:"Optional short office log summary"`
 }
 
@@ -742,10 +742,10 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 				return toolError(fmt.Errorf("%s", actionResolveBlockMessage(decision, platformDisplay(args.Platform)))), nil, nil
 			case "proceed":
 				// `proceed` for a MUTATING action means a standing, human-issued
-				// grant covers this exact (agent, platform, action_id): skip the
+				// grant covers this exact (bot, platform, action_id): skip the
 				// approval modal. The resolver is the sole authority for this —
 				// the grant store is human-minted broker state, so a
-				// prompt-injected agent cannot forge its way to `proceed`. The
+				// prompt-injected bot cannot forge its way to `proceed`. The
 				// Issue/drafting gate inside requireTeamActionApproval still runs.
 				if decision.Account != nil && strings.TrimSpace(decision.Account.Key) != "" {
 					args.ConnectionKey = strings.TrimSpace(decision.Account.Key)
@@ -753,7 +753,7 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 				preApproved = true
 			case "approve":
 				// Use the connection the resolver actually verified, not the
-				// (often blank or stale) key the agent guessed. This is what
+				// (often blank or stale) key the bot guessed. This is what
 				// closes the "fires into the wrong/missing connection" gap.
 				if decision.Account != nil && strings.TrimSpace(decision.Account.Key) != "" {
 					args.ConnectionKey = strings.TrimSpace(decision.Account.Key)
@@ -767,7 +767,7 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 				// decision this gate does not recognize — an empty body, a new
 				// verdict the broker added without updating the gate, or a
 				// tampered response. An unrecognized decision must NEVER become
-				// an implicit proceed; block and let the agent retry.
+				// an implicit proceed; block and let the bot retry.
 				return toolError(fmt.Errorf(
 					"%s could not be resolved (unrecognized decision %q); not running the action — retry shortly",
 					platformDisplay(args.Platform), strings.TrimSpace(decision.Decision),
@@ -779,7 +779,7 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 	// Human-in-the-loop gate. Mutating external actions — sending email,
 	// posting to Slack, writing a CRM row, etc. — require explicit human
 	// approval unless --unsafe was passed or the action is a read-only
-	// lookup. A prompt-injected agent must not be able to trigger real
+	// lookup. A prompt-injected bot must not be able to trigger real
 	// side-effects silently.
 	approvalCtx, err := requireTeamActionApproval(ctx, slug, channel, args, preApproved, actionCard, connectionUnverified)
 	if err != nil {
@@ -804,11 +804,11 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 	})
 	verb := actionVerbLabel(args.Platform, args.ActionID)
 	platformLabel := platformDisplay(args.Platform)
-	// `intent` is the agent's own one-liner from args.Summary — that's
+	// `intent` is the bot's own one-liner from args.Summary — that's
 	// the same line the human just read on the approval card, so reusing
 	// it in the outcome means the human sees "I approved THIS and it
 	// ran" instead of a generic "Executed run an action via Gmail".
-	// When the agent left Summary blank, fall back to verb+platform so
+	// When the bot left Summary blank, fall back to verb+platform so
 	// we still post something readable.
 	intent := strings.TrimSpace(args.Summary)
 	if intent == "" {
@@ -820,7 +820,7 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 		_ = brokerRecordActionWithMetadata(ctx, "external_action_failed", provider.Name(), channel, slug, failSummary, args.ActionID, actionLogMetadata(provider.Name(), args, "failed"))
 		// Failure ALWAYS posts (no dedupe, no read-only skip) — silent
 		// failures are the worst UX. Clean the error of CLI/JSON noise
-		// before showing it; the agent's followup human_message can
+		// before showing it; the bot's followup human_message can
 		// carry the deep detail when it matters.
 		cleanedErr := sanitizeOutcomeError(err.Error())
 		outcomeMsgID := brokerPostActionOutcomeMessage(ctx, channel, slug, fmt.Sprintf(
@@ -843,11 +843,11 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 	_ = brokerRecordActionWithMetadata(ctx, kind, provider.Name(), channel, slug, intent, args.ActionID, actionLogMetadata(provider.Name(), args, status))
 	// Decide whether to post to chat. Three rules:
 	//   1. Read-only actions (list/search/get/...) bypass the approval
-	//      gate and are agent-internal lookups; posting every one would
+	//      gate and are bot-internal lookups; posting every one would
 	//      flood chat with noise the human doesn't need to see.
 	//   2. Recent duplicate of the same action — dedupe to avoid
 	//      "✅ Executed ... ✅ Executed ... ✅ Executed" cascades when
-	//      the agent retries a successful call.
+	//      the bot retries a successful call.
 	//   3. Everything else — the human approved it; they MUST see the
 	//      confirmation.
 	var outcomeMsgID string
@@ -859,7 +859,7 @@ func handleTeamActionExecute(ctx context.Context, _ *mcp.CallToolRequest, args T
 		// ones, or what came back — defeating the trust contract of
 		// "every approval feels useful". The preview is bounded so
 		// the chat doesn't drown in raw JSON for large payloads; the
-		// agent's followup human_message carries the interpretation.
+		// bot's followup human_message carries the interpretation.
 		preview := summarizeActionResult(result)
 		var body string
 		if args.DryRun {
@@ -993,9 +993,9 @@ func handleTeamActionWorkflowSchedule(ctx context.Context, _ *mcp.CallToolReques
 		"target_type": "workflow",
 		"target_id":   strings.TrimSpace(args.Key),
 		"channel":     channel,
-		// agent = the office agent that scheduled this workflow; it owns the
+		// bot = the office bot that scheduled this workflow; it owns the
 		// routine in the UI. provider is the integration vendor (composio/one),
-		// which must never be surfaced as the owning agent.
+		// which must never be surfaced as the owning bot.
 		"agent":         slug,
 		"provider":      provider.Name(),
 		"workflow_key":  strings.TrimSpace(args.Key),
@@ -1047,7 +1047,7 @@ func handleTeamActionWorkflowSchedule(ctx context.Context, _ *mcp.CallToolReques
 			// The workflow is scheduled even though the immediate run
 			// failed; surface the failure inside the result payload
 			// (run_now.ok=false + error) rather than as a tool-call
-			// error so the agent sees a structured response and can
+			// error so the bot sees a structured response and can
 			// decide whether to retry.
 			return textResult(prettyObject(result)), nil, nil //nolint:nilerr // intentional: surface execErr inside result, schedule succeeded
 		}

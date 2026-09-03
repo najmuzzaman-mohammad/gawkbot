@@ -2,7 +2,7 @@ package team
 
 // slack_inbound_thread_test.go covers the inbound half of one-task-one-thread:
 // a Slack reply whose thread_ts matches a task's root card is folded into that
-// task (ReplyTo + SourceTaskID), so a non-owner foreign agent's reply stays
+// task (ReplyTo + SourceTaskID), so a non-owner foreign bot's reply stays
 // scoped to the task instead of leaking into shared channel context.
 
 import (
@@ -28,7 +28,7 @@ func TestInboundThreadReplyFoldsIntoTask(t *testing.T) {
 	}
 	b.mu.Unlock()
 
-	// hermes (a foreign agent, NOT the task owner) replies inside the task's
+	// hermes (a foreign bot, NOT the task owner) replies inside the task's
 	// thread (thread_ts = the root card ts).
 	msg, err := b.PostInboundSurfaceMessageInThread("hermes", "slack-office", "Plan B totals $5,220", "slack", "171.5")
 	if err != nil {
@@ -75,9 +75,9 @@ func TestSlackOutboundNeverImpersonatesHuman(t *testing.T) {
 			t.Fatalf("human-authored message (from=%q) must not relay to Slack", from)
 		}
 	}
-	// Agent messages still relay.
+	// Bot messages still relay.
 	if _, ok := tr.FormatOutbound(channelMessage{From: "ceo", Channel: "slack-general", Content: "on it"}); !ok {
-		t.Fatal("agent message should still relay to Slack")
+		t.Fatal("bot message should still relay to Slack")
 	}
 }
 

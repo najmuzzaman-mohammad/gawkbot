@@ -2,7 +2,7 @@
  * usePreviewOffice — derives sidebar preview rows from onboarding FormAnswers.
  *
  * During Phase 2 onboarding (phase != undefined && !onboarded), the sidebar
- * shows "preview rows" — dashed lavender-tinted rows for channels/agents that
+ * shows "preview rows" — dashed lavender-tinted rows for channels/bots that
  * are about to be seeded. These are driven by the staged FormAnswers the user
  * is filling in via the CEO conversation.
  *
@@ -92,9 +92,9 @@ export function usePreviewOffice(): PreviewOfficeState {
     rows.push({ kind: "channel", label: "#general" });
   }
 
-  // Agent preview: picked_agents from team trim
-  const pickedAgents = answers.picked_agents ?? [];
-  for (const agent of pickedAgents) {
+  // Bot preview: picked_agents from team trim
+  const pickedBots = answers.picked_agents ?? [];
+  for (const agent of pickedBots) {
     rows.push({ kind: "agent", label: agent });
   }
 

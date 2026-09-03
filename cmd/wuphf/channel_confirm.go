@@ -15,7 +15,7 @@ func (m channelModel) confirmationForReset() *channelui.ChannelConfirm {
 	detail := "This clears the live team transcript and refreshes all team panes in place."
 	if m.isOneOnOne() {
 		title = "Reset Direct Session"
-		detail = fmt.Sprintf("This clears the direct transcript with %s and reloads the direct pane in place.", m.oneOnOneAgentName())
+		detail = fmt.Sprintf("This clears the direct transcript with %s and reloads the direct pane in place.", m.oneOnOneBotName())
 	}
 	return &channelui.ChannelConfirm{
 		Title:        title,
@@ -24,18 +24,18 @@ func (m channelModel) confirmationForReset() *channelui.ChannelConfirm {
 		CancelLabel:  "Esc keep working",
 		Action:       channelui.ChannelConfirmActionResetTeam,
 		SessionMode:  m.sessionMode,
-		Agent:        m.oneOnOneAgent,
+		Bot:          m.oneOnOneBot,
 	}
 }
 
-func confirmationForSessionSwitch(mode, agent string) *channelui.ChannelConfirm {
+func confirmationForSessionSwitch(mode, bot string) *channelui.ChannelConfirm {
 	mode = strings.TrimSpace(mode)
-	agent = strings.TrimSpace(agent)
+	bot = strings.TrimSpace(bot)
 	var title, detail string
 	if team.NormalizeSessionMode(mode) == team.SessionModeOneOnOne {
-		name := channelui.DisplayName(agent)
-		if agent == "" {
-			name = channelui.DisplayName(team.DefaultOneOnOneAgent)
+		name := channelui.DisplayName(bot)
+		if bot == "" {
+			name = channelui.DisplayName(team.DefaultOneOnOneBot)
 		}
 		title = "Enter Direct Session"
 		detail = fmt.Sprintf("This leaves the shared office view and zooms into a direct session with %s.", name)
@@ -50,7 +50,7 @@ func confirmationForSessionSwitch(mode, agent string) *channelui.ChannelConfirm 
 		CancelLabel:  "Esc stay here",
 		Action:       channelui.ChannelConfirmActionSwitchMode,
 		SessionMode:  mode,
-		Agent:        agent,
+		Bot:          bot,
 	}
 }
 
@@ -64,11 +64,11 @@ func (m channelModel) executeConfirmation(confirm channelui.ChannelConfirm) (tea
 	case channelui.ChannelConfirmActionResetDM:
 		m.confirm = nil
 		m.posting = true
-		return m, resetDMSession(confirm.Agent, confirm.Channel)
+		return m, resetDMSession(confirm.Bot, confirm.Channel)
 	case channelui.ChannelConfirmActionSwitchMode:
 		m.confirm = nil
 		m.posting = true
-		return m, switchSessionMode(confirm.SessionMode, confirm.Agent)
+		return m, switchSessionMode(confirm.SessionMode, confirm.Bot)
 	case channelui.ChannelConfirmActionSubmitRequest:
 		m.confirm = nil
 		m.notice = ""

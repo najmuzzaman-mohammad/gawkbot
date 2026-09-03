@@ -6,7 +6,7 @@ Tracking work that is deliberately deferred from the current branch. Each item n
 
 ### 0. Capture external broker-state.json snapshots for migration shim test fixture
 
-**What:** Before Lane A of the multi-agent control loop build (feat/multi-agent-harness branch) writes the migration shim test, ask 1–3 trusted external WUPHF users to share their `broker-state.json` files (anonymized — only the `(PipelineStage, ReviewState, Status, Blocked)` field-tuple set, not task content). Combine with the founder's own snapshot to form the fixture seed for build-time gate #3 sub-suite 3 (production-fixture migration shim test).
+**What:** Before Lane A of the multi-bot control loop build (feat/multi-bot-harness branch) writes the migration shim test, ask 1–3 trusted external WUPHF users to share their `broker-state.json` files (anonymized — only the `(PipelineStage, ReviewState, Status, Blocked)` field-tuple set, not task content). Combine with the founder's own snapshot to form the fixture seed for build-time gate #3 sub-suite 3 (production-fixture migration shim test).
 
 **Why:** The eng review on 2026-05-09 (`~/.gstack/projects/nex-crm-wuphf/najmuzzaman-feat-multi-agent-harness-design-20260509-170918-multi-agent-control-loop.md`) identified that synthetic permutation tests catch the math but miss field combinations left over from past bugs, partial migrations, or manual interventions. Without real-world fixture data, the migration shim ships untested against the combinations it will actually encounter on production users' brokers, with the failure mode being "task moves to LifecycleState.unknown and refuses to start running" — exactly the kind of surprise that erodes trust in the v1 release.
 
@@ -48,7 +48,7 @@ Tracking work that is deliberately deferred from the current branch. Each item n
 
 **Pros:** Removing auth would simplify ~200 LOC across broker, web client, peer-token map, and the new multi-workspace design. Single-user CLI tools rarely run web auth.
 
-**Cons:** Real attack surface today: any local web app on `localhost:*` could fetch broker endpoints and read team data, send messages, dispatch agents. CORS reduces but doesn't eliminate. Removing auth is a one-way door if WUPHF ever ships a hosted/multi-user variant.
+**Cons:** Real attack surface today: any local web app on `localhost:*` could fetch broker endpoints and read team data, send messages, dispatch bots. CORS reduces but doesn't eliminate. Removing auth is a one-way door if WUPHF ever ships a hosted/multi-user variant.
 
 **Context:** Multi-workspace v1 inherits the existing auth scheme via a new `withAuth` middleware. The middleware refactor reduces blast radius of auth changes. Once that lands, ripping auth is a clean follow-up — change the middleware to be a noop and audit the `/web-token` endpoint.
 
@@ -198,9 +198,9 @@ Tracking work that is deliberately deferred from the current branch. Each item n
 
 ### 16. wiki_reads.go: in-memory ReadStats cache to replace per-article file scan
 
-**What:** `AllStats()` does a full linear scan of `reads.jsonl` on every `BuildArticle` call. As the log grows over months of agent + human reads, this becomes O(n) on every wiki article open. Fix: maintain an in-memory `map[string]ReadStats` updated on each `Append` (already holding the mutex), and serve `Stats`/`AllStats` from the map rather than the file. The file stays as a durable audit log.
+**What:** `AllStats()` does a full linear scan of `reads.jsonl` on every `BuildArticle` call. As the log grows over months of bot + human reads, this becomes O(n) on every wiki article open. Fix: maintain an in-memory `map[string]ReadStats` updated on each `Append` (already holding the mutex), and serve `Stats`/`AllStats` from the map rather than the file. The file stays as a durable audit log.
 
-**Why:** At v1 corpus scale (≤500 articles, ≤10k read events) the scan is fast enough. After 6+ months with active agent reads it will noticeably slow article page loads.
+**Why:** At v1 corpus scale (≤500 articles, ≤10k read events) the scan is fast enough. After 6+ months with active bot reads it will noticeably slow article page loads.
 
 **Trigger to revisit:** When `reads.jsonl` exceeds ~10k lines, or if article load latency exceeds 200ms in production.
 
@@ -210,7 +210,7 @@ Tracking work that is deliberately deferred from the current branch. Each item n
 
 **What:** Instrument `wiki_worker.go` to emit queue depth and time-in-queue metrics, plus a warn log at 80% of the 64-buffer capacity. Track the dropped-event counter from `auto_notebook_writer.go` alongside.
 
-**Why:** PR 1 of the notebook-wiki-promise effort adds a new write source (every agent message + every task transition) that competes with real wiki, artifact, fact, lint, playbook, and learning writes through the same shared queue. Codex flagged this as the most likely operational failure mode. Without observability we discover starvation only when a real wiki write fails or times out.
+**Why:** PR 1 of the notebook-wiki-promise effort adds a new write source (every bot message + every task transition) that competes with real wiki, artifact, fact, lint, playbook, and learning writes through the same shared queue. Codex flagged this as the most likely operational failure mode. Without observability we discover starvation only when a real wiki write fails or times out.
 
 **Pros:** Confirms PR 1 didn't quietly DoS real wiki writes. Gives a concrete signal for tuning the auto-writer's enqueue capacity or for triggering the OV7B event-log migration (TODO #20).
 
@@ -244,11 +244,11 @@ Tracking work that is deliberately deferred from the current branch. Each item n
 
 ### 20. Evaluate event-log architecture migration after notebook-wiki-promise PR 1 screenshot test
 
-**What:** After PR 1 ships and one full WUPHF session populates shelves, evaluate whether the per-event direct-commit model (OV7A) creates the predicted problems: wiki worker queue saturation, NotebookSignalScanner garbage on noisy files, PR 3 clustering quality. If yes, plan migration to the alternative architecture (OV7B): append-only event log per agent (`agents/{slug}/notebook/.events.jsonl`) plus a renderer pass that materializes markdown files on cadence or on-demand.
+**What:** After PR 1 ships and one full WUPHF session populates shelves, evaluate whether the per-event direct-commit model (OV7A) creates the predicted problems: wiki worker queue saturation, NotebookSignalScanner garbage on noisy files, PR 3 clustering quality. If yes, plan migration to the alternative architecture (OV7B): append-only event log per bot (`agents/{slug}/notebook/.events.jsonl`) plus a renderer pass that materializes markdown files on cadence or on-demand.
 
 **Why:** Codex outside voice (2026-05-05, finding #11) argued the event-log architecture is fundamentally simpler than per-event commits and avoids problems PRs 3-6 will have to unwind. We chose OV7A for PR 1 because it gives instant visible shelf fill (the screenshot is the demand test). If the prediction holds, the migration option needs to be alive, not re-derived from scratch.
 
-**Pros:** Far fewer git commits (1/min batched vs 1/event). Lighter long-term cost as agent activity scales. Cleaner separation between durable raw stream and rendered surface.
+**Pros:** Far fewer git commits (1/min batched vs 1/event). Lighter long-term cost as bot activity scales. Cleaner separation between durable raw stream and rendered surface.
 
 **Cons:** Bigger refactor than designing it right once. Migration must preserve existing markdown files or accept that historical writes stay in the original layout.
 
@@ -268,7 +268,7 @@ Tracking work that is deliberately deferred from the current branch. Each item n
 
 **Pros:** A few-token change in `web/public/themes/nex-dark.css` (override `--yellow-bg` to a darker surface or `--yellow` to a lighter foreground) restores AA. Same fix could re-tone the badge so it stops looking like a chip from the light theme dropped onto a dark surface.
 
-**Cons:** Need to verify the new pairing does not regress the InterviewBar agent rail or other usage sites (every place `--yellow`/`--yellow-bg` is referenced — `grep` is the audit tool).
+**Cons:** Need to verify the new pairing does not regress the InterviewBar bot rail or other usage sites (every place `--yellow`/`--yellow-bg` is referenced — `grep` is the audit tool).
 
 **Context:** Plan-design-review on `feat/notebook-auto-writer-pr1` (2026-05-06) introduced `.badge-orange` for the new EXTERNAL ACTION pill via `var(--warning-200)`/`var(--warning-500)`. While verifying that pairing in dark mode I computed the existing BLOCKING badge contrast and found it pre-existing-broken. Not introduced by this PR; deliberately not fixed here to keep the change focused. See `~/.gstack/projects/nex-crm-wuphf/designs/approval-card-hierarchy-20260506/verify.html` for live side-by-side.
 
@@ -302,7 +302,7 @@ Items with known fixes but out of scope for this branch. Each names the trigger 
 
 ### 17. Staleness badges need catalog card rendering (article view has a catch-22)
 
-**What:** `StalenessIndicator` is rendered in `WikiArticle.tsx`, which means it only shows in the article view. But `fetchArticle` always sends `&reader=web`, which records a human read and resets `days_unread=0` before the component renders. Result: a human can never see the "unread 30d+" or "agents only" badge in the browser — their own page view clears the state.
+**What:** `StalenessIndicator` is rendered in `WikiArticle.tsx`, which means it only shows in the article view. But `fetchArticle` always sends `&reader=web`, which records a human read and resets `days_unread=0` before the component renders. Result: a human can never see the "unread 30d+" or "bots only" badge in the browser — their own page view clears the state.
 
 **Fix:** Add badge rendering to the wiki catalog cards (sidebar article list) where browsing does not trigger a read. Alternatively, add a `?stats_only=1` param to `BuildArticle` that returns stored stats without appending a new read event.
 

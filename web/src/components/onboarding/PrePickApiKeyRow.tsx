@@ -94,8 +94,8 @@ export function PrePickApiKeyRow({
                 margin: 0,
               }}
             >
-              Run <code>{field.cliLoginCmd}</code> in a terminal — agents pick
-              up the session automatically.
+              Run <code>{field.cliLoginCmd}</code> in a terminal — bots pick up
+              the session automatically.
             </p>
           )}
           {useApiKey ? (

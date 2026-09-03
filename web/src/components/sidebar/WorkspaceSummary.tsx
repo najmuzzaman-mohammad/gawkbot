@@ -12,7 +12,7 @@ function formatTokens(n: number): string {
 
 /**
  * Small status line at the bottom of the sidebar. Mirrors the legacy
- * `renderWorkspaceSummary` output: active agents, open tasks, total tokens.
+ * `renderWorkspaceSummary` output: active bots, open tasks, total tokens.
  *
  * Uses a separate cache key ("office-tasks-active") from TasksApp
  * ("office-tasks") because this component only needs active tasks.
@@ -32,7 +32,7 @@ export function WorkspaceSummary() {
 
   const tasks = tasksData?.tasks ?? [];
 
-  const activeAgents = members.filter((m) => {
+  const activeBots = members.filter((m) => {
     if (!m.slug || m.slug === "human" || m.slug === "you") return false;
     return (m.status || "").toLowerCase() === "active";
   }).length;
@@ -49,7 +49,7 @@ export function WorkspaceSummary() {
   }).length;
 
   const parts: string[] = [
-    `${activeAgents} agent${activeAgents === 1 ? "" : "s"} active`,
+    `${activeBots} bot${activeBots === 1 ? "" : "s"} active`,
     `${openTasks} task${openTasks === 1 ? "" : "s"} open`,
   ];
   const total = usage?.total?.total_tokens ?? 0;

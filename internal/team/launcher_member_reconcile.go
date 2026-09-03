@@ -7,15 +7,15 @@ import (
 )
 
 // reconcileMemberRuntime runs after the broker publishes a member_updated
-// event. It exists to close the gap exposed by the per-agent runtime picker:
-// switching an existing agent from one runtime to another used to leave the
+// event. It exists to close the gap exposed by the per-bot runtime picker:
+// switching an existing bot from one runtime to another used to leave the
 // stale runtime's state behind, and the next dispatch could silently land on
-// the wrong path (typically: user picks codex, agent never replies because
+// the wrong path (typically: user picks codex, bot never replies because
 // the dispatch loop is still pointing at a dead claude session).
 //
 // What survives the broker-side update path:
 //
-//   - The per-agent ProviderBinding (member.Provider) is already the new
+//   - The per-bot ProviderBinding (member.Provider) is already the new
 //     kind/model, so MemberEffectiveProviderKind returns the new value and
 //     ShouldUseHeadlessForSlug → PaneTargets correctly skips the pane for
 //     non-pane-eligible kinds. The next notification IS routed to the
@@ -27,10 +27,10 @@ import (
 //
 // What this method adds:
 //
-//   - A brief system message in the agent's most-likely-visible channel
+//   - A brief system message in the bot's most-likely-visible channel
 //     telling the human that the runtime change landed. Without this the
 //     switch is silent until the next message, which is the exact symptom
-//     ("I changed the agent's provider and it never replied") the picker
+//     ("I changed the bot's provider and it never replied") the picker
 //     exposes when paired with a broker that doesn't echo the new state.
 //
 // reconcileMemberRuntime is idempotent — the event fires on every member

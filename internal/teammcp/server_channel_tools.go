@@ -46,7 +46,7 @@ func handleTeamDMOpen(ctx context.Context, _ *mcp.CallToolRequest, args TeamDMOp
 	if len(args.Members) < 2 {
 		return toolError(fmt.Errorf("members must have at least 2 entries (e.g. [\"human\", \"engineering\"])")), nil, nil
 	}
-	// Validate: must include human. Agent-to-agent DMs are not allowed.
+	// Validate: must include human. Bot-to-bot DMs are not allowed.
 	hasHuman := false
 	for _, m := range args.Members {
 		member := strings.ToLower(strings.TrimSpace(m))
@@ -56,7 +56,7 @@ func handleTeamDMOpen(ctx context.Context, _ *mcp.CallToolRequest, args TeamDMOp
 		}
 	}
 	if !hasHuman {
-		return toolError(fmt.Errorf("DM must include 'human' as a member; agent-to-agent DMs are not allowed")), nil, nil
+		return toolError(fmt.Errorf("DM must include 'human' as a member; bot-to-bot DMs are not allowed")), nil, nil
 	}
 
 	dmType := strings.TrimSpace(strings.ToLower(args.Type))
@@ -102,7 +102,7 @@ func handleTeamChannel(ctx context.Context, _ *mcp.CallToolRequest, args TeamCha
 	}
 	if action == "create" {
 		// A channel is durable office structure, so the human owns the call:
-		// the agent proposes, this blocks until they decide. Same gate shape as
+		// the bot proposes, this blocks until they decide. Same gate shape as
 		// team_member create (channel_approval.go).
 		if err := requireTeamChannelApproval(ctx, resolveSlugOptional(args.MySlug), args); err != nil {
 			return toolError(err), nil, nil
@@ -191,9 +191,9 @@ func handleTeamMember(ctx context.Context, _ *mcp.CallToolRequest, args TeamMemb
 	switch action {
 	case "create":
 		actor := strings.TrimSpace(resolveSlugOptional(args.MySlug))
-		// Spinning up a NEW agent is a durable, persistent act, so it always
+		// Spinning up a NEW bot is a durable, persistent act, so it always
 		// requires explicit human approval. This blocks until the human
-		// decides; on reject/timeout the agent must reuse an existing
+		// decides; on reject/timeout the bot must reuse an existing
 		// specialist instead. (WUPHF_UNSAFE=1 bypasses, like the action gate.)
 		if err := requireTeamMemberApproval(ctx, actor, args); err != nil {
 			return toolError(err), nil, nil
@@ -214,7 +214,7 @@ func handleTeamMember(ctx context.Context, _ *mcp.CallToolRequest, args TeamMemb
 				if v := strings.TrimSpace(args.OpenclawSessionKey); v != "" {
 					oc["session_key"] = v
 				}
-				if v := strings.TrimSpace(args.OpenclawAgentID); v != "" {
+				if v := strings.TrimSpace(args.OpenclawBotID); v != "" {
 					oc["agent_id"] = v
 				}
 				p["openclaw"] = oc

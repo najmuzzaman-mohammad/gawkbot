@@ -36,8 +36,8 @@ func TestMigrateOpenclawBridges_Happy(t *testing.T) {
 	if err := Save(Config{
 		OpenclawGatewayURL: "ws://127.0.0.1:18789",
 		OpenclawBridges: []OpenclawBridgeBinding{
-			{SessionKey: "agent:a:demo", Slug: "openclaw-a", DisplayName: "Agent A"},
-			{SessionKey: "agent:b:demo", Slug: "openclaw-b", DisplayName: "Agent B"},
+			{SessionKey: "agent:a:demo", Slug: "openclaw-a", DisplayName: "Bot A"},
+			{SessionKey: "agent:b:demo", Slug: "openclaw-b", DisplayName: "Bot B"},
 		},
 	}); err != nil {
 		t.Fatalf("seed: %v", err)

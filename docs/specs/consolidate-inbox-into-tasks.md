@@ -5,7 +5,7 @@
 We have too many top-level surfaces. The Inbox is a separate nav destination
 that only ever held two conceptual buckets:
 
-1. **Items needing human attention** — decision-state tasks, blocking agent
+1. **Items needing human attention** — decision-state tasks, blocking bot
    requests, pending wiki/code reviews.
 2. **Items that are done and have an output to look at** — landed work.
 

@@ -134,7 +134,7 @@ func (b *Broker) distillCompletedTask(taskID string) {
 	res := task.VerificationResult
 	if res == nil || !res.Pass {
 		// No machine proof → no automatic memory. The wiki/notebook path
-		// (agent-initiated, librarian-curated) still covers these.
+		// (bot-initiated, librarian-curated) still covers these.
 		return
 	}
 

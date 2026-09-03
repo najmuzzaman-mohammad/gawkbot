@@ -23,7 +23,7 @@ type imageGenerateInput struct {
 }
 
 // registerImageTools wires image_generate (and friends) into the MCP server
-// for an artist agent. Only artists get these tools — wiring up every agent
+// for an artist bot. Only artists get these tools — wiring up every bot
 // would add ~6k tokens of schema overhead to no benefit.
 func registerImageTools(server *mcp.Server) {
 	mcp.AddTool(server,

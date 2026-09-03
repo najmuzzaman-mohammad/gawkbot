@@ -21,7 +21,7 @@ func liveShimEnabled() bool {
 }
 
 // TestOpenAIChatCompletionsLive_SuccessPath proves the shim returns a REAL
-// completion from the configured agent CLI in a shape an openai-compatible
+// completion from the configured bot CLI in a shape an openai-compatible
 // client will accept.
 //
 // The offline tests only cover refusals. They would all still pass if the

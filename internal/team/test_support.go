@@ -218,7 +218,7 @@ func setKillHeadlessTaskRunnerProcessForTest(t *testing.T, fn killHeadlessTaskRu
 // Cross-package version of the in-package fixture helper, for teammcp and any
 // other package whose tests need a room to post into. Those tests are not
 // about #general -- they exercise tool surfaces, message scoping, and task
-// plumbing, and they simply need somewhere for an agent to speak.
+// plumbing, and they simply need somewhere for a bot to speak.
 //
 // The FIXTURE provides the room; PRODUCTION does not. This bypasses the create
 // gate deliberately, and the seed paths that would mint #general in a real
@@ -247,7 +247,7 @@ func SeedLegacyRoomForTest(b *Broker) {
 	})
 }
 
-// SeedBridgedRoomForTest gives a broker a BRIDGED room that several agents
+// SeedBridgedRoomForTest gives a broker a BRIDGED room that several bots
 // share — the shape of a Slack or Telegram channel wired into the office.
 //
 // Cross-package callers (teammcp) have routing tests — which channel does a
@@ -256,17 +256,17 @@ func SeedLegacyRoomForTest(b *Broker) {
 // and both failures are the product behaving correctly:
 //
 //   - A DM has exactly two members by definition, so the CEO tagging a
-//     specialist inside another agent's DM is refused. That is the privacy
+//     specialist inside another bot's DM is refused. That is the privacy
 //     model, not a broken fixture.
 //   - A plain named room can be seeded, but GET /channels WITHHOLDS ordinary
 //     named rooms while the retirement switch is off, so it is invisible to
-//     the agent-side channel inference these tests drive. The room would exist
+//     the bot-side channel inference these tests drive. The room would exist
 //     and the routing would still resolve elsewhere.
 //
 // A bridged room is the multi-participant surface that survives the
 // retirement, and it survives deliberately: it is how external messages
 // arrive, so hiding it would strand every message that came in through it.
-// Routing between agents in a shared room is exactly what still has to work
+// Routing between bots in a shared room is exactly what still has to work
 // there, which makes it the honest fixture rather than a way around the gate.
 func SeedBridgedRoomForTest(b *Broker, slug string, members ...string) {
 	if b == nil {

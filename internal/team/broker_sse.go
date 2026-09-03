@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-// Server-Sent Events: per-broker fanout (handleEvents) and per-agent
-// stdout streaming (handleAgentStream). Plus the tool-call audit channel
-// (handleAgentToolEvent) which writes into the per-agent stream.
+// Server-Sent Events: per-broker fanout (handleEvents) and per-bot
+// stdout streaming (handleBotStream). Plus the tool-call audit channel
+// (handleBotToolEvent) which writes into the per-bot stream.
 //
 // SSE wire shape:
 //   - Content-Type: text/event-stream
@@ -176,14 +176,14 @@ func (b *Broker) handleEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleAgentToolEvent appends a tool-call log line to the agent's stream so
-// the per-agent activity panel shows which MCP tool was invoked with what
+// handleBotToolEvent appends a tool-call log line to the bot's stream so
+// the per-bot activity panel shows which MCP tool was invoked with what
 // arguments. Without this, the stream only shows raw pane-captured stdout —
-// useless for agents whose work happens entirely through MCP tool calls.
+// useless for bots whose work happens entirely through MCP tool calls.
 //
 // Body: {"slug":"ceo","phase":"call|result|error","tool":"team_broadcast","args":"...","result":"...","error":"..."}
 // Phase is informational; all fields but slug are optional.
-func (b *Broker) handleAgentToolEvent(w http.ResponseWriter, r *http.Request) {
+func (b *Broker) handleBotToolEvent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -206,14 +206,14 @@ func (b *Broker) handleAgentToolEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing slug", http.StatusBadRequest)
 		return
 	}
-	stream := b.AgentStream(slug)
+	stream := b.BotStream(slug)
 	if stream != nil {
-		line := formatAgentToolEvent(body.Phase, body.Tool, body.Args, body.Result, body.Error)
+		line := formatBotToolEvent(body.Phase, body.Tool, body.Args, body.Result, body.Error)
 		if line != "" {
 			taskID := strings.TrimSpace(body.TaskID)
 			if taskID == "" {
 				b.mu.Lock()
-				taskID = b.activeTaskIDForAgentLocked(slug)
+				taskID = b.activeTaskIDForBotLocked(slug)
 				b.mu.Unlock()
 			}
 			stream.PushTask(taskID, line+"\n")
@@ -223,10 +223,10 @@ func (b *Broker) handleAgentToolEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// formatAgentToolEvent renders one structured audit record for the per-agent
+// formatBotToolEvent renders one structured audit record for the per-bot
 // stream. SSE data lines must stay single-line; JSON encoding preserves exact
 // arguments/results while escaping embedded newlines.
-func formatAgentToolEvent(phase, tool, args, result, errStr string) string {
+func formatBotToolEvent(phase, tool, args, result, errStr string) string {
 	tool = strings.TrimSpace(tool)
 	phase = strings.TrimSpace(phase)
 	if phase == "" {
@@ -268,29 +268,29 @@ func decodeToolEventField(raw string) any {
 	return raw
 }
 
-// handleAgentStream serves a per-agent stdout SSE stream.
+// handleBotStream serves a per-bot stdout SSE stream.
 // Recent lines are replayed as initial history, then new lines are pushed live.
-// Path: /agent-stream/{slug}?task={taskID}
+// Path: /bot-stream/{slug}?task={taskID}
 //
 // When ?task= is supplied the stream is scoped to that task: history replay
 // uses the per-task buffer and live subscription only emits lines tagged with
-// the matching taskID. Omit ?task= to subscribe to the agent's full stream.
-func (b *Broker) handleAgentStream(w http.ResponseWriter, r *http.Request) {
+// the matching taskID. Omit ?task= to subscribe to the bot's full stream.
+func (b *Broker) handleBotStream(w http.ResponseWriter, r *http.Request) {
 	slug := strings.TrimPrefix(r.URL.Path, "/agent-stream/")
 	if slug == "" {
-		http.Error(w, "missing agent slug", http.StatusBadRequest)
+		http.Error(w, "missing bot slug", http.StatusBadRequest)
 		return
 	}
 	taskID := strings.TrimSpace(r.URL.Query().Get("task"))
-	b.streamAgentTaskSSE(w, r, slug, taskID)
+	b.streamBotTaskSSE(w, r, slug, taskID)
 }
 
-// streamAgentTaskSSE writes an agent's live HeadlessEvent stream as SSE,
-// optionally scoped to a single task. Shared by the raw /agent-stream/{slug}
+// streamBotTaskSSE writes a bot's live HeadlessEvent stream as SSE,
+// optionally scoped to a single task. Shared by the raw /bot-stream/{slug}
 // endpoint and the app-scoped GET /apps/{id}/activity, which resolves an app's
 // backing app-builder run and streams it WITHOUT exposing the task id to the
 // client — the App is the only identifier the operator surface ever sees.
-func (b *Broker) streamAgentTaskSSE(w http.ResponseWriter, r *http.Request, slug, taskID string) {
+func (b *Broker) streamBotTaskSSE(w http.ResponseWriter, r *http.Request, slug, taskID string) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
@@ -301,9 +301,9 @@ func (b *Broker) streamAgentTaskSSE(w http.ResponseWriter, r *http.Request, slug
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	stream := b.AgentStream(slug)
+	stream := b.BotStream(slug)
 	if stream == nil {
-		http.Error(w, "agent stream not found", http.StatusNotFound)
+		http.Error(w, "bot stream not found", http.StatusNotFound)
 		return
 	}
 

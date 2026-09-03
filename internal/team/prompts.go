@@ -1,9 +1,9 @@
 package team
 
-// prompts.go owns per-agent prompt + claude-command construction
+// prompts.go owns per-bot prompt + claude-command construction
 // (PLAN.md §C13/§C22). buildPrompt delegates to promptBuilder;
 // newPromptBuilder is the snapshot-accessor closure assembly;
-// writeAgentPromptFile + cleanupAgentTempFiles handle the prompt-file
+// writeBotPromptFile + cleanupBotTempFiles handle the prompt-file
 // lifecycle; resolvePermissionFlags returns the claude permission
 // flags; claudeCommand assembles the long shell-command string the
 // launcher feeds to tmux split-window for an interactive claude pane.
@@ -18,7 +18,7 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
-// buildPrompt generates the system prompt for an agent. The body lives on
+// buildPrompt generates the system prompt for a bot. The body lives on
 // promptBuilder (see prompt_builder.go) so it can be tested without a
 // Launcher; this wrapper assembles the snapshot accessors from launcher
 // state and delegates.
@@ -63,11 +63,11 @@ func (l *Launcher) newPromptBuilder() *promptBuilder {
 			}
 			return l.broker.ListActiveIssueSummariesForPrompt()
 		},
-		agentInstruction: func(slug, name string) string {
+		botInstruction: func(slug, name string) string {
 			if l == nil || l.broker == nil {
 				return ""
 			}
-			return l.broker.ReadAgentInstruction(slug, name)
+			return l.broker.ReadBotInstruction(slug, name)
 		},
 		officeUser: func() string {
 			if l == nil || l.broker == nil {
@@ -95,14 +95,14 @@ func (l *Launcher) newPromptBuilder() *promptBuilder {
 	}
 }
 
-// writeAgentPromptFile persists the per-agent system prompt to a stable
+// writeBotPromptFile persists the per-bot system prompt to a stable
 // per-slug temp file so it can be passed to `claude --append-system-prompt-file`
 // without bloating the tmux command.
 //
-// File naming mirrors ensureAgentMCPConfig (wuphf-mcp-<slug>.json) so both
+// File naming mirrors ensureBotMCPConfig (wuphf-mcp-<slug>.json) so both
 // artifacts are easy to clean up together. Perms are 0o600 because the prompt
 // can contain team-internal instructions and tool lists.
-func (l *Launcher) writeAgentPromptFile(slug, prompt string) (string, error) {
+func (l *Launcher) writeBotPromptFile(slug, prompt string) (string, error) {
 	dir, err := l.launchTempDir()
 	if err != nil {
 		return "", err
@@ -118,9 +118,9 @@ func (l *Launcher) writeAgentPromptFile(slug, prompt string) (string, error) {
 // creating it via os.MkdirTemp on first call. Pre-fix every launcher
 // wrote to $TMPDIR/wuphf-{prompt,mcp}-<slug>; two offices launching
 // the same slug clobbered each other's prompt during startup, and one
-// shutdown's cleanupAgentTempFiles would delete the other session's
+// shutdown's cleanupBotTempFiles would delete the other session's
 // prompt out from under it. With a per-launch directory each office
-// gets its own scoped namespace and cleanupAgentTempFiles can rm -rf
+// gets its own scoped namespace and cleanupBotTempFiles can rm -rf
 // the whole directory atomically.
 func (l *Launcher) launchTempDir() (string, error) {
 	l.launchTempDirOnce.Do(func() {
@@ -134,21 +134,21 @@ func (l *Launcher) launchTempDir() (string, error) {
 	return l.launchTempDirPath, l.launchTempDirErr
 }
 
-// cleanupAgentTempFiles removes the per-launch temp directory (which
-// holds every per-agent MCP config + system prompt). Safe to call
+// cleanupBotTempFiles removes the per-launch temp directory (which
+// holds every per-bot MCP config + system prompt). Safe to call
 // multiple times and idempotent. Called from Shutdown so the broker
 // token + prompt content do not linger in $TMPDIR after the session
 // ends. Pre-fix this iterated office members and tried to delete each
 // file by name from the global $TMPDIR — that worked but didn't
 // catch members removed mid-session and could collide with peer
 // launches; rm -rf on the launch-scoped dir solves both.
-func (l *Launcher) cleanupAgentTempFiles() {
+func (l *Launcher) cleanupBotTempFiles() {
 	if l.launchTempDirPath != "" {
 		_ = os.RemoveAll(l.launchTempDirPath)
 	}
 }
 
-// turnPosture is the read/write posture of a single agent turn.
+// turnPosture is the read/write posture of a single bot turn.
 type turnPosture int
 
 const (
@@ -166,9 +166,9 @@ const (
 // read-write (execute). A turn is plan-posture only when its task is in the
 // structured-planning phase (LifecycleStatePlanning); everything else stays
 // execute-posture. The task is resolved per-turn via turnTaskForCtx so that,
-// under parallel instances, an agent's planning turn and a concurrent
+// under parallel instances, a bot's planning turn and a concurrent
 // office/execution turn get independent postures. A background context falls
-// back to the agent's active task (correct for the single-task interactive
+// back to the bot's active task (correct for the single-task interactive
 // pane).
 func (l *Launcher) resolveTurnPosture(ctx context.Context, slug string) turnPosture {
 	if l == nil {
@@ -180,7 +180,7 @@ func (l *Launcher) resolveTurnPosture(ctx context.Context, slug string) turnPost
 	return postureExecute
 }
 
-// resolvePermissionFlags returns the Claude Code permission flags for an agent's
+// resolvePermissionFlags returns the Claude Code permission flags for a bot's
 // current turn. Execute-posture turns run in bypass mode — the team is
 // autonomous. Plan-posture turns (the task is in LifecycleStatePlanning) run in
 // Claude's NATIVE plan mode: read-only exploration where the model presents a
@@ -194,29 +194,29 @@ func (l *Launcher) resolvePermissionFlags(ctx context.Context, slug string) stri
 }
 
 // claudeCommand returns the shell command that launches an interactive
-// `claude` session for the given agent. The command is passed as a single
+// `claude` session for the given bot. The command is passed as a single
 // argument to tmux split-window; if it grows past tmux's internal
 // command-parse buffer, tmux rejects it with "command too long" before the
 // shell ever runs. Keep the command bounded — put the bulky system prompt in
 // a file and pass --append-system-prompt-file <path> instead of inlining.
 //
-// Sets WUPHF_AGENT_SLUG so the MCP knows which agent this session serves.
-// Returns an error if the per-agent temp files (MCP config or prompt) cannot
-// be written; callers should fall back to the headless path so agents do not
+// Sets WUPHF_AGENT_SLUG so the MCP knows which bot this session serves.
+// Returns an error if the per-bot temp files (MCP config or prompt) cannot
+// be written; callers should fall back to the headless path so bots do not
 // silently launch with a missing system prompt.
 func (l *Launcher) claudeCommand(slug, systemPrompt string) (string, error) {
-	// Always fail closed when ensureAgentMCPConfig errors. Pre-fix
+	// Always fail closed when ensureBotMCPConfig errors. Pre-fix
 	// the function fell back to l.mcpConfig (the launcher-wide
-	// config containing every MCP server) when the per-agent
+	// config containing every MCP server) when the per-bot
 	// filtered write failed — turning a transient os.WriteFile
-	// failure into silent privilege expansion: an agent restricted
-	// to a small allowlist via agentMCPServers(slug) would launch
+	// failure into silent privilege expansion: a bot restricted
+	// to a small allowlist via botMCPServers(slug) would launch
 	// with full access to every server in the office. Caller must
 	// now handle the error (typically by falling back to the
 	// headless path that doesn't share this code path).
-	agentMCP, err := l.ensureAgentMCPConfig(slug)
+	botMCP, err := l.ensureBotMCPConfig(slug)
 	if err != nil {
-		return "", fmt.Errorf("claudeCommand(%s): write agent MCP config: %w", slug, err)
+		return "", fmt.Errorf("claudeCommand(%s): write bot MCP config: %w", slug, err)
 	}
 	// Every interpolated value below flows through shellQuote so the
 	// resulting tmux command is injection-safe regardless of source.
@@ -229,14 +229,14 @@ func (l *Launcher) claudeCommand(slug, systemPrompt string) (string, error) {
 	// the user. Single-quoting via shellQuote closes that surface
 	// uniformly; the cost is one shellQuote() call per field.
 
-	promptPath, err := l.writeAgentPromptFile(slug, systemPrompt)
+	promptPath, err := l.writeBotPromptFile(slug, systemPrompt)
 	if err != nil {
 		return "", fmt.Errorf("claudeCommand(%s): write prompt file: %w", slug, err)
 	}
 
 	name := l.targeter().NameFor(slug)
 	// The interactive pane runs one task at a time and has no per-turn ctx, so a
-	// background context resolves posture from the agent's active task (a
+	// background context resolves posture from the bot's active task (a
 	// Planning task → native plan mode; anything else → bypass).
 	permFlags := l.resolvePermissionFlags(context.Background(), slug)
 
@@ -247,7 +247,7 @@ func (l *Launcher) claudeCommand(slug, systemPrompt string) (string, error) {
 
 	oneOnOneEnv := ""
 	if l.isOneOnOne() {
-		oneOnOneEnv = "WUPHF_ONE_ON_ONE=1 WUPHF_ONE_ON_ONE_AGENT=" + shellQuote(l.oneOnOneAgent()) + " "
+		oneOnOneEnv = "WUPHF_ONE_ON_ONE=1 WUPHF_ONE_ON_ONE_AGENT=" + shellQuote(l.oneOnOneBot()) + " "
 	}
 	oneSecretEnv := ""
 	if secret := strings.TrimSpace(config.ResolveOneSecret()); secret != "" {
@@ -262,7 +262,7 @@ func (l *Launcher) claudeCommand(slug, systemPrompt string) (string, error) {
 	}
 
 	// The interactive pane builder has no per-turn context; a background
-	// context makes headlessClaudeModel fall back to the agent's active task,
+	// context makes headlessClaudeModel fall back to the bot's active task,
 	// which is correct here because tmux panes run one task at a time.
 	model := l.headlessClaudeModel(context.Background(), slug)
 	brokerBaseURL := l.BrokerBaseURL()
@@ -283,7 +283,7 @@ func (l *Launcher) claudeCommand(slug, systemPrompt string) (string, error) {
 		shellQuote(model),
 		permFlags,
 		shellQuote(promptPath),
-		shellQuote(agentMCP),
+		shellQuote(botMCP),
 		shellQuote(name),
 	), nil
 }

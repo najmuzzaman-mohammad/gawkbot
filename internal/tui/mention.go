@@ -9,25 +9,25 @@ import (
 
 const maxMentionMatches = 8
 
-type AgentMention struct {
+type BotMention struct {
 	Slug string
 	Name string
 }
 
 type MentionModel struct {
 	visible  bool
-	matches  []AgentMention
+	matches  []BotMention
 	selected int
 	query    string
-	agents   []AgentMention
+	bots     []BotMention
 }
 
-func NewMention(agents []AgentMention) MentionModel {
-	return MentionModel{agents: agents}
+func NewMention(bots []BotMention) MentionModel {
+	return MentionModel{bots: bots}
 }
 
-func (m *MentionModel) UpdateAgents(agents []AgentMention) {
-	m.agents = agents
+func (m *MentionModel) UpdateBots(bots []BotMention) {
+	m.bots = bots
 }
 
 // UpdateQuery triggers on "@" preceded by space or at start of input.
@@ -51,8 +51,8 @@ func (m *MentionModel) UpdateQuery(input string) {
 	q := strings.ToLower(input[atIdx+1:])
 	m.query = q
 
-	var matches []AgentMention
-	for _, ag := range m.agents {
+	var matches []BotMention
+	for _, ag := range m.bots {
 		if strings.HasPrefix(strings.ToLower(ag.Slug), q) ||
 			strings.HasPrefix(strings.ToLower(ag.Name), q) {
 			matches = append(matches, ag)
@@ -84,18 +84,18 @@ func (m *MentionModel) Accept() string {
 	return "@" + slug
 }
 
-func (m MentionModel) Matches() []AgentMention {
+func (m MentionModel) Matches() []BotMention {
 	if len(m.matches) == 0 {
 		return nil
 	}
-	out := make([]AgentMention, len(m.matches))
+	out := make([]BotMention, len(m.matches))
 	copy(out, m.matches)
 	return out
 }
 
-func (m MentionModel) Selected() (AgentMention, bool) {
+func (m MentionModel) Selected() (BotMention, bool) {
 	if !m.visible || len(m.matches) == 0 {
-		return AgentMention{}, false
+		return BotMention{}, false
 	}
 	return m.matches[m.selected], true
 }

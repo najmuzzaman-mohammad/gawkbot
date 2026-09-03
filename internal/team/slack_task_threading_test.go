@@ -97,14 +97,14 @@ func TestTaskRootCardRendersDefinition(t *testing.T) {
 		Definition: &TaskDefinition{
 			Goal:            "Pick the cheaper 3-year cloud plan",
 			Deliverables:    []TaskDeliverable{{Name: "recommendation", Format: "chat post"}},
-			SuccessCriteria: []string{"both agents independently agree on the totals"},
+			SuccessCriteria: []string{"both bots independently agree on the totals"},
 		},
 	}
 	blocks := buildSlackTaskCardBlocks(task, "running", "http://127.0.0.1:7905")
 	raw := blocksText(t, blocks)
 	for _, want := range []string{
 		"Pick the cheaper 3-year cloud plan", "recommendation (chat post)",
-		"both agents independently agree", "Open task in WUPHF", "lives in this thread",
+		"both bots independently agree", "Open task in WUPHF", "lives in this thread",
 	} {
 		if !strings.Contains(raw, want) {
 			t.Errorf("root card missing %q:\n%s", want, raw)

@@ -8,8 +8,8 @@ import { useCurrentApp } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
 import { TeamMemberBadge } from "../join/TeamMemberBadge";
 import { SidebarPreviewOverlay } from "../onboarding/SidebarPreviewOverlay";
-import { AgentList } from "../sidebar/AgentList";
 import { AppList } from "../sidebar/AppList";
+import { BotList } from "../sidebar/BotList";
 import { ChannelList } from "../sidebar/ChannelList";
 import { SidebarSection } from "../sidebar/SidebarSection";
 import { UsagePanel } from "../sidebar/UsagePanel";
@@ -43,9 +43,9 @@ function useMobileRail(): boolean {
 export function Sidebar() {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useAppStore((s) => s.toggleSidebarCollapsed);
-  const sidebarAgentsOpen = useAppStore((s) => s.sidebarAgentsOpen);
+  const sidebarBotsOpen = useAppStore((s) => s.sidebarBotsOpen);
   const sidebarChannelsOpen = useAppStore((s) => s.sidebarChannelsOpen);
-  const toggleSidebarAgents = useAppStore((s) => s.toggleSidebarAgents);
+  const toggleSidebarBots = useAppStore((s) => s.toggleSidebarBots);
   const toggleSidebarChannels = useAppStore((s) => s.toggleSidebarChannels);
   const currentApp = useCurrentApp();
   const mobileRail = useMobileRail();
@@ -129,23 +129,23 @@ export function Sidebar() {
           </div>
 
           <div className="sidebar-scroll">
-            {/* The agent roster rail — Chief of Staff + specialists with avatars, live
+            {/* The bot roster rail — Chief of Staff + specialists with avatars, live
                 activity pills, and the peek affordance. Clicking a row opens
-                that agent's subspace (/agents/$slug), so any agent is reachable
+                that bot's subspace (/bots/$slug), so any bot is reachable
                 at any time. Collapsible + persisted via the app store, exactly
                 as before the Slack-style sidebar unify (#919). */}
             <SidebarSection
-              label="Agents"
+              label="Bots"
               variant="team"
-              open={sidebarAgentsOpen}
-              onToggle={toggleSidebarAgents}
+              open={sidebarBotsOpen}
+              onToggle={toggleSidebarBots}
               data-testid="sidebar-section-agents"
             >
-              <AgentList />
+              <BotList />
             </SidebarSection>
 
             {/* Channels are retired. Every conversation is a 1:1 DM with one
-                agent, and tagging another agent inside it sends yours to
+                bot, and tagging another bot inside it sends yours to
                 consult them rather than pulling them into the room.
 
                 The SECTION is dropped, not just emptied: a "Channels" heading
@@ -170,12 +170,12 @@ export function Sidebar() {
                 surface. */}
             <AppList />
 
-            {/* Phase 2 onboarding preview overlay — shows staged channels/agents
+            {/* Phase 2 onboarding preview overlay — shows staged channels/bots
                 forming as the user answers Chief of Staff questions. Hidden once onboarded. */}
             <SidebarPreviewOverlay />
           </div>
           {/* WorkspaceSummary intentionally not rendered here — the stats
-              it shows (agents active, tasks open, tokens) are redundant
+              it shows (bots active, tasks open, tokens) are redundant
               with the Tasks nav and the Usage footer. The component file is
               preserved so it can be re-used inside a future Usage popover
               or Settings surface. */}

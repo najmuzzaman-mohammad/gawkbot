@@ -54,8 +54,8 @@ func authHeaders() http.Header {
 	if token != "" {
 		headers.Set("Authorization", "Bearer "+token)
 	}
-	// Identify the agent behind this MCP process so the broker can apply a
-	// per-agent rate limit. A prompt-injected agent that loops on tool calls
+	// Identify the bot behind this MCP process so the broker can apply a
+	// per-bot rate limit. A prompt-injected bot that loops on tool calls
 	// will otherwise bypass the IP-scoped limiter because it holds the broker
 	// token. Operator traffic from the web UI never sets this header.
 	if slug := strings.TrimSpace(os.Getenv("WUPHF_AGENT_SLUG")); slug != "" {
@@ -89,33 +89,33 @@ func isOneOnOneMode() bool {
 func resolveSlug(input string) (string, error) {
 	// The model-supplied my_slug ARG is untrusted (the LLM picks it). The
 	// launcher-set WUPHF_AGENT_SLUG env is the trusted identity for this
-	// agent process. An agent must not be able to claim a reserved human/
+	// bot process. A bot must not be able to claim a reserved human/
 	// system identity or a privileged built-in slug (ceo/librarian) it was
 	// not launched as — otherwise it could forge created_by=human to clear
 	// the Plan-mode approval gate, or my_slug=librarian to gain direct wiki
 	// write authority. Reject a protected arg unless it matches the env slug.
 	arg := strings.TrimSpace(input)
-	envSlug := trustedEnvAgentSlug()
+	envSlug := trustedEnvBotSlug()
 	if arg != "" && isProtectedActorSlug(arg) && !strings.EqualFold(arg, envSlug) {
-		return "", fmt.Errorf("my_slug %q is a reserved or privileged slug and may not be set by the agent; it is taken from WUPHF_AGENT_SLUG", arg)
+		return "", fmt.Errorf("my_slug %q is a reserved or privileged slug and may not be set by the bot; it is taken from WUPHF_AGENT_SLUG", arg)
 	}
 	if slug := strings.TrimSpace(resolveSlugOptional(input)); slug != "" {
 		return slug, nil
 	}
-	return "", fmt.Errorf("missing agent slug; pass my_slug explicitly or set WUPHF_AGENT_SLUG")
+	return "", fmt.Errorf("missing bot slug; pass my_slug explicitly or set WUPHF_AGENT_SLUG")
 }
 
 func resolveSlugOptional(input string) string {
 	if slug := strings.TrimSpace(input); slug != "" {
 		return slug
 	}
-	return trustedEnvAgentSlug()
+	return trustedEnvBotSlug()
 }
 
-// trustedEnvAgentSlug returns the agent slug the launcher stamped on this
+// trustedEnvBotSlug returns the bot slug the launcher stamped on this
 // process via the environment. It is trusted because the broker — not the
-// model — sets it when spawning the agent.
-func trustedEnvAgentSlug() string {
+// model — sets it when spawning the bot.
+func trustedEnvBotSlug() string {
 	if slug := strings.TrimSpace(os.Getenv("WUPHF_AGENT_SLUG")); slug != "" {
 		return slug
 	}
@@ -127,11 +127,11 @@ func trustedEnvAgentSlug() string {
 //   - human/you/system/nex/broker (and human:* sessions) — the human/system
 //     senders; claiming one forges created_by=human to clear the Plan-mode
 //     approval gate.
-//   - librarian — the only agent with direct wiki-write authority.
+//   - librarian — the only bot with direct wiki-write authority.
 //
 // These may only be claimed via the launcher-set env slug (the trusted
-// identity), never via the agent-chosen arg. "ceo" is intentionally NOT here:
-// it is a normal managed agent slug, it does not clear the Plan-mode gate
+// identity), never via the bot-chosen arg. "ceo" is intentionally NOT here:
+// it is a normal managed bot slug, it does not clear the Plan-mode gate
 // (the gate is human-only), and it grants no wiki authority — so the legitimate
 // CEO process uses my_slug=ceo without the env caveat.
 func isProtectedActorSlug(slug string) bool {

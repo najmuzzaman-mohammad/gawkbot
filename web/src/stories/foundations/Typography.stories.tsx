@@ -45,7 +45,7 @@ const DISPLAY_FONTS = [
   },
   {
     family: "Geist Sans",
-    sample: "A team of agents working in the open.",
+    sample: "A team of bots working in the open.",
     note: "Body sans — self-hosted, replaces Source Serif 4 / IBM Plex Serif / Press Start 2P",
   },
   {

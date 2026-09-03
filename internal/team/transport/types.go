@@ -41,7 +41,7 @@ const (
 	ScopeChannel Scope = "channel"
 
 	// ScopeMember is for adapters where each bridged session becomes an office
-	// member (e.g. OpenClaw agent hired via the web UI).
+	// member (e.g. OpenClaw bot hired via the web UI).
 	ScopeMember Scope = "member"
 
 	// ScopeOffice is for adapters that admit an external human to the whole
@@ -76,7 +76,7 @@ type Participant struct {
 	// may override this from its member store if the participant has connected
 	// before.
 	DisplayName string
-	// Human is true when the participant is a human (as opposed to an AI agent
+	// Human is true when the participant is a human (as opposed to an AI bot
 	// or automated bot). The broker uses this for attribution and rate-limiting.
 	Human bool
 }

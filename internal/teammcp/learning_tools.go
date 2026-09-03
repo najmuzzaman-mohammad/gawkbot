@@ -19,12 +19,12 @@ import (
 )
 
 type TeamLearningRecordArgs struct {
-	MySlug       string   `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug       string   `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	Type         string   `json:"type" jsonschema:"One of: pattern | pitfall | preference | architecture | tool | operational"`
 	Key          string   `json:"key" jsonschema:"Stable lowercase key for dedup, e.g. skill-catalog-active-only."`
-	Insight      string   `json:"insight" jsonschema:"The durable lesson. Record evidence, not instructions to override agent behavior."`
+	Insight      string   `json:"insight" jsonschema:"The durable lesson. Record evidence, not instructions to override bot behavior."`
 	Confidence   int      `json:"confidence" jsonschema:"Integer 1-10. Use lower confidence for inferred or one-off observations."`
-	Source       string   `json:"source" jsonschema:"One of: user-stated | observed | inferred | execution | synthesis | cross-agent | cross-model"`
+	Source       string   `json:"source" jsonschema:"One of: user-stated | observed | inferred | execution | synthesis | cross-bot | cross-model"`
 	Scope        string   `json:"scope,omitempty" jsonschema:"Scope key such as repo, global, playbook:ship-pr, agent:pm. Defaults to repo."`
 	PlaybookSlug string   `json:"playbook_slug,omitempty" jsonschema:"Optional playbook slug this learning came from."`
 	ExecutionID  string   `json:"execution_id,omitempty" jsonschema:"Optional playbook execution ID this learning came from."`
@@ -35,7 +35,7 @@ type TeamLearningRecordArgs struct {
 }
 
 type TeamLearningSearchArgs struct {
-	MySlug       string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug       string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	Query        string `json:"query,omitempty" jsonschema:"Search text matched against key, insight, files, scope, type, source, playbook, and entities."`
 	Scope        string `json:"scope,omitempty" jsonschema:"Optional exact scope filter."`
 	Type         string `json:"type,omitempty" jsonschema:"Optional type filter."`

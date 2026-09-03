@@ -49,7 +49,7 @@ func ensureOperationsFallbackFS(t *testing.T) {
 
 // TestOnboardingCompleteSeedsFromPickedBlueprint verifies that when the
 // wizard POSTs a curated blueprint id, the broker seeds the exact member
-// list from that blueprint's starter.agents — not ceo/planner/executor/
+// list from that blueprint's starter.bots — not ceo/planner/executor/
 // reviewer from DefaultManifest.
 func TestOnboardingCompleteSeedsFromPickedBlueprint(t *testing.T) {
 	ensureOperationsFallbackFS(t)
@@ -156,10 +156,10 @@ func TestOnboardingDraftPhaseCreatesFirstIssueFromTaskPrompt(t *testing.T) {
 	}
 }
 
-// TestOnboardingCompleteHonorsAgentFilter verifies the wizard's per-agent
-// toggle state: agents=[ceo, builder] should seed only those two,
+// TestOnboardingCompleteHonorsBotFilter verifies the wizard's per-bot
+// toggle state: bots=[ceo, builder] should seed only those two,
 // dropping the blueprint's other specialists.
-func TestOnboardingCompleteHonorsAgentFilter(t *testing.T) {
+func TestOnboardingCompleteHonorsBotFilter(t *testing.T) {
 	ensureOperationsFallbackFS(t)
 	b := newTestBroker(t)
 	if err := b.onboardingCompleteFn("Stand up niche CRM", false, "niche-crm", []string{"ceo", "builder"}, ""); err != nil {
@@ -193,14 +193,14 @@ func TestOnboardingCompleteHonorsAgentFilter(t *testing.T) {
 	}
 }
 
-// TestOnboardingCompleteAgentsEmptySeedsLeadOnly verifies that an empty agents
+// TestOnboardingCompleteBotsEmptySeedsLeadOnly verifies that an empty bots
 // array (user unchecked every toggle) seeds ONLY the blueprint's lead.
 //
 // Two halves of this changed, in the same direction.
 //
 // "Lead only" used to mean "lead plus the built-in Librarian and App Builder",
-// which made the name a lie: unchecking every agent still produced three. Both
-// back-fills are gone with those agents' retirement as defaults, so lead-only
+// which made the name a lie: unchecking every bot still produced three. Both
+// back-fills are gone with those bots' retirement as defaults, so lead-only
 // now means what it says.
 //
 // The system message this used to require — a notice apologizing for the
@@ -209,7 +209,7 @@ func TestOnboardingCompleteHonorsAgentFilter(t *testing.T) {
 // anomaly: specialists are created on demand. Warning about it on every fresh
 // office would tell the user their normal workspace is broken. If that notice
 // comes back, this fails.
-func TestOnboardingCompleteAgentsEmptySeedsLeadOnly(t *testing.T) {
+func TestOnboardingCompleteBotsEmptySeedsLeadOnly(t *testing.T) {
 	ensureOperationsFallbackFS(t)
 	b := newTestBroker(t)
 	if err := b.onboardingCompleteFn("Stand up niche CRM", false, "niche-crm", []string{}, ""); err != nil {
@@ -266,7 +266,7 @@ func TestOnboardingCompleteFromScratchSynthesizes(t *testing.T) {
 	}
 }
 
-func TestOnboardingCompleteFromScratchHonorsSelectedFoundingAgents(t *testing.T) {
+func TestOnboardingCompleteFromScratchHonorsSelectedFoundingBots(t *testing.T) {
 	ensureOperationsFallbackFS(t)
 	b := newTestBroker(t)
 	if err := b.onboardingCompleteFn("Build an automated customer-support operation", false, "", []string{"ceo", "founding-engineer"}, ""); err != nil {
@@ -280,7 +280,7 @@ func TestOnboardingCompleteFromScratchHonorsSelectedFoundingAgents(t *testing.T)
 	}
 	b.mu.Unlock()
 
-	// EXACTLY the selected founding agents. The Librarian and App Builder used
+	// EXACTLY the selected founding bots. The Librarian and App Builder used
 	// to be appended here as "always-present built-ins"; that back-fill is
 	// deleted, so a selection is now honoured literally and this fails if
 	// anything the user did not pick shows up.
@@ -295,19 +295,19 @@ func TestOnboardingCompleteFromScratchHonorsSelectedFoundingAgents(t *testing.T)
 	}
 }
 
-// A stale web bundle can post agent slugs from a DIFFERENT synthesized roster.
+// A stale web bundle can post bot slugs from a DIFFERENT synthesized roster.
 // None of them match, so the selection filter keeps only the lead — and a
-// one-agent office is a worse answer than ignoring a selection the user did not
+// one-bot office is a worse answer than ignoring a selection the user did not
 // knowingly make. blankSlateOfficeMembersFromBlueprint detects that shape and
 // falls back to the full current roster.
 //
 // The fixture is built from a blueprint with CONNECTED INTEGRATIONS rather than
 // an empty SynthesisInput. Synthesis used to mint planner/executor/reviewer on
-// every blueprint, so an empty input produced a four-agent roster and the
+// every blueprint, so an empty input produced a four-bot roster and the
 // collapse was visible. Those three are retired, and an empty input now
 // synthesizes the lead alone — which means "collapsed to lead-only" and "the
 // full roster" would be the same list and this guard could not fail. The
-// integration-owner agents are derived from integrations that genuinely exist,
+// integration-owner bots are derived from integrations that genuinely exist,
 // so they give the roster more than one member honestly.
 func TestBlankSlateMembersStaleScratchSelectionDoesNotCollapseToOperator(t *testing.T) {
 	blueprint := operations.SynthesizeBlueprint(operations.SynthesisInput{
@@ -320,7 +320,7 @@ func TestBlankSlateMembersStaleScratchSelectionDoesNotCollapseToOperator(t *test
 
 	full := blankSlateOfficeMembersFromBlueprint(blueprint, nil)
 	if len(full) <= 1 {
-		t.Fatalf("fixture blueprint synthesized %d agent(s); the collapse below cannot be detected", len(full))
+		t.Fatalf("fixture blueprint synthesized %d bot(s); the collapse below cannot be detected", len(full))
 	}
 
 	members := blankSlateOfficeMembersFromBlueprint(blueprint, []string{
@@ -360,9 +360,9 @@ func TestBlankSlateMembersExplicitLeadOnlySelectionStaysLeadOnly(t *testing.T) {
 	// Lead-only selection keeps just the lead. The Librarian and App Builder
 	// used to be appended here; the app-builder append existed because
 	// register_app was gated to the app-builder slug, so an office without
-	// that member could not build apps at all. That gate is gone — every agent
+	// that member could not build apps at all. That gate is gone — every bot
 	// carries register_app / get_app as a system skill — which removes the last
-	// reason to seed an agent the user did not ask for.
+	// reason to seed a bot the user did not ask for.
 	if len(members) != 1 || members[0].Slug != "operator" {
 		t.Fatalf("explicit lead-only selection got %+v, want [operator]", members)
 	}
@@ -513,16 +513,16 @@ func TestTaskIDsUseBlueprintPrefix(t *testing.T) {
 	}
 }
 
-// TestSeedFromBlueprintNilAgentsKeepsFullRoster verifies the internal /
-// synthesis-path contract: nil selectedAgents means no filtering applied.
-func TestSeedFromBlueprintNilAgentsKeepsFullRoster(t *testing.T) {
+// TestSeedFromBlueprintNilBotsKeepsFullRoster verifies the internal /
+// synthesis-path contract: nil selectedBots means no filtering applied.
+func TestSeedFromBlueprintNilBotsKeepsFullRoster(t *testing.T) {
 	ensureOperationsFallbackFS(t)
 	b := newTestBroker(t)
 	if err := b.onboardingCompleteFn("go", false, "niche-crm", nil, ""); err != nil {
 		t.Fatalf("onboardingCompleteFn: %v", err)
 	}
 
-	// niche-crm blueprint defines 5 starter agents. nil filter must keep all.
+	// niche-crm blueprint defines 5 starter bots. nil filter must keep all.
 	b.mu.Lock()
 	seen := make(map[string]bool)
 	for _, m := range b.members {
@@ -532,7 +532,7 @@ func TestSeedFromBlueprintNilAgentsKeepsFullRoster(t *testing.T) {
 
 	for _, slug := range []string{"ceo", "planner", "builder", "growth", "reviewer"} {
 		if !seen[slug] {
-			t.Errorf("nil agents filter should keep all blueprint agents; missing %q (roster: %v)", slug, seen)
+			t.Errorf("nil bots filter should keep all blueprint bots; missing %q (roster: %v)", slug, seen)
 		}
 	}
 }
@@ -540,7 +540,7 @@ func TestSeedFromBlueprintNilAgentsKeepsFullRoster(t *testing.T) {
 var _ = fmt.Sprintf
 
 // Named channels are retired (internal/channel/general.go), so a blueprint's
-// starter channels must render to NOTHING — a workspace is agent DMs and
+// starter channels must render to NOTHING — a workspace is bot DMs and
 // hidden app threads only. This test used to pin the opposite half of that
 // coin: that {{command_slug}} templates RENDERED rather than leaking as
 // literals. That guard still matters if the switch ever flips back on, so the

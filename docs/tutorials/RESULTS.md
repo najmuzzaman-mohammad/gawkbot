@@ -5,7 +5,7 @@ fresh wuphf install built from `origin/main` plus PR #876 (the inbox
 route-registration hotfix).
 
 The full LLM-driven happy paths still require a human user with the
-provider configured and a few minutes of agent runtime. Those are
+provider configured and a few minutes of bot runtime. Those are
 captured below as "manual gate". The infrastructure scope (routes,
 shape, auth, embed) is fully verified.
 
@@ -23,7 +23,7 @@ shape, auth, embed) is fully verified.
 |---|-------|--------|
 | 1 | Binary starts on a clean runtime home | PASS — health endpoint returns `status:ok`, `provider:claude-code`. |
 | 2 | Web bundle embedded and serves at `/` | PASS — `<title>WUPHF - Slack for AI employees ...</title>`. |
-| 3 | Default office boots with 4 agents | PASS — CEO, Planner, Executor, Reviewer present in `/office-members`. |
+| 3 | Default office boots with 4 bots | PASS — CEO, Planner, Executor, Reviewer present in `/office-members`. |
 | 4 | `#general` channel exists by default | PASS — `/channels` returns `general` with the 4 default members. |
 | 5 | `GET /inbox/items?filter=all` reaches the new Phase 2 handler | PASS after #876 — returns `{items:[], counts:{...}, refreshedAt}`. |
 | 6 | `GET /inbox/threads` reaches the new Phase 3 handler | PASS after #876 — returns `{threads:[], counts:{...}, refreshedAt}`. |
@@ -31,13 +31,13 @@ shape, auth, embed) is fully verified.
 | 8 | Auth filter rejects unauthenticated requests | PASS — `/inbox/items` without `Authorization: Bearer` returns 401. |
 | 9 | `inboxCountsForItems` derives counts from auth-filtered rows | PASS via unit test in `broker_inbox_phase2_test.go`. |
 
-## Live agent loop — verified
+## Live bot loop — verified
 
 Posted the literal Scenario-02a goal into `#general` via
 `POST /messages` on the running dev binary (provider: claude-code).
 Within ~90 seconds:
 
-- **3 tasks created and assigned to the named agents** —
+- **3 tasks created and assigned to the named bots** —
   `task-5 (planner): "Scope Friday onboarding cut line"`,
   `task-6 (executor): "Close onboarding flow gaps before Friday"`,
   `task-7 (reviewer): "Reviewer sign-off on onboarding flow"`.
@@ -46,15 +46,15 @@ Within ~90 seconds:
 - **CEO surfaced the dependency in `#general`**:
   > "Planner is unblocked on the cut-line scope (task-5), Executor
   > and Reviewer queue behind it. The key call ..."
-  This is the Sam-Scene-3 sub-aha verbatim: the agent named
+  This is the Sam-Scene-3 sub-aha verbatim: the bot named
   the unblocking step *and* declared which dependents queue
   behind it. Not invented code, not generic advice — a real
-  dependency declaration from the agent on its own.
-- **Agents started claiming tasks** within the same window:
+  dependency declaration from the bot on its own.
+- **Bots started claiming tasks** within the same window:
   "I'll claim task-6, then dive into the E2E suite ...",
   "I'll claim this task and start the QA review ...".
 
-Conclusion: the multi-agent coordination loop the ICP doc names as the
+Conclusion: the multi-bot coordination loop the ICP doc names as the
 magic moment (Scene 3 dependency declaration → Scene 4 autonomous
 follow-through) is **working end-to-end on the merged Phase 2 build**.
 
@@ -64,15 +64,15 @@ follow-through) is **working end-to-end on the merged Phase 2 build**.
 - Steps 1, 2 (install + first look): **infra verified above**, looks
   correct as long as `npx wuphf` resolves to the same binary that
   embeds the bundle.
-- Step 3 (drop a goal → agents coordinate): **VERIFIED LIVE**. See
-  "Live agent loop" section above. CEO decomposed, agents got named
+- Step 3 (drop a goal → bots coordinate): **VERIFIED LIVE**. See
+  "Live bot loop" section above. CEO decomposed, bots got named
   subtasks, dependencies were declared. The dev binary uses the
   user's `claude-code` provider so this consumed real tokens.
 
 ### 01b Jordan first install with founding-team pack
 - Steps 1-3 (pack flag + roster + version chip): **manual gate** —
   requires a `--pack founding-team` invocation. The default dev binary
-  boots the canonical four agents (CEO/Planner/Executor/Reviewer)
+  boots the canonical four bots (CEO/Planner/Executor/Reviewer)
   rather than the founding-team roster (CEO/ENG/DSG/CMO) in the
   tutorial.
 - Step 4 (CEO dispatches): **manual gate**.
@@ -85,7 +85,7 @@ follow-through) is **working end-to-end on the merged Phase 2 build**.
 - Manual gate end-to-end.
 
 ### 03a Alex SVG blocker (the Scene 4 magic moment)
-- Manual gate end-to-end, AND requires ~20 minutes of agent runtime.
+- Manual gate end-to-end, AND requires ~20 minutes of bot runtime.
 
 ### 03b Morgan asset pipeline
 - Manual gate end-to-end.
@@ -113,10 +113,10 @@ follow-through) is **working end-to-end on the merged Phase 2 build**.
 2. **Default-office persona mismatch**: the dev binary defaults to
    CEO/Planner/Executor/Reviewer; the tutorials reference
    CEO/ENG/DSG/CMO from the founding-team pack. Tutorials 01a + 01b
-   should clarify this — `01a` either drops the named-agent assertion
+   should clarify this — `01a` either drops the named-bot assertion
    or explicitly says `--pack founding-team`.
 3. **No autonomous loop verification**: the tutorials all assume the
-   LLM-driven agents will respond within seconds. The verification
+   LLM-driven bots will respond within seconds. The verification
    harness has no way to assert this without spending user tokens.
 
 ## How to actually run a scenario (for the user)
@@ -130,5 +130,5 @@ follow-through) is **working end-to-end on the merged Phase 2 build**.
 If a tutorial fails its success line, the failure mode tells you
 which surface needs a fix: the dispatch (CEO didn't reply), the
 dependency surface (no "blocked on" appeared), the autonomy
-(agents went silent), the config layer (pack didn't load), or the
+(bots went silent), the config layer (pack didn't load), or the
 memory layer (Day-2 recall was generic).

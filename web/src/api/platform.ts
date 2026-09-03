@@ -42,12 +42,12 @@ export interface UsageTotals {
   requests: number;
 }
 
-export type AgentUsage = UsageTotals;
+export type BotUsage = UsageTotals;
 
 export interface UsageData {
   total: UsageTotals;
   session?: UsageTotals;
-  agents?: Record<string, AgentUsage>;
+  agents?: Record<string, BotUsage>;
   since?: string;
 }
 
@@ -206,7 +206,7 @@ export interface OfficeStats {
   inbox_attention: number;
   /** Curated wiki article count (same filter as /wiki/catalog). */
   wiki_articles: number;
-  /** Agents whose live activity snapshot reports a working status. */
+  /** Bots whose live activity snapshot reports a working status. */
   agents_active: number;
   generated_at: string;
 }

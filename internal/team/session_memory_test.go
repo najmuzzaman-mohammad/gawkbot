@@ -33,7 +33,7 @@ func TestBuildSessionMemorySnapshotIncludesSerializableSummaries(t *testing.T) {
 	if snapshot.Version != 1 {
 		t.Fatalf("expected version 1, got %d", snapshot.Version)
 	}
-	if snapshot.SessionMode != SessionModeOneOnOne || snapshot.DirectAgent != "pm" {
+	if snapshot.SessionMode != SessionModeOneOnOne || snapshot.DirectBot != "pm" {
 		t.Fatalf("unexpected session metadata: %+v", snapshot)
 	}
 	if snapshot.Focus == "" || !strings.Contains(snapshot.Focus, "Approve launch timing") {

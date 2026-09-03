@@ -20,7 +20,7 @@ func (b *Broker) handleVisualArtifacts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// owner_slug is the frontend-facing query name; slug is the legacy
-		// agent-facing name. Accept both so MCP + UI callers can share the
+		// bot-facing name. Accept both so MCP + UI callers can share the
 		// same endpoint without translation.
 		createdBy := strings.TrimSpace(r.URL.Query().Get("slug"))
 		if createdBy == "" {
@@ -167,21 +167,21 @@ func (b *Broker) handleVisualArtifactSubpath(w http.ResponseWriter, r *http.Requ
 
 func richArtifactAuthenticatedSlug(r *http.Request, bodySlug, fieldName string) (string, int, error) {
 	bodySlug = strings.TrimSpace(bodySlug)
-	agentSlug := strings.TrimSpace(r.Header.Get(agentRateLimitHeader))
-	if agentSlug != "" {
-		if err := validateNotebookSlug(agentSlug); err != nil {
+	botSlug := strings.TrimSpace(r.Header.Get(botRateLimitHeader))
+	if botSlug != "" {
+		if err := validateNotebookSlug(botSlug); err != nil {
 			return "", http.StatusBadRequest, err
 		}
-		if bodySlug != "" && bodySlug != agentSlug {
-			return "", http.StatusForbidden, errors.New(fieldName + " does not match authenticated agent")
+		if bodySlug != "" && bodySlug != botSlug {
+			return "", http.StatusForbidden, errors.New(fieldName + " does not match authenticated bot")
 		}
 		if actor, ok := requestActorFromContext(r.Context()); ok && actor.Kind == requestActorKindHuman {
 			humanSlug := humanIdentityFromActor(actor).Slug
-			if humanSlug != "" && humanSlug != agentSlug {
-				return "", http.StatusForbidden, errors.New("session identity does not match authenticated agent")
+			if humanSlug != "" && humanSlug != botSlug {
+				return "", http.StatusForbidden, errors.New("session identity does not match authenticated bot")
 			}
 		}
-		return agentSlug, 0, nil
+		return botSlug, 0, nil
 	}
 	if actor, ok := requestActorFromContext(r.Context()); ok && actor.Kind == requestActorKindHuman {
 		return humanIdentityFromActor(actor).Slug, 0, nil

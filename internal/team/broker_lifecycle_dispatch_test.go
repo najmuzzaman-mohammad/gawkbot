@@ -154,9 +154,9 @@ func TestBrokerRefusesDispatchForNonExecutableLifecycle(t *testing.T) {
 			b.mu.Unlock()
 
 			l := &Launcher{
-				broker:           b,
-				provider:         "claude-code",
-				paneBackedAgents: true, // force pane path so paneCalled is observable
+				broker:         b,
+				provider:       "claude-code",
+				paneBackedBots: true, // force pane path so paneCalled is observable
 			}
 
 			action := officeActionLog{

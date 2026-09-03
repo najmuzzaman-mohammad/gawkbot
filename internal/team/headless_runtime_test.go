@@ -9,7 +9,7 @@ import (
 )
 
 // launcherWithActiveTask builds a Launcher whose broker has member `slug` with
-// `binding` and one in_progress task it owns, so agentActiveTask(slug) resolves
+// `binding` and one in_progress task it owns, so botActiveTask(slug) resolves
 // to `task`. Used to exercise per-task runtime override.
 func launcherWithActiveTask(t *testing.T, slug string, binding provider.ProviderBinding, task teamTask) *Launcher {
 	t.Helper()
@@ -27,7 +27,7 @@ func launcherWithActiveTask(t *testing.T, slug string, binding provider.Provider
 }
 
 // TestPerTaskModelOverridesBinding: the model lives on the task, so a task's
-// Model wins over the owner agent's binding — but only when the task's provider
+// Model wins over the owner bot's binding — but only when the task's provider
 // matches the runtime (no cross-kind leak).
 func TestPerTaskModelOverridesBinding(t *testing.T) {
 	// claude task model wins over a claude binding.
@@ -42,8 +42,8 @@ func TestPerTaskModelOverridesBinding(t *testing.T) {
 	l2 := launcherWithActiveTask(t, "eng",
 		provider.ProviderBinding{Kind: "codex", Model: "gpt-5"},
 		teamTask{ID: "task-2", Title: "y", Provider: "codex", Model: "gpt-5.5"})
-	if got := l2.codexModelForAgent(context.Background(), "eng"); got != "gpt-5.5" {
-		t.Fatalf("codexModelForAgent = %q, want task override gpt-5.5", got)
+	if got := l2.codexModelForBot(context.Background(), "eng"); got != "gpt-5.5" {
+		t.Fatalf("codexModelForBot = %q, want task override gpt-5.5", got)
 	}
 
 	// Cross-kind isolation: a codex task's model must NOT leak into the claude
@@ -56,10 +56,10 @@ func TestPerTaskModelOverridesBinding(t *testing.T) {
 	}
 }
 
-// TestTurnTaskResolvedFromCtx: when an agent owns more than one in_progress
+// TestTurnTaskResolvedFromCtx: when a bot owns more than one in_progress
 // task at once (parallel instances), the runtime helpers must resolve the
 // SPECIFIC task the turn is for — carried on ctx — not "the first in_progress
-// task" that agentActiveTask returns. This is the core invariant the
+// task" that botActiveTask returns. This is the core invariant the
 // parallel-instances change depends on.
 func TestTurnTaskResolvedFromCtx(t *testing.T) {
 	b := newTestBroker(t)
@@ -69,7 +69,7 @@ func TestTurnTaskResolvedFromCtx(t *testing.T) {
 		Provider: provider.ProviderBinding{Kind: "claude-code", Model: "claude-sonnet-4-6"},
 	})
 	b.memberIndex = nil
-	// Two in_progress tasks owned by the same agent, each on its own model.
+	// Two in_progress tasks owned by the same bot, each on its own model.
 	b.tasks = append(b.tasks,
 		teamTask{ID: "task-a", Title: "a", Owner: "eng", status: "in_progress", Provider: "claude-code", Model: "claude-opus-4-8", Effort: "high"},
 		teamTask{ID: "task-b", Title: "b", Owner: "eng", status: "in_progress", Provider: "claude-code", Model: "claude-haiku-4-5", Effort: "low"},
@@ -96,14 +96,14 @@ func TestTurnTaskResolvedFromCtx(t *testing.T) {
 }
 
 // TestEffectiveProviderKindPrefersTask: the dispatch switch routes by the
-// active task's provider when set, falling back to the agent binding.
+// active task's provider when set, falling back to the bot binding.
 func TestEffectiveProviderKindPrefersTask(t *testing.T) {
-	// Task provider wins over the agent binding kind.
+	// Task provider wins over the bot binding kind.
 	l := launcherWithActiveTask(t, "eng",
 		provider.ProviderBinding{Kind: "claude-code", Model: "claude-opus-4-8"},
 		teamTask{ID: "task-1", Title: "x", Provider: "codex", Model: "gpt-5.5"})
-	if got := l.effectiveProviderKindForAgent(context.Background(), "eng"); got != provider.KindCodex {
-		t.Fatalf("effectiveProviderKindForAgent = %q, want codex (task override)", got)
+	if got := l.effectiveProviderKindForBot(context.Background(), "eng"); got != provider.KindCodex {
+		t.Fatalf("effectiveProviderKindForBot = %q, want codex (task override)", got)
 	}
 
 	// No per-task provider → empty here means "use the binding/global default";

@@ -5,9 +5,9 @@ import (
 	"unicode"
 )
 
-// InferAgentDomain maps an agent slug to its primary work domain.
-func InferAgentDomain(slug string) string {
-	return inferAgentDomain(slug)
+// InferBotDomain maps a bot slug to its primary work domain.
+func InferBotDomain(slug string) string {
+	return inferBotDomain(slug)
 }
 
 // InferTextDomain classifies a text snippet into a work domain.
@@ -15,7 +15,7 @@ func InferTextDomain(text string) string {
 	return inferTextDomain(text)
 }
 
-func inferAgentDomain(slug string) string {
+func inferBotDomain(slug string) string {
 	switch strings.ToLower(strings.TrimSpace(slug)) {
 	case "fe", "frontend":
 		return "frontend"

@@ -24,7 +24,7 @@ func TestMarkProcessedAdvancesCursor(t *testing.T) {
 }
 
 func TestMarkProcessedNotAdvancedOnMissedCall(t *testing.T) {
-	// Simulates agent crash: MarkRead advances but MarkProcessed is never called.
+	// Simulates bot crash: MarkRead advances but MarkProcessed is never called.
 	// On next poll, LastProcessedID should still be empty, allowing retry.
 	s := NewStore()
 	ch, _ := s.GetOrCreateDirect("human", "engineering")

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // The office showed a "Working…" pill and nothing else for ~1 minute after the
@@ -91,7 +91,7 @@ func TestClaudeStreamStillEmitsMessageWithoutDeltas(t *testing.T) {
 
 // runFixtureStream feeds NDJSON through the real stream reader by pointing the
 // command at a file of canned CLI output.
-func runFixtureStream(t *testing.T, lines []string) []agent.StreamChunk {
+func runFixtureStream(t *testing.T, lines []string) []bot.StreamChunk {
 	t.Helper()
 	dir := t.TempDir()
 	fixture := filepath.Join(dir, "stream.ndjson")
@@ -104,13 +104,13 @@ func runFixtureStream(t *testing.T, lines []string) []agent.StreamChunk {
 	// the unread pipe just closes when the process exits.
 	cmd := exec.Command("cat", fixture)
 
-	ch := make(chan agent.StreamChunk, 64)
+	ch := make(chan bot.StreamChunk, 64)
 	go func() {
 		defer close(ch)
 		runClaudeAttemptCommand(context.Background(), cmd, ch, "spin up a prospector", dir)
 	}()
 
-	var chunks []agent.StreamChunk
+	var chunks []bot.StreamChunk
 	for c := range ch {
 		chunks = append(chunks, c)
 	}

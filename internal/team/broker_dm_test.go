@@ -3,18 +3,18 @@ package team
 import "testing"
 
 // The canonical DM slug is the pair-sorted "<a>__<b>" from channel.DirectSlug.
-// Recognition used to run through canonicalDMTargetAgent, which answers ""
-// unless one side is the human — so an agent-to-agent pair was not a DM at
+// Recognition used to run through canonicalDMTargetBot, which answers ""
+// unless one side is the human — so a bot-to-bot pair was not a DM at
 // all and fell through to channel routing. These pin the shape-based
 // recognition and the viewer-relative lookup that replaced it.
 
-func TestIsDMSlugRecognisesAgentToAgentPair(t *testing.T) {
+func TestIsDMSlugRecognisesBotToBotPair(t *testing.T) {
 	t.Parallel()
 	// The bug: "ceo__designer" has no human side, so the old
-	// canonicalDMTargetAgent-based test returned false and the consult relay
+	// canonicalDMTargetBot-based test returned false and the consult relay
 	// had no DM to route through.
 	if !IsDMSlug("ceo__designer") {
-		t.Fatal("agent-to-agent pair slug must be recognised as a DM")
+		t.Fatal("bot-to-bot pair slug must be recognised as a DM")
 	}
 }
 
@@ -51,18 +51,18 @@ func TestIsDMSlugRejectsNonPairSlugs(t *testing.T) {
 	}
 }
 
-func TestDMTargetAgentStaysHumanRelative(t *testing.T) {
+func TestDMTargetBotStaysHumanRelative(t *testing.T) {
 	t.Parallel()
-	// A dozen call sites read DMTargetAgent as "the agent the human is talking
+	// A dozen call sites read DMTargetBot as "the bot the human is talking
 	// to". Widening IsDMSlug must not quietly change that contract.
-	if got := DMTargetAgent("human__eng"); got != "eng" {
-		t.Errorf("DMTargetAgent(human__eng) = %q, want eng", got)
+	if got := DMTargetBot("human__eng"); got != "eng" {
+		t.Errorf("DMTargetBot(human__eng) = %q, want eng", got)
 	}
-	if got := DMTargetAgent("dm-human-eng"); got != "eng" {
-		t.Errorf("DMTargetAgent(dm-human-eng) = %q, want eng", got)
+	if got := DMTargetBot("dm-human-eng"); got != "eng" {
+		t.Errorf("DMTargetBot(dm-human-eng) = %q, want eng", got)
 	}
-	if got := DMTargetAgent("ceo__designer"); got != "" {
-		t.Errorf("DMTargetAgent on an agent-to-agent DM must stay empty; got %q", got)
+	if got := DMTargetBot("ceo__designer"); got != "" {
+		t.Errorf("DMTargetBot on a bot-to-bot DM must stay empty; got %q", got)
 	}
 }
 
@@ -74,13 +74,13 @@ func TestDMOtherParticipantResolvesRelativeToViewer(t *testing.T) {
 		viewer string
 		want   string
 	}{
-		{"agent pair, ceo viewing", "ceo__designer", "ceo", "designer"},
-		{"agent pair, designer viewing", "ceo__designer", "designer", "ceo"},
+		{"bot pair, ceo viewing", "ceo__designer", "ceo", "designer"},
+		{"bot pair, designer viewing", "ceo__designer", "designer", "ceo"},
 		{"human pair, human viewing", "human__eng", "human", "eng"},
-		{"human pair, agent viewing", "human__eng", "eng", "human"},
+		{"human pair, bot viewing", "human__eng", "eng", "human"},
 		{"human alias 'you' viewing", "human__eng", "you", "eng"},
 		{"legacy slug, human viewing", "dm-human-eng", "human", "eng"},
-		{"legacy slug, agent viewing", "dm-human-eng", "eng", "human"},
+		{"legacy slug, bot viewing", "dm-human-eng", "eng", "human"},
 		{"viewer is not a participant", "ceo__designer", "pm", ""},
 		{"empty viewer cannot be resolved", "ceo__designer", "", ""},
 		{"not a DM", "general", "ceo", ""},
@@ -99,7 +99,7 @@ func TestDMOtherParticipantResolvesRelativeToViewer(t *testing.T) {
 
 func TestDMOtherParticipantNeverReturnsTheViewer(t *testing.T) {
 	t.Parallel()
-	// This is what makes the notifier's "don't echo an agent's own message
+	// This is what makes the notifier's "don't echo a bot's own message
 	// back to it" guard structural rather than a separate check.
 	for _, viewer := range []string{"ceo", "designer", "human"} {
 		for _, slug := range []string{"ceo__designer", "human__eng"} {
@@ -110,7 +110,7 @@ func TestDMOtherParticipantNeverReturnsTheViewer(t *testing.T) {
 	}
 }
 
-func TestDMPartnerRefusesToGuessInAnAgentToAgentDM(t *testing.T) {
+func TestDMPartnerRefusesToGuessInAnBotToBotDM(t *testing.T) {
 	t.Parallel()
 	b := &Broker{}
 	b.channels = []teamChannel{
@@ -121,28 +121,28 @@ func TestDMPartnerRefusesToGuessInAnAgentToAgentDM(t *testing.T) {
 	if got := b.DMPartner("human__eng"); got != "eng" {
 		t.Errorf("DMPartner(human__eng) = %q, want eng", got)
 	}
-	// Both members are real agents. The old "first non-human member wins" loop
+	// Both members are real bots. The old "first non-human member wins" loop
 	// handed the surface bridge a coin flip between them; with no viewer to
 	// resolve against, "cannot route" is the only honest answer.
 	if got := b.DMPartner("ceo__designer"); got != "" {
-		t.Errorf("DMPartner on an agent-to-agent DM must not guess a side; got %q", got)
+		t.Errorf("DMPartner on a bot-to-bot DM must not guess a side; got %q", got)
 	}
 }
 
 // Not parallel: t.Setenv cannot be combined with t.Parallel.
-func TestAgentMCPServersTreatsCanonicalDMAsDMMode(t *testing.T) {
+func TestBotMCPServersTreatsCanonicalDMAsDMMode(t *testing.T) {
 	// The stale check here was strings.HasPrefix(channel, "dm-"), so every
 	// canonical DM silently got the full server set.
 	t.Setenv("WUPHF_CHANNEL", "human__pm")
-	got := agentMCPServers("pm")
+	got := botMCPServers("pm")
 	if len(got) != 1 || got[0] != "wuphf-office" {
 		t.Fatalf("canonical DM must get the minimal server set; got %v", got)
 	}
 }
 
-func TestAgentMCPServersKeepsFullSetOutsideDMs(t *testing.T) {
+func TestBotMCPServersKeepsFullSetOutsideDMs(t *testing.T) {
 	t.Setenv("WUPHF_CHANNEL", "general")
-	got := agentMCPServers("pm")
+	got := botMCPServers("pm")
 	if len(got) != len(ServerKeys()) {
 		t.Fatalf("non-DM channel must keep the full server set; got %v want %v", got, ServerKeys())
 	}

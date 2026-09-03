@@ -13,13 +13,13 @@ import type { IntegrationContext, IntegrationDescriptor } from "./types";
 // most common / well-trodden integration first; rare or experimentally-
 // supported ones after.
 export const INTEGRATIONS: readonly IntegrationDescriptor[] = [
-  // ── External Agents ──────────────────────────────────────────────
+  // ── External Bots ──────────────────────────────────────────────
   {
     id: "openclaw",
     category: "external-agents",
     title: "OpenClaw",
     summary:
-      "Bridge OpenClaw-controlled agent sessions onto the team over a WebSocket gateway.",
+      "Bridge OpenClaw-controlled bot sessions onto the team over a WebSocket gateway.",
     logo: OpenClawLogo,
     isAvailable: ({ cfg }: IntegrationContext) => {
       const kinds = cfg.gateway_kinds ?? ["openclaw"];
@@ -33,7 +33,7 @@ export const INTEGRATIONS: readonly IntegrationDescriptor[] = [
     category: "external-agents",
     title: "Hermes",
     summary:
-      "Route imported Hermes agents through a local Hermes gateway's OpenAI-compatible server.",
+      "Route imported Hermes bots through a local Hermes gateway's OpenAI-compatible server.",
     logo: HermesLogo,
     isAvailable: ({ cfg }: IntegrationContext) => {
       const kinds = cfg.gateway_kinds ?? ["hermes-agent"];

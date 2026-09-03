@@ -2,11 +2,11 @@
  * CeoExecutionLineup — Phase 4 card tests.
  *
  * Covers:
- *  - Pending state: agents listed, accept/decline chips, submit button.
- *  - Decline toggles an agent out; accept toggles it back.
+ *  - Pending state: bots listed, accept/decline chips, submit button.
+ *  - Decline toggles a bot out; accept toggles it back.
  *  - Submitting state: button disabled, spinner visible.
  *  - Committed state: one-line confirmation.
- *  - XSS: attack strings in agent role/reason render as text (sanitization
+ *  - XSS: attack strings in bot role/reason render as text (sanitization
  *    regression per PR #684 confused-deputy bypass closure).
  */
 
@@ -76,7 +76,7 @@ describe("<CeoExecutionLineup>", () => {
 
   // ── Pending state ─────────────────────────────────────────────────
 
-  it("renders all agents in pending state", () => {
+  it("renders all bots in pending state", () => {
     setup();
     expect(screen.getByTestId("ceo-execution-lineup")).toBeInTheDocument();
     for (const agent of PAYLOAD.agents) {
@@ -86,7 +86,7 @@ describe("<CeoExecutionLineup>", () => {
     }
   });
 
-  it("renders each agent's role and reason as text (not HTML)", () => {
+  it("renders each bot's role and reason as text (not HTML)", () => {
     setup();
     expect(screen.getByText("Founding Engineer")).toBeInTheDocument();
     expect(
@@ -94,10 +94,10 @@ describe("<CeoExecutionLineup>", () => {
     ).toBeInTheDocument();
   });
 
-  it("submit button shows correct agent count", () => {
+  it("submit button shows correct bot count", () => {
     setup();
     const btn = screen.getByTestId("lineup-submit");
-    expect(btn).toHaveTextContent("Spin up 3 agents");
+    expect(btn).toHaveTextContent("Spin up 3 bots");
   });
 
   it("all chips default to Accept", () => {
@@ -111,7 +111,7 @@ describe("<CeoExecutionLineup>", () => {
 
   // ── Accept / Decline toggle ────────────────────────────────────────
 
-  it("clicking Decline chip toggles agent off", () => {
+  it("clicking Decline chip toggles bot off", () => {
     setup();
     const chip = screen.getByTestId("lineup-chip-engineer");
     fireEvent.click(chip);
@@ -119,7 +119,7 @@ describe("<CeoExecutionLineup>", () => {
     expect(chip).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("clicking Decline then Accept toggles agent back on", () => {
+  it("clicking Decline then Accept toggles bot back on", () => {
     setup();
     const chip = screen.getByTestId("lineup-chip-engineer");
     fireEvent.click(chip); // → Decline
@@ -128,14 +128,14 @@ describe("<CeoExecutionLineup>", () => {
     expect(chip).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("declining one agent updates submit button count", () => {
+  it("declining one bot updates submit button count", () => {
     setup();
     fireEvent.click(screen.getByTestId("lineup-chip-engineer"));
     const btn = screen.getByTestId("lineup-submit");
-    expect(btn).toHaveTextContent("Spin up 2 agents");
+    expect(btn).toHaveTextContent("Spin up 2 bots");
   });
 
-  it("declining all agents disables submit button", () => {
+  it("declining all bots disables submit button", () => {
     setup();
     for (const agent of PAYLOAD.agents) {
       fireEvent.click(screen.getByTestId(`lineup-chip-${agent.slug}`));
@@ -162,13 +162,13 @@ describe("<CeoExecutionLineup>", () => {
   it("renders committed confirmation in committed state", () => {
     setup(PAYLOAD, "committed");
     expect(screen.getByTestId("lineup-committed")).toBeInTheDocument();
-    // 3 agents accepted by default before commit.
+    // 3 bots accepted by default before commit.
     expect(screen.getByTestId("lineup-committed")).toHaveTextContent(
-      "agents added to roster",
+      "bots added to roster",
     );
   });
 
-  it("does not render agent rows in committed state", () => {
+  it("does not render bot rows in committed state", () => {
     setup(PAYLOAD, "committed");
     expect(screen.queryByTestId("ceo-execution-lineup")).toBeNull();
     for (const agent of PAYLOAD.agents) {

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestRuleZeroSeparatesQuestionsFromWork pins the fix for agent over-ceremony.
+// TestRuleZeroSeparatesQuestionsFromWork pins the fix for bot over-ceremony.
 //
 // The founder asked @designer a one-line question in #general and got "I'll
 // load the tools I need, then scope this as an Issue and investigate" followed
@@ -16,7 +16,7 @@ import (
 // admitted that pure chat needs no Issue. The absolute at the top won. Worse,
 // the exception's test was "would this need any tool call beyond broadcast?",
 // which fails the common case: answering "is dark mode broken?" honestly means
-// reading a file, so the agent concluded it was work and filed an Issue.
+// reading a file, so the bot concluded it was work and filed an Issue.
 //
 // The prompt now splits on INTENT — does the human want an answer, or do they
 // want something to change — and says outright that investigating in order to
@@ -25,7 +25,7 @@ func TestRuleZeroSeparatesQuestionsFromWork(t *testing.T) {
 	p := ruleZeroBlock()
 
 	if strings.Contains(p, "No exceptions.") {
-		t.Error("RULE ZERO must not claim 'No exceptions' while also carving out questions — that contradiction is what made agents file Issues for chat")
+		t.Error("RULE ZERO must not claim 'No exceptions' while also carving out questions — that contradiction is what made bots file Issues for chat")
 	}
 
 	for _, want := range []string{
@@ -39,7 +39,7 @@ func TestRuleZeroSeparatesQuestionsFromWork(t *testing.T) {
 	}
 
 	// The distinction has to be stated BEFORE the create-an-Issue mandate,
-	// because the agent reads top-down and the first absolute it meets wins.
+	// because the bot reads top-down and the first absolute it meets wins.
 	split := strings.Index(p, "A QUESTION wants an answer")
 	mandate := strings.Index(p, "your FIRST tool call MUST be team_task action=create")
 	if split < 0 || mandate < 0 {
@@ -51,7 +51,7 @@ func TestRuleZeroSeparatesQuestionsFromWork(t *testing.T) {
 }
 
 // TestRuleZeroBansNarrationPreamble pins the second half of the same fix: the
-// agent announced its process before doing anything. The human already sees a
+// bot announced its process before doing anything. The human already sees a
 // live status feed, so the preamble is pure latency.
 func TestRuleZeroBansNarrationPreamble(t *testing.T) {
 	p := ruleZeroBlock()
@@ -59,6 +59,6 @@ func TestRuleZeroBansNarrationPreamble(t *testing.T) {
 		t.Error("RULE ZERO must ban the 'here is what I am about to do' preamble")
 	}
 	if !strings.Contains(p, "Lead with the answer or the action") {
-		t.Error("RULE ZERO must tell the agent what to do instead of narrating")
+		t.Error("RULE ZERO must tell the bot what to do instead of narrating")
 	}
 }

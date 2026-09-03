@@ -15,7 +15,7 @@ func TestAppendTaskLedgerEntryCapsAndPersists(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < taskLedgerMaxEntries+5; i++ {
-		b.AppendTaskLedgerEntry(task.ID, TaskLedgerEntry{Agent: "eng", Outcome: "ok"})
+		b.AppendTaskLedgerEntry(task.ID, TaskLedgerEntry{Bot: "eng", Outcome: "ok"})
 	}
 	got := b.TaskByID(task.ID)
 	if len(got.Ledger) != taskLedgerMaxEntries {
@@ -46,11 +46,11 @@ func TestRecordTaskLedgerEntryAssemblesFromBrokerFacts(t *testing.T) {
 		t.Fatalf("want 1 entry; got %d", len(got.Ledger))
 	}
 	e := got.Ledger[0]
-	if e.Agent != "eng" || !strings.Contains(e.Outcome, "timed out") {
-		t.Fatalf("entry agent/outcome wrong: %+v", e)
+	if e.Bot != "eng" || !strings.Contains(e.Outcome, "timed out") {
+		t.Fatalf("entry bot/outcome wrong: %+v", e)
 	}
 	if !strings.Contains(e.Said, "flag approach") {
-		t.Fatalf("entry must carry the agent's last message; got %q", e.Said)
+		t.Fatalf("entry must carry the bot's last message; got %q", e.Said)
 	}
 	if len(e.Actions) == 0 || !strings.Contains(e.Actions[0], "flaky fixture") {
 		t.Fatalf("entry must carry the task mutations; got %v", e.Actions)
@@ -116,7 +116,7 @@ func TestIssueActivityCarriesTurnEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	b.AppendTaskLedgerEntry(task.ID, TaskLedgerEntry{
-		Agent: "eng", Outcome: "ok", Said: "shipped the slice",
+		Bot: "eng", Outcome: "ok", Said: "shipped the slice",
 		ContextUsed: []string{"learning:l-9", "wiki:people/sam"},
 	})
 	b.mu.Lock()

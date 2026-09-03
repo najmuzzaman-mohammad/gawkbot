@@ -82,7 +82,7 @@ func isInternalTaskActor(actor string) bool {
 }
 
 // humanObjectionOpenMessage names the open objection in the forbidden
-// error so the blocked agent knows exactly whose "no" stands and how to
+// error so the blocked bot knows exactly whose "no" stands and how to
 // proceed (revise + resubmit, then wait for the human).
 func humanObjectionOpenMessage(taskID, action string, obj *TaskReviewObjection) string {
 	excerpt := strings.TrimSpace(obj.Body)
@@ -116,13 +116,13 @@ func humanObjectionOpenMessage(taskID, action string, obj *TaskReviewObjection) 
 //
 // intendedOwner is the owner the CALLER is asking for (body.Owner). It only
 // matters for `create`, where there is no existing task to read ownership
-// from: an agent may file its OWN work, but handing work to somebody else is
+// from: a bot may file its OWN work, but handing work to somebody else is
 // reassignment wearing a different hat and stays a CEO/human decision.
 func (b *Broker) checkTaskActionAuthLocked(action, actor, targetTaskID, intendedOwner string) error {
 	a := strings.ToLower(strings.TrimSpace(action))
 	actorSlug := strings.ToLower(strings.TrimSpace(actor))
 
-	// Comment is open to all — every agent should be able to leave a
+	// Comment is open to all — every bot should be able to leave a
 	// note on any Issue they can see.
 	if a == "comment" {
 		return nil
@@ -145,28 +145,28 @@ func (b *Broker) checkTaskActionAuthLocked(action, actor, targetTaskID, intended
 		return nil
 	}
 	// The gate ONLY blocks slugs that are registered as specialist
-	// agents in this office. Unregistered actors (test slugs, CLI
+	// bots in this office. Unregistered actors (test slugs, CLI
 	// scripts, external callers that pass an arbitrary created_by)
 	// fall through — we have no basis to treat them as a specialist
 	// being managed by CEO. This keeps tests + ad-hoc tooling working
-	// while still blocking actual specialist agents from scope-editing
+	// while still blocking actual specialist bots from scope-editing
 	// Issues that should go through CEO.
 	if b.findMemberLocked(actorSlug) == nil {
 		return nil
 	}
 
-	// An agent files its OWN work.
+	// A bot files its OWN work.
 	//
 	// This used to route through the CEO, which made sense when the whole
 	// office shared one channel: the CEO saw all the work, so the hop bought
 	// dedup and prioritisation for free. Under DM-first the CEO is not in the
 	// conversation — when the human asks the designer directly, going via the
-	// CEO is three async agent turns to authorise something the human already
+	// CEO is three async bot turns to authorise something the human already
 	// asked for, and every hop is a place a wake can silently fail.
 	//
 	// What is NOT widened here: reassign, approve, reject, and reopening
 	// somebody else's task all fall through to the CEO/human path below.
-	// Those are decisions about another agent's work.
+	// Those are decisions about another bot's work.
 	//
 	// The dedup argument for the old gate did not need a manager: an open
 	// task covering the same ground is found by findReusableTaskLocked on the
@@ -176,7 +176,7 @@ func (b *Broker) checkTaskActionAuthLocked(action, actor, targetTaskID, intended
 	if a == "create" {
 		owner := normalizeActorSlug(intendedOwner)
 		// Empty owner is the unassigned case, not work put on someone else;
-		// RULE ZERO tells agents to set an owner, and refusing here would add
+		// RULE ZERO tells bots to set an owner, and refusing here would add
 		// a failure mode nobody asked for.
 		if owner == "" || owner == actorSlug {
 			return nil
@@ -218,7 +218,7 @@ func (b *Broker) checkTaskActionAuthLocked(action, actor, targetTaskID, intended
 		// ELSE's task stays CEO/human-only.
 		"reopen": true,
 	}
-	// Reviewer-allowed actions: an agent assigned as a reviewer on the
+	// Reviewer-allowed actions: a bot assigned as a reviewer on the
 	// task can bounce work back with request_changes and (in PR-loop
 	// usage) approve/reject the submission. These are not "scope" edits
 	// — they're the reviewer fulfilling their assigned role.
@@ -256,7 +256,7 @@ func (b *Broker) checkTaskActionAuthLocked(action, actor, targetTaskID, intended
 }
 
 // defaultTaskTypeForCreate is the broker safety net for RULE ZERO. When an
-// agent creates a top-level task via team_task action=create, the Tasks
+// bot creates a top-level task via team_task action=create, the Tasks
 // board only renders rows with task_type="issue" (see web TasksList
 // isTaskSpecTask). Pre-fix the team_task tool schema listed example
 // values "research, feature, launch, follow_up, bugfix, incident" without
@@ -429,7 +429,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 	//   - Resolving from CreatedBy alone fails for exactly the caller that
 	//     matters. The web creates tasks as created_by="human", and "human" is
 	//     not a roster member, so homeChannelFor could never resolve it. The
-	//     owner is the agent that will actually do the work and is on the
+	//     owner is the bot that will actually do the work and is on the
 	//     roster by construction, which makes its DM the task's natural home.
 	//
 	// Order is owner, then creator, then a loud refusal naming the field. The
@@ -442,7 +442,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		home, err := b.homeChannelForWriter(actor, body.Owner, body.CreatedBy)
 		if err != nil {
 			return TaskResponse{}, taskMutationError(TaskMutationInvalid,
-				"channel is required: there is no default room to fall back to. Name a channel, or set a member slug so the message can go to that agent's DM.", nil)
+				"channel is required: there is no default room to fall back to. Name a channel, or set a member slug so the message can go to that bot's DM.", nil)
 		}
 		channel = home
 	}
@@ -460,13 +460,13 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 
 	// Pre-scaffold a new App Builder app (outside b.mu — the app store has its
 	// own lock) so its live preview boots a running scaffold in seconds. This
-	// also appends the pre-created app id to the task brief so the agent
+	// also appends the pre-created app id to the task brief so the bot
 	// publishes onto the same app. No-op for every non-app create. Runs AFTER the
 	// auth check above: the scaffold writes ~a dozen files to disk, so an
 	// unauthorized create must not leave an orphan draft behind.
 	body = b.maybePrescaffoldAppForCreate(action, channel, body)
 
-	// Resubmission artifact-delta gate (done-integrity): an agent re-landing
+	// Resubmission artifact-delta gate (done-integrity): a bot re-landing
 	// changes-requested work must have actually changed the delivered
 	// artifact. Runs BEFORE the lock below because it reads artifact files
 	// (lock discipline in task_verification.go), and before the verification
@@ -508,8 +508,8 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 	defer b.mu.Unlock()
 
 	// Issues gate. Split on WHERE THE WORK CAME FROM, not on who may file:
-	//   - create is open to any agent FOR ITS OWN WORK (owner = itself or
-	//     unassigned). The human asking an agent directly in its DM is the
+	//   - create is open to any bot FOR ITS OWN WORK (owner = itself or
+	//     unassigned). The human asking a bot directly in its DM is the
 	//     authorization; routing that through the CEO is three async turns
 	//     for permission the human already gave.
 	//   - decisions about SOMEBODY ELSE's work (reassign / approve / reject /
@@ -519,9 +519,9 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 	//     request_changes / resume / release / claim / assign / block /
 	//     cancel) are allowed for CEO + human OR the task's current owner.
 	//     They report WHERE the owner's own work is.
-	//   - comment is always open — every agent can leave a note.
+	//   - comment is always open — every bot can leave a note.
 	//
-	// Specialists who try to act on another agent's work get a clear error
+	// Specialists who try to act on another bot's work get a clear error
 	// naming the CEO. The auto-resolve / broker-internal create path passes
 	// actor="system" or the broker's own slug, which the gate allow-lists so
 	// safety-net Issue creation keeps working.
@@ -808,9 +808,9 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 				b.persistDecisionPacketLocked(task.ID, *packet)
 			}
 			// Post the issue card into the channel so the human (and
-			// other agents) see the new Issue land in chat with a
+			// other bots) see the new Issue land in chat with a
 			// one-click link to the detail view. Independent of any
-			// chat reply the creating agent posts itself.
+			// chat reply the creating bot posts itself.
 			b.postIssueCreatedCardLocked(actor, &task)
 		}
 		if err := b.saveLocked(); err != nil {
@@ -871,7 +871,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		submitForReviewTriggered := false
 		beforeStatus := task.status
 		// Human-sovereignty gate (core-loop grader fix family #1): while a
-		// human request-changes objection is open on this task, no agent —
+		// human request-changes objection is open on this task, no bot —
 		// including the CEO/lead and internal system actors — may land it.
 		// Only a human actor can approve/complete, which also clears the
 		// objection; a human request_changes below refreshes it. ICP-eval
@@ -891,7 +891,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			// Any actor that legitimately reaches approve/complete also
 			// retires the latest request-changes stamp: the rework cycle
 			// it described is over, so the next packet must not carry a
-			// stale "CHANGES REQUESTED" banner. (Agent-reviewer verdicts
+			// stale "CHANGES REQUESTED" banner. (Bot-reviewer verdicts
 			// have no HumanObjection, so this is the only clear they get.)
 			// Rollback safety: the pre-mutation snapshot restores both
 			// pointers if a later gate in this mutation fails.
@@ -926,12 +926,12 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		// Approve on a parked task means "start the work", never "accept
 		// delivered work" — there is no work. A HUMAN approve starts the
 		// task (Drafting→Running, the one remaining start affordance for
-		// parked tasks); an agent approve is refused because un-parking a
+		// parked tasks); a bot approve is refused because un-parking a
 		// deliberately parked task belongs to the human (v3 J2 [19:04]:
 		// zero-work tasks closed terminally at the click).
 		// Planning shares the "approve = start the work" semantics: approving a
 		// task's plan is the human's go-ahead to execute (Planning→Running). It
-		// is human-only for the same reason parked starts are — an agent must
+		// is human-only for the same reason parked starts are — a bot must
 		// not green-light its own plan. The plan-approval human_interview drives
 		// this too (applyPlanApprovalAnswerLocked); this is the direct-action path.
 		if action == "approve" && (task.LifecycleState == LifecycleStateDrafting || task.LifecycleState == LifecycleStatePlanning) {
@@ -965,8 +965,8 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 		}
 		// Stop-order backstop (anti-fabrication fix family #2, ICP-eval v2
 		// [00:50]): a human message that led with stop/wait/hold in this
-		// task's channel blocks submit_for_review and complete by agents
-		// until a packet build has consumed the note — an agent cannot land
+		// task's channel blocks submit_for_review and complete by bots
+		// until a packet build has consumed the note — a bot cannot land
 		// work past a stop order it never read. A human performing the
 		// action clears the note (they know what they said). Non-halt notes
 		// never block; they only ride the next packet's top.
@@ -1118,7 +1118,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			// Stamp the feedback TEXT on the task itself so it renders in
 			// the owner's next execution packet and wake notification —
 			// the Decision Packet feedback log alone is invisible to the
-			// reworking agent (ICP-eval v2 J2). A HUMAN reviewer's
+			// reworking bot (ICP-eval v2 J2). A HUMAN reviewer's
 			// request additionally arms (or refreshes) the sovereignty
 			// gate above. Fresh struct each time: rollback safety.
 			objection := &TaskReviewObjection{
@@ -1139,7 +1139,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			}
 		case "submit_for_review":
 			// Explicit "hand off to reviewer" action so executor
-			// agents have a verb that matches PR-review intent
+			// bots have a verb that matches PR-review intent
 			// instead of overloading "complete". The Details field
 			// (if present) carries the submitted artifact (code,
 			// copy, plan) which we capture below as a FeedbackItem
@@ -1153,7 +1153,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			submitForReviewTriggered = true
 		case "comment":
 			// Append-only comment with no state change. Used by both
-			// humans and agents to leave PR-style notes on a task
+			// humans and bots to leave PR-style notes on a task
 			// before anyone decides to approve / request changes /
 			// reject. The actual append happens below via the
 			// appendDetails branch.
@@ -1206,7 +1206,7 @@ func (b *Broker) MutateTask(body TaskPostRequest) (TaskResponse, error) {
 			// upstream as unresolved and downstream tasks STAY blocked.
 			//
 			// Reject must carry a reason — a terminal "this won't land"
-			// without context is hostile to the agent that has to
+			// without context is hostile to the bot that has to
 			// pivot. Enforce that contract at the API boundary so the
 			// "@human reviewer rejected without saying why" failure
 			// mode can't happen.

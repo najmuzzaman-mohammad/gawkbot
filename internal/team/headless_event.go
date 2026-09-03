@@ -12,12 +12,12 @@ import (
 )
 
 // HeadlessEvent is the canonical, provider-agnostic envelope for a single
-// progress signal emitted from a headless agent turn. All four runners
+// progress signal emitted from a headless bot turn. All four runners
 // (Claude, Codex, Opencode, OpenAI-compatible) populate the same shape so
 // the web UI can render a normalized timeline regardless of which
 // provider is executing.
 //
-// Wire shape: emitted as one JSONL line on /agent-stream/{slug} with
+// Wire shape: emitted as one JSONL line on /bot-stream/{slug} with
 // `kind` set to "headless_event" so the frontend can branch on a single
 // discriminator without inspecting type-specific fields. The line lives
 // alongside the raw provider chunks the runner already tees into the
@@ -35,11 +35,11 @@ import (
 //     "manifest" — a per-turn completion summary emitted after the
 //     terminal idle/error event.
 //   - Provider: "claude" | "codex" | "opencode" | "openai-compat".
-//   - Agent: the speaker slug (the agent the turn belongs to).
+//   - Bot: the speaker slug (the bot the turn belongs to).
 //   - TurnID, TaskID, ParentID: correlation IDs. TurnID groups events
 //     from one ReadXxxJSONStream call. TaskID is the broker task the
-//     turn is servicing (already used for SSE scoping in /agent-stream
-//     ?task=). ParentID is reserved for nested tool/sub-agent calls.
+//     turn is servicing (already used for SSE scoping in /bot-stream
+//     ?task=). ParentID is reserved for nested tool/sub-bot calls.
 //   - ToolName, Detail: payload for tool_use / tool_result / error.
 //   - Text: payload for text events (and the human-readable summary
 //     for idle).
@@ -61,7 +61,7 @@ type HeadlessEvent struct {
 	Kind      string                  `json:"kind"`
 	Type      string                  `json:"type"`
 	Provider  string                  `json:"provider,omitempty"`
-	Agent     string                  `json:"agent,omitempty"`
+	Bot       string                  `json:"agent,omitempty"`
 	TurnID    string                  `json:"turn_id,omitempty"`
 	TaskID    string                  `json:"task_id,omitempty"`
 	ParentID  string                  `json:"parent_id,omitempty"`
@@ -106,7 +106,7 @@ const (
 	HeadlessEventTypeIdle       = "idle"
 	HeadlessEventTypeError      = "error"
 	HeadlessEventTypeManifest   = "manifest"
-	// HeadlessEventTypePlan is the read-only plan an agent produced during a
+	// HeadlessEventTypePlan is the read-only plan a bot produced during a
 	// LifecycleStatePlanning turn — Claude's ExitPlanMode payload, or a
 	// read-only Codex/other turn's final message. The frontend renders it as a
 	// "Plan ready — review & approve" card so the human can act on the plan
@@ -132,7 +132,7 @@ const (
 // discriminator and StartedAt defaults to now() so callers cannot forget
 // either. A nil stream is a no-op so callers do not need a guard around
 // every test path that constructs a runner without a broker.
-func pushHeadlessEvent(stream *agentStreamBuffer, event HeadlessEvent) {
+func pushHeadlessEvent(stream *botStreamBuffer, event HeadlessEvent) {
 	if stream == nil {
 		return
 	}
@@ -145,7 +145,7 @@ func pushHeadlessEvent(stream *agentStreamBuffer, event HeadlessEvent) {
 		return
 	}
 	// PushTask appends the line as-is; we add a trailing newline so the
-	// SSE serializer in handleAgentStream can keep its `data: %s\n\n`
+	// SSE serializer in handleBotStream can keep its `data: %s\n\n`
 	// framing without special-casing event lines.
 	stream.PushTask(strings.TrimSpace(event.TaskID), string(data)+"\n")
 
@@ -196,24 +196,24 @@ type headlessTokenUsage struct {
 }
 
 // emitHeadlessTerminal pushes either an idle or error HeadlessEvent to
-// the agent stream at the end of a turn. Callers pass the same status
+// the bot stream at the end of a turn. Callers pass the same status
 // summary they fed to updateHeadlessProgress so the activity-pill text
 // and the timeline event stay aligned. Provider is the wire-format
 // constant (HeadlessProviderClaude, etc).
-func emitHeadlessTerminal(stream *agentStreamBuffer, provider, slug, taskID, summary, errDetail string, metrics headlessProgressMetrics, usage *headlessTokenUsage) {
+func emitHeadlessTerminal(stream *botStreamBuffer, provider, slug, taskID, summary, errDetail string, metrics headlessProgressMetrics, usage *headlessTokenUsage) {
 	emitHeadlessTerminalWithTurn(stream, "", provider, slug, taskID, summary, errDetail, metrics, usage)
 }
 
 // emitHeadlessTerminalWithTurn is the turn-aware variant of
 // emitHeadlessTerminal. Pass the same turnID used for the per-phase
 // emits so all events from one turn carry a stable correlation key.
-func emitHeadlessTerminalWithTurn(stream *agentStreamBuffer, turnID, provider, slug, taskID, summary, errDetail string, metrics headlessProgressMetrics, usage *headlessTokenUsage) {
+func emitHeadlessTerminalWithTurn(stream *botStreamBuffer, turnID, provider, slug, taskID, summary, errDetail string, metrics headlessProgressMetrics, usage *headlessTokenUsage) {
 	if stream == nil {
 		return
 	}
 	event := HeadlessEvent{
 		Provider: provider,
-		Agent:    slug,
+		Bot:      slug,
 		TurnID:   strings.TrimSpace(turnID),
 		TaskID:   strings.TrimSpace(taskID),
 		Metrics:  headlessProgressEventMetrics(metrics, usage),
@@ -238,14 +238,14 @@ func emitHeadlessTerminalWithTurn(stream *agentStreamBuffer, turnID, provider, s
 //
 // Empty text is dropped so trivially-empty text-deltas (provider noise
 // during preamble) don't pollute the timeline.
-func emitHeadlessText(stream *agentStreamBuffer, turnID, provider, slug, taskID, text, rawType string) {
+func emitHeadlessText(stream *botStreamBuffer, turnID, provider, slug, taskID, text, rawType string) {
 	if stream == nil || strings.TrimSpace(text) == "" {
 		return
 	}
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:     HeadlessEventTypeText,
 		Provider: provider,
-		Agent:    slug,
+		Bot:      slug,
 		TurnID:   strings.TrimSpace(turnID),
 		TaskID:   strings.TrimSpace(taskID),
 		Text:     text,
@@ -255,18 +255,18 @@ func emitHeadlessText(stream *agentStreamBuffer, turnID, provider, slug, taskID,
 }
 
 // emitHeadlessPlan pushes a plan-phase HeadlessEvent carrying the read-only
-// plan an agent produced during a LifecycleStatePlanning turn. plan is the full
+// plan a bot produced during a LifecycleStatePlanning turn. plan is the full
 // plan text (Claude's ExitPlanMode payload or a read-only final message). Empty
 // plans are dropped. Status is "idle" because the turn has stopped to await the
 // human's approval of the plan.
-func emitHeadlessPlan(stream *agentStreamBuffer, turnID, provider, slug, taskID, plan string) {
+func emitHeadlessPlan(stream *botStreamBuffer, turnID, provider, slug, taskID, plan string) {
 	if stream == nil || strings.TrimSpace(plan) == "" {
 		return
 	}
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:     HeadlessEventTypePlan,
 		Provider: provider,
-		Agent:    slug,
+		Bot:      slug,
 		TurnID:   strings.TrimSpace(turnID),
 		TaskID:   strings.TrimSpace(taskID),
 		Text:     strings.TrimSpace(plan),
@@ -278,14 +278,14 @@ func emitHeadlessPlan(stream *agentStreamBuffer, turnID, provider, slug, taskID,
 // the JSON-serialized arguments string the runner already builds (kept as
 // string so the wire shape is stable across providers that pre-stream
 // arguments differently).
-func emitHeadlessToolUse(stream *agentStreamBuffer, turnID, provider, slug, taskID, toolName, toolInput, rawType string) {
+func emitHeadlessToolUse(stream *botStreamBuffer, turnID, provider, slug, taskID, toolName, toolInput, rawType string) {
 	if stream == nil || strings.TrimSpace(toolName) == "" {
 		return
 	}
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:     HeadlessEventTypeToolUse,
 		Provider: provider,
-		Agent:    slug,
+		Bot:      slug,
 		TurnID:   strings.TrimSpace(turnID),
 		TaskID:   strings.TrimSpace(taskID),
 		ToolName: strings.TrimSpace(toolName),
@@ -297,14 +297,14 @@ func emitHeadlessToolUse(stream *agentStreamBuffer, turnID, provider, slug, task
 
 // emitHeadlessToolResult pushes a tool_result-phase HeadlessEvent. text is
 // the truncated result summary the runner already prepares for logs.
-func emitHeadlessToolResult(stream *agentStreamBuffer, turnID, provider, slug, taskID, toolName, text, rawType string) {
+func emitHeadlessToolResult(stream *botStreamBuffer, turnID, provider, slug, taskID, toolName, text, rawType string) {
 	if stream == nil || strings.TrimSpace(toolName) == "" {
 		return
 	}
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:     HeadlessEventTypeToolResult,
 		Provider: provider,
-		Agent:    slug,
+		Bot:      slug,
 		TurnID:   strings.TrimSpace(turnID),
 		TaskID:   strings.TrimSpace(taskID),
 		ToolName: strings.TrimSpace(toolName),
@@ -326,7 +326,7 @@ func emitHeadlessToolResult(stream *agentStreamBuffer, turnID, provider, slug, t
 // event emitted during the turn. Both may be zero for turns that produced
 // no tools or no text — the manifest is still emitted so consumers see a
 // consistent turn boundary.
-func emitHeadlessManifest(stream *agentStreamBuffer, turnID, provider, slug, taskID, errDetail string, toolNames []string, textLen int, metrics headlessProgressMetrics, usage *headlessTokenUsage) {
+func emitHeadlessManifest(stream *botStreamBuffer, turnID, provider, slug, taskID, errDetail string, toolNames []string, textLen int, metrics headlessProgressMetrics, usage *headlessTokenUsage) {
 	if stream == nil {
 		return
 	}
@@ -348,7 +348,7 @@ func emitHeadlessManifest(stream *agentStreamBuffer, turnID, provider, slug, tas
 	pushHeadlessEvent(stream, HeadlessEvent{
 		Type:      HeadlessEventTypeManifest,
 		Provider:  provider,
-		Agent:     slug,
+		Bot:       slug,
 		TurnID:    strings.TrimSpace(turnID),
 		TaskID:    strings.TrimSpace(taskID),
 		Status:    status,

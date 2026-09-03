@@ -96,7 +96,7 @@ func TestWikiArticlePathStructuralError(t *testing.T) {
 // ── Registration gate ───────────────────────────────────────────────────────
 
 // link_task_wiki rides with the wiki-curation roles (CEO + Librarian) and must
-// NOT be exposed to ordinary specialist agents.
+// NOT be exposed to ordinary specialist bots.
 func TestLinkTaskWikiRegisteredForCuratorsOnly(t *testing.T) {
 	t.Setenv("WUPHF_MEMORY_BACKEND", "markdown")
 	cases := []struct {

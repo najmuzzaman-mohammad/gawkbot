@@ -3,8 +3,8 @@ package team
 // broker_computer_turn.go: what happens to a bot's computer around one
 // headless turn. Mount resolves the destination, makes sure the desktop is
 // awake, claims the lease, starts the screen poller, and returns the MCP
-// launch spec the runner writes into the agent's config. Release stops the
-// poller, settles the final frame into the agent stream, and arms idle.
+// launch spec the runner writes into the bot's config. Release stops the
+// poller, settles the final frame into the bot stream, and arms idle.
 
 import (
 	"context"
@@ -37,7 +37,7 @@ type computerMount struct {
 }
 
 // Env is the environment the bridge process needs, keyed by name, so both
-// runners can append it to the agent CLI's own env.
+// runners can append it to the bot CLI's own env.
 func (m *computerMount) Env() map[string]string {
 	if m == nil {
 		return nil
@@ -45,7 +45,7 @@ func (m *computerMount) Env() map[string]string {
 	return m.Launch.Env
 }
 
-// mountForTurn prepares the agent's computer for a turn. It returns nil,
+// mountForTurn prepares the bot's computer for a turn. It returns nil,
 // nil when the bot has no computer; a non-nil error means the bot was
 // promised a computer and it could not be delivered.
 func (s *computerService) mountForTurn(ctx context.Context, slug, turnID, taskID, controlURL, controlToken string) (*computerMount, error) {
@@ -78,7 +78,7 @@ func (s *computerService) mountForTurn(ctx context.Context, slug, turnID, taskID
 		return nil, nil
 	}
 	lease := s.leases.For(target.Key)
-	if !lease.Claim(turnID, slug, s.agentBusy, time.Now()) {
+	if !lease.Claim(turnID, slug, s.botBusy, time.Now()) {
 		return nil, errLeaseHeld
 	}
 	if st.Container == computer.ContainerMissing || st.Container == computer.ContainerStopped {
@@ -132,7 +132,7 @@ func (s *computerService) releaseTurn(m *computerMount) {
 	s.idleFor(m.slug).Touch()
 	if frame != nil {
 		s.storeFrame(m.slug, *frame, true)
-		if stream := s.b.AgentStream(m.slug); stream != nil {
+		if stream := s.b.BotStream(m.slug); stream != nil {
 			line, _ := json.Marshal(map[string]any{
 				"kind":     "computer_frame",
 				"slug":     m.slug,
@@ -296,7 +296,7 @@ func (p *screenPoller) finish() *computer.Frame {
 	return p.last
 }
 
-// computerPromptHint is appended to the agent's system prompt when a
+// computerPromptHint is appended to the bot's system prompt when a
 // computer is mounted for the turn.
 func computerPromptHint(dest string) string {
 	switch dest {

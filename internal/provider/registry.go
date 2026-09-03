@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -18,7 +18,7 @@ import (
 // what it supports and the launcher reads those declarations.
 type Capabilities struct {
 	// PaneEligible reports whether the launcher should spawn an interactive
-	// tmux pane for an agent bound to this provider. True for runtimes with
+	// tmux pane for a bot bound to this provider. True for runtimes with
 	// an interactive TUI (Claude Code). False for headless-only runtimes
 	// (Codex, OpenAI-compatible HTTP, OpenClaw bridge, etc.).
 	PaneEligible bool
@@ -36,7 +36,7 @@ type Capabilities struct {
 	// (OpenClaw, Hermes) rather than a directly-runnable LLM runtime. Gateway
 	// kinds are dispatched the same way at the StreamFn layer but are
 	// managed via the Integrations app — they never appear in the global
-	// "Default Runtime" picker or in per-agent provider pickers. Register
+	// "Default Runtime" picker or in per-bot provider pickers. Register
 	// skips config.AllowLLMProviderKind when GatewayOnly is true so the
 	// kind cannot be selected as an install-wide default.
 	GatewayOnly bool
@@ -52,7 +52,7 @@ type Capabilities struct {
 // back to claude-code.
 type Entry struct {
 	Kind         string
-	StreamFn     func(slug string) agent.StreamFn
+	StreamFn     func(slug string) bot.StreamFn
 	OneShot      func(systemPrompt, prompt, cwd string) (string, error)
 	OneShotCtx   func(ctx context.Context, systemPrompt, prompt, cwd string) (string, error)
 	Capabilities Capabilities
@@ -135,11 +135,11 @@ func Lookup(kind string) *Entry {
 // LLMProviderKinds returns the sorted set of registered, non-gateway provider
 // kinds — the runtimes a user can pick as a directly-dispatched LLM (Claude
 // Code, Codex, Opencode, MLX-LM, Ollama, Exo). Gateway kinds (OpenClaw, Hermes)
-// are excluded because they represent agents imported through an external
+// are excluded because they represent bots imported through an external
 // gateway and are managed via the Integrations app, not the runtime picker.
 //
-// UI consumers (Settings default-runtime dropdown, AgentProfilePanel runtime
-// picker, AgentWizard provider field) should read this list to keep gateway
+// UI consumers (Settings default-runtime dropdown, BotProfilePanel runtime
+// picker, BotWizard provider field) should read this list to keep gateway
 // kinds out of provider selection surfaces.
 func LLMProviderKinds() []string {
 	registryMu.RLock()

@@ -213,23 +213,23 @@ func (m channelModel) mainPanelGeometry(mainW, contentH int) (headerH, msgH int,
 	if m.activeApp == channelui.OfficeAppMessages || m.isOneOnOne() {
 		focusSlug := ""
 		if m.isOneOnOne() {
-			focusSlug = m.oneOnOneAgentSlug()
+			focusSlug = m.oneOnOneBotSlug()
 		}
 		runtimeStrip = channelui.RenderRuntimeStrip(m.members, m.tasks, m.requests, m.actions, mainW-4, focusSlug)
 	}
 
 	activePending := m.visiblePendingRequest()
-	typingAgents := channelui.TypingAgentsFromMembers(m.members)
+	typingBots := channelui.TypingBotsFromMembers(m.members)
 	liveActivities := channelui.LiveActivityFromMembers(m.members)
 	composerStr := ""
 	if m.activeApp == channelui.OfficeAppMessages || m.memberDraft != nil {
 		composerStr = renderComposer(mainW, m.input, m.inputPos, m.composerTargetLabel(),
-			m.replyToID, typingAgents, liveActivities, activePending, m.selectedOption, m.composerHint(m.composerTargetLabel(), m.replyToID, activePending),
+			m.replyToID, typingBots, liveActivities, activePending, m.selectedOption, m.composerHint(m.composerTargetLabel(), m.replyToID, activePending),
 			m.focus == focusMain, m.tickFrame)
 	}
 	if m.memberDraft != nil {
 		composerStr = renderComposer(mainW, m.input, m.inputPos, memberDraftComposerLabel(*m.memberDraft),
-			"", typingAgents, nil, nil, 0, m.composerHint(memberDraftComposerLabel(*m.memberDraft), "", nil), m.focus == focusMain, m.tickFrame)
+			"", typingBots, nil, nil, 0, m.composerHint(memberDraftComposerLabel(*m.memberDraft), "", nil), m.focus == focusMain, m.tickFrame)
 	}
 	interviewCard := ""
 	if activePending != nil {

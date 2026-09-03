@@ -11,10 +11,10 @@ import (
 //
 // Why: editing a task in the Tasks surface used to be silent to the team. The
 // broker recorded an activity-log line ("task_updated") that nobody reads and
-// no agent is notified by, so a human who changed a status, retitled a task, or
+// no bot is notified by, so a human who changed a status, retitled a task, or
 // rewrote its description got no acknowledgement and no reaction — the office
 // simply did not know. Every other way a human addresses the team (a message, a
-// mention, an approval) reaches an agent; a task edit should too.
+// mention, an approval) reaches a bot; a task edit should too.
 //
 // What it does: posts one message into the task's channel naming the change,
 // @-tagging the owner (the CEO when a task has none) so the owner wakes and
@@ -24,7 +24,7 @@ import (
 //
 // Deliberately quiet about changes that already speak for themselves: reassign,
 // cancel, request-changes, and reject each post their own richer notification,
-// and agent-initiated edits are the agents doing their job, not news. Only a
+// and bot-initiated edits are the bots doing their job, not news. Only a
 // human's edit, and only when it actually changed something, produces a line.
 //
 // Caller MUST hold b.mu for write.

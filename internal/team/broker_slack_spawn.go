@@ -1,9 +1,9 @@
 package team
 
-// broker_slack_spawn.go spawns WUPHF-runtime office agents that carry their
+// broker_slack_spawn.go spawns WUPHF-runtime office bots that carry their
 // OWN Slack identity — the INVERSE of broker_slack_agents.go's foreign
-// registry. A foreign agent runs outside WUPHF and its Slack posts are
-// ALLOWED inbound; a spawned agent runs on WUPHF's own runtime, posts to
+// registry. A foreign bot runs outside WUPHF and its Slack posts are
+// ALLOWED inbound; a spawned bot runs on WUPHF's own runtime, posts to
 // Slack with its own bot token (so it appears as a real Slack user with its
 // own name and avatar), and its Slack posts must NEVER re-ingress as new
 // inbound — that is the echo guard in slack_transport.go's routeInbound.
@@ -11,14 +11,14 @@ package team
 // Creating a Slack app cannot be automated end-to-end, so the flow is guided
 // and two-phase:
 //
-//	POST /slack/agents/spawn          { slug, name, role? }
+//	POST /slack/bots/spawn          { slug, name, role? }
 //	  → a ready-to-paste Slack app manifest + a numbered human guide +
 //	    a persisted pending-spawn record (survives restarts)
-//	GET  /slack/agents/spawn          → { spawns: [ … ] }
-//	POST /slack/agents/spawn/complete { slug }
+//	GET  /slack/bots/spawn          → { spawns: [ … ] }
+//	POST /slack/bots/spawn/complete { slug }
 //	  → reads the bot token from env var WUPHF_SLACK_AGENT_<SLUG>_TOKEN
 //	    (NEVER from the request body), auth.tests it to discover the bot's
-//	    Slack user id, and creates the member as a REAL office agent on the
+//	    Slack user id, and creates the member as a REAL office bot on the
 //	    install-default runtime carrying its Slack identity in
 //	    Provider.Slack (UserID + BotTokenEnv).
 //
@@ -41,7 +41,7 @@ import (
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
-// slackSpawnRecord is the persisted pending spawn: an agent the human was
+// slackSpawnRecord is the persisted pending spawn: a bot the human was
 // guided to create in Slack but whose token has not been completed yet.
 // Stored in broker state (slug → record) so the flow survives restarts.
 type slackSpawnRecord struct {
@@ -54,7 +54,7 @@ type slackSpawnRecord struct {
 
 // errSlackSpawnTokenMissing tags "the env var is not set yet" so the handler
 // can answer 409 (come back after step 5 of the guide) instead of 500.
-var errSlackSpawnTokenMissing = errors.New("spawned agent bot token env var not set")
+var errSlackSpawnTokenMissing = errors.New("spawned bot bot token env var not set")
 
 // errSlackSpawnNotFound tags "no pending spawn for this slug" for a 404.
 var errSlackSpawnNotFound = errors.New("no pending spawn for slug")
@@ -87,8 +87,8 @@ type slackSpawnCompleteRequest struct {
 	Slug string `json:"slug,omitempty"`
 }
 
-// slackAppManifest is the minimal Slack app manifest a spawned agent needs.
-// Spawned agents only POST as themselves via chat.postMessage (inbound still
+// slackAppManifest is the minimal Slack app manifest a spawned bot needs.
+// Spawned bots only POST as themselves via chat.postMessage (inbound still
 // flows through the main wuphf bot's Socket Mode connection), so there is no
 // socket mode, no event subscriptions, and only two scopes.
 type slackAppManifest struct {
@@ -120,13 +120,13 @@ type slackManifestScopes struct {
 }
 
 // slackSpawnManifest builds the ready-to-paste app manifest for one spawned
-// agent. Display name = the agent's office name so the Slack identity reads
-// as the agent, not as "wuphf-2".
+// bot. Display name = the bot's office name so the Slack identity reads
+// as the bot, not as "wuphf-2".
 func slackSpawnManifest(name string) slackAppManifest {
 	return slackAppManifest{
 		DisplayInformation: slackManifestDisplay{
 			Name:        name,
-			Description: fmt.Sprintf("%s — a WUPHF office agent posting as itself.", name),
+			Description: fmt.Sprintf("%s — a WUPHF office bot posting as itself.", name),
 		},
 		Features: slackManifestFeatures{
 			BotUser: slackManifestBotUser{DisplayName: name, AlwaysOnline: true},
@@ -137,7 +137,7 @@ func slackSpawnManifest(name string) slackAppManifest {
 	}
 }
 
-// slackSpawnTokenEnv derives the env var NAME the spawned agent's bot token
+// slackSpawnTokenEnv derives the env var NAME the spawned bot's bot token
 // must live in: WUPHF_SLACK_AGENT_<SLUG>_TOKEN with non-alphanumerics mapped
 // to underscores. Only the name transits responses and state.
 func slackSpawnTokenEnv(slug string) string {
@@ -166,9 +166,9 @@ func slackSpawnGuide(name, tokenEnv, slug string) []string {
 	}
 }
 
-// handleSlackAgentsSpawn serves the guided spawn flow: POST records a pending
+// handleSlackBotsSpawn serves the guided spawn flow: POST records a pending
 // spawn and returns the manifest + guide; GET lists pending spawns.
-func (b *Broker) handleSlackAgentsSpawn(w http.ResponseWriter, r *http.Request) {
+func (b *Broker) handleSlackBotsSpawn(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		writeJSON(w, http.StatusOK, map[string]any{"spawns": b.pendingSlackSpawns()})
@@ -180,7 +180,7 @@ func (b *Broker) handleSlackAgentsSpawn(w http.ResponseWriter, r *http.Request) 
 		}
 		// Pick the non-empty slug source BEFORE normalizing —
 		// normalizeChannelSlug("") falls back to "general" (same gotcha as
-		// handleSlackAgents).
+		// handleSlackBots).
 		raw := strings.TrimSpace(body.Slug)
 		if raw == "" {
 			raw = strings.TrimSpace(body.Name)
@@ -194,7 +194,7 @@ func (b *Broker) handleSlackAgentsSpawn(w http.ResponseWriter, r *http.Request) 
 		if name == "" {
 			name = humanizeSlug(slug)
 		}
-		rec, err := b.SpawnSlackAgent(slug, name, strings.TrimSpace(body.Role))
+		rec, err := b.SpawnSlackBot(slug, name, strings.TrimSpace(body.Role))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
@@ -212,9 +212,9 @@ func (b *Broker) handleSlackAgentsSpawn(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// handleSlackAgentsSpawnComplete finishes a pending spawn: resolves the bot
+// handleSlackBotsSpawnComplete finishes a pending spawn: resolves the bot
 // token from the recorded env var, auth.tests it, and creates the member.
-func (b *Broker) handleSlackAgentsSpawnComplete(w http.ResponseWriter, r *http.Request) {
+func (b *Broker) handleSlackBotsSpawnComplete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -228,10 +228,10 @@ func (b *Broker) handleSlackAgentsSpawnComplete(w http.ResponseWriter, r *http.R
 		http.Error(w, "slug required", http.StatusBadRequest)
 		return
 	}
-	// AGENT slug. Empty is already rejected with a 400 above, so only the
+	// BOT slug. Empty is already rejected with a 400 above, so only the
 	// normaliser changes here.
 	slug := normalizeChannelSlug(body.Slug)
-	userID, created, err := b.CompleteSlackAgentSpawn(r.Context(), slug)
+	userID, created, err := b.CompleteSlackBotSpawn(r.Context(), slug)
 	switch {
 	case errors.Is(err, errSlackSpawnNotFound):
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -248,11 +248,11 @@ func (b *Broker) handleSlackAgentsSpawnComplete(w http.ResponseWriter, r *http.R
 	})
 }
 
-// SpawnSlackAgent records a pending spawn for slug. Idempotent for the same
+// SpawnSlackBot records a pending spawn for slug. Idempotent for the same
 // slug (re-spawning re-issues the guide and keeps the original CreatedAt);
 // a slug that already names an office member — native, foreign, or a
 // previously-completed spawn — is rejected.
-func (b *Broker) SpawnSlackAgent(slug, name, role string) (slackSpawnRecord, error) {
+func (b *Broker) SpawnSlackBot(slug, name, role string) (slackSpawnRecord, error) {
 	if slug == "" || slug == "general" {
 		return slackSpawnRecord{}, fmt.Errorf("slug %q is reserved", slug)
 	}
@@ -288,14 +288,14 @@ func (b *Broker) SpawnSlackAgent(slug, name, role string) (slackSpawnRecord, err
 	return rec, nil
 }
 
-// CompleteSlackAgentSpawn finishes the pending spawn for slug: it resolves
+// CompleteSlackBotSpawn finishes the pending spawn for slug: it resolves
 // the bot token from the recorded env var (never from a request body), runs
 // auth.test to discover the bot's Slack user id, and creates the office
-// member as a REAL agent on the install-default runtime (Provider.Kind == ""),
+// member as a REAL bot on the install-default runtime (Provider.Kind == ""),
 // carrying its Slack identity in Provider.Slack. Idempotent: re-completing a
 // spawn whose member already exists with the same identity reports
 // created=false.
-func (b *Broker) CompleteSlackAgentSpawn(ctx context.Context, slug string) (userID string, created bool, err error) {
+func (b *Broker) CompleteSlackBotSpawn(ctx context.Context, slug string) (userID string, created bool, err error) {
 	if slug == "" || slug == "general" {
 		return "", false, fmt.Errorf("slug %q is reserved", slug)
 	}
@@ -303,7 +303,7 @@ func (b *Broker) CompleteSlackAgentSpawn(ctx context.Context, slug string) (user
 	rec, ok := b.slackSpawns[slug]
 	b.mu.Unlock()
 	if !ok {
-		return "", false, fmt.Errorf("%w: %q (POST /slack/agents/spawn first)", errSlackSpawnNotFound, slug)
+		return "", false, fmt.Errorf("%w: %q (POST /slack/bots/spawn first)", errSlackSpawnNotFound, slug)
 	}
 	token := strings.TrimSpace(os.Getenv(rec.TokenEnv))
 	if token == "" {
@@ -323,7 +323,7 @@ func (b *Broker) CompleteSlackAgentSpawn(ctx context.Context, slug string) (user
 
 	// Serialize with every other member mutation so the conflict check and
 	// the create step are atomic against concurrent registrations (same
-	// outer lock RegisterSlackAgent takes).
+	// outer lock RegisterSlackBot takes).
 	b.officeMemberMutationMu.Lock()
 	defer b.officeMemberMutationMu.Unlock()
 	alreadyCompleted, conflictErr := b.slackSpawnConflict(slug, userID)
@@ -376,7 +376,7 @@ func (b *Broker) slackSpawnConflict(slug, userID string) (alreadyCompleted bool,
 	return false, nil
 }
 
-// createSpawnedSlackMember persists the spawned agent as a real office
+// createSpawnedSlackMember persists the spawned bot as a real office
 // member: install-default runtime (Kind == ""), Slack identity on the
 // binding, seeded into every non-DM channel so its replies are not 403'd
 // (same policy and rationale as createOfficeMember).
@@ -390,7 +390,7 @@ func (b *Broker) createSpawnedSlackMember(rec slackSpawnRecord, userID string) e
 		CreatedAt: now,
 		Provider: provider.ProviderBinding{
 			// Kind stays empty → install-wide default runtime: a spawned
-			// agent is a REAL office agent, not a gateway/foreign kind.
+			// bot is a REAL office bot, not a gateway/foreign kind.
 			Slack: &provider.SlackProviderBinding{UserID: userID, BotTokenEnv: rec.TokenEnv},
 		},
 	}
@@ -424,7 +424,7 @@ func (b *Broker) createSpawnedSlackMember(rec slackSpawnRecord, userID string) e
 		b.publishOfficeChangeLocked(officeChangeEvent{Kind: "channel_updated", Slug: chSlug})
 	}
 	b.mu.Unlock()
-	b.backfillAgentFilesForRoster()
+	b.backfillBotFilesForRoster()
 	return nil
 }
 
@@ -469,13 +469,13 @@ func (b *Broker) cloneSlackSpawnsLocked() map[string]slackSpawnRecord {
 	return out
 }
 
-// IsSpawnedSlackAgentUserID reports whether userID is the Slack identity of a
-// SPAWNED office agent — a member running on WUPHF's own runtime (Kind !=
+// IsSpawnedSlackBotUserID reports whether userID is the Slack identity of a
+// SPAWNED office bot — a member running on WUPHF's own runtime (Kind !=
 // KindSlack) that posts to Slack as itself. This is the transport's ECHO
 // GUARD lookup: such posts are office-originated and must never re-ingress
-// as new inbound (the inverse of SlackAgentSlugByUserID, the foreign-agent
+// as new inbound (the inverse of SlackBotSlugByUserID, the foreign-bot
 // ingress ALLOWLIST).
-func (b *Broker) IsSpawnedSlackAgentUserID(userID string) bool {
+func (b *Broker) IsSpawnedSlackBotUserID(userID string) bool {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
 		return false
@@ -491,10 +491,10 @@ func (b *Broker) IsSpawnedSlackAgentUserID(userID string) bool {
 	return false
 }
 
-// SpawnedSlackAgentTokenEnv returns the env-var NAME holding the bot token a
-// spawned agent posts to Slack with, or "" when slug is not a spawned agent.
+// SpawnedSlackBotTokenEnv returns the env-var NAME holding the bot token a
+// spawned bot posts to Slack with, or "" when slug is not a spawned bot.
 // The outbound posting hook (slack_spawned_agents.go) keys on this.
-func (b *Broker) SpawnedSlackAgentTokenEnv(slug string) string {
+func (b *Broker) SpawnedSlackBotTokenEnv(slug string) string {
 	// Empty-check BEFORE normalizing: normalizeChannelSlug("") == "general".
 	if strings.TrimSpace(slug) == "" {
 		return ""

@@ -1,7 +1,7 @@
 package team
 
 // wiki_update_first.go — B2 knowledge-integrity: update-first enforcement at
-// the wiki WRITE boundary for agent article writes.
+// the wiki WRITE boundary for bot article writes.
 //
 // The v3 live run compounded duplicates into the knowledge base: two Corti
 // briefs on disk ("Corti Labs — Account Brief" + "Account Brief: Corti
@@ -10,7 +10,7 @@ package team
 // was a CREATE of a new file whose slug was near-identical to an existing
 // article in the same directory.
 //
-// routeAgentCreateToSimilarSlug runs inside the wiki worker's drain loop
+// routeBotCreateToSimilarSlug runs inside the wiki worker's drain loop
 // (single goroutine, off the broker hot path) before a mode="create"
 // standard wiki write commits. When an existing .md in the SAME directory
 // has a Jaro-Winkler-similar slug (the same tier-1 gate the playbook draft
@@ -18,7 +18,7 @@ package team
 // article instead of creating a near-duplicate file.
 //
 // Scope guards:
-//   - agent writes only: author slugs "system" and "human" are exempt —
+//   - bot writes only: author slugs "system" and "human" are exempt —
 //     system writes include team/decisions/<TASK-ID>.md where sequential
 //     ids (OFFICE-295 / OFFICE-296) are similar BY DESIGN, and human writes
 //     ride their own identity path with optimistic concurrency.
@@ -172,12 +172,12 @@ func findSimilarArticleSlug(dir, slug string) string {
 	return best
 }
 
-// routeAgentCreateToSimilarSlug decides the final (path, mode) for a
-// standard wiki write. For an agent-authored mode="create" whose target
+// routeBotCreateToSimilarSlug decides the final (path, mode) for a
+// standard wiki write. For a bot-authored mode="create" whose target
 // directory already holds a similar-slug article, it reroutes to
 // (existing article path, "append_section") — update, never duplicate.
 // All other writes pass through unchanged.
-func routeAgentCreateToSimilarSlug(repoRoot, authorSlug, relPath, mode string) (string, string) {
+func routeBotCreateToSimilarSlug(repoRoot, authorSlug, relPath, mode string) (string, string) {
 	if mode != "create" || updateFirstExemptAuthor(authorSlug) || strings.TrimSpace(repoRoot) == "" {
 		return relPath, mode
 	}

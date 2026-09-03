@@ -126,7 +126,7 @@ export function ThreadPanel() {
   }, [messages, activeThreadId]);
 
   // Auto-scroll to the bottom when a new reply arrives. Anchoring at the
-  // bottom means the composer is always in context and new agent replies
+  // bottom means the composer is always in context and new bot replies
   // land where your eye already is.
   useEffect(() => {
     if (messagesRef.current) {

@@ -97,8 +97,8 @@ func TestNormalMode_Help(t *testing.T) {
 
 func TestNormalMode_Agents(t *testing.T) {
 	got := MapKey(ModeNormal, mkKey("a"))
-	if got != ActionAgents {
-		t.Errorf("MapKey(Normal, \"a\") = %q, want %q", got, ActionAgents)
+	if got != ActionBots {
+		t.Errorf("MapKey(Normal, \"a\") = %q, want %q", got, ActionBots)
 	}
 }
 

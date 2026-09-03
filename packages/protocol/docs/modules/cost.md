@@ -225,7 +225,7 @@ classDiagram
 | `amountMicroUsd: -1` | `/amountMicroUsd must be a non-negative safe integer` | Cost events can never refund; negatives indicate a caller bug. |
 | `amountMicroUsd > MAX_COST_EVENT_AMOUNT_MICRO_USD` | `/amountMicroUsd must be at most 100000000` | One adversarial call can otherwise dominate any per-day cap. |
 | `scope: "global"` with `subjectId` present | `/subjectId must be absent when scope is global` | Projection key drift between scopes. |
-| `scope: "agent"` with non-AgentSlug subjectId | `/subjectId must be a valid AgentSlug when scope is agent` | Wrong-shape projection keys leak across scopes. |
+| `scope: "agent"` with non-BotSlug subjectId | `/subjectId must be a valid AgentSlug when scope is agent` | Wrong-shape projection keys leak across scopes. |
 | `thresholdsBps: [5000, 5000]` | `/thresholdsBps/1 must be unique within thresholds` | Reactor would fire the same crossing twice. |
 | `thresholdsBps: [9000, 5000]` | `/thresholdsBps/1 must be ascending` | Reactor scan assumes ascending order. |
 | `thresholdsBps: []` | `/thresholdsBps must contain at least one threshold` | A budget with no thresholds cannot fire warnings. |

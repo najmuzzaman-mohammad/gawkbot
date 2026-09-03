@@ -146,7 +146,7 @@ func readTaskLogArtifact(path string, info fs.FileInfo) (channelui.TaskLogArtifa
 	}
 	return channelui.TaskLogArtifact{
 		TaskID:      taskID,
-		AgentSlug:   strings.TrimSpace(record.AgentSlug),
+		BotSlug:     strings.TrimSpace(record.BotSlug),
 		ToolName:    strings.TrimSpace(record.ToolName),
 		Summary:     channelui.SummarizeTaskLogRecord(record),
 		StartedAt:   strings.TrimSpace(record.StartedAt),

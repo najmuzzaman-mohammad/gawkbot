@@ -356,7 +356,7 @@ func (w *ObsidianWatcher) fire(ctx context.Context, rel string) {
 	// file is identical to HEAD. Only a file that is actually dirty vs HEAD
 	// is an external edit worth attributing. Without this guard the watcher
 	// stamped a fresh timestamp sentinel on every echo, committing a
-	// human-attributed "wiki: external edit" on top of every agent commit
+	// human-attributed "wiki: external edit" on top of every bot commit
 	// and re-triggering itself into a commit storm.
 	dirtyCtx, dirtyCancel := context.WithTimeout(ctx, obsidianWatcherCommitTimout)
 	dirty, derr := w.repo.PathDirty(dirtyCtx, rel)

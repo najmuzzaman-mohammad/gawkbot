@@ -260,7 +260,7 @@ func (l *Launcher) taskNotificationTargets(action officeActionLog, task teamTask
 }
 
 func shouldWakeLeadForTaskAction(action officeActionLog, task teamTask) bool {
-	// App-builder work is self-sufficient single-agent work: the builder owns the
+	// App-builder work is self-sufficient single-bot work: the builder owns the
 	// whole describe -> build -> verify -> publish loop and needs no lead (CEO)
 	// coordination. Waking the lead here only spawns a redundant parallel build
 	// that duplicates the work, burns turns and tokens, and can trip the budget
@@ -314,19 +314,19 @@ func (l *Launcher) shouldDeliverDelayedTaskNotification(targetSlug string, actio
 }
 
 // isChannelDM returns true if the channel is a DM (either old dm-* format or new Store type).
-// agentTarget returns the agent slug that should receive the DM notification (non-human side).
+// botTarget returns the bot slug that should receive the DM notification (non-human side).
 // isChannelDM is the public entry point used by dispatch code; targeter
 // reads the same logic via the isChannelDMRaw callback.
-func (l *Launcher) isChannelDM(channelSlug string) (isDM bool, agentTarget string) {
+func (l *Launcher) isChannelDM(channelSlug string) (isDM bool, botTarget string) {
 	return l.isChannelDMRaw(channelSlug)
 }
 
 // isChannelDMRaw resolves whether a channel is a direct-message channel
-// and, if so, which agent it targets. Two formats supported: the legacy
-// "dm-{agent}" slug and the new store format where channel.type == "D".
-func (l *Launcher) isChannelDMRaw(channelSlug string) (isDM bool, agentTarget string) {
+// and, if so, which bot it targets. Two formats supported: the legacy
+// "dm-{bot}" slug and the new store format where channel.type == "D".
+func (l *Launcher) isChannelDMRaw(channelSlug string) (isDM bool, botTarget string) {
 	if IsDMSlug(channelSlug) {
-		return true, DMTargetAgent(channelSlug)
+		return true, DMTargetBot(channelSlug)
 	}
 	if l.broker != nil {
 		cs := l.broker.ChannelStore()
@@ -353,28 +353,28 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 	// DMs are isolated: only the other side gets notified, never CEO or others.
 	//
 	// Resolved relative to the SENDER, not to the human. The human-relative
-	// lookup could not name a recipient in an agent-to-agent DM at all
+	// lookup could not name a recipient in a bot-to-bot DM at all
 	// ("ceo__designer" has no human side), so those messages reached nobody —
 	// which is what blocked the consult relay. Sender-relative also makes the
-	// old "don't echo an agent's own message back" guard structural: the
+	// old "don't echo a bot's own message back" guard structural: the
 	// participant across from the sender is never the sender.
 	if ch := normalizeChannelSlug(msg.Channel); IsDMSlug(ch) {
 		recipient := DMOtherParticipant(ch, msg.From)
 		if recipient == "" {
 			// The sender is not a participant — a system or broker post into
-			// the DM. Fall back to the human-relative agent so those still
-			// wake the agent in a human<->agent DM, as they always have. In an
-			// agent-to-agent DM this is "" and nobody is woken: with no viewer
+			// the DM. Fall back to the human-relative bot so those still
+			// wake the bot in a human<->bot DM, as they always have. In an
+			// bot-to-bot DM this is "" and nobody is woken: with no viewer
 			// to resolve against there is no non-arbitrary side to pick.
-			recipient = DMTargetAgent(ch)
+			recipient = DMTargetBot(ch)
 		}
 		if recipient == "" || isHumanMessageSender(recipient) || recipient == msg.From {
 			return nil, nil
 		}
-		// Agent-pair DMs cap partner wakes per window so two agents cannot
+		// Bot-pair DMs cap partner wakes per window so two bots cannot
 		// ping-pong each other forever. The message still lands in the DM;
 		// only the wake is suppressed until the window rolls over.
-		if l.broker != nil && !l.broker.AgentDMWakeAllowed(ch) {
+		if l.broker != nil && !l.broker.BotDMWakeAllowed(ch) {
 			return nil, nil
 		}
 		if target, ok := targetMap[recipient]; ok {
@@ -384,18 +384,18 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 	}
 	// Also check the new Store-based DM format.
 	if ch := normalizeChannelSlug(msg.Channel); !IsDMSlug(ch) {
-		if isDM, agentSlug := l.isChannelDM(ch); isDM {
-			if !isHumanMessageSender(msg.From) && agentSlug == msg.From {
+		if isDM, botSlug := l.isChannelDM(ch); isDM {
+			if !isHumanMessageSender(msg.From) && botSlug == msg.From {
 				return nil, nil
 			}
-			if target, ok := targetMap[agentSlug]; ok {
+			if target, ok := targetMap[botSlug]; ok {
 				return []notificationTarget{target}, nil
 			}
 			return nil, nil
 		}
 	}
 	if l.isOneOnOne() {
-		slug := l.oneOnOneAgent()
+		slug := l.oneOnOneBot()
 		if slug == "" || slug == msg.From {
 			return nil, nil
 		}
@@ -424,7 +424,7 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 	// isExplicit checks whether a slug was explicitly @-tagged by the sender.
 	// Explicit tags bypass the enabledMembers filter so a newly hired specialist
 	// not yet in ch.Members can still be reached. They do NOT bypass ch.Disabled:
-	// an explicit disable is the user's intent to silence the agent, and an
+	// an explicit disable is the user's intent to silence the bot, and an
 	// @-tag must not override it.
 	isExplicit := func(slug string) bool { return containsSlug(msg.Tagged, slug) }
 
@@ -472,11 +472,11 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 		if strings.TrimSpace(msg.Content) == "" && strings.TrimSpace(msg.Title) == "" {
 			return false
 		}
-		return l.messageTargetsAgent(msg, slug)
+		return l.messageTargetsBot(msg, slug)
 	}
 
 	// Focus mode (delegation): CEO routes all work. Specialists only wake
-	// when explicitly tagged by CEO or human. No cross-agent chatter.
+	// when explicitly tagged by CEO or human. No cross-bot chatter.
 	if l.isFocusModeEnabled() {
 		switch {
 		case isHumanMessageSender(msg.From) || msg.Kind == "automation" || msg.From == "nex":
@@ -517,12 +517,12 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 				}
 			}
 		default:
-			// Specialist message: wake only the agents the specialist
+			// Specialist message: wake only the bots the specialist
 			// explicitly @-tagged (the CEO included, when tagged). An
 			// untagged specialist message — a [STATUS] progress ping or a
 			// richer live-stream note posted for human visibility — never
-			// wakes the CEO. No teammate is listening on an untagged agent
-			// message, so an agent that needs the CEO must @-tag it.
+			// wakes the CEO. No teammate is listening on an untagged bot
+			// message, so a bot that needs the CEO must @-tag it.
 			for _, slug := range msg.Tagged {
 				if slug != msg.From && allowTarget(slug) {
 					addImmediate(slug)
@@ -532,10 +532,10 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 		return immediate, delayed
 	}
 
-	// Collaborative mode: all agents can see domain-relevant messages
+	// Collaborative mode: all bots can see domain-relevant messages
 	switch {
 	case isHumanMessageSender(msg.From) || msg.Kind == "automation" || msg.From == "nex":
-		// @all: notify every agent immediately.
+		// @all: notify every bot immediately.
 		if containsSlug(msg.Tagged, "all") {
 			addImmediate(lead)
 			for slug := range targetMap {
@@ -570,8 +570,8 @@ func (l *Launcher) notificationTargetsForMessage(msg channelMessage) (immediate 
 		}
 	default:
 		// Specialist-to-channel message that does NOT tag the CEO: an
-		// untagged agent message never wakes the CEO. Wake the task owner
-		// and any explicitly tagged agents only. An agent that needs the
+		// untagged bot message never wakes the CEO. Wake the task owner
+		// and any explicitly tagged bots only. A bot that needs the
 		// CEO must @-tag it (handled by the msg.Tagged-contains-lead case
 		// above).
 		if owner != "" && owner != lead && allowTarget(owner) {

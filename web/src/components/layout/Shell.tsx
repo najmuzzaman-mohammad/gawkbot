@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { useActiveChannelSlug } from "../../routes/useCurrentRoute";
-import { AgentPanel } from "../agents/AgentPanel";
+import { BotPanel } from "../bots/BotPanel";
 import { CommandPaletteHost } from "../command/CommandPalette";
 import { TeamMemberWelcome } from "../join/TeamMemberWelcome";
 import { InterviewBar } from "../messages/InterviewBar";
@@ -41,7 +41,7 @@ export function Shell({ children }: ShellProps) {
         {/* One mount here keeps the bar in a consistent spot above the status
             bar across the home composer, channel, and task chat. It is scoped
             to the chat the human is currently viewing (useActiveChannelSlug),
-            so an agent's question only surfaces in the channel it was asked
+            so a bot's question only surfaces in the channel it was asked
             in instead of blocking the composer on every surface. On non-chat
             surfaces the slug is null and the bar stays silent; office-wide
             triage still lives in the Inbox. */}
@@ -49,7 +49,7 @@ export function Shell({ children }: ShellProps) {
         <StatusBar />
       </main>
       <ThreadPanel />
-      <AgentPanel />
+      <BotPanel />
       <CommandPaletteHost />
       <SearchModal />
       <HelpModalHost />

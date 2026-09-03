@@ -49,8 +49,8 @@ func BuildRecoveryLines(workspace WorkspaceUIState, contentWidth int, tasks []Ta
 
 	stateBody := fmt.Sprintf("%d running tasks · %d open requests · %d isolated worktrees", CountRunningRuntimeTasks(snapshot.Tasks), len(snapshot.Requests), CountIsolatedRuntimeTasks(snapshot.Tasks))
 	stateExtra := []string{}
-	if snapshot.SessionMode == team.SessionModeOneOnOne && strings.TrimSpace(snapshot.DirectAgent) != "" {
-		stateExtra = append(stateExtra, "Direct session with @"+snapshot.DirectAgent)
+	if snapshot.SessionMode == team.SessionModeOneOnOne && strings.TrimSpace(snapshot.DirectBot) != "" {
+		stateExtra = append(stateExtra, "Direct session with @"+snapshot.DirectBot)
 	} else if strings.TrimSpace(snapshot.Channel) != "" {
 		stateExtra = append(stateExtra, "Channel: #"+snapshot.Channel)
 	}

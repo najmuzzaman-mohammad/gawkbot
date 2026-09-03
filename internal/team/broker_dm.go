@@ -8,13 +8,13 @@ import (
 
 // Direct-message slug helpers. The broker has two DM slug formats it
 // must recognize:
-//   - legacy "dm-<agent>" / "dm-human-<agent>"
+//   - legacy "dm-<bot>" / "dm-human-<bot>"
 //   - canonical "<a>__<b>" pair-sorted, owned by channel.DirectSlug
 //
 // Loading state from disk migrates legacy → canonical (see
 // channel.MigrateDMSlugString in broker_persistence.go's loadState),
-// but recognition has to handle both. The IsDMSlug + DMTargetAgent +
-// canonicalDMTargetAgent trio makes the dual-format awareness explicit
+// but recognition has to handle both. The IsDMSlug + DMTargetBot +
+// canonicalDMTargetBot trio makes the dual-format awareness explicit
 // in one place.
 
 // DO NOT switch this to normalizeActorSlug.
@@ -23,7 +23,7 @@ import (
 // dance exists precisely to preserve the DM separator: "human__ceo" must stay
 // "human__ceo". normalizeActorSlug folds a double underscore to "--", which
 // would turn every DM slug into a different string and break DM lookup,
-// DMTargetAgent, and the canonical-slug migration at once.
+// DMTargetBot, and the canonical-slug migration at once.
 //
 // The wider slug cleanup moved actor-shaped values off the channel normaliser.
 // This file is the deliberate exception, in BOTH directions: here the channel
@@ -35,11 +35,11 @@ func (ch *teamChannel) isDM() bool {
 // IsDMSlug checks whether a channel slug represents a direct message.
 //
 // The canonical arm tests the SHAPE of the slug, not who is in it. It used to
-// route through canonicalDMTargetAgent, which returns "" unless one side is
-// the human — so an agent-to-agent pair like "ceo__designer" was not
+// route through canonicalDMTargetBot, which returns "" unless one side is
+// the human — so a bot-to-bot pair like "ceo__designer" was not
 // recognised as a DM at all and fell through to channel routing. That blocks
-// the consult relay: tagging an agent inside your DM sends your agent to talk
-// to theirs, which needs agent-to-agent DMs to route like any other DM.
+// the consult relay: tagging a bot inside your DM sends your bot to talk
+// to theirs, which needs bot-to-bot DMs to route like any other DM.
 //
 // Shape is a safe test because normalizeChannelSlug deliberately preserves
 // "__" while collapsing every single "_" to "-" (broker_defaults.go), so a
@@ -53,24 +53,24 @@ func IsDMSlug(slug string) bool {
 	return ok
 }
 
-// DMSlugFor returns the DM channel slug for a given agent.
-func DMSlugFor(agentSlug string) string {
-	agentSlug = normalizeActorSlug(agentSlug)
-	if agentSlug == "" {
+// DMSlugFor returns the DM channel slug for a given bot.
+func DMSlugFor(botSlug string) string {
+	botSlug = normalizeActorSlug(botSlug)
+	if botSlug == "" {
 		return ""
 	}
-	return channel.DirectSlug("human", agentSlug)
+	return channel.DirectSlug("human", botSlug)
 }
 
-// DMTargetAgent extracts the agent slug from a HUMAN's DM channel slug.
-// Returns "" if the slug is not a DM, or if it is an agent-to-agent DM where
+// DMTargetBot extracts the bot slug from a HUMAN's DM channel slug.
+// Returns "" if the slug is not a DM, or if it is a bot-to-bot DM where
 // there is no human side to be "the other" of.
 //
-// Deliberately still human-relative: a dozen call sites mean "the agent the
+// Deliberately still human-relative: a dozen call sites mean "the bot the
 // human is talking to" by it (notifier delivery, the onboarding CEO-DM check,
 // DM channel descriptions). Use DMOtherParticipant when you have a viewer and
 // want the participant across from THEM.
-func DMTargetAgent(slug string) string {
+func DMTargetBot(slug string) string {
 	slug = normalizeChannelSlug(slug)
 	if strings.HasPrefix(slug, "dm-human-") {
 		return strings.TrimPrefix(slug, "dm-human-")
@@ -78,18 +78,18 @@ func DMTargetAgent(slug string) string {
 	if strings.HasPrefix(slug, "dm-") {
 		return strings.TrimPrefix(slug, "dm-")
 	}
-	return canonicalDMTargetAgent(slug)
+	return canonicalDMTargetBot(slug)
 }
 
-// DMPartner returns the agent on the other side of the HUMAN's 1:1 DM
+// DMPartner returns the bot on the other side of the HUMAN's 1:1 DM
 // channel. Returns "" if the channel is not a DM, does not exist, is a group
 // DM, or has no human side. Used by surface bridges to resolve who the human
 // is talking to when routing DM posts without requiring an @mention.
 //
 // The no-human case returns "" rather than picking a side. In an
-// agent-to-agent DM both members are non-human, and the old "first non-human
+// bot-to-bot DM both members are non-human, and the old "first non-human
 // member wins" loop would hand the bridge whichever happened to be stored
-// first — a coin flip between two real agents. There is no viewer here to
+// first — a coin flip between two real bots. There is no viewer here to
 // resolve against, so the honest answer is "cannot route"; the caller already
 // guards on "". Use DMOtherParticipant where a viewer IS known.
 func (b *Broker) DMPartner(channelSlug string) string {
@@ -124,19 +124,19 @@ func (b *Broker) DMPartner(channelSlug string) string {
 func DMParticipants(slug string) (string, string, bool) {
 	slug = normalizeChannelSlug(slug)
 	if strings.HasPrefix(slug, "dm-") {
-		// Legacy slugs are human<->agent by construction.
-		agent := normalizeActorSlug(DMTargetAgent(slug))
-		if agent == "" {
+		// Legacy slugs are human<->bot by construction.
+		bot := normalizeActorSlug(DMTargetBot(slug))
+		if bot == "" {
 			return "", "", false
 		}
-		return "human", agent, true
+		return "human", bot, true
 	}
 	return canonicalDMPair(slug)
 }
 
 // DMOtherParticipant returns the participant across the DM from viewer.
 //
-// This is the viewer-relative counterpart to DMTargetAgent, and the one to
+// This is the viewer-relative counterpart to DMTargetBot, and the one to
 // reach for when routing: in "ceo__designer" the answer is "designer" to the
 // CEO and "ceo" to the designer, which no human-relative lookup can express.
 // Returns "" when the slug is not a 1:1 DM, or when viewer is not one of its
@@ -153,7 +153,7 @@ func DMOtherParticipant(slug, viewer string) string {
 	}
 	// Match the human by identity rather than by string: the human posts under
 	// several aliases ("human", "you", "human:<name>"), and any of them sits
-	// across from the agent in a human<->agent DM.
+	// across from the bot in a human<->bot DM.
 	if isHumanMessageSender(viewer) {
 		switch {
 		case isHumanMessageSender(a):
@@ -189,7 +189,7 @@ func canonicalDMPair(slug string) (string, string, bool) {
 	return a, b, true
 }
 
-func canonicalDMTargetAgent(slug string) string {
+func canonicalDMTargetBot(slug string) string {
 	a, b, ok := canonicalDMPair(slug)
 	if !ok {
 		return ""

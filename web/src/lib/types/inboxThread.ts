@@ -2,8 +2,8 @@
  * Phase 3 unified-inbox thread types. Mirrors the Go shapes in
  * internal/team/broker_inbox_threads.go.
  *
- * A thread groups every attention item from one AI agent into a
- * single conversation surface. The detail view interleaves agent
+ * A thread groups every attention item from one AI bot into a
+ * single conversation surface. The detail view interleaves bot
  * messages with inline action cards (one card per pending item) in
  * chronological order — the same pattern as a Slack DM or Gmail
  * conversation that has approval requests embedded.
@@ -13,7 +13,7 @@ import type { InboxItem } from "./inbox";
 import type { InboxCounts } from "./lifecycle";
 
 export interface InboxThread {
-  key: string; // "agent:<slug>"
+  key: string; // "bot:<slug>"
   agentSlug: string;
   agentName: string;
   agentRole?: string;

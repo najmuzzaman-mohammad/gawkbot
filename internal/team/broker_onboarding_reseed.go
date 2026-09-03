@@ -11,7 +11,7 @@ import (
 // POST /onboarding/reseed — give an already-onboarded office its founding team.
 //
 // Offices onboarded while the operator front door shipped completed the wizard
-// with `agents: []`, which took the no-team seed path: a real workspace with
+// with `bots: []`, which took the no-team seed path: a real workspace with
 // #general and a company name, but zero teammates. Re-running onboarding is not
 // an option (it is already complete), so those offices had no way back to a
 // roster short of deleting the runtime home.

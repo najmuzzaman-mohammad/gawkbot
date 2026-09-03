@@ -56,12 +56,12 @@ func RenderComposerPopup(options []ComposerPopupOption, selectedIdx int, width i
 	return popupStyle.Render(strings.Join(lines, "\n"))
 }
 
-// TypingAgentsFromMembers returns display names for members currently
+// TypingBotsFromMembers returns display names for members currently
 // active — recently posting (ClassifyActivity is "talking" or
 // "shipping") or with non-empty LiveActivity. The "you" slug is
 // filtered out. Names prefer member.Name and fall back to
 // DisplayName(slug).
-func TypingAgentsFromMembers(members []Member) []string {
+func TypingBotsFromMembers(members []Member) []string {
 	var typing []string
 	for _, m := range members {
 		if m.Slug == "you" {

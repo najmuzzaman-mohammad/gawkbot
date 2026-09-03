@@ -36,7 +36,7 @@ import {
 } from "../../routes/routeRegistry";
 import { useCurrentApp } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
-import { AgentList } from "../sidebar/AgentList";
+import { BotList } from "../sidebar/BotList";
 import { ChannelList } from "../sidebar/ChannelList";
 
 const WIKI_SURFACE_APPS = new Set<string>(WIKI_SURFACE_APP_IDS);
@@ -142,7 +142,7 @@ export function CollapsedSidebar({ onExpand }: { onExpand?: () => void }) {
         <button
           type="button"
           className={`sidebar-icon-btn${popover === "team" ? " is-open" : ""}`}
-          aria-label="Agents"
+          aria-label="Bots"
           aria-haspopup="dialog"
           aria-expanded={popover === "team"}
           onMouseEnter={() => openPopover("team")}
@@ -221,13 +221,13 @@ export function CollapsedSidebar({ onExpand }: { onExpand?: () => void }) {
             >
               <div className="sidebar-rail-popover-title">
                 {popover === "team"
-                  ? "Agents"
+                  ? "Bots"
                   : popover === "channels"
                     ? "Channels"
                     : "Usage"}
               </div>
               <div className="sidebar-rail-popover-body">
-                {popover === "team" ? <AgentList /> : null}
+                {popover === "team" ? <BotList /> : null}
                 {popover === "channels" ? <ChannelList /> : null}
                 {popover === "usage" ? <UsageBody /> : null}
               </div>
@@ -322,7 +322,7 @@ function UsageBody() {
       <table className="usage-table">
         <thead>
           <tr>
-            {["Agent", "In", "Out", "Cache", "Cost"].map((h) => (
+            {["Bot", "In", "Out", "Cache", "Cost"].map((h) => (
               <th key={h}>{h}</th>
             ))}
           </tr>

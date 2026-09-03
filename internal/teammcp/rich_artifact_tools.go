@@ -10,16 +10,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const visualArtifactGuidance = "Use for visual/diagram-heavy explainers, multi-section deep-dives, comparisons, or rich interactive surfaces — the HTML IS the article. NOT for short factual replies, status updates, conversational answers, quick acknowledgments, agent↔agent coordination, or anything that fits in a chat bubble. The HTML article MUST include genuine SVG figures — a text-only \"article\" should be a plain team_broadcast instead. Do NOT also call notebook_write for the same content: the markdown-companion pattern is deprecated, and a notebook_write that duplicates this HTML is the failure mode this tool replaces. When you do use it, compose the article Wikipedia-style with text and figures interleaved at the right semantic places — opening summary, sections with prose, figures embedded inline next to the paragraph they support, tables/charts/equations placed where they belong in the reading flow. Do not write a wall of text followed by a separate visuals section. Default to the WUPHF technical-manual style: old mathematics/physics book on real paper, warm paper texture, black editorial serif reading copy, Making Software cobalt shades for figure ink (oklch(50.58% .2886 264.84) / rgb(19, 66, 255) as the primary stroke), muted complementary state colors, faint construction grids inside figure plates, monospaced figure labels like FIG_001, IN/OUT blocks, trust/source metadata, equations or measured annotations when useful, and table-of-contents-style lists. Keep it original to WUPHF; do not copy external logos, illustrations, or brand assets. HTML must be self-contained: inline CSS/JS only, no network fetches, no external images/scripts/fonts, responsive layout, readable copy, and copy/export controls when the interactive surface needs them. NEVER include a CSS `@import` rule in any form — not even an empty `@import url('data:text/css,');` reflex line — and never load Google Fonts; declare system serif/mono families like Georgia, Times, Cambria, or Courier directly in `font-family`. The sanitizer rejects any `@import` substring. After creating, include visual-artifact:ra_0123456789abcdef on its own line in the chat reply so the UI renders a clickable card linking to the full-screen article."
+const visualArtifactGuidance = "Use for visual/diagram-heavy explainers, multi-section deep-dives, comparisons, or rich interactive surfaces — the HTML IS the article. NOT for short factual replies, status updates, conversational answers, quick acknowledgments, bot↔bot coordination, or anything that fits in a chat bubble. The HTML article MUST include genuine SVG figures — a text-only \"article\" should be a plain team_broadcast instead. Do NOT also call notebook_write for the same content: the markdown-companion pattern is deprecated, and a notebook_write that duplicates this HTML is the failure mode this tool replaces. When you do use it, compose the article Wikipedia-style with text and figures interleaved at the right semantic places — opening summary, sections with prose, figures embedded inline next to the paragraph they support, tables/charts/equations placed where they belong in the reading flow. Do not write a wall of text followed by a separate visuals section. Default to the WUPHF technical-manual style: old mathematics/physics book on real paper, warm paper texture, black editorial serif reading copy, Making Software cobalt shades for figure ink (oklch(50.58% .2886 264.84) / rgb(19, 66, 255) as the primary stroke), muted complementary state colors, faint construction grids inside figure plates, monospaced figure labels like FIG_001, IN/OUT blocks, trust/source metadata, equations or measured annotations when useful, and table-of-contents-style lists. Keep it original to WUPHF; do not copy external logos, illustrations, or brand assets. HTML must be self-contained: inline CSS/JS only, no network fetches, no external images/scripts/fonts, responsive layout, readable copy, and copy/export controls when the interactive surface needs them. NEVER include a CSS `@import` rule in any form — not even an empty `@import url('data:text/css,');` reflex line — and never load Google Fonts; declare system serif/mono families like Georgia, Times, Cambria, or Courier directly in `font-family`. The sanitizer rejects any `@import` substring. After creating, include visual-artifact:ra_0123456789abcdef on its own line in the chat reply so the UI renders a clickable card linking to the full-screen article."
 
 const visualArtifactPromoteGuidance = "Promote a reviewed HTML article into the canonical team wiki. After a successful promote, broadcast the exact `card_broadcast` string returned by this tool via team_broadcast. Do NOT retype the artifact ID — copy the `card_marker` (`visual-artifact:ra_...`) verbatim from this tool's response, because retyping the 16-hex-char ID is the load-bearing failure mode this contract avoids."
 
 // TeamVisualArtifactCreateArgs is the contract for
 // visual_artifact_create.
 type TeamVisualArtifactCreateArgs struct {
-	MySlug            string   `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug            string   `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	TaskID            string   `json:"task_id,omitempty" jsonschema:"Task ID this visual artifact supports, when relevant."`
-	SourcePath        string   `json:"source_path,omitempty" jsonschema:"OPTIONAL legacy field. Set ONLY when this artifact is the visual companion to a pre-existing markdown notebook entry (path agents/{my_slug}/notebook/{filename}.md). Leave EMPTY for new HTML articles — the artifact is the article and there is no separate markdown source to pair with."`
+	SourcePath        string   `json:"source_path,omitempty" jsonschema:"OPTIONAL legacy field. Set ONLY when this artifact is the visual companion to a pre-existing markdown notebook entry (path bots/{my_slug}/notebook/{filename}.md). Leave EMPTY for new HTML articles — the artifact is the article and there is no separate markdown source to pair with."`
 	Title             string   `json:"title" jsonschema:"Short human-readable title for the visual artifact."`
 	Summary           string   `json:"summary" jsonschema:"One or two sentence summary of what the artifact helps the human review."`
 	HTML              string   `json:"html" jsonschema:"A complete, self-contained HTML document. Use inline CSS/JS only; do not rely on network fetches or external assets."`
@@ -31,8 +31,8 @@ type TeamVisualArtifactCreateArgs struct {
 // TeamVisualArtifactListArgs is the contract for
 // visual_artifact_list.
 type TeamVisualArtifactListArgs struct {
-	TargetSlug string `json:"target_slug,omitempty" jsonschema:"Agent whose visual artifacts to list. Defaults to your own when source_path is omitted."`
-	SourcePath string `json:"source_path,omitempty" jsonschema:"Optional notebook source path filter, like agents/{slug}/notebook/{filename}.md."`
+	TargetSlug string `json:"target_slug,omitempty" jsonschema:"Bot whose visual artifacts to list. Defaults to your own when source_path is omitted."`
+	SourcePath string `json:"source_path,omitempty" jsonschema:"Optional notebook source path filter, like bots/{slug}/notebook/{filename}.md."`
 }
 
 // TeamVisualArtifactReadArgs is the contract for
@@ -44,7 +44,7 @@ type TeamVisualArtifactReadArgs struct {
 // TeamVisualArtifactPromoteArgs is the contract for
 // visual_artifact_promote.
 type TeamVisualArtifactPromoteArgs struct {
-	MySlug          string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug          string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	ArtifactID      string `json:"artifact_id" jsonschema:"Visual artifact ID to promote, like ra_0123456789abcdef."`
 	TargetWikiPath  string `json:"target_wiki_path" jsonschema:"Canonical wiki path - MUST start with team/ and end in .md."`
 	MarkdownSummary string `json:"markdown_summary" jsonschema:"Canonical markdown article body to pair with the promoted visual artifact. Include the durable facts and links; the HTML remains the visual companion."`
@@ -59,7 +59,7 @@ func registerVisualArtifactTools(server *mcp.Server) {
 	), handleTeamVisualArtifactCreate)
 	mcp.AddTool(server, readOnlyTool(
 		"visual_artifact_list",
-		"List HTML articles authored by an agent so you can reuse, inspect, or promote them. "+visualArtifactGuidance,
+		"List HTML articles authored by a bot so you can reuse, inspect, or promote them. "+visualArtifactGuidance,
 	), handleTeamVisualArtifactList)
 	mcp.AddTool(server, readOnlyTool(
 		"visual_artifact_read",
@@ -77,7 +77,7 @@ func handleTeamVisualArtifactCreate(ctx context.Context, _ *mcp.CallToolRequest,
 		return toolError(err), nil, nil
 	}
 	// source_path is now optional. When set, it must point at an existing
-	// markdown notebook entry owned by this agent (legacy companion mode).
+	// markdown notebook entry owned by this bot (legacy companion mode).
 	// When empty, the artifact is the canonical article on its own.
 	sourcePath := strings.TrimSpace(args.SourcePath)
 	if sourcePath != "" {
@@ -211,16 +211,16 @@ func handleTeamVisualArtifactPromote(ctx context.Context, _ *mcp.CallToolRequest
 	if err != nil {
 		return toolError(err), nil, nil
 	}
-	// Return a pre-composed broadcast string the agent can paste verbatim into
+	// Return a pre-composed broadcast string the bot can paste verbatim into
 	// team_broadcast. The marker MUST stay as a single token on its own line
-	// because the frontend parser keys off the full 16-hex-char ID — agents
+	// because the frontend parser keys off the full 16-hex-char ID — bots
 	// retyping the ID is the load-bearing failure mode this contract avoids.
 	// See web/src/components/messages/MessageArtifactReferences.tsx for the
 	// parser side.
 	marker := "visual-artifact:" + id
-	// displayTitle is agent-controlled (it comes from the promote result's
+	// displayTitle is bot-controlled (it comes from the promote result's
 	// artifact.title or a path fallback). It is interpolated into a
-	// precomposed card_broadcast string the agent is told to paste verbatim
+	// precomposed card_broadcast string the bot is told to paste verbatim
 	// into team_broadcast. Newlines, backticks, or an embedded
 	// `visual-artifact:` marker in the title could spoof a second card or
 	// break the single-line marker contract the frontend parser keys off.
@@ -272,7 +272,7 @@ func artifactTitleFromPromoteResult(result map[string]any, targetWikiPath string
 	return title
 }
 
-// normalizeArtifactCardTitle neutralizes an agent-controlled title before it is
+// normalizeArtifactCardTitle neutralizes a bot-controlled title before it is
 // interpolated into the precomposed card_broadcast string. The card relies on
 // the `visual-artifact:<id>` marker being a single token on its own line for
 // the frontend parser (web/src/components/messages/MessageArtifactReferences.tsx).
@@ -348,7 +348,7 @@ func validateNotebookMarkdownPath(path, field string) error {
 		return fmt.Errorf("%s is required", field)
 	}
 	if !strings.HasPrefix(path, "agents/") || !strings.Contains(path, "/notebook/") {
-		return fmt.Errorf("%s %q must be a notebook path like agents/{slug}/notebook/{filename}.md", field, path)
+		return fmt.Errorf("%s %q must be a notebook path like bots/{slug}/notebook/{filename}.md", field, path)
 	}
 	if !strings.HasSuffix(strings.ToLower(path), ".md") {
 		return fmt.Errorf("%s must end in .md; got %q", field, path)

@@ -123,7 +123,7 @@ func TestPollChannelsDecodes(t *testing.T) {
 	}
 }
 
-func TestPollUsageEnsuresAgentsMap(t *testing.T) {
+func TestPollUsageEnsuresBotsMap(t *testing.T) {
 	brokerStub(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"total":{"total_tokens":10}}`))
 	}))
@@ -135,8 +135,8 @@ func TestPollUsageEnsuresAgentsMap(t *testing.T) {
 	if msg.usage.Total.TotalTokens != 10 {
 		t.Fatalf("expected total tokens 10, got %#v", msg.usage)
 	}
-	if msg.usage.Agents == nil {
-		t.Fatalf("Agents map must be non-nil to be safe to read by callers")
+	if msg.usage.Bots == nil {
+		t.Fatalf("Bots map must be non-nil to be safe to read by callers")
 	}
 }
 
@@ -162,7 +162,7 @@ func TestCreateDMChannelPostsMembers(t *testing.T) {
 	if msg.err != nil {
 		t.Fatalf("expected no error, got %v", msg.err)
 	}
-	if msg.slug != "office__fe" || msg.name != "Frontend" || msg.agentSlug != "fe" {
+	if msg.slug != "office__fe" || msg.name != "Frontend" || msg.botSlug != "fe" {
 		t.Fatalf("unexpected msg: %#v", msg)
 	}
 	if posted.Type != "direct" {
@@ -182,8 +182,8 @@ func TestCreateDMChannelHandlesMalformedJSON(t *testing.T) {
 	if msg.err == nil {
 		t.Fatalf("expected decode error to surface, got nil")
 	}
-	if msg.agentSlug != "fe" {
-		t.Fatalf("agent slug should be carried even on error, got %q", msg.agentSlug)
+	if msg.botSlug != "fe" {
+		t.Fatalf("bot slug should be carried even on error, got %q", msg.botSlug)
 	}
 }
 

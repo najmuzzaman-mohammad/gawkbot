@@ -109,6 +109,6 @@ func TestRequireTeamMemberApprovalBlocksOnReject(t *testing.T) {
 		t.Fatal("rejected request must return an error so the CEO reuses an existing specialist")
 	}
 	if !strings.Contains(err.Error(), "growth") {
-		t.Fatalf("error should name the declined slug so the agent knows what was blocked, got: %v", err)
+		t.Fatalf("error should name the declined slug so the bot knows what was blocked, got: %v", err)
 	}
 }

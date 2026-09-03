@@ -16,7 +16,7 @@ import { extractRichArtifactIds } from "../lib/richArtifactReferences";
  * Originally lifted out of WikiArticle, reused on the notebook entry surface
  * and the Issue document surface. Same regex + same fetcher across all
  * three so the "Making Software"-style inline embed renders identically
- * wherever the agent dropped a marker.
+ * wherever the bot dropped a marker.
  *
  * Dependency stability: extractRichArtifactIds returns a fresh array on
  * every render, so the effect keys off a joined-string of ids instead of

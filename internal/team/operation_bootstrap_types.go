@@ -151,7 +151,7 @@ type operationStarterTemplate struct {
 	Blurb          string                    `json:"blurb,omitempty"`
 	Points         []operationStarterPoint   `json:"points,omitempty"`
 	Defaults       operationStarterDefaults  `json:"defaults"`
-	Agents         []operationStarterAgent   `json:"agents"`
+	Bots           []operationStarterBot     `json:"agents"`
 	Channels       []operationStarterChannel `json:"channels"`
 	Tasks          []operationStarterTask    `json:"tasks"`
 	KickoffTagged  []string                  `json:"kickoffTagged,omitempty"`
@@ -172,7 +172,7 @@ type operationStarterDefaults struct {
 	Size        string `json:"size,omitempty"`
 }
 
-type operationStarterAgent struct {
+type operationStarterBot struct {
 	Slug        string   `json:"slug"`
 	Emoji       string   `json:"emoji,omitempty"`
 	Name        string   `json:"name"`

@@ -5,7 +5,7 @@ Branch: `fix/structured-planning-no-dup-tasks` (worktree `.worktrees/structured-
 ## Problem (user report)
 1. Duplicate tasks getting created.
 2. Tasks should go through a **structured planning** process FIRST.
-3. Agent should **ask the human relevant questions** before creating tasks / starting execution.
+3. Bot should **ask the human relevant questions** before creating tasks / starting execution.
 4. Must **not create redundant shallow subtasks**.
 
 ## Root causes (verified in code)
@@ -15,7 +15,7 @@ Branch: `fix/structured-planning-no-dup-tasks` (worktree `.worktrees/structured-
 
 ## Design (user-confirmed direction)
 - Structured planning uses each **provider's native plan mode** (Claude `--permission-mode plan`, Codex `-s read-only`). Artifact is a **plan file** in the owner notebook — NOT a new UI gate.
-- Agent asks clarifying **questions via `human_interview`**.
+- Bot asks clarifying **questions via `human_interview`**.
 - Plan is **approved via `human_interview`** (reuse existing approval card). Approve → `Planning→Running`.
 - All enforced by a **hard broker gate**, not prompts.
 
@@ -55,4 +55,4 @@ Branch: `fix/structured-planning-no-dup-tasks` (worktree `.worktrees/structured-
 - Screenshots for `web/` changes before PR ready.
 
 ## Risk flagged to user
-Default-on planning partially reverses the recorded founder directive *"creating an Issue IS the authorization to work it"* — explicitly requested, treated as authorized. Planning stays skippable for trivial/internal/agent work so the office does not stall.
+Default-on planning partially reverses the recorded founder directive *"creating an Issue IS the authorization to work it"* — explicitly requested, treated as authorized. Planning stays skippable for trivial/internal/bot work so the office does not stall.

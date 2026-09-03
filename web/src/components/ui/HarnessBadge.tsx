@@ -14,7 +14,7 @@ interface HarnessBadgeProps {
 // system survives), and an SVG body. We use the projects' OWN SVG sources
 // verbatim where they exist:
 //   - openclaw — http://127.0.0.1:18789/favicon.svg (gradient lobster)
-//   - hermes-agent — ~/.hermes/hermes-agent/acp_registry/icon.svg (caduceus)
+//   - hermes-bot — ~/.hermes/hermes-bot/acp_registry/icon.svg (caduceus)
 // The other three (claude-code, codex, opencode) have no permissively-shippable
 // SVG inside this repo; they keep minimal monogram-style glyphs in brand colors.
 type GlyphDef = {
@@ -122,7 +122,7 @@ const GLYPHS: Record<HarnessKind, GlyphDef> = {
       </>
     ),
   },
-  // Hermes caduceus — exact copy of ~/.hermes/hermes-agent/acp_registry/icon.svg.
+  // Hermes caduceus — exact copy of ~/.hermes/hermes-bot/acp_registry/icon.svg.
   // Original uses `currentColor`, so we set `color` on the wrapper and the paths
   // inherit it. White-on-indigo for visibility on the indigo Hermes badge.
   "hermes-agent": {

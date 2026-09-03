@@ -84,7 +84,7 @@ func buildSlackHomeBlocks(b *Broker) []slack.Block {
 	base := b.WebURL()
 
 	header("WUPHF Office")
-	contextLine("One office, every agent — a live overview that refreshes each time you open this tab.")
+	contextLine("One office, every bot — a live overview that refreshes each time you open this tab.")
 
 	// Primary surfaces as native buttons; secondary surfaces as a link line.
 	// Self-hosted: the URL is loopback, reachable on the machine running the
@@ -100,7 +100,7 @@ func buildSlackHomeBlocks(b *Broker) []slack.Block {
 			button("wuphf_home_tasks", "📋 Task board", base+"/tasks"),
 			button("wuphf_home_wiki", "📚 Wiki", base+"/wiki"),
 			button("wuphf_home_inbox", "📥 Inbox", base+"/inbox"),
-			button("wuphf_home_agents", "🤖 Agents", base+"/agents"),
+			button("wuphf_home_agents", "🤖 Bots", base+"/agents"),
 		))
 		contextLine(fmt.Sprintf("More: <%s/notebooks|Notebooks> · <%s/reviews|Reviews> · <%s/routines|Routines> · <%s|Everything else>",
 			base, base, base, base))
@@ -180,7 +180,7 @@ func buildSlackHomeBlocks(b *Broker) []slack.Block {
 	// snippet from the body), never the raw index markdown (Slack cannot
 	// resolve its relative links).
 	header("Wiki")
-	contextLine("The team brain — agents read and write these articles as they work.")
+	contextLine("The team brain — bots read and write these articles as they work.")
 	var entries []slackWikiIndexEntry
 	var repo *Repo
 	if worker := b.WikiWorker(); worker != nil {

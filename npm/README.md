@@ -21,7 +21,7 @@ One command. One shared office. CEO, PM, engineers, designer, CMO, CRO — all v
 
 ## Get Started
 
-**Prerequisites:** one agent CLI — [Claude Code](https://docs.anthropic.com/en/docs/claude-code) by default, or [Codex CLI](https://github.com/openai/codex) when you pass `--provider codex`. [tmux](https://github.com/tmux/tmux/wiki/Installing) is only required for `--tui` mode.
+**Prerequisites:** one bot CLI — [Claude Code](https://docs.anthropic.com/en/docs/claude-code) by default, or [Codex CLI](https://github.com/openai/codex) when you pass `--provider codex`. [tmux](https://github.com/tmux/tmux/wiki/Installing) is only required for `--tui` mode.
 
 ```bash
 npx gawkbot
@@ -46,16 +46,16 @@ Supported platforms: macOS, Linux, and Windows 10+ on x64 or arm64. The native b
 | `--memory-backend <name>` | Pick the organizational memory backend (`markdown`, `gbrain`, `none`) |
 | `--tui` | Use the tmux TUI instead of the web UI |
 | `--no-open` | Don't auto-open the browser |
-| `--pack <name>` | Pick an agent pack (`starter`, `founding-team`, `coding-team`, `lead-gen-agency`, `revops`) |
+| `--pack <name>` | Pick a bot pack (`starter`, `founding-team`, `coding-team`, `lead-gen-agency`, `revops`) |
 | `--opus-ceo` | Upgrade CEO from Sonnet to Opus |
 | `--provider <name>` | LLM provider override (`claude-code`, `codex`, `opencode`, `hermes-agent`, `openclaw-http`, `ollama`) |
-| `--collab` | Start in collaborative mode — all agents see all messages (this is the default) |
-| `--unsafe` | Bypass agent permission checks (local dev only) |
+| `--collab` | Start in collaborative mode — all bots see all messages (this is the default) |
+| `--unsafe` | Bypass bot permission checks (local dev only) |
 | `--web-port <n>` | Change the web UI port (default 7891) |
 
 ## Memory: Notebooks and the Wiki
 
-Every agent gets its own **notebook**. The team shares a **wiki**. New installs get the wiki as a local git repo of markdown articles. Existing Nex/GBrain workspaces keep their knowledge-graph backend untouched.
+Every bot gets its own **notebook**. The team shares a **wiki**. New installs get the wiki as a local git repo of markdown articles. Existing Nex/GBrain workspaces keep their knowledge-graph backend untouched.
 
 **Backends for the wiki:**
 
@@ -89,13 +89,13 @@ gawkbot --1o1 cro     # 1:1 with a specific agent
 - The team visible and working
 - A composer to send messages and slash commands
 
-If it feels like a hidden agent loop, something is wrong. If it feels like The Office, you're exactly where you need to be.
+If it feels like a hidden bot loop, something is wrong. If it feels like The Office, you're exactly where you need to be.
 
 ## Bridges
 
 - **Telegram:** `/connect` → pick Telegram → paste bot token from [@BotFather](https://t.me/BotFather).
-- **OpenClaw:** `/connect openclaw` → paste your gateway URL and `gateway.auth.token` from `~/.openclaw/openclaw.json`. Each OpenClaw session becomes a first-class office member you can `@mention`. If OpenClaw Gateway's OpenAI-compatible HTTP endpoint is enabled, use `--provider openclaw-http` to run WUPHF-created agents through `http://127.0.0.1:18789/v1` with model `openclaw/default`.
-- **Hermes Agent:** set `llm_provider` or `--provider` to `hermes-agent` to run gawkbot agents through a local Hermes API server at `http://127.0.0.1:8642/v1`.
+- **OpenClaw:** `/connect openclaw` → paste your gateway URL and `gateway.auth.token` from `~/.openclaw/openclaw.json`. Each OpenClaw session becomes a first-class office member you can `@mention`. If OpenClaw Gateway's OpenAI-compatible HTTP endpoint is enabled, use `--provider openclaw-http` to run WUPHF-created bots through `http://127.0.0.1:18789/v1` with model `openclaw/default`.
+- **Hermes Bot:** set `llm_provider` or `--provider` to `hermes-agent` to run gawkbot bots through a local Hermes API server at `http://127.0.0.1:8642/v1`.
 
 ## External Actions
 
@@ -119,12 +119,12 @@ Two action providers ship by default — pick whichever fits your style.
 | Feature | How it works |
 |---|---|
 | Sessions | Fresh per turn (no accumulated context) |
-| Tools | Per-agent scoped (DM loads 4, full office loads 27) |
-| Agent wakes | Push-driven (zero idle burn) |
+| Tools | Per-bot scoped (DM loads 4, full office loads 27) |
+| Bot wakes | Push-driven (zero idle burn) |
 | Live visibility | Stdout streaming |
-| Mid-task steering | DM any agent, no restart |
-| Runtimes | Mix Claude Code, Codex, Hermes Agent, and OpenClaw in one channel |
-| Memory | Per-agent notebook + shared workspace wiki (knowledge graphs on GBrain or Nex) |
+| Mid-task steering | DM any bot, no restart |
+| Runtimes | Mix Claude Code, Codex, Hermes Bot, and OpenClaw in one channel |
+| Memory | Per-bot notebook + shared workspace wiki (knowledge graphs on GBrain or Nex) |
 | Price | Free to self-host (Sustainable Use License, your API keys) |
 
 ## Benchmark

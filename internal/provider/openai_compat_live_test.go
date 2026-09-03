@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // TestOpenAICompatStreamFn_LiveMLXServer drives the registered mlx-lm
@@ -34,7 +34,7 @@ func TestOpenAICompatStreamFn_LiveMLXServer(t *testing.T) {
 
 	stream := entry.StreamFn("live-smoke-agent")
 	ch := stream(
-		[]agent.Message{
+		[]bot.Message{
 			{Role: "system", Content: "You are terse. Reply in one short sentence."},
 			{Role: "user", Content: "Reply with exactly the word: pong."},
 		},
@@ -81,7 +81,7 @@ func TestOpenAICompatStreamFn_LiveMLXServerTools(t *testing.T) {
 		t.Fatal("mlx-lm not registered")
 	}
 
-	tool := agent.AgentTool{
+	tool := bot.BotTool{
 		Name:        "get_weather",
 		Description: "Get the current weather for a city.",
 		Schema: map[string]any{
@@ -97,11 +97,11 @@ func TestOpenAICompatStreamFn_LiveMLXServerTools(t *testing.T) {
 	}
 
 	ch := entry.StreamFn("live-tool-agent")(
-		[]agent.Message{
+		[]bot.Message{
 			{Role: "system", Content: "Use the available tool to answer weather questions. Do not answer from memory."},
 			{Role: "user", Content: "What is the weather in Lisbon right now?"},
 		},
-		[]agent.AgentTool{tool},
+		[]bot.BotTool{tool},
 	)
 
 	var sawToolUse bool
@@ -149,7 +149,7 @@ func TestOpenAICompatStreamFn_LiveOllama(t *testing.T) {
 		t.Fatal("ollama not registered")
 	}
 	ch := entry.StreamFn("live-ollama-agent")(
-		[]agent.Message{
+		[]bot.Message{
 			{Role: "system", Content: "Be terse."},
 			{Role: "user", Content: "Reply with exactly: pong."},
 		},
@@ -186,7 +186,7 @@ func TestOpenAICompatStreamFn_LiveOllama_CtxCancelAbortsHTTP(t *testing.T) {
 	fn := NewOpenAICompatStreamFnWithCtx(ctx, KindOllama)
 
 	ch := fn(
-		[]agent.Message{{Role: "user", Content: "Write a 200 word essay about clouds."}},
+		[]bot.Message{{Role: "user", Content: "Write a 200 word essay about clouds."}},
 		nil,
 	)
 	// Cancel after we know at least one frame is in-flight.
@@ -229,7 +229,7 @@ func TestOpenAICompatStreamFn_LiveExo_ConnectRefused(t *testing.T) {
 	t.Setenv("WUPHF_EXO_BASE_URL", "http://127.0.0.1:1/v1")
 
 	ch := entry.StreamFn("exo-down-agent")(
-		[]agent.Message{{Role: "user", Content: "ping"}},
+		[]bot.Message{{Role: "user", Content: "ping"}},
 		nil,
 	)
 	var (

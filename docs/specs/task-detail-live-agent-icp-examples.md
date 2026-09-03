@@ -1,9 +1,9 @@
-# Task Detail Live Agent ICP QA Tutorial
+# Task Detail Live Bot ICP QA Tutorial
 
 This tutorial turns the three ICP examples into live QA steps for task detail
 pages. The browser surface should keep task context, ownership, memory evidence,
-metadata, and live terminal output together so a reviewer can inspect what an
-agent did without jumping across apps.
+metadata, and live terminal output together so a reviewer can inspect what a
+bot did without jumping across apps.
 
 ## Before You Start
 
@@ -30,19 +30,19 @@ Open the WUPHF web UI. These checks use the Tasks app and task detail routes:
 
 ## ICP Example 1: Alex Reviews A Long-Running Task
 
-Scenario: Alex opens a task owned by an agent and needs to understand what is
+Scenario: Alex opens a task owned by a bot and needs to understand what is
 happening now.
 
 Live QA steps:
 
 1. Open `#/tasks`.
-2. Choose an in-progress task owned by an agent rather than the human user.
+2. Choose an in-progress task owned by a bot rather than the human user.
 3. Open the task card.
 4. Confirm the page route changes to `#/tasks/<task-id>`.
 5. Confirm the page shows status, ownership, description/details, memory
    workflow state, and metadata for the selected task.
-6. Confirm the live terminal appears only for agent-owned tasks.
-7. Trigger or wait for agent output and confirm the terminal updates without
+6. Confirm the live terminal appears only for bot-owned tasks.
+7. Trigger or wait for bot output and confirm the terminal updates without
    leaving the task page.
 
 Expected result: Alex can review task context, evidence, status, and live
@@ -50,21 +50,21 @@ terminal output in one place.
 
 ## ICP Example 2: Jordan Audits Tool-Heavy Work
 
-Scenario: Jordan needs to inspect an agent task where most progress happens
+Scenario: Jordan needs to inspect a bot task where most progress happens
 through MCP tools, not visible shell output.
 
 Live QA steps:
 
-1. Open `#/tasks/<task-id>` for an active agent-owned task.
-2. Have the agent invoke a visible tool such as a broadcast or wiki lookup.
+1. Open `#/tasks/<task-id>` for an active bot-owned task.
+2. Have the bot invoke a visible tool such as a broadcast or wiki lookup.
 3. Confirm the task terminal receives the tool-call line for that same task.
-4. Open the owning agent panel and confirm the broader agent terminal still
-   shows the same event in the all-agent stream.
-5. Open a different task for the same agent and confirm the first task's tool
+4. Open the owning bot panel and confirm the broader bot terminal still
+   shows the same event in the all-bot stream.
+5. Open a different task for the same bot and confirm the first task's tool
    event does not appear in the other task terminal.
 
 Expected result: Jordan sees tool-heavy work in the task terminal while the
-agent-level stream remains useful for broader agent debugging.
+bot-level stream remains useful for broader bot debugging.
 
 ## ICP Example 3: Marcus Reopens A Shared Task Link
 
@@ -97,6 +97,6 @@ The focused tests should cover:
 
 - Routing `#/tasks` to the Tasks app and `#/tasks/<task-id>` to task detail.
 - Rendering task detail page presentation without dialog chrome.
-- Showing a task-scoped terminal for agent-owned tasks.
+- Showing a task-scoped terminal for bot-owned tasks.
 - Preserving websocket resize behavior before the socket opens.
 - Keeping task detail state cleared when navigating away from Tasks.

@@ -17,15 +17,15 @@ import (
 )
 
 type TeamPolicyRecordArgs struct {
-	MySlug string   `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG env."`
+	MySlug string   `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG env."`
 	Rule   string   `json:"rule" jsonschema:"The single atomic operating rule, in the human's words. One rule per call — never bundle."`
-	Agents []string `json:"agents,omitempty" jsonschema:"Optional agent slugs this policy applies to. Omit for ALL agents (the default for human feedback); pass only when the human named specific agents."`
+	Bots   []string `json:"agents,omitempty" jsonschema:"Optional bot slugs this policy applies to. Omit for ALL bots (the default for human feedback); pass only when the human named specific bots."`
 }
 
 func registerPolicyTools(server *mcp.Server) {
 	mcp.AddTool(server, officeWriteTool(
 		"team_policy_record",
-		"Record one atomic office policy from explicit human feedback in chat (\"always …\", \"never …\", \"from now on …\"). Applies to ALL agents unless the human named specific agents (pass `agents`). Duplicate rule text reactivates the existing policy instead of minting another. Do NOT call this from your own judgment — only human feedback creates policies in chat; playbook compilation derives the rest automatically.",
+		"Record one atomic office policy from explicit human feedback in chat (\"always …\", \"never …\", \"from now on …\"). Applies to ALL bots unless the human named specific bots (pass `bots`). Duplicate rule text reactivates the existing policy instead of minting another. Do NOT call this from your own judgment — only human feedback creates policies in chat; playbook compilation derives the rest automatically.",
 	), handleTeamPolicyRecord)
 }
 
@@ -41,8 +41,8 @@ func handleTeamPolicyRecord(ctx context.Context, _ *mcp.CallToolRequest, args Te
 		"source": "human_directed",
 		"rule":   rule,
 	}
-	if len(args.Agents) > 0 {
-		body["agents"] = args.Agents
+	if len(args.Bots) > 0 {
+		body["agents"] = args.Bots
 	}
 	var result map[string]any
 	if err := brokerPostJSON(ctx, "/policies", body, &result); err != nil {

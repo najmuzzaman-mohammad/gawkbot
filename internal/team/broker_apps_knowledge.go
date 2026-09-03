@@ -92,14 +92,14 @@ type appKnowledgePage struct {
 	// their legacy pages (broker_apps_knowledge_legacy.go). URL is a broker
 	// route the FE fetches with auth and renders sandboxed.
 	Artifacts []appKnowledgeArtifact `json:"artifacts,omitempty"`
-	// Agent is the slug of the agent that knows this page. Set for agent-scoped
+	// Bot is the slug of the bot that knows this page. Set for bot-scoped
 	// knowledge (broker_agent_knowledge.go); empty for synthesized app pages.
-	Agent string `json:"agent,omitempty"`
+	Bot string `json:"agent,omitempty"`
 	// SourcePath is the repo-relative note this page was read from
-	// (agents/<slug>/notebook/<file>.md). It is what a promotion addresses.
+	// (bots/<slug>/notebook/<file>.md). It is what a promotion addresses.
 	SourcePath string `json:"sourcePath,omitempty"`
 	// Promotion reports this page's standing with the shared wiki: private to
-	// the agent, waiting on a human, or already promoted.
+	// the bot, waiting on a human, or already promoted.
 	Promotion *knowledgePromotionStatus `json:"promotion,omitempty"`
 }
 
@@ -714,7 +714,7 @@ func (b *Broker) gatherKnowledgeSources(id string) []knowledgeSource {
 
 // appBuildChatSnippet reads the app's build/edit conversation (its EditChannel)
 // into a bounded transcript, so the synthesis is grounded in what the user
-// actually asked for. Skips machine event rows; keeps human + agent prose.
+// actually asked for. Skips machine event rows; keeps human + bot prose.
 func (b *Broker) appBuildChatSnippet(editChannel string) string {
 	// Raw emptiness before normalising: the TrimSpace was already here but fed
 	// INTO the normaliser, which turns "" into "general", so the refusal was

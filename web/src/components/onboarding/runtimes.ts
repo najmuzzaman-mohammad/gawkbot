@@ -8,7 +8,7 @@
 
 // Each runtime has a display label, the binary name the broker's prereqs
 // check looks for, a canonical install page to link to when missing, and
-// — for the runtimes the broker can actually dispatch agents to — the
+// — for the runtimes the broker can actually dispatch bots to — the
 // provider id the broker expects on POST /config.
 export interface RuntimeSpec {
   label: string;

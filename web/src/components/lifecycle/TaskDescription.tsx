@@ -18,7 +18,7 @@ interface TaskDescriptionProps {
 }
 
 /**
- * TaskDescription renders the task's description body. When the agent has
+ * TaskDescription renders the task's description body. When the bot has
  * dropped a `visual-artifact:<id>` marker into the description (the same
  * way wiki articles and notebook entries reference rich HTML companions),
  * the marker is stripped from the markdown body and the underlying
@@ -27,7 +27,7 @@ interface TaskDescriptionProps {
  *
  * Mirrors the wiki + notebook surfaces' embed pattern via the shared
  * useInlineArtifacts hook so the Making-Software / technical-manual
- * aesthetic looks identical wherever the agent emitted HTML output.
+ * aesthetic looks identical wherever the bot emitted HTML output.
  * A 404 (or any fetch failure) for a referenced artifact degrades to
  * nothing visible — the stripped marker keeps the raw `visual-artifact:`
  * text out of the body either way.

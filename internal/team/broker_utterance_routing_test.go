@@ -1,7 +1,7 @@
 package team
 
 // broker_utterance_routing_test.go — unit coverage for the v3 fix family #2
-// mechanisms ("every human utterance reaches an agent; blocking asks are
+// mechanisms ("every human utterance reaches a bot; blocking asks are
 // loud"). The utterance-routing office_eval job exercises the same paths at
 // the HTTP layer with the exact FE payloads; these tests pin the broker
 // helpers in isolation:
@@ -15,7 +15,7 @@ package team
 //     and anchors the thread; a human thread reply on that anchor ANSWERS
 //     the interview instead of canceling it.
 //  4. The blocking-request chat gate is channel-scoped, and the interview
-//     suppression is scoped to the asking agent.
+//     suppression is scoped to the asking bot.
 
 import (
 	"encoding/json"
@@ -199,7 +199,7 @@ func TestInterviewAnnouncementCarriesCardPayload(t *testing.T) {
 		t.Errorf("payload blocking = false, want true")
 	}
 	if announcement.From != "system" {
-		t.Errorf("announcement From = %q, want system (must never wake agents)", announcement.From)
+		t.Errorf("announcement From = %q, want system (must never wake bots)", announcement.From)
 	}
 }
 
@@ -227,7 +227,7 @@ func TestInterviewAnnouncementAnchorsThreadAndReplyAnswers(t *testing.T) {
 		t.Fatalf("no loud chat announcement posted for the interview")
 	}
 	if announcement.From != "system" {
-		t.Fatalf("announcement From = %q, want system (must never wake agents)", announcement.From)
+		t.Fatalf("announcement From = %q, want system (must never wake bots)", announcement.From)
 	}
 	if !strings.Contains(announcement.Content, "sender name") {
 		t.Fatalf("announcement does not carry the question: %q", announcement.Content)
@@ -276,7 +276,7 @@ func TestBlockingRequestGateIsChannelScoped(t *testing.T) {
 	}
 }
 
-func TestAgentAwaitingInterviewAnswerScopesToAsker(t *testing.T) {
+func TestBotAwaitingInterviewAnswerScopesToAsker(t *testing.T) {
 	t.Parallel()
 	b := newUtteranceTestBroker(t)
 	req, err := b.CreateRequest(humanInterview{
@@ -286,11 +286,11 @@ func TestAgentAwaitingInterviewAnswerScopesToAsker(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create interview: %v", err)
 	}
-	if !b.AgentAwaitingInterviewAnswer("eng") {
-		t.Fatalf("asking agent must be parked while its interview is pending")
+	if !b.BotAwaitingInterviewAnswer("eng") {
+		t.Fatalf("asking bot must be parked while its interview is pending")
 	}
-	if b.AgentAwaitingInterviewAnswer("ceo") {
-		t.Fatalf("other agents must NOT be parked — the v3 office-wide wedge")
+	if b.BotAwaitingInterviewAnswer("ceo") {
+		t.Fatalf("other bots must NOT be parked — the v3 office-wide wedge")
 	}
 	b.mu.Lock()
 	for i := range b.requests {
@@ -299,7 +299,7 @@ func TestAgentAwaitingInterviewAnswerScopesToAsker(t *testing.T) {
 		}
 	}
 	b.mu.Unlock()
-	if b.AgentAwaitingInterviewAnswer("eng") {
+	if b.BotAwaitingInterviewAnswer("eng") {
 		t.Fatalf("asker must resume once the interview resolves")
 	}
 }

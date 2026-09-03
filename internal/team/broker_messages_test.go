@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
 // (TestPostAutomationMessage_DedupesByEventID removed: the relocated
@@ -117,7 +117,7 @@ func TestPostMessageAllowsRichArtifactReferenceMarkers(t *testing.T) {
 // TestPostMessage_DoesNotAutoWriteNotebook is the regression guard for the
 // TestNormalizeMessageScope_KnownAndDefaults pins the normalizer
 // contract: "", "all", "channel", and any unknown value collapse to ""
-// (channel-wide). "agent", "inbox", "outbox" pass through (lower-cased,
+// (channel-wide). "bot", "inbox", "outbox" pass through (lower-cased,
 // trimmed). The handler dispatches on this output, so drift here would
 // silently change visibility semantics.
 func TestNormalizeMessageScope_KnownAndDefaults(t *testing.T) {
@@ -335,7 +335,7 @@ func TestBrokerMessagesCanScopeToThread(t *testing.T) {
 	}
 }
 
-func TestBrokerMessagesCanScopeToAgentInbox(t *testing.T) {
+func TestBrokerMessagesCanScopeToBotInbox(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.members = append(b.members,
@@ -374,12 +374,12 @@ func TestBrokerMessagesCanScopeToAgentInbox(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+b.Token())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("agent-scoped messages request failed: %v", err)
+		t.Fatalf("bot-scoped messages request failed: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		raw, _ := io.ReadAll(resp.Body)
-		t.Fatalf("expected 200 listing agent-scoped messages, got %d: %s", resp.StatusCode, raw)
+		t.Fatalf("expected 200 listing bot-scoped messages, got %d: %s", resp.StatusCode, raw)
 	}
 
 	var result struct {
@@ -387,7 +387,7 @@ func TestBrokerMessagesCanScopeToAgentInbox(t *testing.T) {
 		TaggedCount int              `json:"tagged_count"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		t.Fatalf("decode agent-scoped messages: %v", err)
+		t.Fatalf("decode bot-scoped messages: %v", err)
 	}
 	if len(result.Messages) != 3 {
 		t.Fatalf("expected human, tagged, and own messages only, got %+v", result.Messages)
@@ -399,7 +399,7 @@ func TestBrokerMessagesCanScopeToAgentInbox(t *testing.T) {
 	for _, msg := range result.Messages {
 		seen[msg.ID] = true
 		if strings.Contains(msg.Content, "Unrelated PM update") {
-			t.Fatalf("did not expect unrelated message in agent scope: %+v", result.Messages)
+			t.Fatalf("did not expect unrelated message in bot scope: %+v", result.Messages)
 		}
 	}
 	if !seen[tagged.ID] || !seen[own.ID] {
@@ -487,7 +487,7 @@ func TestHandleMessagesSupportsInboxAndOutboxScopes(t *testing.T) {
 	}
 }
 
-func TestBrokerGetMessagesAgentScopeKeepsHumanAndCEOContext(t *testing.T) {
+func TestBrokerGetMessagesBotScopeKeepsHumanAndCEOContext(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.members = append(b.members,
@@ -783,10 +783,10 @@ func TestRecentHumanMessagesReturnsLastNHumanMessages(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.messages = []channelMessage{
-		{ID: "m1", From: "fe", Content: "agent reply 1", Timestamp: "2026-04-14T10:00:00Z"},
+		{ID: "m1", From: "fe", Content: "bot reply 1", Timestamp: "2026-04-14T10:00:00Z"},
 		{ID: "m2", From: "you", Content: "human says hi", Timestamp: "2026-04-14T10:01:00Z"},
 		{ID: "m3", From: "nex", Content: "nex automation", Timestamp: "2026-04-14T10:02:00Z"},
-		{ID: "m4", From: "be", Content: "agent reply 2", Timestamp: "2026-04-14T10:03:00Z"},
+		{ID: "m4", From: "be", Content: "bot reply 2", Timestamp: "2026-04-14T10:03:00Z"},
 		{ID: "m5", From: "human", Content: "human follow-up", Timestamp: "2026-04-14T10:04:00Z"},
 		{ID: "m6", From: "you", Content: "human again", Timestamp: "2026-04-14T10:05:00Z"},
 	}
@@ -847,7 +847,7 @@ func TestRecentHumanMessagesIncludesNexSender(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
 	b.messages = []channelMessage{
-		{ID: "m1", From: "fe", Content: "agent msg", Timestamp: "2026-04-14T10:00:00Z"},
+		{ID: "m1", From: "fe", Content: "bot msg", Timestamp: "2026-04-14T10:00:00Z"},
 		{ID: "m2", From: "nex", Content: "nex automation context", Timestamp: "2026-04-14T10:01:00Z"},
 		{ID: "m3", From: "you", Content: "human question", Timestamp: "2026-04-14T10:02:00Z"},
 	}
@@ -871,7 +871,7 @@ func TestRecentHumanMessagesIncludesNexSender(t *testing.T) {
 		t.Error("expected human message m3 to be included")
 	}
 	if ids["m1"] {
-		t.Error("expected agent message m1 to be excluded")
+		t.Error("expected bot message m1 to be excluded")
 	}
 }
 
@@ -938,9 +938,9 @@ func makeFocusModeLauncher(t *testing.T) (*Launcher, *Broker) {
 	b.mu.Unlock()
 
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "eng", Name: "Engineer"},
 				{Slug: "pm", Name: "Product Manager"},
@@ -1030,9 +1030,9 @@ func TestFocusModeRouting_CollaborativeUntaggedWakesLead(t *testing.T) {
 	b.mu.Unlock()
 
 	l := &Launcher{
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "eng", Name: "Engineer"},
 				{Slug: "pm", Name: "Product Manager"},
@@ -1071,9 +1071,9 @@ func TestFocusModeRouting_CollaborativeUntaggedWakesLead(t *testing.T) {
 // invariants:
 //
 //  1. Fresh broker reports humanHasPosted=false.
-//  2. Agent-only and system messages do NOT flip the bit.
+//  2. Bot-only and system messages do NOT flip the bit.
 //  3. Once a human posts in any channel the bit flips true and STAYS true,
-//     even after subsequent messages from agents.
+//     even after subsequent messages from bots.
 func TestHumanHasPosted_FlipsOnFirstHumanMessageAndStays(t *testing.T) {
 	b := newTestBroker(t)
 	b.mu.Lock()
@@ -1090,12 +1090,12 @@ func TestHumanHasPosted_FlipsOnFirstHumanMessageAndStays(t *testing.T) {
 		t.Fatal("fresh broker must report humanHasPosted=false")
 	}
 
-	// Agent-authored message must not flip the bit.
-	if _, err := b.PostMessage("tess", "team", "agent saying hello", nil, ""); err != nil {
+	// Bot-authored message must not flip the bit.
+	if _, err := b.PostMessage("tess", "team", "bot saying hello", nil, ""); err != nil {
 		t.Fatalf("PostMessage(tess): %v", err)
 	}
 	if b.HumanHasPosted() {
-		t.Fatal("humanHasPosted must stay false after agent-only traffic")
+		t.Fatal("humanHasPosted must stay false after bot-only traffic")
 	}
 
 	// System message must not flip the bit either.
@@ -1112,8 +1112,8 @@ func TestHumanHasPosted_FlipsOnFirstHumanMessageAndStays(t *testing.T) {
 		t.Fatal("humanHasPosted must flip true on first human-authored message")
 	}
 
-	// Subsequent agent traffic must not flip the bit back.
-	if _, err := b.PostMessage("tess", "team", "agent reply", nil, ""); err != nil {
+	// Subsequent bot traffic must not flip the bit back.
+	if _, err := b.PostMessage("tess", "team", "bot reply", nil, ""); err != nil {
 		t.Fatalf("PostMessage(tess after human): %v", err)
 	}
 	if !b.HumanHasPosted() {
@@ -1181,5 +1181,5 @@ func TestOfficeMembersListIncludesHumanHasPostedMeta(t *testing.T) {
 
 // ─── Push semantics ───────────────────────────────────────────────────────
 
-// TestHeadlessQueue_EmptyBeforePush verifies that the agent headless queue
+// TestHeadlessQueue_EmptyBeforePush verifies that the bot headless queue
 // starts empty — no timers or background goroutines pre-populate it.

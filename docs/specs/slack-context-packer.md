@@ -10,15 +10,15 @@
 
 ## One line
 
-The component that lets an agent from **anywhere** — a custom Slack bot, a dev's
+The component that lets a bot from **anywhere** — a custom Slack bot, a dev's
 Cursor/Claude session, a vendor bot — participate fully in a WUPHF office with
-**zero integration on its side**, by having our CEO agent retrieve the right
+**zero integration on its side**, by having our CEO bot retrieve the right
 slice of the team brain, **classify and redact it for export**, and deliver it
 inside the message the bot already reads.
 
 ## Why this exists
 
-WUPHF's compounding loop works because, when a WUPHF-hosted agent spawns,
+WUPHF's compounding loop works because, when a WUPHF-hosted bot spawns,
 `promptBuilder.Build(slug)` (`internal/team/prompt_builder.go:53`) injects the
 roster, the `== AVAILABLE SKILLS ==` catalog (`renderSkillsCatalogBlock`, `:483`),
 and the `== PRIOR TEAM LEARNINGS ==` block (`learningSnapshot` →
@@ -299,7 +299,7 @@ func Deliver(ctx context.Context, bridge SlackBridge, d PackedDelegation, key st
 `promptBuilder` (push) and the packer (pull) **share the retrieval primitives and
 ranking** — `LearningLog.Search`, `WikiIndex.Search`, the skill match, the roster
 read — so the two cannot drift on what the brain *contains*. They do **not** share
-a bundle contract. Hosted agents get durable system instructions, policies, the
+a bundle contract. Hosted bots get durable system instructions, policies, the
 full skills catalog, and broad learnings through trusted tools; foreign bots get
 an **egress-filtered, task-scoped, redacted subset**. The packer's `Classify`
 stage is the difference, and it has no push-side equivalent. Extract the query +
@@ -396,7 +396,7 @@ Run the security pass first, then rank what remains.
 - **Specialties** come from observed successful task history plus human
   confirmation for routing-sensitive changes, never from the display name.
 - **Trust** is set by a human, informed by `DataHandling`. Default stays
-  `BotUntrusted`. Hosted agents are `BotHosted` automatically.
+  `BotUntrusted`. Hosted bots are `BotHosted` automatically.
 
 ## Plan-mode interaction (#1033)
 
@@ -452,7 +452,7 @@ may receive context* before any brain content leaves.
    mention plus a thread block carrying a task-scoped learning and a
    **task-linked** wiki ref (not free wiki retrieval). Assert the thread block was
    classified against the least-trusted reader in the channel.
-3. **Hosted parity = same retrieval, filtered bundle.** A `BotHosted` agent on the
+3. **Hosted parity = same retrieval, filtered bundle.** A `BotHosted` bot on the
    same task gets context via the push path; the packer does not double-inject.
    Assert the **shared retrieval primitive** returns the same candidate set for
    both paths, and the packer's `Classify` yields a subset for any non-hosted bot.
@@ -470,7 +470,7 @@ may receive context* before any brain content leaves.
 
 The egress boundary is the highest-risk surface. Triangulation
 (`scripts/dispatch-triangulation.sh`, security/API/architecture lenses) **plus** a
-verification agent on `Classify` + `EgressPolicy` + redaction were run on
+verification bot on `Classify` + `EgressPolicy` + redaction were run on
 2026-06-09 — dispositions below. New wire shapes still get a cross-language sanity
 check if any cross a process boundary to the bridge.
 
@@ -504,12 +504,12 @@ None exist today.
 ## Review dispositions (triangulation + verification, 2026-06-09)
 
 Three orthogonal codex lenses (security/API/architecture) plus one adversarial
-verification agent, scoped to `Classify` + `EgressPolicy` + redaction. Confidence
-= number of independent agents that hit the same `file:line`. Several findings
+verification bot, scoped to `Classify` + `EgressPolicy` + redaction. Confidence
+= number of independent bots that hit the same `file:line`. Several findings
 were confirmed against real code (noted). All FIXED in the design above; three
 also create code prerequisites tracked in **Before implementation**.
 
-| # | Finding | Agents | Sev | Disposition |
+| # | Finding | Bots | Sev | Disposition |
 |---|---------|--------|-----|-------------|
 | H1 | `Ask`/`ReturnPact`/`Guards` are "never dropped" → bypass Classify (unredacted egress channel) | 4 | BLOCK | FIXED — Classify covers the whole envelope; a field that can't be sanitized fails closed |
 | H2 | "redaction failure denies item" unbacked — `RedactSecretsForDisplay` returns no error, entropy caps & leaves over-cap secrets in `.Content`; no post-render scan (code-verified `scanner_detector.go:130/191`, `message_redaction.go:9`) | 4 | BLOCK | FIXED — fail-closed wrapper (deny on `Poisoned`/cap/error) + final byte-scan at Deliver; **code prereq** |
@@ -520,7 +520,7 @@ also create code prerequisites tracked in **Before implementation**.
 | H7 | "task-linked wiki refs" has no backing link; only free `WikiIndex.Search` exists → implementer forced into the forbidden path | 2 | HIGH | FIXED — add task→article link or drop wiki from FirstParty; **code prereq** |
 | H8 | First-egress gate keyed loosely — reinstall/grid-move/spoof inherits stale approval | 2 | HIGH | FIXED — keyed to verified install + identity tuple + data-handling fingerprint + trust tier + profile version; re-gates on any change |
 | H9 | Taint caller-declared — CEO can launder foreign text into "clean" intent | 2 | HIGH | FIXED — taint derived structurally from `SourceRefs`; no copied spans |
-| H10 | `BotHosted` double-inject (packer + push path) | 1 | LOW | ALREADY-COVERED — acceptance #3 already asserts the packer does not double-inject hosted agents |
+| H10 | `BotHosted` double-inject (packer + push path) | 1 | LOW | ALREADY-COVERED — acceptance #3 already asserts the packer does not double-inject hosted bots |
 
 No direct disagreements required escalation: severity divergences (architecture
 BLOCK vs security HIGH on H3/H5) agreed *that* each was a problem; the higher
@@ -545,9 +545,9 @@ gate, snapshot binding, and the fail-closed `Deliver`. Brain / bridge / validato
 / audit-sink are interfaces; the team-side adapter and the real Slack bridge land
 with the bridge PR.
 
-### Implementation review dispositions (verification agent, 2026-06-09)
+### Implementation review dispositions (verification bot, 2026-06-09)
 
-An adversarial verification agent on the implemented classifier found 6 issues;
+An adversarial verification bot on the implemented classifier found 6 issues;
 all FIXED (see the `fix(packer)` commit).
 
 | # | Finding | Sev | Disposition |

@@ -34,7 +34,7 @@ export function HermesDetail({
         <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
           {hermes?.endpoint ?? "http://127.0.0.1:8642/v1"}
         </code>
-        . When Hermes is running, imported Hermes-controlled agents route their
+        . When Hermes is running, imported Hermes-controlled bots route their
         turns through this gateway.
       </p>
       {hermes && !hermes.binary_installed && (
@@ -50,7 +50,7 @@ export function HermesDetail({
               gap: 4,
             }}
           >
-            hermesagent.com <OpenNewWindow width={11} height={11} />
+            hermesbot.com <OpenNewWindow width={11} height={11} />
           </a>
           ) and start its API server. This card auto-detects when the endpoint
           becomes reachable.

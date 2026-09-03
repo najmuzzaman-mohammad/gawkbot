@@ -45,8 +45,8 @@ type WorkspaceUIState struct {
 	BrokerConnected bool
 	Direct          bool
 	Channel         string
-	AgentName       string
-	AgentSlug       string
+	BotName         string
+	BotSlug         string
 	PeerCount       int
 	RunningTasks    int
 	OpenRequests    int
@@ -186,7 +186,7 @@ func (s WorkspaceUIState) NeedsYouLines(contentWidth int) []RenderedLine {
 func (s WorkspaceUIState) HeaderMeta() string {
 	if s.Direct {
 		if !s.BrokerConnected {
-			return "  Direct session preview · only this agent can speak here"
+			return "  Direct session preview · only this bot can speak here"
 		}
 		parts := []string{"Direct conversation only"}
 		if s.RunningTasks > 0 {

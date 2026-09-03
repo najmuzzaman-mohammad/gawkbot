@@ -605,7 +605,7 @@ func (b *Broker) handleSchedulerSubpath(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// routines is the agent registration sub-resource (team_routine MCP
+	// routines is the bot registration sub-resource (team_routine MCP
 	// tool): persistent, deduped standing automations. Not a per-job path.
 	if rest == "routines" {
 		b.handleRegisterRoutine(w, r)
@@ -743,7 +743,7 @@ func (b *Broker) handleRunSchedulerJob(w http.ResponseWriter, r *http.Request, s
 	// job appear due on the next scheduler poll so it executes within one
 	// tick.
 	if strings.TrimSpace(job.TargetType) == "workflow" ||
-		(strings.TrimSpace(job.TargetType) == "agent" && isOperatorAgentTarget(job.TargetID)) {
+		(strings.TrimSpace(job.TargetType) == "agent" && isOperatorBotTarget(job.TargetID)) {
 		job.NextRun = now.Format(time.RFC3339)
 		job.DueAt = job.NextRun
 	}

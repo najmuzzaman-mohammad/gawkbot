@@ -41,15 +41,15 @@ func TestMintStarterRoutineForFirstBuild(t *testing.T) {
 	b.tasks = append(b.tasks, teamTask{
 		ID:      "VANCE-2",
 		Channel: "task-VANCE-2",
-		Title:   "Build app: Chase Agent",
-		Details: "Build a new internal tool named \"Chase Agent\".\n\nWhat it should do:\nChase our unpaid invoices. Every weekday morning, find invoices past their due date and draft reminders.",
+		Title:   "Build app: Chase Bot",
+		Details: "Build a new internal tool named \"Chase Bot\".\n\nWhat it should do:\nChase our unpaid invoices. Every weekday morning, find invoices past their due date and draft reminders.",
 		Owner:   appBuilderSlug,
 	})
 	b.mu.Unlock()
 
 	app := CustomApp{
 		ID:          "app_1234567890abcdef",
-		Name:        "Chase Agent",
+		Name:        "Chase Bot",
 		Version:     1,
 		CreatedBy:   "human",
 		EditChannel: "task-VANCE-2",
@@ -84,7 +84,7 @@ func TestMintStarterRoutineForFirstBuild(t *testing.T) {
 		t.Errorf("next run is not RFC3339: %v", err)
 	}
 
-	// The label strips the dedupe counter: "Chase Agent 2" -> "Weekday Chase
+	// The label strips the dedupe counter: "Chase Bot 2" -> "Weekday Chase
 	// run". NOTE the lock discipline: b.mu is HELD here (taken above with a
 	// deferred unlock), so the task append rides the held lock, the mint runs
 	// unlocked, and the read re-takes the lock to stay balanced with the
@@ -92,14 +92,14 @@ func TestMintStarterRoutineForFirstBuild(t *testing.T) {
 	b.tasks = append(b.tasks, teamTask{
 		ID:      "VANCE-9",
 		Channel: "task-VANCE-9",
-		Title:   "Build app: Chase Agent 2",
+		Title:   "Build app: Chase Bot 2",
 		Details: "What it should do:\nChase invoices. Every weekday morning, remind people.",
 		Owner:   appBuilderSlug,
 	})
 	b.mu.Unlock()
 	numbered := CustomApp{
 		ID:          "app_00000000000000aa",
-		Name:        "Chase Agent 2",
+		Name:        "Chase Bot 2",
 		Version:     1,
 		CreatedBy:   "human",
 		EditChannel: "task-VANCE-9",
@@ -123,10 +123,10 @@ func TestMintStarterRoutineForFirstBuild(t *testing.T) {
 	app2 := app
 	app2.Version = 2
 	b.mintStarterRoutineForFirstBuild(app2)
-	agentApp := app
-	agentApp.ID = "app_fedcba0987654321"
-	agentApp.CreatedBy = appBuilderSlug
-	b.mintStarterRoutineForFirstBuild(agentApp)
+	botApp := app
+	botApp.ID = "app_fedcba0987654321"
+	botApp.CreatedBy = appBuilderSlug
+	b.mintStarterRoutineForFirstBuild(botApp)
 	b.mu.Lock()
 	if len(b.scheduler) != before {
 		t.Errorf("expected no additional routines, got %d -> %d", before, len(b.scheduler))
@@ -134,14 +134,14 @@ func TestMintStarterRoutineForFirstBuild(t *testing.T) {
 }
 
 // 2026-08-16 VP-RevOps QA regression: a second build whose derived name
-// matches a PUBLISHED agent must get a fresh app id — the old identity
-// (name, "team") briefed the new build to republish over the live agent.
-func TestPrescaffoldNeverReusesAPublishedAgentsID(t *testing.T) {
+// matches a PUBLISHED bot must get a fresh app id — the old identity
+// (name, "team") briefed the new build to republish over the live bot.
+func TestPrescaffoldNeverReusesAPublishedBotsID(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	b := newTestBroker(t)
 
 	first := b.maybePrescaffoldAppForCreate("create", "team", TaskPostRequest{
-		Title:     "Build app: Pipeline Agent",
+		Title:     "Build app: Pipeline Bot",
 		Owner:     appBuilderSlug,
 		CreatedBy: "human",
 		Details:   "What it should do:\nMonday brief.",
@@ -154,7 +154,7 @@ func TestPrescaffoldNeverReusesAPublishedAgentsID(t *testing.T) {
 	// Publish the first app (register flips it ready).
 	if _, err := b.appStore().Save(CustomAppWriteRequest{
 		ID:    firstID,
-		Name:  "Pipeline Agent",
+		Name:  "Pipeline Bot",
 		HTML:  "<html><body>brief</body></html>",
 		Actor: appBuilderSlug,
 	}, time.Now()); err != nil {
@@ -162,7 +162,7 @@ func TestPrescaffoldNeverReusesAPublishedAgentsID(t *testing.T) {
 	}
 
 	second := b.maybePrescaffoldAppForCreate("create", "team", TaskPostRequest{
-		Title:     "Build app: Pipeline Agent",
+		Title:     "Build app: Pipeline Bot",
 		Owner:     appBuilderSlug,
 		CreatedBy: "human",
 		Details:   "What it should do:\nDiscount approvals.",
@@ -172,12 +172,12 @@ func TestPrescaffoldNeverReusesAPublishedAgentsID(t *testing.T) {
 		t.Fatalf("expected a scaffolded app id in the second brief, got %q", second.Details)
 	}
 	if secondID == firstID {
-		t.Fatalf("second build was handed the PUBLISHED agent's id %s — republish hijack", firstID)
+		t.Fatalf("second build was handed the PUBLISHED bot's id %s — republish hijack", firstID)
 	}
 
 	// A retry of an UNPUBLISHED build keeps continuing its own scaffold.
 	third := b.maybePrescaffoldAppForCreate("create", "team", TaskPostRequest{
-		Title:     "Build app: Pipeline Agent",
+		Title:     "Build app: Pipeline Bot",
 		Owner:     appBuilderSlug,
 		CreatedBy: "human",
 		Details:   "What it should do:\nAnother take.",

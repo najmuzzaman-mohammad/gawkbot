@@ -53,11 +53,11 @@ support hash history for servers that do not rewrite all paths to
 
 Make the URL own navigation state:
 
-- Route params own channel, DM agent, app ID, wiki article path, notebook agent,
+- Route params own channel, DM bot, app ID, wiki article path, notebook bot,
   notebook entry, and review route.
 - Search params own query-like state such as wiki lookup `q`.
 - Zustand keeps session UI state only: sidebar open/collapsed state, modal
-  state, unread counters, active thread, active agent panel, theme, connection
+  state, unread counters, active thread, active bot panel, theme, connection
   state, onboarding state, and transient composer state.
 
 Start with code-based route modules rather than immediately adding file-based
@@ -83,13 +83,13 @@ Initial hash routes should preserve current URLs:
 | `/wiki/lookup?q=...` | wiki lookup answer route |
 | `/wiki/$` | splat article path |
 | `/notebooks` | notebook catalog |
-| `/notebooks/$agentSlug` | agent notebook |
+| `/notebooks/$agentSlug` | bot notebook |
 | `/notebooks/$agentSlug/$entrySlug` | notebook entry |
 | `/reviews` | promotion review queue |
 
 Shell layout should be a route layout, not an `App.tsx` switch. Global hosts
 such as toast, confirm, provider switcher, Telegram connect, search, help, and
-thread/agent panels can remain mounted at the root or shell layout.
+thread/bot panels can remain mounted at the root or shell layout.
 
 ## Migration Sequence
 

@@ -35,19 +35,19 @@ var brokerTokenFilePath = brokeraddr.DefaultTokenFile
 const defaultRateLimitRequestsPerWindow = 600
 const defaultRateLimitWindow = time.Minute
 
-// Per-agent rate limit. Applies even to authenticated requests that identify
-// themselves via the X-WUPHF-Agent header. The threshold is high enough that
-// well-behaved agents will never trip it, but low enough that a prompt-injected
-// agent stuck in a tool-call loop gets throttled before it burns the budget.
-const defaultAgentRateLimitRequestsPerWindow = 1000
-const defaultAgentRateLimitWindow = time.Minute
+// Per-bot rate limit. Applies even to authenticated requests that identify
+// themselves via the X-WUPHF-Bot header. The threshold is high enough that
+// well-behaved bots will never trip it, but low enough that a prompt-injected
+// bot stuck in a tool-call loop gets throttled before it burns the budget.
+const defaultBotRateLimitRequestsPerWindow = 1000
+const defaultBotRateLimitWindow = time.Minute
 
-// agentRateLimitHeader is the HTTP header the MCP server sets on every outbound
-// broker call so the broker can attribute cost back to the agent. Must match
+// botRateLimitHeader is the HTTP header the MCP server sets on every outbound
+// broker call so the broker can attribute cost back to the bot. Must match
 // the value set by internal/teammcp/server.go authHeaders().
-const agentRateLimitHeader = "X-WUPHF-Agent"
+const botRateLimitHeader = "X-WUPHF-Agent"
 
-// agentStreamBuffer holds recent stdout/stderr lines from a headless agent
+// botStreamBuffer holds recent stdout/stderr lines from a headless bot
 // process and fans them out to SSE subscribers in real time.
 
 // Entity types moved to broker_types.go.
@@ -58,7 +58,7 @@ type ipRateLimitBucket struct {
 }
 
 // Broker is a lightweight HTTP message broker for the team channel.
-// All agent MCP instances connect to this shared broker.
+// All bot MCP instances connect to this shared broker.
 type Broker struct {
 	channelStore      *channel.Store
 	messages          []channelMessage
@@ -71,7 +71,7 @@ type Broker struct {
 	channels          []teamChannel
 	channelIndex      map[string]int // slug → index into channels; guarded by mu
 	sessionMode       string
-	oneOnOneAgent     string
+	oneOnOneBot       string
 	focusMode         bool
 	// disablePlanFirstDefault turns OFF the structured-planning default
 	// (issueShouldPlanFirstLocked) so new top-level issues land Running instead
@@ -88,7 +88,7 @@ type Broker struct {
 	// writes to it, and the snapshot accessor copies under the lock.
 	lifecycleIndex map[LifecycleState][]string
 	// intakeSpecs maps task ID to the validated Spec persisted by the
-	// synthetic intake agent (broker_intake.go, Lane B). The map is the
+	// synthetic intake bot (broker_intake.go, Lane B). The map is the
 	// in-memory chokepoint for spec writes. Lane C consumes the Spec from
 	// here when promoting it into the Decision Packet on intake → ready.
 	// Guarded by b.mu.
@@ -115,7 +115,7 @@ type Broker struct {
 	// actions; refreshed by probe + connect/disconnect events. Guarded by b.mu.
 	connectionRegistry map[string]connectionRegistryEntry
 	// actionGrants are persisted, human-issued standing approvals for a specific
-	// (agent, platform, action_id). The resolver reads them to skip the approval
+	// (bot, platform, action_id). The resolver reads them to skip the approval
 	// modal for pre-authorized actions. Human-minted only. Guarded by b.mu.
 	actionGrants []actionGrant
 	// composioSignin is the in-memory "Sign in with Composio" CLI flow state
@@ -138,9 +138,9 @@ type Broker struct {
 	skills              []teamSkill
 	skillDescEmbeddings map[string][]float32         // slug → description embedding vector; guarded by mu
 	sharedMemory        map[string]map[string]string // namespace → key → value
-	lastTaggedAt        map[string]time.Time         // when each agent was last @mentioned
-	agentDMWakes        map[string][]time.Time       // agent-pair DM slug → recent partner wakes (loop cap); guarded by mu
-	lastPaneSnapshot    map[string]string            // last captured pane content per agent (for change detection)
+	lastTaggedAt        map[string]time.Time         // when each bot was last @mentioned
+	botDMWakes          map[string][]time.Time       // bot-pair DM slug → recent partner wakes (loop cap); guarded by mu
+	lastPaneSnapshot    map[string]string            // last captured pane content per bot (for change detection)
 	seenTelegramGroups  map[int64]string             // chat_id -> title, populated by transport
 	counter             int
 	// idPrefix is the Linear-style prefix used for new Issue IDs (e.g.
@@ -156,14 +156,14 @@ type Broker struct {
 	usage             teamUsageState
 	externalDelivered map[string]struct{}            // message IDs already queued for external delivery
 	slackTaskCards    map[string]slackTaskCardRecord // task ID → posted Slack lifecycle card (persisted)
-	slackSpawns       map[string]slackSpawnRecord    // slug → pending agent spawn awaiting /slack/agents/spawn/complete (persisted)
+	slackSpawns       map[string]slackSpawnRecord    // slug → pending bot spawn awaiting /slack/bots/spawn/complete (persisted)
 	// slackSpawnAuthTest is the auth.test seam for the spawn-complete flow;
 	// nil means the real Slack Web API. Tests inject a fake.
 	slackSpawnAuthTest        slackSpawnAuthTestFunc
 	messageSubscribers        map[int]chan channelMessage
 	actionSubscribers         map[int]chan officeActionLog
-	activity                  map[string]agentActivitySnapshot
-	activitySubscribers       map[int]chan agentActivitySnapshot
+	activity                  map[string]botActivitySnapshot
+	activitySubscribers       map[int]chan botActivitySnapshot
 	officeSubscribers         map[int]chan officeChangeEvent
 	wikiSubscribers           map[int]chan wikiWriteEvent
 	entitySubscribers         map[int]chan EntityBriefSynthesizedEvent
@@ -222,7 +222,7 @@ type Broker struct {
 	sourceCaptureDispatcher atomic.Pointer[SourceCaptureDispatcher]
 	scanTracker             *scanStatusTracker
 	nextSubscriberID        int
-	agentStreams            map[string]*agentStreamBuffer
+	botStreams              map[string]*botStreamBuffer
 	// appBuildStallSwept dedupes the stalled-build acceptance sweep: taskID ->
 	// the StalledSince it was last acted on, so a still-stuck App Builder build
 	// is nudged at most once per stall episode (broker_app_eval.go).
@@ -265,7 +265,7 @@ type Broker struct {
 	webTunnelStop    func() error
 	brokerRestartMu  sync.Mutex
 	runtimeProvider  string          // "codex" or "claude" — set by launcher
-	packSlug         string          // active agent pack slug ("founding-team", "revops", ...) — set by launcher
+	packSlug         string          // active bot pack slug ("founding-team", "revops", ...) — set by launcher
 	blankSlateLaunch bool            // start without a saved blueprint and synthesize the first operation
 	openclawBridge   *OpenclawBridge // nil until the bridge attaches itself; used by handleOfficeMembers for live add/remove
 	// humanAdmitHook fires once per successful invite acceptance so the
@@ -281,24 +281,24 @@ type Broker struct {
 	// (so admit + revoke + invite-create all flow through the same surface)
 	// instead of the legacy HTTP path. Atomic so the controller's read does
 	// not contend with adapter registration on a different goroutine.
-	shareTransport      atomic.Pointer[ShareTransport]
-	generateMemberFn    func(prompt string) (generatedMemberTemplate, error)
-	generateChannelFn   func(context.Context, string) (generatedChannelTemplate, error)
-	generateAgentFileFn func(ctx context.Context, relPath, hint string) (string, error)
-	policies            []officePolicy // active office operating rules
-	rateLimitBuckets    map[string]ipRateLimitBucket
-	rateLimitWindow     time.Duration
-	rateLimitRequests   int
-	lastRateLimitPrune  time.Time
+	shareTransport     atomic.Pointer[ShareTransport]
+	generateMemberFn   func(prompt string) (generatedMemberTemplate, error)
+	generateChannelFn  func(context.Context, string) (generatedChannelTemplate, error)
+	generateBotFileFn  func(ctx context.Context, relPath, hint string) (string, error)
+	policies           []officePolicy // active office operating rules
+	rateLimitBuckets   map[string]ipRateLimitBucket
+	rateLimitWindow    time.Duration
+	rateLimitRequests  int
+	lastRateLimitPrune time.Time
 
-	// Agent-scoped buckets — applied to authenticated agent traffic even though
+	// Bot-scoped buckets — applied to authenticated bot traffic even though
 	// the IP-scoped bucket above exempts callers with a valid Bearer token. This
-	// is the containment for a prompt-injected agent that loops on MCP tools.
-	agentRateLimitBuckets   map[string]ipRateLimitBucket
-	agentRateLimitWindow    time.Duration
-	agentRateLimitRequests  int
-	lastAgentRateLimitPrune time.Time
-	agentLogRoot            string // override for tests; empty means agent.DefaultTaskLogRoot()
+	// is the containment for a prompt-injected bot that loops on MCP tools.
+	botRateLimitBuckets   map[string]ipRateLimitBucket
+	botRateLimitWindow    time.Duration
+	botRateLimitRequests  int
+	lastBotRateLimitPrune time.Time
+	botLogRoot            string // override for tests; empty means bot.DefaultTaskLogRoot()
 
 	// App budget buckets — the broker token exempts the web host from the IP
 	// bucket, so a hostile or buggy App could otherwise loop POST /apps/ai or
@@ -385,7 +385,7 @@ type Broker struct {
 
 	// humanHasPosted flips true the first time any human-authored message
 	// lands in the broker (across any channel). Drives the office sidebar's
-	// first-run nudge: the rail shows "→ tag @<agent> in #general" until
+	// first-run nudge: the rail shows "→ tag @<bot> in #general" until
 	// the human sends their first message in any channel, then the nudge
 	// dismisses for good. Surface point: /office-members?meta.humanHasPosted.
 	//
@@ -470,13 +470,13 @@ func NewBrokerAt(statePath string) *Broker {
 		token:               generateToken(),
 		messageSubscribers:  make(map[int]chan channelMessage),
 		actionSubscribers:   make(map[int]chan officeActionLog),
-		activity:            make(map[string]agentActivitySnapshot),
-		activitySubscribers: make(map[int]chan agentActivitySnapshot),
+		activity:            make(map[string]botActivitySnapshot),
+		activitySubscribers: make(map[int]chan botActivitySnapshot),
 		officeSubscribers:   make(map[int]chan officeChangeEvent),
 		wikiSubscribers:     make(map[int]chan wikiWriteEvent),
 		entitySubscribers:   make(map[int]chan EntityBriefSynthesizedEvent),
 		factSubscribers:     make(map[int]chan EntityFactRecordedEvent),
-		agentStreams:        make(map[string]*agentStreamBuffer),
+		botStreams:          make(map[string]*botStreamBuffer),
 		userInboxCursors:    make(map[string]InboxCursor),
 		memberPresence:      make(map[string]memberPresenceRecord),
 		presenceKeyToSlug:   make(map[string]string),
@@ -484,9 +484,9 @@ func NewBrokerAt(statePath string) *Broker {
 		rateLimitWindow:     defaultRateLimitWindow,
 		rateLimitRequests:   defaultRateLimitRequestsPerWindow,
 
-		agentRateLimitBuckets:  make(map[string]ipRateLimitBucket),
-		agentRateLimitWindow:   defaultAgentRateLimitWindow,
-		agentRateLimitRequests: defaultAgentRateLimitRequestsPerWindow,
+		botRateLimitBuckets:  make(map[string]ipRateLimitBucket),
+		botRateLimitWindow:   defaultBotRateLimitWindow,
+		botRateLimitRequests: defaultBotRateLimitRequestsPerWindow,
 
 		appAIRateLimitBuckets:        make(map[string]ipRateLimitBucket),
 		appAIDailyBuckets:            make(map[string]ipRateLimitBucket),
@@ -515,7 +515,7 @@ func NewBrokerAt(statePath string) *Broker {
 	b.initGovernor()
 	b.stopCh = make(chan struct{})
 	if activityWatchdogEnabled {
-		// Watchdog: reap agents stuck in "active"/"thinking" when the spawn
+		// Watchdog: reap bots stuck in "active"/"thinking" when the spawn
 		// crashed before reaching the idle transition. Stopped via b.stopCh.
 		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
@@ -527,7 +527,7 @@ func NewBrokerAt(statePath string) *Broker {
 	return b
 }
 
-// Token returns the shared secret that agents must include in requests.
+// Token returns the shared secret that bots must include in requests.
 func (b *Broker) Token() string {
 	return b.token
 }
@@ -618,10 +618,10 @@ func (b *Broker) Start() error {
 	// Same ctx/stopCh lifecycle as runActivityWatchdog; disabled when the
 	// interval env resolves to 0.
 	b.startChatDigestLoop(ctx)
-	// The operator agent service (routine fires, tool authoring) is the
+	// The operator bot service (routine fires, tool authoring) is the
 	// broker's child now — spawn/supervise it unless externally managed.
 	// See agent_service_supervisor.go and the 2026-08-14 QA findings.
-	b.startAgentServiceSupervisor(ctx)
+	b.startBotServiceSupervisor(ctx)
 	if err := b.StartOnPort(brokeraddr.ResolvePort()); err != nil {
 		cancel()
 		if b.lifecycleCancel != nil {
@@ -648,7 +648,7 @@ func (b *Broker) StartOnPort(port int) error {
 	mux := http.NewServeMux()
 	b.registerPlatformRoutes(mux)
 	b.registerTaskRoutes(mux)
-	// Lane E (multi-agent control loop): Decision Inbox + per-task
+	// Lane E (multi-bot control loop): Decision Inbox + per-task
 	// Decision Packet view. /tasks/inbox is registered as an exact
 	// path so it wins over the /tasks/ prefix. /tasks/ fires for
 	// /tasks/{id} only because the existing /tasks/ack and
@@ -660,7 +660,7 @@ func (b *Broker) StartOnPort(port int) error {
 	// the existing frontend keeps working through the transition.
 	mux.HandleFunc("/inbox/items", b.requireAuth(b.handleInboxItems))
 	mux.HandleFunc("/inbox/cursor", b.requireAuth(b.handleInboxCursor))
-	// Phase 3 agent-thread inbox: per-agent thread grouping +
+	// Phase 3 bot-thread inbox: per-bot thread grouping +
 	// chat-style detail (messages interleaved with action cards).
 	// /inbox/threads composes on top of /inbox/items.
 	mux.HandleFunc("/inbox/threads", b.requireAuth(b.handleInboxThreads))
@@ -694,12 +694,12 @@ func (b *Broker) StartOnPort(port int) error {
 	mux.HandleFunc("/memory", b.requireAuth(b.handleMemory))
 	mux.HandleFunc("/wiki/write", b.requireAuth(b.handleWikiWrite))
 	mux.HandleFunc("/wiki/write-human", b.requireAuth(b.handleWikiWriteHuman))
-	// Per-agent instruction files (SOUL/IDENTITY/OPERATIONS/TOOLS + office
-	// USER.md). Separate from /wiki/* so they use the strict agent-file path
+	// Per-bot instruction files (SOUL/IDENTITY/OPERATIONS/TOOLS + office
+	// USER.md). Separate from /wiki/* so they use the strict bot-file path
 	// allowlist and skip the team/ article index. See broker_agent_files_http.go.
-	mux.HandleFunc("/agent-files/read", b.requireAuth(b.handleAgentFileRead))
-	mux.HandleFunc("/agent-files/write", b.requireAuth(b.handleAgentFileWrite))
-	mux.HandleFunc("/agent-files/generate", b.requireAuth(b.handleAgentFileGenerate))
+	mux.HandleFunc("/agent-files/read", b.requireAuth(b.handleBotFileRead))
+	mux.HandleFunc("/agent-files/write", b.requireAuth(b.handleBotFileWrite))
+	mux.HandleFunc("/agent-files/generate", b.requireAuth(b.handleBotFileGenerate))
 	mux.HandleFunc("/humans", b.requireAuth(b.handleHumans))
 	mux.HandleFunc("/humans/me", b.handleHumanMe)
 	mux.HandleFunc("/humans/invites", b.requireAuth(b.handleHumanInvites))
@@ -710,7 +710,7 @@ func (b *Broker) StartOnPort(port int) error {
 	mux.HandleFunc("/wiki/lookup", b.requireAuth(b.handleWikiLookup))
 	// OpenAI-compatible chat shim. Exists so gbrain can reach a chat model for
 	// query expansion on a subscription-only host, where the user's
-	// credentials live inside the agent CLI and there is no API key to give
+	// credentials live inside the bot CLI and there is no API key to give
 	// gbrain. See broker_openai_compat.go.
 	mux.HandleFunc("/v1/chat/completions", b.requireAuth(b.handleOpenAIChatCompletions))
 	mux.HandleFunc("/wiki/list", b.requireAuth(b.handleWikiList))
@@ -747,7 +747,7 @@ func (b *Broker) StartOnPort(port int) error {
 	mux.HandleFunc("/wiki/restore", b.requireAuth(b.handleWikiRestore))
 	mux.HandleFunc("/visual-artifacts", b.requireAuth(b.handleVisualArtifacts))
 	mux.HandleFunc("/visual-artifacts/", b.requireAuth(b.handleVisualArtifactSubpath))
-	// Apps: agent-generated internal tools. Reached only via the /api proxy, so
+	// Apps: bot-generated internal tools. Reached only via the /api proxy, so
 	// these never shadow the SPA's client-side /apps/<id> route.
 	mux.HandleFunc("/apps", b.requireAuth(b.handleApps))
 	// Bridge v2: GENERIC integration + LLM surface for sandboxed Apps. Registered
@@ -808,9 +808,9 @@ func (b *Broker) StartOnPort(port int) error {
 	mux.HandleFunc("/telegram/discover", b.requireAuth(b.handleTelegramDiscover))
 	mux.HandleFunc("/telegram/connect", b.requireAuth(b.handleTelegramConnect))
 	mux.HandleFunc("/slack/connect", b.requireAuth(b.handleSlackConnect))
-	mux.HandleFunc("/slack/agents", b.requireAuth(b.handleSlackAgents))
-	mux.HandleFunc("/slack/agents/spawn", b.requireAuth(b.handleSlackAgentsSpawn))
-	mux.HandleFunc("/slack/agents/spawn/complete", b.requireAuth(b.handleSlackAgentsSpawnComplete))
+	mux.HandleFunc("/slack/agents", b.requireAuth(b.handleSlackBots))
+	mux.HandleFunc("/slack/agents/spawn", b.requireAuth(b.handleSlackBotsSpawn))
+	mux.HandleFunc("/slack/agents/spawn/complete", b.requireAuth(b.handleSlackBotsSpawnComplete))
 	mux.HandleFunc("/bridges", b.requireAuth(b.handleBridge))
 	mux.HandleFunc("/company", b.requireAuth(b.handleCompany))
 	mux.HandleFunc("/config", b.requireAuth(b.handleConfig))
@@ -820,8 +820,8 @@ func (b *Broker) StartOnPort(port int) error {
 	mux.HandleFunc("/image-providers", b.requireAuth(b.handleImageProviders))
 	mux.HandleFunc("/v1/logs", b.requireAuth(b.handleOTLPLogs))
 	mux.HandleFunc("/events", b.handleEvents)
-	mux.HandleFunc("/agent-stream/", b.requireAuth(b.handleAgentStream))
-	mux.HandleFunc("/agent-tool-event", b.requireAuth(b.handleAgentToolEvent))
+	mux.HandleFunc("/agent-stream/", b.requireAuth(b.handleBotStream))
+	mux.HandleFunc("/agent-tool-event", b.requireAuth(b.handleBotToolEvent))
 	// Multi-workspace routes (broker_workspaces.go). Every route below is
 	// wrapped through b.withAuth so the design's "every protected route
 	// requires bearer" assertion holds. /admin/pause additionally requires
@@ -873,7 +873,7 @@ func (b *Broker) StartOnPort(port int) error {
 		Addr:        addr,
 		Handler:     b.corsMiddleware(b.rateLimitMiddleware(mux)),
 		ReadTimeout: 5 * time.Second,
-		// No WriteTimeout — SSE streams (agent-stream, events) are open-ended.
+		// No WriteTimeout — SSE streams (bot-stream, events) are open-ended.
 	}
 	b.server = srv
 
@@ -1013,7 +1013,7 @@ func (b *Broker) Stop() {
 // to the attacker's origin. Validate both RemoteAddr AND Host here.
 
 // SSE handlers and the tool-event audit channel (handleEvents,
-// handleAgentStream, handleAgentToolEvent) moved to broker_sse.go.
+// handleBotStream, handleBotToolEvent) moved to broker_sse.go.
 
 // ServeWebUI starts a static file server for the web UI on the given port.
 // Returns an error if the port cannot be bound (e.g. already in use).
@@ -1021,7 +1021,7 @@ func (b *Broker) Stop() {
 // moved to broker_web_proxy.go.
 
 // emitTaskTransitionAutoNotebook used to fan task-status transitions
-// into per-agent notebook shelves. That auto-write path is gone:
+// into per-bot notebook shelves. That auto-write path is gone:
 // notebooks must contain only properly drafted working notes and
 // learnings (authored via notebook_write), not a stream of every
 // status delta. The function is kept as an inert seam so the many
@@ -1046,10 +1046,10 @@ type pendingTaskTransition struct {
 func (b *Broker) flushPendingAutoNotebookTransitionsLocked([]pendingTaskTransition, string) {
 }
 
-// IsAgentMemberSlug returns true when `slug` matches a registered office
+// IsBotMemberSlug returns true when `slug` matches a registered office
 // member and is not a human/system slug. Acquires b.mu — DO NOT call from a
-// path that already holds it; use isAgentMemberSlugLocked instead.
-func (b *Broker) IsAgentMemberSlug(slug string) bool {
+// path that already holds it; use isBotMemberSlugLocked instead.
+func (b *Broker) IsBotMemberSlug(slug string) bool {
 	if b == nil {
 		return false
 	}
@@ -1066,10 +1066,10 @@ func (b *Broker) IsAgentMemberSlug(slug string) bool {
 	return b.findMemberLocked(slug) != nil
 }
 
-// isAgentMemberSlugLocked is the hook-site variant: it assumes b.mu is held.
+// isBotMemberSlugLocked is the hook-site variant: it assumes b.mu is held.
 // Used by the auto-notebook writer hooks to filter senders without re-entering
 // the broker's mutex (which would deadlock).
-func (b *Broker) isAgentMemberSlugLocked(slug string) bool {
+func (b *Broker) isBotMemberSlugLocked(slug string) bool {
 	if b == nil {
 		return false
 	}
@@ -1086,7 +1086,7 @@ func (b *Broker) isAgentMemberSlugLocked(slug string) bool {
 
 // senderMayAutoPromoteLocked reports whether a `from` value is allowed to have
 // its @slug body text auto-promoted into the tagged array. Allowlist shape:
-// humans (empty / "you" / "human") and any registered agent slug are allowed;
+// humans (empty / "you" / "human") and any registered bot slug are allowed;
 // synthetic senders ("system", "nex", bridges, automation kinds) are not. A
 // denylist would silently let every future synthetic identity leak through.
 // Sender is normalized first so case drift ("PM", "Human") matches the
@@ -1144,10 +1144,10 @@ func (b *Broker) WebURL() string {
 	return b.webURL
 }
 
-// EnsureBridgedMember registers a bridged external agent as an office member
+// EnsureBridgedMember registers a bridged external bot as an office member
 // so it appears in the sidebar and can be @mentioned. Idempotent — calling with
 // an existing slug is a no-op. CreatedBy tags the source (e.g. "openclaw") so
-// the UI can distinguish bridged agents from built-ins or user-generated ones.
+// the UI can distinguish bridged bots from built-ins or user-generated ones.
 func (b *Broker) EnsureBridgedMember(slug, name, createdBy string) error {
 	// Raw emptiness first: normalizeChannelSlug turns a blank slug into
 	// "general", so this "slug required" error was unreachable and a bridge
@@ -1164,7 +1164,7 @@ func (b *Broker) EnsureBridgedMember(slug, name, createdBy string) error {
 	ensureNotebookDirsAfterUnlock := false
 	defer func() {
 		if ensureNotebookDirsAfterUnlock {
-			b.backfillAgentFilesForRoster()
+			b.backfillBotFilesForRoster()
 		}
 	}()
 	b.mu.Lock()
@@ -1175,7 +1175,7 @@ func (b *Broker) EnsureBridgedMember(slug, name, createdBy string) error {
 	member := officeMember{
 		Slug:      slug,
 		Name:      strings.TrimSpace(name),
-		Role:      "Bridged agent",
+		Role:      "Bridged bot",
 		CreatedBy: strings.TrimSpace(createdBy),
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 	}
@@ -1184,7 +1184,7 @@ func (b *Broker) EnsureBridgedMember(slug, name, createdBy string) error {
 	}
 	applyOfficeMemberDefaults(&member)
 	b.members = append(b.members, member)
-	// Make sure the bridged agent shows up in #general so @mentions work.
+	// Make sure the bridged bot shows up in #general so @mentions work.
 	for i := range b.channels {
 		if b.channels[i].Slug == "general" {
 			if !containsString(b.channels[i].Members, slug) {
@@ -1202,19 +1202,19 @@ func (b *Broker) EnsureBridgedMember(slug, name, createdBy string) error {
 }
 
 // EnsureDirectChannel opens (or returns) the 1:1 DM channel between the
-// default human member and agentSlug. Returns the canonical channel slug
+// default human member and botSlug. Returns the canonical channel slug
 // (pair-sorted via channel.DirectSlug). Safe to call repeatedly; the DM row
 // is upserted in both the channel store and the in-memory broker table so
 // it shows up in the sidebar and findChannelLocked resolves it.
-func (b *Broker) EnsureDirectChannel(agentSlug string) (string, error) {
-	agentSlug = normalizeActorSlug(agentSlug)
-	if agentSlug == "" {
-		return "", fmt.Errorf("agent slug required")
+func (b *Broker) EnsureDirectChannel(botSlug string) (string, error) {
+	botSlug = normalizeActorSlug(botSlug)
+	if botSlug == "" {
+		return "", fmt.Errorf("bot slug required")
 	}
 	if b.channelStore == nil {
 		return "", fmt.Errorf("channel store not initialized")
 	}
-	ch, err := b.channelStore.GetOrCreateDirect("human", agentSlug)
+	ch, err := b.channelStore.GetOrCreateDirect("human", botSlug)
 	if err != nil {
 		return "", fmt.Errorf("channel store GetOrCreateDirect: %w", err)
 	}
@@ -1226,8 +1226,8 @@ func (b *Broker) EnsureDirectChannel(agentSlug string) (string, error) {
 			Slug:        ch.Slug,
 			Name:        ch.Slug,
 			Type:        "dm",
-			Description: "Direct messages with " + agentSlug,
-			Members:     []string{"human", agentSlug},
+			Description: "Direct messages with " + botSlug,
+			Members:     []string{"human", botSlug},
 			CreatedBy:   "wuphf",
 			CreatedAt:   now,
 			UpdatedAt:   now,
@@ -1248,7 +1248,7 @@ func (b *Broker) PostInboundSurfaceMessage(from, channel, content, provider stri
 // surface reply arrives inside a thread (threadRootKey is the surface's thread
 // root id — Slack's thread_ts), the broker maps it to the task whose thread
 // root that is and folds the reply into the task's thread (ReplyTo +
-// SourceTaskID). This is what keeps a foreign agent's in-thread reply scoped
+// SourceTaskID). This is what keeps a foreign bot's in-thread reply scoped
 // to the task instead of leaking into the channel's shared context.
 func (b *Broker) PostInboundSurfaceMessageInThread(from, channel, content, provider, threadRootKey string) (channelMessage, error) {
 	return b.postInboundSurfaceMessage(from, channel, content, provider, threadRootKey)
@@ -1270,13 +1270,13 @@ func (b *Broker) Purge() {
 func (b *Broker) Reset() {
 	b.mu.Lock()
 	mode := b.sessionMode
-	agent := b.oneOnOneAgent
+	bot := b.oneOnOneBot
 	b.messages = nil
 	b.incidents = nil
 	b.members = defaultOfficeMembers()
 	b.channels = defaultTeamChannels()
 	b.sessionMode = mode
-	b.oneOnOneAgent = agent
+	b.oneOnOneBot = bot
 	b.tasks = []teamTask{}
 	b.requests = nil
 	b.approvalAudit = nil
@@ -1298,19 +1298,19 @@ func (b *Broker) Reset() {
 	b.schedulerActivity = nil
 	b.schedulerRevisions = nil
 	b.pendingInterview = nil
-	b.activity = make(map[string]agentActivitySnapshot)
+	b.activity = make(map[string]botActivitySnapshot)
 	b.memberPresence = make(map[string]memberPresenceRecord)
 	b.presenceKeyToSlug = make(map[string]string)
 	b.counter = 0
 	b.notificationSince = ""
 	b.insightsSince = ""
-	b.usage = teamUsageState{Agents: make(map[string]usageTotals)}
+	b.usage = teamUsageState{Bots: make(map[string]usageTotals)}
 	b.normalizeLoadedStateLocked()
 	// Restore session preferences after normalization: Reset() clears content but
-	// should not re-validate the user's explicit 1:1 agent choice against the
+	// should not re-validate the user's explicit 1:1 bot choice against the
 	// current default member list (which may differ from the active pack).
 	b.sessionMode = mode
-	b.oneOnOneAgent = agent
+	b.oneOnOneBot = bot
 	_ = b.saveLocked()
 	_ = os.Remove(b.stateSnapshotPath())
 	b.mu.Unlock()
@@ -1329,16 +1329,16 @@ func (b *Broker) Reset() {
 func (b *Broker) SessionModeState() (string, string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.sessionMode, b.oneOnOneAgent
+	return b.sessionMode, b.oneOnOneBot
 }
 
-func (b *Broker) SetSessionMode(mode, agent string) error {
+func (b *Broker) SetSessionMode(mode, bot string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.sessionMode = NormalizeSessionMode(mode)
-	b.oneOnOneAgent = NormalizeOneOnOneAgent(agent)
-	if b.findMemberLocked(b.oneOnOneAgent) == nil {
-		b.oneOnOneAgent = DefaultOneOnOneAgent
+	b.oneOnOneBot = NormalizeOneOnOneBot(bot)
+	if b.findMemberLocked(b.oneOnOneBot) == nil {
+		b.oneOnOneBot = DefaultOneOnOneBot
 	}
 	return b.saveLocked()
 }
@@ -1358,19 +1358,19 @@ func (b *Broker) SetGenerateChannelFn(fn func(context.Context, string) (generate
 	b.generateChannelFn = fn
 }
 
-// SetGenerateAgentFileFn injects the LLM authoring path for prose instruction
-// files (SOUL/OPERATIONS/USER). Optional: when unset, /agent-files/generate
+// SetGenerateBotFileFn injects the LLM authoring path for prose instruction
+// files (SOUL/OPERATIONS/USER). Optional: when unset, /bot-files/generate
 // returns 503 and the UI simply hides the "Generate with AI" affordance.
-func (b *Broker) SetGenerateAgentFileFn(fn func(ctx context.Context, relPath, hint string) (string, error)) {
-	b.generateAgentFileFn = fn
+func (b *Broker) SetGenerateBotFileFn(fn func(ctx context.Context, relPath, hint string) (string, error)) {
+	b.generateBotFileFn = fn
 }
 
-// SetAgentLogRoot overrides where /agent-logs reads task JSONL from.
-// Used by tests; production uses agent.DefaultTaskLogRoot().
-func (b *Broker) SetAgentLogRoot(root string) {
+// SetBotLogRoot overrides where /bot-logs reads task JSONL from.
+// Used by tests; production uses bot.DefaultTaskLogRoot().
+func (b *Broker) SetBotLogRoot(root string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.agentLogRoot = root
+	b.botLogRoot = root
 }
 
 func (b *Broker) FocusModeEnabled() bool {
@@ -1393,7 +1393,7 @@ func usageStateIsZero(state teamUsageState) bool {
 	if state.Total.TotalTokens > 0 || state.Total.CostUsd > 0 || state.Total.Requests > 0 {
 		return false
 	}
-	for _, totals := range state.Agents {
+	for _, totals := range state.Bots {
 		if totals.TotalTokens > 0 || totals.CostUsd > 0 || totals.Requests > 0 {
 			return false
 		}

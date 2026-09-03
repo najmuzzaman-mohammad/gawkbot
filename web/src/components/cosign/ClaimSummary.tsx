@@ -99,7 +99,7 @@ function claimRows(claim: ApprovalClaim): readonly DetailRow[] {
     case "cost_spike_acknowledgement":
       return [
         ...base,
-        { label: "Agent", value: claim.agentId, mono: true },
+        { label: "Bot", value: claim.agentId, mono: true },
         { label: "Cost ceiling", value: claim.costCeilingId, mono: true },
         { label: "Threshold", value: `${claim.thresholdBps} bps` },
         { label: "Current cost", value: microUsdLabel(claim.currentMicroUsd) },
@@ -108,7 +108,7 @@ function claimRows(claim: ApprovalClaim): readonly DetailRow[] {
     case "endpoint_allowlist_extension":
       return [
         ...base,
-        { label: "Agent", value: claim.agentId, mono: true },
+        { label: "Bot", value: claim.agentId, mono: true },
         { label: "Provider", value: claim.providerKind, mono: true },
         { label: "Endpoint", value: claim.endpointOrigin, mono: true },
         { label: "Reason", value: claim.reason },
@@ -116,7 +116,7 @@ function claimRows(claim: ApprovalClaim): readonly DetailRow[] {
     case "credential_grant_to_agent":
       return [
         ...base,
-        { label: "Grantee agent", value: claim.granteeAgentId, mono: true },
+        { label: "Grantee bot", value: claim.granteeAgentId, mono: true },
         {
           label: "Credential handle",
           value: claim.credentialHandleId,
@@ -148,20 +148,20 @@ function scopeRows(scope: ApprovalScope): readonly DetailRow[] {
     case "cost_spike_acknowledgement":
       return [
         ...base,
-        { label: "Agent", value: scope.agentId, mono: true },
+        { label: "Bot", value: scope.agentId, mono: true },
         { label: "Cost ceiling", value: scope.costCeilingId, mono: true },
       ];
     case "endpoint_allowlist_extension":
       return [
         ...base,
-        { label: "Agent", value: scope.agentId, mono: true },
+        { label: "Bot", value: scope.agentId, mono: true },
         { label: "Provider", value: scope.providerKind, mono: true },
         { label: "Endpoint", value: scope.endpointOrigin, mono: true },
       ];
     case "credential_grant_to_agent":
       return [
         ...base,
-        { label: "Grantee agent", value: scope.granteeAgentId, mono: true },
+        { label: "Grantee bot", value: scope.granteeAgentId, mono: true },
         {
           label: "Credential handle",
           value: scope.credentialHandleId,
@@ -187,7 +187,7 @@ function claimKindLabel(kind: ApprovalClaim["kind"]): string {
     case "endpoint_allowlist_extension":
       return "Endpoint allowlist extension";
     case "credential_grant_to_agent":
-      return "Credential grant to agent";
+      return "Credential grant to bot";
     case "receipt_co_sign":
       return "Receipt co-sign";
   }

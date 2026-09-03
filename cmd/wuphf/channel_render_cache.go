@@ -71,9 +71,9 @@ func (m channelModel) cachedMainLines(contentWidth int) []channelui.RenderedLine
 		case channelui.OfficeAppRecovery:
 			lines = m.buildRecoveryLines(contentWidth)
 		case channelui.OfficeAppInbox:
-			lines = buildInboxLines(channelui.FilterMessagesForViewerScope(m.messages, m.oneOnOneAgentSlug(), "inbox"), m.requests, contentWidth)
+			lines = buildInboxLines(channelui.FilterMessagesForViewerScope(m.messages, m.oneOnOneBotSlug(), "inbox"), m.requests, contentWidth)
 		case channelui.OfficeAppOutbox:
-			lines = buildOutboxLines(channelui.FilterMessagesForViewerScope(m.messages, m.oneOnOneAgentSlug(), "outbox"), m.actions, contentWidth)
+			lines = buildOutboxLines(channelui.FilterMessagesForViewerScope(m.messages, m.oneOnOneBotSlug(), "outbox"), m.actions, contentWidth)
 		default:
 			lines = m.buildDirectFeedLines(contentWidth)
 		}
@@ -115,7 +115,7 @@ func (m channelModel) hashMainLinesState(contentWidth int) uint64 {
 	h.add(string(m.calendarRange))
 	h.add(m.calendarFilter)
 	h.add(m.sessionMode)
-	h.add(m.oneOnOneAgent)
+	h.add(m.oneOnOneBot)
 	h.addInt64(channelui.RenderTimeBucket(m.activeApp, m.isOneOnOne()))
 
 	if m.isOneOnOne() || m.activeApp == channelui.OfficeAppMessages || m.activeApp == channelui.OfficeAppInbox || m.activeApp == channelui.OfficeAppOutbox || m.activeApp == channelui.OfficeAppRecovery {
@@ -130,7 +130,7 @@ func (m channelModel) hashMainLinesState(contentWidth int) uint64 {
 		h.addRequests(m.requests)
 		h.addActions(m.actions)
 		if m.isOneOnOne() {
-			h.add(m.oneOnOneAgentName())
+			h.add(m.oneOnOneBotName())
 		}
 		h.addBool(m.brokerConnected)
 		h.add(string(workspace.Readiness.Level), workspace.Readiness.Headline, workspace.Readiness.Detail, workspace.Readiness.NextStep)
@@ -187,7 +187,7 @@ func hashSidebarState(channels []channelui.ChannelInfo, members []channelui.Memb
 	h.add(string(quickJump))
 	h.addBool(workspace.BrokerConnected)
 	h.addBool(workspace.Direct)
-	h.add(workspace.Channel, workspace.AgentName, workspace.AgentSlug, workspace.AwaySummary, workspace.Focus, workspace.NextStep)
+	h.add(workspace.Channel, workspace.BotName, workspace.BotSlug, workspace.AwaySummary, workspace.Focus, workspace.NextStep)
 	h.addInt(workspace.PeerCount)
 	h.addInt(workspace.RunningTasks)
 	h.addInt(workspace.OpenRequests)

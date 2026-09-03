@@ -72,7 +72,7 @@ describe("messageMarkdown — XSS hardening", () => {
     }
   });
 
-  it("does not render raw HTML <script> tags from agent text", () => {
+  it("does not render raw HTML <script> tags from bot text", () => {
     const { container } = renderChat("before <script>alert(1)</script> after");
     expect(container.querySelector("script")).toBeNull();
     expect(container.textContent).toContain("alert(1)");
@@ -301,7 +301,7 @@ describe("messageMarkdown — task references", () => {
 
 describe("app references", () => {
   it("turns an app id into a pill that opens the app", () => {
-    // An agent quoting "app_9f3c1d2e" in prose is unreadable and unclickable
+    // A bot quoting "app_9f3c1d2e" in prose is unreadable and unclickable
     // bare. The pill resolves the name and links to the app.
     const { container } = renderChat("Shipped it in app_9f3c1d2e.");
     const pill = container.querySelector(".msg-app-link");

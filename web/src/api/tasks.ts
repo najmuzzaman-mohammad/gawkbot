@@ -175,7 +175,7 @@ export interface Task {
    */
   stalled_since?: string;
   /** Per-task LLM runtime set in the new-task composer (model lives on the
-   * task, not the agent). */
+   * task, not the bot). */
   provider?: string;
   model?: string;
   /** Model-specific reasoning-effort level set in the new-task composer. */
@@ -262,7 +262,7 @@ export interface CreateTaskInput {
   execution_mode?: string;
   /**
    * Per-task LLM runtime. The model/provider is a property of the task, not
-   * the agent: dispatch prefers these over the owner's binding. Effort is the
+   * the bot: dispatch prefers these over the owner's binding. Effort is the
    * model-specific reasoning level. Omit any to inherit the owner's binding /
    * the install default.
    */
@@ -359,7 +359,7 @@ export function reassignTask(
  * "title required" — a task must keep a name.
  *
  * Authorised for the human and the CEO only (checkTaskActionAuthLocked); a
- * specialist agent calling this is rejected.
+ * specialist bot calling this is rejected.
  *
  * The broker announces the change itself — it posts one `task_changed`
  * message tagging the owner. Callers must NOT also post a chat message on
@@ -631,17 +631,14 @@ export interface TaskLogEntry {
   completed_at?: number;
 }
 
-export function listAgentLogTasks(opts?: {
-  limit?: number;
-  agentSlug?: string;
-}) {
+export function listBotLogTasks(opts?: { limit?: number; agentSlug?: string }) {
   const params: Record<string, string> = {};
   if (opts?.limit) params.limit = String(opts.limit);
   if (opts?.agentSlug) params.agent = opts.agentSlug;
   return get<{ tasks: TaskLogSummary[] }>("/agent-logs", params);
 }
 
-export function getAgentLogEntries(taskId: string) {
+export function getBotLogEntries(taskId: string) {
   return get<{ task: string; entries: TaskLogEntry[] }>("/agent-logs", {
     task: taskId,
   });

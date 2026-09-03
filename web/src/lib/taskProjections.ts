@@ -49,7 +49,7 @@ export interface LifecycleBuckets {
 }
 
 /**
- * Bucket key used by {@link groupTasksByAgent} when a task has no owner.
+ * Bucket key used by {@link groupTasksByBot} when a task has no owner.
  */
 export const UNASSIGNED_BUCKET = "unassigned";
 
@@ -88,7 +88,7 @@ export function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
  * {@link UNASSIGNED_BUCKET} bucket. The bucket is always present in the
  * returned record (even if empty) so consumers can render a stable column.
  */
-export function groupTasksByAgent(tasks: Task[]): Record<string, Task[]> {
+export function groupTasksByBot(tasks: Task[]): Record<string, Task[]> {
   const groups: Record<string, Task[]> = { [UNASSIGNED_BUCKET]: [] };
   for (const task of tasks) {
     const slug = task.owner?.trim();

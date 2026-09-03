@@ -1,0 +1,810 @@
+package bot
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+)
+
+// EventName identifies a bot loop event.
+type EventName string
+
+const (
+	EventPhaseChange EventName = "phase_change"
+	EventToolCall    EventName = "tool_call"
+	EventMessage     EventName = "message"
+	EventError       EventName = "error"
+	EventDone        EventName = "done"
+	EventThinking    EventName = "thinking"
+	EventToolUse     EventName = "tool_use"
+	EventToolResult  EventName = "tool_result"
+)
+
+const (
+	defaultMaxStuckTicks   = 20
+	defaultMaxErrorRetries = 3
+)
+
+// humanInterruptDirective is injected as a system entry when a human message
+// preempts the bot's prior task. It tells the model to absorb the human
+// message before doing anything else.
+const humanInterruptDirective = "A human just sent you a message. Stop and absorb it before continuing any prior task. Decide which is appropriate: (a) abandon the prior task and address the human directly, (b) give a brief status update if they are asking what you're doing, or (c) acknowledge and queue their request for after the current task. Human messages take priority over bot-to-bot follow-ups."
+
+// EventHandler is a callback for bot loop events.
+type EventHandler func(args ...any)
+
+// BotLoop is the core state machine for bot execution.
+type BotLoop struct {
+	state              BotState
+	tools              *ToolRegistry
+	sessions           *SessionStore
+	queues             *MessageQueues
+	streamFn           StreamFn
+	credibilityTracker *CredibilityTracker
+
+	running          bool
+	paused           bool
+	eventHandlers    map[EventName][]EventHandler
+	pendingToolCall  *ToolCall
+	cancelFunc       context.CancelFunc
+	taskHadError     bool
+	taskLogRoot      string
+	lastCompactionAt int
+
+	// Stuck detection and retry cap.
+	lastPhase       BotPhase
+	stuckTicks      int
+	errorCount      int
+	errorTaskID     string
+	escalator       Escalator
+	maxStuckTicks   int
+	maxErrorRetries int
+
+	mu sync.Mutex
+}
+
+// NewBotLoop creates a new bot loop with the given dependencies.
+// credibilityTracker may be nil.
+func NewBotLoop(
+	config BotConfig,
+	tools *ToolRegistry,
+	sessions *SessionStore,
+	queues *MessageQueues,
+	streamFn StreamFn,
+	credibilityTracker *CredibilityTracker,
+) *BotLoop {
+	return &BotLoop{
+		state: BotState{
+			Phase:  PhaseIdle,
+			Config: config,
+		},
+		tools:              tools,
+		sessions:           sessions,
+		queues:             queues,
+		streamFn:           streamFn,
+		credibilityTracker: credibilityTracker,
+		eventHandlers:      make(map[EventName][]EventHandler),
+		taskLogRoot:        defaultTaskLogRoot(),
+	}
+}
+
+// On registers an event handler for the given event.
+func (l *BotLoop) On(event EventName, handler EventHandler) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.eventHandlers[event] = append(l.eventHandlers[event], handler)
+}
+
+// Off removes the given handler from the event. Comparison is by pointer.
+func (l *BotLoop) Off(event EventName, handler EventHandler) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	handlers := l.eventHandlers[event]
+	target := fmt.Sprintf("%p", handler)
+	for i, h := range handlers {
+		if fmt.Sprintf("%p", h) == target {
+			l.eventHandlers[event] = append(handlers[:i], handlers[i+1:]...)
+			return
+		}
+	}
+}
+
+// GetState returns a copy of the current bot state.
+func (l *BotLoop) GetState() BotState {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.state
+}
+
+// appendSession writes a session journal entry and logs (rather than drops)
+// any error. Best-effort: we never want a journal-write failure to stop an
+// bot turn, but silently swallowing the error has historically hidden real
+// corruption. Logging preserves "don't crash the loop" while making drift
+// debuggable after the fact.
+func (l *BotLoop) appendSession(entry SessionEntry) {
+	if _, err := l.sessions.Append(l.state.SessionID, entry); err != nil {
+		log.Printf("bot loop: session append (session=%s type=%s): %v",
+			l.state.SessionID, entry.Type, err)
+	}
+}
+
+// CanProcess reports whether the loop is started and not paused.
+func (l *BotLoop) CanProcess() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.running && !l.paused
+}
+
+// IsBusy reports whether the loop is actively processing a turn.
+func (l *BotLoop) IsBusy() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	switch l.state.Phase {
+	case PhaseBuildContext, PhaseStreamLLM, PhaseExecuteTool:
+		return l.running && !l.paused
+	default:
+		return false
+	}
+}
+
+// Interrupt cancels in-flight provider or tool work so newer queued work can start.
+func (l *BotLoop) Interrupt() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.cancelFunc == nil {
+		return false
+	}
+	l.cancelFunc()
+	l.cancelFunc = nil
+	return true
+}
+
+// Start marks the loop as running and sets phase to idle.
+func (l *BotLoop) Start() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.running = true
+	l.paused = false
+	l.setPhase(PhaseIdle)
+}
+
+// Stop cancels any in-flight context and marks the loop as not running.
+func (l *BotLoop) Stop() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.running = false
+	if l.cancelFunc != nil {
+		l.cancelFunc()
+		l.cancelFunc = nil
+	}
+}
+
+// Pause pauses tick processing without stopping the loop.
+func (l *BotLoop) Pause() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.paused = true
+}
+
+// Resume unpauses tick processing.
+func (l *BotLoop) Resume() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.paused = false
+}
+
+// Tick advances the state machine by one step. Called by the service's tick loop.
+func (l *BotLoop) Tick() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.paused || !l.running {
+		return nil
+	}
+
+	switch l.state.Phase {
+	case PhaseIdle:
+		return l.buildContext()
+	case PhaseBuildContext:
+		return l.streamLLM()
+	case PhaseStreamLLM:
+		if l.pendingToolCall != nil {
+			return l.executeTool()
+		}
+		return l.handleDone()
+	case PhaseExecuteTool:
+		return l.streamLLM()
+	case PhaseDone:
+		return l.handleDone()
+	case PhaseError:
+		taskID := strings.TrimSpace(l.state.TaskID)
+		errMsg := l.state.Error
+
+		// Track retries per-task. Reset counter when we see a fresh task id.
+		if taskID != l.errorTaskID {
+			l.errorTaskID = taskID
+			l.errorCount = 0
+		}
+		l.errorCount++
+
+		if l.errorCount >= l.resolveMaxErrorRetries() {
+			if l.escalator != nil {
+				// Capture locals before releasing the lock so the callback can
+				// safely call back into the broker without deadlocking.
+				escalator := l.escalator
+				slug := l.state.Config.Slug
+				detail := errMsg
+				l.mu.Unlock()
+				escalator(slug, taskID, EscalationMaxRetries, detail)
+				l.mu.Lock()
+			}
+			// Reset so a future task starts fresh.
+			l.errorTaskID = ""
+			l.errorCount = 0
+		}
+
+		// Always reset to idle so the bot can process new messages.
+		l.state.Error = ""
+		l.setPhase(PhaseIdle)
+		return nil
+	}
+	return nil
+}
+
+// setPhase updates the phase and emits a phase_change event. Must be called with mu held.
+func (l *BotLoop) setPhase(phase BotPhase) {
+	old := l.state.Phase
+	l.state.Phase = phase
+	l.emit(EventPhaseChange, old, phase)
+}
+
+// emit fires all handlers for the given event. Must be called with mu held.
+func (l *BotLoop) emit(event EventName, args ...any) {
+	for _, h := range l.eventHandlers[event] {
+		h(args...)
+	}
+}
+
+// SetEscalator wires a callback for stuck/retry escalation. Safe to call
+// before or after Start(); takes effect on the next error or stuck event.
+func (l *BotLoop) SetEscalator(fn Escalator) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.escalator = fn
+}
+
+// SetStuckLimits overrides the default thresholds for stuck detection and
+// error retries. Pass 0 for either to keep the default.
+func (l *BotLoop) SetStuckLimits(maxStuckTicks, maxErrorRetries int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.maxStuckTicks = maxStuckTicks
+	l.maxErrorRetries = maxErrorRetries
+}
+
+func (l *BotLoop) resolveMaxStuckTicks() int {
+	if l.maxStuckTicks > 0 {
+		return l.maxStuckTicks
+	}
+	return defaultMaxStuckTicks
+}
+
+func (l *BotLoop) resolveMaxErrorRetries() int {
+	if l.maxErrorRetries > 0 {
+		return l.maxErrorRetries
+	}
+	return defaultMaxErrorRetries
+}
+
+// NotifyTick is called by the worker goroutine (or a test) once per tick so
+// the loop can detect when it's stuck in the same phase. Callers should invoke
+// this every cycle regardless of whether Tick runs.
+func (l *BotLoop) NotifyTick() {
+	l.mu.Lock()
+	phase := l.state.Phase
+	if phase != l.lastPhase {
+		l.lastPhase = phase
+		l.stuckTicks = 0
+		l.mu.Unlock()
+		return
+	}
+
+	// Happy-path phases — the bot is allowed to sit there indefinitely.
+	if phase == PhaseIdle || phase == PhaseDone {
+		l.mu.Unlock()
+		return
+	}
+
+	l.stuckTicks++
+	threshold := l.resolveMaxStuckTicks()
+	if l.stuckTicks < threshold {
+		l.mu.Unlock()
+		return
+	}
+
+	escalator := l.escalator
+	slug := l.state.Config.Slug
+	taskID := l.state.TaskID
+	l.stuckTicks = 0 // reset so we don't spam
+	l.mu.Unlock()
+
+	if escalator != nil {
+		escalator(slug, taskID, EscalationStuck, fmt.Sprintf("bot stuck in %s for %d ticks", phase, threshold))
+	}
+}
+
+// forcePhaseErrorForTest drives a single PhaseError tick for the given task id.
+// Test-only helper; lives here so it has access to unexported fields.
+func (l *BotLoop) forcePhaseErrorForTest(taskID, errMsg string) {
+	l.mu.Lock()
+	l.state.TaskID = taskID
+	l.state.Error = errMsg
+	l.setPhase(PhaseError)
+	l.mu.Unlock()
+	_ = l.Tick()
+}
+
+// setPhaseForTest is a test-only accessor that sets the current phase without
+// running through Tick. Used by stuck-detection tests to hold the loop in a
+// non-idle phase.
+func (l *BotLoop) setPhaseForTest(phase BotPhase) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.setPhase(phase)
+}
+
+// buildContext prepares the session and context for LLM streaming.
+func (l *BotLoop) buildContext() error {
+	l.setPhase(PhaseBuildContext)
+	l.taskHadError = false
+
+	slug := l.state.Config.Slug
+
+	// Create session if none exists.
+	if l.state.SessionID == "" {
+		sessionID, err := l.sessions.Create(slug)
+		if err != nil {
+			l.state.Error = fmt.Sprintf("create session: %v", err)
+			l.setPhase(PhaseError)
+			l.emit(EventError, l.state.Error)
+			return err
+		}
+		l.state.SessionID = sessionID
+	}
+
+	// Inject system prompt if not already present in session.
+	entries, _ := l.sessions.GetHistory(l.state.SessionID, 0, "")
+	hasSystem := false
+	for _, e := range entries {
+		if e.Type == "system" {
+			hasSystem = true
+			break
+		}
+	}
+	if !hasSystem && l.state.Config.Personality != "" {
+		l.appendSession(SessionEntry{
+			Type:    "system",
+			Content: l.state.Config.Personality,
+		})
+	}
+
+	// Drain steer messages after the session exists so the first user task is not lost.
+	if msg, ok := l.queues.DrainSteer(slug); ok {
+		l.appendSession(SessionEntry{
+			Type:    "system",
+			Content: "[STEER] " + msg,
+		})
+	}
+
+	// Human messages take priority over bot-originated follow-ups: a person
+	// who interjects while the bot is mid-task should be absorbed first, and
+	// the bot decides whether to stop, give a status update, or queue the
+	// prior task for later.
+	if msg, ok := l.queues.DrainHuman(slug); ok {
+		l.state.CurrentTask = msg
+		l.state.TaskID = nextTaskID(slug)
+		l.lastCompactionAt = 0
+		l.appendSession(SessionEntry{
+			Type:    "system",
+			Content: humanInterruptDirective,
+		})
+		l.appendSession(SessionEntry{
+			Type:    "user",
+			Content: "[HUMAN] " + msg,
+		})
+	} else if msg, ok := l.queues.DrainFollowUp(slug); ok {
+		l.state.CurrentTask = msg
+		l.state.TaskID = nextTaskID(slug)
+		l.lastCompactionAt = 0
+		l.appendSession(SessionEntry{
+			Type:    "user",
+			Content: msg,
+		})
+	}
+
+	l.emit(EventThinking, l.progressNote(PhaseBuildContext))
+
+	return nil
+}
+
+// streamLLM streams output from the LLM and processes chunks.
+func (l *BotLoop) streamLLM() error {
+	l.setPhase(PhaseStreamLLM)
+	l.emit(EventThinking, l.progressNote(PhaseStreamLLM))
+
+	// Get session history and convert to messages.
+	entries, err := l.sessions.GetHistory(l.state.SessionID, 0, "")
+	if err != nil {
+		l.state.Error = fmt.Sprintf("get history: %v", err)
+		l.setPhase(PhaseError)
+		l.emit(EventError, l.state.Error)
+		return err
+	}
+	entries = l.prepareEntriesForStreaming(entries)
+
+	messages := entriesToMessages(entries)
+
+	// If no messages, inject system message with bot personality.
+	if len(messages) == 0 {
+		personality := l.state.Config.Personality
+		if personality == "" {
+			personality = fmt.Sprintf("You are %s, an AI bot.", l.state.Config.Name)
+		}
+		messages = []Message{{Role: "system", Content: personality}}
+	}
+
+	// Create cancellable context.
+	ctx, cancel := context.WithCancel(context.Background())
+	l.cancelFunc = cancel
+
+	// Filter tools by bot config's tool list.
+	var allowedTools []BotTool
+	if len(l.state.Config.Tools) > 0 {
+		for _, name := range l.state.Config.Tools {
+			if tool, ok := l.tools.Get(name); ok {
+				allowedTools = append(allowedTools, tool)
+			}
+		}
+	} else {
+		allowedTools = l.tools.List()
+	}
+
+	// Call streamFn — unlock mu while waiting on channel to avoid deadlock.
+	ch := l.streamFn(messages, allowedTools)
+
+	var fullText strings.Builder
+	for {
+		l.mu.Unlock()
+		var (
+			chunk StreamChunk
+			ok    bool
+		)
+		select {
+		case <-ctx.Done():
+			l.mu.Lock()
+			if errors.Is(ctx.Err(), context.Canceled) {
+				l.pendingToolCall = nil
+				l.setPhase(PhaseIdle)
+				return nil
+			}
+			return ctx.Err()
+		case chunk, ok = <-ch:
+		}
+		l.mu.Lock()
+		if !ok {
+			break
+		}
+
+		switch chunk.Type {
+		case "text":
+			fullText.WriteString(chunk.Content)
+			l.emit(EventMessage, chunk.Content)
+		case "thinking":
+			l.emit(EventThinking, chunk.Content)
+		case "tool_use":
+			l.emit(EventToolUse, chunk.ToolName, chunk.ToolInput)
+		case "tool_result":
+			l.emit(EventToolResult, chunk.Content)
+		case "tool_call":
+			l.pendingToolCall = &ToolCall{
+				ToolName:  chunk.ToolName,
+				Params:    chunk.ToolParams,
+				StartedAt: time.Now().UnixMilli(),
+			}
+			// Stop reading — tool needs to execute before continuing.
+			goto done
+		case "error":
+			l.state.Error = chunk.Content
+			l.setPhase(PhaseError)
+			l.emit(EventError, chunk.Content)
+			return fmt.Errorf("provider error: %s", chunk.Content)
+		}
+	}
+
+done:
+	if errors.Is(ctx.Err(), context.Canceled) {
+		l.pendingToolCall = nil
+		l.setPhase(PhaseIdle)
+		return nil
+	}
+	// Append assistant text to session.
+	if fullText.Len() > 0 {
+		l.appendSession(SessionEntry{
+			Type:    "assistant",
+			Content: fullText.String(),
+		})
+	}
+
+	return nil
+}
+
+// executeTool runs the pending tool call and records results in the session.
+func (l *BotLoop) executeTool() error {
+	if l.pendingToolCall == nil {
+		return nil
+	}
+
+	l.setPhase(PhaseExecuteTool)
+	l.emit(EventThinking, l.progressNote(PhaseExecuteTool))
+	tc := l.pendingToolCall
+
+	l.emit(EventToolCall, tc.ToolName, tc.Params)
+
+	// Lookup and validate.
+	tool, ok := l.tools.Get(tc.ToolName)
+	if !ok {
+		errMsg := fmt.Sprintf("unknown tool: %q", tc.ToolName)
+		l.appendSession(SessionEntry{
+			Type:    "tool_result",
+			Content: errMsg,
+			Metadata: map[string]any{
+				"toolName": tc.ToolName,
+				"error":    true,
+			},
+		})
+		l.taskHadError = true
+		l.pendingToolCall = nil
+		return nil
+	}
+
+	if valid, errs := l.tools.Validate(tc.ToolName, tc.Params); !valid {
+		errMsg := fmt.Sprintf("invalid params for %q: %s", tc.ToolName, strings.Join(errs, "; "))
+		l.appendSession(SessionEntry{
+			Type:    "tool_result",
+			Content: errMsg,
+			Metadata: map[string]any{
+				"toolName": tc.ToolName,
+				"error":    true,
+			},
+		})
+		l.taskHadError = true
+		l.pendingToolCall = nil
+		return nil
+	}
+
+	// Append tool_call entry.
+	l.appendSession(SessionEntry{
+		Type:    "tool_call",
+		Content: tc.ToolName,
+		Metadata: map[string]any{
+			"toolName": tc.ToolName,
+			"params":   tc.Params,
+		},
+	})
+
+	// Execute tool.
+	ctx := context.Background()
+	if l.cancelFunc != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+		l.cancelFunc = cancel
+	}
+
+	result, err := tool.Execute(tc.Params, ctx, func(s string) {})
+	tc.CompletedAt = time.Now().UnixMilli()
+
+	if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+		l.pendingToolCall = nil
+		l.setPhase(PhaseIdle)
+		return nil
+	}
+
+	if err != nil {
+		tc.Error = err.Error()
+		l.emit(EventToolResult, err.Error())
+		l.appendSession(SessionEntry{
+			Type:    "tool_result",
+			Content: err.Error(),
+			Metadata: map[string]any{
+				"toolName": tc.ToolName,
+				"error":    true,
+			},
+		})
+		l.taskHadError = true
+	} else {
+		tc.Result = result
+		l.emit(EventToolResult, result)
+		l.appendSession(SessionEntry{
+			Type:    "tool_result",
+			Content: result,
+			Metadata: map[string]any{
+				"toolName": tc.ToolName,
+			},
+		})
+
+	}
+	l.logToolExecution(*tc)
+
+	l.pendingToolCall = nil
+	return nil
+}
+
+// handleDone finishes the current task cycle.
+func (l *BotLoop) handleDone() error {
+	slug := l.state.Config.Slug
+
+	// If queues have more messages, go back to idle for another cycle.
+	if l.queues.HasMessages(slug) {
+		l.setPhase(PhaseIdle)
+		return nil
+	}
+
+	// Record outcome in credibility tracker.
+	if l.credibilityTracker != nil {
+		l.credibilityTracker.RecordOutcome(slug, !l.taskHadError)
+	}
+
+	l.state.CurrentTask = ""
+	l.state.TaskID = ""
+	l.setPhase(PhaseDone)
+	l.emit(EventDone)
+	return nil
+}
+
+func (l *BotLoop) progressNote(phase BotPhase) string {
+	name := l.state.Config.Name
+	task := strings.TrimSpace(l.state.CurrentTask)
+	task = summarizeProgressTask(task)
+
+	switch phase {
+	case PhaseBuildContext:
+		if task != "" {
+			return fmt.Sprintf("%s is reviewing the task: %s", name, task)
+		}
+		return fmt.Sprintf("%s is reviewing the latest task.", name)
+	case PhaseStreamLLM:
+		if l.state.Config.Slug == "ceo" || strings.Contains(strings.ToLower(strings.Join(l.state.Config.Expertise, " ")), "delegation") {
+			return fmt.Sprintf("%s is coordinating the next move.", name)
+		}
+		if task != "" {
+			return fmt.Sprintf("%s is working on: %s", name, task)
+		}
+		return fmt.Sprintf("%s is drafting a response.", name)
+	case PhaseExecuteTool:
+		if l.pendingToolCall != nil && l.pendingToolCall.ToolName != "" {
+			return fmt.Sprintf("%s is using %s.", name, l.pendingToolCall.ToolName)
+		}
+		return fmt.Sprintf("%s is using tools.", name)
+	default:
+		return ""
+	}
+}
+
+func summarizeProgressTask(task string) string {
+	task = strings.TrimSpace(task)
+	if task == "" {
+		return ""
+	}
+	if len(task) <= 72 {
+		return task
+	}
+	cut := task[:72]
+	if idx := strings.LastIndex(cut, " "); idx > 36 {
+		cut = cut[:idx]
+	}
+	return strings.TrimSpace(cut) + "..."
+}
+
+// entriesToMessages converts session entries into LLM messages.
+func entriesToMessages(entries []SessionEntry) []Message {
+	var msgs []Message
+	for _, e := range entries {
+		switch e.Type {
+		case "user":
+			msgs = append(msgs, Message{Role: "user", Content: e.Content})
+		case "assistant":
+			msgs = append(msgs, Message{Role: "assistant", Content: e.Content})
+		case "system":
+			msgs = append(msgs, Message{Role: "system", Content: e.Content})
+		case "tool_call":
+			msgs = append(msgs, Message{Role: "assistant", Content: "[tool_call] " + e.Content})
+		case "tool_result":
+			msgs = append(msgs, Message{Role: "user", Content: "[tool_result] " + e.Content})
+		}
+	}
+	return msgs
+}
+
+func (l *BotLoop) prepareEntriesForStreaming(entries []SessionEntry) []SessionEntry {
+	if !shouldCompactEntries(entries, l.state.Config.Slug) {
+		l.lastCompactionAt = 0
+		return entries
+	}
+	if l.lastCompactionAt == len(entries) {
+		return entries
+	}
+
+	prefix, archived, recent := splitEntriesForCompaction(entries)
+	summary := buildOfficeInsightSummary(archived)
+	if len(archived) == 0 || strings.TrimSpace(summary) == "" {
+		return entries
+	}
+
+	summaryEntry := SessionEntry{
+		Type:    "system",
+		Content: summary,
+		Metadata: map[string]any{
+			"officeInsight":   true,
+			"archivedEntries": len(archived),
+			"taskId":          l.state.TaskID,
+		},
+	}
+	if stored, err := l.sessions.Append(l.state.SessionID, summaryEntry); err == nil {
+		summaryEntry = stored
+	}
+
+	l.lastCompactionAt = len(entries)
+	// Describe only what actually happened. The older turns are folded into
+	// the summary entry above; there is no separate insight store to archive
+	// them into, and claiming one would be a false status line.
+	l.emit(EventThinking, "Context nearing capacity; folded older context into a summary.")
+
+	compacted := make([]SessionEntry, 0, len(prefix)+1+len(recent))
+	compacted = append(compacted, prefix...)
+	compacted = append(compacted, summaryEntry)
+	compacted = append(compacted, recent...)
+	return compacted
+}
+
+func (l *BotLoop) logToolExecution(call ToolCall) {
+	taskID := strings.TrimSpace(l.state.TaskID)
+	if taskID == "" {
+		taskID = "adhoc"
+	}
+
+	dir := filepath.Join(l.taskLogRoot, taskID)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return
+	}
+
+	path := filepath.Join(dir, "output.log")
+	record := map[string]any{
+		"task_id":      taskID,
+		"agent_slug":   l.state.Config.Slug,
+		"tool_name":    call.ToolName,
+		"params":       call.Params,
+		"result":       call.Result,
+		"error":        call.Error,
+		"started_at":   call.StartedAt,
+		"completed_at": call.CompletedAt,
+	}
+	line, err := json.Marshal(record)
+	if err != nil {
+		return
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return
+	}
+	defer func() { _ = f.Close() }()
+
+	_, _ = f.Write(append(line, '\n'))
+}

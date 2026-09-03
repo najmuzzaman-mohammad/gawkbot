@@ -195,7 +195,7 @@ describe("<RichArtifactEmbed>", () => {
   });
 
   describe("SVG handling", () => {
-    // Agents emit SVG diagrams (`<svg><rect/><path/>…`) as part of rich
+    // Bots emit SVG diagrams (`<svg><rect/><path/>…`) as part of rich
     // artifacts. The original sanitizer blanket-dropped <svg>; here we
     // verify the safe SVG subset survives while every known SVG-borne XSS
     // vector is still rejected.

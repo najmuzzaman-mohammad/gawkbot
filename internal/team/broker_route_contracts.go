@@ -229,10 +229,10 @@ var taskBrokerRoutes = []brokerRoute{
 			Method:       http.MethodGet,
 			Auth:         RouteAuthBearer,
 			RequestType:  "query: task, limit",
-			ResponseType: "team.AgentLogTasksResponse | team.AgentLogEntriesResponse",
+			ResponseType: "team.BotLogTasksResponse | team.BotLogEntriesResponse",
 		},
 		handler: func(b *Broker) http.HandlerFunc {
-			return b.handleAgentLogs
+			return b.handleBotLogs
 		},
 	},
 	{

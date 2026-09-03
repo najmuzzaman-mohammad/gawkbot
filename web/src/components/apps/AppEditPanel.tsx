@@ -28,7 +28,7 @@ interface AppEditPanelProps {
  * the live preview in the main stage hot-reloads when the app republishes.
  *
  * The conversation is the app's full build/edit history, so the human can scroll
- * back through every prior change request and the agent's responses.
+ * back through every prior change request and the bot's responses.
  */
 export function AppEditPanel({ appName, channel, onClose }: AppEditPanelProps) {
   return (

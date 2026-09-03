@@ -87,7 +87,7 @@ func TestClaudeCommand_StaysUnderTmuxLimit(t *testing.T) {
 // TestClaudeCommand_WritesPromptFileWithCorrectContent verifies that the
 // prompt file referenced by --append-system-prompt-file contains the full
 // buildPrompt output with the correct permissions. If the file is missing,
-// empty, or truncated, the agent launches with no team context and acts
+// empty, or truncated, the bot launches with no team context and acts
 // off-script — a silent correctness regression that is worse than the tmux
 // command-too-long failure (which at least fails loudly).
 func TestClaudeCommand_WritesPromptFileWithCorrectContent(t *testing.T) {
@@ -153,7 +153,7 @@ func TestClaudeCommand_WritesPromptFileWithCorrectContent(t *testing.T) {
 }
 
 // TestClaudeCommand_ErrorSurfaces verifies that a write failure in the prompt
-// file path propagates as an error rather than silently launching an agent
+// file path propagates as an error rather than silently launching a bot
 // with no system prompt. Reproduce the failure by setting TMPDIR to a path
 // that is not writable for our user.
 func TestClaudeCommand_ErrorSurfaces(t *testing.T) {
@@ -207,7 +207,7 @@ func TestPaneFallbackMessages_TmuxMissingVsSpawnFailure(t *testing.T) {
 		t.Errorf("tmux-missing broker message should mention installing tmux, got:\n%s", missingBroker)
 	}
 
-	rejectedStderr, rejectedBroker := paneFallbackMessages(true, "spawn visible agents failed: tmux: command too long")
+	rejectedStderr, rejectedBroker := paneFallbackMessages(true, "spawn visible bots failed: tmux: command too long")
 	if strings.Contains(strings.ToLower(rejectedStderr), "install tmux") {
 		t.Errorf("tmux-installed-but-rejected stderr must NOT say 'install tmux' (tmux IS installed), got:\n%s", rejectedStderr)
 	}
@@ -216,13 +216,13 @@ func TestPaneFallbackMessages_TmuxMissingVsSpawnFailure(t *testing.T) {
 	}
 	// And it should still carry the failure detail forward so the user can
 	// file a bug with enough info to reproduce.
-	if !strings.Contains(rejectedStderr, "spawn visible agents failed") {
+	if !strings.Contains(rejectedStderr, "spawn visible bots failed") {
 		t.Errorf("tmux-rejected stderr should carry failure detail, got:\n%s", rejectedStderr)
 	}
 }
 
 // TestLauncherShutdown_CleansAgentTempFiles verifies that Launcher.Shutdown()
-// removes the per-agent temp files (MCP config + system prompt) written
+// removes the per-bot temp files (MCP config + system prompt) written
 // during launch. These files contain the broker token and full system prompt
 // and should not outlive the session.
 func TestLauncherShutdown_CleansAgentTempFiles(t *testing.T) {
@@ -244,19 +244,19 @@ func TestLauncherShutdown_CleansAgentTempFiles(t *testing.T) {
 		t.Fatal("expected office members, got none")
 	}
 
-	// Force generation of both temp files per agent.
+	// Force generation of both temp files per bot.
 	var promptFiles, mcpFiles []string
 	for _, m := range members {
 		slug := m.Slug
-		mcpPath, err := l.ensureAgentMCPConfig(slug)
+		mcpPath, err := l.ensureBotMCPConfig(slug)
 		if err != nil {
-			t.Fatalf("ensureAgentMCPConfig(%s): %v", slug, err)
+			t.Fatalf("ensureBotMCPConfig(%s): %v", slug, err)
 		}
 		mcpFiles = append(mcpFiles, mcpPath)
 
-		promptPath, err := l.writeAgentPromptFile(slug, l.buildPrompt(slug))
+		promptPath, err := l.writeBotPromptFile(slug, l.buildPrompt(slug))
 		if err != nil {
-			t.Fatalf("writeAgentPromptFile(%s): %v", slug, err)
+			t.Fatalf("writeBotPromptFile(%s): %v", slug, err)
 		}
 		promptFiles = append(promptFiles, promptPath)
 	}
@@ -268,7 +268,7 @@ func TestLauncherShutdown_CleansAgentTempFiles(t *testing.T) {
 		}
 	}
 
-	l.cleanupAgentTempFiles()
+	l.cleanupBotTempFiles()
 
 	for _, p := range append(promptFiles, mcpFiles...) {
 		if _, err := os.Stat(p); !os.IsNotExist(err) {

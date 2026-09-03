@@ -16,12 +16,12 @@ import (
 	"github.com/nex-crm/wuphf/internal/computer"
 )
 
-// The cloud proxy is the MCP server an agent CLI spawns for a box. Every
+// The cloud proxy is the MCP server a bot CLI spawns for a box. Every
 // action goes through the box's REST command endpoint (no inbound port, no
 // tunnel), so a round trip is expensive. The whole design is one round
 // trip per step: act, settle, capture, and base64 run in a single shell
 // command, and the frame rides back in the same tool result as an image
-// block. The agent never needs a follow-up screenshot call.
+// block. The bot never needs a follow-up screenshot call.
 //
 // Ported from milind-soni/OpenMausBot server/computer-proxy.ts, minus the
 // Chrome DevTools browser tools, which are a follow-up.
@@ -55,7 +55,7 @@ func MCPLaunch(binary, boxID, token string, control computer.ControlEndpoint) co
 	return launch
 }
 
-// RunProxy serves the cloud computer tools over stdio until the agent
+// RunProxy serves the cloud computer tools over stdio until the bot
 // closes the transport.
 func RunProxy(ctx context.Context, client *Client, boxID string, gate *computer.GateClient) error {
 	if !client.Configured() {
@@ -289,7 +289,7 @@ func (p *Proxy) run(ctx context.Context, command string, timeout time.Duration) 
 	var notRunning *NotRunningError
 	if err != nil && asNotRunning(err, &notRunning) {
 		// Boxes archive themselves when idle; wake it and carry on rather
-		// than handing the agent a cryptic 409.
+		// than handing the bot a cryptic 409.
 		if _, werr := p.client.WaitReady(ctx, p.boxID, 90*time.Second); werr == nil {
 			return p.client.Run(ctx, p.boxID, IsolatedCommand(command), timeout)
 		}

@@ -1,7 +1,7 @@
 /**
  * Helpers for grouping the wiki catalog into mention-picker categories.
  *
- * The wiki catalog already includes wiki pages, agents, tasks, people,
+ * The wiki catalog already includes wiki pages, bots, tasks, people,
  * companies, projects, etc. — they share a single `WikiCatalogEntry`
  * shape and resolve through the same `[[slug]]` wikilink path. To make
  * the slash and `@` mention pickers feel structured, we project entries
@@ -9,9 +9,9 @@
  * (which the broker populates from the path prefix `team/<group>/...`).
  *
  * Grouping rules:
- *   - `agents`: entries whose path starts with `agents/` (the legacy
- *     v1.2 per-agent notebook namespace) OR whose `group` is `agents`
- *     in newer blueprints. Agents are tracked separately so a "@"
+ *   - `bots`: entries whose path starts with `bots/` (the legacy
+ *     v1.2 per-bot notebook namespace) OR whose `group` is `bots`
+ *     in newer blueprints. Bots are tracked separately so a "@"
  *     mention can default to them.
  *   - `tasks`: `group === "tasks"`.
  *   - `people` / `companies` / `projects`: matched on `group` directly.
@@ -45,7 +45,7 @@ export interface MentionItem {
 
 const CATEGORY_LABELS: Record<MentionCategory, string> = {
   pages: "Pages",
-  agents: "Agents",
+  agents: "Bots",
   tasks: "Tasks",
   people: "People",
   companies: "Companies",

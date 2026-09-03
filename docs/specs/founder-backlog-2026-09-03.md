@@ -19,7 +19,7 @@ the controls. Never `--no-verify`.
 remove 'Office' entity from here. this should not be a text but the UI should
 do the work"
 
-**Observed:** In DM `#ceo__human`, asking "can you spin up a prospecting agent"
+**Observed:** In DM `#ceo__human`, asking "can you spin up a prospecting bot"
 produces a prose system message:
 
 > **Office** 23:58
@@ -89,16 +89,16 @@ zero tasks + one blocking request must render the card, not the empty state.
 
 ---
 
-## B3 — Rename "Agent" → "Bot"
+## B3 — Rename "Bot" → "Bot"
 
 **Status:** IN PROGRESS
 
-**Reported:** "rename all 'Agent' stuff to be called 'bot'"
+**Reported:** "rename all 'Bot' stuff to be called 'bot'"
 
 **Scope decided by founder:** surface + code, **wire stable**.
 
 Rename:
-- UI copy and labels ("Agents" → "Bots", "New Agent" → "New Bot")
+- UI copy and labels ("Bots" → "Bots", "New Bot" → "New Bot")
 - Go identifiers (`AgentConfig` → `BotConfig`, `agentSlug` → `botSlug`)
 - TS/TSX identifiers and filenames (`AgentPanel.tsx` → `BotPanel.tsx`)
 - docs, prompts, website copy
@@ -110,18 +110,61 @@ Do **not** rename (compatibility — would break every existing install):
 - on-disk state: `~/.wuphf/agents/<slug>/…`
 
 Also do **not** rename (not the product concept):
-- `AGENTS.md` files — the AI-coding-agent instruction convention (Claude/Codex
+- `AGENTS.md` files — the AI-coding-bot instruction convention (Claude/Codex
   read these by name)
 - `.claude/agents/`, `docs/agents/`
 - `User-Agent` HTTP headers
 - `packages/agent-runners` — external runner integration naming
-- prose about third-party AI coding agents in `CLAUDE.md` / `AGENTS.md`
+- prose about third-party AI coding bots in `CLAUDE.md` / `AGENTS.md`
 
 **Measured scope:** 16,527 occurrences across 1,084 files (main tree, excluding
 worktrees, `.gomodcache`, `node_modules`, `web/dist`).
 
-**Landing:** one mechanical commit straight to `main`, after the B1/B2 fixes,
-so the ~40 in-flight worktrees rebase onto it once.
+**Landing:** one mechanical commit, opened as a PR (the founder changed the
+landing rule mid-session: always PR, then merge).
+
+**What actually shipped, and the seams that made it safe.** The rename ran as
+scripted passes over a clean tree so it is reproducible, not hand-edited:
+
+1. **Identifiers** (Go + TS). Two rules did the safety work, both checkable:
+   never rewrite inside a quoted string, and never rewrite a token containing
+   `_`. Struct tags, routes, disk paths and MCP tool names all live in strings;
+   snake_case IS the wire vocabulary in both languages.
+2. **User-visible copy** — strings a human reads, identified by containing a
+   space, with a denylist for headers, storage keys, routes and slugs.
+3. **JSX prose**, which the identifier pass had to skip: `agent`/`agents` are
+   simultaneously the commonest local names and live wire field names, and
+   TypeScript cannot tell a field read from a local.
+4. **Filenames and directories**, with every import specifier repointed.
+5. **Docs, prompts and website prose**, with fenced code blocks and inline
+   code protected — those quote the wire back verbatim.
+
+**Deliberately still "agent" (the wire, unchanged):**
+- JSON keys `agent_slug`, `agent_id`, `agents`, `one_on_one_agent`, …
+- routes `/api/agents/`, `/agent-stream/`, `/agent-logs`
+- MCP tool names `agent_message`, `agent_slug`
+- on-disk state `~/.wuphf/agents/<slug>/`
+- env var `WUPHF_AGENT_SLUG`, header `User-Agent`
+- OpenClaw session keys (`agent:main:main`), the `one` CLI's `--agent` flag,
+  LobeHub's `agents/{name}.md`
+- TS wire FIELD spellings (`agentSlug`, `agentId`, `agentName`, `agentRole`),
+  because a silent field rename is the one failure neither tsc nor the suite
+  would catch
+
+**Also unchanged (not the product concept):** `AGENTS.md`, `docs/agents/`,
+`.claude/agents/`, `CLAUDE.md`, and the `wuphf-agent` pi-mono build engine.
+
+**Verification:** `go build ./...` clean, `go vet` clean, `gofmt` clean, web
+`tsc --noEmit` clean, biome clean, 2533/2533 web tests pass, and every Go
+package passes except `internal/team`, whose 9 failures are pre-existing on
+clean `origin/main` (upstream commit 2548575e0 added two system skills without
+updating the tests that assert skill counts). Confirmed by running those exact
+tests against a clean `origin/main` worktree.
+
+Live-verified in gstack browser: the office sidebar reads BOTS / New Bot, the
+status bar reads "2 bots", and the wizard heading reads "Create bot" at 12:1
+contrast. The only remaining "Agent" on screen is "Reporting Agent", a
+user-created app name in office state — data, correctly untouched.
 
 ---
 
@@ -156,21 +199,21 @@ bar showed `running mcp__wuphf-office…`.
 |---|------|--------|-------|
 | B1 | Blocking question not in chat | FIXED | 797c679f5 — interactive in-thread card, "Office" gone |
 | B2 | Tasks badge vs empty list | FIXED | d890b9c2b — empty state now gated on attention items too |
-| B3 | Agent → Bot rename | IN PROGRESS | phase A tooling built + validated |
+| B3 | Bot → Bot rename | IN PROGRESS | phase A tooling built + validated |
 | B4 | Chief of Staff latency | FIXED | a2e605d84 — token deltas; follow-ups B4a/B4b below |
-| B5 | New Agent wizard unreadable | FIXED | 04802c7ef — 1.26:1 → 12.00:1 / 15.60:1, verified in browser |
+| B5 | New Bot wizard unreadable | FIXED | 04802c7ef — 1.26:1 → 12.00:1 / 15.60:1, verified in browser |
 | B6 | Dev script ignores PORT_WEB | OPEN | scripts/dev-mvp.sh only gates its health check |
 
 
 ---
 
-## B5 — New Agent wizard unreadable on dark themes
+## B5 — New Bot wizard unreadable on dark themes
 
 **Status:** FIXED — commit 04802c7ef
 
-**Reported:** "fix new agent flow UI. it is unreadable"
+**Reported:** "fix new bot flow UI. it is unreadable"
 
-**Observed:** In the Create-agent modal, the "Create agent" heading, every
+**Observed:** In the Create-bot modal, the "Create bot" heading, every
 field label, and every placeholder rendered near-black on a near-black card.
 Only the help paragraphs and the tab labels were legible.
 
@@ -236,3 +279,29 @@ developer's real office is on. Pass the port through to the binary, or drop
 the variable.
 
 Hit live on 2026-09-03: it displaced the founder's running office.
+
+
+---
+
+## B7 — main is red from upstream commit 2548575e0
+
+**Status:** OPEN — not mine to fix, flagged for the owner
+
+`feat(team): app building and wiki maintenance become system skills` seeds two
+new system skills (`app-building`, `wiki-maintenance`) into every broker, but
+did not update the tests that assert exact skill counts or sets. Nine tests in
+`internal/team` fail on a clean `origin/main` checkout:
+
+- TestSeedDefaultSkills_IsIdempotent
+- TestSkillCreatePersistenceRoundTrip
+- TestInvokeSkillTracksInvokerChannelAndExecutionMetadata
+- TestHandlePostSkill_RejectsProposeAction
+- TestHandleStudioRunWorkflowExecutesOneDraftAndUpdatesSkill
+- TestHandleStudioRunWorkflowReturnsRateLimitMetadata
+- TestBrokerLoadsLastGoodSnapshotWhenPrimaryStateIsClobbered
+- TestEnsureWikiWorkerRetriesAfterInitFailure
+- TestMembershipGrantsChannelAccess
+
+Left alone deliberately: that area is under active work in another session, and
+editing those tests would collide with it. `scripts/test-go.sh` halts on the
+first failing package, so this masks everything after `internal/team`.

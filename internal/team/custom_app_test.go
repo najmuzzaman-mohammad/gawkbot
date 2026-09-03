@@ -16,7 +16,7 @@ func TestCustomAppStoreCreateGetListUpdateDelete(t *testing.T) {
 		Name:        "Standup Digest",
 		Icon:        "📊",
 		Summary:     "Daily standup",
-		Description: "Lists each agent's open tasks grouped by status.",
+		Description: "Lists each bot's open tasks grouped by status.",
 		HTML:        validAppHTML,
 		Actor:       "app-builder",
 	}, now)
@@ -269,7 +269,7 @@ func TestCustomAppSourcePersistence(t *testing.T) {
 		t.Fatalf("source not persisted: %v", src)
 	}
 	// The host always writes the protected contract files into the persisted
-	// source, even when the agent omitted them, so a later edit + build has them.
+	// source, even when the bot omitted them, so a later edit + build has them.
 	for _, p := range []string{"src/wuphf-bridge.ts", "src/wuphf-inspector.ts", "vite.config.ts"} {
 		if src[p] == "" {
 			t.Fatalf("protected file %q not persisted: have %v", p, keysOf(src))

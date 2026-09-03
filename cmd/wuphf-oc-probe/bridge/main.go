@@ -161,7 +161,7 @@ func main() {
 	}
 
 	// 4. Multi-turn conversation. Send three distinct messages, collect replies.
-	// Use concrete questions so the agent produces real answers instead of
+	// Use concrete questions so the bot produces real answers instead of
 	// shrugging the turn off as noise ("NO_REPLY"). Each prompt references the
 	// prior turn so we can visually confirm multi-turn context is preserved.
 	nonce := fmt.Sprint(time.Now().UnixNano())
@@ -195,12 +195,12 @@ func main() {
 			time.Sleep(300 * time.Millisecond)
 		}
 		if reply == "" {
-			die("turn %d: no agent reply within 15s", i+1)
+			die("turn %d: no bot reply within 15s", i+1)
 		}
 		fmt.Printf("RECV turn-%d: %q\n", i+1, truncate(reply, 140))
 		repliesByTurn[i] = reply
 
-		// Confirm user-role echo wasn't forwarded as an agent msg.
+		// Confirm user-role echo wasn't forwarded as a bot msg.
 		for _, m := range broker.AllMessages()[before:] {
 			if m.From == bridgeSlug && m.Content == msg {
 				die("turn %d: bridge echoed our outbound back — role filter broken", i+1)

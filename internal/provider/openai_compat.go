@@ -15,36 +15,36 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
 // NewOpenAICompatStreamFn builds the StreamFn factory shared by all OpenAI-
 // compatible local backends (MLX-LM, Ollama, Exo, llama.cpp's server, vLLM,
 // etc). The returned factory is the value providers store in Entry.StreamFn:
-// the dispatcher passes it an agent slug, and the inner closure is invoked
-// per agent turn with the conversation history + registered tools.
+// the dispatcher passes it a bot slug, and the inner closure is invoked
+// per bot turn with the conversation history + registered tools.
 //
 // kind is the provider Kind string used for error messages and for resolving
 // the runtime base URL / model via config.ResolveProviderEndpoint, which
 // layers env > config > compile-time defaults. Endpoints are resolved at
 // stream time (not at process start) so /provider switches and
-// ~/.wuphf/config.json edits take effect on the next agent turn without
+// ~/.wuphf/config.json edits take effect on the next bot turn without
 // requiring a restart.
 //
-// Tool calls are propagated end-to-end: agent.AgentTool entries become
+// Tool calls are propagated end-to-end: bot.BotTool entries become
 // OpenAI-shape `tools[]` with the tool's JSON schema, and assistant
 // `tool_calls` deltas are accumulated by index and re-emitted as
-// agent.StreamChunk{Type:"tool_use"} once finish_reason flips to
+// bot.StreamChunk{Type:"tool_use"} once finish_reason flips to
 // "tool_calls". The accumulator keys on the OpenAI delta `index` because
 // servers split a single tool call across multiple SSE frames and may
 // interleave deltas for parallel tool calls.
-func NewOpenAICompatStreamFn(kind, defaultBaseURL, defaultModel string) func(string) agent.StreamFn {
+func NewOpenAICompatStreamFn(kind, defaultBaseURL, defaultModel string) func(string) bot.StreamFn {
 	registerOpenAICompatDefaults(kind, defaultBaseURL, defaultModel)
-	return func(agentSlug string) agent.StreamFn {
-		return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-			ch := make(chan agent.StreamChunk, 64)
-			go runOpenAICompatStream(context.Background(), ch, kind, defaultBaseURL, defaultModel, msgs, tools, "", agentSlug)
+	return func(botSlug string) bot.StreamFn {
+		return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+			ch := make(chan bot.StreamChunk, 64)
+			go runOpenAICompatStream(context.Background(), ch, kind, defaultBaseURL, defaultModel, msgs, tools, "", botSlug)
 			return ch
 		}
 	}
@@ -54,20 +54,20 @@ func NewOpenAICompatStreamFn(kind, defaultBaseURL, defaultModel string) func(str
 // request lifetime is bound to ctx. Cancelling ctx aborts the in-flight
 // request and frees the local server's inference slot — important for
 // single-threaded inference servers (mlx_lm.server) where a leaked
-// request blocks every queued agent until the model finishes generating.
+// request blocks every queued bot until the model finishes generating.
 //
 // The kind must already be registered (its defaults are looked up from
 // the registry populated at init() time). Callers without a turn ctx
 // should use NewOpenAICompatStreamFn instead.
-func NewOpenAICompatStreamFnWithCtx(ctx context.Context, kind string) agent.StreamFn {
+func NewOpenAICompatStreamFnWithCtx(ctx context.Context, kind string) bot.StreamFn {
 	baseURL, model := openAICompatDefaultsFor(kind)
 	if baseURL == "" && model == "" {
 		// Unregistered kind: emit a clear error on the first call instead
 		// of letting an empty base URL surface six layers down as a
 		// confusing "URL must be absolute" error from net/http.
-		return func(_ []agent.Message, _ []agent.AgentTool) <-chan agent.StreamChunk {
-			ch := make(chan agent.StreamChunk, 1)
-			ch <- agent.StreamChunk{
+		return func(_ []bot.Message, _ []bot.BotTool) <-chan bot.StreamChunk {
+			ch := make(chan bot.StreamChunk, 1)
+			ch <- bot.StreamChunk{
 				Type:    "error",
 				Content: fmt.Sprintf("openai-compat: kind %q has no registered defaults — did its init() forget to call NewOpenAICompatStreamFn?", kind),
 			}
@@ -75,32 +75,32 @@ func NewOpenAICompatStreamFnWithCtx(ctx context.Context, kind string) agent.Stre
 			return ch
 		}
 	}
-	return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-		ch := make(chan agent.StreamChunk, 64)
+	return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+		ch := make(chan bot.StreamChunk, 64)
 		go runOpenAICompatStream(ctx, ch, kind, baseURL, model, msgs, tools, "", "")
 		return ch
 	}
 }
 
-// NewOpenAICompatStreamFnWithCtxAndModel is the per-agent variant of
+// NewOpenAICompatStreamFnWithCtxAndModel is the per-bot variant of
 // NewOpenAICompatStreamFnWithCtx. modelOverride, when non-empty, wins over
 // env / config / compile-time defaults for the model field on outbound
 // /v1/chat/completions requests. This is how a member's persisted
-// ProviderBinding.Model lands on the wire — without it every agent would
+// ProviderBinding.Model lands on the wire — without it every bot would
 // send the install-wide default model name regardless of what's stored on
 // their member record.
-func NewOpenAICompatStreamFnWithCtxAndModel(ctx context.Context, kind, modelOverride string) agent.StreamFn {
-	return NewOpenAICompatStreamFnWithCtxModelAndAgent(ctx, kind, modelOverride, "")
+func NewOpenAICompatStreamFnWithCtxAndModel(ctx context.Context, kind, modelOverride string) bot.StreamFn {
+	return NewOpenAICompatStreamFnWithCtxModelAndBot(ctx, kind, modelOverride, "")
 }
 
-// NewOpenAICompatStreamFnWithCtxModelAndAgent is the slug-aware variant used
-// by providers whose HTTP surface can preserve server-side per-agent state.
-func NewOpenAICompatStreamFnWithCtxModelAndAgent(ctx context.Context, kind, modelOverride, agentSlug string) agent.StreamFn {
+// NewOpenAICompatStreamFnWithCtxModelAndBot is the slug-aware variant used
+// by providers whose HTTP surface can preserve server-side per-bot state.
+func NewOpenAICompatStreamFnWithCtxModelAndBot(ctx context.Context, kind, modelOverride, botSlug string) bot.StreamFn {
 	baseURL, model := openAICompatDefaultsFor(kind)
 	if baseURL == "" && model == "" {
-		return func(_ []agent.Message, _ []agent.AgentTool) <-chan agent.StreamChunk {
-			ch := make(chan agent.StreamChunk, 1)
-			ch <- agent.StreamChunk{
+		return func(_ []bot.Message, _ []bot.BotTool) <-chan bot.StreamChunk {
+			ch := make(chan bot.StreamChunk, 1)
+			ch <- bot.StreamChunk{
 				Type:    "error",
 				Content: fmt.Sprintf("openai-compat: kind %q has no registered defaults — did its init() forget to call NewOpenAICompatStreamFn?", kind),
 			}
@@ -108,9 +108,9 @@ func NewOpenAICompatStreamFnWithCtxModelAndAgent(ctx context.Context, kind, mode
 			return ch
 		}
 	}
-	return func(msgs []agent.Message, tools []agent.AgentTool) <-chan agent.StreamChunk {
-		ch := make(chan agent.StreamChunk, 64)
-		go runOpenAICompatStream(ctx, ch, kind, baseURL, model, msgs, tools, modelOverride, agentSlug)
+	return func(msgs []bot.Message, tools []bot.BotTool) <-chan bot.StreamChunk {
+		ch := make(chan bot.StreamChunk, 64)
+		go runOpenAICompatStream(ctx, ch, kind, baseURL, model, msgs, tools, modelOverride, botSlug)
 		return ch
 	}
 }
@@ -181,7 +181,7 @@ var httpClientForOpenAICompat = func() *http.Client {
 	// (Timeout: 0) and no ResponseHeaderTimeout because a busy local
 	// server can take 30s+ to emit the first SSE frame for a 32B model.
 	// Dial timeout is bounded explicitly so a wedged DNS resolver or
-	// unreachable host can't hang an agent turn until the OS-level
+	// unreachable host can't hang a bot turn until the OS-level
 	// connect timeout fires (>60s on macOS). Default 5s is comfortable
 	// for loopback; users pointing WUPHF_OLLAMA_BASE_URL at a remote box
 	// (e.g. a Mac Studio over Wi-Fi) can bump via
@@ -201,23 +201,23 @@ func openAICompatDialTimeout() time.Duration {
 	return 5 * time.Second
 }
 
-func setOpenAICompatProviderHeaders(req *http.Request, kind, agentSlug string) {
+func setOpenAICompatProviderHeaders(req *http.Request, kind, botSlug string) {
 	apiKey := resolveOpenAICompatAPIKey(kind)
 	if apiKey == "" {
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	if kind != KindHermesAgent {
+	if kind != KindHermesBot {
 		return
 	}
-	sessionID := hermesAgentSessionID(agentSlug)
+	sessionID := hermesBotSessionID(botSlug)
 	if sessionID == "" {
 		return
 	}
 	// Hermes only accepts caller-supplied session headers on authenticated
 	// requests. Tying them to the office slug gives each WUPHF member a stable
-	// Hermes-side conversation and memory scope, matching the per-agent
+	// Hermes-side conversation and memory scope, matching the per-bot
 	// continuity users expect from OpenClaw-backed members.
 	req.Header.Set("X-Hermes-Session-Id", sessionID)
 	req.Header.Set("X-Hermes-Session-Key", sessionID)
@@ -228,7 +228,7 @@ func resolveOpenAICompatAPIKey(kind string) string {
 	if v := strings.TrimSpace(os.Getenv("WUPHF_" + envKind + "_API_KEY")); v != "" {
 		return v
 	}
-	if kind == KindHermesAgent {
+	if kind == KindHermesBot {
 		if v := strings.TrimSpace(os.Getenv("API_SERVER_KEY")); v != "" {
 			return v
 		}
@@ -252,8 +252,8 @@ func OpenAICompatAPIKey(kind string) string {
 	return resolveOpenAICompatAPIKey(kind)
 }
 
-func hermesAgentSessionID(agentSlug string) string {
-	slug := strings.ToLower(strings.TrimSpace(agentSlug))
+func hermesBotSessionID(botSlug string) string {
+	slug := strings.ToLower(strings.TrimSpace(botSlug))
 	if slug == "" {
 		return ""
 	}
@@ -283,11 +283,11 @@ func hermesAgentSessionID(agentSlug string) string {
 
 func runOpenAICompatStream(
 	parentCtx context.Context,
-	ch chan<- agent.StreamChunk,
+	ch chan<- bot.StreamChunk,
 	kind, defaultBaseURL, defaultModel string,
-	msgs []agent.Message, tools []agent.AgentTool,
+	msgs []bot.Message, tools []bot.BotTool,
 	modelOverride string,
-	agentSlug string,
+	botSlug string,
 ) {
 	defer close(ch)
 
@@ -300,7 +300,7 @@ func runOpenAICompatStream(
 	body := openaiRequest{
 		Model:    model,
 		Stream:   true,
-		Messages: agentMsgsToOpenAI(msgs),
+		Messages: botMsgsToOpenAI(msgs),
 		// Ask the server to emit a final SSE frame containing token usage.
 		// Recognised by ollama, recent mlx_lm.server, exo, llama.cpp's
 		// server, and the canonical OpenAI API. Servers that don't
@@ -310,16 +310,16 @@ func runOpenAICompatStream(
 		StreamOptions: &openaiStreamOptions{IncludeUsage: true},
 	}
 	if kind == KindOpenclawHTTP {
-		body.User = hermesAgentSessionID(agentSlug)
+		body.User = hermesBotSessionID(botSlug)
 	}
 	if len(tools) > 0 {
-		body.Tools = agentToolsToOpenAI(tools)
+		body.Tools = botToolsToOpenAI(tools)
 		body.ToolChoice = "auto"
 	}
 
 	payload, err := json.Marshal(body)
 	if err != nil {
-		ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): marshal request: %v", kind, err)}
+		ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): marshal request: %v", kind, err)}
 		return
 	}
 
@@ -328,16 +328,16 @@ func runOpenAICompatStream(
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): build request: %v", kind, err)}
+		ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): build request: %v", kind, err)}
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "text/event-stream")
-	setOpenAICompatProviderHeaders(req, kind, agentSlug)
+	setOpenAICompatProviderHeaders(req, kind, botSlug)
 
 	resp, err := httpClientForOpenAICompat().Do(req)
 	if err != nil {
-		ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): connect %s: %v. Is the local server running?", kind, endpoint, err)}
+		ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): connect %s: %v. Is the local server running?", kind, endpoint, err)}
 		return
 	}
 	defer resp.Body.Close()
@@ -346,7 +346,7 @@ func runOpenAICompatStream(
 		// Read up to 8 KiB so we can surface the server's error JSON without
 		// pulling a multi-megabyte HTML page into the chunk.
 		errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<10))
-		ch <- agent.StreamChunk{
+		ch <- bot.StreamChunk{
 			Type:    "error",
 			Content: fmt.Sprintf("openai-compat (%s): HTTP %d from %s: %s", kind, resp.StatusCode, endpoint, strings.TrimSpace(string(errBody))),
 		}
@@ -359,7 +359,7 @@ func runOpenAICompatStream(
 // parseOpenAISSEStream consumes the SSE body and translates it into wuphf's
 // StreamChunk vocabulary. Pulled out for direct testing without needing an
 // HTTP layer.
-func parseOpenAISSEStream(ch chan<- agent.StreamChunk, kind string, body io.Reader) {
+func parseOpenAISSEStream(ch chan<- bot.StreamChunk, kind string, body io.Reader) {
 	reader := bufio.NewReaderSize(body, 64<<10)
 
 	// toolAccumulators[index] = partial tool call being assembled across
@@ -387,7 +387,7 @@ func parseOpenAISSEStream(ch chan<- agent.StreamChunk, kind string, body io.Read
 		if latestUsage == nil {
 			return
 		}
-		ch <- agent.StreamChunk{
+		ch <- bot.StreamChunk{
 			Type:         "usage",
 			InputTokens:  latestUsage.PromptTokens,
 			OutputTokens: latestUsage.CompletionTokens,
@@ -406,14 +406,14 @@ func parseOpenAISSEStream(ch chan<- agent.StreamChunk, kind string, body io.Read
 			params := map[string]any{}
 			if strings.TrimSpace(rawArgs) != "" {
 				if err := json.Unmarshal([]byte(rawArgs), &params); err != nil {
-					ch <- agent.StreamChunk{
+					ch <- bot.StreamChunk{
 						Type:    "error",
 						Content: fmt.Sprintf("openai-compat (%s): tool %q produced unparseable arguments: %v\nraw: %s", kind, acc.name, err, rawArgs),
 					}
 					continue
 				}
 			}
-			ch <- agent.StreamChunk{
+			ch <- bot.StreamChunk{
 				Type:       "tool_use",
 				ToolName:   acc.name,
 				ToolParams: params,
@@ -429,7 +429,7 @@ func parseOpenAISSEStream(ch chan<- agent.StreamChunk, kind string, body io.Read
 			if name, args, ok := parseJSONInContentToolCall(textBuf.String()); ok {
 				params := map[string]any{}
 				_ = json.Unmarshal([]byte(args), &params)
-				ch <- agent.StreamChunk{
+				ch <- bot.StreamChunk{
 					Type:       "tool_use",
 					ToolName:   name,
 					ToolParams: params,
@@ -472,7 +472,7 @@ func parseOpenAISSEStream(ch chan<- agent.StreamChunk, kind string, body io.Read
 			// headless_openai_compat.go's "Record token counts even
 			// on partial / errored turns" comment.
 			flushUsage()
-			ch <- agent.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): read stream: %v", kind, err)}
+			ch <- bot.StreamChunk{Type: "error", Content: fmt.Sprintf("openai-compat (%s): read stream: %v", kind, err)}
 			return
 		}
 	}
@@ -537,7 +537,7 @@ func parseJSONInContentToolCall(content string) (string, string, bool) {
 // trailing ``` so a tool-call JSON wrapped in markdown still parses.
 // Qwen2.5-Coder reflexively wraps code-shaped output (including JSON
 // tool calls) in fences when it thinks it's "writing code"; this is
-// what produced the user-visible bug where the agent reply was a
+// what produced the user-visible bug where the bot reply was a
 // rendered code block of JSON instead of an executed tool.
 func stripMarkdownCodeFence(s string) string {
 	t := strings.TrimSpace(s)
@@ -696,7 +696,7 @@ func stripSSEDataPrefix(line string) (string, bool) {
 }
 
 func processOpenAISSEEvent(
-	ch chan<- agent.StreamChunk,
+	ch chan<- bot.StreamChunk,
 	kind, payload string,
 	toolAccumulators map[int]*toolAccum,
 	emitOrder *[]int,
@@ -705,7 +705,7 @@ func processOpenAISSEEvent(
 ) {
 	var ev openaiStreamChunk
 	if err := json.Unmarshal([]byte(payload), &ev); err != nil {
-		ch <- agent.StreamChunk{
+		ch <- bot.StreamChunk{
 			Type:    "error",
 			Content: fmt.Sprintf("openai-compat (%s): malformed SSE payload: %v\nraw: %s", kind, err, payload),
 		}
@@ -741,7 +741,7 @@ func processOpenAISSEEvent(
 	choice := ev.Choices[0]
 	if c := choice.Delta.Content; c != "" {
 		textBuf.WriteString(c)
-		ch <- agent.StreamChunk{Type: "text", Content: c}
+		ch <- bot.StreamChunk{Type: "text", Content: c}
 	}
 	for _, tc := range choice.Delta.ToolCalls {
 		acc, exists := toolAccumulators[tc.Index]
@@ -804,7 +804,7 @@ type openaiToolFunction struct {
 	Parameters  map[string]any `json:"parameters,omitempty"`
 }
 
-func agentMsgsToOpenAI(msgs []agent.Message) []openaiMessage {
+func botMsgsToOpenAI(msgs []bot.Message) []openaiMessage {
 	out := make([]openaiMessage, 0, len(msgs))
 	for _, m := range msgs {
 		role := m.Role
@@ -816,7 +816,7 @@ func agentMsgsToOpenAI(msgs []agent.Message) []openaiMessage {
 	return out
 }
 
-func agentToolsToOpenAI(tools []agent.AgentTool) []openaiTool {
+func botToolsToOpenAI(tools []bot.BotTool) []openaiTool {
 	out := make([]openaiTool, 0, len(tools))
 	for _, t := range tools {
 		params := t.Schema

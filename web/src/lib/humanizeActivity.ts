@@ -1,7 +1,7 @@
 /**
  * humanizeActivity — the render-boundary humanizer (ten-out-of-ten E1).
  *
- * Agent runtime strings leak engineering internals into human surfaces:
+ * Bot runtime strings leak engineering internals into human surfaces:
  * MCP tool ids ("mcp__wuphf-office__team_task"), raw tool-call JSON
  * ('[{"tool_name":…,"type":"tool_reference"}]') in the typing strip,
  * process exhaust ("signal: killed", "exit status 1") in the activity
@@ -80,7 +80,7 @@ export function looksLikeRawToolPayload(raw: string): boolean {
 }
 
 /**
- * Clean a LIVE activity string ("what is this agent doing right now") for
+ * Clean a LIVE activity string ("what is this bot doing right now") for
  * the participants rail and the typing strip. Genuine prose passes
  * through; anything machine-shaped collapses to "Working…" so the user
  * still sees activity without seeing code.

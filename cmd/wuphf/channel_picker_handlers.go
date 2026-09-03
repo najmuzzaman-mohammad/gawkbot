@@ -61,15 +61,15 @@ func (m channelModel) handlePickerSelectMsg(msg tui.PickerSelectMsg) (channelMod
 				return m, pollOfficeLedger()
 			}
 		case strings.HasPrefix(msg.Value, "session:1o1:"):
-			agent := strings.TrimSpace(strings.TrimPrefix(msg.Value, "session:1o1:"))
-			if agent == "" {
-				agent = team.DefaultOneOnOneAgent
+			bot := strings.TrimSpace(strings.TrimPrefix(msg.Value, "session:1o1:"))
+			if bot == "" {
+				bot = team.DefaultOneOnOneBot
 			}
-			m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, agent)
+			m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, bot)
 			m.notice = "Confirm the direct session switch."
 			return m, nil
 		case msg.Value == "session:office":
-			m.confirm = confirmationForSessionSwitch(team.SessionModeOffice, team.DefaultOneOnOneAgent)
+			m.confirm = confirmationForSessionSwitch(team.SessionModeOffice, team.DefaultOneOnOneBot)
 			m.notice = "Confirm the session switch."
 			return m, nil
 		case strings.HasPrefix(msg.Value, "switch:"):
@@ -110,11 +110,11 @@ func (m channelModel) handlePickerSelectMsg(msg tui.PickerSelectMsg) (channelMod
 		m.pickerMode = channelPickerNone
 		m.applyRecoveryPrompt(msg.Value)
 		return m, nil
-	case channelPickerAgents:
+	case channelPickerBots:
 		m.picker.SetActive(false)
 		m.pickerMode = channelPickerNone
 		if msg.Value == "create:new" {
-			m.notice = "Use /agent create <slug> <Display Name> to add a new office member."
+			m.notice = "Use /bot create <slug> <Display Name> to add a new office member."
 			return m, nil
 		}
 		parts := strings.SplitN(msg.Value, ":", 2)
@@ -142,7 +142,7 @@ func (m channelModel) handlePickerSelectMsg(msg tui.PickerSelectMsg) (channelMod
 			}
 		}
 		return m, nil
-	case channelPickerCalendarAgent:
+	case channelPickerCalendarBot:
 		m.picker.SetActive(false)
 		m.pickerMode = channelPickerNone
 		if msg.Value == "all" {
@@ -162,34 +162,34 @@ func (m channelModel) handlePickerSelectMsg(msg tui.PickerSelectMsg) (channelMod
 		m.pickerMode = channelPickerNone
 		switch strings.TrimSpace(msg.Value) {
 		case "enable":
-			options := m.buildOneOnOneAgentPickerOptions()
+			options := m.buildOneOnOneBotPickerOptions()
 			if len(options) == 0 {
-				m.notice = "No office agents are available for direct mode."
+				m.notice = "No office bots are available for direct mode."
 				return m, nil
 			}
-			m.picker = tui.NewPicker("Choose Direct Agent", options)
+			m.picker = tui.NewPicker("Choose Direct Bot", options)
 			m.picker.SetActive(true)
-			m.pickerMode = channelPickerOneOnOneAgent
+			m.pickerMode = channelPickerOneOnOneBot
 			return m, nil
 		case "disable":
 			if !m.isOneOnOne() {
 				m.notice = "Already running the full office team."
 				return m, nil
 			}
-			m.confirm = confirmationForSessionSwitch(team.SessionModeOffice, team.DefaultOneOnOneAgent)
+			m.confirm = confirmationForSessionSwitch(team.SessionModeOffice, team.DefaultOneOnOneBot)
 			m.notice = "Confirm the session switch."
 			return m, nil
 		default:
 			return m, nil
 		}
-	case channelPickerOneOnOneAgent:
+	case channelPickerOneOnOneBot:
 		m.picker.SetActive(false)
 		m.pickerMode = channelPickerNone
-		agent := strings.TrimSpace(msg.Value)
-		if agent == "" {
-			agent = team.DefaultOneOnOneAgent
+		bot := strings.TrimSpace(msg.Value)
+		if bot == "" {
+			bot = team.DefaultOneOnOneBot
 		}
-		m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, agent)
+		m.confirm = confirmationForSessionSwitch(team.SessionModeOneOnOne, bot)
 		m.notice = "Confirm the direct session switch."
 		return m, nil
 	case channelPickerConnect:

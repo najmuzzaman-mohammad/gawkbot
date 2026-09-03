@@ -1,9 +1,9 @@
 // OperatorAppDetail — the detail view for a REAL built app (id `app_…`). Three
-// tabs: UI / Data / Integrations. The UI tab renders the agent's ONE live app
+// tabs: UI / Data / Integrations. The UI tab renders the bot's ONE live app
 // inside the shipped hardened sandbox (CustomAppFrame + Bridge v2), with the
 // artifacts its runs produced (md/html/pdf) collected below the app.
 //
-// There is no chat on an app. Talking to an agent happens in that agent's DM,
+// There is no chat on an app. Talking to a bot happens in that bot's DM,
 // full stop — an app's one conversational affordance is "Edit app", which posts
 // a change request to the App Builder that owns the build.
 
@@ -18,9 +18,6 @@ import type { CustomAppDetail } from "../../api/apps";
 import { AppLivePreview } from "../../components/apps/AppLivePreview";
 import { CustomAppFrame } from "../../components/apps/CustomAppFrame";
 import { navigateToSidebarApp } from "../../lib/sidebarNav";
-import { AgentName } from "../agents/AgentName";
-import { AgentPurpose } from "../agents/AgentPurpose";
-import { tryListArtifacts } from "../agents/agentStateClient";
 import {
   appBuildState,
   useDeleteApp,
@@ -28,6 +25,9 @@ import {
 } from "../apps/useOperatorApps";
 import { ArtifactsTab } from "../artifacts/ArtifactsTab";
 import type { Artifact } from "../artifacts/artifacts";
+import { BotName } from "../bots/BotName";
+import { BotPurpose } from "../bots/BotPurpose";
+import { tryListArtifacts } from "../bots/botStateClient";
 import { AppIntegrationBanner } from "../components/AppIntegrationBanner";
 import { EmptyState } from "../components/EmptyState";
 import { Eyebrow, type TabDef, Tabs } from "../components/primitives";
@@ -56,7 +56,7 @@ interface AppDetailProps {
   /**
    * Opens the app-EDIT chat (AppBuilderChat in editApp mode → the broker's
    * improve path, which republishes a new version). This is the ONLY way to ask
-   * for a change to an app: a UI change or a bug report goes to the agent that
+   * for a change to an app: a UI change or a bug report goes to the bot that
    * builds the app, not to a chat pane on the app itself.
    */
   onEditApp?: (app: { id: string; name: string }) => void;
@@ -95,7 +95,7 @@ export function AppDetail({
     return () => window.clearInterval(tick);
   }, [ready, failed, appId, queryClient]);
 
-  // The agent's persisted artifacts (routine outcomes) from the agent service,
+  // The bot's persisted artifacts (routine outcomes) from the bot service,
   // collected below the live app on the UI tab. Refreshed each time the UI tab
   // becomes active; stays empty when the service is unreachable.
   const [remoteArtifacts, setRemoteArtifacts] = useState<Artifact[]>([]);
@@ -173,7 +173,7 @@ export function AppDetail({
         {onBack ? (
           <button type="button" className="opr-back" onClick={onBack}>
             <ArrowLeft size={13} strokeWidth={1.9} aria-hidden={true} />
-            All agents
+            All bots
           </button>
         ) : null}
 
@@ -181,7 +181,7 @@ export function AppDetail({
           <div className="opr-detail-titles">
             <div className="opr-detail-name">
               {app ? (
-                <AgentName id={app.id} fallback={app.name} />
+                <BotName id={app.id} fallback={app.name} />
               ) : (
                 "Loading app…"
               )}
@@ -240,7 +240,7 @@ export function AppDetail({
           ) : null}
         </div>
 
-        <AgentPurpose summary={app?.summary} />
+        <BotPurpose summary={app?.summary} />
 
         <Tabs tabs={TABS} active={tab} onSelect={selectTab} />
         {walkNote ? (
@@ -265,12 +265,12 @@ export function AppDetail({
               onRemove={removeAndBack}
               removing={remove.isPending}
             />
-            {/* The artifacts the agent's runs produced, under its one app. */}
+            {/* The artifacts the bot's runs produced, under its one app. */}
             {remoteArtifacts.length > 0 ? (
               <div className="opr-ui-artifacts">
                 <Eyebrow>Artifacts</Eyebrow>
                 <ArtifactsTab
-                  agentName={app?.name ?? "This agent"}
+                  agentName={app?.name ?? "This bot"}
                   artifacts={remoteArtifacts}
                 />
               </div>
@@ -309,8 +309,8 @@ function TabBody({
   }
 }
 
-// The agent's Integrations tab IS the workspace catalog: connected platforms
-// (which this agent can call) plus the connectable rest. The catalog's own
+// The bot's Integrations tab IS the workspace catalog: connected platforms
+// (which this bot can call) plus the connectable rest. The catalog's own
 // "Connected" section is the single source — no duplicate chip strip
 // (2026-08-15 audit).
 function AppIntegrationsTab() {
@@ -342,7 +342,7 @@ function UiTab({
     );
   }
   // Still building, but the app exists: show the LIVE dev-server preview so the
-  // UI builds in front of you (HMR reflects the agent's edits) instead of a
+  // UI builds in front of you (HMR reflects the bot's edits) instead of a
   // static placeholder. Reuses the shipped AppLivePreview.
   if (app && !failed) {
     return (

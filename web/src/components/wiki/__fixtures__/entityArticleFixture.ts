@@ -44,7 +44,7 @@ Associated
 ## References
 
 [^1]: Task TASK-3 — artifact: [team/playbooks/acme-renewal.md](team/playbooks/acme-renewal.md); recorded by eng on 2026-06-10.
-[^2]: artifact: [agents/eng/notes.md](agents/eng/notes.md); recorded by ceo on 2026-06-10.
+[^2]: artifact: [bots/eng/notes.md](bots/eng/notes.md); recorded by ceo on 2026-06-10.
 `;
 
 /** The article title the broker derives for the fixture. */

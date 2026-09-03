@@ -31,7 +31,7 @@ const BADGES: Array<{ cls: string; label: string; meaning: string }> = [
   {
     cls: "badge badge-orange",
     label: "stuck",
-    meaning: "Warning — agent or task is blocked",
+    meaning: "Warning — bot or task is blocked",
   },
 ];
 

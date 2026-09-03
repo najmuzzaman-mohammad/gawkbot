@@ -11,8 +11,8 @@ import (
 // broker_action_grants.go owns scoped, revocable action grants — the "scoped
 // grants" half of the trust model (per-action modal default + scoped grants).
 // When a human clicks "Approve & always allow" on the approval modal, a grant is
-// minted for ONE specific action by ONE agent on ONE platform. The resolver then
-// returns `proceed` (skip the modal) for that exact (agent, platform, action_id)
+// minted for ONE specific action by ONE bot on ONE platform. The resolver then
+// returns `proceed` (skip the modal) for that exact (bot, platform, action_id)
 // until the grant expires or is revoked. The scope is always a concrete
 // action_id — never a wildcard — so a grant can never widen the blast radius
 // beyond the single action the human actually saw and authorized.
@@ -24,7 +24,7 @@ import (
 // SESSION actors are restricted shared-link guests that withAuth already 403s
 // off non-allowlisted routes. So an actor-kind == human gate would be BACKWARDS
 // — it would reject the owner. The practical control is that no MCP tool reaches
-// /integrations/grants, so an agent can only get here with a shell tool + the
+// /integrations/grants, so a bot can only get here with a shell tool + the
 // broker token — at which point it already owns the broker (it could likewise
 // curl /requests/answer to approve its own card). Grants do raise the stakes
 // over that pre-existing exposure because they are STANDING and SILENT, so as
@@ -34,7 +34,7 @@ import (
 
 type actionGrant struct {
 	ID          string `json:"id"`
-	AgentSlug   string `json:"agent_slug"`
+	BotSlug     string `json:"agent_slug"`
 	Platform    string `json:"platform"`
 	ActionScope string `json:"action_scope"`
 	Channel     string `json:"channel,omitempty"`
@@ -45,7 +45,7 @@ type actionGrant struct {
 	RevokedAt   string `json:"revoked_at,omitempty"`
 }
 
-func actionGrantAgentKey(agent string) string { return strings.ToLower(strings.TrimSpace(agent)) }
+func actionGrantBotKey(bot string) string { return strings.ToLower(strings.TrimSpace(bot)) }
 func actionGrantPlatformKey(platform string) string {
 	return strings.ToLower(strings.TrimSpace(platform))
 }
@@ -90,11 +90,11 @@ func actionGrantActive(g actionGrant, now time.Time) bool {
 }
 
 // hasActiveActionGrant reports whether a non-revoked, non-expired grant covers
-// EXACTLY this (agent, platform, action_id). The match is exact on all three —
+// EXACTLY this (bot, platform, action_id). The match is exact on all three —
 // no wildcard, no platform-wide grant — so the resolver can only auto-approve
 // the precise action a human pre-authorized. Locks b.mu.
-func (b *Broker) hasActiveActionGrant(agent, platform, actionID string, now time.Time) bool {
-	a := actionGrantAgentKey(agent)
+func (b *Broker) hasActiveActionGrant(bot, platform, actionID string, now time.Time) bool {
+	a := actionGrantBotKey(bot)
 	p := actionGrantPlatformKey(platform)
 	s := actionGrantScopeKey(actionID)
 	if a == "" || p == "" || s == "" {
@@ -104,7 +104,7 @@ func (b *Broker) hasActiveActionGrant(agent, platform, actionID string, now time
 	defer b.mu.Unlock()
 	for i := range b.actionGrants {
 		g := b.actionGrants[i]
-		if actionGrantAgentKey(g.AgentSlug) == a &&
+		if actionGrantBotKey(g.BotSlug) == a &&
 			actionGrantPlatformKey(g.Platform) == p &&
 			actionGrantScopeKey(g.ActionScope) == s &&
 			actionGrantActive(g, now) {
@@ -123,19 +123,19 @@ func cloneActionGrants(in []actionGrant) []actionGrant {
 	return out
 }
 
-// addActionGrant mints a grant, idempotent on (agent, platform, scope): an
+// addActionGrant mints a grant, idempotent on (bot, platform, scope): an
 // existing active grant for the same triple is returned rather than duplicated.
 // Locks b.mu.
 func (b *Broker) addActionGrant(g actionGrant) actionGrant {
 	now := time.Now().UTC()
-	g.AgentSlug = strings.TrimSpace(g.AgentSlug)
+	g.BotSlug = strings.TrimSpace(g.BotSlug)
 	g.Platform = strings.TrimSpace(g.Platform)
 	g.ActionScope = strings.TrimSpace(g.ActionScope)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for i := range b.actionGrants {
 		existing := b.actionGrants[i]
-		if actionGrantAgentKey(existing.AgentSlug) == actionGrantAgentKey(g.AgentSlug) &&
+		if actionGrantBotKey(existing.BotSlug) == actionGrantBotKey(g.BotSlug) &&
 			actionGrantPlatformKey(existing.Platform) == actionGrantPlatformKey(g.Platform) &&
 			actionGrantScopeKey(existing.ActionScope) == actionGrantScopeKey(g.ActionScope) &&
 			actionGrantActive(existing, now) {
@@ -157,7 +157,7 @@ func (b *Broker) addActionGrant(g actionGrant) actionGrant {
 	b.actionGrants = append(b.actionGrants, g)
 	b.appendActionLocked(
 		"integration_grant_created", "office", normalizeChannelSlug(g.Channel), g.GrantedBy,
-		truncateSummary(fmt.Sprintf("Always allow %s · %s on %s", g.AgentSlug, g.ActionScope, g.Platform), 140), g.ID,
+		truncateSummary(fmt.Sprintf("Always allow %s · %s on %s", g.BotSlug, g.ActionScope, g.Platform), 140), g.ID,
 	)
 	_ = b.saveLocked()
 	return g
@@ -217,15 +217,15 @@ func (b *Broker) handleMutateActionGrant(w http.ResponseWriter, r *http.Request)
 	// SECURITY: this endpoint is host-only by construction. The broker token is
 	// the host-trust boundary (same as connect/disconnect/resolve), and human
 	// SESSION actors (shared-link guests) are already 403'd off non-allowlisted
-	// routes by withAuth. The guarantee that a prompt-injected AGENT cannot
+	// routes by withAuth. The guarantee that a prompt-injected BOT cannot
 	// grant itself a standing approval bypass is that NO MCP tool reaches this
-	// endpoint — agents act only through the fixed teammcp tool surface, none of
+	// endpoint — bots act only through the fixed teammcp tool surface, none of
 	// which mints grants. Grants are created from the human-driven approval modal
 	// (web → broker token) and revoked from the Integrations app.
 	var body struct {
 		Action      string `json:"action"`
 		ID          string `json:"id"`
-		AgentSlug   string `json:"agent_slug"`
+		BotSlug     string `json:"agent_slug"`
 		Platform    string `json:"platform"`
 		ActionScope string `json:"action_scope"`
 		ActionID    string `json:"action_id"`
@@ -243,7 +243,7 @@ func (b *Broker) handleMutateActionGrant(w http.ResponseWriter, r *http.Request)
 		if scope == "" {
 			scope = strings.TrimSpace(body.ActionID)
 		}
-		if scope == "" || strings.TrimSpace(body.AgentSlug) == "" || strings.TrimSpace(body.Platform) == "" {
+		if scope == "" || strings.TrimSpace(body.BotSlug) == "" || strings.TrimSpace(body.Platform) == "" {
 			http.Error(w, "agent_slug, platform, and action_scope are required", http.StatusBadRequest)
 			return
 		}
@@ -252,7 +252,7 @@ func (b *Broker) handleMutateActionGrant(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		grant := b.addActionGrant(actionGrant{
-			AgentSlug:   strings.TrimSpace(body.AgentSlug),
+			BotSlug:     strings.TrimSpace(body.BotSlug),
 			Platform:    strings.TrimSpace(body.Platform),
 			ActionScope: scope,
 			Channel:     strings.TrimSpace(body.Channel),

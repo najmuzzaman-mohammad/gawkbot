@@ -49,7 +49,7 @@
 //   - layout.go            — ComputeLayout panel-size calculator and
 //     RenderVerticalBorder.
 //   - styles.go            — Slack-themed palette constants
-//     (SlackSidebarBg, SlackMuted, …), AgentColorMap / StatusDotColors,
+//     (SlackSidebarBg, SlackMuted, …), BotColorMap / StatusDotColors,
 //     lipgloss style constructors, mascot helpers, and pill renderers
 //     (AccentPill, SubtlePill, TaskStatusPill, RequestKindPill).
 //   - helpers.go           — pure stdlib-only utilities (MaxInt,
@@ -67,7 +67,7 @@
 //   - list_helpers.go      — pure list filters and reversals
 //     (ReverseSignals, ReverseDecisions, ActiveWatchdogs,
 //     ReverseWatchdogs, RecentExternalActions), plus
-//     AgentSlugForDisplay and DisplaySignalKind.
+//     BotSlugForDisplay and DisplaySignalKind.
 //   - build_lines_simple.go — leaf "build*Lines" rendering helpers
 //     for the requests and skills apps (BuildRequestLines,
 //     BuildSkillLines).
@@ -139,7 +139,7 @@
 //     senders for the away-strip.
 //   - mailbox.go           — viewer-scope mailbox filter cluster:
 //     FilterMessagesForViewerScope (entry), NormalizeMailboxScope
-//     (canonicalize "inbox"/"outbox"/"agent"), the per-message
+//     (canonicalize "inbox"/"outbox"/"bot"), the per-message
 //     predicates (MailboxMessageMatchesViewerScope,
 //     MailboxMessageBelongsToViewer{Inbox,Outbox}), and
 //     MailboxMessageRepliesToViewerThread (cycle-safe ReplyTo walk).
@@ -149,7 +149,7 @@
 //   - sidebar_presence.go  — sidebar member-presence helpers:
 //     TruncateLabel, the SidebarBG/Muted/Divider/Active +
 //     DotTalking/Thinking/Coding/Idle theme consts,
-//     SidebarAgentColors map, MemberActivity / OfficeCharacter
+//     SidebarBotColors map, MemberActivity / OfficeCharacter
 //     types, ClassifyActivity, DefaultSidebarRoster,
 //     RenderOfficeCharacter (uses internal/avatar),
 //     OfficeAside (per-slug catchphrase), ActiveSidebarTask,
@@ -165,7 +165,7 @@
 //   - composer_popup.go    — autocomplete popup leaves:
 //     ComposerPopupOption struct, RenderComposerPopup (rounded
 //     popup with selection accent + footer hint),
-//     TypingAgentsFromMembers (display names of recently-active
+//     TypingBotsFromMembers (display names of recently-active
 //     teammates).
 //   - activity.go          — runtime-strip / live-work leaf helpers:
 //     TaskStatusLine, SummarizeLiveActivity / SanitizeActivityLine /
@@ -201,7 +201,7 @@
 //   - message_filters.go   — message-walking filters and selectors:
 //     FilterInsightMessages (automation senders for the insight
 //     side panels), LatestHumanFacingMessage (newest human_*-kind
-//     pointer or nil), CountUniqueAgents (distinct senders excluding
+//     pointer or nil), CountUniqueBots (distinct senders excluding
 //     "you" / automation senders).
 //   - misc_helpers.go      — small pure helpers:
 //     AppendUniqueMessages (dedup-by-trimmed-ID merge, returns the
@@ -242,9 +242,9 @@
 //     OfficeAppMessages fallback.
 //   - usage_strip.go       — RenderUsageStrip renders the
 //     "Spend by teammate" pill row beneath the office feed
-//     (avatar + token count + dollar cost per agent, ordered by
+//     (avatar + token count + dollar cost per bot, ordered by
 //     channel-member appearance, then canonical roster, then map
-//     iteration order; "" when no agents tracked or width < 40).
+//     iteration order; "" when no bots tracked or width < 40).
 //     SidebarShortcutLabel returns the "1".."9" digit shortcut
 //     for sidebar item indexes 0..8 (or "" when out of range).
 //   - doctor.go            — DoctorSeverity typed-string + the four

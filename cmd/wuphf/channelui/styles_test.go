@@ -28,14 +28,14 @@ func TestStylesProduceRenderableOutput(t *testing.T) {
 	styleProducesOutput(t, "ComposerBorderStyle/focus", ComposerBorderStyle(40, true), "x")
 	styleProducesOutput(t, "TimestampStyle", TimestampStyle(), "10:00")
 	styleProducesOutput(t, "MutedTextStyle", MutedTextStyle(), "muted")
-	styleProducesOutput(t, "AgentNameStyle/known", AgentNameStyle("ceo"), "CEO")
-	styleProducesOutput(t, "AgentNameStyle/unknown", AgentNameStyle("does-not-exist"), "x")
+	styleProducesOutput(t, "AgentNameStyle/known", BotNameStyle("ceo"), "CEO")
+	styleProducesOutput(t, "AgentNameStyle/unknown", BotNameStyle("does-not-exist"), "x")
 	styleProducesOutput(t, "ActiveChannelStyle", ActiveChannelStyle(), "office")
 	styleProducesOutput(t, "DateSeparatorStyle", DateSeparatorStyle(), "today")
 	styleProducesOutput(t, "ThreadIndicatorStyle", ThreadIndicatorStyle(), "thread")
 }
 
-func TestAgentAvatarKnownAndUnknownSlugs(t *testing.T) {
+func TestBotAvatarKnownAndUnknownSlugs(t *testing.T) {
 	cases := map[string]string{
 		"ceo":      "◆",
 		"pm":       "▣",
@@ -51,8 +51,8 @@ func TestAgentAvatarKnownAndUnknownSlugs(t *testing.T) {
 		"":         "•",
 	}
 	for slug, want := range cases {
-		if got := AgentAvatar(slug); got != want {
-			t.Errorf("AgentAvatar(%q) = %q, want %q", slug, got, want)
+		if got := BotAvatar(slug); got != want {
+			t.Errorf("BotAvatar(%q) = %q, want %q", slug, got, want)
 		}
 	}
 }

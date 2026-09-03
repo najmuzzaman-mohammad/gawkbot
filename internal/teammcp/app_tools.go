@@ -1,15 +1,15 @@
 package teammcp
 
-// app_tools.go — MCP tools for Apps (agent-generated internal tools).
+// app_tools.go — MCP tools for Apps (bot-generated internal tools).
 //
-//   list_apps     (all agents)      check what already exists before proposing
-//   propose_app   (all agents)      raise a NON-BLOCKING approval to build/improve
+//   list_apps     (all bots)      check what already exists before proposing
+//   propose_app   (all bots)      raise a NON-BLOCKING approval to build/improve
 //   get_app       (App Builder)     read an app's current source before editing
 //   register_app  (App Builder)     publish the built single-file app
 //
-// The build itself is the App Builder agent's job — it scaffolds a real
+// The build itself is the App Builder bot's job — it scaffolds a real
 // Vite/React/TS project, builds a single self-contained index.html, and calls
-// register_app. Other agents only ever discover (list_apps) and propose
+// register_app. Other bots only ever discover (list_apps) and propose
 // (propose_app); they never write app bytes.
 
 import (
@@ -27,9 +27,9 @@ import (
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
-// resolveSafeBuildPath confines an agent-supplied absolute path (html_path /
+// resolveSafeBuildPath confines a bot-supplied absolute path (html_path /
 // source_path) to where the App Builder legitimately builds — the office runtime
-// home (task worktrees + agent scratch) or the OS temp dir — and resolves
+// home (task worktrees + bot scratch) or the OS temp dir — and resolves
 // symlinks so a link inside the workspace can't point the read at /etc, ~/.ssh,
 // or cloud credentials. register_app reads these paths with the broker's
 // privileges and can persist them as retrievable app source, so an unbounded
@@ -49,7 +49,7 @@ func resolveSafeBuildPath(path string) (string, error) {
 			return real, nil
 		}
 	}
-	return "", fmt.Errorf("path %q must be inside the agent's build directory", path)
+	return "", fmt.Errorf("path %q must be inside the bot's build directory", path)
 }
 
 func appBuildSafeRoots() []string {
@@ -75,7 +75,7 @@ type GetAppArgs struct {
 
 // ProposeAppArgs raises a non-blocking approval to build or improve an app.
 type ProposeAppArgs struct {
-	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 	Channel     string `json:"channel,omitempty" jsonschema:"Channel to raise the proposal in. Defaults to your current channel."`
 	Name        string `json:"name" jsonschema:"Short product name for the tool, e.g. 'Lead Scorer'."`
 	Icon        string `json:"icon,omitempty" jsonschema:"Optional emoji icon for the app."`
@@ -86,18 +86,18 @@ type ProposeAppArgs struct {
 
 // RegisterAppArgs publishes the built single-file app. App Builder only.
 type RegisterAppArgs struct {
-	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your agent slug. Defaults to WUPHF_AGENT_SLUG."`
+	MySlug      string `json:"my_slug,omitempty" jsonschema:"Your bot slug. Defaults to WUPHF_AGENT_SLUG."`
 	AppID       string `json:"app_id,omitempty" jsonschema:"Set to update an existing app in place; leave empty to create a new one."`
 	Name        string `json:"name" jsonschema:"The app's display name."`
 	Icon        string `json:"icon,omitempty" jsonschema:"Optional emoji icon."`
 	Summary     string `json:"summary,omitempty" jsonschema:"One-line summary shown in the sidebar."`
 	Description string `json:"description,omitempty" jsonschema:"What the app does — keep this current as it evolves."`
 	// PREFER html_path. The built single-file bundle is minified onto enormous
-	// single lines (100k+ chars) that an agent cannot reliably read back and
+	// single lines (100k+ chars) that a bot cannot reliably read back and
 	// re-emit as a JSON string — pass the path and let the broker read the file.
 	HTMLPath string `json:"html_path,omitempty" jsonschema:"PREFERRED. Absolute path to the built dist/index.html (the broker reads it). Use this instead of pasting the bundle — minified single-file output has 100k+ char lines you cannot reliably read and re-emit."`
 	HTML     string `json:"html,omitempty" jsonschema:"Fallback only. The COMPLETE self-contained index.html as a string. Prefer html_path — minified output is too large to paste reliably. All JS/CSS inlined (vite-plugin-singlefile); no external scripts/styles/fonts and no network fetches; read workspace data only through the injected WUPHF bridge (window.parent postMessage)."`
-	// PREFER source_path. Hand-assembling the files map is error-prone — agents
+	// PREFER source_path. Hand-assembling the files map is error-prone — bots
 	// drop files (e.g. App.tsx) and ship a source tree that won't build. Point at
 	// the dir that just passed the verify gate and the broker copies it whole.
 	SourcePath string `json:"source_path,omitempty" jsonschema:"PREFERRED. Absolute path to your source project root (the dir with package.json + src/, the one you just built). The broker copies the WHOLE tree (minus node_modules/dist/.vite/.git) so the persisted source is complete and the live preview + later edits work. Use this instead of hand-listing files."`
@@ -107,7 +107,7 @@ type RegisterAppArgs struct {
 }
 
 // registerAppTools wires the Apps tools. Discovery + proposal are open to every
-// agent; the build/publish tools are gated to the App Builder.
+// bot; the build/publish tools are gated to the App Builder.
 func registerAppTools(server *mcp.Server, slug string) {
 	mcp.AddTool(server, readOnlyTool(
 		"list_apps",
@@ -117,15 +117,15 @@ func registerAppTools(server *mcp.Server, slug string) {
 		"propose_app",
 		"Propose building (or improving) an internal tool when you notice a repeatable workflow. Raises a NON-BLOCKING approval card the human can Approve, Approve-with-note, or Reject. Do NOT use this when the human used /create-app, /update-app, or explicitly asked you to build — in that case the build is already authorized. After proposing, keep working; do not block waiting for the answer. On approval the App Builder builds it automatically.",
 	), handleProposeApp)
-	// App building is a system skill every agent carries, not a dedicated
-	// agent's monopoly. These used to be gated to the app-builder slug, which
+	// App building is a system skill every bot carries, not a dedicated
+	// bot's monopoly. These used to be gated to the app-builder slug, which
 	// forced an "App Builder" onto every roster just to make builds possible;
-	// with that agent retired as a default, the gate would have made apps
+	// with that bot retired as a default, the gate would have made apps
 	// unbuildable in a fresh office. Builds still flow through the host-owned
-	// build and publish gates regardless of which agent registers them.
+	// build and publish gates regardless of which bot registers them.
 	// The founder's model — "system skills can never be removed but can be
-	// disabled per agent" — is live: handlers check systemSkillEnabledFor
-	// against the app-building system skill's per-agent switch
+	// disabled per bot" — is live: handlers check systemSkillEnabledFor
+	// against the app-building system skill's per-bot switch
 	// (internal/team/system_skills.go).
 	mcp.AddTool(server, readOnlyTool(
 		"get_app",
@@ -305,10 +305,10 @@ func handleRegisterApp(ctx context.Context, _ *mcp.CallToolRequest, args Registe
 const registerAppMaxHTMLBytes = 4 * 1024 * 1024
 
 // resolveRegisterAppHTML returns the bundle to publish: the literal html when
-// the agent passed one, otherwise the contents of html_path read by the broker.
+// the bot passed one, otherwise the contents of html_path read by the broker.
 // Reading the file here is the whole point — the minified single-file bundle has
-// 100k+ char lines an agent can't reliably read back into a JSON string, so the
-// agent passes a path and the broker (same filesystem) reads it directly.
+// 100k+ char lines a bot can't reliably read back into a JSON string, so the
+// bot passes a path and the broker (same filesystem) reads it directly.
 func resolveRegisterAppHTML(args RegisterAppArgs) (string, error) {
 	if html := strings.TrimSpace(args.HTML); html != "" {
 		return args.HTML, nil
@@ -351,7 +351,7 @@ const (
 )
 
 // registerAppSkipDirs are never persisted as source: build/install artifacts and
-// VCS metadata. Skipping them (rather than relying on the agent to omit them) is
+// VCS metadata. Skipping them (rather than relying on the bot to omit them) is
 // what makes source_path a complete-but-not-bloated copy.
 var registerAppSkipDirs = map[string]bool{
 	"node_modules": true,
@@ -360,13 +360,13 @@ var registerAppSkipDirs = map[string]bool{
 	".git":         true,
 }
 
-// resolveRegisterAppFiles returns the source project to persist. When the agent
+// resolveRegisterAppFiles returns the source project to persist. When the bot
 // passed source_path, the broker copies the WHOLE tree (minus build/VCS dirs) so
-// the persisted source always builds — closing the "agent dropped a file from
+// the persisted source always builds — closing the "bot dropped a file from
 // the map and shipped a broken app" gap. Falls back to an explicit files map.
 func resolveRegisterAppFiles(args RegisterAppArgs) (map[string]string, error) {
 	// source_path is PREFERRED (the whole-tree copy that can't drop a file); the
-	// explicit files map is the fallback. Check source_path first so an agent that
+	// explicit files map is the fallback. Check source_path first so a bot that
 	// passes both gets the complete copy, not the partial map.
 	root := strings.TrimSpace(args.SourcePath)
 	if root == "" {
@@ -408,7 +408,7 @@ func resolveRegisterAppFiles(args RegisterAppArgs) (map[string]string, error) {
 			if registerAppSkipDirs[d.Name()] {
 				return fs.SkipDir
 			}
-			// Skip a top-level app-scaffold/ — the agent sometimes copies the
+			// Skip a top-level app-scaffold/ — the bot sometimes copies the
 			// whole template FOLDER into its project (instead of its contents),
 			// leaving a duplicate scaffold. Persisting it is dead weight; the
 			// real project lives at the root. Scoped to the top level so a deeper

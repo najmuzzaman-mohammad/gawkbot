@@ -3,7 +3,7 @@ package team
 import "testing"
 
 // TestClassifyActivityKind locks the seed table for the activity classifier
-// that drives agent-event bubble Kind tagging. Stuck is intentionally not
+// that drives bot-event bubble Kind tagging. Stuck is intentionally not
 // covered here — that path is owned by the reaper / watchdog, not the
 // per-event classifier.
 func TestClassifyActivityKind(t *testing.T) {

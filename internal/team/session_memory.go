@@ -11,11 +11,11 @@ type SessionRecovery struct {
 	Highlights []string
 }
 
-func BuildSessionRecovery(sessionMode, directAgent string, tasks []RuntimeTask, requests []RuntimeRequest, recent []RuntimeMessage) SessionRecovery {
-	return buildSessionRecovery(sessionMode, directAgent, tasks, requests, recent)
+func BuildSessionRecovery(sessionMode, directBot string, tasks []RuntimeTask, requests []RuntimeRequest, recent []RuntimeMessage) SessionRecovery {
+	return buildSessionRecovery(sessionMode, directBot, tasks, requests, recent)
 }
 
-func buildSessionRecovery(sessionMode, directAgent string, tasks []RuntimeTask, requests []RuntimeRequest, recent []RuntimeMessage) SessionRecovery {
+func buildSessionRecovery(sessionMode, directBot string, tasks []RuntimeTask, requests []RuntimeRequest, recent []RuntimeMessage) SessionRecovery {
 	recovery := SessionRecovery{}
 
 	if req, ok := firstPendingBlockingRuntimeRequest(requests); ok {
@@ -29,7 +29,7 @@ func buildSessionRecovery(sessionMode, directAgent string, tasks []RuntimeTask, 
 	}
 	if recovery.Focus == "" {
 		if sessionMode == SessionModeOneOnOne {
-			recovery.Focus = fmt.Sprintf("Stay focused on the direct session with @%s.", directAgent)
+			recovery.Focus = fmt.Sprintf("Stay focused on the direct session with @%s.", directBot)
 		} else {
 			recovery.Focus = "No blocking work detected. Scan the latest channel activity before speaking."
 		}

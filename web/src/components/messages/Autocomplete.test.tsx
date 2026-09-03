@@ -85,9 +85,9 @@ describe("mentionAutocompleteItems", () => {
     { slug: "human", name: "Human" },
   ];
 
-  it("offers @all before individual agents", () => {
+  it("offers @all before individual bots", () => {
     expect(mentionAutocompleteItems("", members).slice(0, 3)).toEqual([
-      { insert: "@all", label: "@all", desc: "Notify every agent", icon: "📣" },
+      { insert: "@all", label: "@all", desc: "Notify every bot", icon: "📣" },
       { insert: "@ceo", label: "@ceo", desc: "CEO", icon: "🤖" },
       { insert: "@pm", label: "@pm", desc: "Product", icon: "🤖" },
     ]);
@@ -95,7 +95,7 @@ describe("mentionAutocompleteItems", () => {
 
   it("matches @all by prefix query", () => {
     expect(mentionAutocompleteItems("al", members)).toEqual([
-      { insert: "@all", label: "@all", desc: "Notify every agent", icon: "📣" },
+      { insert: "@all", label: "@all", desc: "Notify every bot", icon: "📣" },
     ]);
   });
 });

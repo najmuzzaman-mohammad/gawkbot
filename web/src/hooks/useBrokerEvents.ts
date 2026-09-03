@@ -10,14 +10,14 @@ import {
 import { openSharedEventStream } from "../api/eventStream";
 import { GOVERNOR_QUERY_KEY } from "../api/governor";
 import {
-  type AgentActivitySnapshot,
+  type BotActivitySnapshot,
   directChannelSlug,
   useAppStore,
 } from "../stores/app";
 
 const RECONNECT_GRACE_MS = 5000;
 
-// Usage refreshes are bound to agent activity (a turn settling is what
+// Usage refreshes are bound to bot activity (a turn settling is what
 // moves the meter) but throttled so a chatty activity stream doesn't
 // turn into a /usage request per event.
 const USAGE_INVALIDATE_THROTTLE_MS = 10_000;
@@ -64,14 +64,14 @@ function messageChannelFromEvent(event: Event): string | null {
   }
 }
 
-function parseActivitySnapshot(event: Event): AgentActivitySnapshot | null {
+function parseActivitySnapshot(event: Event): BotActivitySnapshot | null {
   if (!("data" in event) || typeof event.data !== "string") return null;
   try {
-    const parsed = JSON.parse(event.data) as Partial<AgentActivitySnapshot>;
+    const parsed = JSON.parse(event.data) as Partial<BotActivitySnapshot>;
     if (typeof parsed?.slug !== "string" || parsed.slug.length === 0) {
       return null;
     }
-    return parsed as AgentActivitySnapshot;
+    return parsed as BotActivitySnapshot;
   } catch (err) {
     // Malformed SSE payload — log a breadcrumb (matches `api/pam.ts` pattern
     // for SSE parse failures) and let the cache invalidation still fire.
@@ -162,7 +162,7 @@ export function useBrokerEvents(enabled: boolean) {
       // can never block the invalidation path.
       void queryClient.invalidateQueries({ queryKey: ["office-members"] });
       void queryClient.invalidateQueries({ queryKey: ["channel-members"] });
-      // Usage pill truth (C2): agent activity is when spend moves, so
+      // Usage pill truth (C2): bot activity is when spend moves, so
       // nudge the shared ["usage"] query — throttled — instead of
       // letting the collapsed pill wait out its poll interval.
       const now = Date.now();

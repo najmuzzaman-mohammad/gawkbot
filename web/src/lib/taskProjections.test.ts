@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Task } from "../api/tasks";
 import {
-  groupTasksByAgent,
+  groupTasksByBot,
   groupTasksByLifecycle,
   groupTasksByStatus,
   groupTasksByWeek,
@@ -70,14 +70,14 @@ describe("groupTasksByAgent", () => {
       task({ id: "4" }),
       task({ id: "5", owner: "  " }),
     ];
-    const groups = groupTasksByAgent(tasks);
+    const groups = groupTasksByBot(tasks);
     expect(groups.pam.map((t) => t.id)).toEqual(["1", "2"]);
     expect(groups.jim.map((t) => t.id)).toEqual(["3"]);
     expect(groups[UNASSIGNED_BUCKET].map((t) => t.id)).toEqual(["4", "5"]);
   });
 
   it("always includes the unassigned bucket even for empty input", () => {
-    expect(groupTasksByAgent([])).toEqual({ [UNASSIGNED_BUCKET]: [] });
+    expect(groupTasksByBot([])).toEqual({ [UNASSIGNED_BUCKET]: [] });
   });
 });
 

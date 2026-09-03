@@ -5,7 +5,7 @@ package team
 // LifecycleStateBlocked via BlockTask, the broker MUST NOT call
 // requestCapabilitySelfHealingLocked. The blocked-on-PR-merge state is a
 // typed legitimate condition; treating it as an error and spawning a
-// repair task for the agent is the bug this gate prevents.
+// repair task for the bot is the bug this gate prevents.
 //
 // Per the design doc: "The unit test must observe the call site, not
 // just the side effect." We swap the package-level hook so we can count

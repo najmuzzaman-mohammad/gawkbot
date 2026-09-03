@@ -343,7 +343,7 @@ describe("<StreamLineView> bot computers", () => {
     expect(screen.getByTestId("cc-tool-thumb")).toHaveAttribute("src", FRAME);
   });
 
-  it("falls back to the stream's agentSlug when the event has no agent field", () => {
+  it("falls back to the stream's botSlug when the event has no bot field", () => {
     useAppStore.getState().recordComputerEvent({
       slug: "growth",
       state: "ready",

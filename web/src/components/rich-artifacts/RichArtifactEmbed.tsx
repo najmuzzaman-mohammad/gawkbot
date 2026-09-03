@@ -49,7 +49,7 @@ if (typeof window !== "undefined" && !customElements.get(ELEMENT_NAME)) {
 
 // SECURITY MODEL — layered, trust boundary:
 //
-//   Untrusted input:  the `html` argument is agent-generated, fetched via
+//   Untrusted input:  the `html` argument is bot-generated, fetched via
 //                     /visual-artifacts/{id} from the broker.
 //   Layer 1 (server): validateRichArtifactHTML at
 //                     internal/team/rich_artifact.go strips <script>, every
@@ -62,7 +62,7 @@ if (typeof window !== "undefined" && !customElements.get(ELEMENT_NAME)) {
 //                     DOM is mounted, so a sanitizer-bypass on the server
 //                     does not reach the parent origin even via the shadow
 //                     boundary. SVG is intentionally allowed (safe subset
-//                     via USE_PROFILES.svg/svgFilters) so agent-emitted
+//                     via USE_PROFILES.svg/svgFilters) so bot-emitted
 //                     diagrams render; <script> and <foreignObject> inside
 //                     SVG are still stripped by both the profile and the
 //                     deterministic post-sweep.
@@ -74,7 +74,7 @@ if (typeof window !== "undefined" && !customElements.get(ELEMENT_NAME)) {
 //                     a third defence by blocking unexpected connect-src
 //                     and inline event handlers — tracked as a follow-up.
 //
-// We never set innerHTML with the agent string. Path:
+// We never set innerHTML with the bot string. Path:
 //   1. DOMPurify.sanitize(html, { RETURN_DOM: true })  ← client sanitiser
 //   2. cloneNode(true) of body children                ← DOM nodes only
 //   3. appendChild into the shadow                     ← still DOM nodes
@@ -158,7 +158,7 @@ const PURIFY_CONFIG: DOMPurifyConfig = {
 // Everything else is rejected: any explicit scheme (http:, https:, mailto:,
 // tel:, javascript:, vbscript:, ftp:, ...) and protocol-relative "//host".
 // Rejecting http/https here is deliberate — external network refs in an
-// agent-authored artifact are an exfiltration / tracking vector, and the
+// bot-authored artifact are an exfiltration / tracking vector, and the
 // artifact renders inside the parent origin (no iframe), so there is no
 // origin isolation backstop.
 function isAllowedArtifactURL(raw: string): boolean {
@@ -258,7 +258,7 @@ function mountArtifact(shadow: ShadowRoot, html: string): void {
   shadow.innerHTML = "";
 
   // 1. Reset that makes the embed behave like a block-level container and
-  //    cuts inheritance from the host page (the agent's CSS should fully
+  //    cuts inheritance from the host page (the bot's CSS should fully
   //    own its visual presentation).
   const reset = document.createElement("style");
   reset.textContent =
@@ -406,7 +406,7 @@ function isUnsafeURL(raw: string): boolean {
 // rewriteCSS does two small substitutions so document-level selectors in the
 // artifact's CSS still hit something useful inside the shadow root.
 // Conservative on purpose: anything fancier should be done with a real CSS
-// parser. Tests cover the common shapes the agent emits today.
+// parser. Tests cover the common shapes the bot emits today.
 export function rewriteCSS(css: string): string {
   return (
     css

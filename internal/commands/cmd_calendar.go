@@ -23,9 +23,9 @@ func cmdCalendar(ctx *SlashContext, args string) error {
 	sub := parts[0]
 	switch sub {
 	case "add":
-		// /calendar add <agent> <cron> [description...]
+		// /calendar add <bot> <cron> [description...]
 		if len(parts) < 3 {
-			ctx.SendResult("Usage: /calendar add <agent-slug> <cron-expr> [description]", nil)
+			ctx.SendResult("Usage: /calendar add <bot-slug> <cron-expr> [description]", nil)
 			return nil
 		}
 		slug := parts[1]
@@ -43,7 +43,7 @@ func cmdCalendar(ctx *SlashContext, args string) error {
 
 	case "remove", "rm":
 		if len(parts) < 2 {
-			ctx.SendResult("Usage: /calendar remove <agent-slug>", nil)
+			ctx.SendResult("Usage: /calendar remove <bot-slug>", nil)
 			return nil
 		}
 		store.RemoveSchedule(parts[1])
@@ -57,7 +57,7 @@ func cmdCalendar(ctx *SlashContext, args string) error {
 		}
 		var lines []string
 		for _, s := range schedules {
-			line := s.AgentSlug + "  " + s.CronExpr
+			line := s.BotSlug + "  " + s.CronExpr
 			if s.Description != "" {
 				line += "  (" + s.Description + ")"
 			}

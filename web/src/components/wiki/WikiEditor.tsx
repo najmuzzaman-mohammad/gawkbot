@@ -29,7 +29,7 @@ interface WikiEditorProps {
   onCancel: () => void;
   /**
    * Override the save transport. Defaults to the wiki human-write endpoint.
-   * AgentInstructionsSection passes an agent-file writer so the same editor can
+   * BotInstructionsSection passes a bot-file writer so the same editor can
    * edit SOUL/IDENTITY/OPERATIONS/TOOLS/USER without touching the wiki path.
    */
   writeArticle?: (params: {
@@ -40,7 +40,7 @@ interface WikiEditorProps {
   }) => Promise<WriteHumanResult>;
   /**
    * Hide the wiki-specific footer hint (wikilinks / mention picker). Set true
-   * when editing a non-wiki file (e.g. an agent instruction file) where those
+   * when editing a non-wiki file (e.g. a bot instruction file) where those
    * affordances don't apply.
    */
   hideWikiHelp?: boolean;

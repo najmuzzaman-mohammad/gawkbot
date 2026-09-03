@@ -167,8 +167,7 @@ function ChannelMessageFeed({
               Try <code>@ceo what should we build this week?</code>
             </div>
             <div>
-              Type <code>/</code> for commands, <code>@</code> to mention an
-              agent.
+              Type <code>/</code> for commands, <code>@</code> to mention a bot.
             </div>
           </div>
           <span className="channel-empty-foot">

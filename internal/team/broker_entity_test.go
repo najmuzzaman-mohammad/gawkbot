@@ -408,7 +408,7 @@ func TestBrokerEntity_WorkerDownReturns503(t *testing.T) {
 	}
 }
 
-// Ensures X-WUPHF-Agent is the recorded_by fallback when the body omits it.
+// Ensures X-WUPHF-Bot is the recorded_by fallback when the body omits it.
 func TestBrokerEntity_FactFallbackToAgentHeader(t *testing.T) {
 	srv, b, _, teardown := newEntityTestServer(t, nil)
 	defer teardown()

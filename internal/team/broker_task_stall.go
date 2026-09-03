@@ -9,7 +9,7 @@ package team
 // observable trace for taskStallThreshold. The marker clears itself the
 // moment fresh activity lands or the task leaves running.
 //
-// "Observable trace" is broker-observable agent output only:
+// "Observable trace" is broker-observable bot output only:
 //   - the task's UpdatedAt (bumped by every mutation and ledger append),
 //   - the newest ledger entry,
 //   - the newest NON-system message in the task's channel,

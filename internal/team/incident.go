@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
-const agentIssueMessageKind = "agent_issue"
+const botIssueMessageKind = "agent_issue"
 
-// systemAuthErrorMessageKind is the message kind emitted when the agent
+// systemAuthErrorMessageKind is the message kind emitted when the bot
 // loop hits a provider auth failure (e.g. "Not logged in - Please run
 // /login"). The SPA renders these as a SystemErrorCard banner (system
-// authored, distinct visual treatment) instead of an agent-authored
+// authored, distinct visual treatment) instead of a bot-authored
 // chat bubble. Issue #933.
 const systemAuthErrorMessageKind = "system_auth_error"
 
@@ -29,7 +29,7 @@ type incidentClassification struct {
 	Severity      string
 }
 
-func (b *Broker) ReportIncident(agentSlug, targetChannel, replyTo, detail string) (channelMessage, incidentRecord, bool, error) {
+func (b *Broker) ReportIncident(botSlug, targetChannel, replyTo, detail string) (channelMessage, incidentRecord, bool, error) {
 	if b == nil {
 		return channelMessage{}, incidentRecord{}, false, nil
 	}
@@ -44,23 +44,23 @@ func (b *Broker) ReportIncident(agentSlug, targetChannel, replyTo, detail string
 	safeDetail := detail
 
 	// Issue #933: provider auth failures (e.g. claude returning "Not logged
-	// in - Please run /login") would otherwise post as agent-authored chat
-	// bubbles — visually indistinguishable from in-character agent output
-	// and confusing because the agent isn't speaking. Detect the auth
+	// in - Please run /login") would otherwise post as bot-authored chat
+	// bubbles — visually indistinguishable from in-character bot output
+	// and confusing because the bot isn't speaking. Detect the auth
 	// signal and route through a dedicated system-authored card that
 	// carries a structured payload the SPA renders as a SystemErrorCard.
 	if authProbe := classifyProviderAuthError(safeDetail); authProbe.IsAuthError {
-		return b.postSystemAuthErrorIncident(agentSlug, targetChannel, replyTo, safeDetail, authProbe)
+		return b.postSystemAuthErrorIncident(botSlug, targetChannel, replyTo, safeDetail, authProbe)
 	}
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	agentSlug = strings.TrimSpace(agentSlug)
-	if agentSlug == "" {
-		agentSlug = "agent"
+	botSlug = strings.TrimSpace(botSlug)
+	if botSlug == "" {
+		botSlug = "agent"
 	}
-	// An incident with no named channel belongs in the reporting agent's own
+	// An incident with no named channel belongs in the reporting bot's own
 	// DM. It used to land in "general", so once the shared room was retired
 	// every channel-less incident — including the provider-auth banner the
 	// human has to act on — failed the lookup below with "channel not found"
@@ -68,12 +68,12 @@ func (b *Broker) ReportIncident(agentSlug, targetChannel, replyTo, detail string
 	channel := normalizeChannelSlug(targetChannel)
 	if strings.TrimSpace(targetChannel) == "" {
 		// homeChannelForLocked, not DMSlugFor: it verifies the reporter is
-		// actually on the roster before minting a DM. agentSlug defaults to
-		// the placeholder "agent" just above, and DMSlugFor would happily
+		// actually on the roster before minting a DM. botSlug defaults to
+		// the placeholder "bot" just above, and DMSlugFor would happily
 		// build "agent__human" and create a conversation for a member that
 		// does not exist. On failure the channel stays empty and the lookup
 		// below reports "channel not found", which is the honest outcome.
-		if home, err := b.homeChannelForLocked(agentSlug); err == nil {
+		if home, err := b.homeChannelForLocked(botSlug); err == nil {
 			channel = home
 		}
 	}
@@ -87,16 +87,16 @@ func (b *Broker) ReportIncident(agentSlug, targetChannel, replyTo, detail string
 			return channelMessage{}, incidentRecord{}, false, fmt.Errorf("channel not found")
 		}
 	}
-	if !b.canAccessChannelLocked(agentSlug, channel) {
+	if !b.canAccessChannelLocked(botSlug, channel) {
 		return channelMessage{}, incidentRecord{}, false, fmt.Errorf("channel access denied")
 	}
 
-	taskID := b.activeTaskIDForAgentLocked(agentSlug)
-	key := normalizedIncidentKey(agentSlug, channel, safeDetail)
+	taskID := b.activeTaskIDForBotLocked(botSlug)
+	key := normalizedIncidentKey(botSlug, channel, safeDetail)
 	now := time.Now().UTC().Format(time.RFC3339)
 	for i := range b.incidents {
 		inc := &b.incidents[i]
-		if inc.Agent != agentSlug || inc.Channel != channel || inc.NormalizedKey != key {
+		if inc.Bot != botSlug || inc.Channel != channel || inc.NormalizedKey != key {
 			continue
 		}
 		inc.Count++
@@ -117,7 +117,7 @@ func (b *Broker) ReportIncident(agentSlug, targetChannel, replyTo, detail string
 	incidentID := fmt.Sprintf("incident-%d", b.counter)
 	inc := incidentRecord{
 		ID:            incidentID,
-		Agent:         agentSlug,
+		Bot:           botSlug,
 		Channel:       channel,
 		ReplyTo:       strings.TrimSpace(replyTo),
 		Detail:        safeDetail,
@@ -132,9 +132,9 @@ func (b *Broker) ReportIncident(agentSlug, targetChannel, replyTo, detail string
 	b.counter++
 	msg := channelMessage{
 		ID:        fmt.Sprintf("msg-%d", b.counter),
-		From:      agentSlug,
+		From:      botSlug,
 		Channel:   channel,
-		Kind:      agentIssueMessageKind,
+		Kind:      botIssueMessageKind,
 		EventID:   inc.ID,
 		Content:   "Incident: " + truncate(safeDetail, 600),
 		ReplyTo:   strings.TrimSpace(replyTo),
@@ -143,7 +143,7 @@ func (b *Broker) ReportIncident(agentSlug, targetChannel, replyTo, detail string
 	b.incidents = append(b.incidents, inc)
 	incPtr := &b.incidents[len(b.incidents)-1]
 	msg = b.appendMessageLocked(msg)
-	b.appendActionLocked("agent_issue", "office", channel, agentSlug, truncateSummary(msg.Content, 140), inc.ID)
+	b.appendActionLocked("agent_issue", "office", channel, botSlug, truncateSummary(msg.Content, 140), inc.ID)
 	if classification.CapabilityGap && !classification.HumanAction {
 		b.ensureSelfHealApprovalRequestLocked(incPtr, classification, safeDetail)
 	}
@@ -167,15 +167,15 @@ func (b *Broker) Incidents() []incidentRecord {
 }
 
 func sanitizeIncidentRecord(inc incidentRecord) incidentRecord {
-	inc.NormalizedKey = normalizedIncidentKey(inc.Agent, inc.Channel, inc.Detail)
+	inc.NormalizedKey = normalizedIncidentKey(inc.Bot, inc.Channel, inc.Detail)
 	return inc
 }
 
 func (b *Broker) pruneIncidentsByChannelLocked(channelSlug string) {
-	b.pruneIncidentsByChannelAndAgentLocked(channelSlug, "")
+	b.pruneIncidentsByChannelAndBotLocked(channelSlug, "")
 }
 
-func (b *Broker) pruneIncidentsByChannelAndAgentLocked(channelSlug, agentSlug string) {
+func (b *Broker) pruneIncidentsByChannelAndBotLocked(channelSlug, botSlug string) {
 	// Raw emptiness before normalising: an empty channel became "general", so
 	// this refusal never fired and an incident sweep with no channel swept the
 	// shared room instead of declining.
@@ -183,11 +183,11 @@ func (b *Broker) pruneIncidentsByChannelAndAgentLocked(channelSlug, agentSlug st
 		return
 	}
 	channelSlug = normalizeChannelSlug(channelSlug)
-	agentSlug = strings.TrimSpace(agentSlug)
+	botSlug = strings.TrimSpace(botSlug)
 	removedRequestIDs := make(map[string]struct{})
 	filtered := b.incidents[:0]
 	for _, inc := range b.incidents {
-		if normalizeChannelSlug(inc.Channel) != channelSlug || (agentSlug != "" && strings.TrimSpace(inc.Agent) != agentSlug) {
+		if normalizeChannelSlug(inc.Channel) != channelSlug || (botSlug != "" && strings.TrimSpace(inc.Bot) != botSlug) {
 			filtered = append(filtered, inc)
 			continue
 		}
@@ -287,16 +287,16 @@ func classifyProviderAuthError(detail string) providerAuthErrorProbe {
 // Idempotency: collapses repeated auth errors from the same provider+
 // channel within a short window. The chat doesn't need three identical
 // banners in a row.
-func (b *Broker) postSystemAuthErrorIncident(agentSlug, targetChannel, replyTo, safeDetail string, probe providerAuthErrorProbe) (channelMessage, incidentRecord, bool, error) {
+func (b *Broker) postSystemAuthErrorIncident(botSlug, targetChannel, replyTo, safeDetail string, probe providerAuthErrorProbe) (channelMessage, incidentRecord, bool, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	agentSlug = strings.TrimSpace(agentSlug)
-	if agentSlug == "" {
-		agentSlug = "agent"
+	botSlug = strings.TrimSpace(botSlug)
+	if botSlug == "" {
+		botSlug = "agent"
 	}
 
-	// An incident with no named channel belongs in the reporting agent's own
+	// An incident with no named channel belongs in the reporting bot's own
 	// DM. It used to land in "general", so once the shared room was retired
 	// every channel-less incident — including the provider-auth banner the
 	// human has to act on — failed the lookup below with "channel not found"
@@ -304,12 +304,12 @@ func (b *Broker) postSystemAuthErrorIncident(agentSlug, targetChannel, replyTo, 
 	channel := normalizeChannelSlug(targetChannel)
 	if strings.TrimSpace(targetChannel) == "" {
 		// homeChannelForLocked, not DMSlugFor: it verifies the reporter is
-		// actually on the roster before minting a DM. agentSlug defaults to
-		// the placeholder "agent" just above, and DMSlugFor would happily
+		// actually on the roster before minting a DM. botSlug defaults to
+		// the placeholder "bot" just above, and DMSlugFor would happily
 		// build "agent__human" and create a conversation for a member that
 		// does not exist. On failure the channel stays empty and the lookup
 		// below reports "channel not found", which is the honest outcome.
-		if home, err := b.homeChannelForLocked(agentSlug); err == nil {
+		if home, err := b.homeChannelForLocked(botSlug); err == nil {
 			channel = home
 		}
 	}
@@ -323,11 +323,11 @@ func (b *Broker) postSystemAuthErrorIncident(agentSlug, targetChannel, replyTo, 
 			return channelMessage{}, incidentRecord{}, false, fmt.Errorf("channel not found")
 		}
 	}
-	// Channel ACL gate, mirroring ReportIncident. Without this, an agent
+	// Channel ACL gate, mirroring ReportIncident. Without this, a bot
 	// could surface a system-auth banner into a channel it has no business
-	// in (e.g. another agent's DM) just because the LLM happened to fail
+	// in (e.g. another bot's DM) just because the LLM happened to fail
 	// while resolving it.
-	if !b.canAccessChannelLocked(agentSlug, channel) {
+	if !b.canAccessChannelLocked(botSlug, channel) {
 		return channelMessage{}, incidentRecord{}, false, fmt.Errorf("channel access denied")
 	}
 
@@ -356,7 +356,7 @@ func (b *Broker) postSystemAuthErrorIncident(agentSlug, targetChannel, replyTo, 
 		"provider":        probe.Provider,
 		"sign_in_command": probe.SignInCommand,
 		"detail":          truncate(safeDetail, 600),
-		"reporter":        strings.TrimSpace(agentSlug),
+		"reporter":        strings.TrimSpace(botSlug),
 	}
 	payloadBytes, err := json.Marshal(payloadMap)
 	if err != nil {
@@ -438,7 +438,7 @@ func looksStructuredIncidentPayload(text string) bool {
 	return strings.Contains(text, `":`) && json.Valid([]byte(text))
 }
 
-func normalizedIncidentKey(agentSlug, channel, detail string) string {
+func normalizedIncidentKey(botSlug, channel, detail string) string {
 	text := strings.ToLower(strings.TrimSpace(detail))
 	for _, prefix := range []string{"incident:", "issue:", "error:", "failed:", "failure:"} {
 		text = strings.TrimSpace(strings.TrimPrefix(text, prefix))
@@ -447,17 +447,17 @@ func normalizedIncidentKey(agentSlug, channel, detail string) string {
 	if len(text) > 180 {
 		text = text[:180]
 	}
-	return strings.Join([]string{strings.TrimSpace(agentSlug), normalizeChannelSlug(channel), text}, "|")
+	return strings.Join([]string{strings.TrimSpace(botSlug), normalizeChannelSlug(channel), text}, "|")
 }
 
-func (b *Broker) activeTaskIDForAgentLocked(agentSlug string) string {
-	agentSlug = strings.TrimSpace(agentSlug)
-	if agentSlug == "" {
+func (b *Broker) activeTaskIDForBotLocked(botSlug string) string {
+	botSlug = strings.TrimSpace(botSlug)
+	if botSlug == "" {
 		return ""
 	}
 	for i := range b.tasks {
 		task := &b.tasks[i]
-		if strings.TrimSpace(task.Owner) != agentSlug {
+		if strings.TrimSpace(task.Owner) != botSlug {
 			continue
 		}
 		if strings.EqualFold(strings.TrimSpace(task.status), "in_progress") {
@@ -492,7 +492,7 @@ func (b *Broker) ensureSelfHealApprovalRequestLocked(issue *incidentRecord, clas
 		From:     "system",
 		Channel:  issue.Channel,
 		Title:    "Approve self-heal",
-		Question: fmt.Sprintf("I recommend creating a self-heal task to restore @%s's missing capability. Proceed?", issue.Agent),
+		Question: fmt.Sprintf("I recommend creating a self-heal task to restore @%s's missing capability. Proceed?", issue.Bot),
 		Context: strings.Join([]string{
 			"Incident: " + detail,
 			"Incident ID: " + issue.ID,
@@ -526,7 +526,7 @@ func (b *Broker) ensureSelfHealApprovalRequestLocked(issue *incidentRecord, clas
 		EventID:   req.ID,
 		Title:     req.Title,
 		Content:   req.Question,
-		Tagged:    uniqueSlugs([]string{issue.Agent}),
+		Tagged:    uniqueSlugs([]string{issue.Bot}),
 		ReplyTo:   strings.TrimSpace(issue.ReplyTo),
 		Timestamp: now,
 	})
@@ -573,9 +573,9 @@ func (b *Broker) maybeCreateApprovedSelfHealTaskLocked(req humanInterview) {
 	if note := strings.TrimSpace(req.Answered.GetCustomText()); note != "" {
 		detail = strings.TrimSpace(detail + "\n\nHuman constraints: " + note)
 	}
-	task, _, err := b.requestSelfHealingLocked(issue.Agent, issue.TaskID, agent.EscalationCapabilityGap, detail)
+	task, _, err := b.requestSelfHealingLocked(issue.Bot, issue.TaskID, bot.EscalationCapabilityGap, detail)
 	if err != nil {
-		log.Printf("incident: create approved self-heal task for incident=%s agent=%s: %v", issue.ID, issue.Agent, err)
+		log.Printf("incident: create approved self-heal task for incident=%s bot=%s: %v", issue.ID, issue.Bot, err)
 		errText := strings.TrimSpace(err.Error())
 		if errText == "" {
 			errText = "unknown error"
@@ -590,9 +590,9 @@ func (b *Broker) maybeCreateApprovedSelfHealTaskLocked(req humanInterview) {
 		return
 	}
 	// requestSelfHealingLocked may return an overflow-merge task — when the
-	// agent is at the per-agent cap and this issue's failing TaskID has no
+	// bot is at the per-bot cap and this issue's failing TaskID has no
 	// self-heal of its own, the incident is merged into a different
-	// (agent, taskID) self-heal task. Bind to it either way so the dedupe
+	// (bot, taskID) self-heal task. Bind to it either way so the dedupe
 	// gates above fire (otherwise the human is re-prompted and the same
 	// incident is re-merged on every iteration), but record the overflow in
 	// SelfHealError so the divergence between issue.TaskID and the linked
@@ -601,12 +601,12 @@ func (b *Broker) maybeCreateApprovedSelfHealTaskLocked(req humanInterview) {
 	if parent := b.findTaskByIDLocked(issue.TaskID); parent != nil {
 		parentTitle = strings.TrimSpace(parent.Title)
 	}
-	expectedTitle := selfHealingTaskTitle(issue.Agent, issue.TaskID, parentTitle, agent.EscalationCapabilityGap)
+	expectedTitle := selfHealingTaskTitle(issue.Bot, issue.TaskID, parentTitle, bot.EscalationCapabilityGap)
 	issue.SelfHealTaskID = task.ID
 	if task.Title == expectedTitle {
 		issue.SelfHealError = ""
 	} else {
-		issue.SelfHealError = fmt.Sprintf("merged into agent self-heal overflow lane (%s)", task.ID)
+		issue.SelfHealError = fmt.Sprintf("merged into bot self-heal overflow lane (%s)", task.ID)
 	}
 	issue.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 }
@@ -615,24 +615,24 @@ func (b *Broker) notifySelfHealCreationFailureLocked(issue *incidentRecord, errT
 	if b == nil || issue == nil {
 		return
 	}
-	agentSlug := strings.TrimSpace(issue.Agent)
-	if agentSlug == "" {
-		agentSlug = "agent"
+	botSlug := strings.TrimSpace(issue.Bot)
+	if botSlug == "" {
+		botSlug = "agent"
 	}
 	channel := normalizeChannelSlug(issue.Channel)
 	if channel == "" {
 		channel = "general"
 	}
-	content := fmt.Sprintf("Incident: approved self-heal for @%s could not be created: %s", agentSlug, truncate(errText, 400))
+	content := fmt.Sprintf("Incident: approved self-heal for @%s could not be created: %s", botSlug, truncate(errText, 400))
 	b.counter++
 	b.appendMessageLocked(channelMessage{
 		ID:        fmt.Sprintf("msg-%d", b.counter),
 		From:      "system",
 		Channel:   channel,
-		Kind:      agentIssueMessageKind,
+		Kind:      botIssueMessageKind,
 		EventID:   strings.TrimSpace(issue.ID),
 		Content:   content,
-		Tagged:    uniqueSlugs([]string{agentSlug}),
+		Tagged:    uniqueSlugs([]string{botSlug}),
 		ReplyTo:   strings.TrimSpace(issue.ReplyTo),
 		Timestamp: now,
 	})

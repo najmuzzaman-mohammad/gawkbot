@@ -129,7 +129,7 @@ func TestComputerRoutesRequireAuthAndJSON(t *testing.T) {
 	res.Body.Close()
 	status, _ := authedJSON(t, srv, b.Token(), http.MethodGet, "/computer/ghost", nil)
 	if status != http.StatusNotFound {
-		t.Fatalf("unknown agent must 404, got %d", status)
+		t.Fatalf("unknown bot must 404, got %d", status)
 	}
 }
 

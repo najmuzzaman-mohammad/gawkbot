@@ -54,19 +54,19 @@ func isActionProxyTool(name string) bool {
 // same candidates out. Design: docs/specs/workflow-detection-positioning.md.
 //
 // v0 clustering contract: a task's shape is the ordered set of distinct tools
-// it used (first-use order across its turns). Tasks with an identical (agent,
+// it used (first-use order across its turns). Tasks with an identical (bot,
 // shape) cluster. Exact match keeps v0 deterministic and explainable; fuzzy /
 // threshold matching (Codex clustering-contract hardening) is a follow-up.
 
 // DetectionCandidate is a multi-step tool shape worth freezing into a workflow.
-// It surfaces either because the shape recurred across an agent's tasks OR
+// It surfaces either because the shape recurred across a bot's tasks OR
 // because a single task ran it end-to-end to a final outcome (e.g. a send,
 // post, or delivered artifact). Downstream turns it into a "spotted a workflow"
 // card and, on approval, a frozen skill.
 type DetectionCandidate struct {
 	Fingerprint string   `json:"fingerprint"` // stable shape identity (tools joined)
 	Shape       []string `json:"shape"`       // ordered distinct tools the tasks share
-	Agent       string   `json:"agent,omitempty"`
+	Bot         string   `json:"agent,omitempty"`
 	TaskIDs     []string `json:"task_ids"` // matching tasks, oldest first
 	Count       int      `json:"count"`    // len(TaskIDs): how often the shape recurred
 	// Outcome is the terminal outcome-producing tool that proves the run
@@ -85,7 +85,7 @@ type DetectOptions struct {
 	MinSteps   int // distinct tools needed to count as a workflow (default 2)
 	// RecurrenceFloor is the recurrence count at which a shape surfaces even
 	// with no recognized outcome step. Default recurrenceFloor (3). Apps
-	// detection lowers this to 2 because a read-mostly tool the agent rebuilt
+	// detection lowers this to 2 because a read-mostly tool the bot rebuilt
 	// twice is already app-worthy even though it never "sends" anything.
 	RecurrenceFloor int
 	// SingleRunRequiresExternalOutcome narrows what lets a SINGLE run surface
@@ -102,12 +102,12 @@ type DetectOptions struct {
 	// apps set it because a read-mostly tool's step order rarely distinguishes
 	// one workflow from another, and exact-order matching loses real recurrence.
 	OrderInsensitive bool
-	// CrossAgent clusters the same shape regardless of WHICH agent ran it, so a
-	// workflow two different agents both perform surfaces as one candidate. For
-	// apps this is a strong shared-tool signal (a tool any agent/human opens);
-	// the reported Agent is blanked since the cluster spans agents. Default false
-	// keeps per-agent clustering.
-	CrossAgent bool
+	// CrossBot clusters the same shape regardless of WHICH bot ran it, so a
+	// workflow two different bots both perform surfaces as one candidate. For
+	// apps this is a strong shared-tool signal (a tool any bot/human opens);
+	// the reported Bot is blanked since the cluster spans bots. Default false
+	// keeps per-bot clustering.
+	CrossBot bool
 	// FuzzyToolTolerance merges clusters whose tool SETS differ by at most this
 	// many tools (one added or dropped step), so real shape drift — an extra
 	// confirm read, a skipped lookup — still recurs instead of splitting into
@@ -227,8 +227,8 @@ func terminalOutcomeIn(shape []string, verbs map[string]bool) (string, bool) {
 	return "", false
 }
 
-// orchestrationTools are the agent's own plumbing — file/search/shell harness
-// tools and the office's internal coordination MCP. They are HOW an agent works,
+// orchestrationTools are the bot's own plumbing — file/search/shell harness
+// tools and the office's internal coordination MCP. They are HOW a bot works,
 // not WHAT the workflow does, so they must not count as workflow steps; left in,
 // every chatty turn looks like a "workflow" of Bash -> ToolSearch -> team_task.
 var orchestrationTools = map[string]bool{
@@ -241,9 +241,9 @@ var orchestrationTools = map[string]bool{
 	"enterplanmode": true, "exitplanmode": true, "exit_plan_mode": true,
 }
 
-// isOrchestrationTool reports whether a tool name is agent plumbing rather than
+// isOrchestrationTool reports whether a tool name is bot plumbing rather than
 // workflow work. The office's own coordination MCP (mcp__wuphf-office__*) is
-// always plumbing — the agent talking to its own broker. Other tools match the
+// always plumbing — the bot talking to its own broker. Other tools match the
 // orchestrationTools denylist by exact (lowercased) name.
 func isOrchestrationTool(name string) bool {
 	n := strings.ToLower(strings.TrimSpace(name))
@@ -275,12 +275,12 @@ func taskShape(turns []TurnManifest) []string {
 }
 
 // detectCluster is a group of tasks the miner judged to be the same workflow:
-// a representative shape (first member's first-use order), the agent that ran it
-// (the first member's, blanked downstream for cross-agent clusters), and the
+// a representative shape (first member's first-use order), the bot that ran it
+// (the first member's, blanked downstream for cross-bot clusters), and the
 // member task IDs.
 type detectCluster struct {
 	shape   []string
-	agent   string
+	bot     string
 	taskIDs []string
 }
 
@@ -304,17 +304,17 @@ func toolSetSymmetricDiff(a, b []string) int {
 }
 
 // mergeNearDuplicateClusters greedily folds each cluster into the first earlier
-// cluster whose shape differs by at most tolerance tools (and, unless crossAgent,
-// shares its agent). Greedy + first-seen order keeps it deterministic and
+// cluster whose shape differs by at most tolerance tools (and, unless crossBot,
+// shares its bot). Greedy + first-seen order keeps it deterministic and
 // conservative — drift accumulates toward an anchor rather than chaining
 // unrelated shapes together. The anchor keeps its representative shape; merged
 // members contribute their task IDs (recurrence count).
-func mergeNearDuplicateClusters(clusters []*detectCluster, tolerance int, crossAgent bool) []*detectCluster {
+func mergeNearDuplicateClusters(clusters []*detectCluster, tolerance int, crossBot bool) []*detectCluster {
 	kept := make([]*detectCluster, 0, len(clusters))
 	for _, c := range clusters {
 		merged := false
 		for _, k := range kept {
-			if !crossAgent && k.agent != c.agent {
+			if !crossBot && k.bot != c.bot {
 				continue
 			}
 			if toolSetSymmetricDiff(k.shape, c.shape) <= tolerance {
@@ -340,7 +340,7 @@ func DetectWorkflows(manifests []TurnManifest, opts DetectOptions) []DetectionCa
 
 	// Group manifests by task, preserving first-seen task order for determinism.
 	type taskGroup struct {
-		agent string
+		bot   string
 		turns []TurnManifest
 	}
 	groups := make(map[string]*taskGroup)
@@ -352,14 +352,14 @@ func DetectWorkflows(manifests []TurnManifest, opts DetectOptions) []DetectionCa
 		}
 		g, ok := groups[taskID]
 		if !ok {
-			g = &taskGroup{agent: strings.TrimSpace(m.Agent)}
+			g = &taskGroup{bot: strings.TrimSpace(m.Bot)}
 			groups[taskID] = g
 			taskOrder = append(taskOrder, taskID)
 		}
 		g.turns = append(g.turns, m)
 	}
 
-	// Cluster tasks by (agent, shape).
+	// Cluster tasks by (bot, shape).
 	clusters := make(map[string]*detectCluster)
 	var clusterOrder []string
 	for _, taskID := range taskOrder {
@@ -377,16 +377,16 @@ func DetectWorkflows(manifests []TurnManifest, opts DetectOptions) []DetectionCa
 			keyTools = append([]string(nil), shape...)
 			sort.Strings(keyTools)
 		}
-		// CrossAgent drops the agent from the key so the same shape clusters
-		// regardless of which agent ran it.
-		agentKey := g.agent
-		if opts.CrossAgent {
-			agentKey = ""
+		// CrossBot drops the bot from the key so the same shape clusters
+		// regardless of which bot ran it.
+		botKey := g.bot
+		if opts.CrossBot {
+			botKey = ""
 		}
-		key := agentKey + "\x00" + strings.Join(keyTools, ">")
+		key := botKey + "\x00" + strings.Join(keyTools, ">")
 		c, ok := clusters[key]
 		if !ok {
-			c = &detectCluster{shape: shape, agent: g.agent}
+			c = &detectCluster{shape: shape, bot: g.bot}
 			clusters[key] = c
 			clusterOrder = append(clusterOrder, key)
 		}
@@ -400,7 +400,7 @@ func DetectWorkflows(manifests []TurnManifest, opts DetectOptions) []DetectionCa
 		final = append(final, clusters[key])
 	}
 	if opts.FuzzyToolTolerance > 0 {
-		final = mergeNearDuplicateClusters(final, opts.FuzzyToolTolerance, opts.CrossAgent)
+		final = mergeNearDuplicateClusters(final, opts.FuzzyToolTolerance, opts.CrossBot)
 	}
 
 	out := make([]DetectionCandidate, 0, len(final))
@@ -422,15 +422,15 @@ func DetectWorkflows(manifests []TurnManifest, opts DetectOptions) []DetectionCa
 		if !surfacesSingleRun && count < opts.RecurrenceFloor {
 			continue
 		}
-		// A cross-agent cluster spans agents, so it claims no single one.
-		agent := c.agent
-		if opts.CrossAgent {
-			agent = ""
+		// A cross-bot cluster spans bots, so it claims no single one.
+		bot := c.bot
+		if opts.CrossBot {
+			bot = ""
 		}
 		out = append(out, DetectionCandidate{
 			Fingerprint: strings.Join(c.shape, ">"),
 			Shape:       c.shape,
-			Agent:       agent,
+			Bot:         bot,
 			TaskIDs:     c.taskIDs,
 			Count:       count,
 			Outcome:     outcome,
@@ -440,8 +440,8 @@ func DetectWorkflows(manifests []TurnManifest, opts DetectOptions) []DetectionCa
 		if out[i].Count != out[j].Count {
 			return out[i].Count > out[j].Count
 		}
-		if out[i].Agent != out[j].Agent {
-			return out[i].Agent < out[j].Agent
+		if out[i].Bot != out[j].Bot {
+			return out[i].Bot < out[j].Bot
 		}
 		return out[i].Fingerprint < out[j].Fingerprint
 	})

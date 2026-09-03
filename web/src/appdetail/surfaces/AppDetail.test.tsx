@@ -32,7 +32,7 @@ vi.mock("../apps/useOperatorApps", () => ({
   appBuildState: (app: { status?: string }) =>
     app.status === "building" ? "building" : "ready",
   useDeleteApp: () => ({ mutate: vi.fn(), isPending: false }),
-  // Real-id check used by the agent-service wiring.
+  // Real-id check used by the bot-service wiring.
   isRealAppId: (id: string | null | undefined) =>
     typeof id === "string" && id.startsWith("app_"),
 }));
@@ -117,7 +117,7 @@ describe("AppDetail", () => {
     expect(frame.textContent).toContain("<html>hi</html>");
   });
 
-  it("collects the agent service's artifacts under the live app on the UI tab", async () => {
+  it("collects the bot service's artifacts under the live app on the UI tab", async () => {
     ready();
     const fetchMock = vi.fn(async (url: string) => {
       if (url === "/agent/artifacts?agent=app_abc") {
@@ -153,9 +153,9 @@ describe("AppDetail", () => {
     expect(chips[0].textContent).toContain("weekly-recap.md");
   });
 
-  it("shows no artifacts section when the agent has produced nothing", () => {
+  it("shows no artifacts section when the bot has produced nothing", () => {
     ready();
-    // The agent service is unreachable: the UI tab is just the app.
+    // The bot service is unreachable: the UI tab is just the app.
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) })),
@@ -168,10 +168,10 @@ describe("AppDetail", () => {
   });
 });
 
-// An app is a surface, not a place you talk to an agent. The tab set is
+// An app is a surface, not a place you talk to a bot. The tab set is
 // deliberately three: what it looks like, what it stores, what it is plugged
 // into. Routines moved to the global Scheduled Tasks nav, Knowledge moved to
-// the agent scope, and tool authoring + the Demo capture are gone from apps
+// the bot scope, and tool authoring + the Demo capture are gone from apps
 // entirely — so a regression that quietly re-adds one of them fails here.
 describe("AppDetail tab set", () => {
   it("offers exactly UI, Data and Integrations", () => {
@@ -206,12 +206,12 @@ describe("AppDetail tab set", () => {
   });
 });
 
-// The founder's rule: you chat with an agent in its DM, nowhere else. An app
-// carries no chat pane, no floating "Ask Agent" bubble, and no docked drawer.
+// The founder's rule: you chat with a bot in its DM, nowhere else. An app
+// carries no chat pane, no floating "Ask Bot" bubble, and no docked drawer.
 const ASK_AGENT = /ask (agent|ai|gawkbot)/i;
 
-describe("AppDetail has no agent chat", () => {
-  it("offers no Ask Agent affordance on a ready app", () => {
+describe("AppDetail has no bot chat", () => {
+  it("offers no Ask Bot affordance on a ready app", () => {
     ready();
     const { container, queryByRole } = render(
       <AppDetail appId="app_abc" onBack={() => {}} />,
@@ -222,7 +222,7 @@ describe("AppDetail has no agent chat", () => {
     expect(container.querySelector(".opr-ask-fab")).toBeNull();
   });
 
-  it("offers no Ask Agent affordance while the app is building", () => {
+  it("offers no Ask Bot affordance while the app is building", () => {
     useOperatorAppMock.mockReturnValue({
       data: detail({ status: "building" }, ""),
       isError: false,
@@ -305,9 +305,9 @@ describe("AppDetail build walk narration", () => {
 });
 
 // The app's ONE conversational affordance, and the founder's stated replacement
-// for the removed chat: an edit request that goes to the agent building the app.
+// for the removed chat: an edit request that goes to the bot building the app.
 describe("AppDetail edit affordance", () => {
-  it("offers Edit app on a ready agent and hands back the app identity", () => {
+  it("offers Edit app on a ready bot and hands back the app identity", () => {
     ready();
     const onEditApp = vi.fn();
     const { getByRole } = render(

@@ -24,11 +24,11 @@ export interface WikiArticle {
   backlinks: { path: string; title: string; author_slug: string }[];
   word_count: number;
   categories: string[];
-  /** ISO-8601 timestamp of the last access by any reader (human or agent). Null if never accessed. */
+  /** ISO-8601 timestamp of the last access by any reader (human or bot). Null if never accessed. */
   last_read?: string | null;
   /** Number of accesses from the web UI (human readers). Absent when zero. */
   human_read_count?: number;
-  /** Number of accesses from agent MCP tool calls. Absent when zero. */
+  /** Number of accesses from bot MCP tool calls. Absent when zero. */
   agent_read_count?: number;
   /** Whole days since last_read; 0 if accessed today. */
   days_unread?: number;
@@ -66,7 +66,7 @@ export type WriteHumanResult = WriteHumanOk | WriteHumanConflict;
  * the article version they opened (or '' for a new article); the broker
  * rejects the write with 409 when HEAD has moved past that SHA.
  *
- * Agents never hit this endpoint — it is HTTP-only, not exposed via MCP.
+ * Bots never hit this endpoint — it is HTTP-only, not exposed via MCP.
  */
 export async function writeHumanArticle(params: {
   path: string;
@@ -101,7 +101,7 @@ export async function writeHumanArticle(params: {
 /**
  * Parse a 409 conflict body (raw error text from the shared post() helper) into
  * a typed WriteHumanConflict, or null when the text is not a conflict envelope.
- * Shared by the wiki and agent-file write clients (same 409 shape).
+ * Shared by the wiki and bot-file write clients (same 409 shape).
  */
 export function tryParseConflict(text: string): WriteHumanConflict | null {
   try {
@@ -189,7 +189,7 @@ export function wikiFileUrl(path: string): string {
  * Unlike wikiFileUrl, this URL carries NO auth token. The route is served on the
  * loopback origin and the app loads inside a sandboxed iframe WITHOUT
  * allow-same-origin (see WebsiteViewer); embedding the broker token in the URL
- * would hand a bearer credential to untrusted, agent-authored app code, which
+ * would hand a bearer credential to untrusted, bot-authored app code, which
  * could then exfiltrate it. We pick the same base as sseURL (proxy `/api` prefix
  * vs the direct broker origin) but strip the `?token=...` query the SSE helper
  * appends so only the bare path crosses into the sandbox.

@@ -29,7 +29,7 @@ type officeMemberListEntry struct {
 	LastTime     string `json:"lastTime,omitempty"`
 	// Online + LastSeenAt are presence fields populated from b.memberPresence
 	// (broker_presence.go), distinct from Status/Activity above which describe
-	// "is the agent processing right now". Online tracks "does the adapter
+	// "is the bot processing right now". Online tracks "does the adapter
 	// still have a live session for this slug"; LastSeenAt is preserved on
 	// flip-off so the UI can render "last seen 5m ago" for offline members.
 	//
@@ -134,7 +134,7 @@ func (b *Broker) serveOfficeMemberList(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	// meta is a sibling object on /office-members so the frontend's existing
 	// members poll can read durable office-level signals without an extra
-	// request. humanHasPosted drives the first-run "tag @agent" nudge —
+	// request. humanHasPosted drives the first-run "tag @bot" nudge —
 	// see the Broker.humanHasPosted field doc for the lifecycle.
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"members": members,
@@ -216,7 +216,7 @@ func (b *Broker) serveOfficeMemberMutation(w http.ResponseWriter, r *http.Reques
 	}
 	b.publishOfficeChanges(result.events)
 	if result.ensureNotebookDirs {
-		b.backfillAgentFilesForRoster()
+		b.backfillBotFilesForRoster()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -271,7 +271,7 @@ func (b *Broker) createOfficeMember(r *http.Request, slug string, body officeMem
 	}
 	applyOfficeMemberDefaults(&member)
 
-	// For openclaw agents, reach the gateway BEFORE we persist: if the
+	// For openclaw bots, reach the gateway BEFORE we persist: if the
 	// caller didn't supply a session key, auto-create one; either way,
 	// attach the bridge subscription. If the gateway is unreachable we
 	// fail the whole create so we don't persist a half-configured
@@ -291,12 +291,12 @@ func (b *Broker) createOfficeMember(r *http.Request, slug string, body officeMem
 			return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusServiceUnavailable, "openclaw bridge not active; cannot create openclaw member")
 		}
 		if member.Provider.Openclaw.SessionKey == "" {
-			agentID := member.Provider.Openclaw.AgentID
-			if agentID == "" {
-				agentID = "main"
+			botID := member.Provider.Openclaw.BotID
+			if botID == "" {
+				botID = "main"
 			}
 			label := fmt.Sprintf("wuphf-%s-%d", slug, time.Now().UnixNano())
-			key, err := bridge.CreateSession(r.Context(), agentID, label)
+			key, err := bridge.CreateSession(r.Context(), botID, label)
 			if err != nil {
 				return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusBadGateway, fmt.Sprintf("openclaw sessions.create: %v", err))
 			}
@@ -319,7 +319,7 @@ func (b *Broker) createOfficeMember(r *http.Request, slug string, body officeMem
 		b.mu.Unlock()
 		if member.Provider.Kind == provider.KindOpenclaw && bridge != nil && member.Provider.Openclaw != nil {
 			if err := bridge.DetachSession(r.Context(), slug, member.Provider.Openclaw.SessionKey); err != nil {
-				go bridge.postSystemMessage(slug, fmt.Sprintf("agent %q create-conflict: detach warning: %v", slug, err))
+				go bridge.postSystemMessage(slug, fmt.Sprintf("bot %q create-conflict: detach warning: %v", slug, err))
 			}
 		}
 		return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusConflict, "member already exists")
@@ -328,11 +328,11 @@ func (b *Broker) createOfficeMember(r *http.Request, slug string, body officeMem
 	b.memberIndex[member.Slug] = len(b.members) - 1
 	// Add the new hire to every non-DM channel's Members list so they
 	// can actually POST replies. canAccessChannelLocked enforces
-	// ch.Members for every non-CEO agent sender; without this, a
+	// ch.Members for every non-CEO bot sender; without this, a
 	// wizard-hired specialist can be tagged and dispatched but its
 	// reply is 403'd with "channel access denied" and the user sees
 	// nothing. DM channels are intentionally skipped — DMs encode
-	// the target agent in the slug and go through a different
+	// the target bot in the slug and go through a different
 	// membership gate.
 	//
 	// Policy note: this is broader than normalizeLoadedStateLocked's
@@ -435,18 +435,18 @@ func (b *Broker) updateOfficeMember(r *http.Request, slug string, body officeMem
 
 		if toOpenclaw {
 			if bridge == nil {
-				return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusServiceUnavailable, "openclaw bridge not active; cannot switch agent to openclaw")
+				return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusServiceUnavailable, "openclaw bridge not active; cannot switch bot to openclaw")
 			}
 			if newBinding.Openclaw == nil {
 				newBinding.Openclaw = &provider.OpenclawProviderBinding{}
 			}
 			if newBinding.Openclaw.SessionKey == "" {
-				agentID := newBinding.Openclaw.AgentID
-				if agentID == "" {
-					agentID = "main"
+				botID := newBinding.Openclaw.BotID
+				if botID == "" {
+					botID = "main"
 				}
 				label := fmt.Sprintf("wuphf-%s-%d", slug, time.Now().UnixNano())
-				key, err := bridge.CreateSession(r.Context(), agentID, label)
+				key, err := bridge.CreateSession(r.Context(), botID, label)
 				if err != nil {
 					return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusBadGateway, fmt.Sprintf("openclaw sessions.create: %v", err))
 				}
@@ -457,7 +457,7 @@ func (b *Broker) updateOfficeMember(r *http.Request, slug string, body officeMem
 
 		// Attach BEFORE detaching the old session so an attach failure
 		// preserves the previous subscription rather than leaving the
-		// agent silently disconnected. Order matters for openclaw→
+		// bot silently disconnected. Order matters for openclaw→
 		// openclaw swaps in particular: detach-first plus a failed
 		// attach would return 502 with member.Provider still pointing
 		// at the old binding but no live subscription on the gateway.
@@ -473,7 +473,7 @@ func (b *Broker) updateOfficeMember(r *http.Request, slug string, body officeMem
 			// daemon-side session lingers (no sessions.end method); user
 			// can prune via the OpenClaw CLI if they care.
 			if err := bridge.DetachSession(r.Context(), slug, oldSessionKey); err != nil {
-				go bridge.postSystemMessage(slug, fmt.Sprintf("agent %q provider-switch: detach warning: %v", slug, err))
+				go bridge.postSystemMessage(slug, fmt.Sprintf("bot %q provider-switch: detach warning: %v", slug, err))
 			}
 		}
 
@@ -488,7 +488,7 @@ func (b *Broker) updateOfficeMember(r *http.Request, slug string, body officeMem
 		b.mu.Unlock()
 		if providerChanged && newBinding.Kind == provider.KindOpenclaw && bridge != nil && newBinding.Openclaw != nil {
 			if err := bridge.DetachSession(r.Context(), slug, newBinding.Openclaw.SessionKey); err != nil {
-				go bridge.postSystemMessage(slug, fmt.Sprintf("agent %q update-conflict: detach warning: %v", slug, err))
+				go bridge.postSystemMessage(slug, fmt.Sprintf("bot %q update-conflict: detach warning: %v", slug, err))
 			}
 		}
 		return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusNotFound, "member not found")
@@ -529,8 +529,8 @@ func (b *Broker) updateOfficeMember(r *http.Request, slug string, body officeMem
 	}
 	responseMember := *member
 	b.mu.Unlock()
-	// Provider-switch hand-off: when the user reroutes an existing agent to a
-	// new runtime, the old runtime's per-agent state must not leak into the
+	// Provider-switch hand-off: when the user reroutes an existing bot to a
+	// new runtime, the old runtime's per-bot state must not leak into the
 	// new one. The Claude session store keeps a resume id keyed by slug —
 	// reading that on the next turn would attempt to resume a dead
 	// conversation on a runtime that no longer owns it. Clear it
@@ -582,7 +582,7 @@ func (b *Broker) removeOfficeMember(r *http.Request, slug string) (officeMemberM
 	// OpenClaw CLI if they want to reclaim the slot.
 	if memberSnapshot.Provider.Kind == provider.KindOpenclaw && bridge != nil {
 		if err := bridge.DetachSlugAndUnsubscribe(r.Context(), memberSnapshot.Slug); err != nil {
-			go bridge.postSystemMessage(memberSnapshot.Slug, fmt.Sprintf("agent %q removed: detach warning: %v", memberSnapshot.Slug, err))
+			go bridge.postSystemMessage(memberSnapshot.Slug, fmt.Sprintf("bot %q removed: detach warning: %v", memberSnapshot.Slug, err))
 		}
 	}
 

@@ -399,7 +399,7 @@ export function KBEditor() {
     useAppStore.getState().openTaskPanelCompose({
       source: "editor",
       pinnedPagePath: currentPath,
-      defaultAgentSlug: "editor",
+      defaultBotSlug: "editor",
     });
   };
 

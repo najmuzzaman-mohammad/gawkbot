@@ -64,7 +64,7 @@ func TestGovernorBudgetUsesRecordedUsage(t *testing.T) {
 	b.governor = newGovernor(governorConfig{MaxSessionTokens: 1000}, 0, 0)
 
 	// Seed session usage through the real accounting path.
-	b.RecordAgentUsage("ceo", "claude", provider.ClaudeUsage{InputTokens: 600, OutputTokens: 600})
+	b.RecordBotUsage("ceo", "claude", provider.ClaudeUsage{InputTokens: 600, OutputTokens: 600})
 	b.governorNoteTurn()
 	if !b.GovernorStatus().Paused {
 		t.Fatalf("expected budget pause once session usage (1200) crossed 1000")
@@ -191,7 +191,7 @@ func TestHandleGovernorCapsBodySize(t *testing.T) {
 func TestGovernorResumeMoreRaisesBudget(t *testing.T) {
 	b := newGovernorTestBroker(t)
 	b.governor = newGovernor(governorConfig{MaxSessionTokens: 1000}, 0, 0)
-	b.RecordAgentUsage("ceo", "claude", provider.ClaudeUsage{InputTokens: 1000})
+	b.RecordBotUsage("ceo", "claude", provider.ClaudeUsage{InputTokens: 1000})
 	b.governorNoteTurn()
 	if !b.GovernorStatus().Paused {
 		t.Fatalf("precondition: should be paused on budget")

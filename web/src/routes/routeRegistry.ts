@@ -52,7 +52,7 @@ export const APP_LABELS: Record<AppPanelId | FirstClassAppId, string> = {
   wiki: "Wiki",
   inbox: "Inbox",
   tasks: "Tasks",
-  agents: "Agents",
+  agents: "Bots",
   // Routed app panels under `/apps/$appId`. The `activity` id keeps its
   // historical slug so existing /apps/activity URLs still resolve; the
   // human-facing label is "Dashboard" (renamed in #1002). The `calendar`
@@ -142,7 +142,7 @@ export const ROUTE_PATHS = {
   /** Back-compat redirect: `/apps/tasks/$taskId` → `/tasks/$taskId`. */
   appTaskDetail: "/apps/tasks/$taskId",
   legacyWorkbench: "/apps/workbench",
-  legacyWorkbenchAgent: "/apps/workbench/$agentSlug",
+  legacyWorkbenchBot: "/apps/workbench/$agentSlug",
   legacyWorkbenchTask: "/apps/workbench/$agentSlug/tasks/$taskId",
   wiki: "/wiki",
   wikiLookup: "/wiki/lookup",
@@ -157,10 +157,10 @@ export const ROUTE_PATHS = {
   routineNew: "/routines/new",
   /** Routine detail page (full-screen, not the legacy drawer). */
   routineDetail: "/routines/$routineSlug",
-  /** Agents tool — roster grid of every agent (CEO, Librarian, specialists). */
+  /** Bots tool — roster grid of every bot (CEO, Librarian, specialists). */
   agents: "/agents",
-  /** Agent detail/config page — provider, role, persona, skills. */
-  agentDetail: "/agents/$agentSlug",
+  /** Bot detail/config page — provider, role, persona, skills. */
+  botDetail: "/agents/$agentSlug",
   /** Full-screen skill SKILL.md detail editor + viewer. */
   skillDetail: "/skills/$skillName",
 } as const;
@@ -216,8 +216,8 @@ export const ROUTE_CONTRACTS: readonly RouteContract[] = [
     search: [],
   },
   {
-    key: "legacyWorkbenchAgent",
-    path: ROUTE_PATHS.legacyWorkbenchAgent,
+    key: "legacyWorkbenchBot",
+    path: ROUTE_PATHS.legacyWorkbenchBot,
     params: ["agentSlug"],
     search: [],
   },
@@ -263,8 +263,8 @@ export const ROUTE_CONTRACTS: readonly RouteContract[] = [
   },
   { key: "agents", path: ROUTE_PATHS.agents, params: [], search: [] },
   {
-    key: "agentDetail",
-    path: ROUTE_PATHS.agentDetail,
+    key: "botDetail",
+    path: ROUTE_PATHS.botDetail,
     params: ["agentSlug"],
     search: [],
   },

@@ -11,7 +11,7 @@
  *     nowhere,
  *   - a stale counter: a "01 / 06" marker or six dots over five steps,
  *   - a broken seed: a finish that no longer sends the scratch-path payload
- *     (blueprint "", agents []) the broker turns into a CEO plus #general.
+ *     (blueprint "", bots []) the broker turns into a CEO plus #general.
  *
  * Only the network boundary is mocked. Every step screen renders for real, so
  * a starter-pack card leaking back into the flow fails the first test.
@@ -183,9 +183,9 @@ describe("OnboardingWizard with starter packs hidden", () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
 
-    // An empty blueprint with an explicitly empty agents list is the broker's
-    // lead-only seed. Sending `undefined`/omitting agents would take the
-    // legacy synthesis path and seed a five-agent roster instead.
+    // An empty blueprint with an explicitly empty bots list is the broker's
+    // lead-only seed. Sending `undefined`/omitting bots would take the
+    // legacy synthesis path and seed a five-bot roster instead.
     expect(completeOnboarding).toHaveBeenCalledTimes(1);
     expect(completeOnboarding).toHaveBeenCalledWith(
       expect.objectContaining({

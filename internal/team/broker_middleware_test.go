@@ -172,7 +172,7 @@ func TestBrokerAuthRejectsUnauthenticated(t *testing.T) {
 	}
 	var health struct {
 		SessionMode         string `json:"session_mode"`
-		OneOnOneAgent       string `json:"one_on_one_agent"`
+		OneOnOneBot         string `json:"one_on_one_agent"`
 		Provider            string `json:"provider"`
 		MemoryBackend       string `json:"memory_backend"`
 		MemoryBackendActive string `json:"memory_backend_active"`
@@ -189,8 +189,8 @@ func TestBrokerAuthRejectsUnauthenticated(t *testing.T) {
 	if health.SessionMode != SessionModeOffice {
 		t.Fatalf("expected health to report office mode, got %q", health.SessionMode)
 	}
-	if health.OneOnOneAgent != DefaultOneOnOneAgent {
-		t.Fatalf("expected health to report default 1o1 agent %q, got %q", DefaultOneOnOneAgent, health.OneOnOneAgent)
+	if health.OneOnOneBot != DefaultOneOnOneBot {
+		t.Fatalf("expected health to report default 1o1 bot %q, got %q", DefaultOneOnOneBot, health.OneOnOneBot)
 	}
 	if health.Provider != "codex" {
 		t.Fatalf("expected health to report provider codex, got %q", health.Provider)
@@ -443,14 +443,14 @@ func TestBrokerIgnoresForwardedClientIPFromNonLoopbackPeer(t *testing.T) {
 	}
 }
 
-// TestBrokerAgentRateLimitTripsOnRunawayLoop verifies that a prompt-injected
-// agent that loops on tool calls eventually gets 429'd even though it holds a
+// TestBrokerBotRateLimitTripsOnRunawayLoop verifies that a prompt-injected
+// bot that loops on tool calls eventually gets 429'd even though it holds a
 // valid Bearer token. The IP bucket alone exempts token-holders, so this is
-// the containment for runaway agent cost.
-func TestBrokerAgentRateLimitTripsOnRunawayLoop(t *testing.T) {
+// the containment for runaway bot cost.
+func TestBrokerBotRateLimitTripsOnRunawayLoop(t *testing.T) {
 	b := newTestBroker(t)
-	b.agentRateLimitRequests = 5
-	b.agentRateLimitWindow = time.Second
+	b.botRateLimitRequests = 5
+	b.botRateLimitWindow = time.Second
 	handler := b.rateLimitMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -470,35 +470,35 @@ func TestBrokerAgentRateLimitTripsOnRunawayLoop(t *testing.T) {
 		resp := doRequest("ceo")
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected request %d within agent budget to succeed, got %d", i+1, resp.StatusCode)
+			t.Fatalf("expected request %d within bot budget to succeed, got %d", i+1, resp.StatusCode)
 		}
 	}
 
 	resp := doRequest("ceo")
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusTooManyRequests {
-		t.Fatalf("expected 6th request to trip per-agent bucket, got %d", resp.StatusCode)
+		t.Fatalf("expected 6th request to trip per-bot bucket, got %d", resp.StatusCode)
 	}
 	if retryAfter := resp.Header.Get("Retry-After"); retryAfter == "" {
 		t.Fatal("expected Retry-After header on rate-limited response")
 	}
 
-	// A different agent slug gets its own bucket.
+	// A different bot slug gets its own bucket.
 	resp = doRequest("engineer")
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected distinct agent slug to get its own bucket, got %d", resp.StatusCode)
+		t.Fatalf("expected distinct bot slug to get its own bucket, got %d", resp.StatusCode)
 	}
 }
 
-// TestBrokerOperatorTrafficBypassesAgentRateLimit verifies the web UI, which
+// TestBrokerOperatorTrafficBypassesBotRateLimit verifies the web UI, which
 // authenticates with the broker token but does not identify itself as any
-// particular agent, is not blocked by the per-agent bucket. If this breaks the
-// operator loses access to their office whenever one agent loops.
-func TestBrokerOperatorTrafficBypassesAgentRateLimit(t *testing.T) {
+// particular bot, is not blocked by the per-bot bucket. If this breaks the
+// operator loses access to their office whenever one bot loops.
+func TestBrokerOperatorTrafficBypassesBotRateLimit(t *testing.T) {
 	b := newTestBroker(t)
-	b.agentRateLimitRequests = 1
-	b.agentRateLimitWindow = time.Second
+	b.botRateLimitRequests = 1
+	b.botRateLimitWindow = time.Second
 	handler := b.rateLimitMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -506,7 +506,7 @@ func TestBrokerOperatorTrafficBypassesAgentRateLimit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/messages", nil)
 		req.RemoteAddr = "127.0.0.1:5555"
 		req.Header.Set("Authorization", "Bearer "+b.Token())
-		// Deliberately no X-WUPHF-Agent — this is operator traffic.
+		// Deliberately no X-WUPHF-Bot — this is operator traffic.
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 		return rec.Result()
@@ -515,18 +515,18 @@ func TestBrokerOperatorTrafficBypassesAgentRateLimit(t *testing.T) {
 		resp := doRequest()
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected operator request %d to bypass agent limiter, got %d", i+1, resp.StatusCode)
+			t.Fatalf("expected operator request %d to bypass bot limiter, got %d", i+1, resp.StatusCode)
 		}
 	}
 }
 
-// TestBrokerAgentRateLimitExemptsSSEPaths verifies long-lived SSE streams are
-// not counted against the per-agent bucket. They do not represent loopable
+// TestBrokerBotRateLimitExemptsSSEPaths verifies long-lived SSE streams are
+// not counted against the per-bot bucket. They do not represent loopable
 // tool calls — a single subscribe holds the connection open for minutes.
-func TestBrokerAgentRateLimitExemptsSSEPaths(t *testing.T) {
+func TestBrokerBotRateLimitExemptsSSEPaths(t *testing.T) {
 	b := newTestBroker(t)
-	b.agentRateLimitRequests = 2
-	b.agentRateLimitWindow = time.Second
+	b.botRateLimitRequests = 2
+	b.botRateLimitWindow = time.Second
 	handler := b.rateLimitMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -544,12 +544,12 @@ func TestBrokerAgentRateLimitExemptsSSEPaths(t *testing.T) {
 		resp := doRequest("/events")
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected /events subscribe %d to bypass agent limiter, got %d", i+1, resp.StatusCode)
+			t.Fatalf("expected /events subscribe %d to bypass bot limiter, got %d", i+1, resp.StatusCode)
 		}
 		resp = doRequest("/agent-stream/ceo")
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected /agent-stream subscribe %d to bypass agent limiter, got %d", i+1, resp.StatusCode)
+			t.Fatalf("expected /bot-stream subscribe %d to bypass bot limiter, got %d", i+1, resp.StatusCode)
 		}
 	}
 }

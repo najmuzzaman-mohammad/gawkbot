@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/provider"
 )
 
@@ -44,7 +44,7 @@ func TestOpenAICompatToolLoop_LiveMLX(t *testing.T) {
 	}
 
 	var calls int
-	echo := agent.AgentTool{
+	echo := bot.BotTool{
 		Name:        "echo_phrase",
 		Description: "Returns the input phrase verbatim. Use to demonstrate tool calling.",
 		Schema: map[string]any{
@@ -63,8 +63,8 @@ func TestOpenAICompatToolLoop_LiveMLX(t *testing.T) {
 
 	loop := openAICompatToolLoop{
 		streamFn:    entry.StreamFn("live-loop-agent"),
-		tools:       []agent.AgentTool{echo},
-		toolByName:  map[string]agent.AgentTool{"echo_phrase": echo},
+		tools:       []bot.BotTool{echo},
+		toolByName:  map[string]bot.BotTool{"echo_phrase": echo},
 		maxIters:    4,
 		toolTimeout: 30 * time.Second,
 	}
@@ -72,7 +72,7 @@ func TestOpenAICompatToolLoop_LiveMLX(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	finalText, iters, usage, streamErr, err := loop.run(ctx, []agent.Message{
+	finalText, iters, usage, streamErr, err := loop.run(ctx, []bot.Message{
 		{Role: "system", Content: "You have one tool, echo_phrase. The user wants you to call it once with the phrase 'unified-steele' and then summarize what came back in a short sentence."},
 		{Role: "user", Content: "Please call echo_phrase with phrase=\"unified-steele\" and tell me what it returned."},
 	})
@@ -105,12 +105,12 @@ func TestOpenAICompatToolLoop_LiveMLX(t *testing.T) {
 	}
 
 	// Final mile: feed the captured usage into a real Broker via the same
-	// RecordAgentUsage path the headless runner takes. This proves what
+	// RecordBotUsage path the headless runner takes. This proves what
 	// the user-visible UsagePanel will show after a local-LLM turn:
-	// per-agent token counts populated, cost_usd stays at zero — which is
+	// per-bot token counts populated, cost_usd stays at zero — which is
 	// the unambiguous "this run was local" signal.
 	b := newTestBroker(t)
-	b.RecordAgentUsage("local-llm-agent", "mlx-lm", usage)
+	b.RecordBotUsage("local-llm-agent", "mlx-lm", usage)
 
 	b.mu.Lock()
 	snapshot := b.usage
@@ -118,18 +118,18 @@ func TestOpenAICompatToolLoop_LiveMLX(t *testing.T) {
 	dump, _ := json.MarshalIndent(snapshot, "", "  ")
 	t.Logf("broker.usage after live mlx turn:\n%s", dump)
 
-	agentUsage, ok := snapshot.Agents["local-llm-agent"]
+	botUsage, ok := snapshot.Bots["local-llm-agent"]
 	if !ok {
-		t.Fatal("broker did not record per-agent usage for local-llm-agent")
+		t.Fatal("broker did not record per-bot usage for local-llm-bot")
 	}
-	if agentUsage.InputTokens != usage.InputTokens || agentUsage.OutputTokens != usage.OutputTokens {
-		t.Errorf("broker per-agent usage = {input:%d output:%d}, want {%d, %d}",
-			agentUsage.InputTokens, agentUsage.OutputTokens, usage.InputTokens, usage.OutputTokens)
+	if botUsage.InputTokens != usage.InputTokens || botUsage.OutputTokens != usage.OutputTokens {
+		t.Errorf("broker per-bot usage = {input:%d output:%d}, want {%d, %d}",
+			botUsage.InputTokens, botUsage.OutputTokens, usage.InputTokens, usage.OutputTokens)
 	}
-	if agentUsage.CostUsd != 0 {
-		t.Errorf("broker per-agent cost_usd = %v, want 0 (local runs have no marginal $ cost)", agentUsage.CostUsd)
+	if botUsage.CostUsd != 0 {
+		t.Errorf("broker per-bot cost_usd = %v, want 0 (local runs have no marginal $ cost)", botUsage.CostUsd)
 	}
-	if agentUsage.Requests != 1 {
-		t.Errorf("broker per-agent requests = %d, want 1", agentUsage.Requests)
+	if botUsage.Requests != 1 {
+		t.Errorf("broker per-bot requests = %d, want 1", botUsage.Requests)
 	}
 }

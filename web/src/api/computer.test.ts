@@ -60,7 +60,7 @@ describe("computer api", () => {
     expect(postSpy).toHaveBeenCalledWith("/computer/runtime/prepare", {});
   });
 
-  it("fetches and normalises a per-agent status", async () => {
+  it("fetches and normalises a per-bot status", async () => {
     vi.spyOn(client, "get").mockResolvedValue({
       slug: "growth",
       destination: "sandbox",

@@ -4,9 +4,9 @@
 
 **Persona:** Jordan Park, indie hacker, three products. Yesterday they
 asked the office to "launch the v2 site by end of week" and the
-agents shipped a draft tweet, a hero visual, and a pricing page
+bots shipped a draft tweet, a hero visual, and a pricing page
 update. Today they want a one-paragraph recap they can paste into
-their indie-maker community update. The test: do the agents pull the
+their indie-maker community update. The test: do the bots pull the
 right artifacts forward, or do they regurgitate generic launch advice?
 
 **Outcome they came for:** one paragraph that names the three concrete
@@ -64,7 +64,7 @@ Use the approve action button (or press `a`).
 
 Jordan reads one paragraph that they could literally paste into Twitter
 or a Discord community channel — no rewriting, no fact-checking, no
-"agents made stuff up". Both the artifacts and the follow-up come from
+"bots made stuff up". Both the artifacts and the follow-up come from
 yesterday's actual session, not from a generic launch template. If
 Jordan has to edit more than two words, the recall layer is missing
 yesterday's context.

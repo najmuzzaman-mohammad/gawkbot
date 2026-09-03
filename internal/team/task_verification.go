@@ -7,12 +7,12 @@ package team
 // complete/approve mutation to land: the harness, not the model, declares
 // completion. A failing check blocks the transition and the failure output
 // is stamped onto the task so it rides into the owner's next execution
-// packet — ground truth re-enters agent context instead of evaporating.
+// packet — ground truth re-enters bot context instead of evaporating.
 //
 // Trust model: verification specs are authored by the CEO/human at task
 // scoping time (scope-shaping actions are already restricted to CEO+human in
 // checkTaskActionAuthLocked). Command checks run with the same trust the
-// office already extends to local_worktree execution — agents run arbitrary
+// office already extends to local_worktree execution — bots run arbitrary
 // commands in their worktrees every turn; the gate adds a bounded (5 min,
 // output-capped) command in that same sandbox, cwd-pinned to the task's
 // worktree. It widens no privilege; it only makes "done" conditional.
@@ -90,10 +90,10 @@ func normalizeTaskVerification(kind, spec string, required bool) (*TaskVerificat
 
 // runTaskVerification executes a verification check. It MUST be called
 // without b.mu held. workDir is the directory the task's work actually
-// lives in — its worktree, or the owner's agent scratch dir when the task
+// lives in — its worktree, or the owner's bot scratch dir when the task
 // has none. Callers must never pass the broker process cwd: a relative
 // `test -f` probe against the host launch directory can false-pass on
-// stale host files (V3-N5) and never sees the agent's real deliverable.
+// stale host files (V3-N5) and never sees the bot's real deliverable.
 func runTaskVerification(v TaskVerification, workDir string) TaskVerificationResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	res := TaskVerificationResult{Kind: v.Kind, CheckedAt: now}
@@ -215,7 +215,7 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 	// Complete on a parked (pre-execution) task is refused by the parked-
 	// task gate in the locked mutation phase for every non-internal actor.
 	// Let that gate own the error: failing the DoD check here instead told
-	// the agent the work just needs fixing when the real blocker is that
+	// the bot the work just needs fixing when the real blocker is that
 	// the task was never started — and executed a command before any work
 	// could exist. Internal recovery actors still run the check, since the
 	// parked-task gate exempts them.
@@ -233,13 +233,13 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 		return nil
 	}
 
-	// No task worktree: the owner's turns ran in their agent scratch dir
+	// No task worktree: the owner's turns ran in their bot scratch dir
 	// (headless_workspace.go), so the check must look there — never the
 	// broker process cwd, where a relative file probe can false-pass on
 	// stale host-repo files (V3-N5/J3: landing/index.html predating the
-	// run) and never sees the agent's real deliverable.
+	// run) and never sees the bot's real deliverable.
 	if workDir == "" {
-		workDir = agentScratchDir(owner)
+		workDir = botScratchDir(owner)
 	}
 
 	// Execute phase: no lock held.
@@ -288,7 +288,7 @@ func (b *Broker) gateTaskCompletionVerification(body TaskPostRequest) error {
 // and back in review" while the artifact on disk was byte-identical — the
 // review gate accepted a resubmission with zero artifact delta. The broker
 // now stamps a content hash of the delivered artifact at request_changes
-// time (TaskReviewObjection.ArtifactHash) and, on the next agent
+// time (TaskReviewObjection.ArtifactHash) and, on the next bot
 // submit_for_review/complete, requires the artifact bytes to have CHANGED.
 // When the artifact cannot be read (no worktree, external/visual-artifact
 // reference), the resubmission is allowed but the action log records that
@@ -435,7 +435,7 @@ func (b *Broker) computeTaskArtifactHash(taskID string) (artifact, hash string) 
 	return artifact, hashTaskArtifactFile(resolveTaskArtifactFile(artifact, workDir, wikiRoot))
 }
 
-// gateTaskResubmissionArtifactDelta is the MutateTask pre-phase for agent
+// gateTaskResubmissionArtifactDelta is the MutateTask pre-phase for bot
 // resubmissions of changes-requested work. It returns nil when the mutation
 // may proceed and a TaskMutationInvalid error when the artifact is
 // byte-identical to the version the reviewer bounced. Runs alongside the

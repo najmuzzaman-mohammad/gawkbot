@@ -79,7 +79,7 @@ func TestAppsIntegrationCall_ReadNotConnected(t *testing.T) {
 // TestAppsIntegrationCall_MutatingRaisesApproval: a MUTATING action is NEVER
 // executed by the app path. The broker returns { status:"needs_approval",
 // request_id } and mints a real approval card carrying the structured
-// integration_action payload — the SAME card the agent gate raises.
+// integration_action payload — the SAME card the bot gate raises.
 func TestAppsIntegrationCall_MutatingRaisesApproval(t *testing.T) {
 	t.Setenv("WUPHF_RUNTIME_HOME", t.TempDir())
 	t.Setenv("WUPHF_NO_NEX", "1")

@@ -1,12 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const { mockUseAgentStream } = vi.hoisted(() => ({
-  mockUseAgentStream: vi.fn(),
+const { mockUseBotStream } = vi.hoisted(() => ({
+  mockUseBotStream: vi.fn(),
 }));
 
-vi.mock("../../hooks/useAgentStream", () => ({
-  useAgentStream: mockUseAgentStream,
+vi.mock("../../hooks/useBotStream", () => ({
+  useBotStream: mockUseBotStream,
 }));
 
 import { TaskActivity } from "./TaskActivity";
@@ -16,8 +16,8 @@ function line(id: number, event: Record<string, unknown>) {
 }
 
 describe("TaskActivity", () => {
-  it("renders the owner agent's tool activity as resolving rows", () => {
-    mockUseAgentStream.mockReturnValue({
+  it("renders the owner bot's tool activity as resolving rows", () => {
+    mockUseBotStream.mockReturnValue({
       connected: true,
       lines: [
         line(1, {
@@ -57,16 +57,16 @@ describe("TaskActivity", () => {
   });
 
   it("passes the owner slug to the stream", () => {
-    mockUseAgentStream.mockReturnValue({ connected: false, lines: [] });
+    mockUseBotStream.mockReturnValue({ connected: false, lines: [] });
     render(<TaskActivity taskId="OFFICE-2" agentSlug="revops" />);
-    expect(mockUseAgentStream).toHaveBeenCalledWith("revops", "OFFICE-2", {
+    expect(mockUseBotStream).toHaveBeenCalledWith("revops", "OFFICE-2", {
       keepAlive: true,
       maxLines: 5000,
     });
   });
 
   it("renders nothing when there is no activity", () => {
-    mockUseAgentStream.mockReturnValue({ connected: false, lines: [] });
+    mockUseBotStream.mockReturnValue({ connected: false, lines: [] });
     const { container } = render(
       <TaskActivity taskId="OFFICE-2" agentSlug="app-builder" />,
     );
@@ -74,20 +74,20 @@ describe("TaskActivity", () => {
   });
 
   it("renders nothing for an unstaffed task (no owner)", () => {
-    mockUseAgentStream.mockReturnValue({ connected: false, lines: [] });
+    mockUseBotStream.mockReturnValue({ connected: false, lines: [] });
     const { container } = render(
       <TaskActivity taskId="OFFICE-4" agentSlug={null} />,
     );
     expect(container).toBeEmptyDOMElement();
     // A null owner streams nothing.
-    expect(mockUseAgentStream).toHaveBeenCalledWith(null, "OFFICE-4", {
+    expect(mockUseBotStream).toHaveBeenCalledWith(null, "OFFICE-4", {
       keepAlive: true,
       maxLines: 5000,
     });
   });
 
   it("collapses the list when the header is toggled", () => {
-    mockUseAgentStream.mockReturnValue({
+    mockUseBotStream.mockReturnValue({
       connected: true,
       lines: [
         line(1, {

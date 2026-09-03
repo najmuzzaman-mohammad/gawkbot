@@ -19,10 +19,10 @@ import (
 )
 
 // Launch starts a tmux session hosting the channel-view TUI and the shared
-// broker. Agents run headlessly by default via `claude --print` per turn;
-// per-agent interactive panes are reserved as an internal fallback primitive
-// (see trySpawnWebAgentPanes) and are not spawned at startup. The user
-// attaches to tmux to drive the channel view; agent output is surfaced
+// broker. Bots run headlessly by default via `claude --print` per turn;
+// per-bot interactive panes are reserved as an internal fallback primitive
+// (see trySpawnWebBotPanes) and are not spawned at startup. The user
+// attaches to tmux to drive the channel view; bot output is surfaced
 // through the channel timeline rather than a dedicated pane.
 func (l *Launcher) Launch() error {
 	if l.usesCodexRuntime() {
@@ -72,7 +72,7 @@ func (l *Launcher) Launch() error {
 	}
 
 	// Window 0 "team": channel on the left
-	// Pass broker token via env so channel view + agents can authenticate
+	// Pass broker token via env so channel view + bots can authenticate
 	channelEnv := []string{
 		fmt.Sprintf("WUPHF_BROKER_TOKEN=%s", l.broker.Token()),
 		fmt.Sprintf("WUPHF_BROKER_BASE_URL=%s", l.BrokerBaseURL()),
@@ -80,7 +80,7 @@ func (l *Launcher) Launch() error {
 	if l.isOneOnOne() {
 		channelEnv = append(channelEnv,
 			"WUPHF_ONE_ON_ONE=1",
-			fmt.Sprintf("WUPHF_ONE_ON_ONE_AGENT=%s", l.oneOnOneAgent()),
+			fmt.Sprintf("WUPHF_ONE_ON_ONE_AGENT=%s", l.oneOnOneBot()),
 		)
 	}
 	channelCmd := fmt.Sprintf("%s %s --channel-view 2>>%s", strings.Join(channelEnv, " "), wuphfBinary, shellQuote(channelStderrLogPath()))
@@ -112,8 +112,8 @@ func (l *Launcher) Launch() error {
 	).Run()
 
 	// Pane border cosmetics — kept so the channel pane renders with a border
-	// title. Per-agent panes are not spawned in the default path; they live
-	// only as an internal fallback (see trySpawnWebAgentPanes).
+	// title. Per-bot panes are not spawned in the default path; they live
+	// only as an internal fallback (see trySpawnWebBotPanes).
 	_ = exec.CommandContext(context.Background(), "tmux", "-L", tmuxSocketName, "set-option", "-t", l.sessionName,
 		"pane-border-status", "top",
 	).Run()
@@ -143,13 +143,13 @@ func (l *Launcher) Launch() error {
 	).Run()
 
 	// Headless context for per-turn Claude invocations. Used by both TUI and
-	// web modes since agent dispatch is headless by default.
+	// web modes since bot dispatch is headless by default.
 	l.headless.ctx, l.headless.cancel = context.WithCancel(context.Background())
 	l.resolveHeadlessConcurrencyCaps()
 	l.resumeInFlightWork()
 
 	go func() { defer recoverPanicTo("watchChannelPaneLoop", ""); l.watchChannelPaneLoop(channelCmd) }()
-	go func() { defer recoverPanicTo("notifyAgentsLoop", ""); l.notifyAgentsLoop() }()
+	go func() { defer recoverPanicTo("notifyAgentsLoop", ""); l.notifyBotsLoop() }()
 	if !l.isOneOnOne() {
 		go func() { defer recoverPanicTo("notifyTaskActionsLoop", ""); l.notifyTaskActionsLoop() }()
 		go func() { defer recoverPanicTo("notifyOfficeChangesLoop", ""); l.notifyOfficeChangesLoop() }()
@@ -197,7 +197,7 @@ func (l *Launcher) launchHeadlessCodex() error {
 	l.resolveHeadlessConcurrencyCaps()
 
 	l.resumeInFlightWork()
-	go l.notifyAgentsLoop()
+	go l.notifyBotsLoop()
 	if !l.isOneOnOne() {
 		go l.notifyTaskActionsLoop()
 		go l.notifyOfficeChangesLoop()

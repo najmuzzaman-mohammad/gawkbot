@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AgentRequest } from "../../api/client";
+import type { BotRequest } from "../../api/client";
 
 // Mocks installed BEFORE InterviewBar import so the component picks them up.
 const useRequestsMock = vi.fn();
@@ -35,7 +35,7 @@ function wrap(ui: ReactNode) {
   return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
 }
 
-function setPending(reqs: AgentRequest[]): void {
+function setPending(reqs: BotRequest[]): void {
   useRequestsMock.mockReturnValue({
     all: reqs,
     pending: reqs,
@@ -45,7 +45,7 @@ function setPending(reqs: AgentRequest[]): void {
 
 describe("<InterviewBar> approval UX", () => {
   it("renders EXTERNAL ACTION badge and structured details for approval kind", () => {
-    const approval: AgentRequest = {
+    const approval: BotRequest = {
       id: "request-99",
       from: "growthops",
       channel: "general",
@@ -87,7 +87,7 @@ describe("<InterviewBar> approval UX", () => {
   });
 
   it("renders the OAuth connect card for kind=connect, not generic options", () => {
-    const connect: AgentRequest = {
+    const connect: BotRequest = {
       id: "request-connect",
       from: "growthops",
       channel: "general",
@@ -114,7 +114,7 @@ describe("<InterviewBar> approval UX", () => {
   });
 
   it("falls back to plain context for non-approval requests in the bar", () => {
-    const interview: AgentRequest = {
+    const interview: BotRequest = {
       id: "request-100",
       from: "growthops",
       channel: "general",
@@ -122,7 +122,7 @@ describe("<InterviewBar> approval UX", () => {
       status: "pending",
       title: "Need direction",
       question: "Which path should we take?",
-      context: "background information from the agent",
+      context: "background information from the bot",
       options: [{ id: "yes", label: "Yes" }],
       blocking: false,
       created_at: "2026-05-06T00:00:00Z",
@@ -132,12 +132,12 @@ describe("<InterviewBar> approval UX", () => {
 
     expect(screen.queryByText("EXTERNAL ACTION")).not.toBeInTheDocument();
     expect(
-      screen.getByText("background information from the agent"),
+      screen.getByText("background information from the bot"),
     ).toBeInTheDocument();
   });
 
   it("resets text mode when the active request changes", () => {
-    const needsText: AgentRequest = {
+    const needsText: BotRequest = {
       id: "request-text",
       from: "growthops",
       channel: "general",
@@ -148,7 +148,7 @@ describe("<InterviewBar> approval UX", () => {
       blocking: false,
       created_at: "2026-05-06T00:00:00Z",
     };
-    const nextRequest: AgentRequest = {
+    const nextRequest: BotRequest = {
       ...needsText,
       id: "request-next",
       question: "Approve the new plan?",
@@ -168,7 +168,7 @@ describe("<InterviewBar> approval UX", () => {
   });
 
   it("collects text for legacy direct-answer interviews", async () => {
-    const legacyInterview: AgentRequest = {
+    const legacyInterview: BotRequest = {
       id: "request-legacy-interview",
       from: "research",
       channel: "general",
@@ -205,7 +205,7 @@ describe("<InterviewBar> approval UX", () => {
 });
 
 describe("<InterviewBar> notice framing (N8)", () => {
-  const notice: AgentRequest = {
+  const notice: BotRequest = {
     id: "request-notice-1",
     from: "ae",
     channel: "task-office-2",
@@ -213,7 +213,7 @@ describe("<InterviewBar> notice framing (N8)", () => {
     status: "pending",
     title: "OFFICE-4 delivered",
     question:
-      "Renewal sequences delivered: 3 sequences ready — artifact: agents/ae/notebook/renewal-sequences.md",
+      "Renewal sequences delivered: 3 sequences ready — artifact: bots/ae/notebook/renewal-sequences.md",
     options: [{ id: "acknowledge", label: "Acknowledge" }],
     recommended_id: "acknowledge",
     blocking: false,
@@ -232,7 +232,7 @@ describe("<InterviewBar> notice framing (N8)", () => {
   });
 
   it("keeps INTERVIEW framing with 'asks' for real interview kinds", () => {
-    const interview: AgentRequest = {
+    const interview: BotRequest = {
       id: "request-real-interview",
       from: "ceo",
       channel: "task-office-2",
@@ -261,7 +261,7 @@ describe("<InterviewBar> notice framing (N8)", () => {
 });
 
 describe("<InterviewBar> pinned ordering (v3 buried-interview fix)", () => {
-  const makeRequest = (over: Partial<AgentRequest>): AgentRequest => ({
+  const makeRequest = (over: Partial<BotRequest>): BotRequest => ({
     id: "request-0",
     from: "ae",
     channel: "general",
@@ -338,7 +338,7 @@ describe("<InterviewBar> pinned ordering (v3 buried-interview fix)", () => {
 });
 
 describe("<InterviewBar> channel scoping", () => {
-  const makeInterview = (over: Partial<AgentRequest>): AgentRequest => ({
+  const makeInterview = (over: Partial<BotRequest>): BotRequest => ({
     id: "scoped-0",
     from: "ae",
     channel: "general",
@@ -395,7 +395,7 @@ describe("<InterviewBar> channel scoping", () => {
     render(wrap(<InterviewBar channelSlug={null} />));
 
     expect(
-      screen.queryByRole("region", { name: "Pending agent request" }),
+      screen.queryByRole("region", { name: "Pending bot request" }),
     ).not.toBeInTheDocument();
   });
 });

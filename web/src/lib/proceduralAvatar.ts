@@ -1,7 +1,7 @@
 // Procedural pixel-art avatar builder.
 // Composes a 14x14 sprite from modular layers — hair, headwear, facial feature,
 // neck accessory — plus per-slug palette picks (accent, hair color, skin tone).
-// Layer picks are derived from a hash of the agent slug so the same slug always
+// Layer picks are derived from a hash of the bot slug so the same slug always
 // produces the same avatar, but different slugs get distinct looks.
 //
 // Palette slots match pixelAvatar.ts:

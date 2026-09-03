@@ -40,7 +40,7 @@ export const WithIcon: StoryObj = {
           Inbox zero
         </div>
         <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>
-          Nothing waiting on you. Agents will ping when they need a call.
+          Nothing waiting on you. Bots will ping when they need a call.
         </div>
       </div>
     </div>

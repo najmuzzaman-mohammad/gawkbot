@@ -91,7 +91,7 @@ open /tmp/shots/01-gbrain-wiki-page.png       # provenance quote, mermaid, TOC, 
 
 ---
 
-## 4. Full live office (advanced — real agents, real chat)
+## 4. Full live office (advanced — real bots, real chat)
 
 This boots the whole app with gbrain as the Knowledge backend and a real LLM
 provider (your `claude` / `codex` login).
@@ -112,9 +112,9 @@ Then, in the office UI:
 1. Have a short threaded conversation in a channel that reaches a decision.
 2. Within ~2 minutes the chat-digest sweep captures it into gbrain
    (`gbrain list` shows a new `chat-…` page; `get_links` shows its associations).
-3. Open a **new** chat and ask a related question in different words — the agent
+3. Open a **new** chat and ask a related question in different words — the bot
    answers using the captured knowledge **without you pasting any context**
-   (it arrives as the `== GBRAIN CONTEXT ==` block in the agent's turn).
+   (it arrives as the `== GBRAIN CONTEXT ==` block in the bot's turn).
 
 Tip: `WUPHF_MEMORY_BACKEND` defaults to gbrain automatically when gbrain is
 installed and an embedder (OpenAI key **or** local Ollama) is available — the

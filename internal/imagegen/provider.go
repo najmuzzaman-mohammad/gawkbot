@@ -1,5 +1,5 @@
 // Package imagegen provides a unified interface to image (and video)
-// generation backends. The Artist agent dispatches through this package
+// generation backends. The Artist bot dispatches through this package
 // rather than calling each provider's API directly, so the same MCP tool
 // `image_generate` can route to ComfyUI, Nano Banana, GPT Image, Seedance,
 // or Higgsfield based on a `provider` parameter.
@@ -48,7 +48,7 @@ type Request struct {
 
 // Result is the normalized response. Providers populate ImageURL when the
 // backend hosts the result, ImageB64 when they only return inline bytes.
-// AgentSlug + Channel are filled by the MCP tool, not the provider.
+// BotSlug + Channel are filled by the MCP tool, not the provider.
 type Result struct {
 	Provider      Kind   `json:"provider"`
 	Model         string `json:"model"`

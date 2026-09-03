@@ -2,13 +2,13 @@
 WUPHF vdev — the terminal office Ryan Howard always wanted.
 
 Usage:
-  wuphf              Launch multi-agent team (web UI on :7891)
+  wuphf              Launch multi-bot team (web UI on :7891)
   wuphf --legacy-tui  Launch with legacy tmux TUI instead
   wuphf init         Install the latest CLI and save setup defaults
   wuphf upgrade      Check npm for a newer version and show the changelog
   wuphf shred        Burn the workspace down and reopen onboarding
   wuphf import --from legacy  Import from a running external orchestrator (auto-detect)
-  wuphf log          Show what your agents actually did (task receipts)
+  wuphf log          Show what your bots actually did (task receipts)
   wuphf share        Invite one team member over a private network
   wuphf memory migrate --from {nex,gbrain}  Port legacy memory into the team wiki
   wuphf workspace ...  Manage multiple isolated WUPHF workspaces
@@ -18,7 +18,7 @@ Usage:
 
 Flags:
   --1o1
-        Launch a direct 1:1 session with a single agent (default ceo)
+        Launch a direct 1:1 session with a single bot (default ceo)
   --api-key
         API key for authentication
   --blueprint
@@ -28,7 +28,7 @@ Flags:
   --cmd
         Run a command non-interactively
   --collab
-        Start in collaborative mode (all agents see all messages)
+        Start in collaborative mode (all bots see all messages)
   --format
         Output format (text, json) (default "text")
   --from-scratch
@@ -42,7 +42,7 @@ Flags:
   --no-open
         Don't open browser automatically on launch
   --opus-ceo
-        Upgrade CEO agent from Sonnet to Opus
+        Upgrade CEO bot from Sonnet to Opus
   --pack
         Operation blueprint ID (legacy pack alias supported)
   --provider

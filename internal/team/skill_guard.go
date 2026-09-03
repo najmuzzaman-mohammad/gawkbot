@@ -42,9 +42,9 @@ const (
 	// TrustCommunity is the Stage A wiki source — humans wrote the article,
 	// the LLM merely classified it.
 	TrustCommunity GuardTrustLevel = "community"
-	// TrustAgentCreated is the Stage B+ LLM-synth path. Treated stricter than
-	// Hermes' policy because WUPHF agents can synthesize at scale.
-	TrustAgentCreated GuardTrustLevel = "agent_created"
+	// TrustBotCreated is the Stage B+ LLM-synth path. Treated stricter than
+	// Hermes' policy because WUPHF bots can synthesize at scale.
+	TrustBotCreated GuardTrustLevel = "agent_created"
 )
 
 // GuardScanResult bundles the verdict, findings, trust level, and a short

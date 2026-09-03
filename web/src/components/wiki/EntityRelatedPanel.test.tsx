@@ -78,7 +78,7 @@ describe("<EntityRelatedPanel>", () => {
     await waitFor(() => expect(screen.getByText("boom")).toBeInTheDocument());
   });
 
-  // The panel's whole value proposition is real-time updates when agents
+  // The panel's whole value proposition is real-time updates when bots
   // record facts. This test captures the fact_recorded callback and fires
   // it, then asserts the panel re-queries the graph API and re-renders
   // with the new edge. Without this, the SSE wiring is structurally

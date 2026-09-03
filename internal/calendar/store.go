@@ -34,8 +34,8 @@ func NewCalendarStore(path string) *CalendarStore {
 	return s
 }
 
-// AddSchedule adds or replaces a schedule for the given agent.
-func (s *CalendarStore) AddSchedule(agentSlug, cronExpr, description string) error {
+// AddSchedule adds or replaces a schedule for the given bot.
+func (s *CalendarStore) AddSchedule(botSlug, cronExpr, description string) error {
 	sched, err := ParseCron(cronExpr)
 	if err != nil {
 		return err
@@ -43,11 +43,11 @@ func (s *CalendarStore) AddSchedule(agentSlug, cronExpr, description string) err
 
 	nextFire := sched.Next(time.Now())
 
-	// Remove existing schedule for this agent
-	s.RemoveSchedule(agentSlug)
+	// Remove existing schedule for this bot
+	s.RemoveSchedule(botSlug)
 
 	s.data.Schedules = append(s.data.Schedules, ScheduleEntry{
-		AgentSlug:   agentSlug,
+		BotSlug:     botSlug,
 		CronExpr:    cronExpr,
 		Description: description,
 		Enabled:     true,
@@ -57,11 +57,11 @@ func (s *CalendarStore) AddSchedule(agentSlug, cronExpr, description string) err
 	return s.save()
 }
 
-// RemoveSchedule removes the schedule for the given agent.
-func (s *CalendarStore) RemoveSchedule(agentSlug string) {
+// RemoveSchedule removes the schedule for the given bot.
+func (s *CalendarStore) RemoveSchedule(botSlug string) {
 	filtered := s.data.Schedules[:0]
 	for _, entry := range s.data.Schedules {
-		if entry.AgentSlug != agentSlug {
+		if entry.BotSlug != botSlug {
 			filtered = append(filtered, entry)
 		}
 	}
@@ -69,12 +69,12 @@ func (s *CalendarStore) RemoveSchedule(agentSlug string) {
 	_ = s.save()
 }
 
-// ListSchedules returns all schedule entries sorted by agent slug.
+// ListSchedules returns all schedule entries sorted by bot slug.
 func (s *CalendarStore) ListSchedules() []ScheduleEntry {
 	result := make([]ScheduleEntry, len(s.data.Schedules))
 	copy(result, s.data.Schedules)
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].AgentSlug < result[j].AgentSlug
+		return result[i].BotSlug < result[j].BotSlug
 	})
 	return result
 }
@@ -101,7 +101,7 @@ func (s *CalendarStore) GetEventsForWeek(start time.Time) []CalendarEvent {
 				status = StatusMissed
 			}
 			events = append(events, CalendarEvent{
-				AgentSlug:   entry.AgentSlug,
+				BotSlug:     entry.BotSlug,
 				ScheduledAt: t,
 				Status:      status,
 			})

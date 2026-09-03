@@ -10,16 +10,16 @@ import (
 // The onboarding wizard hides the starter-pack step behind
 // ONBOARDING_TEAM_PACKS_ENABLED (web/src/components/onboarding/wizard/
 // wizardSteps.ts), so every completion now arrives with the same payload:
-// blueprint "" plus an EXPLICITLY empty agents list. The founder's flow
+// blueprint "" plus an EXPLICITLY empty bots list. The founder's flow
 // depends on what that pair seeds — the user is deposited straight into
 // #general to talk to the CEO, and the CEO conversation is what decides the
-// goal, the first task, and which agents to hire.
+// goal, the first task, and which bots to hire.
 //
 // The two neighbouring tests each cover half of this pair and neither pins it:
-// TestOnboardingCompleteAgentsEmptySeedsLeadOnly passes a real blueprint id,
-// and TestOnboardingCompleteFromScratchSynthesizes passes nil agents. An
+// TestOnboardingCompleteBotsEmptySeedsLeadOnly passes a real blueprint id,
+// and TestOnboardingCompleteFromScratchSynthesizes passes nil bots. An
 // earlier revision of this package treated exactly this combination as
-// "no-team mode" and seeded an office with zero agents, which would leave the
+// "no-team mode" and seeded an office with zero bots, which would leave the
 // wizard's only remaining path landing on an empty office with nobody to talk
 // to. This test pins the combination itself so that regression cannot return
 // unnoticed.
@@ -118,7 +118,7 @@ func TestOnboardingCompleteNoPackSeedsCEOAndGeneralChannel(t *testing.T) {
 }
 
 // officeLeadSlugFromMembers used to scan for the first BuiltIn member in
-// slug order. The Librarian and the App Builder are BuiltIn service agents in
+// slug order. The Librarian and the App Builder are BuiltIn service bots in
 // every office and "app-builder" sorts ahead of "ceo", so the App Builder won
 // every roster — the onboarding kickoff was tagged to it, and the starter
 // channels listed it as their lead. Pin the CEO preference that its sibling

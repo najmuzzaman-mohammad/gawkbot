@@ -29,7 +29,7 @@ func (m channelModel) currentMainViewportLines(contentWidth, msgH int) []channel
 		if len(m.messages) == 0 {
 			return append(needsYou, m.buildDirectFeedLines(contentWidth)...)
 		}
-		lines := buildOneOnOneViewportSuffix(m.messages, m.actions, m.tasks, m.members, m.expandedThreads, contentWidth, bodyHeight, m.scroll, m.oneOnOneAgentName(), m.oneOnOneAgentSlug(), m.unreadAnchorID, m.unreadCount)
+		lines := buildOneOnOneViewportSuffix(m.messages, m.actions, m.tasks, m.members, m.expandedThreads, contentWidth, bodyHeight, m.scroll, m.oneOnOneBotName(), m.oneOnOneBotSlug(), m.unreadAnchorID, m.unreadCount)
 		return append(needsYou, lines...)
 	}
 	if m.activeApp == channelui.OfficeAppMessages {
@@ -47,16 +47,16 @@ func buildOfficeViewportSuffix(messages []channelui.BrokerMessage, expanded map[
 	return buildVirtualizedOfficeViewport(messages, expanded, contentWidth, msgH, scroll, threadsDefaultExpand, unreadAnchorID, unreadCount, tail)
 }
 
-func buildOneOnOneViewportSuffix(messages []channelui.BrokerMessage, actions []channelui.Action, tasks []channelui.Task, members []channelui.Member, expanded map[string]bool, contentWidth, msgH, scroll int, agentName, agentSlug, unreadAnchorID string, unreadCount int) []channelui.RenderedLine {
+func buildOneOnOneViewportSuffix(messages []channelui.BrokerMessage, actions []channelui.Action, tasks []channelui.Task, members []channelui.Member, expanded map[string]bool, contentWidth, msgH, scroll int, botName, botSlug, unreadAnchorID string, unreadCount int) []channelui.RenderedLine {
 	var tail []channelui.RenderedLine
-	tail = append(tail, channelui.BuildDirectExecutionLines(actions, agentSlug, contentWidth)...)
-	tail = append(tail, channelui.BuildLiveWorkLines(members, tasks, nil, contentWidth, agentSlug)...)
+	tail = append(tail, channelui.BuildDirectExecutionLines(actions, botSlug, contentWidth)...)
+	tail = append(tail, channelui.BuildLiveWorkLines(members, tasks, nil, contentWidth, botSlug)...)
 	if len(messages) == 0 {
 		limit := msgH + scroll
 		if limit < 1 {
 			limit = 1
 		}
-		lines := append(buildOneOnOneMessageLines(messages, expanded, contentWidth, agentName, unreadAnchorID, unreadCount), tail...)
+		lines := append(buildOneOnOneMessageLines(messages, expanded, contentWidth, botName, unreadAnchorID, unreadCount), tail...)
 		if len(lines) > limit {
 			return channelui.CloneRenderedLines(lines[len(lines)-limit:])
 		}
@@ -83,9 +83,9 @@ var threadParticipantDisplaySlug = map[string]string{
 func threadParticipantColor(participant string) string {
 	normalized := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(participant)), "@")
 	if slug, ok := threadParticipantDisplaySlug[normalized]; ok {
-		return channelui.AgentColor(slug)
+		return channelui.BotColor(slug)
 	}
-	if color := channelui.AgentColor(normalized); color != "" {
+	if color := channelui.BotColor(normalized); color != "" {
 		return color
 	}
 	return "#ABABAD"
@@ -105,7 +105,7 @@ func renderOfficeMessageBlock(tm channelui.ThreadedMessage, contentWidth int, un
 		ts = ts[11:19]
 	}
 
-	color := channelui.AgentColor(msg.From)
+	color := channelui.BotColor(msg.From)
 	if color == "" {
 		color = "#9CA3AF"
 	}
@@ -133,7 +133,7 @@ func renderOfficeMessageBlock(tm channelui.ThreadedMessage, contentWidth int, un
 		}
 		appendWrappedLine(fmt.Sprintf("%s%s %s  %s  %s",
 			headerPrefix,
-			channelui.AgentAvatar(msg.From),
+			channelui.BotAvatar(msg.From),
 			nameStyle.Render(channelui.DisplayName(msg.From)),
 			mutedStyle.Render(ts),
 			lipgloss.NewStyle().Foreground(lipgloss.Color("#F59E0B")).Render(meta),
@@ -151,7 +151,7 @@ func renderOfficeMessageBlock(tm channelui.ThreadedMessage, contentWidth int, un
 		}
 		appendWrappedLine(prefix + channelui.SubtlePill("for you", "#FEF3C7", "#92400E") + " " + lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#F8FAFC")).Render(titleLine))
 		for _, paragraph := range strings.Split(msg.Content, "\n") {
-			paragraph = channelui.HighlightMentions(paragraph, channelui.AgentColorMap)
+			paragraph = channelui.HighlightMentions(paragraph, channelui.BotColorMap)
 			appendWrappedLine(prefix + paragraph)
 		}
 		return lines
@@ -216,7 +216,7 @@ func renderOfficeMessageBlock(tm channelui.ThreadedMessage, contentWidth int, un
 	if tm.Depth > 0 {
 		headerPrefix += "↳ "
 	}
-	appendWrappedLine(fmt.Sprintf("%s%s %s  %s  %s", headerPrefix, channelui.AgentAvatar(msg.From), nameStyle.Render(channelui.DisplayName(msg.From)), mutedStyle.Render(ts), metaStyle.Render(meta)))
+	appendWrappedLine(fmt.Sprintf("%s%s %s  %s  %s", headerPrefix, channelui.BotAvatar(msg.From), nameStyle.Render(channelui.DisplayName(msg.From)), mutedStyle.Render(ts), metaStyle.Render(meta)))
 
 	prefix := "  " + strings.Repeat("  ", tm.Depth)
 	if tm.Depth > 0 {
@@ -227,7 +227,7 @@ func renderOfficeMessageBlock(tm channelui.ThreadedMessage, contentWidth int, un
 
 	rendered := renderMarkdown(msg.Content, contentWidth-len(prefix)-2)
 	for _, paragraph := range strings.Split(rendered, "\n") {
-		paragraph = channelui.HighlightMentions(paragraph, channelui.AgentColorMap)
+		paragraph = channelui.HighlightMentions(paragraph, channelui.BotColorMap)
 		appendWrappedLine(prefix + paragraph)
 	}
 	if reactionLine := channelui.RenderReactions(msg.Reactions); reactionLine != "" {

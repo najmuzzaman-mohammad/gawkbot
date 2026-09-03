@@ -201,7 +201,7 @@ func TestHandleConfig_ProviderEndpointsRejectsUnknownKind(t *testing.T) {
 // client must NOT be able to persist `file://`, `gopher://`,
 // `unix://`, schemeless, or hostless URLs as a provider endpoint.
 // Persisting one would let the attacker redirect every subsequent
-// agent turn to their own target — exfiltrating the system prompt
+// bot turn to their own target — exfiltrating the system prompt
 // + conversation history. Allowed schemes are http and https only;
 // host must be non-empty.
 func TestHandleConfig_ProviderEndpointsRejectsDangerousURLSchemes(t *testing.T) {

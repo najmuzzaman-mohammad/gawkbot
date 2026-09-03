@@ -53,7 +53,7 @@ beforeEach(() => {
     commandPaletteOpen: false,
     composerHelpOpen: false,
     searchOpen: false,
-    activeAgentSlug: null,
+    activeBotSlug: null,
     activeThread: null,
     onboardingComplete: true,
   });
@@ -139,11 +139,11 @@ describe("Escape priority", () => {
     expect(useAppStore.getState().searchOpen).toBe(false);
   });
 
-  it("closes activeAgentSlug once search is closed", () => {
-    useAppStore.setState({ searchOpen: false, activeAgentSlug: "ceo" });
+  it("closes activeBotSlug once search is closed", () => {
+    useAppStore.setState({ searchOpen: false, activeBotSlug: "ceo" });
     renderHook(() => useKeyboardShortcuts(), { wrapper });
     act(() => press("Escape"));
-    expect(useAppStore.getState().activeAgentSlug).toBeNull();
+    expect(useAppStore.getState().activeBotSlug).toBeNull();
   });
 });
 

@@ -1,6 +1,6 @@
 # WIKI-SCHEMA.md — Contract for WUPHF's team wiki
 
-This file is the source of truth for **how the WUPHF wiki is organized and maintained**. Every in-broker LLM prompt that touches wiki state (extract, synthesize, query, lint) references this document as its opening directive. Every human (or agent) editing wiki files by hand reads this document first. Every Go service that writes to or indexes the wiki follows the contract below.
+This file is the source of truth for **how the WUPHF wiki is organized and maintained**. Every in-broker LLM prompt that touches wiki state (extract, synthesize, query, lint) references this document as its opening directive. Every human (or bot) editing wiki files by hand reads this document first. Every Go service that writes to or indexes the wiki follows the contract below.
 
 If a contract decision below conflicts with code, the contract wins. Fix the code.
 
@@ -10,28 +10,28 @@ This is Karpathy's "schema layer" for WUPHF — the document that makes the LLM 
 
 ## 1. Purpose
 
-The WUPHF wiki is a git-native, human-readable knowledge base for a team of AI agents and humans working together. It is the compounding intelligence layer that makes the moat real: every agent turn, email, meeting, or conversation can become durable, indexed, cross-referenced knowledge in markdown form, readable with `cat` and `git log`.
+The WUPHF wiki is a git-native, human-readable knowledge base for a team of AI bots and humans working together. It is the compounding intelligence layer that makes the moat real: every bot turn, email, meeting, or conversation can become durable, indexed, cross-referenced knowledge in markdown form, readable with `cat` and `git log`.
 
-The wiki is NOT a chat log, NOT a raw artifact dump, NOT a vector database. It is an encyclopedia of the team's operating reality, actively maintained by the agents and humans who contribute to it.
+The wiki is NOT a chat log, NOT a raw artifact dump, NOT a vector database. It is an encyclopedia of the team's operating reality, actively maintained by the bots and humans who contribute to it.
 
 **Guiding principles:**
 
 1. **Markdown is the source of truth.** Every fact, brief, insight, playbook, and lint finding lives in a markdown file, version-controlled by git. Everything else — SQLite indexes, bleve search, vector stores — is a derived cache, rebuildable from markdown on demand.
 2. **Substrate guarantee.** `rm -rf .wuphf/index/` → restart broker → the wiki still works. `git clone` of the wiki repo on a fresh machine → functional wiki without any WUPHF process running. Manual markdown edits in vim → picked up by the next index reconcile pass.
-3. **Single writer, many readers.** All writes go through the broker's `WikiWorker` queue. Agents, HTTP handlers, and CLI commands all enqueue write requests; the worker serializes commits. This preserves git-log attribution, prevents conflicting writes, and gives us the single-writer invariant that makes fact IDs deterministic.
-4. **Per-human git identity.** Every commit is authored by a named identity — either a human (e.g. `nazz`) or the synthetic `archivist` (used for automated extraction, synthesis, and lint). Agent-originated commits are attributed to the human who owns that agent. `git log` on any file shows exactly who did what.
-5. **Compounding over curation.** Agents contribute facts by default, not by request. The auto-loop closes without human ritual: agent talks → artifact committed → entities extracted → facts recorded → brief synthesized → next agent queries → reinforces or contradicts. Human intervention is rare and always additive.
+3. **Single writer, many readers.** All writes go through the broker's `WikiWorker` queue. Bots, HTTP handlers, and CLI commands all enqueue write requests; the worker serializes commits. This preserves git-log attribution, prevents conflicting writes, and gives us the single-writer invariant that makes fact IDs deterministic.
+4. **Per-human git identity.** Every commit is authored by a named identity — either a human (e.g. `nazz`) or the synthetic `archivist` (used for automated extraction, synthesis, and lint). Bot-originated commits are attributed to the human who owns that bot. `git log` on any file shows exactly who did what.
+5. **Compounding over curation.** Bots contribute facts by default, not by request. The auto-loop closes without human ritual: bot talks → artifact committed → entities extracted → facts recorded → brief synthesized → next bot queries → reinforces or contradicts. Human intervention is rare and always additive.
 
 ---
 
 ## 2. When to read this document
 
 Read in full on:
-- First call to `wuphf_wiki_lookup` in a session (agent or human)
+- First call to `wuphf_wiki_lookup` in a session (bot or human)
 - First extraction run per artifact kind
 - Every `synthesize` pass that creates or updates a brief
 - Every `run_lint` invocation
-- Onboarding any new agent type or ingest source
+- Onboarding any new bot type or ingest source
 
 Read the relevant section when:
 - Adding a new field to any frontmatter (Section 4)
@@ -179,7 +179,7 @@ One JSON object per line. `id` is deterministic — see Section 7.
 | `sentence_offset` | int | `0` | byte position of sentence in artifact (disambiguates multi-fact artifacts) |
 | `artifact_excerpt` | string | derived | optional snippet cached at extraction time |
 | `created_at` | ISO-8601 | required | commit timestamp |
-| `created_by` | string | required | git identity (agent-mapped-to-human OR `archivist`) |
+| `created_by` | string | required | git identity (bot-mapped-to-human OR `archivist`) |
 | `reinforced_at` | ISO-8601 \| null | `null` | last time a merge-by-dedup hit this fact |
 
 ### 4.4 Insight — line in `wiki/insights/entity/{slug}.jsonl`
@@ -257,14 +257,14 @@ Standard wiki article shape. Sections fixed in order: Contradictions, Orphans, S
 **NOT facts:**
 - Opinions ("Sarah is a great salesperson") — unless expressed as a direct quote with source.
 - Aggregations ("Sarah has closed 3 deals this month") — derive at query time from fact list.
-- Speculation, hypotheses, or agent inference not grounded in an artifact.
+- Speculation, hypotheses, or bot inference not grounded in an artifact.
 
 ### 5.4 When to promote a fact to an insight
 
 Synthesis (`EntitySynthesizer`) promotes a fact cluster to an insight when:
 - `valid_until` on a prior fact was set by a new supersede → the status change is noteworthy.
 - Three or more facts share a subject+predicate across artifacts → the pattern is durable.
-- An agent calls `save_as_insight` on a `/lookup` answer → user has marked this synthesis as useful.
+- A bot calls `save_as_insight` on a `/lookup` answer → user has marked this synthesis as useful.
 
 **Never** promote unreinforced or unsourced facts to insights.
 
@@ -291,7 +291,7 @@ Typed edges appear in `EntityRelatedPanel` on each brief. Lint flags co-occurrin
 
 ### 6.3 Automatic cross-reference promotion
 
-When two entities co-occur as subject+object in ≥3 facts, lint's "missing cross-refs" pass suggests adding a typed edge. Human or agent confirms via `run_lint` + resolve.
+When two entities co-occur as subject+object in ≥3 facts, lint's "missing cross-refs" pass suggests adding a typed edge. Human or bot confirms via `run_lint` + resolve.
 
 ---
 

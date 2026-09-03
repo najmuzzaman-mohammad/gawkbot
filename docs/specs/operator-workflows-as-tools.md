@@ -10,7 +10,7 @@ app — additive; the **Workflow tab is untouched**. The app's chat has context 
 the tools it has access to and **calls them when needed**.
 
 So the unit is a **Tool**: AI-authored, workflow-specific, callable by the app's
-agent. "Workflows" and "Tools" are the same idea; the Tools tab lists them with an
+bot. "Workflows" and "Tools" are the same idea; the Tools tab lists them with an
 explanation of what each does.
 
 A Tool: `{ id, name (callable, camelCase), purpose, inputs[], script, createdFrom
@@ -19,33 +19,33 @@ A Tool: `{ id, name (callable, camelCase), purpose, inputs[], script, createdFro
 ## ICP tutorial examples (Maya, RevOps) — the spec, test against all three
 1. **Score + route a lead.** Maya: "When a new lead comes in, score its fit and
    route hot ones to the right AE." → Nex writes `scoreAndRouteLead(lead)` →
-   appears in Tools. Later: "run it on the Acme lead" → the agent **calls**
+   appears in Tools. Later: "run it on the Acme lead" → the bot **calls**
    `scoreAndRouteLead({lead:"Acme"})` → returns "Fit 82 → routed to Priya (AE)".
 2. **Weekly pipeline summary.** Maya: "Every Monday summarize last week's
-   pipeline." → Nex writes `weeklyPipelineSummary()` → Tools. "run it" → the agent
+   pipeline." → Nex writes `weeklyPipelineSummary()` → Tools. "run it" → the bot
    calls it → returns a glanceable summary.
 3. **Draft a follow-up.** Maya: "Draft a follow-up email for a stalled deal." →
    Nex writes `draftFollowup(deal)` → Tools. "draft one for the Globex deal" → the
-   agent calls `draftFollowup({deal:"Globex"})` → returns the draft.
+   bot calls `draftFollowup({deal:"Globex"})` → returns the draft.
 
-## Where tools come from: a create_tool tool on the chat agent (not a UI)
-Tools are authored by the **chat agent's own `create_tool` tool**, not a
-build-a-tool UI. The operator teaches a workflow in the app's chat; the agent
+## Where tools come from: a create_tool tool on the chat bot (not a UI)
+Tools are authored by the **chat bot's own `create_tool` tool**, not a
+build-a-tool UI. The operator teaches a workflow in the app's chat; the bot
 calls `create_tool(name, title, purpose, inputs, code)` to make it callable and
 register it, so a later turn can call it. Implemented on **pi-mono** (the only
-operator backend — the Python/deepagents harness is removed): `agent/src/tools.ts`
+operator backend — the Python/deepbots harness is removed): `agent/src/tools.ts`
 (`authorTool` + `buildTool`) behind `POST /tools/build` (`agent/src/service.ts`),
 with the `Tool`/`ToolInput` wire shapes in `agent/src/wire.ts` mirroring the FE.
 This is the only way tools are made.
 
-These are **agent tools**: they take input params and return agent-shaped output,
+These are **bot tools**: they take input params and return bot-shaped output,
 so only the app's chat calls them — a human never runs one by hand.
 
 ## Slice 1 — the Tools tab (DONE)
 A new **Tools tab** on the app detail (`AppToolsTab`), added to both the real
 (`OperatorAppDetail`) and mock (`InternalToolDetail`) tab models — after Workflow,
 before Data. The Workflow tab and everything else are unchanged. The tab only
-**shows** tools; it has NO build-a-tool UI and NO Run button (agent-only).
+**shows** tools; it has NO build-a-tool UI and NO Run button (bot-only).
 - **Lists the app's tools** in PLAIN LANGUAGE for a non-technical operator: a
   readable title, what it does, a friendly "Needs: …", and "the chat calls this".
   The code (signature + script) is behind a **"View code"** toggle — nothing
@@ -54,10 +54,10 @@ before Data. The Workflow tab and everything else are unchanged. The tab only
 
 ## Slice 2+3 — chat → create_tool, wired to pi-mono (DONE)
 The app's Ask-AI chat (`AppToolsChat`) POSTs the taught workflow to the pi-mono
-agent's `/tools/build` (vite proxy `/agent` → :8820, `WUPHF_AGENT_PORT`); the
-agent's `create_tool` authors the tool; the chat renders the `create_tool(...)`
+bot's `/tools/build` (vite proxy `/agent` → :8820, `WUPHF_AGENT_PORT`); the
+bot's `create_tool` authors the tool; the chat renders the `create_tool(...)`
 call and the tool lands in the Tools tab. Falls back to the local FE mock when the
-agent is unreachable (`web/src/operator/tools/toolAgentClient.ts`). Authoring is
+bot is unreachable (`web/src/operator/tools/toolAgentClient.ts`). Authoring is
 deterministic S0 (keyword → shape, shared with the FE mock) so it runs key-free;
 the pi-model authoring path mirrors `buildAgent.ts`'s staging.
 

@@ -42,7 +42,7 @@ func TestMailboxInboxIncludesHumanAndDirectTags(t *testing.T) {
 
 	human := channelui.BrokerMessage{ID: "m1", From: "human", Content: "ping"}
 	if !channelui.MailboxMessageBelongsToViewerInbox(human, "fe", idx) {
-		t.Fatalf("messages from human should land in any agent's inbox")
+		t.Fatalf("messages from human should land in any bot's inbox")
 	}
 
 	directTag := channelui.BrokerMessage{ID: "m2", From: "ceo", Content: "do this", Tagged: []string{"fe"}}
@@ -96,7 +96,7 @@ func TestFilterMessagesForViewerScopeUnknownScopeReturnsCopy(t *testing.T) {
 	}
 }
 
-func TestFilterMessagesForViewerScopeAgentMode(t *testing.T) {
+func TestFilterMessagesForViewerScopeBotMode(t *testing.T) {
 	msgs := []channelui.BrokerMessage{
 		{ID: "a", From: "fe", Content: "viewer wrote"},                   // outbox
 		{ID: "b", From: "human", Content: "human ping"},                  // inbox (human)
@@ -109,10 +109,10 @@ func TestFilterMessagesForViewerScopeAgentMode(t *testing.T) {
 		ids[m.ID] = true
 	}
 	if !ids["a"] || !ids["b"] || !ids["c"] {
-		t.Fatalf("agent scope should include outbox+inbox, got %v", ids)
+		t.Fatalf("bot scope should include outbox+inbox, got %v", ids)
 	}
 	if ids["d"] {
-		t.Fatalf("agent scope should exclude unrelated message, got %v", ids)
+		t.Fatalf("bot scope should exclude unrelated message, got %v", ids)
 	}
 }
 

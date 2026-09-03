@@ -87,7 +87,7 @@ func markRichArtifactCallerError(err error) error {
 	return richArtifactCallerError{err: err}
 }
 
-// RichArtifact is the durable metadata for a visual agent artifact. The HTML
+// RichArtifact is the durable metadata for a visual bot artifact. The HTML
 // body is stored separately at HTMLPath so metadata can be listed without
 // shipping the full rendered document to every client.
 type RichArtifact struct {
@@ -169,7 +169,7 @@ func (a RichArtifact) WithDerivedPromotion() RichArtifact {
 	return a
 }
 
-// notebookOwnerAndEntryFromPath splits "agents/{slug}/notebook/{file}.md"
+// notebookOwnerAndEntryFromPath splits "bots/{slug}/notebook/{file}.md"
 // into ("{slug}", "{file}", true). Returns false for any other shape so
 // callers can fall back to a draft promotion safely.
 func notebookOwnerAndEntryFromPath(path string) (string, string, bool) {
@@ -447,7 +447,7 @@ func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact Ric
 	// Derive (and create) the canonical notebook home BEFORE marshalling the
 	// metadata so the persisted JSON carries attached_to_notebook_entry from
 	// the very first read. ensureRichArtifactNotebookHomeLocked is a no-op
-	// when the agent already provided a SourceMarkdownPath, treating that
+	// when the bot already provided a SourceMarkdownPath, treating that
 	// existing entry as the home.
 	notebookPath, notebookContent, attached, err := r.ensureRichArtifactNotebookHomeLocked(slug, artifact)
 	if err != nil {
@@ -525,7 +525,7 @@ func (r *Repo) CommitRichArtifact(ctx context.Context, slug string, artifact Ric
 //     mode), the existing notebook entry IS the home — no new file is written
 //     and the returned relPath is empty.
 //   - Otherwise a minimal companion entry is materialized under
-//     agents/{owner}/notebook/{entry_slug}.md. The body plants a
+//     bots/{owner}/notebook/{entry_slug}.md. The body plants a
 //     `visual-artifact:<id>` marker so the notebook detail view renders the
 //     artifact via the existing NotebookVisualArtifacts component.
 //   - Entry slug is derived from the title (kebab-cased, sanitized) with

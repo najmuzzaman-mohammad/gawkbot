@@ -7,14 +7,14 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 )
 
-// TestAgentSkillCreationToolsNotRegistered pins core-loop R5: agents have
+// TestBotSkillCreationToolsNotRegistered pins core-loop R5: bots have
 // no tool to create or propose skills (team_skill_create) and no tool to
 // request enablement (request_skill_enable). Skills come only from playbook
 // compilation; team_skill_run remains for invoking compiled skills.
-func TestAgentSkillCreationToolsNotRegistered(t *testing.T) {
+func TestBotSkillCreationToolsNotRegistered(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		channel  string
@@ -43,9 +43,9 @@ func TestAgentSkillCreationToolsNotRegistered(t *testing.T) {
 }
 
 // TestHandleTeamSkillRunBumpsUsageAndLogsInvocation verifies that when an
-// agent calls team_skill_run through the MCP, the broker bumps the skill's
+// bot calls team_skill_run through the MCP, the broker bumps the skill's
 // UsageCount and a skill_invocation message lands in the channel attributed
-// to the calling agent (not "you").
+// to the calling bot (not "you").
 func TestHandleTeamSkillRunBumpsUsageAndLogsInvocation(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	b := newTestBroker(t)
@@ -57,8 +57,8 @@ func TestHandleTeamSkillRunBumpsUsageAndLogsInvocation(t *testing.T) {
 	t.Setenv("WUPHF_TEAM_BROKER_URL", "http://"+b.Addr())
 	t.Setenv("WUPHF_BROKER_TOKEN", b.Token())
 
-	// Seed a skill the agent can invoke.
-	b.SeedDefaultSkills([]agent.PackSkillSpec{{
+	// Seed a skill the bot can invoke.
+	b.SeedDefaultSkills([]bot.PackSkillSpec{{
 		Name:        "investigate",
 		Title:       "Investigate a Bug",
 		Description: "Systematic debugging with root cause analysis.",
@@ -67,7 +67,7 @@ func TestHandleTeamSkillRunBumpsUsageAndLogsInvocation(t *testing.T) {
 		Content:     "Step 1: Reproduce. Step 2: Isolate. Step 3: Root cause. Step 4: Fix.",
 	}})
 
-	// Agent calls team_skill_run.
+	// Bot calls team_skill_run.
 	res, _, err := handleTeamSkillRun(context.Background(), nil, TeamSkillRunArgs{
 		SkillName: "investigate",
 		MySlug:    "eng",
@@ -113,7 +113,7 @@ func TestHandleTeamSkillRunBumpsUsageAndLogsInvocation(t *testing.T) {
 	}
 
 	// Confirm a skill_invocation message was appended, attributed to the
-	// calling agent slug (not "you"), in the requested channel.
+	// calling bot slug (not "you"), in the requested channel.
 	var sawInvocation bool
 	for _, msg := range b.Messages() {
 		if msg.Kind != "skill_invocation" {
@@ -172,7 +172,7 @@ func TestHandleTeamSkillRunBumpsUsageAndLogsInvocation(t *testing.T) {
 
 // TestHandleTeamSkillRunMissingSkillReturnsToolError verifies that calling
 // team_skill_run with a skill that doesn't exist returns a tool-level error
-// (so the agent sees the failure) rather than panicking.
+// (so the bot sees the failure) rather than panicking.
 func TestHandleTeamSkillRunMissingSkillReturnsToolError(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	b := newTestBroker(t)

@@ -9,9 +9,9 @@ share something too dense for plain markdown."
 
 | Vision area | Expected WUPHF behavior | Covered by |
 |---|---|---|
-| Notebook-first creation | Agents write a durable markdown note and attach a self-contained HTML visual companion to that notebook source. | RevOps Launch Risk Room |
+| Notebook-first creation | Bots write a durable markdown note and attach a self-contained HTML visual companion to that notebook source. | RevOps Launch Risk Room |
 | Wiki-first review surface | Promoted artifacts render as the wiki article's visual view with provenance and trust level visible. | Support Incident Command Room |
-| Chat handoff | Agents post a terse artifact marker, and chat renders a rich artifact card while hiding the raw marker from the message body. | Sales Engineering Review Brief |
+| Chat handoff | Bots post a terse artifact marker, and chat renders a rich artifact card while hiding the raw marker from the message body. | Sales Engineering Review Brief |
 | Interactivity | HTML artifacts include local controls for tuning, tabbing, copying, or exporting useful follow-up prompts. | All three examples |
 | Safety | HTML is self-contained, iframe-rendered, and unable to fetch network resources from the artifact body. | All three examples plus sandbox tests |
 | Shareability | Markdown keeps the durable source and summary; HTML carries the dense visual explanation users actually review. | All three examples |
@@ -19,15 +19,15 @@ share something too dense for plain markdown."
 
 ## Tutorial 1: RevOps Launch Risk Room
 
-User story: a RevOps operator asks an agent to turn a launch readiness note into
+User story: a RevOps operator asks a bot to turn a launch readiness note into
 a visual decision room before committing a go-to-market plan.
 
 Acceptance criteria:
 
-1. The agent first creates or updates
+1. The bot first creates or updates
    `agents/revops-agent/notebook/revops-launch-risk.md` as the durable notebook
    source.
-2. The agent then creates an HTML artifact titled `RevOps Launch Risk Room`
+2. The bot then creates an HTML artifact titled `RevOps Launch Risk Room`
    attached to that source note.
 3. The notebook article shows a `Visual artifacts` section with a card for the
    artifact, its trust level, creator, and an inline preview iframe.
@@ -49,16 +49,16 @@ Browser check:
 
 ## Tutorial 2: Support Incident Command Room
 
-User story: a support ops lead promotes an incident timeline from an agent's
+User story: a support ops lead promotes an incident timeline from a bot's
 notebook into the team wiki so leadership and customer-facing teams can read one
 clear command-room view.
 
 Acceptance criteria:
 
-1. The agent first creates or updates
+1. The bot first creates or updates
    `agents/support-agent/notebook/support-incident-room.md`.
-2. The agent creates an HTML artifact titled `Support Incident Command Room`.
-3. The agent promotes the reviewed artifact to
+2. The bot creates an HTML artifact titled `Support Incident Command Room`.
+3. The bot promotes the reviewed artifact to
    `team/playbooks/support-incident-command-room.md`.
 4. The wiki article has a visual tab/view that renders the promoted HTML
    artifact, not only the markdown summary.
@@ -80,7 +80,7 @@ Browser check:
 ## Tutorial 3: Sales Engineering Review Brief
 
 User story: a sales engineer posts a brief chat update about a technical review.
-The agent includes a rich artifact reference so reviewers get a compact card and
+The bot includes a rich artifact reference so reviewers get a compact card and
 can open the full annotated explainer when needed.
 
 Acceptance criteria:
@@ -113,7 +113,7 @@ In scope for this phase:
 - Wiki visual view rendering for promoted artifacts.
 - Chat artifact references from `visual-artifact:<id>` markers.
 - Sandboxed HTML rendering with no network access from artifact bodies.
-- Agent guidance that tells agents when and how to produce HTML artifacts.
+- Bot guidance that tells bots when and how to produce HTML artifacts.
 
 Not yet in scope:
 

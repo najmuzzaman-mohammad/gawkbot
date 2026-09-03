@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nex-crm/wuphf/internal/agent"
+	"github.com/nex-crm/wuphf/internal/bot"
 	"github.com/nex-crm/wuphf/internal/channel"
 )
 
@@ -35,7 +35,7 @@ func newTestNotifyContextBuilder(t *testing.T, opts ...func(*notificationContext
 			// Default: only direct ID/owner matches, no fuzzy scoring.
 			return 0
 		},
-		activeHeadlessAgents: func(string) map[string]struct{} { return nil },
+		activeHeadlessBots: func(string) map[string]struct{} { return nil },
 	}
 	for _, opt := range opts {
 		opt(b)
@@ -433,7 +433,7 @@ func TestNotificationContext_BuildMessageWorkPacket_DMPreambleAdded(t *testing.T
 
 func TestNotificationContext_BuildMessageWorkPacket_LeadAlreadyActiveLineSorted(t *testing.T) {
 	b := newTestNotifyContextBuilder(t, func(b *notificationContextBuilder) {
-		b.activeHeadlessAgents = func(except string) map[string]struct{} {
+		b.activeHeadlessBots = func(except string) map[string]struct{} {
 			return map[string]struct{}{"eng": {}, "fe": {}}
 		}
 		// Targeter must say "ceo" is the lead.
@@ -480,7 +480,7 @@ func TestNotificationContext_BuildTaskExecutionPacket_LocalWorktreeAddsCutLineAn
 // TestNotificationContext_BuildTaskExecutionPacket_LeadGetsDecomposeBranch is
 // the Phase 3 behavioral fix: when the LEAD (ceo) executes an owned task, the
 // packet tells it to decompose-and-delegate (create owned sub-tasks under this
-// task, reuse existing specialists, new agents need human approval) rather than
+// task, reuse existing specialists, new bots need human approval) rather than
 // only doing the work itself. A specialist must NOT get that lead block.
 func TestNotificationContext_BuildTaskExecutionPacket_LeadGetsDecomposeBranch(t *testing.T) {
 	b := newTestNotifyContextBuilder(t)
@@ -496,7 +496,7 @@ func TestNotificationContext_BuildTaskExecutionPacket_LeadGetsDecomposeBranch(t 
 		"Lead execution rule: you are the coordinator",
 		"parent_issue_id=OFFICE-7",
 		"REUSE the existing specialist",
-		"creating a new agent ALWAYS requires explicit human approval",
+		"creating a new bot ALWAYS requires explicit human approval",
 		"complete the parent only after the children are done",
 	} {
 		if !strings.Contains(lead, want) {
@@ -549,9 +549,9 @@ func TestLauncher_NotifyContextWiringDelegates(t *testing.T) {
 	}}
 	l := &Launcher{
 		broker: b,
-		pack: &agent.PackDefinition{
+		pack: &bot.PackDefinition{
 			LeadSlug: "ceo",
-			Agents: []agent.AgentConfig{
+			Bots: []bot.BotConfig{
 				{Slug: "ceo", Name: "CEO"},
 				{Slug: "eng", Name: "Engineer"},
 			},
@@ -564,9 +564,9 @@ func TestLauncher_NotifyContextWiringDelegates(t *testing.T) {
 }
 
 // TestNotificationContext_PreReviewFilter asserts the fundamental
-// contract from the multi-agent control loop redundancy analysis:
+// contract from the multi-bot control loop redundancy analysis:
 // a pre-merge channel message stamped with SourceTaskID is HIDDEN
-// from agents who are not the task owner or a reviewer, but VISIBLE
+// from bots who are not the task owner or a reviewer, but VISIBLE
 // to the owner + each reviewer + the broker token (empty recipient).
 // Once the source task merges, the message becomes visible to all.
 func TestNotificationContext_PreReviewFilter(t *testing.T) {
@@ -679,7 +679,7 @@ func TestNotificationContext_BuildTaskExecutionPacket_LongMoneyTitleFullInPacket
 		t.Errorf("owner's execution packet must carry the full money-bearing title; got:\n%s", packet)
 	}
 
-	// The message-packet active-task line is agent-facing too.
+	// The message-packet active-task line is bot-facing too.
 	msg := channelMessage{ID: "m1", From: "you", Channel: "general", Content: "status?"}
 	msgPacket, _ := func() (string, []string) {
 		bb := newTestNotifyContextBuilder(t, func(nb *notificationContextBuilder) {

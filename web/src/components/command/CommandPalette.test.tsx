@@ -85,7 +85,7 @@ beforeEach(() => {
   useAppStore.setState({
     commandPaletteOpen: false,
     searchOpen: false,
-    activeAgentSlug: null,
+    activeBotSlug: null,
   });
 });
 
@@ -111,14 +111,14 @@ describe("CommandPalette render", () => {
 
   it("shows empty state when query has no matches at all (single char, no results)", () => {
     // Single-char query: "search-everywhere" is not shown (needs >=2 chars),
-    // and if there are no channel/agent/action matches, we get the empty state.
+    // and if there are no channel/bot/action matches, we get the empty state.
     // Use a query that matches nothing across all item labels.
     // Note: useCommandItems always shows "search everywhere" for len>=2, so
     // use a 1-char query that also won't match any items to get the true empty state.
     renderPalette();
     // Type a character that won't match any item label/desc/alias.
-    // Agents: "ceo", "eng"; Channels: "general", "engineering"; Actions: known labels.
-    // "z" alone: Actions that contain "z"? None expected. Agents/channels: none with "z".
+    // Bots: "ceo", "eng"; Channels: "general", "engineering"; Actions: known labels.
+    // "z" alone: Actions that contain "z"? None expected. Bots/channels: none with "z".
     typeInInput("z");
     // Single char won't trigger "search everywhere", so if no other items match, empty state shows.
     // We don't know what the static actions look like exactly, so only assert
@@ -155,13 +155,13 @@ describe("Search filtering", () => {
     ).toBeInTheDocument();
   });
 
-  it("filters agents by name", () => {
+  it("filters bots by name", () => {
     renderPalette();
     typeInInput("CEO");
     expect(screen.getByTestId("cmd-item-ag:ceo")).toBeInTheDocument();
   });
 
-  it("filters agents by slug", () => {
+  it("filters bots by slug", () => {
     renderPalette();
     typeInInput("eng");
     expect(screen.getByTestId("cmd-item-ag:eng")).toBeInTheDocument();
@@ -293,7 +293,7 @@ describe("Command categories", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows agent items from office members", () => {
+  it("shows bot items from office members", () => {
     renderPalette();
     expect(screen.getByTestId("cmd-item-ag:ceo")).toBeInTheDocument();
     expect(screen.getByTestId("cmd-item-ag:eng")).toBeInTheDocument();

@@ -70,7 +70,7 @@ type ArticleMeta struct {
 	// LastRead is nil when the article has never been accessed by anyone.
 	LastRead       *time.Time `json:"last_read,omitempty"`
 	HumanReadCount int        `json:"human_read_count"`
-	AgentReadCount int        `json:"agent_read_count"`
+	BotReadCount   int        `json:"agent_read_count"`
 	// DaysUnread is whole days since LastRead; 0 when accessed today or never.
 	DaysUnread int `json:"days_unread"`
 	// Ghost is true when the article's frontmatter contains ghost: true —
@@ -111,7 +111,7 @@ type CatalogEntry struct {
 	// Read tracking — always present; zero when no reads have been recorded.
 	LastRead       *time.Time `json:"last_read,omitempty"`
 	HumanReadCount int        `json:"human_read_count"`
-	AgentReadCount int        `json:"agent_read_count"`
+	BotReadCount   int        `json:"agent_read_count"`
 	DaysUnread     int        `json:"days_unread"`
 	// Archived is true when the entry is a tombstone (frontmatter archived: true).
 	// Only present in responses when ?include_archived=true is passed.
@@ -162,7 +162,7 @@ func (r *Repo) walkCatalogArticles(includeArchived bool, fn func(rel string, con
 			// of the wiki-skill-compile pipeline, surfaced via /skills not the
 			// wiki article tree. Excluding both here keeps the catalog and UI
 			// focused on synthesized briefs/playbooks/decisions; the raw files
-			// are still reachable by direct path via /wiki/read for agents
+			// are still reachable by direct path via /wiki/read for bots
 			// that want to cite them.
 			rel, relErr := filepath.Rel(r.Root(), path)
 			if relErr == nil {
@@ -265,7 +265,7 @@ func (r *Repo) BuildCatalog(ctx context.Context, sortBy string, readLog *ReadLog
 			if s, ok := allStats[entries[i].Path]; ok {
 				entries[i].LastRead = s.LastRead
 				entries[i].HumanReadCount = s.HumanReadCount
-				entries[i].AgentReadCount = s.AgentReadCount
+				entries[i].BotReadCount = s.BotReadCount
 				entries[i].DaysUnread = s.DaysUnread
 			}
 		}
@@ -276,7 +276,7 @@ func (r *Repo) BuildCatalog(ctx context.Context, sortBy string, readLog *ReadLog
 	for i := range entries {
 		e := &entries[i]
 		if e.WordCount > 0 {
-			denom := math.Max(float64(e.HumanReadCount)+0.3*float64(e.AgentReadCount), 1.0)
+			denom := math.Max(float64(e.HumanReadCount)+0.3*float64(e.BotReadCount), 1.0)
 			e.PruneScore = float64(e.WordCount) * float64(e.DaysUnread) / denom
 		}
 	}
@@ -372,8 +372,8 @@ var wikilinkPattern = regexp.MustCompile(`\[\[([^\[\]|]+)(\|([^\[\]|]+))?\]\]`)
 // BuildArticle reads an article and computes its metadata + backlinks.
 // Returns os.ErrNotExist wrapped if the article is missing.
 //
-// reader is "web" for a human browser request, an agent slug (e.g.
-// "slack-agent") for MCP tool access, or "" to suppress read tracking.
+// reader is "web" for a human browser request, a bot slug (e.g.
+// "slack-bot") for MCP tool access, or "" to suppress read tracking.
 // readLog may be nil, in which case tracking is skipped regardless of reader.
 func (r *Repo) BuildArticle(ctx context.Context, relPath, reader string, readLog *ReadLog) (ArticleMeta, error) {
 	if err := validateArticlePath(relPath); err != nil {
@@ -421,7 +421,7 @@ func (r *Repo) BuildArticle(ctx context.Context, relPath, reader string, readLog
 		s := readLog.Stats(relPath)
 		meta.LastRead = s.LastRead
 		meta.HumanReadCount = s.HumanReadCount
-		meta.AgentReadCount = s.AgentReadCount
+		meta.BotReadCount = s.BotReadCount
 		meta.DaysUnread = s.DaysUnread
 	}
 

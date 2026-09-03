@@ -4,7 +4,7 @@
  * → Needs your input, etc).
  *
  * The card is the "what happened to this Task" surface for humans and
- * other agents scrolling the channel. Click → opens the shared task modal in
+ * other bots scrolling the channel. Click → opens the shared task modal in
  * place, so the reader keeps their position in the conversation instead of
  * being navigated into a second chat surface.
  *
