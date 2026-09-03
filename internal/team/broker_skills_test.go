@@ -16,6 +16,20 @@ import (
 	"github.com/nex-crm/wuphf/internal/bot"
 )
 
+// userSkills drops the skills the office seeds for every bot (app-building,
+// wiki-maintenance). Tests here are about skills a HUMAN or a bot created, and
+// asserting on raw counts made every one of them break the moment a system
+// skill was added.
+func userSkills(skills []teamSkill) []teamSkill {
+	out := make([]teamSkill, 0, len(skills))
+	for _, sk := range skills {
+		if !sk.System {
+			out = append(out, sk)
+		}
+	}
+	return out
+}
+
 // TestHandlePostSkill_RejectsDuplicateName pins the 409 path. Two skill
 // records sharing a name break findSkillByNameLocked's "first non-archived
 // match wins" semantics — every callsite would observe a stale reference.
@@ -63,11 +77,12 @@ func TestSeedDefaultSkills_IsIdempotent(t *testing.T) {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if len(b.skills) != 2 {
-		t.Fatalf("expected 2 seeded skills after idempotent reseed, got %d: %+v", len(b.skills), b.skills)
+	seeded := userSkills(b.skills)
+	if len(seeded) != 2 {
+		t.Fatalf("expected 2 seeded skills after idempotent reseed, got %d: %+v", len(seeded), seeded)
 	}
 	names := map[string]int{}
-	for _, sk := range b.skills {
+	for _, sk := range seeded {
 		names[sk.Name]++
 	}
 	if names["deploy"] != 1 || names["rollback"] != 1 {
@@ -126,13 +141,17 @@ func TestInvokeSkillTracksInvokerChannelAndExecutionMetadata(t *testing.T) {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.skills[0].UsageCount != 1 {
-		t.Fatalf("expected usage count 1, got %d", b.skills[0].UsageCount)
+	invoked := userSkills(b.skills)
+	if len(invoked) == 0 {
+		t.Fatalf("no user skill present: %+v", b.skills)
 	}
-	if b.skills[0].LastExecutionStatus != "invoked" {
-		t.Fatalf("expected last execution status invoked, got %q", b.skills[0].LastExecutionStatus)
+	if invoked[0].UsageCount != 1 {
+		t.Fatalf("expected usage count 1, got %d", invoked[0].UsageCount)
 	}
-	if b.skills[0].LastExecutionAt == "" {
+	if invoked[0].LastExecutionStatus != "invoked" {
+		t.Fatalf("expected last execution status invoked, got %q", invoked[0].LastExecutionStatus)
+	}
+	if invoked[0].LastExecutionAt == "" {
 		t.Fatal("expected last execution timestamp to be set")
 	}
 	last := b.messages[len(b.messages)-1]
@@ -264,7 +283,7 @@ func TestSkillCreatePersistenceRoundTrip(t *testing.T) {
 
 	reloaded := reloadedBroker(t, b)
 	reloaded.mu.Lock()
-	skills := append([]teamSkill(nil), reloaded.skills...)
+	skills := userSkills(reloaded.skills)
 	requests := append([]humanInterview(nil), reloaded.requests...)
 	reloaded.mu.Unlock()
 
@@ -383,8 +402,8 @@ func TestHandlePostSkill_RejectsProposeAction(t *testing.T) {
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if len(b.skills) != 0 {
-		t.Fatalf("expected no skill created, got %+v", b.skills)
+	if created := userSkills(b.skills); len(created) != 0 {
+		t.Fatalf("expected no skill created, got %+v", created)
 	}
 }
 

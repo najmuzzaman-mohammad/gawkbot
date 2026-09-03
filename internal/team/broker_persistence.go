@@ -71,7 +71,18 @@ func brokerStateActivityScore(state brokerState) int {
 	score += len(state.Actions) * 4
 	score += len(state.Signals) * 4
 	score += len(state.Decisions) * 4
-	score += len(state.Skills) * 2
+	// System skills only. The office seeds app-building and wiki-maintenance
+	// into every broker on boot, so counting them makes a COMPLETELY EMPTY
+	// office score above zero — and brokerStateShouldSnapshot is exactly the
+	// "is there live work here worth keeping" gate. Counting them let a
+	// clobbered save (no messages, no tasks, no actions) overwrite the
+	// last-good snapshot that was protecting real work, which is the one
+	// thing the snapshot exists to prevent.
+	for _, sk := range state.Skills {
+		if !sk.System {
+			score += 2
+		}
+	}
 	score += len(state.Policies)
 	score += len(state.HumanInvites) * 2
 	score += len(state.HumanSessions) * 2

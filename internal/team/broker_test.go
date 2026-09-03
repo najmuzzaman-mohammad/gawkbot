@@ -241,7 +241,8 @@ func TestBrokerLoadsLastGoodSnapshotWhenPrimaryStateIsClobbered(t *testing.T) {
 	if snap, err := loadBrokerStateFile(b.stateSnapshotPath()); err != nil {
 		t.Fatalf("read snapshot: %v", err)
 	} else if len(snap.Messages) != 1 || len(snap.Tasks) != 1 || len(snap.Actions) != 1 {
-		t.Fatalf("unexpected snapshot contents: %+v", snap)
+		t.Fatalf("unexpected snapshot contents: messages=%d tasks=%d actions=%d skills=%d",
+			len(snap.Messages), len(snap.Tasks), len(snap.Actions), len(snap.Skills))
 	}
 
 	reloaded := reloadedBroker(t, b)

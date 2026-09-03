@@ -435,11 +435,12 @@ func TestHandleStudioRunWorkflowExecutesOneDraftAndUpdatesSkill(t *testing.T) {
 		t.Fatalf("unexpected action %+v", lastAction)
 	}
 
-	if len(b.skills) != 1 {
-		t.Fatalf("expected 1 skill, got %d", len(b.skills))
+	sk := userSkills(b.skills)
+	if len(sk) != 1 {
+		t.Fatalf("expected 1 skill, got %d", len(sk))
 	}
-	if b.skills[0].UsageCount != 1 || b.skills[0].LastExecutionStatus != "success" {
-		t.Fatalf("expected skill usage/status updated, got %+v", b.skills[0])
+	if sk[0].UsageCount != 1 || sk[0].LastExecutionStatus != "success" {
+		t.Fatalf("expected skill usage/status updated, got %+v", sk[0])
 	}
 }
 
@@ -516,8 +517,8 @@ func TestHandleStudioRunWorkflowReturnsRateLimitMetadata(t *testing.T) {
 	if lastAction.Kind != "external_workflow_rate_limited" || lastAction.Source != "one" {
 		t.Fatalf("unexpected action %+v", lastAction)
 	}
-	if len(b.skills) != 1 || b.skills[0].LastExecutionStatus != "rate_limited" {
-		t.Fatalf("expected skill status updated, got %+v", b.skills)
+	if sk := userSkills(b.skills); len(sk) != 1 || sk[0].LastExecutionStatus != "rate_limited" {
+		t.Fatalf("expected skill status updated, got %+v", sk)
 	}
 }
 

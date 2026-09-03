@@ -692,9 +692,9 @@ func (b *Broker) handleSkillReject(w http.ResponseWriter, r *http.Request, name 
 		http.Error(w, "skill not found", http.StatusNotFound)
 		return
 	}
-	if reason := guardSystemSkillMutation(sk, "reject"); reason != "" {
+	if guardReason := guardSystemSkillMutation(sk, "reject"); guardReason != "" {
 		b.mu.Unlock()
-		http.Error(w, reason, http.StatusForbidden)
+		http.Error(w, guardReason, http.StatusForbidden)
 		return
 	}
 	skCopy := *sk
@@ -966,6 +966,26 @@ func (b *Broker) reconcileSkillStatusFromDisk() {
 // SKILL.md or mutates the in-memory skill while backfill is iterating, we
 // pick up the live copy — or skip entirely when disk is no longer empty —
 // rather than write a stale snapshot taken at startup.
+// repoForSkillBackfill returns the wiki repo to backfill into, or nil when the
+// wiki backend is not actually usable.
+//
+// A non-nil worker is not proof of a working wiki: init can fail (an
+// unreadable or non-directory root) and still leave the worker wired up. The
+// sweep would then enqueue writes that fail on git AND create directories
+// under a root the caller believes is dead — which is how it started racing
+// t.TempDir cleanup, failing whichever test happened to run next.
+func repoForSkillBackfill(worker *WikiWorker) *Repo {
+	repo := worker.Repo()
+	if repo == nil {
+		return nil
+	}
+	info, err := os.Stat(repo.Root())
+	if err != nil || !info.IsDir() {
+		return nil
+	}
+	return repo
+}
+
 func (b *Broker) backfillSkillFilesFromState(ctx context.Context) {
 	b.mu.Lock()
 	worker := b.wikiWorker
@@ -973,7 +993,7 @@ func (b *Broker) backfillSkillFilesFromState(ctx context.Context) {
 	if worker == nil {
 		return
 	}
-	repo := worker.Repo()
+	repo := repoForSkillBackfill(worker)
 	if repo == nil {
 		return
 	}

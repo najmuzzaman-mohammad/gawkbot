@@ -1,10 +1,6 @@
 package provider
 
 import (
-	"context"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -92,25 +88,19 @@ func TestClaudeStreamStillEmitsMessageWithoutDeltas(t *testing.T) {
 	}
 }
 
-// runFixtureStream feeds NDJSON through the real stream reader by pointing the
-// command at a file of canned CLI output.
+// runFixtureStream feeds canned CLI output through the real stream reader.
+// No subprocess: consumeClaudeStream takes an io.Reader precisely so this
+// contract can be checked without one (spawning a child was flaky on CI).
 func runFixtureStream(t *testing.T, lines []string) []bot.StreamChunk {
 	t.Helper()
-	dir := t.TempDir()
-	fixture := filepath.Join(dir, "stream.ndjson")
-	if err := os.WriteFile(fixture, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
-		t.Fatalf("write fixture: %v", err)
-	}
-	// Replay the fixture as the CLI's stdout. No shell: the path goes straight
-	// through as an argv entry, so nothing in it can be read as a metacharacter.
-	// `cat <file>` ignores stdin, which is where the caller writes the prompt —
-	// the unread pipe just closes when the process exits.
-	cmd := exec.Command("cat", fixture)
-
 	ch := make(chan bot.StreamChunk, 64)
 	go func() {
 		defer close(ch)
-		runClaudeAttemptCommand(context.Background(), cmd, ch, "spin up a prospector", dir)
+		if _, err := consumeClaudeStream(
+			strings.NewReader(strings.Join(lines, "\n")+"\n"), ch,
+		); err != nil {
+			t.Errorf("consumeClaudeStream: %v", err)
+		}
 	}()
 
 	var chunks []bot.StreamChunk
