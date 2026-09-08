@@ -362,12 +362,44 @@ func firstBlockingRequestInChannel(requests []humanInterview, channel string) *h
 // office-wide drop (v3 [19:23:59]: one unanswered interview silenced every
 // bot, including a librarian directly @-mentioned in another channel).
 func (b *Broker) BotAwaitingInterviewAnswer(slug string) bool {
-	slug = strings.ToLower(strings.TrimSpace(slug))
-	if b == nil || slug == "" {
+	if b == nil {
 		return false
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	return b.BotAwaitingInterviewAnswerLocked(slug)
+}
+
+// PendingInterviewTaskIDs returns the task ids of slug's active human
+// interviews ("" for an interview not tied to a task). Used with the live
+// lane state to tell a parked turn from a stale row.
+func (b *Broker) PendingInterviewTaskIDs(slug string) []string {
+	slug = strings.ToLower(strings.TrimSpace(slug))
+	if b == nil || slug == "" {
+		return nil
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	var ids []string
+	for _, req := range b.requests {
+		if !requestIsHumanInterview(req) || !requestIsActive(req) {
+			continue
+		}
+		if strings.ToLower(strings.TrimSpace(req.From)) != slug {
+			continue
+		}
+		ids = append(ids, strings.TrimSpace(req.IssueID))
+	}
+	return ids
+}
+
+// BotAwaitingInterviewAnswerLocked is BotAwaitingInterviewAnswer for
+// callers already holding b.mu.
+func (b *Broker) BotAwaitingInterviewAnswerLocked(slug string) bool {
+	slug = strings.ToLower(strings.TrimSpace(slug))
+	if b == nil || slug == "" {
+		return false
+	}
 	for _, req := range b.requests {
 		if !requestIsHumanInterview(req) || !requestIsActive(req) {
 			continue
@@ -418,6 +450,11 @@ func (b *Broker) cancelRequestLocked(req *humanInterview, actor, reason string) 
 	b.pendingInterview = firstBlockingRequest(b.requests)
 }
 
+// Every matching interview is cancelled, not just the first. A bot that
+// re-asked three times left three stacked cards in the human's DM; each
+// human message retired one, the last stayed pending, and
+// BotAwaitingInterviewAnswer kept dropping that bot's wakes — the office
+// looked dead (prod, 2026-09-07).
 func (b *Broker) cancelActiveHumanInterviewsLocked(actor, reason, channel, replyTo string) int {
 	count := 0
 	// An empty channel means NO FILTER — cancel across every channel.
@@ -442,7 +479,6 @@ func (b *Broker) cancelActiveHumanInterviewsLocked(actor, reason, channel, reply
 		}
 		b.cancelRequestLocked(&b.requests[i], actor, reason)
 		count++
-		break
 	}
 	return count
 }

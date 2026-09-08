@@ -381,3 +381,51 @@ func TestWithAppAskPreface(t *testing.T) {
 		t.Fatalf("non-app message must pass through unchanged")
 	}
 }
+
+// TestTurnParkedOnInterview_RequiresALiveTurn: a pending interview row
+// alone must not hold a bot's wakes. After a restart the row survives but
+// the polling turn is gone; holding on the row made the Chief of Staff
+// unreachable until someone found the stale card (prod, 2026-09-07).
+func TestTurnParkedOnInterview_RequiresALiveTurn(t *testing.T) {
+	b := newTestBroker(t)
+	l := minimalLauncher(false)
+	l.broker = b
+
+	b.mu.Lock()
+	b.requests = []humanInterview{{ID: "r1", Kind: "interview", Status: "pending", From: "pm", Channel: "human__pm", Question: "q"}}
+	b.mu.Unlock()
+	if !b.BotAwaitingInterviewAnswer("pm") {
+		t.Fatalf("precondition: pm has a pending interview")
+	}
+	if l.turnParkedOnInterview(notificationTarget{Slug: "pm"}) {
+		t.Fatalf("no live turn: the wake must go through so the bot can re-read the chat")
+	}
+
+	lane := headlessLane{slug: "pm"}
+	l.headless.mu.Lock()
+	l.headless.active[lane] = &headlessCodexActiveTurn{}
+	l.headless.mu.Unlock()
+	if !l.turnParkedOnInterview(notificationTarget{Slug: "pm"}) {
+		t.Fatalf("live turn parked in the answer poll (interview without a task): the wake must be held")
+	}
+
+	// An interview tied to a task holds only while THAT task's turn is live.
+	b.mu.Lock()
+	b.requests[0].IssueID = "task-9"
+	b.mu.Unlock()
+	l.headless.mu.Lock()
+	l.headless.active[lane] = &headlessCodexActiveTurn{Turn: headlessCodexTurn{TaskID: "task-1"}}
+	l.headless.mu.Unlock()
+	if l.turnParkedOnInterview(notificationTarget{Slug: "pm"}) {
+		t.Fatalf("a live turn on an unrelated task is real work, not a parked poll")
+	}
+	l.headless.mu.Lock()
+	l.headless.active[lane] = &headlessCodexActiveTurn{Turn: headlessCodexTurn{TaskID: "task-9"}}
+	l.headless.mu.Unlock()
+	if !l.turnParkedOnInterview(notificationTarget{Slug: "pm"}) {
+		t.Fatalf("the interview's own task turn is the parked one: hold")
+	}
+	if l.turnParkedOnInterview(notificationTarget{Slug: "eng"}) {
+		t.Fatalf("another bot with no interview must never be held")
+	}
+}

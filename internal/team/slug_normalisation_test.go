@@ -183,12 +183,10 @@ func TestEmptyFilterMeansNoFilter(t *testing.T) {
 		}
 	})
 
-	// cancelActiveHumanInterviewsLocked breaks after the first match by design,
-	// so the count is always 0 or 1. The behavioural difference the fix makes
-	// is therefore about REACH, not volume: with no channel given it must be
-	// able to reach an interview that lives outside #general. Before the fix
-	// the empty channel normalised to "general" and nothing outside that room
-	// was ever a candidate.
+	// The behavioural difference the fix makes is about REACH: with no
+	// channel given it must be able to reach an interview that lives outside
+	// #general. Before the fix the empty channel normalised to "general" and
+	// nothing outside that room was ever a candidate.
 	t.Run("cancelling with no channel reaches an interview outside #general", func(t *testing.T) {
 		b := newTestBroker(t)
 		b.mu.Lock()
