@@ -1,8 +1,8 @@
 import Foundation
 
-/// The real broker. Bearer token on every request; the `/events` stream
-/// carries the token as a query parameter, the way the web client's sseURL
-/// does, because EventSource-style GETs cannot set headers everywhere.
+/// The real broker. Bearer token in the Authorization header on every
+/// request, the `/events` stream included: URLSession can set headers on a
+/// streaming GET, so the token never appears in a URL (logs, proxies).
 public final class BrokerClient: BrokerAPI, @unchecked Sendable {
     public let baseURL: URL
     private let token: String
@@ -54,10 +54,7 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
         AsyncStream { continuation in
             let task = Task {
                 defer { continuation.finish() }
-                var comps = URLComponents(url: baseURL.appendingPathComponent("events"), resolvingAgainstBaseURL: false)
-                comps?.queryItems = [URLQueryItem(name: "token", value: token)]
-                guard let url = comps?.url else { return }
-                var req = URLRequest(url: url)
+                var req = URLRequest(url: baseURL.appendingPathComponent("events"))
                 req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
                 req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
                 req.timeoutInterval = 60 * 60

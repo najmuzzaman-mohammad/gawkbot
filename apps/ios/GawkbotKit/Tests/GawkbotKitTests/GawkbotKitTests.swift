@@ -98,6 +98,18 @@ final class PairingTests: XCTestCase {
         XCTAssertNil(Pairing.make(urlString: "ftp://x", token: "t"))
     }
 
+    func testCleartextOnlyForPrivateHosts() {
+        XCTAssertNotNil(Pairing.make(urlString: "http://100.64.0.5:7890", token: "t"), "Tailscale address")
+        XCTAssertNotNil(Pairing.make(urlString: "http://192.168.1.20:7890", token: "t"), "LAN")
+        XCTAssertNotNil(Pairing.make(urlString: "http://office.local:7890", token: "t"))
+        XCTAssertNotNil(Pairing.make(urlString: "http://office.tail1234.ts.net:7890", token: "t"))
+        XCTAssertNotNil(Pairing.make(urlString: "http://localhost:7890", token: "t"))
+        XCTAssertNil(Pairing.make(urlString: "http://gawk.bot:7890", token: "t"), "public host over http")
+        XCTAssertNil(Pairing.make(urlString: "http://8.8.8.8:7890", token: "t"))
+        XCTAssertNotNil(Pairing.make(urlString: "https://gawk.bot", token: "t"), "public host over https")
+        XCTAssertNil(Pairing.parse("gawkbot://pair?url=http%3A%2F%2Fevil.example.com&token=x"))
+    }
+
     func testMakeAddsSchemeAndTrimsSlash() {
         let p = Pairing.make(urlString: "100.64.0.5:7890/", token: " tok ")
         XCTAssertEqual(p?.brokerURL.absoluteString, "http://100.64.0.5:7890")

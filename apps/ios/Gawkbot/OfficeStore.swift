@@ -23,6 +23,10 @@ final class OfficeStore: ObservableObject {
     @Published private(set) var live = false
     @Published var openThread: String? = nil
     @Published var pairingError: String? = nil
+    /// A pairing that arrived by link or scan and is waiting for the person
+    /// to confirm it. Never applied on its own: a crafted gawkbot:// link
+    /// must not be able to point the app at an attacker's office.
+    @Published var proposedPairing: Pairing? = nil
 
     let isMock: Bool
     private let credentials: CredentialStore
@@ -48,13 +52,24 @@ final class OfficeStore: ObservableObject {
         connect(BrokerClient(baseURL: pairing.brokerURL, token: pairing.token))
     }
 
-    func pair(text: String) -> Bool {
+    /// Parses a link or scanned code into a proposal for the person to confirm.
+    @discardableResult
+    func propose(text: String) -> Bool {
         guard let p = Pairing.parse(text) else {
             pairingError = "That code is not a gawkbot pairing link."
             return false
         }
-        pair(p)
+        pairingError = nil
+        proposedPairing = p
         return true
+    }
+
+    var isPaired: Bool { credentials.load() != nil }
+
+    func confirmProposedPairing() {
+        guard let p = proposedPairing else { return }
+        proposedPairing = nil
+        pair(p)
     }
 
     func unpair() {
@@ -72,7 +87,7 @@ final class OfficeStore: ObservableObject {
 
     func handle(url: URL) {
         if url.scheme == Pairing.scheme, url.host == "pair" {
-            _ = pair(text: url.absoluteString)
+            propose(text: url.absoluteString)
         } else if url.scheme == Pairing.scheme, url.host == "thread", let slug = url.pathComponents.dropFirst().first {
             openThread = DMChannel.slug(for: slug)
         }

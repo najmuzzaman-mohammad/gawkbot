@@ -62,7 +62,7 @@ struct PairingView: View {
             .sheet(isPresented: $showScanner) {
                 QRScannerSheet { code in
                     showScanner = false
-                    _ = store.pair(text: code)
+                    store.propose(text: code)
                 }
             }
         }
@@ -111,7 +111,10 @@ struct QRScanner: UIViewControllerRepresentable {
         func dataScanner(_ dataScanner: DataScannerViewController, didAdd addedItems: [RecognizedItem], allItems: [RecognizedItem]) {
             guard !fired else { return }
             for item in addedItems {
-                if case let .barcode(code) = item, let payload = code.payloadStringValue, payload.hasPrefix(Pairing.scheme + "://") || payload.hasPrefix("http") {
+                // Only the shape the office's Access & Health card produces.
+                // The person still confirms the target host before anything
+                // connects (PairingConfirmSheet).
+                if case let .barcode(code) = item, let payload = code.payloadStringValue, payload.hasPrefix(Pairing.scheme + "://pair?") {
                     fired = true
                     dataScanner.stopScanning()
                     onCode(payload)

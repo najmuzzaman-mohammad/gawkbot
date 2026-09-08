@@ -38,7 +38,9 @@ struct Bubble: View {
     let tail: Bool
 
     var body: some View {
-        Text(LocalizedStringKey(text))
+        // Verbatim on purpose: bot output is untrusted, and the markdown
+        // initializer would turn "[click](https://…)" into a tappable link.
+        Text(verbatim: text)
             .font(.body)
             .foregroundStyle(mine ? Color.white : Color.primary)
             .padding(.horizontal, 14)

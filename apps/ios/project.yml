@@ -42,9 +42,13 @@ targets:
         NSCameraUsageDescription: "Scan the pairing code shown in your office's Access & Health page."
         UILaunchScreen: {}
         NSAppTransportSecurity:
-          # Offices run over http on a LAN or a Tailscale address.
+          # Offices run over http on a LAN or a Tailscale address; anything
+          # public must be https (Pairing.make refuses cleartext otherwise).
           NSAllowsLocalNetworking: true
-          NSAllowsArbitraryLoads: true
+          NSExceptionDomains:
+            ts.net:
+              NSIncludesSubdomains: true
+              NSExceptionAllowsInsecureHTTPLoads: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: bot.gawk.ios

@@ -36,15 +36,39 @@ public struct Pairing: Equatable, Sendable {
         return nil
     }
 
-    /// Validates a hand-typed address + token.
+    /// Validates a hand-typed address + token. Cleartext `http://` is
+    /// accepted only for hosts on a private network (see `isPrivateHost`);
+    /// a public host must use `https://`, so the token is never sent in the
+    /// clear across the internet.
     public static func make(urlString: String, token: String) -> Pairing? {
         var raw = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         if !raw.contains("://") { raw = "http://" + raw }
         while raw.hasSuffix("/") { raw.removeLast() }
-        guard let url = URL(string: raw), let scheme = url.scheme, ["http", "https"].contains(scheme), url.host != nil else { return nil }
+        guard let url = URL(string: raw), let scheme = url.scheme, ["http", "https"].contains(scheme), let host = url.host else { return nil }
+        if scheme == "http" && !isPrivateHost(host) { return nil }
         let tok = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !tok.isEmpty else { return nil }
         return Pairing(brokerURL: url, token: tok)
+    }
+
+    /// Hosts an office is reached at over a LAN, a VPN, or this machine:
+    /// loopback, RFC 1918 ranges, link-local, Tailscale's 100.64/10, `.local`,
+    /// `.ts.net`, and bare single-label names. Everything else is public.
+    public static func isPrivateHost(_ rawHost: String) -> Bool {
+        let host = rawHost.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+        if host == "localhost" || host == "::1" { return true }
+        if host.hasSuffix(".local") || host.hasSuffix(".ts.net") || host.hasSuffix(".internal") { return true }
+        if !host.contains(".") && !host.contains(":") { return true }
+        let parts = host.split(separator: ".").compactMap { Int($0) }
+        guard parts.count == 4, parts.allSatisfy({ (0...255).contains($0) }) else { return false }
+        switch (parts[0], parts[1]) {
+        case (10, _), (127, _): return true
+        case (192, 168): return true
+        case (169, 254): return true
+        case (172, let b) where (16...31).contains(b): return true
+        case (100, let b) where (64...127).contains(b): return true
+        default: return false
+        }
     }
 
     /// The link the web UI encodes into its QR code.
