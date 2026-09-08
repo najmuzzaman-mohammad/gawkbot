@@ -172,7 +172,7 @@ func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeAction
 	// once the answer lands. Suppress only this bot; every other bot
 	// keeps working (the old office-wide drop wedged the whole office
 	// behind one buried card, [19:23:59]).
-	if l.broker != nil && l.broker.BotAwaitingInterviewAnswer(target.Slug) {
+	if l.turnParkedOnInterview(target) {
 		return
 	}
 	// The channel this bot is told to reply in. A task with no channel used
@@ -273,7 +273,7 @@ func (l *Launcher) sendChannelUpdate(target notificationTarget, msg channelMessa
 	// Scoped interview gate — same contract as sendTaskUpdate: suppress
 	// new turns ONLY for the bot whose own interview is pending (its
 	// turn is parked in the answer poll); everyone else keeps working.
-	if l.broker != nil && l.broker.BotAwaitingInterviewAnswer(target.Slug) {
+	if l.turnParkedOnInterview(target) {
 		return
 	}
 	// Same as sendTaskUpdate: this value is interpolated straight into the
@@ -392,4 +392,61 @@ func (l *Launcher) slackChannelConventionNote(channel string) string {
 		"(3) You are part of ONE coordinating presence (the team bot). Never introduce yourself by an internal role name like Chief of Staff or planner; speak as the team. " +
 		"(4) If a message needs no action from you, post NOTHING. Never post acknowledgement-only replies (\"noted\", \"acknowledged\", \"no action needed\") — real people read this channel, and repeating the same status is spam. Summarize once when the situation changes, not once per incoming message. " +
 		"(5) Every task lives in its OWN Slack thread (the team opens one automatically, rooted on the task card). Do all of a task's work inside that thread — never start parallel top-level messages for the same task. To quote or reference another message, paste its Slack message link; Slack renders the link as a quoted reply."
+}
+
+// turnParkedOnInterview reports whether a wake for slug must be held
+// because the bot's CURRENT turn is parked in the /interview/answer poll.
+//
+// A pending interview row alone is not enough: after a broker restart the
+// row survives but the turn that was polling for the answer is gone, and
+// holding wakes on the row alone made the bot unreachable — every human
+// message was dropped until someone found and answered the stale card
+// (prod, 2026-09-07). The gate therefore also requires a live headless
+// turn for the bot. A target that would be delivered to a live tmux pane
+// cannot be inspected the same way and keeps the conservative row-only
+// rule; the routing question is asked exactly the way delivery asks it.
+func (l *Launcher) turnParkedOnInterview(target notificationTarget) bool {
+	slug := strings.TrimSpace(target.Slug)
+	if l == nil || l.broker == nil || slug == "" || !l.broker.BotAwaitingInterviewAnswer(slug) {
+		return false
+	}
+	if !l.targeter().ShouldUseHeadlessForTarget(target) {
+		return true
+	}
+	return l.headlessTurnParkedFor(slug, l.broker.PendingInterviewTaskIDs(slug))
+}
+
+// headlessTurnParkedFor reports whether slug has a live headless turn that
+// is the one waiting on an interview: a turn on the same task as a pending
+// interview, or — for an interview with no task — any live turn. A live
+// turn on an unrelated task is real work, not a parked poll, and must not
+// hold the bot's wakes.
+func (l *Launcher) headlessTurnParkedFor(slug string, interviewTaskIDs []string) bool {
+	slug = strings.TrimSpace(slug)
+	if l == nil || slug == "" {
+		return false
+	}
+	anyTask := false
+	want := make(map[string]struct{}, len(interviewTaskIDs))
+	for _, id := range interviewTaskIDs {
+		if id == "" {
+			anyTask = true
+			continue
+		}
+		want[id] = struct{}{}
+	}
+	l.headless.mu.Lock()
+	defer l.headless.mu.Unlock()
+	for lane, active := range l.headless.active {
+		if active == nil || lane.slug != slug {
+			continue
+		}
+		if anyTask {
+			return true
+		}
+		if _, ok := want[strings.TrimSpace(active.Turn.TaskID)]; ok {
+			return true
+		}
+	}
+	return false
 }

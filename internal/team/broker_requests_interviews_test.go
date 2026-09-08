@@ -1364,3 +1364,34 @@ func TestGetRequestsFilterByID(t *testing.T) {
 		t.Fatalf("id filter widened visibility for an unauthorized viewer: %+v", got)
 	}
 }
+
+// TestCancelActiveHumanInterviewsLocked_RetiresEveryStackedAsk: a bot that
+// re-asked three times left three cards in the human's DM. One human
+// message must retire all of them; retiring one per message left the last
+// one pending and BotAwaitingInterviewAnswer kept dropping the bot's wakes
+// (prod, 2026-09-07).
+func TestCancelActiveHumanInterviewsLocked_RetiresEveryStackedAsk(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.requests = []humanInterview{
+		{ID: "r1", Kind: "interview", Status: "pending", From: "cos", Channel: "cos__human", ReplyTo: "msg-5", Question: "q1"},
+		{ID: "r2", Kind: "interview", Status: "pending", From: "cos", Channel: "cos__human", ReplyTo: "msg-5", Question: "q2"},
+		{ID: "r3", Kind: "interview", Status: "pending", From: "cos", Channel: "cos__human", ReplyTo: "msg-5", Question: "q3"},
+		{ID: "r4", Kind: "interview", Status: "pending", From: "pm", Channel: "human__pm", Question: "elsewhere"},
+	}
+	if got := b.cancelActiveHumanInterviewsLocked("human", "Human sent a new message", "cos__human", ""); got != 3 {
+		t.Fatalf("expected all 3 stacked asks cancelled, got %d", got)
+	}
+	for _, r := range b.requests[:3] {
+		if requestIsActive(r) {
+			t.Fatalf("%s still active after the human moved on", r.ID)
+		}
+	}
+	if !requestIsActive(b.requests[3]) {
+		t.Fatalf("an interview in another channel must not be touched")
+	}
+	if b.BotAwaitingInterviewAnswerLocked("cos") {
+		t.Fatalf("cos must no longer count as awaiting an answer")
+	}
+}

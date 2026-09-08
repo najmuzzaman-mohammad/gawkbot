@@ -323,6 +323,15 @@ func evalJobUtteranceRouting(fx *officeEvalFixture, r *OfficeEvalReport) error {
 	}
 	fx.broker.mu.Unlock()
 	taskA2 := fx.broker.TaskByID(taskA.ID)
+	// The asking bot's turn is parked in the /interview/answer poll — model
+	// that live turn on its lane. The gate keys on the live turn, not on the
+	// pending row alone: after a restart the row survives but the polling
+	// turn is gone, and holding on the row made the bot unreachable
+	// (prod, 2026-09-07).
+	engLane := headlessLane{slug: "eng"}
+	fx.launcher.headless.mu.Lock()
+	fx.launcher.headless.active[engLane] = &headlessCodexActiveTurn{Turn: headlessCodexTurn{TaskID: taskA.ID}}
+	fx.launcher.headless.mu.Unlock()
 	fx.launcher.sendTaskUpdate(notificationTarget{Slug: "eng"}, officeActionLog{
 		Kind: "task_updated", Actor: "human", Channel: taskA2.Channel, RelatedID: taskA2.ID,
 	}, *taskA2, "Continue work.")
@@ -336,13 +345,17 @@ func evalJobUtteranceRouting(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		parked == "", fmt.Sprintf("dispatched=%q", parked), "")
 
 	// …and resumes once the human answers (exact FE payload:
-	// web/src/api/client.ts answerRequest).
+	// web/src/api/client.ts answerRequest). The answer releases the parked
+	// turn, so its lane is free again when the next wake arrives.
 	ansStatus, ansBody, err := client.postJSON("/requests/answer", map[string]any{
 		"id": ivdParsed.ID, "choice_id": "answer_directly", "custom_text": "CSV, one row per account.",
 	})
 	if err != nil {
 		return err
 	}
+	fx.launcher.headless.mu.Lock()
+	delete(fx.launcher.headless.active, engLane)
+	fx.launcher.headless.mu.Unlock()
 	fx.launcher.sendTaskUpdate(notificationTarget{Slug: "eng"}, officeActionLog{
 		Kind: "task_updated", Actor: "human", Channel: taskA2.Channel, RelatedID: taskA2.ID,
 	}, *taskA2, "Continue work.")
@@ -352,6 +365,61 @@ func evalJobUtteranceRouting(fx *officeEvalFixture, r *OfficeEvalReport) error {
 		resumed = wake[0]
 	case <-time.After(utteranceWakeTimeout):
 	}
+	// After a restart the pending row is still there but no turn is parked:
+	// the wake must flow so the bot can re-read the chat and re-ask. Holding
+	// on the row alone made the Chief of Staff unreachable until someone
+	// found the stale card (prod, 2026-09-07). Fresh task + fresh interview
+	// so no earlier dispatch for taskA can dedupe this one.
+	taskR, err := createTask("Reconcile the partner list (utterance d, restart)", "eng")
+	if err != nil {
+		return err
+	}
+	if _, _, err := client.postJSON("/requests", map[string]any{
+		"kind": "interview", "from": "eng", "channel": fx.broker.TaskByID(taskR.ID).Channel,
+		"issue_id": taskR.ID, "title": "Which list?", "question": "Which partner list is canonical?",
+	}); err != nil {
+		return err
+	}
+	if !fx.broker.BotAwaitingInterviewAnswer("eng") {
+		return fmt.Errorf("restart probe: eng should have a pending interview")
+	}
+	// Raising the interview parks the task; force Running so the only gate
+	// under test is the interview one.
+	fx.broker.mu.Lock()
+	if t := fx.broker.taskByIDLocked(taskR.ID); t != nil {
+		t.LifecycleState = LifecycleStateRunning
+		t.status = "in_progress"
+	}
+	fx.broker.mu.Unlock()
+	rSnapshot := fx.broker.TaskByID(taskR.ID)
+	// Let the previous lane finish winding down so the only live-state under
+	// test is "no parked turn" — the shape a restarted office is in.
+	for i := 0; i < 40; i++ {
+		fx.launcher.headless.mu.Lock()
+		live := 0
+		for lane, a := range fx.launcher.headless.active {
+			if lane.slug == "eng" && a != nil {
+				live++
+			}
+		}
+		fx.launcher.headless.mu.Unlock()
+		if live == 0 {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	fx.launcher.sendTaskUpdate(notificationTarget{Slug: "eng"}, officeActionLog{
+		Kind: "task_updated", Actor: "human", Channel: rSnapshot.Channel, RelatedID: taskR.ID,
+	}, *rSnapshot, "Continue work.")
+	afterRestart := ""
+	select {
+	case wake := <-woke:
+		afterRestart = wake[0]
+	case <-time.After(utteranceWakeTimeout):
+	}
+	r.add(job, "a pending interview with no live turn (post-restart) does not park the bot",
+		afterRestart == "eng", fmt.Sprintf("dispatched=%q", afterRestart), "")
+
 	fx.launcher.stopHeadlessWorkers()
 	r.add(job, "answering the interview resumes the asking bot's lane",
 		ansStatus == http.StatusOK && resumed == "eng",
