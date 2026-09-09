@@ -476,7 +476,20 @@ jobs:
         working-directory: web/e2e
         # --with-deps installs the OS-level shared libs chromium needs on
         # ubuntu-latest even when the cached browser binary is restored.
-        run: bunx playwright install --with-deps chromium
+        # --with-deps runs apt-get on the runner; Ubuntu mirrors on GitHub's
+        # runners intermittently fail with "Some index files failed to
+        # download" (three red mains in a row on 2026-09-09 with no code
+        # change). Retry a few times before calling the job red.
+        run: |
+          for attempt in 1 2 3 4; do
+            if bunx playwright install --with-deps chromium; then
+              exit 0
+            fi
+            echo "playwright install failed (attempt $attempt); retrying in $((attempt * 20))s"
+            sleep $((attempt * 20))
+          done
+          echo "playwright install failed after 4 attempts" >&2
+          exit 1
       - name: Install claude CLI stub
         # wuphf's PreflightWeb hard-requires `claude` on PATH (see
         # internal/team/launcher.go — PreflightWeb). These smoke tests don't
