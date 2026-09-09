@@ -72,6 +72,11 @@ final class SSEParserTests: XCTestCase {
         if case let .message(m)? = msg { XCTAssertEqual(m.content, "4.") } else { XCTFail("expected message") }
         let act = BrokerEventDecoder.decode(SSEParser.Event(name: "activity", data: #"{"slug":"cos","status":"active","activity":"typing"}"#))
         if case let .activity(a)? = act { XCTAssertTrue(a.isWorking) } else { XCTFail("expected activity") }
+        // The real broker wraps payloads under the event name.
+        let wrapped = BrokerEventDecoder.decode(SSEParser.Event(name: "message", data: #"{"message":{"id":"msg-91","from":"you","channel":"human__prospect-scout","content":"probe","tagged":[],"timestamp":"2026-09-09T01:46:37Z"}}"#))
+        if case let .message(m)? = wrapped { XCTAssertEqual(m.id, "msg-91") } else { XCTFail("expected wrapped message") }
+        let wrappedAct = BrokerEventDecoder.decode(SSEParser.Event(name: "activity", data: #"{"activity":{"slug":"cos","status":"active","activity":"queued","detail":"queued work packet received","lastTime":"2026-09-09T01:46:37Z","kind":"routine"}}"#))
+        if case let .activity(a)? = wrappedAct { XCTAssertEqual(a.slug, "cos"); XCTAssertTrue(a.isWorking) } else { XCTFail("expected wrapped activity") }
         XCTAssertEqual(BrokerEventDecoder.decode(SSEParser.Event(name: "governor", data: "{}")), .other(name: "governor"))
         XCTAssertNil(BrokerEventDecoder.decode(SSEParser.Event(name: "message", data: "not json")))
     }
@@ -239,13 +244,16 @@ final class BrokerClientTests: XCTestCase {
             XCTAssertEqual(body["from"] as? String, "you")
             XCTAssertEqual(body["channel"] as? String, "cos__human")
             XCTAssertEqual(body["content"] as? String, "hello")
-            return (200, Data(#"{"id":"m3","from":"you","channel":"cos__human","content":"hello","timestamp":"2026-09-08T00:00:01Z"}"#.utf8))
+            // The broker answers a receipt, not the row.
+            return (200, Data(#"{"id":"msg-3","total":3}"#.utf8))
         }
         let client = makeClient()
         let msgs = try await client.messages(channel: "cos__human", sinceID: "m1", limit: 50)
         XCTAssertEqual(msgs.map(\.id), ["m2"])
         let sent = try await client.send(channel: "cos__human", content: "hello")
-        XCTAssertEqual(sent.id, "m3")
+        XCTAssertEqual(sent.id, "msg-3")
+        XCTAssertEqual(sent.content, "hello")
+        XCTAssertTrue(sent.isFromHuman)
     }
 
     func testUnauthorizedIsTyped() async {

@@ -47,17 +47,26 @@ public struct SSEParser: Sendable {
 
 /// Turns a raw SSE event into a typed broker event. Unknown names pass
 /// through; malformed payloads for known names are dropped (nil).
+///
+/// The broker wraps each payload under its event name
+/// (`{"message": {...}}`, `{"activity": {...}}`); a bare payload is accepted
+/// too so the mock broker and older offices decode the same way.
 public enum BrokerEventDecoder {
+    private struct MessageEnvelope: Decodable { let message: ChatMessage }
+    private struct ActivityEnvelope: Decodable { let activity: BotActivity }
+
     public static func decode(_ event: SSEParser.Event) -> BrokerEvent? {
         let decoder = JSONDecoder()
         switch event.name {
         case "message":
-            guard let data = event.data.data(using: .utf8),
-                  let msg = try? decoder.decode(ChatMessage.self, from: data) else { return nil }
+            guard let data = event.data.data(using: .utf8) else { return nil }
+            if let env = try? decoder.decode(MessageEnvelope.self, from: data) { return .message(env.message) }
+            guard let msg = try? decoder.decode(ChatMessage.self, from: data) else { return nil }
             return .message(msg)
         case "activity":
-            guard let data = event.data.data(using: .utf8),
-                  let act = try? decoder.decode(BotActivity.self, from: data) else { return nil }
+            guard let data = event.data.data(using: .utf8) else { return nil }
+            if let env = try? decoder.decode(ActivityEnvelope.self, from: data) { return .activity(env.activity) }
+            guard let act = try? decoder.decode(BotActivity.self, from: data) else { return nil }
             return .activity(act)
         case "ready":
             return .ready

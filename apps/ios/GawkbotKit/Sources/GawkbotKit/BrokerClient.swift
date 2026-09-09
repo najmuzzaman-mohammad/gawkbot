@@ -33,9 +33,14 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
         return env.messages
     }
 
+    /// POST /messages answers `{"id":"msg-91","total":81}`, not the row; the
+    /// full message follows on the stream. Build the local echo from what was
+    /// sent so the bubble appears immediately.
     @discardableResult
     public func send(channel: String, content: String) async throws -> ChatMessage {
-        try await post("/messages", body: ["from": "you", "channel": channel, "content": content])
+        struct Receipt: Decodable { let id: String }
+        let receipt: Receipt = try await post("/messages", body: ["from": "you", "channel": channel, "content": content])
+        return ChatMessage(id: receipt.id, from: "you", channel: channel, content: content, timestamp: ISO8601.format(Date()))
     }
 
     public func requests(channel: String?) async throws -> [BotRequest] {
