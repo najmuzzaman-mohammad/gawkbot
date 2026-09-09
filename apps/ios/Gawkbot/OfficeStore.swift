@@ -93,6 +93,35 @@ final class OfficeStore: ObservableObject {
         }
     }
 
+    #if DEBUG
+    /// `-pair-url <broker> -pair-token <token>` pairs immediately;
+    /// `-open <slug>` opens that bot's thread once the office is ready;
+    /// `-send <text>` sends that text into the opened thread after it loads.
+    func applyDebugLaunchArguments(_ args: [String]) {
+        func value(after flag: String) -> String? {
+            guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
+            return args[i + 1]
+        }
+        if let url = value(after: "-pair-url"), let tok = value(after: "-pair-token"), let p = Pairing.make(urlString: url, token: tok) {
+            pair(p)
+        }
+        debugOpenSlug = value(after: "-open")
+        debugSendText = value(after: "-send")
+        if let slug = debugOpenSlug { openThread = DMChannel.slug(for: slug) }
+    }
+    private var debugOpenSlug: String?
+    private var debugSendText: String?
+
+    private func runDebugSendIfNeeded() {
+        guard let slug = debugOpenSlug, let text = debugSendText else { return }
+        debugSendText = nil
+        Task {
+            try? await Task.sleep(for: .milliseconds(800))
+            await self.send(text, to: DMChannel.slug(for: slug))
+        }
+    }
+    #endif
+
     // MARK: - Lifecycle
 
     private func connect(_ api: BrokerAPI) {
@@ -114,6 +143,9 @@ final class OfficeStore: ObservableObject {
             requests = try await broker.requests(channel: nil).filter(\.isPending)
             phase = .ready
             startEvents()
+            #if DEBUG
+            runDebugSendIfNeeded()
+            #endif
         } catch {
             phase = .failed((error as? BrokerError)?.errorDescription ?? error.localizedDescription)
         }

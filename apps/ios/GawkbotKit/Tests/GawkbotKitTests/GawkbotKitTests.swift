@@ -212,12 +212,18 @@ final class BrokerClientTests: XCTestCase {
     func testMembersSendsBearerAndDropsTheHuman() async throws {
         StubURLProtocol.handler = { req in
             XCTAssertEqual(req.value(forHTTPHeaderField: "Authorization"), "Bearer tok")
-            XCTAssertEqual(req.url?.path, "/members")
-            return (200, Data(#"{"members":[{"slug":"human","name":"You"},{"slug":"cos","name":"Chief of Staff","built_in":true}]}"#.utf8))
+            XCTAssertEqual(req.url?.path, "/office-members")
+            return (200, Data(#"{"members":[{"slug":"human","name":"You"},{"slug":"cos","name":"Chief of Staff","built_in":true}],"meta":{"humanHasPosted":true}}"#.utf8))
         }
         let bots = try await makeClient().members()
         XCTAssertEqual(bots.map(\.slug), ["cos"])
         XCTAssertEqual(bots[0].dmChannel, "cos__human")
+    }
+
+    func testMembersToleratesANullRoster() async throws {
+        StubURLProtocol.handler = { _ in (200, Data(#"{"channel":"general","members":null}"#.utf8)) }
+        let bots = try await makeClient().members()
+        XCTAssertEqual(bots, [])
     }
 
     func testMessagesQueryAndSendBody() async throws {

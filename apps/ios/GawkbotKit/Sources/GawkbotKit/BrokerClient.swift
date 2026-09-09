@@ -16,10 +16,13 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
 
     // MARK: - BrokerAPI
 
+    /// The office roster. `/office-members` is the whole office; `/members`
+    /// is per-channel and defaults to the retired #general room, which comes
+    /// back as `null` on every current office.
     public func members() async throws -> [Bot] {
-        struct Envelope: Decodable { let members: [Bot] }
-        let env: Envelope = try await get("/members", query: [:])
-        return env.members.filter { !Human.isHuman($0.slug) }
+        struct Envelope: Decodable { let members: [Bot]? }
+        let env: Envelope = try await get("/office-members", query: [:])
+        return (env.members ?? []).filter { !Human.isHuman($0.slug) }
     }
 
     public func messages(channel: String, sinceID: String?, limit: Int) async throws -> [ChatMessage] {
