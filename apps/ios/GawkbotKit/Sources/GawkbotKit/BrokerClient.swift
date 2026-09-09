@@ -69,11 +69,21 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
                 do {
                     let (bytes, response) = try await session.bytes(for: req)
                     guard (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? false else { return }
+                    // Split lines by hand: AsyncLineSequence drops empty
+                    // lines, and an empty line is what ends an SSE event.
                     var parser = SSEParser()
-                    for try await line in bytes.lines {
+                    var buffer: [UInt8] = []
+                    buffer.reserveCapacity(4096)
+                    for try await byte in bytes {
                         if Task.isCancelled { return }
-                        if let raw = parser.feed(line: line), let event = BrokerEventDecoder.decode(raw) {
-                            continuation.yield(event)
+                        if byte == UInt8(ascii: "\n") {
+                            let line = String(decoding: buffer, as: UTF8.self)
+                            buffer.removeAll(keepingCapacity: true)
+                            if let raw = parser.feed(line: line), let event = BrokerEventDecoder.decode(raw) {
+                                continuation.yield(event)
+                            }
+                        } else {
+                            buffer.append(byte)
                         }
                     }
                 } catch {
