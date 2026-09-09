@@ -129,8 +129,16 @@ jobs:
         # check survives runner-image changes that drop preinstalled tools.
         run: |
           if ! command -v rg >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y ripgrep
+            # Same apt mirror flake as the Playwright install: retry before
+            # calling lint red over a package index that failed to download.
+            for attempt in 1 2 3 4; do
+              if sudo apt-get update && sudo apt-get install -y ripgrep; then
+                break
+              fi
+              echo "ripgrep install failed (attempt $attempt); retrying in $((attempt * 20))s"
+              sleep $((attempt * 20))
+            done
+            command -v rg >/dev/null 2>&1 || { echo "ripgrep install failed after 4 attempts" >&2; exit 1; }
           fi
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # ratchet:actions/setup-go@v6
         id: setup-go
