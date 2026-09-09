@@ -473,6 +473,47 @@ function errorCodeFromBodyText(bodyText: string): string | null {
   }
 }
 
+// ── Phone pairing ──
+
+/**
+ * The link the iOS app scans: `gawkbot://pair?url=<broker>&token=<token>`.
+ *
+ * The broker URL must be reachable FROM THE PHONE. When this page was opened
+ * over a LAN or Tailscale address, that hostname with the broker's port is
+ * the address to encode; `localhost` only works from this machine. Returns
+ * null before the token has been fetched.
+ */
+export function pairingLink(): string | null {
+  if (!token) return null;
+  const broker = phoneReachableBrokerURL();
+  const params = new URLSearchParams({ url: broker, token });
+  return `gawkbot://pair?${params.toString()}`;
+}
+
+export function phoneReachableBrokerURL(): string {
+  let brokerPort = "7890";
+  let brokerProtocol = "http:";
+  try {
+    const direct = new URL(brokerDirect);
+    brokerPort = direct.port || (direct.protocol === "https:" ? "443" : "80");
+    brokerProtocol = direct.protocol;
+  } catch {
+    // keep defaults
+  }
+  if (typeof window === "undefined") return brokerDirect;
+  const host = window.location.hostname;
+  if (!host || host === "localhost" || host === "127.0.0.1")
+    return brokerDirect;
+  return `${brokerProtocol}//${host}:${brokerPort}`;
+}
+
+/** True when the page is being viewed on this machine, so the QR would carry localhost. */
+export function pairingLinkIsLocalOnly(): boolean {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname;
+  return !host || host === "localhost" || host === "127.0.0.1";
+}
+
 // ── SSE ──
 
 export function sseURL(path: string): string {

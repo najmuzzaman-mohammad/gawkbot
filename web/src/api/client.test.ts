@@ -241,3 +241,30 @@ describe("error body humanization", () => {
     expect(err.status).toBe(503);
   });
 });
+
+// The iOS app scans a link with the broker address the PHONE can reach:
+// the page's own hostname (LAN / Tailscale) plus the broker port, never
+// localhost unless that is all this page knows.
+describe("phone pairing link", () => {
+  it("uses the page hostname with the broker port when not on localhost", async () => {
+    vi.resetModules();
+    Object.defineProperty(window, "location", {
+      value: new URL("http://100.64.0.5:7891/"),
+      writable: true,
+    });
+    const mod = await import("./client");
+    expect(mod.phoneReachableBrokerURL()).toBe("http://100.64.0.5:7890");
+    expect(mod.pairingLinkIsLocalOnly()).toBe(false);
+  });
+
+  it("flags localhost as local-only", async () => {
+    vi.resetModules();
+    Object.defineProperty(window, "location", {
+      value: new URL("http://localhost:7891/"),
+      writable: true,
+    });
+    const mod = await import("./client");
+    expect(mod.pairingLinkIsLocalOnly()).toBe(true);
+    expect(mod.phoneReachableBrokerURL()).toBe("http://localhost:7890");
+  });
+});
