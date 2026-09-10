@@ -1121,6 +1121,7 @@ export function setMemory(namespace: string, key: string, value: string) {
 // subset returned by provider.LLMProviderKinds in the Go layer.
 export type LLMRuntimeKind =
   | "claude-code"
+  | "atlascloud"
   | "ollama"
   | "codex"
   | "opencode"
