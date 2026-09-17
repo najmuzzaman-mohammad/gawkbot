@@ -4,6 +4,7 @@ import {
   BookStack,
   ClipboardCheck,
   Community,
+  Database,
   Flash,
   HomeSimple,
   Package,
@@ -50,6 +51,7 @@ const APP_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   // real line icons so every nav row is visually consistent.
   agents: Community,
   integrations: Puzzle,
+  data: Database,
 };
 
 // The sidebar is three labeled groups. `tasks` is special — it renders via
@@ -65,7 +67,7 @@ const NAV_SECTIONS: ReadonlyArray<{
     label: "Work",
     items: ["tasks", "routines", "activity"],
   },
-  { label: "Knowledge", items: ["wiki", "graph"] },
+  { label: "Knowledge", items: ["wiki", "data", "graph"] },
   {
     label: "Config",
     items: ["agents", "policies", "skills", "integrations", "health-check"],

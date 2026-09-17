@@ -9,6 +9,7 @@ import "../src/styles/global.css";
 import "../src/styles/layout.css";
 import "../src/styles/messages.css";
 import "../src/styles/bots.css";
+import "../src/styles/data.css";
 import "../src/styles/search.css";
 import "../src/styles/command.css";
 import "../src/styles/wiki-shell.css";

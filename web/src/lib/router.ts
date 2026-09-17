@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 
 import { ROUTE_PATHS } from "../routes/routeRegistry";
+import { type DataTableSearch, parseDataTableSearch } from "./dataTableSearch";
 
 // Root route - the app shell will wrap everything once RouterProvider mounts.
 export const rootRoute = createRootRoute();
@@ -218,6 +219,51 @@ export const botDetailTabRoute = createRoute({
   path: "$tab",
 });
 
+// /data — Data section. Bot-owned data spaces (one per use case), each with
+// object types, attributes, relationships, and records. Static `t` / `r`
+// segments keep object-type slugs and record ids from colliding.
+export const dataRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTE_PATHS.data,
+});
+
+export const dataIndexRoute = createRoute({
+  getParentRoute: () => dataRoute,
+  path: "/",
+});
+
+export const dataSpaceRoute = createRoute({
+  getParentRoute: () => dataRoute,
+  path: "$spaceId",
+});
+
+// Records table. Sort, filter, search, page, and the peek drawer are URL
+// state so a table view is shareable and survives reload.
+export const dataTypeRoute = createRoute({
+  getParentRoute: () => dataRoute,
+  path: "$spaceId/t/$typeSlug",
+  validateSearch: (search: Record<string, unknown>): DataTableSearch =>
+    parseDataTableSearch(search),
+});
+
+export const dataTypeSettingsRoute = createRoute({
+  getParentRoute: () => dataRoute,
+  path: "$spaceId/t/$typeSlug/settings",
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: "general" | "attributes" } => ({
+    tab:
+      search.tab === "general" || search.tab === "attributes"
+        ? search.tab
+        : undefined,
+  }),
+});
+
+export const dataRecordRoute = createRoute({
+  getParentRoute: () => dataRoute,
+  path: "$spaceId/r/$recordId",
+});
+
 // Route tree
 export const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -241,6 +287,15 @@ export const routeTree = rootRoute.addChildren([
   botsRoute.addChildren([botDetailRoute.addChildren([botDetailTabRoute])]),
   // Skill detail (full-screen edit + render with raw/preview toggle).
   skillDetailRoute,
+  // Data section. Settings is listed before the records table so the longer
+  // static path wins.
+  dataRoute.addChildren([
+    dataIndexRoute,
+    dataSpaceRoute,
+    dataTypeSettingsRoute,
+    dataTypeRoute,
+    dataRecordRoute,
+  ]),
 ]);
 
 export function createAppRouter(history: RouterHistory = createHashHistory()) {

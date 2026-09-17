@@ -10,6 +10,11 @@ import {
   botDetailTabRoute,
   botsRoute,
   channelRoute,
+  dataIndexRoute,
+  dataRecordRoute,
+  dataSpaceRoute,
+  dataTypeRoute,
+  dataTypeSettingsRoute,
   inboxRoute,
   indexRoute,
   routineDetailRoute,
@@ -56,6 +61,17 @@ export type CurrentRoute =
   | { kind: "skill-detail"; skillName: string }
   | { kind: "routine-detail"; routineSlug: string }
   | { kind: "routine-new" }
+  // Data section — bot-owned data spaces, object types, and records.
+  | { kind: "data-index" }
+  | { kind: "data-space"; spaceId: string }
+  | { kind: "data-type"; spaceId: string; typeSlug: string }
+  | {
+      kind: "data-type-settings";
+      spaceId: string;
+      typeSlug: string;
+      tab: "general" | "attributes";
+    }
+  | { kind: "data-record"; spaceId: string; recordId: string }
   | { kind: "unknown" };
 
 interface ParamsShape {
@@ -69,10 +85,14 @@ interface ParamsShape {
   tab?: string;
   skillName?: string;
   routineSlug?: string;
+  spaceId?: string;
+  typeSlug?: string;
+  recordId?: string;
 }
 
 interface SearchShape {
   q?: unknown;
+  tab?: unknown;
 }
 
 type RouteDeriver = (params: ParamsShape, search: SearchShape) => CurrentRoute;
@@ -95,7 +115,12 @@ type CurrentRouteId =
   | typeof botDetailTabRoute.id
   | typeof skillDetailRoute.id
   | typeof routineDetailRoute.id
-  | typeof routineNewRoute.id;
+  | typeof routineNewRoute.id
+  | typeof dataIndexRoute.id
+  | typeof dataSpaceRoute.id
+  | typeof dataTypeRoute.id
+  | typeof dataTypeSettingsRoute.id
+  | typeof dataRecordRoute.id;
 
 const CURRENT_ROUTE_IDS = [
   indexRoute.id,
@@ -117,6 +142,11 @@ const CURRENT_ROUTE_IDS = [
   skillDetailRoute.id,
   routineDetailRoute.id,
   routineNewRoute.id,
+  dataIndexRoute.id,
+  dataSpaceRoute.id,
+  dataTypeRoute.id,
+  dataTypeSettingsRoute.id,
+  dataRecordRoute.id,
 ] as const satisfies readonly CurrentRouteId[];
 
 const CURRENT_ROUTE_ID_SET = new Set<string>(CURRENT_ROUTE_IDS);
@@ -188,6 +218,29 @@ const ROUTE_DERIVERS = {
     routineSlug: params.routineSlug ?? "",
   }),
   [routineNewRoute.id]: () => ({ kind: "routine-new" }),
+  [dataIndexRoute.id]: () => ({ kind: "data-index" }),
+  [dataSpaceRoute.id]: (params) => ({
+    kind: "data-space",
+    spaceId: params.spaceId ?? "",
+  }),
+  // Table state (sort, filter, page, peek) is read by the table itself via
+  // the route's validated search; the shell only needs the identifiers.
+  [dataTypeRoute.id]: (params) => ({
+    kind: "data-type",
+    spaceId: params.spaceId ?? "",
+    typeSlug: params.typeSlug ?? "",
+  }),
+  [dataTypeSettingsRoute.id]: (params, search) => ({
+    kind: "data-type-settings",
+    spaceId: params.spaceId ?? "",
+    typeSlug: params.typeSlug ?? "",
+    tab: search.tab === "attributes" ? "attributes" : "general",
+  }),
+  [dataRecordRoute.id]: (params) => ({
+    kind: "data-record",
+    spaceId: params.spaceId ?? "",
+    recordId: params.recordId ?? "",
+  }),
 } satisfies Record<CurrentRouteId, RouteDeriver>;
 
 /**
@@ -333,6 +386,12 @@ export function useCurrentApp(): string | null {
     case "agents":
     case "bot-detail":
       return "agents";
+    case "data-index":
+    case "data-space":
+    case "data-type":
+    case "data-type-settings":
+    case "data-record":
+      return "data";
     case "home":
     case "channel":
     case "skill-detail":

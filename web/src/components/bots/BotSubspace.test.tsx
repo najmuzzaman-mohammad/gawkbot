@@ -173,7 +173,7 @@ describe("<AgentSubspace>", () => {
     getLocalProvidersStatusMock.mockResolvedValue([]);
   });
 
-  it("renders all 8 tabs in order", () => {
+  it("renders all 9 tabs in order", () => {
     render(wrap(<BotSubspace agent={baseBot} tab="chat" />));
 
     const tabs = screen.getAllByRole("tab");
@@ -186,6 +186,7 @@ describe("<AgentSubspace>", () => {
       "Tasks",
       "Skills",
       "Knowledge",
+      "Data",
       "Policies",
       "Live Stream",
       "Config",
