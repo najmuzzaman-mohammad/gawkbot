@@ -41,6 +41,14 @@
   margin-right: var(--space-2);
 }
 
+/* Said once, quietly, under the space name: this space is read only here. */
+.data-readonly-note {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
 /* ─── List-variant table ─── */
 
 /* The table scrolls inside its own container; the page never does. */

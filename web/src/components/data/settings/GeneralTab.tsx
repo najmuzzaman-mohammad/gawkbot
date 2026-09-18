@@ -95,6 +95,9 @@ export function GeneralTab({
   const [draft, setDraft] = useState<GeneralDraft>(() => draftFor(objectType));
   const [error, setError] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpenState] = useState(false);
+  // Emptying a type leaves the type itself on screen, so unlike the type
+  // delete it never has to hold the tab mounted through a refetch.
+  const [isEmptyOpen, setIsEmptyOpen] = useState(false);
 
   const hasDeletedRef = useRef(false);
 
@@ -206,11 +209,24 @@ export function GeneralTab({
         <h2 className="data-section-heading" id="data-danger-heading">
           Danger zone
         </h2>
-        {/* TODO(agent-data-model): "Delete all records" is not shipped. The
-            delete preview takes an explicit id set for kind `records`, and
-            collecting every record id of a type from the client does not
-            scale past one page. It needs a server operation (for example a
-            `records_of_type` delete kind) before it can be offered here. */}
+        <div className="data-danger-row">
+          <div>
+            <p className="data-danger-title">Delete all records</p>
+            <p className="data-form-hint">
+              Removes all {objectType.recordCount.toLocaleString()} records and
+              the links to them, and keeps {objectType.name}, its attributes,
+              and its settings. You see the exact counts before anything is
+              removed.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => setIsEmptyOpen(true)}
+          >
+            Delete all records
+          </Button>
+        </div>
         <div className="data-danger-row">
           <div>
             <p className="data-danger-title">Delete object type</p>
@@ -229,6 +245,18 @@ export function GeneralTab({
           </Button>
         </div>
       </section>
+
+      <DeletePreviewDialog
+        spaceId={spaceId}
+        kind="records_of_type"
+        ids={[objectType.id]}
+        subjectLabel={`every ${objectType.name} record`}
+        open={isEmptyOpen}
+        onClose={() => setIsEmptyOpen(false)}
+        onDeleted={() => {
+          showNotice(`Deleted every ${objectType.name} record.`, "success");
+        }}
+      />
 
       <DeletePreviewDialog
         spaceId={spaceId}

@@ -92,12 +92,19 @@
 .dv-text,
 .dv-link,
 .dv-date,
-.dv-numeric {
+.dv-numeric,
+.dv-unknown {
   display: block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A field type this bundle does not know: the value, plainly, and muted so
+   it never reads as a first-class cell. */
+.dv-unknown {
+  color: var(--text-tertiary);
 }
 
 .dv-numeric {

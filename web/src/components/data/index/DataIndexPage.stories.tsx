@@ -46,6 +46,7 @@ const BASE = {
   attachedAppIds: [],
   createdAt: "2026-09-01T09:00:00.000Z",
   updatedAt: "2026-09-16T17:30:00.000Z",
+  callerLevel: "write",
 } as const;
 
 const EVERY_STATE: readonly DataSpace[] = [

@@ -276,6 +276,9 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 		registerSharedMemoryTools(server)
 		registerRoutineTools(server)
 		registerAppTools(server, slug)
+		// Data spaces: the builder models the structured data its app reads and
+		// writes, so it needs the same data_* surface every other bot has.
+		registerDataTools(server)
 		if hasActionProvider() {
 			registerActionTools(server)
 		}
@@ -389,6 +392,10 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 	// Apps: every bot can discover (list_apps) and propose (propose_app); the
 	// build/publish tools (get_app, register_app) are gated to the App Builder.
 	registerAppTools(server, slug)
+	// Data spaces: every bot can define object types, attributes and
+	// relationships and fill them with records. The data-modeling system skill
+	// switches the surface off per bot; the broker enforces per-space access.
+	registerDataTools(server)
 
 	// Gate external-action tools behind a configured provider. Registering 14
 	// empty action tools inflates the MCP tool schema and pushes the total

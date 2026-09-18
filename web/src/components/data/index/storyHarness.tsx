@@ -26,13 +26,26 @@ interface DataStoryProps {
    * out, the screen reads the in-memory mock client and its three fixtures.
    */
   spaces?: readonly DataSpace[];
+  /**
+   * Pins one space's schema, for a state the fixtures do not carry, such as
+   * a space the caller may only read.
+   */
+  schema?: SpaceSchema;
 }
 
-function seededQueryClient(spaces: readonly DataSpace[] | undefined) {
+function seededQueryClient(
+  spaces: readonly DataSpace[] | undefined,
+  schema: SpaceSchema | undefined,
+) {
   const queryClient: QueryClient = createHarnessQueryClient();
   if (spaces !== undefined) {
     queryClient.setQueryDefaults(dataKeys.spaces(), { staleTime: Infinity });
     queryClient.setQueryData(dataKeys.spaces(), spaces);
+  }
+  if (schema !== undefined) {
+    const key = dataKeys.schema(schema.space.id);
+    queryClient.setQueryDefaults(key, { staleTime: Infinity });
+    queryClient.setQueryData(key, schema);
   }
   return queryClient;
 }
@@ -42,8 +55,13 @@ function seededQueryClient(spaces: readonly DataSpace[] | undefined) {
  * classes, so the `data-section` container queries apply) inside a memory
  * router and a query client.
  */
-export function DataStory({ children, initialPath, spaces }: DataStoryProps) {
-  const [queryClient] = useState(() => seededQueryClient(spaces));
+export function DataStory({
+  children,
+  initialPath,
+  spaces,
+  schema,
+}: DataStoryProps) {
+  const [queryClient] = useState(() => seededQueryClient(spaces, schema));
   const [router] = useState(() =>
     createHarnessRouter(
       <div className="app-panel active data-section" style={frameStyle}>

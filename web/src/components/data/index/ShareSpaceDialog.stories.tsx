@@ -49,6 +49,7 @@ function space(access: SpaceAccess, id = SEED_RAISE_SPACE_ID): DataSpace {
     createdAt: "2026-09-01T09:00:00.000Z",
     updatedAt: "2026-09-16T17:30:00.000Z",
     access,
+    callerLevel: "write",
   };
 }
 

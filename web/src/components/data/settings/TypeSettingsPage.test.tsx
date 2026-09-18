@@ -345,9 +345,44 @@ describe("<GeneralTab>", () => {
     );
   });
 
-  it("does not offer delete-all-records in v1", async () => {
-    setup("general");
-    await screen.findByRole("button", { name: "Delete object type" });
-    expect(screen.queryByRole("button", { name: /all records/i })).toBeNull();
+  // The store resolves which records a type holds, so the operator never has
+  // to collect ids a page at a time, and the type itself survives.
+  it("empties a type through the impact preview and keeps its schema", async () => {
+    const { user, client } = setup("general");
+    const investor = await typeByName(client, SPACE, "Investor");
+    const expected = await client.previewDelete(SPACE, "records_of_type", [
+      investor.id,
+    ]);
+    expect(expected.impact.records).toBeGreaterThan(0);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Delete all records" }),
+    );
+
+    const dialog = await screen.findByTestId("data-delete-preview");
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Delete every Investor record?",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText(
+        `${expected.impact.records.toLocaleString()} records`,
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/object type/)).toBeNull();
+
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(async () => {
+      const after = await typeByName(client, SPACE, "Investor");
+      expect(after.recordCount).toBe(0);
+    });
+    const after = await typeByName(client, SPACE, "Investor");
+    expect(after.attributes.length).toBe(investor.attributes.length);
+    // The page stays on the type it just emptied.
+    expect(
+      screen.getByRole("button", { name: "Delete object type" }),
+    ).toBeInTheDocument();
   });
 });

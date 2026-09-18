@@ -122,6 +122,32 @@ test.describe("canonical route matrix", () => {
     });
   });
 
+  test("data routes mount the Data section", async ({ page }) => {
+    // The Data section used to render from fixtures, so this route could not
+    // fail on anything but the router. It now talks to the broker's
+    // /data/spaces routes, which is exactly why it belongs in the matrix: a
+    // client that throws on mount, or a route the broker answers 404 to,
+    // shows up here as a React error rather than as a quietly empty page.
+    //
+    // The assertion is deliberately the SECTION, not a space or a table. What
+    // is in the store depends on what the bots have built, so pinning a
+    // fixture's space id would make this spec fail for a reason that has
+    // nothing to do with routing.
+    await expectCanonicalRoute(page, "/#/data", async (p) => {
+      await expect(p.getByTestId("data-section")).toBeVisible({
+        timeout: 10_000,
+      });
+    });
+
+    // A space id that is not there must still reach the section and render its
+    // own not-found affordance — never the router's, and never a blank page.
+    await expectCanonicalRoute(page, "/#/data/space_missing", async (p) => {
+      await expect(p.getByTestId("data-section")).toBeVisible({
+        timeout: 10_000,
+      });
+    });
+  });
+
   test("unknown routes render the not-found surface", async ({ page }) => {
     // The other half of the reversal. With the office retired there was no
     // not-found surface at all — every unknown hash "normalized home", so a

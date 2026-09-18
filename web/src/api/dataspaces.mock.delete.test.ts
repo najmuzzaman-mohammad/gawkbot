@@ -94,6 +94,24 @@ describe("previewDelete", () => {
     });
   });
 
+  it("counts every record of a type without touching the type itself", async () => {
+    const s = await setup();
+    const preview = await s.kit.client.previewDelete(
+      s.kit.spaceId,
+      "records_of_type",
+      [s.investor.id],
+    );
+    expect(preview.kind).toBe("records_of_type");
+    // Both investors, and every link they sit on either side of.
+    expect(preview.impact).toEqual({
+      records: 2,
+      links: 4,
+      attributes: 0,
+      objectTypes: 0,
+    });
+    expect((await s.kit.client.listSpaces())[0].recordCount).toBe(5);
+  });
+
   it("refuses the primary attribute, unknown ids, an empty list, and a wrong space id", async () => {
     const s = await setup();
     const preview = (
@@ -267,6 +285,38 @@ describe("executeDelete", () => {
       s.kit.client.executeDelete(s.kit.spaceId, stale.token),
     );
     expect(error.message).toContain("Unknown record ids");
+  });
+
+  it("emptying a type removes its records and links and keeps its schema", async () => {
+    const s = await setup();
+    const preview = await s.kit.client.previewDelete(
+      s.kit.spaceId,
+      "records_of_type",
+      [s.investor.id],
+    );
+    await s.kit.client.executeDelete(s.kit.spaceId, preview.token);
+
+    const schema = await s.kit.client.getSchema(s.kit.spaceId);
+    const investor = schema.objectTypes.find(
+      (type) => type.id === s.investor.id,
+    );
+    expect(investor?.attributes).toHaveLength(4);
+    expect(investor?.recordCount).toBe(0);
+    expect(schema.relationships).toHaveLength(2);
+    // The firm survives, and the links from the deleted investors are gone.
+    const firm = await s.kit.client.getRecord(s.kit.spaceId, s.f1);
+    expect(firm.links.investors).toEqual([]);
+    expect((await s.kit.client.listSpaces())[0].recordCount).toBe(3);
+  });
+
+  it("refuses an object type id it does not know", async () => {
+    const s = await setup();
+    const error = await validationError(
+      s.kit.client.previewDelete(s.kit.spaceId, "records_of_type", [
+        "type_nope",
+      ]),
+    );
+    expect(error.message).toContain("type_nope");
   });
 
   it("deleting the space removes it", async () => {

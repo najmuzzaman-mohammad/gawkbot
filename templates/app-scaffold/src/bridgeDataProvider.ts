@@ -13,13 +13,20 @@
  *   "members"      → getOfficeMembers()    (the office roster)
  *   "emails"       → getEmails()           (read-only Gmail, if connected)
  *   "integrations" → listIntegrations()    (connected tools + their READ actions)
- *   <other>        → callIntegration(platform, action, params) via getList meta
+ *   <other> + meta.platform → callIntegration(platform, action, params)
+ *   <other>        → data.query(<resource>)  — an object type in the ATTACHED
+ *                    data space, if this app has one. The resource name is the
+ *                    object type's slug; its records come back flattened to
+ *                    { id, ...values } so refine's field names are the schema's
+ *                    attribute slugs.
  *
  * The bridge is READ-MOSTLY: every reader returns a whole array, so this provider
  * does filtering / sorting / pagination CLIENT-SIDE in memory (internal-tool
- * datasets are small). The single write is create("tasks") → createTask(), which
- * the host gates behind a human confirmation. update/delete are NOT supported and
- * throw loudly so a coding bot gets a clear error instead of a silent no-op.
+ * datasets are small). The exception is a data-space resource, which is the one
+ * place records can be WRITTEN: create() and update() map onto data.create /
+ * data.update. Everywhere else create("tasks") → createTask() (host-gated behind
+ * a human confirmation) is the only write, and update/delete throw loudly so a
+ * coding bot gets a clear error instead of a silent no-op.
  *
  * PROTECTED FILE — like wuphf-bridge.ts, import and use this; do not reimplement
  * it. It is already correct (e.g. getTasks() reads ALL channels). See AI_RULES.md.
@@ -35,6 +42,8 @@ import type {
 import {
   callIntegration,
   createTask,
+  data,
+  type DataValue,
   getEmails,
   getOfficeMembers,
   getTasks,
@@ -83,9 +92,11 @@ async function integrationReader(params: GetListParams): Promise<BaseRecord[]> {
     | { platform?: string; action?: string; params?: Record<string, unknown> }
     | undefined;
   if (!meta?.platform || !meta?.action) {
+    // readFor only routes here once meta.platform is set, so the live case is
+    // a half-filled meta: the platform without the action to run on it.
     throw new Error(
-      `Unknown resource "${params.resource}". Use a built-in resource ` +
-        `(tasks/members/emails) or pass meta:{ platform, action } for an integration.`,
+      `Resource "${params.resource}" names meta.platform but no meta.action. ` +
+        `Pass meta:{ platform, action } for an integration read.`,
     );
   }
   const res = await callIntegration(meta.platform, meta.action, meta.params);
@@ -99,9 +110,53 @@ async function integrationReader(params: GetListParams): Promise<BaseRecord[]> {
   return Array.isArray(items) ? (items as BaseRecord[]) : [];
 }
 
+/**
+ * The message `data.*` rejects with when no space is attached. Matching on it
+ * is how an unknown resource gets an error naming BOTH things it could have
+ * been, instead of a data-space error for what was probably a typo.
+ */
+const NO_DATA_SPACE = "no data space attached";
+
+/** How many records a resource page pulls. The space itself holds more. */
+const DATA_PAGE_LIMIT = 200;
+
+/**
+ * dataSpaceReader treats the resource name as an OBJECT TYPE SLUG in the data
+ * space attached to this app, and flattens each record to { id, ...values } so
+ * a refine column/field name is the attribute slug from the schema. Link
+ * attributes are not flattened: they are `record.links[slug]`, an array of
+ * refs, and are read through data.query directly when an app needs them.
+ */
+async function dataSpaceReader(params: GetListParams): Promise<BaseRecord[]> {
+  const page = await data.query(params.resource, { limit: DATA_PAGE_LIMIT });
+  return page.records.map((record) => ({ id: record.id, ...record.values }));
+}
+
 function readFor(params: GetListParams): Promise<BaseRecord[]> {
   const reader = readers[params.resource];
-  return reader ? reader(params) : integrationReader(params);
+  if (reader) return reader(params);
+  const meta = params.meta as { platform?: string } | undefined;
+  if (meta?.platform) return integrationReader(params);
+  return dataSpaceReader(params).catch((err: unknown) => {
+    // With no space attached, an unknown resource is far more likely to be a
+    // typo or a missing meta than a data-space call, so say both.
+    if (err instanceof Error && err.message.includes(NO_DATA_SPACE)) {
+      throw new Error(
+        `Unknown resource "${params.resource}". Use a built-in resource ` +
+          `(tasks/members/emails), pass meta:{ platform, action } for an ` +
+          `integration, or attach a data space and name one of its object types.`,
+      );
+    }
+    throw err;
+  });
+}
+
+/** Values a refine form submits for a data-space record. */
+type DataVariables = Record<string, DataValue>;
+
+/** A built-in resource is never a data-space object type. */
+function isDataSpaceResource(resource: string, meta?: { platform?: string }) {
+  return !readers[resource] && !meta?.platform;
 }
 
 function matches(value: unknown, filter: CrudFilter): boolean {
@@ -213,34 +268,64 @@ export const bridgeDataProvider: DataProvider = {
     return { data: data as unknown as TData[] };
   },
 
-  // The single human-gated write. Map create("tasks") onto createTask(); reject
-  // every other resource loudly so the bot gets a clear, actionable error.
+  // Two writes. create("tasks") → createTask(), which the host gates behind a
+  // human confirmation; create(<object type>) → the attached data space. Every
+  // other resource is rejected loudly so the bot gets an actionable error.
   create: async <TData extends BaseRecord = BaseRecord, TVariables = object>(params: {
     resource: string;
     variables: TVariables;
     meta?: Record<string, unknown>;
   }) => {
-    if (params.resource !== "tasks") {
+    if (params.resource === "tasks") {
+      const v = params.variables as CreateTaskVariables;
+      if (!v?.title) throw new Error("create('tasks') requires a `title`.");
+      const created = await createTask({ title: v.title, details: v.details });
+      return { data: created as unknown as TData };
+    }
+    if (!isDataSpaceResource(params.resource, params.meta)) {
       throw new Error(
-        `Apps can only create tasks (got create '${params.resource}'). ` +
-          `All other writes are unsupported in a WUPHF App.`,
+        `Apps can only create tasks or records in the attached data space ` +
+          `(got create '${params.resource}').`,
       );
     }
-    const v = params.variables as CreateTaskVariables;
-    if (!v?.title) throw new Error("create('tasks') requires a `title`.");
-    const created = await createTask({ title: v.title, details: v.details });
-    return { data: created as unknown as TData };
+    const values = params.variables as DataVariables;
+    const result = await data.create(params.resource, values);
+    const entry = result.entries[0];
+    if (result.failed > 0 || !entry?.id) {
+      // The envelope reports per-item failure inside a resolved promise, so a
+      // silent "saved!" here is exactly the lie refine would otherwise tell.
+      throw new Error(entry?.error ?? result.summary);
+    }
+    return { data: { id: entry.id, ...values } as unknown as TData };
   },
 
-  update: async () => {
-    throw new Error(
-      "Apps cannot update workspace data — the bridge is read-mostly.",
+  // A data-space record is editable; anything else still is not.
+  update: async <TData extends BaseRecord = BaseRecord, TVariables = object>(params: {
+    resource: string;
+    id: string | number;
+    variables: TVariables;
+    meta?: Record<string, unknown>;
+  }) => {
+    if (!isDataSpaceResource(params.resource, params.meta)) {
+      throw new Error(
+        `Apps cannot update '${params.resource}' — only records in the ` +
+          `attached data space are writable.`,
+      );
+    }
+    const { record } = await data.update(
+      String(params.id),
+      params.variables as DataVariables,
     );
+    return {
+      data: { id: record.id, ...record.values } as unknown as TData,
+    };
   },
 
   deleteOne: async () => {
+    // Deleting is a two-phase, human-previewed operation in the Data section
+    // and a `data_delete` tool for bots. An app must not shortcut it.
     throw new Error(
-      "Apps cannot delete workspace data — the bridge is read-mostly.",
+      "Apps cannot delete records — deleting is previewed and confirmed in Data.",
     );
   },
 

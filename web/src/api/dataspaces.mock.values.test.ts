@@ -237,7 +237,7 @@ describe("record validation", () => {
     );
   });
 
-  it("points a relationship slug in a values patch at linkRecords", async () => {
+  it("tells the caller a relationship is set by linking, not by a value", async () => {
     const { kit, investor } = await setup();
     const error = await validationError(
       kit.client.createRecord(kit.spaceId, investor.id, {
@@ -245,7 +245,10 @@ describe("record validation", () => {
         firm: "rec_1",
       }),
     );
-    expect(error.message).toContain("linkRecords");
+    // Deliberately not a function name: this message is read by a bot whose
+    // tool is data_link_records and by the operator, and neither can act on
+    // "linkRecords". Pinned by dataspaces.messages.test.ts.
+    expect(error.message).toContain("set by linking records");
     expect(error.attribute).toBe("firm");
   });
 

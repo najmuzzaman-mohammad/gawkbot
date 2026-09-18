@@ -169,7 +169,7 @@ function coerceScalar(
       return coerceOption(attribute, raw);
     case "relationship":
       return fail(
-        `"${attribute.slug}" is a relationship. Use linkRecords to set it.`,
+        `"${attribute.slug}" is a relationship, so it is set by linking records, not by setting a value.`,
         attribute.slug,
       );
     default:
@@ -256,7 +256,7 @@ function valueAttribute(type: ObjectType, slug: string): AttributeDefinition {
   }
   if (attribute.type === "relationship") {
     return fail(
-      `"${slug}" is a relationship. Use linkRecords with attribute "${slug}" instead of setting a value.`,
+      `"${slug}" is a relationship, so it is set by linking records, not by setting a value.`,
       slug,
     );
   }

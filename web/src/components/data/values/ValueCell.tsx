@@ -213,6 +213,34 @@ function PhoneValueCell({ value }: ValueCellProps) {
   return <LinkValue href={phoneHref(raw)} label={raw} />;
 }
 
+/** Anything at all, as text. Arrays read as a list; nothing is dropped. */
+function rawText(value: AttributeValue | undefined): string {
+  if (value === undefined) return "";
+  if (Array.isArray(value)) return value.join(", ");
+  return String(value);
+}
+
+/**
+ * The fallback for an attribute type this bundle does not know. A bot can
+ * define one against a newer broker while an older tab is still open, and a
+ * missing renderer used to throw "Element type is invalid" and take the whole
+ * table down. Showing the stored value, muted, is worse than a real cell and
+ * far better than an unmounted grid.
+ */
+export function UnknownValueCell({ attribute, value }: ValueCellProps) {
+  const text = rawText(value);
+  if (text === "") return <EmptyValue />;
+  return (
+    <span
+      className="dv-unknown"
+      title={`This version does not support the "${attribute.type}" field type, so the stored value is shown as it is.`}
+      data-testid="data-unknown-value"
+    >
+      {text}
+    </span>
+  );
+}
+
 /** One display renderer per attribute type. Relationships render elsewhere. */
 export const VALUE_CELL_RENDERERS: Record<
   DisplayableAttributeType,
@@ -231,11 +259,26 @@ export const VALUE_CELL_RENDERERS: Record<
   phone: PhoneValueCell,
 };
 
+/**
+ * The table is indexed by a value the server owns, so the lookup is widened
+ * to `string` on purpose: the map stays exhaustive over the union (adding an
+ * attribute type in TypeScript without a renderer is still a compile error)
+ * while a type this bundle has never seen resolves to the fallback instead of
+ * to `undefined`.
+ */
+const RENDERERS_BY_TYPE: Readonly<
+  Record<string, ComponentType<ValueCellProps> | undefined>
+> = VALUE_CELL_RENDERERS;
+
+export function valueCellRenderer(type: string): ComponentType<ValueCellProps> {
+  return RENDERERS_BY_TYPE[type] ?? UnknownValueCell;
+}
+
 /** Read-only display of one attribute value. */
 export function ValueCell({ attribute, value }: ValueCellProps): ReactNode {
   if (attribute.type === "relationship") return null;
   // Rendered as an element, never called: renderers may hold hooks, and a
   // direct call would run them on this component's fiber.
-  const Renderer = VALUE_CELL_RENDERERS[attribute.type];
+  const Renderer = valueCellRenderer(attribute.type);
   return <Renderer attribute={attribute} value={value} />;
 }

@@ -7,7 +7,10 @@ import type {
   AttributeValue,
 } from "../../../api/dataspaces";
 import { EditableValueCell } from "./EditableValueCell";
-import { FIXTURE_ATTRIBUTES as F } from "./storyFixtures";
+import {
+  FIXTURE_ATTRIBUTES as F,
+  makeUnknownTypeAttribute,
+} from "./storyFixtures";
 
 function setup(
   attribute: AttributeDefinition,
@@ -37,6 +40,22 @@ describe("<EditableValueCell> entering edit mode", () => {
     const input = screen.getByRole("textbox", { name: "Notes" });
     expect(input).toHaveValue("Hello");
     expect(input).toHaveFocus();
+  });
+
+  // There is no editor for a type this bundle does not model, so the cell
+  // shows the value and declines rather than rendering an undefined editor.
+  it("an unknown attribute type stays read-only and never throws", async () => {
+    const attribute = makeUnknownTypeAttribute("geo_point", {
+      name: "Location",
+    });
+    const { user, cell, onCommit } = setup(attribute, "41.4,-75.6");
+    expect(cell.getAttribute("aria-readonly")).toBe("true");
+    await user.dblClick(cell);
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(screen.getByTestId("data-unknown-value")).toHaveTextContent(
+      "41.4,-75.6",
+    );
   });
 
   it("double-click opens the editor; a single click does not", async () => {

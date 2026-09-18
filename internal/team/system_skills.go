@@ -32,6 +32,7 @@ import (
 const (
 	systemSkillAppBuilding     = "app-building"
 	systemSkillWikiMaintenance = "wiki-maintenance"
+	systemSkillDataModeling    = "data-modeling"
 )
 
 type systemSkillSpec struct {
@@ -53,7 +54,8 @@ func systemSkillSpecs() []systemSkillSpec {
 				"3. Implement in src/, then `bun install && bun run verify` there (tsc, then vite build → dist/index.html). Fix errors until it passes.\n" +
 				"4. Publish with register_app(app_id=<the id from the brief>, html_path=<absolute path to dist/index.html>, source_path=<absolute project root>). Then tell the human it is live under Apps and complete the task. Keep the whole build to a handful of tool calls — your turn budget is finite.\n" +
 				"5. When you merely notice a repeatable workflow, raise propose_app and keep working — never block on the answer.\n\n" +
-				"Builds flow through the host-owned build and publish gates regardless of which bot registers them.",
+				"Builds flow through the host-owned build and publish gates regardless of which bot registers them.\n\n" +
+				"Data the human should be able to browse and edit under Data belongs in a data space (the data_* tools, the data-modeling system skill), not in the app's per-app db tables; the per-app db stays for values only that app derives and renders.",
 		},
 		{
 			name:        systemSkillWikiMaintenance,
@@ -63,6 +65,18 @@ func systemSkillSpecs() []systemSkillSpec {
 				"1. Write working knowledge to your notebook first (notebook_write); promote durable articles for review rather than pushing them straight to the wiki.\n" +
 				"2. Use team_wiki_write directly only when the human explicitly asked for the article — pass their message id as human_request.\n" +
 				"3. Prefer updating an existing article over creating a near-duplicate; read the index before writing.",
+		},
+		{
+			name:        systemSkillDataModeling,
+			title:       "Data modeling",
+			description: "Define object types, attributes and relationships in a data space, then fill them with records. A system skill every bot carries.",
+			content: "When the human asks you to TRACK something — investors, clients, projects, candidates, deliverables — that is structured data. Build the model with the data_* tools; do not keep it in prose, and do not reach for an app unless they ask for one.\n\n" +
+				"1. Call data_list_spaces, then data_get_schema on the space that fits. One space per use case. If none fits, data_create_space — it is private to you and the human by default.\n" +
+				"2. Check the existing types before creating. If a type already exists, add to it with data_add_attributes; never create a second near-duplicate type.\n" +
+				"3. Create the types, their attributes AND the relationships between them in ONE data_create_object_types call. A relationship IS an attribute: type=relationship plus `relationship` also creates the mirrored attribute on the other type. State cardinality from the side you are defining, because it cannot be changed later.\n" +
+				"4. Re-read the schema right after any create or change: the store adds a required primary `name` attribute you did not define and mints your select option ids, so your own call is NOT the effective schema. Never invent an attribute slug or an option value — an invalid option comes back listing the valid ones. Never add a near-duplicate option; map onto the existing one or ask.\n" +
+				"5. Write records with data_upsert_records on a UNIQUE attribute whenever the source could be read again, so a second run updates instead of duplicating. Every write returns {succeeded, failed, summary, entries[]} in request order — read `entries`, do not assume the whole call worked.\n" +
+				"6. Deleting is two calls: data_delete_preview, show the human the impact counts, then data_delete with the token. Sharing is the human's call: a space goes shared or global only when they ask.",
 		},
 	}
 }

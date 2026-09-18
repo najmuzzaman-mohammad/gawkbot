@@ -15,7 +15,13 @@ import {
   withAppCsp,
 } from "./CustomAppFrame";
 
-vi.mock("../../api/client", () => ({ get: vi.fn(), post: vi.fn() }));
+vi.mock("../../api/client", () => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  // The data.* bridge writes through put/patch as well as post.
+  put: vi.fn(),
+  patch: vi.fn(),
+}));
 // Auto-accept the human confirmation so the create_task path runs to the POST.
 vi.mock("../ui/ConfirmDialog", () => ({
   confirm: vi.fn((opts: { onConfirm: () => unknown }) => opts.onConfirm()),
@@ -961,5 +967,193 @@ describe("parseDBArgs (app-DB bridge validation)", () => {
         msg({ op: "upsert", table: "T", rows: [{ id: "a" }], key: maxKey }),
       ),
     ).toEqual({ op: "upsert", table: "T", rows: [{ id: "a" }], key: maxKey });
+  });
+});
+
+// ── data.*: the attached data space, and the scoping rule ────────────────────
+//
+// The security property under test is that an app frame reaches the ONE space
+// its own manifest names and no other. It is enforced in two places and both
+// are exercised here: parseDataArgs has no field a space can arrive in, and
+// serviceDataCall builds the URL from the host-resolved manifest binding.
+
+describe("routeInboundMessage: data.* dispatch", () => {
+  function makeFrame(): {
+    frame: HTMLIFrameElement;
+    win: { postMessage: ReturnType<typeof vi.fn> };
+  } {
+    const win = { postMessage: vi.fn() };
+    const frame = { contentWindow: win } as unknown as HTMLIFrameElement;
+    return { frame, win };
+  }
+
+  function event(source: unknown, data: unknown): MessageEvent {
+    return { source, data } as unknown as MessageEvent;
+  }
+
+  /** Let the manifest lookup and the forwarded call settle. */
+  async function flush(): Promise<void> {
+    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+  }
+
+  beforeEach(() => {
+    vi.mocked(get).mockReset();
+    vi.mocked(post).mockReset().mockResolvedValue({});
+  });
+
+  it("resolves the space from the app's manifest, then forwards the call", async () => {
+    const { frame, win } = makeFrame();
+    vi.mocked(get).mockImplementation(async (path: string) =>
+      path === "/apps/app_abc/data-space"
+        ? { space_id: "space_1" }
+        : { space: { id: "space_1" }, object_types: [] },
+    );
+
+    routeInboundMessage(
+      event(win, { source: "wuphf-app", type: "data", id: 1, op: "schema" }),
+      frame,
+      "*",
+      { current: vi.fn() },
+      { current: vi.fn() },
+      "app_abc",
+    );
+    await flush();
+
+    expect(get).toHaveBeenCalledWith("/apps/app_abc/data-space");
+    expect(get).toHaveBeenCalledWith("/data/spaces/space_1");
+    expect(win.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 1, ok: true }),
+      "*",
+    );
+  });
+
+  it("ignores a space the app names and uses its own, on a read AND a write", async () => {
+    const { frame, win } = makeFrame();
+    vi.mocked(get).mockResolvedValue({ space_id: "space_mine" });
+
+    routeInboundMessage(
+      event(win, {
+        source: "wuphf-app",
+        type: "data",
+        id: 2,
+        op: "query",
+        objectType: "investor",
+        // A hostile app naming another bot's space. It must not appear in any
+        // request the host makes.
+        space: "space_other",
+        space_id: "space_other",
+        spaceId: "space_other",
+      }),
+      frame,
+      "*",
+      { current: vi.fn() },
+      { current: vi.fn() },
+      "app_abc",
+    );
+    routeInboundMessage(
+      event(win, {
+        source: "wuphf-app",
+        type: "data",
+        id: 3,
+        op: "create",
+        objectType: "investor",
+        values: { name: "Ada" },
+        space: "space_other",
+      }),
+      frame,
+      "*",
+      { current: vi.fn() },
+      { current: vi.fn() },
+      "app_abc",
+    );
+    await flush();
+
+    const paths = [
+      ...vi.mocked(get).mock.calls.map(([p]) => String(p)),
+      ...vi.mocked(post).mock.calls.map(([p]) => String(p)),
+    ];
+    expect(paths).toContain("/data/spaces/space_mine/records/query");
+    expect(paths).toContain("/data/spaces/space_mine/records");
+    expect(paths.some((p) => p.includes("space_other"))).toBe(false);
+    // Nor may it ride out in a body.
+    const bodies = JSON.stringify(vi.mocked(post).mock.calls);
+    expect(bodies).not.toContain("space_other");
+  });
+
+  it("says so honestly when no space is attached, and reads nothing", async () => {
+    const { frame, win } = makeFrame();
+    vi.mocked(get).mockResolvedValue({ space_id: "" });
+
+    routeInboundMessage(
+      event(win, {
+        source: "wuphf-app",
+        type: "data",
+        id: 4,
+        op: "query",
+        objectType: "investor",
+      }),
+      frame,
+      "*",
+      { current: vi.fn() },
+      { current: vi.fn() },
+      "app_abc",
+    );
+    await flush();
+
+    // An empty page would read to the app (and the operator) as "there is no
+    // data", which is not what happened.
+    expect(win.postMessage).toHaveBeenCalledWith(
+      {
+        source: "wuphf-host",
+        id: 4,
+        ok: false,
+        error: "This app has no data space attached.",
+      },
+      "*",
+    );
+    expect(post).not.toHaveBeenCalled();
+    expect(
+      vi.mocked(get).mock.calls.every(([p]) => !String(p).startsWith("/data/")),
+    ).toBe(true);
+  });
+
+  it("rejects a malformed data call before any lookup", async () => {
+    const { frame, win } = makeFrame();
+    vi.mocked(get).mockResolvedValue({ space_id: "space_1" });
+
+    routeInboundMessage(
+      event(win, { source: "wuphf-app", type: "data", id: 5, op: "drop_all" }),
+      frame,
+      "*",
+      { current: vi.fn() },
+      { current: vi.fn() },
+      "app_abc",
+    );
+    await flush();
+
+    expect(win.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 5, ok: false }),
+      "*",
+    );
+    expect(get).not.toHaveBeenCalled();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("refuses a data call with no app id rather than guessing a space", async () => {
+    const { frame, win } = makeFrame();
+    routeInboundMessage(
+      event(win, { source: "wuphf-app", type: "data", id: 6, op: "schema" }),
+      frame,
+      "*",
+      { current: vi.fn() },
+      { current: vi.fn() },
+      // no appId
+    );
+    await flush();
+    expect(get).not.toHaveBeenCalled();
+    expect(win.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 6, ok: false }),
+      "*",
+    );
   });
 });

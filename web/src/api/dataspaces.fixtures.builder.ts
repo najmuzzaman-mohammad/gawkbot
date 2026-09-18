@@ -10,6 +10,7 @@ import type {
   AttributeDefinition,
   AttributeInput,
   AttributePatch,
+  CallerLevel,
   ObjectTypeInput,
   RecordValuesPatch,
   SpaceAccess,
@@ -41,6 +42,12 @@ export interface SpaceBuilderInit {
   attachedAppIds?: readonly string[];
   /** Defaults to private. Normalized, so an invalid value throws. */
   access?: SpaceAccess;
+  /**
+   * What the caller may do here. Defaults to `write`, which is what the
+   * operator always has; a fixture passes `read` to stage a space another
+   * bot owns and shared read-only.
+   */
+  callerLevel?: CallerLevel;
   /** ISO timestamp the synthetic clock starts from. */
   startAt: string;
 }
@@ -89,6 +96,7 @@ export function emptySpaceState(init: SpaceBuilderInit): SpaceState {
       access: normalizeAccess(init.owner, init.access ?? PRIVATE_ACCESS),
       createdAt: init.startAt,
       updatedAt: init.startAt,
+      callerLevel: init.callerLevel ?? "write",
     },
     objectTypes: [],
     relationships: [],

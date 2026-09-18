@@ -10,12 +10,12 @@
 import {
   type AttributeDefinition,
   type AttributeValue,
-  type Cardinality,
   type DataRecord,
   type DataSpace,
   DataValidationError,
   type ObjectType,
   type RecordRef,
+  type SchemaRelationship,
   type SpaceSchema,
 } from "./dataspaces";
 
@@ -36,16 +36,11 @@ export interface StoredRecord {
 
 /**
  * One row per relationship, oriented from the attribute that was created
- * first (the owning side). `cardinality` is stated from that side.
+ * first (the owning side). `cardinality` is stated from that side. This is
+ * the stored form of the `SchemaRelationship` every read hands back, so the
+ * two shapes are pinned to each other.
  */
-export interface StoredRelationship {
-  id: string;
-  sourceTypeId: string;
-  sourceAttributeId: string;
-  targetTypeId: string;
-  inverseAttributeId: string | null;
-  cardinality: Cardinality;
-}
+export type StoredRelationship = SchemaRelationship;
 
 /** `sourceId` is a record of the relationship's source type. */
 export interface StoredLink {
@@ -162,10 +157,16 @@ export function viewSpace(state: SpaceState): DataSpace {
   };
 }
 
+/**
+ * The server states each relationship as a row of its own, so consumers never
+ * have to guess which of the two attributes owns it. The mock is the oracle
+ * for that contract, so it hands the list back on every read.
+ */
 export function viewSchema(state: SpaceState): SpaceSchema {
   return {
     space: viewSpace(state),
     objectTypes: state.objectTypes.map((type) => viewObjectType(state, type)),
+    relationships: deepClone(state.relationships),
   };
 }
 

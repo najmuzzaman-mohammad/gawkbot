@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { FIXTURE_ATTRIBUTES as F } from "./storyFixtures";
+import {
+  FIXTURE_ATTRIBUTES as F,
+  makeUnknownTypeAttribute,
+} from "./storyFixtures";
 import { VALUE_CELL_RENDERERS, ValueCell } from "./ValueCell";
 
 describe("<ValueCell>", () => {
@@ -21,6 +24,32 @@ describe("<ValueCell>", () => {
         "url",
       ].sort(),
     );
+  });
+
+  // A newer broker with an older bundle is enough to reach this: the lookup
+  // used to answer `undefined`, and React threw "Element type is invalid",
+  // which unmounts the whole table over one unrecognised column.
+  it("shows the raw value, muted and explained, for an unknown type", () => {
+    const attribute = makeUnknownTypeAttribute("geo_point", {
+      name: "Location",
+    });
+    render(<ValueCell attribute={attribute} value="41.4,-75.6" />);
+    const cell = screen.getByTestId("data-unknown-value");
+    expect(cell).toHaveTextContent("41.4,-75.6");
+    expect(cell.className).toContain("dv-unknown");
+    expect(cell.getAttribute("title")).toContain(
+      'does not support the "geo_point" field type',
+    );
+  });
+
+  it("renders an unknown type's list value and its empty value without throwing", () => {
+    const attribute = makeUnknownTypeAttribute("geo_point");
+    const { container, rerender } = render(
+      <ValueCell attribute={attribute} value={["a", "b"]} />,
+    );
+    expect(screen.getByTestId("data-unknown-value")).toHaveTextContent("a, b");
+    rerender(<ValueCell attribute={attribute} value={undefined} />);
+    expect(container.textContent).toBe("·");
   });
 
   it("renders nothing for a relationship", () => {

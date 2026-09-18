@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CARDINALITIES } from "../../../api/dataspaces";
+import { CARDINALITIES, type Cardinality } from "../../../api/dataspaces";
 import {
   applyRelationshipNameDefaults,
   cardinalityModeExplanation,
@@ -8,6 +8,7 @@ import {
   cardinalityPlain,
   defaultRelationshipNames,
   flipCardinality,
+  isToMany,
   type RelationshipDraft,
   relationshipPreview,
   validateRelationshipDraft,
@@ -231,5 +232,34 @@ describe("validateRelationshipDraft", () => {
         hasInverse: false,
       }),
     ).toBeNull();
+  });
+});
+
+/**
+ * The store owns the cardinality set, so a relationship created against a
+ * newer broker can carry one this bundle does not model. Asserting past the
+ * union is the simulation: there is no other way to stage a value the type
+ * system exists to exclude.
+ */
+const UNMODELLED = "link_graph" as Cardinality;
+
+describe("a cardinality this version does not know", () => {
+  it("labels it instead of rendering nothing", () => {
+    expect(cardinalityModeLabel(UNMODELLED)).toBe("Unknown link type");
+    expect(cardinalityPlain(UNMODELLED)).toBe("an unknown shape");
+  });
+
+  it("never claims a to-one limit it cannot know the store enforces", () => {
+    expect(isToMany(UNMODELLED)).toBe(true);
+    expect(flipCardinality(UNMODELLED)).toBe(UNMODELLED);
+    expect(relationshipPreview(INVESTOR, FIRM, UNMODELLED, true)).toBe(
+      "Each Investor links to many Firms. Each Firm lists many Investors.",
+    );
+  });
+
+  it("explains itself rather than echoing the wire value", () => {
+    expect(cardinalityModeExplanation(UNMODELLED, INVESTOR, FIRM)).toBe(
+      "This version does not recognize how Investor links to Firm.",
+    );
   });
 });

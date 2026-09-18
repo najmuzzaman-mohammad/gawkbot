@@ -230,18 +230,21 @@ is needed. Virtualization is skipped in v1 (30 rows per page).
 ```
 GET    /data/spaces                          POST /data/spaces {name, description}
 GET    /data/spaces/{space}                  (space + object types + relationships: the full schema)
+PATCH  /data/spaces/{space}                  {name?, description?, access?}
+POST   /data/spaces/{space}/apps/{appId}     attach    DELETE same path detaches
 POST   /data/spaces/{space}/object-types     {items:[{name, name_plural?, icon?, description?, attributes:[AttributeInput]}]}
 PATCH  /data/spaces/{space}/object-types/{type}
 POST   /data/spaces/{space}/object-types/{type}/attributes   {items:[AttributeInput]}
 PATCH  /data/spaces/{space}/object-types/{type}/attributes/{attr}   (name, description, is_required, select option add/rename)
-POST   /data/spaces/{space}/records/query    {object_type, filter[], sort[], limit, offset, query}
+POST   /data/spaces/{space}/records/query    {object_type, filters[], sort{attribute,desc}, limit, offset, query}
 POST   /data/spaces/{space}/records          {object_type, items:[{values}]}
 PUT    /data/spaces/{space}/records          {object_type, matching_attribute, items:[{values}]}   (upsert)
 PATCH  /data/spaces/{space}/records/{id}     {values}      (null clears)
 GET    /data/spaces/{space}/records/{id}     (values + resolved links per relationship attribute)
 POST   /data/spaces/{space}/links            {items:[{record, attribute, target, replace?}]}
 POST   /data/spaces/{space}/unlinks          {items:[{record, attribute, target}]}
-POST   /data/spaces/{space}/delete-preview   {kind: object_type|attribute|records|space, ids[]} -> {impact, token}
+POST   /data/spaces/{space}/delete-preview   {kind, ids[]} -> {impact, token}
+       kind = space|object_type|attribute|records|records_of_type
 POST   /data/spaces/{space}/delete           {token}
 ```
 
@@ -319,3 +322,190 @@ import, AI autofill attributes, extraction from text, migration of `db.json`.
 - NEXT after screens land: tsc, biome, full web suite, e2e route-matrix check,
   isolated-browser eval of the three ICP examples, screenshots, founder
   click-through. Then S2.
+
+
+## S2 to S5 log (backend)
+
+2026-09-17, founder decision: HOLD the PR until the backend is real. Do not
+land a Data section running on fixtures: every user would see invented
+investors and candidates, which is the fabricated-UI-state class of bug the
+#1189 honesty pass removed. The nav entry ships only when the store is live.
+
+- DONE S1, committed on `feat/agent-data-model` as `feat(data): bot-owned data
+  spaces, UI on mock store` (210 files). Full web suite green: 300 files,
+  3316 tests. Browser-verified against a bot-free dev office.
+- DONE the Go contract: `internal/dataspace/types.go`, the `Store` interface
+  plus `NormalizeAccess` and `LevelFor`. It compiles. THE TS MOCK IS THE
+  BEHAVIOR ORACLE: `web/src/api/dataspaces.mock*.ts` and its tests define
+  coercion, cardinality, upsert matching and delete impact. Go must match it,
+  and any difference is reconciled rather than left.
+- IN FLIGHT: S2 SQLite store (`internal/dataspace/**`); S3 broker routes
+  (`internal/team/broker_data*.go`) plus the real web client in
+  `web/src/api/dataspacesClient.ts`; S4 MCP tools
+  (`internal/teammcp/data_tools.go`) plus the prompt rules and
+  `templates/app-scaffold/AI_RULES.md`.
+- OPEN question the founder asked, 2026-09-17: "can apps use this data as
+  context?" Not yet. Three senses, all S5 or later: an app reading records at
+  runtime through a `data.*` bridge; the app-builder bot seeing the schema
+  while it builds; and records as retrievable context for bots, for which the
+  precedent is `internal/team/broker_apps_knowledge.go`, which already derives
+  a per-app knowledge page from app DB tables and can push it to gbrain.
+  A global space makes that last one office-wide context.
+- NEXT after S2 to S4 land: reconcile Go against the mock, triangulation
+  review on the wire shape (AGENTS.md requires it for a new public API), S5
+  apps attach, then one PR with screenshots and a live bot eval of the three
+  ICP examples.
+
+## Triangulation review, API/types lens (2026-09-18)
+
+Blocking, being fixed:
+- An unknown attribute type CRASHES the Data table. `VALUE_CELL_RENDERERS` is a
+  `Record` with no index signature, so a value the bundle has not seen renders
+  `undefined` and React unmounts the table. A newer broker with an older bundle
+  is enough. Same shape in the icon map; an unknown cardinality silently reads
+  as to-one. Fix: fall back visibly at every registry lookup.
+- `Schema.Relationships` and `Space.CallerLevel` are emitted by Go and dropped
+  by TS. Consequences: the space page GUESSES which side owns a relationship
+  when the server now says, and the UI cannot tell a read-only space from a
+  writable one.
+- `records_of_type` is implemented in Go and MCP but missing from the TS union,
+  so "Delete all records" never shipped and its TODO is stale.
+- Enum drift is unpinned: the mirror test compares top-level json tags for 9
+  input types only. No enum, no output type, nothing on the TS side.
+
+Blocking, queued behind the store agent (internal/dataspace is held):
+- `Result` cannot distinguish changed from already-in-that-state. Add `Noop`.
+- `data_upsert_records` tool text promises entries say which matched and which
+  were created; the envelope carries no such field. Add `Entry.Created` or
+  strike the sentence.
+- MCP and `NormalizeAccess` disagree: MCP rejects grants on private/global and
+  rejects shared-with-no-grants; the store silently rewrites both. DECISION:
+  reject grants on private/global in BOTH, and keep the shared-with-no-grants
+  downgrade to private in both, because the UI pins that behaviour.
+- Filtering select/status by option ID silently returns zero rows, because
+  filters compare by option NAME while reads return ids. Match id first, then
+  name. The mock agrees with Go here, so fix both.
+
+Accepted, not fixed: `Filter.Value` cannot express empty vs absent; currency
+code on a non-currency attribute is dropped silently; `Attribute` can carry
+both options and a relationship in the output type; three spellings of
+object_type/typeId; `Preview.ExpiresAt` unused by the UI; no MCP tool for
+renaming an object type.
+
+## Triangulation: security and SRE lenses (2026-09-18). ALL THREE CLOSED.
+
+Three CRITICAL findings, every one now fixed and proved by a test that failed
+first against the old code. Kept in full because the reasoning is the record of
+why the code looks the way it does, and because a future change could reopen
+any of them. Status is marked per item below.
+
+1. SECURITY, critical. FIXED 2026-09-18. An absent `X-WUPHF-Agent` header makes the caller the
+   operator (`broker_data.go` dataActorFromRequest), and the operator has write
+   on every space. Every bot holds WUPHF_BROKER_TOKEN and the broker URL on its
+   own command line (`prompts.go:273`) and can run a shell, so any bot can read
+   and write every space in the office, including other bots' private ones, and
+   escapes rate limiting while doing it. The reserved-slug denylist blocks the
+   string "human" but omission defeats it. Verified by reading both files.
+   FIX: fail closed; authenticated-but-unidentified is no access.
+2. DURABILITY, critical. FIXED 2026-09-18. A zero-length or replaced space file opens cleanly,
+   reports schema version 0, gets the v1 DDL, and reads as a brand-new EMPTY
+   space while `spaces.db` still claims its old record count. The UI then shows
+   the honest empty state over lost data. Proved by execution.
+   FIX: refuse to initialise a non-empty file at version 0, and fail loudly when
+   the index count and the file disagree.
+3. DURABILITY, critical. FIXED 2026-09-18. `migrateSpace` DOWNGRADES a newer file's
+   schema_version (`for version < schemaVersion` then an unconditional write),
+   so an older binary silently restamps a v2 file as v1 and the next upgrade
+   re-runs migrations over it. `migrateIndex` gets this right; the space path
+   does not. This ships in an npx binary users downgrade freely. Proved.
+   FIX: refuse a file newer than the build; only write the version on change.
+
+Also found, all fixed in the same pass except where noted:
+- Two brokers on one home fail ~50% of writes with SQLITE_BUSY_SNAPSHOT in 0ms
+  (busy_timeout does not apply to a read-snapshot upgrade), surfacing as a 500
+  with no log. This repo routinely has several worktrees and a prod office on
+  one machine. FIX: BEGIN IMMEDIATE on write paths plus a retry.
+- `removeSpace` drops the index row before unlinking the file, so a crash
+  strands an unreachable file. FIX: rename first, then row, then unlink, plus an
+  orphan sweep at Open.
+- The web proxy's app-builder header exception decides data identity on /data.
+- The broker never validates the space id shape, so arbitrary path segments
+  become mutex and rate-limit keys; `IsSpaceID` exists and is never called.
+- Per-space mutexes, delete tokens and DB handles are unbounded in-process maps;
+  the mutex map is keyed before authorization, so denied calls grow it.
+- No caps on filter count, search length or value size; a query loads the whole
+  object type into memory (100k records = 699ms and 130MB per request).
+- A non-owner with write can rename another bot's space and attach apps to it.
+- A single store-open failure is memoized for the process lifetime.
+- Zero logging anywhere in the store or the routes, so "my data is gone" has
+  nothing to look at.
+
+Not a finding, worth recording: a hard store error does NOT render as empty.
+The UI distinguishes "could not be loaded" from "no records yet". Only finding
+2 slips through, because it is not an error.
+
+## Deferred: read-only propagation into the record surfaces (2026-09-18)
+
+`Space.CallerLevel` now reaches TypeScript and `DataSpacePage` honours it: a
+read-only space withholds Share and New object type and says who owns it. The
+records grid and the record page do NOT yet honour it. Threading optional
+handlers through `records/RecordsPage`, `RecordsTable`, `RecordsTableRow`,
+`NameCell`, `RelationshipCell`, `PeekDrawer`, `record/RecordPage`,
+`RecordAttributes`, `InPlaceValue` and the settings tabs is mechanical, because
+`EditableValueCell.onCommit?` already has the capability-by-withheld-handler
+shape, but it is about ten components plus tests and stories.
+
+This is LATENT, not live: the web client authenticates as the operator, who
+always has write on every space, so no operator can currently reach a
+read-only surface. It becomes live the moment something calls as a bot, which
+is the app bridge. Close it in or before that slice, or an app attached to a
+space its bot can only read will render controls that always fail.
+
+
+## Wire-shape corrections applied (2026-09-18)
+
+The Wire shape section above drifted from the code during the backend slices and
+has been corrected in place: the query body takes `filters[]` and a single
+`sort` object (not `filter[]`/`sort[]`), `records_of_type` is a real delete
+kind, and the space PATCH and app attach routes were missing. `types.go` is the
+authority; the enum lists are now pinned from TypeScript by
+`web/src/api/dataspaces.contract.test.ts`, which parses the Go consts, so this
+particular drift cannot recur silently.
+
+Still true and deliberate: `Attribute.Relationship` and `Schema.Relationships`
+both exist. The attribute carries the owning side so a single attribute is
+self-describing; the schema list carries the pair so nothing has to infer which
+side owns it. The UI uses the list and keeps the inference only as a fallback
+for a broker that does not send one.
+
+
+## Landed (2026-09-18)
+
+PR https://github.com/najmuzzaman-mohammad/gawkbot/pull/1242, two commits:
+`feat(data): bot-owned data spaces, UI on mock store` and `feat(data): SQLite
+store, broker routes and MCP tools for data spaces`. Screenshots skipped at the
+founder's explicit request; the repo's FE-screenshot rule otherwise applies.
+
+State at merge: all three Go packages green, the web suite green, no new
+dependency. Every triangulation finding is either fixed or recorded above with
+its reason.
+
+### What is NOT done, in priority order
+
+1. Read-only propagation into the records grid and record page. Latent while
+   only the operator uses the UI; live the moment an app calls as its bot. See
+   the deferred section above for the exact component list.
+2. `QueryRecords` loads the whole object type to serve one page (699ms and
+   130MB at 100k records). The input caps bound the damage; the fix is limit
+   and offset pushdown into SQL.
+3. No `wuphf data repair`. A space that lost every object type AND whose index
+   still claims records refuses to open, and recovery means hand-editing
+   spaces.db. Narrow, but sharp.
+4. Per-bot credentials. Until they exist a bot can present another bot's slug
+   and reach that bot's private space. Repo-wide, not specific to this surface.
+5. `Result` cannot distinguish a change from a no-op, and upsert entries do not
+   say which matched and which were created, though the tool text implies they
+   do. Both are additive envelope fields; do them before the shape sets.
+6. Filtering select/status by option ID silently returns nothing, because
+   filters compare by option NAME while reads return ids. Go and the mock agree,
+   so fix both together.

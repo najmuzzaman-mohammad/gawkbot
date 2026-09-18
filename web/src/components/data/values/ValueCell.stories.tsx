@@ -7,6 +7,7 @@ import {
   FIXTURE_VALUES,
   LONG_TEXT,
   makeAttribute,
+  makeUnknownTypeAttribute,
 } from "./storyFixtures";
 import { StoryGrid, StoryRow } from "./storyLayout";
 import { ValueCell } from "./ValueCell";
@@ -167,6 +168,41 @@ export const Toggles: Story = {
       </StoryRow>
       <StoryRow label="Never set">
         <ValueCell attribute={FIXTURE_ATTRIBUTES.toggle} value={undefined} />
+      </StoryRow>
+    </StoryGrid>
+  ),
+};
+
+/**
+ * A field type this bundle does not model, which a bot can create against a
+ * newer broker while this tab is open. The value is shown as it is, muted,
+ * with the reason in the title attribute: degrading visibly beats an
+ * unmounted table.
+ */
+export const UnknownType: Story = {
+  render: () => (
+    <StoryGrid>
+      <StoryRow label="Location">
+        <ValueCell
+          attribute={makeUnknownTypeAttribute("geo_point", {
+            name: "Location",
+          })}
+          value="41.4090, -75.6624"
+        />
+      </StoryRow>
+      <StoryRow label="Colour ramp">
+        <ValueCell
+          attribute={makeUnknownTypeAttribute("gradient", {
+            name: "Colour ramp",
+          })}
+          value={["low", "mid", "high"]}
+        />
+      </StoryRow>
+      <StoryRow label="Never set">
+        <ValueCell
+          attribute={makeUnknownTypeAttribute("geo_point")}
+          value={undefined}
+        />
       </StoryRow>
     </StoryGrid>
   ),

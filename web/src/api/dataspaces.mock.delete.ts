@@ -11,15 +11,10 @@ import type {
   DeleteKind,
   ObjectType,
 } from "./dataspaces";
+import { DELETE_KINDS } from "./dataspaces";
 import { fail, type SpaceState } from "./dataspaces.mock.store";
 
 export const DELETE_TOKEN_TTL_MS = 15 * 60 * 1000;
-const DELETE_KINDS: readonly DeleteKind[] = [
-  "space",
-  "object_type",
-  "attribute",
-  "records",
-];
 
 export interface DeletePlan {
   deletesSpace: boolean;
@@ -45,6 +40,45 @@ function planRecords(state: SpaceState, ids: readonly string[]): DeletePlan {
   const missing = ids.filter((id) => !known.has(id));
   if (missing.length > 0) fail(`Unknown record ids: ${missing.join(", ")}.`);
   const recordIds = new Set(ids);
+  const links = state.links.filter(
+    (link) => recordIds.has(link.sourceId) || recordIds.has(link.targetId),
+  );
+  return {
+    deletesSpace: false,
+    typeIds: new Set(),
+    attributeIds: new Set(),
+    relationshipIds: new Set(),
+    recordIds,
+    impact: {
+      records: recordIds.size,
+      links: links.length,
+      attributes: 0,
+      objectTypes: 0,
+    },
+  };
+}
+
+/**
+ * Every record of the named object types, with the types themselves left in
+ * place. The operator gets this from "Delete all records"; a bot gets it from
+ * the `records_of_type` delete kind. Neither has to page the whole table to
+ * collect ids first, which is why the store owns the resolution.
+ */
+function planRecordsOfType(
+  state: SpaceState,
+  ids: readonly string[],
+): DeletePlan {
+  const known = new Set(state.objectTypes.map((type) => type.id));
+  const missing = ids.filter((id) => !known.has(id));
+  if (missing.length > 0) {
+    fail(`Unknown object type ids: ${missing.join(", ")}.`);
+  }
+  const typeIds = new Set(ids);
+  const recordIds = new Set(
+    state.records
+      .filter((record) => typeIds.has(record.typeId))
+      .map((record) => record.id),
+  );
   const links = state.links.filter(
     (link) => recordIds.has(link.sourceId) || recordIds.has(link.targetId),
   );
@@ -176,6 +210,7 @@ export function planDelete(
   const ids = normalizeIds(rawIds);
   if (ids.length === 0) fail("Nothing to delete: the id list is empty.");
   if (kind === "records") return planRecords(state, ids);
+  if (kind === "records_of_type") return planRecordsOfType(state, ids);
   if (kind === "attribute") return planAttributes(state, ids);
   if (kind === "object_type") return planTypes(state, ids);
   if (ids.length !== 1 || ids[0] !== state.space.id) {

@@ -454,3 +454,54 @@ describe("updateAttribute", () => {
     expect(error.message).toContain("always required");
   });
 });
+
+/**
+ * The mock is the oracle the Go store is written against, so anything the
+ * store puts on the wire has to come back from here too. These two fields
+ * were both emitted by the store and dropped on the floor by the client.
+ */
+describe("schema reads carry what the store states", () => {
+  it("returns one relationship row per pair, oriented from the owning side", async () => {
+    const kit = createTestKit();
+    const firm = await kit.type("Firm");
+    const investor = await kit.type("Investor");
+    const attribute = await kit.relate(
+      investor.id,
+      "Firm",
+      firm.id,
+      "many_to_one",
+      "Investors",
+    );
+
+    const schema = await kit.client.getSchema(kit.spaceId);
+
+    expect(schema.relationships).toEqual([
+      {
+        id: attribute.relationship?.relationshipId,
+        sourceTypeId: investor.id,
+        sourceAttributeId: attribute.id,
+        targetTypeId: firm.id,
+        inverseAttributeId: attribute.relationship?.inverseAttributeId,
+        cardinality: "many_to_one",
+      },
+    ]);
+  });
+
+  it("returns an empty list, not a missing one, for a space with no relationships", async () => {
+    const kit = createTestKit();
+    await kit.type("Firm");
+
+    expect((await kit.client.getSchema(kit.spaceId)).relationships).toEqual([]);
+  });
+
+  it("states what the caller may do on every space it hands back", async () => {
+    const kit = createTestKit();
+
+    expect((await kit.client.getSchema(kit.spaceId)).space.callerLevel).toBe(
+      "write",
+    );
+    for (const space of await kit.client.listSpaces()) {
+      expect(space.callerLevel).toBe("write");
+    }
+  });
+});

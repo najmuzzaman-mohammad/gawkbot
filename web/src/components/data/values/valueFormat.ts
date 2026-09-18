@@ -9,11 +9,12 @@
  * reject it with a message, instead of this layer silently clearing the value.
  */
 
-import type {
-  AttributeDefinition,
-  AttributeType,
-  AttributeValue,
-  SelectOption,
+import {
+  ATTRIBUTE_TYPES,
+  type AttributeDefinition,
+  type AttributeType,
+  type AttributeValue,
+  type SelectOption,
 } from "../../../api/dataspaces";
 
 const DISPLAY_LOCALE = "en-US";
@@ -41,13 +42,29 @@ const ATTRIBUTE_TYPE_LABELS: Readonly<Record<AttributeType, string>> = {
   relationship: "Relation",
 };
 
-export function attributeTypeLabel(type: AttributeType): string {
-  return ATTRIBUTE_TYPE_LABELS[type];
+const KNOWN_ATTRIBUTE_TYPES: ReadonlySet<string> = new Set(ATTRIBUTE_TYPES);
+
+/** False for a type the server knows and this bundle does not. */
+export function isKnownAttributeType(type: string): boolean {
+  return KNOWN_ATTRIBUTE_TYPES.has(type);
 }
 
-/** Relationship links are edited by a separate picker, never inline here. */
+/** An unknown type labels itself, so the operator can see what it is. */
+export function attributeTypeLabel(type: AttributeType): string {
+  const labels: Readonly<Record<string, string | undefined>> =
+    ATTRIBUTE_TYPE_LABELS;
+  return labels[type] ?? type;
+}
+
+/**
+ * Relationship links are edited by a separate picker, never inline here, and
+ * a type this bundle does not know has no editor at all: offering one would
+ * hand the store a value shaped by a guess.
+ */
 export function isInlineEditable(attribute: AttributeDefinition): boolean {
-  return attribute.type !== "relationship";
+  return (
+    attribute.type !== "relationship" && isKnownAttributeType(attribute.type)
+  );
 }
 
 export function optionById(

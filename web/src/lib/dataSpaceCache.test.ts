@@ -15,6 +15,7 @@ function space(id: string, overrides: Partial<DataSpace> = {}): DataSpace {
     access: { scope: "private", grants: [] },
     createdAt: "2026-09-01T00:00:00.000Z",
     updatedAt: "2026-09-01T00:00:00.000Z",
+    callerLevel: "write",
     ...overrides,
   };
 }

@@ -14,6 +14,7 @@
  *   app  -> host : { source: "wuphf-app",  type: "integration", id, platform, action, params }
  *   app  -> host : { source: "wuphf-app",  type: "ai", id, prompt, input?, json? }
  *   app  -> host : { source: "wuphf-app",  type: "db", id, op, table?, columns?, rows?, key? }
+ *   app  -> host : { source: "wuphf-app",  type: "data", id, op, ... }
  *   host -> app  : { source: "wuphf-host", id, ok, data? , error? }
  *
  * Reads go through callBroker() (GET allowlist). The single write is
@@ -302,6 +303,333 @@ export const db = {
   clear(name: string): Promise<{ table: DBTable }> {
     return postToHost<{ table: DBTable }>(
       { type: "db", op: "clear", table: name },
+      15_000,
+    );
+  },
+};
+
+// ── data: the DATA SPACE attached to this app (shared with the office) ───────
+
+/** The closed set of attribute kinds a data space supports. */
+export type DataAttributeType =
+  | "text"
+  | "number"
+  | "currency"
+  | "date"
+  | "toggle"
+  | "select"
+  | "status"
+  | "rating"
+  | "url"
+  | "email"
+  | "phone"
+  | "relationship";
+
+/** Stated from the side that owns the attribute, and never changed. */
+export type DataCardinality =
+  | "one_to_one"
+  | "many_to_one"
+  | "one_to_many"
+  | "many_to_many";
+
+/** One choice on a select or status attribute. Match by `id` or by `name`. */
+export interface DataSelectOption {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/** The other half of a relationship attribute. */
+export interface DataRelationshipRef {
+  relationship_id: string;
+  target_type_id: string;
+  cardinality: DataCardinality;
+  inverse_attribute_id?: string;
+}
+
+/**
+ * One field on an object type. `slug` is stable for the life of the attribute
+ * (a rename changes `name` only), so key every read and write by the slug.
+ */
+export interface DataAttribute {
+  id: string;
+  slug: string;
+  name: string;
+  type: DataAttributeType;
+  description?: string;
+  is_primary: boolean;
+  is_required: boolean;
+  is_unique: boolean;
+  is_multivalue: boolean;
+  options?: DataSelectOption[];
+  currency_code?: string;
+  relationship?: DataRelationshipRef;
+  created_by: string;
+}
+
+/** One kind of thing in the space. Always has a primary "name" attribute. */
+export interface DataObjectType {
+  id: string;
+  slug: string;
+  name: string;
+  name_plural: string;
+  icon?: string;
+  description?: string;
+  attributes: DataAttribute[];
+  record_count: number;
+  created_by: string;
+  created_at: string;
+}
+
+/** The relationship pair itself, so you never infer which side owns it. */
+export interface DataRelationship {
+  id: string;
+  source_type_id: string;
+  source_attribute_id: string;
+  target_type_id: string;
+  inverse_attribute_id?: string;
+  cardinality: DataCardinality;
+}
+
+/** The attached space's own metadata. `caller_level` is "read" or "write". */
+export interface DataSpaceSummary {
+  id: string;
+  name: string;
+  description?: string;
+  owner: string;
+  object_type_count: number;
+  record_count: number;
+  created_at: string;
+  updated_at: string;
+  caller_level: "none" | "read" | "write";
+}
+
+/** The space and everything defined in it — what `data.schema()` returns. */
+export interface DataSchema {
+  space: DataSpaceSummary;
+  object_types: DataObjectType[];
+  relationships: DataRelationship[];
+}
+
+/** A link target, carrying its primary name so you can render it directly. */
+export interface DataRecordRef {
+  id: string;
+  type_id: string;
+  name: string;
+}
+
+/**
+ * A stored value. text/url/email/phone are strings; number/currency/rating are
+ * numbers; date is "YYYY-MM-DD"; toggle is a boolean; select/status hold an
+ * option id, or an array of them when the attribute is multivalue.
+ */
+export type DataValue = string | number | boolean | string[] | null;
+
+/**
+ * One row. `values` is keyed by attribute slug and omits empty attributes;
+ * `links` is keyed by relationship attribute slug and carries every such slug,
+ * empty when nothing is linked. Ids are strings — never renumber or reformat.
+ */
+export interface DataRecord {
+  id: string;
+  type_id: string;
+  values: Record<string, DataValue>;
+  links: Record<string, DataRecordRef[]>;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One page of a query. `total` is the count AFTER filtering. */
+export interface DataPage {
+  records: DataRecord[];
+  total: number;
+}
+
+/** A filter comparison. Select and status compare by option NAME. */
+export type DataOperator =
+  | "equals"
+  | "not_equals"
+  | "contains"
+  | "greater"
+  | "less"
+  | "is_empty"
+  | "is_not_empty";
+
+/**
+ * One filter clause. `attribute` is an attribute slug, or one of the system
+ * fields "_created_at", "_updated_at", "_created_by".
+ */
+export interface DataFilter {
+  attribute: string;
+  operator: DataOperator;
+  value?: string;
+}
+
+/** Order a query. Relationship attributes cannot be sorted on. */
+export interface DataSort {
+  attribute: string;
+  desc?: boolean;
+}
+
+/** Everything `data.query()` takes besides the object type. */
+export interface DataQueryOptions {
+  filters?: DataFilter[];
+  sort?: DataSort;
+  /** Case-insensitive substring over the primary name and every text value. */
+  query?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/** One item's outcome inside a batch write, in request order. */
+export interface DataResultEntry {
+  index: number;
+  identifier?: string;
+  /** "noop" is an idempotent repeat: already linked, already not linked. */
+  status: "ok" | "noop" | "failed";
+  error?: string;
+  /** The offending attribute slug on a validation failure. */
+  attribute?: string;
+  id?: string;
+}
+
+/**
+ * The uniform envelope every batch write returns. One bad item never fails the
+ * others, so ALWAYS read `failed` and `entries` — a resolved promise does not
+ * mean every row landed.
+ */
+export interface DataResult {
+  succeeded: number;
+  failed: number;
+  summary: string;
+  entries: DataResultEntry[];
+}
+
+/**
+ * `data` is the DATA SPACE attached to this app: the office's structured store
+ * for one use case (object types, attributes, relationships, records). It is
+ * NOT app-private. The operator browses and edits the same rows under Data, and
+ * other bots read and write them, so your app is one more reader and writer of
+ * one source of truth. That is the point — a pipeline board and the Data table
+ * are two views of the same records.
+ *
+ * SCOPING. Every call goes to the ONE space this app's manifest names. There is
+ * no space parameter and there is no way to reach another space: the host
+ * resolves the id from the app's own manifest and ignores anything the app
+ * sends. An app with no space attached gets a clear rejection — "This app has
+ * no data space attached." — from EVERY method, never a silent empty result.
+ *
+ * WHAT YOU CANNOT DO. You cannot change the schema. Defining an object type,
+ * adding an attribute, adding a select option, and deleting anything are the
+ * bot's job through its `data_*` tools. If the app needs a field that does not
+ * exist, say so in the UI rather than stuffing the value somewhere else.
+ *
+ * FAILURE HANDLING. Every method REJECTS on a refusal or a transport failure —
+ * a bad slug, an invalid select option (the message names the valid ones),
+ * read-only access, no space attached. Await in try/catch and render a designed
+ * error state with a Retry, never a blank screen.
+ */
+export const data = {
+  /**
+   * The whole schema: the space, its object types with their attributes, and
+   * the relationships between them. Read this FIRST and render from it — slugs
+   * and select options come from here, you never invent them.
+   */
+  schema(): Promise<DataSchema> {
+    return postToHost<DataSchema>({ type: "data", op: "schema" }, 15_000);
+  },
+  /** One page of records of `objectType` (an object type slug, name, or id). */
+  query(
+    objectType: string,
+    options?: DataQueryOptions,
+  ): Promise<DataPage> {
+    return postToHost<DataPage>(
+      {
+        type: "data",
+        op: "query",
+        objectType,
+        filters: options?.filters,
+        sort: options?.sort,
+        search: options?.query,
+        limit: options?.limit,
+        offset: options?.offset,
+      },
+      15_000,
+    );
+  },
+  /**
+   * Create one record. `values` is keyed by attribute slug; relationship slugs
+   * are rejected, because links are made with `link()`.
+   */
+  create(
+    objectType: string,
+    values: Record<string, DataValue>,
+  ): Promise<DataResult> {
+    return postToHost<DataResult>(
+      { type: "data", op: "create", objectType, values },
+      15_000,
+    );
+  },
+  /**
+   * Create or update many rows, matching on `matchingAttribute` — which must be
+   * a UNIQUE attribute. A match updates, a miss creates, and a null value is
+   * skipped rather than clearing. This is what makes a re-import idempotent.
+   */
+  upsert(
+    objectType: string,
+    matchingAttribute: string,
+    rows: Record<string, DataValue>[],
+  ): Promise<DataResult> {
+    return postToHost<DataResult>(
+      { type: "data", op: "upsert", objectType, matchingAttribute, rows },
+      20_000,
+    );
+  },
+  /**
+   * Patch one record by id. A null value CLEARS that attribute. Returns the
+   * record as it now stands, so render from the reply rather than guessing.
+   */
+  update(
+    recordId: string,
+    values: Record<string, DataValue>,
+  ): Promise<{ record: DataRecord }> {
+    return postToHost<{ record: DataRecord }>(
+      { type: "data", op: "update", recordId, values },
+      15_000,
+    );
+  },
+  /**
+   * Link two records through one relationship attribute. Already linked is a
+   * "noop" entry, not an error. `replace` swaps a conflicting to-one link
+   * instead of failing — that is how you MOVE a record between parents.
+   */
+  link(
+    recordId: string,
+    attribute: string,
+    targetId: string,
+    replace?: boolean,
+  ): Promise<DataResult> {
+    return postToHost<DataResult>(
+      {
+        type: "data",
+        op: "link",
+        recordId,
+        attribute,
+        targetId,
+        replace: replace === true,
+      },
+      15_000,
+    );
+  },
+  /** Remove one link. Already unlinked is a "noop" entry, not an error. */
+  unlink(
+    recordId: string,
+    attribute: string,
+    targetId: string,
+  ): Promise<DataResult> {
+    return postToHost<DataResult>(
+      { type: "data", op: "unlink", recordId, attribute, targetId },
       15_000,
     );
   },

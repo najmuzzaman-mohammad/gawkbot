@@ -102,6 +102,15 @@ export interface ObjectType {
 export const SPACE_SCOPES = ["private", "shared", "global"] as const;
 export type SpaceScope = (typeof SPACE_SCOPES)[number];
 
+/**
+ * What a caller may do on a space. `none` means the space reads as if it does
+ * not exist, so it never reaches this client; it is listed because the Go
+ * `Level` list carries it and the two must not drift.
+ */
+export const CALLER_LEVELS = ["none", "read", "write"] as const;
+export type CallerLevel = (typeof CALLER_LEVELS)[number];
+
+/** The levels a grant may name. The owner's write access is implicit. */
 export const ACCESS_LEVELS = ["read", "write"] as const;
 export type AccessLevel = (typeof ACCESS_LEVELS)[number];
 
@@ -133,11 +142,37 @@ export interface DataSpace {
   attachedAppIds: readonly string[];
   createdAt: string;
   updatedAt: string;
+  /**
+   * What the calling actor may do here. The operator always has `write`; a
+   * bot-shared space can come back as `read`, and the UI withholds its
+   * mutation handlers when it does.
+   */
+  callerLevel: CallerLevel;
+}
+
+/**
+ * One relationship as a row of its own, oriented from the side that owns it.
+ * The server states this, so no consumer has to infer the owning side from
+ * the two attributes that express it.
+ */
+export interface SchemaRelationship {
+  id: string;
+  sourceTypeId: string;
+  sourceAttributeId: string;
+  targetTypeId: string;
+  inverseAttributeId: string | null;
+  /** Stated from the source side. */
+  cardinality: Cardinality;
 }
 
 export interface SpaceSchema {
   space: DataSpace;
   objectTypes: readonly ObjectType[];
+  /**
+   * Absent only when talking to a broker older than the relationship list.
+   * Consumers fall back to inferring the owning side when it is missing.
+   */
+  relationships?: readonly SchemaRelationship[];
 }
 
 /**
@@ -236,7 +271,15 @@ export interface AttributePatch {
   renameOption?: { id: string; name: string };
 }
 
-export type DeleteKind = "space" | "object_type" | "attribute" | "records";
+/** `records_of_type` empties one object type without removing the type. */
+export const DELETE_KINDS = [
+  "space",
+  "object_type",
+  "attribute",
+  "records",
+  "records_of_type",
+] as const;
+export type DeleteKind = (typeof DELETE_KINDS)[number];
 
 export interface DeleteImpact {
   records: number;

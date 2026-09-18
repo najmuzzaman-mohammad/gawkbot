@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 
-import type { ObjectType } from "../../../api/dataspaces";
+import type { DataSpace, ObjectType } from "../../../api/dataspaces";
 import { useSpaceSchema } from "../../../hooks/useDataSpaces";
 import { BotByline } from "../BotByline";
 import { Button } from "../DataButton";
@@ -121,6 +121,60 @@ function RelationshipLine({ pair }: RelationshipLineProps) {
   );
 }
 
+interface SpaceSubtitleProps {
+  space: DataSpace;
+  canWrite: boolean;
+}
+
+/** Description, owner, sharing, and one quiet line when this is read only. */
+function SpaceSubtitle({ space, canWrite }: SpaceSubtitleProps) {
+  return (
+    <>
+      {space.description === "" ? null : (
+        <span className="data-space-description">{space.description} </span>
+      )}
+      <span className="data-space-meta">
+        <BotByline actor={space.owner} verb="Owned by" />
+        <AccessBadge access={space.access} />
+      </span>
+      {canWrite ? null : (
+        <span className="data-readonly-note">
+          Read only. @{space.owner} owns this data space and granted read
+          access.
+        </span>
+      )}
+    </>
+  );
+}
+
+interface NoObjectTypesProps {
+  ownerSlug: string;
+  /** Withheld when the caller may only read; there is then no action. */
+  onCreate?: () => void;
+}
+
+function NoObjectTypes({ ownerSlug, onCreate }: NoObjectTypesProps) {
+  const opening =
+    "An object type is one kind of thing this space keeps records of.";
+  return (
+    <DataEmptyState
+      title="No object types yet"
+      body={
+        onCreate
+          ? `${opening} The owning bot usually adds them; you can add one too.`
+          : `${opening} @${ownerSlug} owns this space and granted read access, so only that bot can add one.`
+      }
+      action={
+        onCreate ? (
+          <Button variant="outline" onClick={onCreate}>
+            New object type
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+}
+
 /**
  * `/data/$spaceId`: the object types in one space, then a read-only summary
  * of how they relate. Relationships are edited from a type's Attributes tab.
@@ -148,48 +202,37 @@ export function DataSpacePage({ spaceId }: DataSpacePageProps) {
     return <SpaceLoadError error={schemaQuery.error} />;
   }
 
-  const { space, objectTypes } = schemaQuery.data;
-  const pairs = relationshipPairs(objectTypes);
+  const { space, objectTypes, relationships } = schemaQuery.data;
+  const pairs = relationshipPairs(objectTypes, relationships);
+  // The capability is expressed by withholding the handlers, the way an
+  // absent `onCommit` makes a value cell read-only: no disabled buttons that
+  // look like they would work if only you tried harder.
+  const canWrite = space.callerLevel !== "read";
 
   return (
     <>
       <DataPageHeader
         crumbs={[ROOT_CRUMB, { label: space.name }]}
         title={space.name}
-        subtitle={
-          <>
-            {space.description === "" ? null : (
-              <span className="data-space-description">
-                {space.description}{" "}
-              </span>
-            )}
-            <span className="data-space-meta">
-              <BotByline actor={space.owner} verb="Owned by" />
-              <AccessBadge access={space.access} />
-            </span>
-          </>
-        }
+        subtitle={<SpaceSubtitle space={space} canWrite={canWrite} />}
         actions={
-          <>
-            <Button variant="outline" onClick={() => setIsShareOpen(true)}>
-              Share
-            </Button>
-            <Button onClick={() => setIsCreateOpen(true)}>
-              New object type
-            </Button>
-          </>
+          canWrite ? (
+            <>
+              <Button variant="outline" onClick={() => setIsShareOpen(true)}>
+                Share
+              </Button>
+              <Button onClick={() => setIsCreateOpen(true)}>
+                New object type
+              </Button>
+            </>
+          ) : undefined
         }
       />
       <div className="data-page-body">
         {objectTypes.length === 0 ? (
-          <DataEmptyState
-            title="No object types yet"
-            body="An object type is one kind of thing this space keeps records of. The owning bot usually adds them; you can add one too."
-            action={
-              <Button variant="outline" onClick={() => setIsCreateOpen(true)}>
-                New object type
-              </Button>
-            }
+          <NoObjectTypes
+            ownerSlug={space.owner}
+            onCreate={canWrite ? () => setIsCreateOpen(true) : undefined}
           />
         ) : (
           <section aria-label="Object types">
@@ -251,15 +294,17 @@ export function DataSpacePage({ spaceId }: DataSpacePageProps) {
           </section>
         ) : null}
       </div>
-      {isShareOpen ? (
+      {canWrite && isShareOpen ? (
         <ShareSpaceDialog space={space} onClose={() => setIsShareOpen(false)} />
       ) : null}
-      <CreateObjectTypeDialog
-        spaceId={spaceId}
-        takenSlugs={objectTypes.map((type) => type.slug)}
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
+      {canWrite ? (
+        <CreateObjectTypeDialog
+          spaceId={spaceId}
+          takenSlugs={objectTypes.map((type) => type.slug)}
+          open={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

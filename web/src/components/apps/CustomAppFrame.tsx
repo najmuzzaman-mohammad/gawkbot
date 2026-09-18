@@ -5,6 +5,14 @@ import { directChannelSlug } from "../../lib/channels";
 import { APP_BUILDER_SLUG } from "../../lib/constants";
 import { confirm } from "../ui/ConfirmDialog";
 import { showNotice } from "../ui/Toast";
+import {
+  type AppDataMessage,
+  BAD_DATA_CALL_ERROR,
+  dispatchDataCall,
+  NO_DATA_SPACE_ERROR,
+  parseDataArgs,
+  resolveAppDataSpace,
+} from "./appDataBridge";
 
 /**
  * CustomAppFrame renders a bot-generated internal tool inside a hardened
@@ -43,6 +51,12 @@ import { showNotice } from "../ui/Toast";
  *     card and returns {status:"needs_approval", request_id}. The app cannot
  *     smuggle a write: read-only classification is enforced server-side, not
  *     trusted from the app, and only a human click can execute a mutation.
+ *
+ *   - "data" → the DATA SPACE attached to this app (see ./appDataBridge). The
+ *     space id is resolved HOST-SIDE from the app's manifest and is the only
+ *     one that can appear in the URL, so an app cannot reach another bot's
+ *     space by naming it in the message. An app with no space attached is told
+ *     so rather than handed an empty result.
  *
  *   - "ai" → POST /apps/ai {prompt, input?, json?}. A bounded one-shot LLM
  *     completion over data the app ALREADY fetched through this bridge. It is
@@ -924,6 +938,53 @@ async function serviceDBCall(
   }
 }
 
+/**
+ * Service a "data" call: the app reading/writing the DATA SPACE attached to it
+ * (object types, attributes, relationships, records — shared with the operator
+ * and with other bots, unlike the per-app `db`). Same envelope and same
+ * validation discipline as serviceDBCall, and the same scoping taken one step
+ * further: the space is resolved from the APP'S OWN MANIFEST by the host, so a
+ * message naming any other space cannot reach it — parseDataArgs has nowhere to
+ * put a space id. An app with no space attached is told so, explicitly; it
+ * never receives an empty result that reads as "there is no data".
+ */
+async function serviceDataCall(
+  message: AppDataMessage,
+  target: Window,
+  replyOrigin: string,
+  appId?: string,
+): Promise<void> {
+  const reply = (payload: {
+    ok: boolean;
+    data?: unknown;
+    error?: string;
+  }): void => {
+    target.postMessage(
+      { source: HOST_SOURCE, id: message.id, ...payload },
+      replyOrigin,
+    );
+  };
+  if (!appId) {
+    reply({ ok: false, error: NO_DATA_SPACE_ERROR });
+    return;
+  }
+  const args = parseDataArgs(message);
+  if (!args) {
+    reply({ ok: false, error: BAD_DATA_CALL_ERROR });
+    return;
+  }
+  try {
+    const spaceId = await resolveAppDataSpace(appId);
+    if (!spaceId) {
+      reply({ ok: false, error: NO_DATA_SPACE_ERROR });
+      return;
+    }
+    reply({ ok: true, data: await dispatchDataCall(spaceId, args) });
+  } catch (err) {
+    reply({ ok: false, error: errorMessage(err) });
+  }
+}
+
 type SelectHandlerRef = {
   current: ((sel: AppSelectPayload) => void) | undefined;
 };
@@ -1022,6 +1083,11 @@ function routeAppRequest(
     // Bridge v2: the app's own backing database (its persisted data model).
     case "db":
       void serviceDBCall(data as AppDBMessage, source, replyOrigin, appId);
+      return;
+    // The DATA SPACE attached to this app — shared office data, scoped to the
+    // one space the app's manifest names.
+    case "data":
+      void serviceDataCall(data as AppDataMessage, source, replyOrigin, appId);
       return;
     case "broker":
       void serviceBrokerGet(data as BrokerBridgeMessage, source, replyOrigin);

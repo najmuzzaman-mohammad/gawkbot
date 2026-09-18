@@ -36,6 +36,25 @@ export function makeAttribute(
   };
 }
 
+/**
+ * An attribute whose type this bundle does not model. The store owns that
+ * set and can ship a value before the web app does, which is exactly the
+ * case the fallback renderers exist for. Asserting past the union is the
+ * simulation itself, and it is done here once so no test has to do it.
+ */
+export function makeUnknownTypeAttribute(
+  type: string,
+  overrides: Partial<AttributeDefinition> = {},
+): AttributeDefinition {
+  return {
+    ...makeAttribute("text", overrides),
+    id: `attr_${type}`,
+    slug: type,
+    name: overrides.name ?? type,
+    type: type as AttributeType,
+  };
+}
+
 /** One option per semantic color slot. */
 export const COLOR_OPTIONS: readonly SelectOption[] = OPTION_COLORS.map(
   (color) => ({

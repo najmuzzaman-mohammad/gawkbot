@@ -6,6 +6,7 @@ import type {
   AttributeDefinition,
   Cardinality,
   ObjectType,
+  SchemaRelationship,
 } from "../../../api/dataspaces";
 
 export function relationshipAttributes(
@@ -49,10 +50,13 @@ interface RelationshipSide {
 }
 
 /**
- * The schema carries a relationship as one attribute on each side, not as a
- * row of its own, so it does not say which side was the owning one. The
- * to-one side reads most naturally first ("Investor . firm -> Firm"), so a
- * `many_to_one` side wins; otherwise the first side in type order does.
+ * Fallback only, for a broker that does not send `Schema.Relationships`.
+ * Without that list the schema carries a relationship as one attribute on
+ * each side and never says which side owns it, so the owning side has to be
+ * guessed: the to-one side reads most naturally first ("Investor . firm ->
+ * Firm"), so a `many_to_one` side wins; otherwise the first side in type
+ * order does. The guess is wrong for any pair the store oriented the other
+ * way, which is exactly why the server states it.
  */
 function pickSource(sides: readonly RelationshipSide[]): RelationshipSide {
   return (
@@ -99,11 +103,50 @@ function toPair(
   };
 }
 
-/** One entry per relationship, however many attributes express it. */
+function attributeById(
+  type: ObjectType | undefined,
+  attributeId: string | null,
+): AttributeDefinition | null {
+  if (!type || attributeId === null || attributeId === "") return null;
+  return type.attributes.find((item) => item.id === attributeId) ?? null;
+}
+
+/** One server row, resolved against the types. Null when it does not resolve. */
+function fromRow(
+  row: SchemaRelationship,
+  byId: ReadonlyMap<string, ObjectType>,
+): RelationshipPair | null {
+  const sourceType = byId.get(row.sourceTypeId);
+  const targetType = byId.get(row.targetTypeId);
+  const sourceAttribute = attributeById(sourceType, row.sourceAttributeId);
+  if (!(sourceType && targetType && sourceAttribute)) return null;
+  return {
+    relationshipId: row.id,
+    sourceType,
+    sourceAttribute,
+    targetType,
+    cardinality: row.cardinality,
+    inverseAttribute: attributeById(targetType, row.inverseAttributeId),
+  };
+}
+
+/**
+ * One entry per relationship, however many attributes express it.
+ *
+ * `relationships` is the store's own list and says which side owns each pair,
+ * so it wins whenever it is there. Inference runs only when it is absent,
+ * which means a broker older than that field.
+ */
 export function relationshipPairs(
   objectTypes: readonly ObjectType[],
+  relationships?: readonly SchemaRelationship[],
 ): readonly RelationshipPair[] {
   const byId = new Map(objectTypes.map((item) => [item.id, item]));
+  if (relationships !== undefined) {
+    return relationships
+      .map((row) => fromRow(row, byId))
+      .filter((pair): pair is RelationshipPair => pair !== null);
+  }
   return collectSides(objectTypes)
     .map((sides) => toPair(sides, byId))
     .filter((pair): pair is RelationshipPair => pair !== null);

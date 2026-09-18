@@ -11,6 +11,7 @@ import {
   Folder,
   Globe,
   Hashtag,
+  HelpCircle,
   Label,
   Link,
   List,
@@ -46,6 +47,22 @@ const ATTRIBUTE_TYPE_ICONS: Readonly<Record<AttributeType, DataIconComponent>> =
     relationship: Network,
   };
 
+/** Shown for an attribute type this bundle does not know. */
+const FALLBACK_ATTRIBUTE_TYPE_ICON: DataIconComponent = HelpCircle;
+
+/**
+ * Widened to `string` for the same reason the value renderers are: the map
+ * stays exhaustive over the union, and a type the server added after this
+ * bundle shipped resolves to a question mark rather than to `undefined`,
+ * which React renders as a thrown "Element type is invalid".
+ */
+const ICONS_BY_TYPE: Readonly<Record<string, DataIconComponent | undefined>> =
+  ATTRIBUTE_TYPE_ICONS;
+
+export function attributeTypeIcon(type: string): DataIconComponent {
+  return ICONS_BY_TYPE[type] ?? FALLBACK_ATTRIBUTE_TYPE_ICON;
+}
+
 export interface AttributeTypeIconProps {
   type: AttributeType;
   className?: string;
@@ -53,7 +70,7 @@ export interface AttributeTypeIconProps {
 
 /** Decorative: always pair it with the type's text label. */
 export function AttributeTypeIcon({ type, className }: AttributeTypeIconProps) {
-  const Icon = ATTRIBUTE_TYPE_ICONS[type];
+  const Icon = attributeTypeIcon(type);
   return (
     <Icon
       className={className ? `dv-type-icon ${className}` : "dv-type-icon"}

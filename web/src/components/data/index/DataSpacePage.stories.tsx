@@ -1,12 +1,25 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import type { SpaceSchema } from "../../../api/dataspaces";
 import {
   CLIENT_DELIVERY_SPACE_ID,
+  defaultFixtureSpaces,
   RECRUITING_SPACE_ID,
   SEED_RAISE_SPACE_ID,
 } from "../../../api/dataspaces.fixtures";
+import { viewSchema } from "../../../api/dataspaces.mock.store";
 import { DataSpacePage } from "./DataSpacePage";
 import { DataStory } from "./storyHarness";
+
+/** The seed raise schema, as a caller who may only read it sees it. */
+function readOnlySchema(): SpaceSchema {
+  const state = defaultFixtureSpaces().find(
+    (space) => space.space.id === SEED_RAISE_SPACE_ID,
+  );
+  if (!state) throw new Error("seed raise fixture missing");
+  const schema = viewSchema(state);
+  return { ...schema, space: { ...schema.space, callerLevel: "read" } };
+}
 
 const meta: Meta<typeof DataSpacePage> = {
   title: "Data / Index / DataSpacePage",
@@ -67,4 +80,20 @@ export const UnknownSpace: Story = {
       <DataSpacePage spaceId="space_missing" />
     </DataStory>
   ),
+};
+
+/**
+ * A space another bot owns and shared read-only. The Share and New object
+ * type actions are withheld rather than disabled, and one quiet line says
+ * who to ask.
+ */
+export const ReadOnly: Story = {
+  render: () => {
+    const schema = readOnlySchema();
+    return (
+      <DataStory initialPath={`/data/${schema.space.id}`} schema={schema}>
+        <DataSpacePage spaceId={schema.space.id} />
+      </DataStory>
+    );
+  },
 };

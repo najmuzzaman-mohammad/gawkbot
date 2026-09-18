@@ -168,7 +168,13 @@ export function ValueField(props: ValueFieldProps): ReactNode {
     onCommit?.();
   };
 
-  const Editor = VALUE_FIELD_EDITORS[attribute.type];
+  // Widened like the display renderers: a type this bundle does not know has
+  // no editor, and rendering `undefined` would throw rather than decline.
+  const editors: Readonly<
+    Record<string, ComponentType<ValueFieldProps> | undefined>
+  > = VALUE_FIELD_EDITORS;
+  const Editor = editors[attribute.type];
+  if (!Editor) return null;
   return (
     <fieldset
       className="dv-field"

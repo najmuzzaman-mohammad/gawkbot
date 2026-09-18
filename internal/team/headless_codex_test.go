@@ -617,6 +617,12 @@ func TestPrepareHeadlessCodexHomeUsesDedicatedRuntimeHomeAndCopiesAuth(t *testin
 	// not the worktree_guard_test process-wide pin.
 	t.Setenv("WUPHF_RUNTIME_HOME", runtimeHome)
 	t.Setenv("WUPHF_GLOBAL_HOME", sourceHome)
+	// prepareHeadlessCodexHome prefers an explicit CODEX_HOME whose auth.json
+	// exists over WUPHF_GLOBAL_HOME, so a developer with CODEX_HOME exported
+	// had this test copy and then PRINT their real codex credentials on
+	// failure. Clearing it keeps the test hermetic; the assertions below no
+	// longer print file contents either.
+	t.Setenv("CODEX_HOME", "")
 
 	sourceCodexHome := filepath.Join(sourceHome, ".codex")
 	if err := os.MkdirAll(sourceCodexHome, 0o755); err != nil {
@@ -649,21 +655,22 @@ func TestPrepareHeadlessCodexHomeUsesDedicatedRuntimeHomeAndCopiesAuth(t *testin
 		t.Fatalf("read copied auth: %v", err)
 	}
 	if string(authCopy) != string(wantAuth) {
-		t.Fatalf("expected copied auth %q, got %q", string(wantAuth), string(authCopy))
+		// Never %q a credential file: on a non-hermetic run this is real auth.
+		t.Fatalf("copied auth.json does not match the source (%d bytes copied, %d expected)", len(authCopy), len(wantAuth))
 	}
 	oneConfigCopy, err := os.ReadFile(filepath.Join(want, ".one", "config.json"))
 	if err != nil {
 		t.Fatalf("read copied one config: %v", err)
 	}
 	if string(oneConfigCopy) != string(wantOneConfig) {
-		t.Fatalf("expected copied one config %q, got %q", string(wantOneConfig), string(oneConfigCopy))
+		t.Fatalf("copied one config does not match the source (%d bytes copied, %d expected)", len(oneConfigCopy), len(wantOneConfig))
 	}
 	oneUpdateCopy, err := os.ReadFile(filepath.Join(want, ".one", "update-check.json"))
 	if err != nil {
 		t.Fatalf("read copied one update check: %v", err)
 	}
 	if string(oneUpdateCopy) != string(wantOneUpdate) {
-		t.Fatalf("expected copied one update check %q, got %q", string(wantOneUpdate), string(oneUpdateCopy))
+		t.Fatalf("copied one update check does not match the source (%d bytes copied, %d expected)", len(oneUpdateCopy), len(wantOneUpdate))
 	}
 }
 
@@ -2460,6 +2467,20 @@ func TestPreflightHeadlessCodexAuthFailsAndPostsSystemMessage(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("WUPHF_OPENAI_API_KEY", "")
 	t.Setenv("OPENAI_API_KEY", "")
+	// "No auth available" has to mean no auth ANYWHERE the resolver looks.
+	// CODEX_HOME and WUPHF_GLOBAL_HOME both point outside the temp HOME, so a
+	// developer with either exported was running this against their real codex
+	// credentials: the preflight found them and the test failed for the wrong
+	// reason.
+	t.Setenv("CODEX_HOME", "")
+	t.Setenv("WUPHF_GLOBAL_HOME", home)
+	// Pair WUPHF_RUNTIME_HOME with HOME as the sibling test does. The
+	// preflight also accepts an auth.json previously copied into the ISOLATED
+	// runtime home, and worktree_guard_test pins WUPHF_RUNTIME_HOME
+	// process-wide, so without this the earlier CopiesAuth test's fixture is
+	// still sitting there and this test passes for the wrong reason in the
+	// full package run while passing honestly in isolation.
+	t.Setenv("WUPHF_RUNTIME_HOME", home)
 	if err := config.Save(config.Config{}); err != nil {
 		t.Fatalf("save config: %v", err)
 	}

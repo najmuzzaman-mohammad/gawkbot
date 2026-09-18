@@ -50,22 +50,52 @@ const PLACEHOLDER_TARGET: TypeNames = {
   namePlural: "targets",
 };
 
+/**
+ * Wording for a cardinality this bundle does not know. A bot can create a
+ * relationship against a newer store while an older tab is open, and every
+ * lookup below used to answer `undefined` for it: a blank label, and a
+ * to-one reading that claimed a limit the store does not enforce.
+ */
+const UNKNOWN_MODE_LABEL = "Unknown link type";
+const UNKNOWN_PLAIN = "an unknown shape";
+
+/**
+ * Widened to `string` on purpose. The maps above stay exhaustive over the
+ * union, so adding a cardinality in TypeScript without wording for it is
+ * still a compile error, while an unmodelled value resolves to the fallback.
+ */
+function lookup(
+  table: Readonly<Record<Cardinality, string>>,
+  cardinality: Cardinality,
+  fallback: string,
+): string {
+  const widened: Readonly<Record<string, string | undefined>> = table;
+  return widened[cardinality] ?? fallback;
+}
+
 export function cardinalityModeLabel(cardinality: Cardinality): string {
-  return CARDINALITY_MODE_LABELS[cardinality];
+  return lookup(CARDINALITY_MODE_LABELS, cardinality, UNKNOWN_MODE_LABEL);
 }
 
 /** `many_to_one` reads as "many to one". */
 export function cardinalityPlain(cardinality: Cardinality): string {
-  return CARDINALITY_PLAIN[cardinality];
+  return lookup(CARDINALITY_PLAIN, cardinality, UNKNOWN_PLAIN);
 }
 
+/** An unknown cardinality flips to itself: it is still just as unknown. */
 export function flipCardinality(cardinality: Cardinality): Cardinality {
-  return FLIPPED[cardinality];
+  const widened: Readonly<Record<string, Cardinality | undefined>> = FLIPPED;
+  return widened[cardinality] ?? cardinality;
 }
 
-/** True when a record on the owning side can link to many records. */
+/**
+ * True when a record on the owning side can link to many records. An
+ * unrecognised cardinality answers true, because the permissive reading is
+ * the safe one: claiming to-one would have the UI promise a limit this
+ * version cannot know the store enforces.
+ */
 export function isToMany(cardinality: Cardinality): boolean {
-  return cardinality === "one_to_many" || cardinality === "many_to_many";
+  return cardinality !== "one_to_one" && cardinality !== "many_to_one";
 }
 
 function pluralOrName(names: TypeNames): string {
@@ -169,8 +199,12 @@ export function cardinalityModeExplanation(
     case "many_to_many":
       return `Any ${source.name} can link to many ${targets}, and any ${t.name} to many ${sources}.`;
     default: {
+      // The binding keeps the switch exhaustive over the union; the sentence
+      // is for a cardinality a newer store sent, which used to fall through
+      // and render the raw wire value.
       const _exhaustive: never = cardinality;
-      return _exhaustive;
+      void _exhaustive;
+      return `This version does not recognize how ${source.name} links to ${t.name}.`;
     }
   }
 }

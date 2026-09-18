@@ -17,6 +17,7 @@ import (
 	"github.com/nex-crm/wuphf/internal/brokeraddr"
 	"github.com/nex-crm/wuphf/internal/channel"
 	"github.com/nex-crm/wuphf/internal/config"
+	"github.com/nex-crm/wuphf/internal/dataspace"
 	"github.com/nex-crm/wuphf/internal/gbrain"
 	"github.com/nex-crm/wuphf/internal/onboarding"
 	"github.com/nex-crm/wuphf/internal/workspace"
@@ -182,6 +183,8 @@ type Broker struct {
 	customAppOnce       sync.Once
 	appDev              *appDevManager
 	appDevOnce          sync.Once
+	dataSpaces          dataspace.Store
+	dataSpacesMu        sync.Mutex // guards the lazy open; NOT a Once — see dataStore()
 	humanWikiWriter     *HumanWikiIntentWriter
 	obsidianWatcher     *ObsidianWatcher
 	wikiIndex           *WikiIndex
@@ -255,6 +258,7 @@ type Broker struct {
 	lifecycleCtx     context.Context
 	lifecycleCancel  context.CancelFunc
 	token            string   // shared secret for authenticating requests
+	dataOperatorKey  string   // per-process /data operator proof; see broker_data.go
 	addr             string   // actual listen address (useful when port=0)
 	webUIOrigins     []string // allowed CORS origins for web UI (set by ServeWebUI)
 	webShareStart    func() (WebShareStatus, error)
@@ -468,6 +472,7 @@ func NewBrokerAt(statePath string) *Broker {
 	b := &Broker{
 		channelStore:        channel.NewStore(),
 		token:               generateToken(),
+		dataOperatorKey:     generateToken(),
 		messageSubscribers:  make(map[int]chan channelMessage),
 		actionSubscribers:   make(map[int]chan officeActionLog),
 		activity:            make(map[string]botActivitySnapshot),
@@ -762,6 +767,15 @@ func (b *Broker) StartOnPort(port int) error {
 	// product's wiki, attached to legacy Knowledge pages.
 	mux.HandleFunc(legacyArtifactURLPrefix, b.requireAuth(b.handleLegacyKnowledgeArtifact))
 	mux.HandleFunc("/apps/", b.requireAuth(b.handleAppByID))
+	// Data spaces: the structured store bots build for themselves. Same shape
+	// as the Apps block above — an exact pattern for the collection and a
+	// prefix pattern for everything below it. The bare "/data/" catch-all is
+	// last and least specific, so a mistyped route answers 404 here instead of
+	// falling through to the SPA. See broker_data.go for the actor-resolution
+	// contract these routes enforce.
+	mux.HandleFunc("/data/spaces", b.requireAuth(b.handleDataSpaces))
+	mux.HandleFunc("/data/spaces/", b.requireAuth(b.handleDataSpaceSubpath))
+	mux.HandleFunc("/data/", b.requireAuth(b.handleDataNotFound))
 	b.registerKnowledgeRoutes(mux)
 	mux.HandleFunc("/interview", b.requireAuth(b.handleInterview))
 	mux.HandleFunc("/interview/answer", b.requireAuth(b.handleInterviewAnswer))

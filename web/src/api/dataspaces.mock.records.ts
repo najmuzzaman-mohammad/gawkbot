@@ -121,7 +121,7 @@ function resolveLink(
   }
   if (attribute.type !== "relationship" || !attribute.relationship) {
     return fail(
-      `"${attributeSlug}" is a ${attribute.type} attribute, not a relationship. Use updateRecord to set its value.`,
+      `"${attributeSlug}" is a ${attribute.type} attribute, not a relationship, so set its value directly rather than linking.`,
       attributeSlug,
     );
   }
