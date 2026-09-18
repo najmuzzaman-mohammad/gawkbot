@@ -1,6 +1,6 @@
 /**
- * BotSubspace — tabbed per-bot view with 8 tabs:
- *   Chat · Computer · Tasks · Skills · Knowledge · Policies · Live Stream · Config
+ * BotSubspace — tabbed per-bot view with 9 tabs:
+ *   Chat · Computer · Tasks · Skills · Knowledge · Data · Policies · Live Stream · Config
  *
  * The shell header (avatar + editable name + role + status + current-task chip
  * + "Teach a workflow") is persistent across all tabs. Tab content is
@@ -36,6 +36,7 @@ import { TeachWorkflowModal } from "./TeachWorkflowModal";
 import { ChatTab } from "./tabs/ChatTab";
 import { ComputerTab } from "./tabs/ComputerTab";
 import { ConfigTab } from "./tabs/ConfigTab";
+import { DataTab } from "./tabs/DataTab";
 import { LiveStreamTab } from "./tabs/LiveStreamTab";
 import { PoliciesTab } from "./tabs/PoliciesTab";
 import { SkillsTab } from "./tabs/SkillsTab";
@@ -49,6 +50,7 @@ export type BotTab =
   | "tasks"
   | "skills"
   | "knowledge"
+  | "data"
   | "policies"
   | "live-stream"
   | "config";
@@ -61,6 +63,9 @@ export const AGENT_TABS: Array<{ id: BotTab; label: string }> = [
   { id: "tasks", label: "Tasks" },
   { id: "skills", label: "Skills" },
   { id: "knowledge", label: "Knowledge" },
+  // Next to Knowledge: both answer "what does this bot hold". Knowledge is
+  // what it wrote down, Data is the records its apps read and write.
+  { id: "data", label: "Data" },
   { id: "policies", label: "Policies" },
   { id: "live-stream", label: "Live Stream" },
   { id: "config", label: "Config" },
@@ -95,6 +100,10 @@ const TAB_ALIASES: Record<string, BotTab> = {
   wiki: "knowledge",
   notes: "knowledge",
   notebook: "knowledge",
+  // The store behind a bot's apps; people reach for all three words.
+  records: "data",
+  database: "data",
+  db: "data",
 };
 
 function resolveTab(raw: string): BotTab {
@@ -284,6 +293,17 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
             key={`knowledge-${agent.slug}`}
             agentSlug={agent.slug}
           />
+        </div>
+      );
+    case "data":
+      return (
+        <div
+          role="tabpanel"
+          id="bot-tabpanel-data"
+          aria-labelledby="bot-tab-data"
+          className="bot-subspace-panel"
+        >
+          <DataTab key={`data-${agent.slug}`} agentSlug={agent.slug} />
         </div>
       );
     case "policies":

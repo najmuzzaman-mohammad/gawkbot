@@ -181,6 +181,12 @@ const BotDetail = lazy(() =>
     default: m.BotDetail,
   })),
 );
+// Data section — bot-owned data spaces, object types, and records.
+const DataSection = lazy(() =>
+  import("../components/data/DataSection").then((m) => ({
+    default: m.DataSection,
+  })),
+);
 // Full-screen skill SKILL.md editor + preview.
 const SkillDetailRoute = lazy(() =>
   import("./SkillDetailRoute").then((m) => ({
@@ -460,7 +466,7 @@ function TasksRedirect() {
  */
 const FIRST_CLASS_APP_TARGETS: Record<
   FirstClassAppId,
-  "/wiki" | "/tasks" | "/agents"
+  "/wiki" | "/tasks" | "/agents" | "/data"
 > = {
   wiki: "/wiki",
   // The Inbox was consolidated into the board — send `/apps/inbox` straight
@@ -468,6 +474,7 @@ const FIRST_CLASS_APP_TARGETS: Record<
   inbox: "/tasks",
   tasks: "/tasks",
   agents: "/agents",
+  data: "/data",
 };
 
 function FirstClassAppRedirect({ appId }: { appId: FirstClassAppId }) {
@@ -630,6 +637,12 @@ function MainContent() {
       return <BotDetail agentSlug={route.agentSlug} tab={route.tab} />;
     case "skill-detail":
       return <SkillDetailRoute skillName={route.skillName} />;
+    case "data-index":
+    case "data-space":
+    case "data-type":
+    case "data-type-settings":
+    case "data-record":
+      return <DataSection route={route} />;
     case "routine-detail":
       return (
         <div className="app-panel active" data-testid="app-page-routines">

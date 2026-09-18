@@ -1,12 +1,19 @@
-// AppDataTab — the Data tab: the app's real, persisted BACKING DATABASE.
+// AppDataTab — the Data tab: the data this app owns.
 //
-// Every app has a small typed store of its own (per app, server-side). The app
-// derives its model ONCE from the source it reads, persists it with the bridge
-// `db.*` API (defineTable + upsert), and renders from it — see "The app's
-// database" in the app-scaffold AI_RULES. This tab is a DETERMINISTIC, direct
-// read of that store: GET /apps/{id}/db → the tables the app itself wrote. No AI
-// reconstruction, no re-fetch of the source — what the app persisted is what
-// shows here, so the two never drift.
+// There are two cases and the app's manifest decides which.
+//
+// A DATA SPACE is attached (manifest `data_space`): the model is office data —
+// object types, attributes, relationships, records — shared with the operator
+// and with other bots. AppDataSpacePanel shows it read-only and links to the
+// full space under Data.
+//
+// Nothing attached: the app has a small typed store of its own (per app,
+// server-side). It derives its model ONCE from the source it reads, persists it
+// with the bridge `db.*` API (defineTable + upsert), and renders from it — see
+// "The app's database" in the app-scaffold AI_RULES. This tab is a
+// DETERMINISTIC, direct read of that store: GET /apps/{id}/db → the tables the
+// app itself wrote. No AI reconstruction, no re-fetch of the source — what the
+// app persisted is what shows here, so the two never drift.
 
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { get } from "../../api/client";
 import { EmptyState } from "../components/EmptyState";
 import { Eyebrow } from "../components/primitives";
+import { AppDataSpacePanel } from "./AppDataSpaceView";
 
 interface AppDataTabProps {
   appId: string;
@@ -69,7 +77,31 @@ function parseTables(raw: unknown): ModelTable[] {
 }
 
 export function AppDataTab({ appId }: AppDataTabProps) {
+  // Which case are we in? The binding lives on the manifest, so ask for it
+  // alone rather than pulling the app's whole megabyte bundle. A failed lookup
+  // resolves to "no space", which degrades to the per-app view every app had
+  // before data spaces existed — never to an error the operator cannot act on.
+  const spaceQuery = useQuery({
+    queryKey: ["operator-app-data-space-id", appId],
+    refetchOnMount: "always",
+    queryFn: async (): Promise<string> => {
+      try {
+        const res = await get<{ space_id?: unknown }>(
+          `/apps/${encodeURIComponent(appId)}/data-space`,
+        );
+        return typeof res?.space_id === "string" ? res.space_id.trim() : "";
+      } catch {
+        return "";
+      }
+    },
+  });
+  const spaceId = spaceQuery.data ?? "";
+
   const dbQuery = useQuery({
+    // Only one of the two stores is ever read: an app with a space attached
+    // must not also show its legacy per-app tables, or the tab would claim two
+    // sources of truth for the same app.
+    enabled: !spaceQuery.isLoading && spaceId === "",
     queryKey: ["operator-app-db", appId],
     // The app writes to its DB through the bridge in a different component
     // tree, so nothing invalidates this key. It is a cheap local read: always
@@ -83,7 +115,11 @@ export function AppDataTab({ appId }: AppDataTabProps) {
     },
   });
 
-  if (dbQuery.isLoading) {
+  if (spaceId !== "") {
+    return <AppDataSpacePanel spaceId={spaceId} />;
+  }
+
+  if (spaceQuery.isLoading || dbQuery.isPending) {
     // Table-shaped skeleton, not a 320px void: the wait previews the shape
     // of what loads (2026-08-16 delight audit).
     return (

@@ -17,6 +17,7 @@ export const FIRST_CLASS_APP_IDS = [
   "inbox",
   "tasks",
   "agents",
+  "data",
 ] as const;
 export type FirstClassAppId = (typeof FIRST_CLASS_APP_IDS)[number];
 
@@ -53,6 +54,7 @@ export const APP_LABELS: Record<AppPanelId | FirstClassAppId, string> = {
   inbox: "Inbox",
   tasks: "Tasks",
   agents: "Bots",
+  data: "Data",
   // Routed app panels under `/apps/$appId`. The `activity` id keeps its
   // historical slug so existing /apps/activity URLs still resolve; the
   // human-facing label is "Dashboard" (renamed in #1002). The `calendar`
@@ -116,6 +118,7 @@ export const SIDEBAR_TOOLS: readonly SidebarTool[] = [
   { id: "tasks", kind: "first-class" },
   { id: "agents", kind: "first-class" },
   { id: "wiki", kind: "first-class" },
+  { id: "data", kind: "first-class" },
   { id: "graph", kind: "app-panel" },
   { id: "policies", kind: "app-panel" },
   { id: "routines", kind: "app-panel" },
@@ -163,6 +166,16 @@ export const ROUTE_PATHS = {
   botDetail: "/agents/$agentSlug",
   /** Full-screen skill SKILL.md detail editor + viewer. */
   skillDetail: "/skills/$skillName",
+  /** Data section index: every bot-owned data space, grouped by bot. */
+  data: "/data",
+  /** One data space: its object types. */
+  dataSpace: "/data/$spaceId",
+  /** Records table for one object type. Table state lives in search. */
+  dataType: "/data/$spaceId/t/$typeSlug",
+  /** Object type settings: general + attributes tabs. */
+  dataTypeSettings: "/data/$spaceId/t/$typeSlug/settings",
+  /** Full record page. */
+  dataRecord: "/data/$spaceId/r/$recordId",
 } as const;
 
 export type RouteKey = keyof typeof ROUTE_PATHS;
@@ -272,6 +285,31 @@ export const ROUTE_CONTRACTS: readonly RouteContract[] = [
     key: "skillDetail",
     path: ROUTE_PATHS.skillDetail,
     params: ["skillName"],
+    search: [],
+  },
+  { key: "data", path: ROUTE_PATHS.data, params: [], search: [] },
+  {
+    key: "dataSpace",
+    path: ROUTE_PATHS.dataSpace,
+    params: ["spaceId"],
+    search: [],
+  },
+  {
+    key: "dataType",
+    path: ROUTE_PATHS.dataType,
+    params: ["spaceId", "typeSlug"],
+    search: ["sort", "dir", "q", "page", "size", "peek", "filter"],
+  },
+  {
+    key: "dataTypeSettings",
+    path: ROUTE_PATHS.dataTypeSettings,
+    params: ["spaceId", "typeSlug"],
+    search: ["tab"],
+  },
+  {
+    key: "dataRecord",
+    path: ROUTE_PATHS.dataRecord,
+    params: ["spaceId", "recordId"],
     search: [],
   },
 ] as const;

@@ -17,6 +17,7 @@ import "./styles/global.css";
 import "./styles/layout.css";
 import "./styles/messages.css";
 import "./styles/bots.css";
+import "./styles/data.css";
 import "./styles/search.css";
 import "./styles/command.css";
 import "./styles/wiki-shell.css";

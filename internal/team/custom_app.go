@@ -101,6 +101,16 @@ type CustomApp struct {
 	// Empty for apps minted before this field existed or registered html-only
 	// (no owning task) — those simply have no edit thread until the next build.
 	EditChannel string `json:"editChannel,omitempty"`
+	// DataSpace is the id of the DATA SPACE this app reads and writes through
+	// the bridge's `data.*` API, or "" when none is attached. v1 binds an app to
+	// AT MOST ONE space: attaching a second replaces the first, so there is
+	// never a question of which space a `data.*` call means.
+	//
+	// The zero value is the migration-safe default. An app minted before this
+	// field existed unmarshals with DataSpace == "" and keeps working exactly as
+	// it did, on its own per-app db.json; `omitempty` also keeps it out of the
+	// manifest for every app that never attaches one.
+	DataSpace   string `json:"data_space,omitempty"`
 	CreatedBy   string `json:"createdBy"`
 	UpdatedBy   string `json:"updatedBy,omitempty"`
 	CreatedAt   string `json:"createdAt"`

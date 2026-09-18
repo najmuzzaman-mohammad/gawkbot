@@ -115,6 +115,14 @@ export function deriveBreadcrumbs(
       ];
     case "agents":
       return [{ label: "Bots", href: "#/agents" }];
+    // The Data pages render their own named trail (space, object type,
+    // record) from the schema query; the shell crumb stays at the section.
+    case "data-index":
+    case "data-space":
+    case "data-type":
+    case "data-type-settings":
+    case "data-record":
+      return [{ label: "Data", href: "#/data" }];
     case "bot-detail": {
       const res = resolveObjectRoute({ kind: "agent", slug: route.agentSlug });
       return [

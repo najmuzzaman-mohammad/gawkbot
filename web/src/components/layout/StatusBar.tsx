@@ -106,6 +106,12 @@ export function StatusBar() {
         return "New task";
       case "agents":
         return "Bots";
+      case "data-index":
+      case "data-space":
+      case "data-type":
+      case "data-type-settings":
+      case "data-record":
+        return "Data";
       case "bot-detail":
         return `@${route.agentSlug}`;
       case "skill-detail":

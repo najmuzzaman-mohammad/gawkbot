@@ -13,6 +13,7 @@ import {
   ChatBubble,
   CheckCircle,
   ClipboardCheck,
+  Database,
   Flash,
   Group,
   Package,
@@ -54,6 +55,7 @@ const APP_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   activity: Package,
   "health-check": Search,
   settings: SettingsIcon,
+  data: Database,
 };
 
 type Popover = "team" | "channels" | "usage" | null;

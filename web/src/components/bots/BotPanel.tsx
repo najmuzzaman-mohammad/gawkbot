@@ -57,6 +57,16 @@ function routeIdentityKey(route: CurrentRoute): string {
       return "task-new";
     case "agents":
       return "agents";
+    case "data-index":
+      return "data-index";
+    case "data-space":
+      return `data-space:${route.spaceId}`;
+    case "data-type":
+      return `data-type:${route.spaceId}:${route.typeSlug}`;
+    case "data-type-settings":
+      return `data-type-settings:${route.spaceId}:${route.typeSlug}`;
+    case "data-record":
+      return `data-record:${route.spaceId}:${route.recordId}`;
     case "bot-detail":
       return `bot-detail:${route.agentSlug}:${route.tab ?? ""}`;
     case "skill-detail":

@@ -11,6 +11,9 @@ package team
 //	GET    /apps/{id}      -> { app, html }             (render in sandboxed iframe)
 //	PATCH  /apps/{id}      -> { app }                   (rename an app)
 //	DELETE /apps/{id}      -> { ok: true }              (remove an app)
+//
+// Sub-routes live in their own files: /apps/{id}/data-space (the data-space
+// binding) is broker_apps_data.go.
 
 import (
 	"encoding/json"
@@ -141,6 +144,8 @@ func (b *Broker) handleAppByID(w http.ResponseWriter, r *http.Request) {
 		b.handleAppActivity(w, r, id)
 	case "db":
 		b.handleAppDB(w, r, id)
+	case "data-space":
+		b.handleAppDataSpace(w, r, id)
 	case "knowledge":
 		b.handleAppKnowledge(w, r, id)
 	default:

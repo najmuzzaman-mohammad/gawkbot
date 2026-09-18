@@ -177,13 +177,20 @@ jobs:
       - name: Wait for npm registry propagation
         run: sleep 45
 
-      - name: npx wuphf --version
+      - name: npx gawkbot --version
         run: |
           # The binary's self-reported version must match the tag. Without
           # this check, a goreleaser misconfiguration (missing -X ldflag on
           # buildinfo.Version) silently ships the hardcoded fallback and no
-          # amount of `npx wuphf@latest` gets users the real release.
-          OUT=$(npx --yes "wuphf@$VERSION" --version)
+          # amount of `npx gawkbot@latest` gets users the real release.
+          #
+          # The package is gawkbot. This said `wuphf` until 2026-09-18, left
+          # over from the rename, so the first successful publish in months
+          # still reported the release as failed: the publish had worked and
+          # the smoke test then installed a package name that has no such
+          # version (ETARGET notarget wuphf@0.238.1). A post-publish check
+          # that names the wrong package cannot verify anything.
+          OUT=$(npx --yes "gawkbot@$VERSION" --version)
           echo "$OUT"
           echo "$OUT" | grep -E -q " v${VERSION}(\s|$)" || {
             echo "::error::binary self-reported version did not match tag $VERSION"

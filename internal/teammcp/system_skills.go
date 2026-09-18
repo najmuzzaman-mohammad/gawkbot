@@ -6,14 +6,16 @@ import (
 	"strings"
 )
 
-// System-skill gates. App building and wiki maintenance are system skills:
-// always present, enabled for every bot by default, and disableable per
-// bot from the Skills tab (internal/team/system_skills.go). The MCP tools
-// that exercise those capabilities check the switch before acting.
+// System-skill gates. App building, wiki maintenance and data modeling are
+// system skills: always present, enabled for every bot by default, and
+// disableable per bot from the Skills tab (internal/team/system_skills.go).
+// The MCP tools that exercise those capabilities check the switch before
+// acting.
 
 const (
 	systemSkillAppBuilding     = "app-building"
 	systemSkillWikiMaintenance = "wiki-maintenance"
+	systemSkillDataModeling    = "data-modeling"
 )
 
 // systemSkillEnabledFor reads the broker's skill list and honors a per-bot

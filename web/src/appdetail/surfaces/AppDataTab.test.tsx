@@ -7,9 +7,10 @@ import { AppDataTab, compareByColumn, rowMatchesQuery } from "./AppDataTab";
 
 // vi.mock is hoisted above this file's const declarations, so the mock handle
 // must be hoisted too or the factory hits the TDZ.
-const { get } = vi.hoisted(() => ({ get: vi.fn() }));
+const { get, post } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock("../../api/client", () => ({
   get,
+  post,
 }));
 
 function wrap(node: ReactNode) {
@@ -22,14 +23,18 @@ function wrap(node: ReactNode) {
 describe("AppDataTab", () => {
   beforeEach(() => {
     get.mockReset();
+    post.mockReset();
   });
 
   it("reads the app DB directly (GET /apps/{id}/db, no AI call)", async () => {
     get.mockResolvedValue({ tables: [] });
     wrap(<AppDataTab appId="app_abc" />);
     await waitFor(() => expect(get).toHaveBeenCalledWith("/apps/app_abc/db"));
-    // Exactly one read; no /apps/ai derivation.
-    expect(get).toHaveBeenCalledTimes(1);
+    // Two deterministic reads and no more: which store this app uses, then
+    // that store. Still no /apps/ai derivation — the tab shows what the app
+    // persisted, never a reconstruction of it.
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(get).toHaveBeenCalledWith("/apps/app_abc/data-space");
     expect(get.mock.calls.every(([p]) => !String(p).includes("/apps/ai"))).toBe(
       true,
     );
@@ -199,6 +204,147 @@ describe("AppDataTab", () => {
     fireEvent.click(getByText("Next"));
     await waitFor(() => expect(getByText("Showing 26–30 of 30")).toBeTruthy());
     expect(getByText("25")).toBeTruthy();
+  });
+});
+
+// ── The two modes ───────────────────────────────────────────────────────────
+//
+// Which store the tab reads is decided by the app's manifest, not by the tab.
+// The per-app view above is what EVERY app with no space attached still gets;
+// these cover the attached case and the switch between them.
+
+describe("AppDataTab with a data space attached", () => {
+  beforeEach(() => {
+    get.mockReset();
+    post.mockReset();
+  });
+
+  /** Wire the two reads the space mode makes. */
+  function seedSpace(): void {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/apps/app_abc/data-space") return { space_id: "space_1" };
+      if (path === "/data/spaces/space_1") {
+        return {
+          space: { id: "space_1", name: "Seed raise", owner: "cos" },
+          object_types: [
+            {
+              slug: "investor",
+              name: "Investor",
+              name_plural: "Investors",
+              record_count: 2,
+              attributes: [
+                { slug: "name", name: "Name", type: "text" },
+                {
+                  slug: "stage",
+                  name: "Stage",
+                  type: "status",
+                  options: [{ id: "opt_1", name: "Pitched" }],
+                },
+              ],
+            },
+            {
+              slug: "firm",
+              name: "Firm",
+              name_plural: "Firms",
+              record_count: 1,
+              attributes: [{ slug: "name", name: "Name", type: "text" }],
+            },
+          ],
+        };
+      }
+      throw new Error(`unexpected GET ${path}`);
+    });
+    post.mockResolvedValue({
+      records: [
+        { id: "rec_1", values: { name: "Ada Lovelace", stage: "opt_1" } },
+      ],
+      total: 2,
+    });
+  }
+
+  it("names the space, lists its object types, and links to the full space", async () => {
+    seedSpace();
+    const { getAllByText, getByText, getByRole } = wrap(
+      <AppDataTab appId="app_abc" />,
+    );
+    await waitFor(() => expect(getByText("Seed raise")).toBeTruthy());
+    expect(getByText(/owned by @cos/)).toBeTruthy();
+    expect(
+      getByRole("link", { name: /Open Seed raise in Data/ }),
+    ).toHaveAttribute("href", "/data/space_1");
+    // "Investors" is both the selector button and the open block's heading.
+    expect(getAllByText("Investors").length).toBeGreaterThan(0);
+    expect(getByText("Firms")).toBeTruthy();
+  });
+
+  it("shows the first type's records, resolving option ids to names", async () => {
+    seedSpace();
+    const { getByText } = wrap(<AppDataTab appId="app_abc" />);
+    await waitFor(() => expect(getByText("Ada Lovelace")).toBeTruthy());
+    expect(post).toHaveBeenCalledWith("/data/spaces/space_1/records/query", {
+      object_type: "investor",
+      limit: 25,
+    });
+    // A status value is stored as an option id; showing "opt_1" would be
+    // honest and useless.
+    expect(getByText("Pitched")).toBeTruthy();
+    expect(getByText("1 of 2 records")).toBeTruthy();
+  });
+
+  it("queries the type the operator picks", async () => {
+    seedSpace();
+    const { getByText } = wrap(<AppDataTab appId="app_abc" />);
+    await waitFor(() => expect(getByText("Firms")).toBeTruthy());
+    fireEvent.click(getByText("Firms"));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith("/data/spaces/space_1/records/query", {
+        object_type: "firm",
+        limit: 25,
+      }),
+    );
+  });
+
+  it("never reads the per-app tables when a space is attached", async () => {
+    seedSpace();
+    const { getByText } = wrap(<AppDataTab appId="app_abc" />);
+    await waitFor(() => expect(getByText("Seed raise")).toBeTruthy());
+    // Two sources of truth for one app is exactly what the space replaces.
+    expect(
+      get.mock.calls.every(([p]) => String(p) !== "/apps/app_abc/db"),
+    ).toBe(true);
+  });
+
+  it("falls back to the per-app view when the binding cannot be read", async () => {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/apps/app_abc/data-space") throw new Error("offline");
+      return {
+        tables: [
+          {
+            name: "Emails",
+            columns: [{ name: "sender", type: "string" }],
+            rows: [{ sender: "a@b.com" }],
+          },
+        ],
+      };
+    });
+    const { getByText } = wrap(<AppDataTab appId="app_abc" />);
+    // A failed lookup degrades to what every app had before data spaces, not
+    // to an error the operator cannot act on.
+    await waitFor(() =>
+      expect(getByText("This app\u2019s database")).toBeTruthy(),
+    );
+    expect(getByText("a@b.com")).toBeTruthy();
+  });
+
+  it("shows an error state when the attached space cannot be loaded", async () => {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/apps/app_abc/data-space") return { space_id: "space_1" };
+      throw new Error("boom");
+    });
+    const { getByText } = wrap(<AppDataTab appId="app_abc" />);
+    await waitFor(() =>
+      expect(getByText(/could not read the attached data space/i)).toBeTruthy(),
+    );
   });
 });
 

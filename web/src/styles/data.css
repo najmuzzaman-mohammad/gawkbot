@@ -1,0 +1,308 @@
+/* ─── Data section: shared page chrome ───
+   Screens: index, space, records table, record page, type settings.
+   Tables own their region: 1px border rows, no floating cards inside grids.
+   Mono is reserved for data values (ids, slugs); UI text is sans. */
+
+.data-section {
+  gap: var(--space-4);
+  container-type: inline-size;
+  container-name: data-section;
+}
+
+.data-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.data-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+.data-crumbs li + li::before {
+  content: "/";
+  margin-right: var(--space-1-5);
+  color: var(--text-disabled);
+}
+.data-crumbs a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.data-crumbs a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.data-crumbs a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.data-crumbs [aria-current="page"] {
+  color: var(--text);
+}
+
+.data-page-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.data-page-title-block {
+  min-width: 0;
+}
+.data-page-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+}
+.data-page-title-icon {
+  display: inline-flex;
+  color: var(--text-secondary);
+}
+.data-page-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+.data-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.data-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-7) var(--space-6);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+.data-empty-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+.data-empty-body {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+.data-empty-action {
+  margin-top: var(--space-2);
+}
+
+.data-byline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.data-byline-slug {
+  color: var(--text-secondary);
+}
+
+/* Values that are identifiers (slugs, record ids) are the one place the
+   Data section uses mono. */
+.data-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Delete preview: what goes with the thing being deleted. */
+.data-delete-impact {
+  margin: 0;
+  padding-left: var(--space-5);
+  font-size: var(--text-md);
+  color: var(--text);
+}
+.data-delete-impact li + li {
+  margin-top: var(--space-1);
+}
+.data-delete-impact-none {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+.data-delete-error {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--red);
+}
+
+/* ─── Buttons ───
+   Styled with theme tokens directly. The shared ui/Button gets its padding
+   and colors from Tailwind utilities, which lose to the unlayered
+   `* { padding: 0 }` reset in global.css and have no color mapping under the
+   default nex-shell theme. */
+.data-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5);
+  min-height: var(--space-7);
+  padding: var(--space-1-5) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+.data-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.data-btn:disabled,
+.data-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.data-btn--default {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.data-btn--default:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.data-btn--default:active:not(:disabled) {
+  filter: brightness(0.94);
+}
+.data-btn--outline {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+.data-btn--outline:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong, var(--border));
+}
+.data-btn--outline:active:not(:disabled) {
+  background: var(--border);
+}
+.data-btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.data-btn--ghost:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+.data-btn--ghost:active:not(:disabled) {
+  background: var(--border);
+}
+.data-btn--destructive {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red);
+}
+.data-btn--destructive:hover:not(:disabled) {
+  background: var(--red);
+  color: var(--bg);
+}
+.data-btn--size-sm {
+  min-height: var(--space-6);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+}
+.data-btn--size-icon {
+  width: var(--space-7);
+  min-height: var(--space-7);
+  padding: 0;
+}
+.data-btn--size-sm.data-btn--size-icon,
+.data-btn--size-icon.data-btn--size-sm {
+  width: var(--space-6);
+}
+
+/* ─── Dialog and drawer surfaces ───
+   Same reason as the buttons: the Dialog and Sheet primitives take their
+   surface from Tailwind utilities. Every Data dialog carries one of these
+   classes and owns its background, border, padding, and spacing. */
+.data-dialog,
+.dr-dialog,
+.dr-peek {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
+  padding: var(--space-6);
+  gap: var(--space-4);
+}
+.data-dialog,
+.dr-dialog {
+  border-radius: var(--radius-lg);
+}
+.dr-peek {
+  border-width: 0 0 0 1px;
+}
+.data-dialog h2,
+.dr-dialog h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+  padding-right: var(--space-7);
+}
+.data-dialog h2 + p,
+.dr-dialog h2 + p {
+  margin-top: var(--space-1);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+/* The primitive's footer spaces its buttons with margin utilities, which the
+   global reset zeroes; gap does the same job. */
+.data-dialog > div:last-of-type:has(> .data-btn),
+.dr-dialog > div:last-of-type:has(> .data-btn),
+.data-dialog form > div:last-of-type:has(> .data-btn),
+.dr-dialog form > div:last-of-type:has(> .data-btn) {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* ─── Bot page: Data tab ───
+   The per-bot view of the sharing model: what this bot owns, what it was let
+   into, and what is global. */
+.bot-data-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) 0;
+}
+.bot-data-group-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+}
+.bot-data-group-caption {
+  margin: var(--space-1) 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
