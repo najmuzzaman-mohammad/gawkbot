@@ -65,7 +65,15 @@ jobs:
           # `--merged origin/main` filters out stray tags on side branches
           # so a partial release tag pushed to a feature branch doesn't
           # mask drift on the real release line.
-          git_tag=$(git tag --merged origin/main --sort=-v:refname | grep -E '^v[0-9]' | head -n1)
+          # awk, not `grep | head`: under `set -o pipefail` head exits after the
+          # first line, grep dies writing to the closed pipe, and its exit 2
+          # ("write error: Broken pipe") fails the whole step BEFORE any drift
+          # is evaluated. It is a race on the pipe buffer, so it passed for
+          # years and became reliable as the tag list grew past ~500 — this
+          # guard had stopped checking anything and was simply red, which is
+          # indistinguishable from the drift it exists to report. awk exits
+          # itself, so nothing writes to a closed pipe.
+          git_tag=$(git tag --merged origin/main --sort=-v:refname | awk '/^v[0-9]/{print; exit}')
           if [ -z "$git_tag" ]; then
             echo "::error::no v* tags found on origin/main"
             exit 1

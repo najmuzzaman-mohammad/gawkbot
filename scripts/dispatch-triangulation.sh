@@ -265,7 +265,11 @@ write_synthesis() {
           lens_list="$(awk -F '\t' -v loc="$location" '$1 == loc {print $2}' "$locations_file" | sort -u | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
           echo "- ${location} (${count} reports: ${lens_list})"
           awk -F '\t' -v loc="$location" '$1 == loc {print $2 "\t" $3}' "$locations_file" | sort -u | while IFS=$'\t' read -r matching_lens matching_report; do
-            excerpt="$(grep -F "$location" "$matching_report" | head -1 | sed -E 's/^[[:space:]]+//')"
+            # awk, not `grep | head`: this script runs under `set -o
+            # pipefail`, so head closing the pipe kills grep with SIGPIPE and
+            # fails the whole dispatch. Same bug that had release-drift.yml
+            # red for the wrong reason.
+            excerpt="$(awk -v needle="$location" 'index($0, needle) {sub(/^[[:space:]]+/, ""); print; exit}' "$matching_report")"
             echo "  - ${matching_lens}: ${excerpt}"
           done
         done <<< "$high_locations"

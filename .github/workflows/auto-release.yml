@@ -50,7 +50,14 @@ jobs:
       - name: Get latest tag
         id: latest
         run: |
-          TAG=$(git tag --sort=-v:refname | grep '^v' | head -1)
+          # awk, not `grep | head`, for the reason spelled out in
+          # release-drift.yml: head closes the pipe and grep dies on SIGPIPE.
+          # Latent here rather than live, because this step does not set
+          # `pipefail` and Actions' default shell is `bash -e`, so the
+          # pipeline takes head's exit status and the error is swallowed. One
+          # added `set -o pipefail` would turn it into the same silent
+          # breakage that had release-drift red for the wrong reason.
+          TAG=$(git tag --sort=-v:refname | awk '/^v/{print; exit}')
           echo "tag=${TAG:-v0.0.0}" >> "$GITHUB_OUTPUT"
 
       - name: Bump version
