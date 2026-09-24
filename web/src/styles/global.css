@@ -1609,6 +1609,17 @@ body {
 .composio-expired-details summary {
   cursor: pointer;
 }
+/* The install command, addressed to whoever can actually run it. It is kept
+   out of the sentence above and collapsed by default: an operator reading a
+   "one-time setup" prompt has no use for a shell command, and showing one is
+   how honest copy turns back into protocol debris. */
+.composio-onb-install-details {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.composio-onb-install-details summary {
+  cursor: pointer;
+}
 .composio-expired-request-id {
   display: inline-block;
   margin-top: 6px;

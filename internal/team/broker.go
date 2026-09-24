@@ -807,6 +807,7 @@ func (b *Broker) StartOnPort(port int) error {
 	// user never copy/pastes an API key. See broker_composio_signin.go.
 	mux.HandleFunc("/integrations/composio/signin/start", b.requireAuth(b.handleComposioSigninStart))
 	mux.HandleFunc("/integrations/composio/signin/status", b.requireAuth(b.handleComposioSigninStatus))
+	mux.HandleFunc("/integrations/composio/signin/cancel", b.requireAuth(b.handleComposioSigninCancel))
 	mux.HandleFunc("/scheduler", b.requireAuth(b.handleScheduler))
 	mux.HandleFunc("/scheduler/", b.requireAuth(b.handleSchedulerSubpath))
 	mux.HandleFunc("/skills", b.requireAuth(b.handleSkills))

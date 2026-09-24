@@ -19,7 +19,8 @@ import {
   type IntegrationProviderStatus,
   type IntegrationsResponse,
   integrationErrorRequestId,
-  isComposioSigninExpired,
+  isComposioSigninMissing,
+  isComposioSigninNeeded,
   listIntegrations,
   startIntegrationConnection,
   submitIntegrationCredentials,
@@ -427,10 +428,14 @@ function IntegrationErrorState({
 }) {
   // A dead Composio sign-in is not an outage and there is nothing to retry:
   // show what happened and the one button that fixes it, never the 401.
-  if (isComposioSigninExpired(error)) {
+  if (isComposioSigninNeeded(error)) {
+    // Deliberately NOT auto-started: loading a page is not a request to sign
+    // in. The automatic start belongs to the connect attempt, where the user
+    // has already said what they want.
     return (
       <ComposioSigninExpired
         requestId={integrationErrorRequestId(error)}
+        neverSignedIn={isComposioSigninMissing(error)}
         onSignedIn={onRetry}
       />
     );
@@ -591,10 +596,14 @@ function ToolkitDetail({
   // shared by every mutation on this screen.
   const [signinExpired, setSigninExpired] = useState<{
     requestId: string | null;
+    neverSignedIn: boolean;
   } | null>(null);
   const handleMutationError = (err: unknown, fallback: string) => {
-    if (isComposioSigninExpired(err)) {
-      setSigninExpired({ requestId: integrationErrorRequestId(err) });
+    if (isComposioSigninNeeded(err)) {
+      setSigninExpired({
+        requestId: integrationErrorRequestId(err),
+        neverSignedIn: isComposioSigninMissing(err),
+      });
       return;
     }
     showNotice(err instanceof Error ? err.message : fallback, "error");
@@ -667,8 +676,13 @@ function ToolkitDetail({
       />
       <div className="op-detail-body">
         {signinExpired ? (
+          // The connect attempt is what put this here, so the sign-in starts
+          // itself rather than waiting for a second click — and resumes the
+          // connect the user actually asked for the moment it lands.
           <ComposioSigninExpired
             requestId={signinExpired.requestId}
+            neverSignedIn={signinExpired.neverSignedIn}
+            autoStart={true}
             onSignedIn={() => {
               setSigninExpired(null);
               connectMutation.mutate();

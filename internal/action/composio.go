@@ -762,7 +762,10 @@ func (c *ComposioREST) delete(ctx context.Context, path string) ([]byte, error) 
 // the provider's job (it single-flights the CLI invocation).
 func (c *ComposioREST) do(ctx context.Context, method, path string, query url.Values, body any) ([]byte, error) {
 	if !c.Configured() {
-		return nil, fmt.Errorf("composio is not configured; set COMPOSIO_API_KEY (or sign in with Composio) and a user identity")
+		// Typed cause, so the HTTP boundary can offer the sign-in that fixes
+		// this instead of echoing a configuration hint at someone who was only
+		// trying to connect an app.
+		return nil, fmt.Errorf("%w; sign in with Composio first", ErrComposioNotConfigured)
 	}
 	var payload []byte
 	if body != nil {

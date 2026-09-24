@@ -684,6 +684,17 @@ type integrationErrorBody struct {
 // composio API failed GET /auth_configs 401 Unauthorized request_id=…" reached
 // a user who was only trying to connect Gmail.
 func writeIntegrationError(w http.ResponseWriter, fallbackPrefix string, err error) {
+	if errors.Is(err, action.ErrComposioNotConfigured) {
+		// No credential was ever stored. Same recovery as a revoked one — the
+		// UI starts the sign-in automatically off this code — but a different
+		// sentence, because "expired" would be a lie on a first run. The raw
+		// error names an environment variable and never reaches the browser.
+		writeIntegrationErrorBody(w, integrationErrorBody{
+			Error:   composioSignInRequiredCode,
+			Message: composioSignInRequiredMessage,
+		})
+		return
+	}
 	if !errors.Is(err, action.ErrComposioCredentialRevoked) {
 		http.Error(w, fmt.Sprintf("%s: %v", fallbackPrefix, err), http.StatusBadGateway)
 		return
@@ -696,6 +707,15 @@ func writeIntegrationError(w http.ResponseWriter, fallbackPrefix string, err err
 	if errors.As(err, &apiErr) {
 		body.RequestID = strings.TrimSpace(apiErr.RequestID)
 	}
+	writeIntegrationErrorBody(w, body)
+}
+
+// writeIntegrationErrorBody emits the credential-failure envelope. Its shape is
+// load-bearing: the web client only humanizes a body whose keys are error,
+// message and request_id (api/client.ts humanizeApiErrorBody), so anything
+// richer would render raw JSON at a user. The sign-in state the UI needs comes
+// from the sign-in endpoints, not from here.
+func writeIntegrationErrorBody(w http.ResponseWriter, body integrationErrorBody) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
 	_ = json.NewEncoder(w).Encode(body)

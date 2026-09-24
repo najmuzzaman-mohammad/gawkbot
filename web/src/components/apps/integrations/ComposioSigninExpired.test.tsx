@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const startComposioSignin = vi.fn();
 const getComposioSigninStatus = vi.fn();
+const cancelComposioSignin = vi.fn();
 
 vi.mock("../../../api/integrations", async () => {
   const actual = await vi.importActual<
@@ -12,8 +13,10 @@ vi.mock("../../../api/integrations", async () => {
   >("../../../api/integrations");
   return {
     ...actual,
-    startComposioSignin: () => startComposioSignin(),
+    startComposioSignin: (options?: { auto?: boolean }) =>
+      startComposioSignin(options),
     getComposioSigninStatus: () => getComposioSigninStatus(),
+    cancelComposioSignin: () => cancelComposioSignin(),
   };
 });
 
@@ -59,6 +62,7 @@ describe("composio sign-in expired", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getComposioSigninStatus.mockResolvedValue({ status: "idle" });
+    cancelComposioSignin.mockResolvedValue({ status: "idle" });
   });
 
   it("classifies the broker's expired-credential envelope", () => {
@@ -151,5 +155,183 @@ describe("composio sign-in expired", () => {
       screen.getByRole("button", { name: "Sign in again" }),
     );
     await waitFor(() => expect(onSignedIn).toHaveBeenCalled());
+  });
+});
+
+// ── Automatic sign-in on a connect attempt ────────────────────────────────
+// The founder's ask: "composio login should run automatically when logged out
+// and attempting to connect something via it." A panel that is here BECAUSE a
+// connect failed must start the sign-in itself, show it happening, let the user
+// stop it, and then resume the connect they asked for.
+describe("composio sign-in starts automatically on a connect attempt", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getComposioSigninStatus.mockResolvedValue({ status: "awaiting_login" });
+  });
+
+  it("starts the flow with no click, and marks it as automatic", async () => {
+    startComposioSignin.mockResolvedValue({
+      status: "awaiting_login",
+      auth_url: "https://platform.composio.dev/login?cliKey=auto",
+    });
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(null);
+    renderPanel({ autoStart: true });
+
+    await waitFor(() => expect(startComposioSignin).toHaveBeenCalledTimes(1));
+    expect(startComposioSignin).toHaveBeenCalledWith({ auto: true });
+    await waitFor(() =>
+      expect(
+        screen.getByText("Finish signing in in your browser"),
+      ).toBeTruthy(),
+    );
+    openSpy.mockRestore();
+  });
+
+  it("shows the link and a way to copy it, because a popup may be blocked", async () => {
+    startComposioSignin.mockResolvedValue({
+      status: "awaiting_login",
+      auth_url: "https://platform.composio.dev/login?cliKey=auto",
+    });
+    vi.spyOn(window, "open").mockReturnValue(null);
+    renderPanel({ autoStart: true });
+
+    const link = await screen.findByRole("link", {
+      name: /open the sign-in page/i,
+    });
+    expect(link.getAttribute("href")).toBe(
+      "https://platform.composio.dev/login?cliKey=auto",
+    );
+    // The URL itself is visible and copyable for a browser that never opened.
+    expect(
+      screen.getByText("https://platform.composio.dev/login?cliKey=auto"),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy();
+  });
+
+  it("can be stopped, and does not start again by itself", async () => {
+    startComposioSignin.mockResolvedValue({
+      status: "awaiting_login",
+      auth_url: "https://platform.composio.dev/login?cliKey=auto",
+    });
+    vi.spyOn(window, "open").mockReturnValue(null);
+    renderPanel({ autoStart: true });
+
+    const cancel = await screen.findByRole("button", { name: "Cancel" });
+    await userEvent.click(cancel);
+
+    // Back to the explicit button, and no second automatic start.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Sign in again" }),
+      ).toBeTruthy(),
+    );
+    expect(cancelComposioSignin).toHaveBeenCalledTimes(1);
+    expect(startComposioSignin).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks before installing anything when the helper is missing", async () => {
+    startComposioSignin.mockResolvedValue({
+      status: "install_required",
+      install_command: "curl -fsSL https://example.test/install.sh | bash",
+    });
+    renderPanel({ autoStart: true });
+
+    const confirm = await screen.findByRole("button", { name: "Set it up" });
+    // Nothing has been installed yet: the only call so far is the automatic
+    // start that stopped to ask.
+    expect(startComposioSignin).toHaveBeenCalledTimes(1);
+    expect(startComposioSignin).toHaveBeenCalledWith({ auto: true });
+    // The shell command is never in the prose the operator reads.
+    const prose = Array.from(screen.getByRole("status").querySelectorAll("p"))
+      .map((node) => node.textContent ?? "")
+      .join(" ");
+    expect(prose).toContain("small helper installed on this computer");
+    expect(prose).not.toContain("curl");
+    expect(prose).not.toContain("bash");
+    // It is available to whoever can act on it, collapsed by default.
+    const details = screen
+      .getByText("For whoever set up this computer")
+      .closest("details");
+    expect(details?.open).toBe(false);
+
+    await userEvent.click(confirm);
+    // The yes is an explicit start — that consent is what permits the install.
+    await waitFor(() => expect(startComposioSignin).toHaveBeenCalledTimes(2));
+    expect(startComposioSignin).toHaveBeenLastCalledWith({ auto: false });
+  });
+
+  it("falls back to the button when the broker declines to start another", async () => {
+    startComposioSignin.mockResolvedValue({ status: "idle" });
+    renderPanel({ autoStart: true });
+
+    await waitFor(() => expect(startComposioSignin).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByRole("button", { name: "Sign in again" }),
+    ).toBeTruthy();
+  });
+
+  it("resumes the original connect once the sign-in lands", async () => {
+    startComposioSignin.mockResolvedValue({ status: "provisioning" });
+    getComposioSigninStatus.mockResolvedValue({ status: "done" });
+    const onSignedIn = vi.fn();
+    renderPanel({ autoStart: true, onSignedIn });
+
+    await waitFor(() => expect(onSignedIn).toHaveBeenCalled());
+  });
+
+  it("says a sign-in is under way while it is, and not before", async () => {
+    startComposioSignin.mockResolvedValue({ status: "idle" });
+    const { unmount } = renderPanel({ autoStart: true, neverSignedIn: true });
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toBe(
+        "You are not signed in to Composio yet. Sign in to connect this app.",
+      ),
+    );
+    unmount();
+
+    startComposioSignin.mockResolvedValue({ status: "provisioning" });
+    getComposioSigninStatus.mockResolvedValue({ status: "provisioning" });
+    renderPanel({ autoStart: true, neverSignedIn: true });
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toBe(
+        "You are not signed in to Composio yet. Signing you in now.",
+      ),
+    );
+  });
+
+  it("keeps every operator sentence free of protocol debris", async () => {
+    startComposioSignin.mockResolvedValue({
+      status: "awaiting_login",
+      auth_url: "https://platform.composio.dev/login?cliKey=auto",
+    });
+    vi.spyOn(window, "open").mockReturnValue(null);
+    renderPanel({
+      autoStart: true,
+      requestId: "9466302c-0000-0000-0000-000000000000",
+    });
+    await screen.findByText("Finish signing in in your browser");
+
+    // Everything except the two disclosures addressed at support/whoever set
+    // this computer up, and the copyable link itself.
+    const prose = [
+      screen.getByRole("alert").textContent ?? "",
+      ...Array.from(document.querySelectorAll("p")).map(
+        (node) => node.textContent ?? "",
+      ),
+    ].join(" ");
+    for (const banned of [
+      "401",
+      "composio login",
+      "composio dev init",
+      "curl",
+      "COMPOSIO_API_KEY",
+      "UserApiKey_Unauthorized",
+      "request_id",
+      "9466302c",
+      "uak_",
+      "ak_",
+    ]) {
+      expect(prose).not.toContain(banned);
+    }
   });
 });

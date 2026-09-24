@@ -199,9 +199,7 @@ func TestComposioRemintAdoptsANewerCLISession(t *testing.T) {
 	writeComposioUserData(t, "uak_fresh_session", "ok_1")
 	seedComposioUserKeyConfig(t, "uak_revoked_session", "ok_1")
 
-	orig := composioResolveProjectID
-	composioResolveProjectID = func(string, string, string) string { return "pr_1" }
-	t.Cleanup(func() { composioResolveProjectID = orig })
+	t.Cleanup(setComposioResolveProjectID(func(string, string, string) string { return "pr_1" }))
 
 	creds, err := b.composioReauth(context.Background())
 	if err != nil {

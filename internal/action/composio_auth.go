@@ -57,6 +57,21 @@ const (
 // failure for a human sentence and a one-click re-sign-in.
 var ErrComposioCredentialRevoked = errors.New("composio credential is no longer valid")
 
+// ErrComposioNotConfigured reports that this office holds NO Composio
+// credential at all — a first run, or a config that was never filled in.
+//
+// It is deliberately a different cause from ErrComposioCredentialRevoked. A
+// revoked credential can sometimes be repaired locally by re-minting from a
+// live CLI session; a missing one cannot, because there is nothing to re-mint
+// from. Both, however, are fixed by the same browser sign-in, so the HTTP
+// boundary routes them to the same recovery surface — see
+// composioSignInRequiredMessage in internal/team/broker_integrations.go.
+//
+// This is also why Auth_NoAuthProvided stays out of the revoked
+// classification above: "nothing was sent" is detected locally, before a
+// pointless unauthenticated round trip, not inferred from Composio's answer.
+var ErrComposioNotConfigured = errors.New("composio is not configured")
+
 // ComposioCredentialKind names which of Composio's two auth modes was rejected.
 type ComposioCredentialKind string
 

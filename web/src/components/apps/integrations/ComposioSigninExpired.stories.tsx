@@ -7,7 +7,13 @@ import { ComposioSigninExpired } from "./ComposioSigninExpired";
 // Two states matter: with a request id (a support handle, collapsed behind
 // details) and without one.
 
-function Wrapped({ requestId }: { requestId?: string }) {
+function Wrapped({
+  requestId,
+  neverSignedIn,
+}: {
+  requestId?: string;
+  neverSignedIn?: boolean;
+}) {
   const qc = new QueryClient();
   return (
     <QueryClientProvider client={qc}>
@@ -16,7 +22,10 @@ function Wrapped({ requestId }: { requestId?: string }) {
           <h2>Integrations</h2>
           <p>External accounts, gateways, channels, and action audit.</p>
         </header>
-        <ComposioSigninExpired requestId={requestId} />
+        <ComposioSigninExpired
+          requestId={requestId}
+          neverSignedIn={neverSignedIn}
+        />
       </div>
     </QueryClientProvider>
   );
@@ -35,4 +44,16 @@ export const Expired: Story = {};
 
 export const WithSupportDetails: Story = {
   args: { requestId: "9466302c-0000-0000-0000-000000000000" },
+};
+
+/**
+ * First run: nothing expired, there has simply never been a sign-in. Same
+ * recovery, different sentence — "expired" would be a lie here.
+ *
+ * These stories deliberately do NOT auto-start: a story that fired a real
+ * sign-in request on render would be a playground that changes the machine it
+ * runs on. The automatic start is covered by the panel's tests.
+ */
+export const NeverSignedIn: Story = {
+  args: { neverSignedIn: true },
 };

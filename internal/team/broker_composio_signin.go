@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/nex-crm/wuphf/internal/action"
@@ -61,13 +62,14 @@ import (
 // poll picks up user_data.json appearing.
 
 const (
-	composioSigninStatusIdle          = "idle"
-	composioSigninStatusCLIMissing    = "cli_missing"
-	composioSigninStatusInstalling    = "installing"
-	composioSigninStatusAwaitingLogin = "awaiting_login"
-	composioSigninStatusProvisioning  = "provisioning"
-	composioSigninStatusDone          = "done"
-	composioSigninStatusError         = "error"
+	composioSigninStatusIdle            = "idle"
+	composioSigninStatusCLIMissing      = "cli_missing"
+	composioSigninStatusInstallRequired = "install_required"
+	composioSigninStatusInstalling      = "installing"
+	composioSigninStatusAwaitingLogin   = "awaiting_login"
+	composioSigninStatusProvisioning    = "provisioning"
+	composioSigninStatusDone            = "done"
+	composioSigninStatusError           = "error"
 )
 
 // composioInstallCommand is the install command surfaced verbatim by the UI as
@@ -223,6 +225,17 @@ type composioSigninFlow struct {
 	actor    string
 	deadline time.Time
 
+	// epoch increments on every start and every cancel. Background goroutines
+	// capture it and refuse to mutate state (or store credentials) once it has
+	// moved on, so a cancelled flow cannot finish behind the user's back.
+	epoch uint64
+	// autoBlocked latches once an automatically-started sign-in was cancelled
+	// or could not proceed. While it is set, a connect attempt falls back to
+	// the explicit button instead of starting another login — a broken CLI must
+	// not spawn a login attempt on every click. An explicit, human-initiated
+	// start clears it.
+	autoBlocked bool
+
 	// remintDone is non-nil while a silent re-mint is in flight; late callers
 	// wait on it and share the winner's result instead of shelling out again.
 	remintDone chan struct{}
@@ -235,13 +248,44 @@ type composioSigninFlow struct {
 	remintAt    time.Time
 }
 
+// composioSigninStartOptions distinguishes the two ways this flow begins.
+//
+// Auto is the connect-time path (broker_composio_autologin.go): the human asked
+// to connect an app, not to sign in, so the flow may not do anything they have
+// not authorised. Concretely it may not install software — a missing CLI stops
+// at install_required and waits for a yes. An explicit start (the button) is
+// the human asking for sign-in itself, and keeps today's behaviour.
+type composioSigninStartOptions struct {
+	// Auto marks a sign-in the user did not click for.
+	Auto bool
+}
+
 // handleComposioSigninStart kicks off (or re-joins) the sign-in flow.
 // POST /integrations/composio/signin/start
+//
+// An optional JSON body {"auto":true} marks the request as connect-triggered
+// rather than button-triggered. An absent or malformed body means explicit,
+// which is the safe reading: an unrecognised request is never granted the
+// install-without-asking exemption by accident.
 func (b *Broker) handleComposioSigninStart(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	var body struct {
+		Auto bool `json:"auto"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(io.LimitReader(r.Body, maxIntegrationRequestBytes)).Decode(&body)
+	}
+	writeComposioSigninState(w, b.startComposioSignin(integrationRequestActor(r), composioSigninStartOptions{Auto: body.Auto}))
+}
+
+// startComposioSignin is THE entrypoint into the sign-in state machine. The
+// button (handleComposioSigninStart) and the automatic connect-time trigger
+// (composioAutoSignin) both land here, so there is exactly one state machine
+// and one single-flight.
+func (b *Broker) startComposioSignin(actor string, opts composioSigninStartOptions) composioSigninState {
 	flow := &b.composioSignin
 	flow.mu.Lock()
 	// Single-flight: a second start while a flow is pending returns the
@@ -249,15 +293,45 @@ func (b *Broker) handleComposioSigninStart(w http.ResponseWriter, r *http.Reques
 	if flow.state.Status == composioSigninStatusInstalling || flow.state.Status == composioSigninStatusAwaitingLogin || flow.state.Status == composioSigninStatusProvisioning {
 		state := flow.state
 		flow.mu.Unlock()
-		writeComposioSigninState(w, state)
-		return
+		return state
 	}
-	actor := integrationRequestActor(r)
+	if opts.Auto && flow.autoBlocked {
+		// An earlier automatic sign-in was cancelled or could not proceed.
+		// Returning idle is what puts the explicit button back in front of the
+		// user, so a broken CLI cannot spawn a login attempt on every click.
+		state := composioSigninState{Status: composioSigninStatusIdle}
+		flow.mu.Unlock()
+		return state
+	}
+	if !opts.Auto {
+		// An explicit start is the human asking for this, which retires any
+		// earlier refusal to start one on their behalf.
+		flow.autoBlocked = false
+	}
+	flow.epoch++
+	epoch := flow.epoch
 	if _, ok := composioBinary(); !ok {
+		if opts.Auto {
+			// The CLI is missing and nobody asked for it to be installed.
+			// Installing software is state-changing and unauthorised, so the
+			// flow stops here and asks. It also latches autoBlocked: the next
+			// connect gets the button, not a second unprompted attempt.
+			flow.actor = actor
+			flow.autoBlocked = true
+			flow.state = composioSigninState{
+				Status:         composioSigninStatusInstallRequired,
+				InstallCommand: composioInstallCommand,
+			}
+			state := flow.state
+			flow.mu.Unlock()
+			return state
+		}
 		// Auto-install on demand: the CLI is needed for one-click sign-in, so
 		// rather than dead-ending on cli_missing we run the official installer
 		// once in the background and continue the flow. The manual install
-		// command is still surfaced as a fallback if the install fails.
+		// command is still surfaced as a fallback if the install fails. This
+		// branch is reached only from an explicit start — either the sign-in
+		// button, or the human answering the install_required prompt above.
 		flow.actor = actor
 		flow.state = composioSigninState{
 			Status:         composioSigninStatusInstalling,
@@ -273,9 +347,8 @@ func (b *Broker) handleComposioSigninStart(w http.ResponseWriter, r *http.Reques
 		state := flow.state
 		flow.mu.Unlock()
 		b.recordComposioSigninEvent("integration_signin_started", actor, "Installing the Composio CLI, then signing in")
-		go b.composioSigninAutoInstall()
-		writeComposioSigninState(w, state)
-		return
+		go b.composioSigninAutoInstall(epoch)
+		return state
 	}
 	flow.actor = actor
 	if composioCLILoggedIn() {
@@ -285,9 +358,8 @@ func (b *Broker) handleComposioSigninStart(w http.ResponseWriter, r *http.Reques
 		state := flow.state
 		flow.mu.Unlock()
 		b.recordComposioSigninEvent("integration_signin_started", actor, "Started Composio sign-in (CLI already logged in)")
-		go b.composioSigninProvision()
-		writeComposioSigninState(w, state)
-		return
+		go b.composioSigninProvision(epoch)
+		return state
 	}
 	// Claim the flow before shelling out so a concurrent start observes
 	// awaiting_login and re-joins instead of minting a second login session.
@@ -299,11 +371,16 @@ func (b *Broker) handleComposioSigninStart(w http.ResponseWriter, r *http.Reques
 
 	authURL, err := composioMintLoginURL()
 	flow.mu.Lock()
-	if flow.state.Status == composioSigninStatusAwaitingLogin {
+	if flow.epoch == epoch && flow.state.Status == composioSigninStatusAwaitingLogin {
 		if err != nil {
+			// The CLI could not produce a sign-in page. Nothing in that error
+			// is actionable by the person reading it, and it carries a command
+			// name, so it never reaches them — the log keeps the detail.
+			log.Printf("composio signin: mint login url: %v", err)
+			flow.autoBlocked = true
 			flow.state = composioSigninState{
 				Status: composioSigninStatusError,
-				Reason: "composio login could not start: " + err.Error(),
+				Reason: composioSigninUnavailableMessage,
 			}
 		} else {
 			flow.state.AuthURL = authURL
@@ -312,9 +389,42 @@ func (b *Broker) handleComposioSigninStart(w http.ResponseWriter, r *http.Reques
 	state := flow.state
 	flow.mu.Unlock()
 	if err == nil {
-		go b.composioSigninAwaitLogin()
+		go b.composioSigninAwaitLogin(epoch)
 	}
+	return state
+}
+
+// handleComposioSigninCancel abandons the current flow and returns to idle.
+// POST /integrations/composio/signin/cancel
+//
+// Cancelling is what makes an automatic sign-in acceptable: the user can always
+// stop something they did not ask for. It bumps the epoch so any goroutine
+// still running on the old flow cannot write state or store a credential
+// afterwards, and it latches autoBlocked so the next connect offers the button
+// instead of starting another login.
+func (b *Broker) handleComposioSigninCancel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	flow := &b.composioSignin
+	flow.mu.Lock()
+	flow.epoch++
+	flow.autoBlocked = true
+	flow.state = composioSigninState{Status: composioSigninStatusIdle}
+	flow.deadline = time.Time{}
+	state := flow.state
+	flow.mu.Unlock()
 	writeComposioSigninState(w, state)
+}
+
+// composioSigninEpochHolds reports whether the flow this goroutine started on
+// is still the current one. A cancel (or a fresh start) moves the epoch on, and
+// every background step checks this before touching shared state.
+func (f *composioSigninFlow) epochHolds(epoch uint64) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.epoch == epoch
 }
 
 // handleComposioSigninStatus reports the current flow state, advancing
@@ -340,7 +450,7 @@ func (b *Broker) handleComposioSigninStatus(w http.ResponseWriter, r *http.Reque
 			flow.state = composioSigninState{
 				Status:         composioSigninStatusCLIMissing,
 				InstallCommand: composioInstallCommand,
-				Reason:         "the Composio install is taking too long — run the install command shown, then try again",
+				Reason:         composioInstallStalledMessage,
 			}
 		}
 		state = flow.state
@@ -354,9 +464,10 @@ func (b *Broker) handleComposioSigninStatus(w http.ResponseWriter, r *http.Reque
 		} else if !deadline.IsZero() && time.Now().After(deadline) {
 			flow.mu.Lock()
 			if flow.state.Status == composioSigninStatusAwaitingLogin {
+				flow.autoBlocked = true
 				flow.state = composioSigninState{
 					Status: composioSigninStatusError,
-					Reason: "login timed out — run `composio login` in a terminal, then try again",
+					Reason: composioSigninTimedOutMessage,
 				}
 			}
 			state = flow.state
@@ -373,28 +484,30 @@ func (b *Broker) handleComposioSigninStatus(w http.ResponseWriter, r *http.Reque
 // inherited PATH), not the exit code, is the source of truth: installers can
 // warn-and-exit nonzero while still placing the binary, and the installer adds
 // its dir to PATH only in shell profiles the running broker never re-reads.
-func (b *Broker) composioSigninAutoInstall() {
+func (b *Broker) composioSigninAutoInstall(epoch uint64) {
 	ctx, cancel := context.WithTimeout(context.Background(), composioInstallTimeout)
 	defer cancel()
 	runErr := composioInstaller(ctx)
 	if _, ok := composioBinary(); !ok {
 		flow := &b.composioSignin
 		flow.mu.Lock()
-		if flow.state.Status == composioSigninStatusInstalling {
-			reason := "could not install the Composio CLI automatically — run the install command shown, then try again"
-			if runErr == nil {
-				reason = "the Composio installer finished but the CLI could not be located — run the install command shown, then try again"
+		if flow.epoch == epoch && flow.state.Status == composioSigninStatusInstalling {
+			// The exit code is a detail for the log, not for the reader: both
+			// outcomes leave them in the same place with the same next step.
+			if runErr != nil {
+				log.Printf("composio signin: install: %v", runErr)
 			}
+			flow.autoBlocked = true
 			flow.state = composioSigninState{
 				Status:         composioSigninStatusCLIMissing,
 				InstallCommand: composioInstallCommand,
-				Reason:         reason,
+				Reason:         composioInstallFailedMessage,
 			}
 		}
 		flow.mu.Unlock()
 		return
 	}
-	b.composioSigninBeginLogin()
+	b.composioSigninBeginLogin(epoch)
 }
 
 // composioSigninBeginLogin continues an installing flow once the CLI is
@@ -403,17 +516,17 @@ func (b *Broker) composioSigninAutoInstall() {
 // auth_url and the FE opens it). Mirrors the CLI-present branch of
 // handleComposioSigninStart, but runs in the background since that request
 // already returned `installing`.
-func (b *Broker) composioSigninBeginLogin() {
+func (b *Broker) composioSigninBeginLogin(epoch uint64) {
 	flow := &b.composioSignin
 	flow.mu.Lock()
-	if flow.state.Status != composioSigninStatusInstalling {
+	if flow.epoch != epoch || flow.state.Status != composioSigninStatusInstalling {
 		flow.mu.Unlock()
 		return
 	}
 	if composioCLILoggedIn() {
 		flow.state = composioSigninState{Status: composioSigninStatusProvisioning}
 		flow.mu.Unlock()
-		go b.composioSigninProvision()
+		go b.composioSigninProvision(epoch)
 		return
 	}
 	flow.state = composioSigninState{Status: composioSigninStatusAwaitingLogin}
@@ -422,11 +535,13 @@ func (b *Broker) composioSigninBeginLogin() {
 
 	authURL, err := composioMintLoginURL()
 	flow.mu.Lock()
-	if flow.state.Status == composioSigninStatusAwaitingLogin {
+	if flow.epoch == epoch && flow.state.Status == composioSigninStatusAwaitingLogin {
 		if err != nil {
+			log.Printf("composio signin: mint login url: %v", err)
+			flow.autoBlocked = true
 			flow.state = composioSigninState{
 				Status: composioSigninStatusError,
-				Reason: "composio login could not start: " + err.Error(),
+				Reason: composioSigninUnavailableMessage,
 			}
 		} else {
 			flow.state.AuthURL = authURL
@@ -434,7 +549,7 @@ func (b *Broker) composioSigninBeginLogin() {
 	}
 	flow.mu.Unlock()
 	if err == nil {
-		go b.composioSigninAwaitLogin()
+		go b.composioSigninAwaitLogin(epoch)
 	}
 }
 
@@ -442,7 +557,7 @@ func (b *Broker) composioSigninBeginLogin() {
 // the pending browser session and writes user_data.json. The exit code is
 // advisory — the file is the source of truth, because the user may finish the
 // login through a separate terminal instead.
-func (b *Broker) composioSigninAwaitLogin() {
+func (b *Broker) composioSigninAwaitLogin(epoch uint64) {
 	ctx, cancel := context.WithTimeout(context.Background(), composioLoginPollTimeout)
 	defer cancel()
 	// --no-skill-install mirrors trustclaw's `composio login`: without it the CLI
@@ -464,6 +579,7 @@ func (b *Broker) composioSigninAwaitLogin() {
 // composioSigninAdvanceIfLoggedIn flips awaiting_login → provisioning exactly
 // once when the CLI session exists. Safe to call from both the background
 // goroutine and the status poll; the status check under the lock arbitrates.
+// A cancelled flow is idle, so this is a no-op for it.
 func (b *Broker) composioSigninAdvanceIfLoggedIn() bool {
 	if !composioCLILoggedIn() {
 		return false
@@ -475,8 +591,9 @@ func (b *Broker) composioSigninAdvanceIfLoggedIn() bool {
 		return false
 	}
 	flow.state = composioSigninState{Status: composioSigninStatusProvisioning}
+	epoch := flow.epoch
 	flow.mu.Unlock()
-	go b.composioSigninProvision()
+	go b.composioSigninProvision(epoch)
 	return true
 }
 
@@ -523,9 +640,15 @@ func composioProvisionCreds() (composioProvisionedCreds, error) {
 // composioSigninProvision resolves Composio credentials (project ak_ key or
 // user-key trio) and stores them through the same config path as the manual
 // paste flow. Credentials never touch logs.
-func (b *Broker) composioSigninProvision() {
+func (b *Broker) composioSigninProvision(epoch uint64) {
 	flow := &b.composioSignin
 	creds, err := composioProvisionCreds()
+	// A cancel between the mint and the store means the human said stop. Honour
+	// it: do not write a credential, and do not touch the state a later flow
+	// may already own.
+	if !flow.epochHolds(epoch) {
+		return
+	}
 	var storeFailed bool
 	if err == nil {
 		if strings.TrimSpace(creds.APIKey) != "" {
@@ -538,6 +661,10 @@ func (b *Broker) composioSigninProvision() {
 		}
 	}
 	flow.mu.Lock()
+	if flow.epoch != epoch {
+		flow.mu.Unlock()
+		return
+	}
 	actor := flow.actor
 	if err != nil {
 		reason := err.Error()
@@ -548,6 +675,7 @@ func (b *Broker) composioSigninProvision() {
 			log.Printf("composio signin: %v", err)
 			reason = "could not save the Composio credentials to config — check the broker logs"
 		}
+		flow.autoBlocked = true
 		flow.state = composioSigninState{Status: composioSigninStatusError, Reason: reason}
 		flow.mu.Unlock()
 		return
@@ -557,6 +685,13 @@ func (b *Broker) composioSigninProvision() {
 	// done must also observe the audit trail entry.
 	b.recordComposioSigninEvent("integration_signin_completed", actor, "Signed in with Composio and stored credentials")
 	flow.mu.Lock()
+	if flow.epoch != epoch {
+		flow.mu.Unlock()
+		return
+	}
+	// A completed sign-in retires the latch: the machinery demonstrably works,
+	// so a later connect may start one automatically again.
+	flow.autoBlocked = false
 	flow.state = composioSigninState{Status: composioSigninStatusDone}
 	flow.mu.Unlock()
 }
@@ -675,11 +810,41 @@ func (b *Broker) storeComposioUserKeyCreds(userAPIKey, orgID, projectID string) 
 	return nil
 }
 
+// composioResolveProjectIDFunc is the signature of the project-id resolver.
+type composioResolveProjectIDFunc func(baseURL, userAPIKey, orgID string) string
+
+// composioResolveProjectIDHook lets tests stub the network call. It is an
+// atomic pointer rather than a plain package var for the same reason
+// action.composioReauthProvider is: a sign-in flow's background goroutines
+// outlive the request that started them, so one test's leaked provisioning
+// goroutine can still be READING this while the next test WRITES it. As a
+// plain var that is a data race, and it was an intermittent -race failure in
+// the team suite before this.
+var composioResolveProjectIDHook atomic.Pointer[composioResolveProjectIDFunc]
+
+// setComposioResolveProjectID installs a substitute resolver and returns the
+// function that puts the previous one back. Tests use it instead of assigning
+// to a package var.
+func setComposioResolveProjectID(fn composioResolveProjectIDFunc) func() {
+	prev := composioResolveProjectIDHook.Load()
+	if fn == nil {
+		composioResolveProjectIDHook.Store(nil)
+	} else {
+		composioResolveProjectIDHook.Store(&fn)
+	}
+	return func() { composioResolveProjectIDHook.Store(prev) }
+}
+
 // composioResolveProjectID returns the org's default project id via the CLI's
 // resolve endpoint (POST {base}/api/v3/org/consumer/project/resolve with the
-// user key + org id). It's a package var so tests can stub the network call.
-// Returns "" on any failure — the project id is optional for the SDK.
-var composioResolveProjectID = defaultComposioResolveProjectID
+// user key + org id). Returns "" on any failure — the project id is optional
+// for the SDK.
+func composioResolveProjectID(baseURL, userAPIKey, orgID string) string {
+	if fn := composioResolveProjectIDHook.Load(); fn != nil {
+		return (*fn)(baseURL, userAPIKey, orgID)
+	}
+	return defaultComposioResolveProjectID(baseURL, userAPIKey, orgID)
+}
 
 func defaultComposioResolveProjectID(baseURL, userAPIKey, orgID string) string {
 	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
