@@ -10,12 +10,9 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
-	wuphf "github.com/nex-crm/wuphf"
 	"github.com/nex-crm/wuphf/internal/brokeraddr"
 	"github.com/nex-crm/wuphf/internal/computer"
 	"github.com/nex-crm/wuphf/internal/config"
@@ -50,28 +47,25 @@ func (b *Broker) ServeWebUI(port int) error {
 		fmt.Sprintf("http://127.0.0.1:%d", port),
 	}
 
-	// Resolution order for the web UI assets:
-	//   1. filesystem web/dist/ (local dev after `bun run build`)
-	//   2. embedded FS (single-binary installs via curl | bash)
-	exePath, _ := os.Executable()
-	webDir := filepath.Join(filepath.Dir(exePath), "web")
-	if _, err := os.Stat(webDir); os.IsNotExist(err) {
-		webDir = "web"
-	}
+	// See ResolveWebAssets: the bundle compiled into the binary wins over any
+	// on-disk build, so a released binary run from inside a source checkout
+	// cannot serve that checkout's stale web/dist.
 	var fileServer http.Handler
-	distDir := filepath.Join(webDir, "dist")
-	distIndex := filepath.Join(distDir, "index.html")
-	if _, err := os.Stat(distIndex); err == nil {
-		// Real Vite build output on disk — use it.
-		fileServer = spaFileServer(os.DirFS(distDir))
-	} else if embeddedFS, ok := wuphf.WebFS(); ok {
-		// No on-disk build; use embedded assets.
-		fileServer = spaFileServer(embeddedFS)
-	} else {
+	assets := ResolveWebAssets()
+	switch assets.Kind {
+	case "embedded", "disk":
+		fileServer = spaFileServer(assets.FS)
+	default:
 		// Source checkout without web/dist. Do not serve raw Vite source files:
 		// browsers load /src/main.tsx as text/plain and the page stalls on
 		// "Loading WUPHF". Return an actionable setup page instead.
 		fileServer = missingWebAssetsHandler()
+	}
+	if assets.Kind == "disk" {
+		// Worth a line: an on-disk bundle overriding the binary's own is
+		// either the dev loop or a mistake, and the difference is invisible
+		// in the browser.
+		log.Printf("web UI: serving the on-disk build at %s, not the bundle in this binary", assets.Dir)
 	}
 	mux := http.NewServeMux()
 	brokerURL := brokeraddr.ResolveBaseURL()

@@ -110,6 +110,13 @@ done
 # the ports a developer's real office runs on. It killed a live office on
 # 2026-09-03.
 log "starting broker on web :$PORT_WEB / broker :$PORT_BROKER with WUPHF_RUNTIME_HOME=$WUPHF_HOME"
+# WUPHF_WEB_DIST points the broker at the web/dist we just built. Since the
+# fix for the stale-UI trap, a binary that carries its own bundle PREFERS it,
+# which is what stops a released build serving a checkout's old assets. The dev
+# loop is the one case where on-disk must win: --skip-go rebuilds the frontend
+# and reuses yesterday's binary, so without this the office would show the
+# bundle compiled into that binary and your FE changes would be invisible.
+WUPHF_WEB_DIST="$PWD/web/dist" \
 WUPHF_RUNTIME_HOME="$WUPHF_HOME" "$BROKER_BIN" --no-open \
   --web-port "$PORT_WEB" --broker-port "$PORT_BROKER" >"$LOG" 2>&1 &
 PID=$!
