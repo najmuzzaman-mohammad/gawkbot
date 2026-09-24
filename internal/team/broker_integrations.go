@@ -21,6 +21,10 @@ type integrationProviderStatus struct {
 	SupportsConnect    bool   `json:"supports_connect"`
 	SupportsDisconnect bool   `json:"supports_disconnect"`
 	Detail             string `json:"detail,omitempty"`
+	// NeedsSignin marks the one failure a user can actually fix: the stored
+	// Composio credential is dead and the CLI cannot re-mint one, so the UI
+	// offers the sign-in flow instead of an error.
+	NeedsSignin bool `json:"needs_signin,omitempty"`
 }
 
 type integrationsResponse struct {
@@ -86,7 +90,15 @@ func (b *Broker) handleIntegrations(w http.ResponseWriter, r *http.Request) {
 		if composio.Configured() {
 			catalog, err := composio.ListIntegrationCatalog(r.Context(), opts)
 			if err != nil {
-				setIntegrationProviderDetail(resp.Providers, "composio", "Integrations unavailable: "+err.Error())
+				if errors.Is(err, action.ErrComposioCredentialRevoked) {
+					// The credential is dead and the silent re-mint could not
+					// replace it. Say that, in words, instead of leaking a 401
+					// and a request id into the provider row.
+					setIntegrationProviderDetail(resp.Providers, "composio", composioSignInExpiredMessage)
+					setIntegrationProviderNeedsSignin(resp.Providers, "composio")
+				} else {
+					setIntegrationProviderDetail(resp.Providers, "composio", "Integrations unavailable: "+err.Error())
+				}
 				resp.Items = append(resp.Items, curatedComposioCatalog(opts, true)...)
 			} else {
 				resp.Items = append(resp.Items, catalog.Items...)
@@ -121,7 +133,7 @@ func (b *Broker) handleIntegrationConnect(w http.ResponseWriter, r *http.Request
 	composio := action.NewComposioFromEnv()
 	result, err := composio.StartIntegrationConnection(r.Context(), req)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("start composio connection: %v", err), http.StatusBadGateway)
+		writeIntegrationError(w, "start composio connection", err)
 		return
 	}
 	actor := integrationRequestActor(r)
@@ -172,7 +184,7 @@ func (b *Broker) handleIntegrationConnectCredentials(w http.ResponseWriter, r *h
 	composio := action.NewComposioFromEnv()
 	result, err := composio.CompleteAPIKeyConnection(r.Context(), req.Platform, req.Fields)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("connect composio toolkit: %v", err), http.StatusBadGateway)
+		writeIntegrationError(w, "connect composio toolkit", err)
 		return
 	}
 	actor := integrationRequestActor(r)
@@ -219,7 +231,7 @@ func (b *Broker) handleIntegrationConnectStatus(w http.ResponseWriter, r *http.R
 		ConnectID: strings.TrimSpace(r.URL.Query().Get("connect_id")),
 	})
 	if err != nil {
-		http.Error(w, fmt.Sprintf("check composio connection: %v", err), http.StatusBadGateway)
+		writeIntegrationError(w, "check composio connection", err)
 		return
 	}
 	if result.Status == "connected" && result.ConnectionKey != "" && !b.hasIntegrationAction("integration_connected", "composio", result.ConnectionKey) {
@@ -270,7 +282,7 @@ func (b *Broker) handleIntegrationDisconnect(w http.ResponseWriter, r *http.Requ
 	composio := action.NewComposioFromEnv()
 	result, err := composio.DisconnectIntegration(r.Context(), req)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("disconnect composio connection: %v", err), http.StatusBadGateway)
+		writeIntegrationError(w, "disconnect composio connection", err)
 		return
 	}
 	_ = b.RecordActionWithMetadata(
@@ -632,4 +644,59 @@ func setIntegrationProviderDetail(providers []integrationProviderStatus, provide
 			return
 		}
 	}
+}
+
+func setIntegrationProviderNeedsSignin(providers []integrationProviderStatus, provider string) {
+	for i := range providers {
+		if providers[i].Provider == provider {
+			providers[i].NeedsSignin = true
+			return
+		}
+	}
+}
+
+// composioSignInExpiredMessage is the ONLY sentence a user sees when Composio
+// has revoked the stored credential and the silent re-mint could not replace
+// it. It names what happened and what to do, and deliberately contains no
+// status code, request id, slug, environment variable, or shell command — the
+// repo's honesty doctrine forbids protocol debris in operator-facing copy, and
+// none of it is actionable by the person reading it anyway.
+const composioSignInExpiredMessage = "Your Composio sign-in has expired. Sign in again to reconnect your apps."
+
+// composioSignInExpiredCode is the machine-readable code the UI branches on to
+// render the sign-in button. The web client reads the `error` field as the code
+// (api/client.ts errorCodeFromBodyText) and `message` as the prose.
+const composioSignInExpiredCode = "composio_signin_expired"
+
+// integrationErrorBody is the JSON envelope for a credential failure: a code
+// the UI can branch on, a sentence a human can read, and the upstream request
+// id kept OUT of the sentence for support to quote from a details affordance.
+type integrationErrorBody struct {
+	Error     string `json:"error"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id,omitempty"`
+}
+
+// writeIntegrationError is the single boundary between a Composio failure and
+// the browser. Every integration endpoint funnels through it, so a revoked
+// credential turns into the same honest sentence everywhere instead of each
+// handler leaking its own `%v` — which is how "start composio connection:
+// composio API failed GET /auth_configs 401 Unauthorized request_id=…" reached
+// a user who was only trying to connect Gmail.
+func writeIntegrationError(w http.ResponseWriter, fallbackPrefix string, err error) {
+	if !errors.Is(err, action.ErrComposioCredentialRevoked) {
+		http.Error(w, fmt.Sprintf("%s: %v", fallbackPrefix, err), http.StatusBadGateway)
+		return
+	}
+	body := integrationErrorBody{
+		Error:   composioSignInExpiredCode,
+		Message: composioSignInExpiredMessage,
+	}
+	var apiErr *action.ComposioAPIError
+	if errors.As(err, &apiErr) {
+		body.RequestID = strings.TrimSpace(apiErr.RequestID)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_ = json.NewEncoder(w).Encode(body)
 }

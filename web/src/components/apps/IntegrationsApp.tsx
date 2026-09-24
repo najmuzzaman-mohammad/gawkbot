@@ -18,6 +18,8 @@ import {
   type IntegrationConnectResult,
   type IntegrationProviderStatus,
   type IntegrationsResponse,
+  integrationErrorRequestId,
+  isComposioSigninExpired,
   listIntegrations,
   startIntegrationConnection,
   submitIntegrationCredentials,
@@ -29,6 +31,7 @@ import {
   IntegrationListRow,
 } from "./integrations/CardShell";
 import { ComposioOnboarding } from "./integrations/ComposioOnboarding";
+import { ComposioSigninExpired } from "./integrations/ComposioSigninExpired";
 import { ToolkitBrandLogo } from "./integrations/IntegrationLogos";
 import { INTEGRATIONS } from "./integrations/registry";
 import {
@@ -422,6 +425,16 @@ function IntegrationErrorState({
   isFetching: boolean;
   onRetry: () => void;
 }) {
+  // A dead Composio sign-in is not an outage and there is nothing to retry:
+  // show what happened and the one button that fixes it, never the 401.
+  if (isComposioSigninExpired(error)) {
+    return (
+      <ComposioSigninExpired
+        requestId={integrationErrorRequestId(error)}
+        onSignedIn={onRetry}
+      />
+    );
+  }
   return (
     <div className="op-runtime-note is-warn op-error-state">
       <span>{integrationErrorMessage(error)}</span>
@@ -573,9 +586,24 @@ function ToolkitDetail({
     void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
   }, [queryClient, statusQuery.data?.status]);
 
+  // A dead Composio sign-in is the one failure the user can fix, so it gets a
+  // panel with a button instead of an error toast. Captured once here and
+  // shared by every mutation on this screen.
+  const [signinExpired, setSigninExpired] = useState<{
+    requestId: string | null;
+  } | null>(null);
+  const handleMutationError = (err: unknown, fallback: string) => {
+    if (isComposioSigninExpired(err)) {
+      setSigninExpired({ requestId: integrationErrorRequestId(err) });
+      return;
+    }
+    showNotice(err instanceof Error ? err.message : fallback, "error");
+  };
+
   const connectMutation = useMutation({
     mutationFn: () => startIntegrationConnection(item.provider, item.platform),
     onSuccess: (result) => {
+      setSigninExpired(null);
       setPending(result);
       setCredValues({});
       if (result.auth_url) {
@@ -590,12 +618,8 @@ function ToolkitDetail({
       }
       void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
     },
-    onError: (err) => {
-      showNotice(
-        err instanceof Error ? err.message : `Failed to connect ${item.name}`,
-        "error",
-      );
-    },
+    onError: (err) =>
+      handleMutationError(err, `Failed to connect ${item.name}`),
   });
   const credentialsMutation = useMutation({
     mutationFn: () =>
@@ -612,12 +636,8 @@ function ToolkitDetail({
       void queryClient.invalidateQueries({ queryKey: ["integrations"] });
       void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
     },
-    onError: (err) => {
-      showNotice(
-        err instanceof Error ? err.message : `Failed to connect ${item.name}`,
-        "error",
-      );
-    },
+    onError: (err) =>
+      handleMutationError(err, `Failed to connect ${item.name}`),
   });
   const disconnectMutation = useMutation({
     mutationFn: () =>
@@ -629,14 +649,8 @@ function ToolkitDetail({
       void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
       onBack();
     },
-    onError: (err) => {
-      showNotice(
-        err instanceof Error
-          ? err.message
-          : `Failed to disconnect ${item.name}`,
-        "error",
-      );
-    },
+    onError: (err) =>
+      handleMutationError(err, `Failed to disconnect ${item.name}`),
   });
 
   const latestStatus = statusQuery.data?.status ?? pending?.status;
@@ -652,6 +666,15 @@ function ToolkitDetail({
         onBack={onBack}
       />
       <div className="op-detail-body">
+        {signinExpired ? (
+          <ComposioSigninExpired
+            requestId={signinExpired.requestId}
+            onSignedIn={() => {
+              setSigninExpired(null);
+              connectMutation.mutate();
+            }}
+          />
+        ) : null}
         <section className="op-toolkit-panel">
           <div className="op-toolkit-panel-copy">
             <span className="op-eyebrow">Connection</span>
@@ -815,9 +838,16 @@ function IntegrationsHome({
   onOpenRegistry: (id: string) => void;
   onRetry: () => void;
 }) {
+  const expiredProvider = providers.find((provider) => provider.needs_signin);
   return (
     <>
       <ConnectionStatus providers={providers} />
+      {expiredProvider ? (
+        // The catalog request succeeded but came back degraded: Composio
+        // rejected the office's credential. The provider row carries the human
+        // sentence; this renders it with the sign-in button attached.
+        <ComposioSigninExpired onSignedIn={onRetry} />
+      ) : null}
       <CatalogPanel
         items={toolkitItems}
         search={search}

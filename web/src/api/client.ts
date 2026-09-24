@@ -203,12 +203,22 @@ export function humanizeApiErrorBody(bodyText: string): string | null {
   // Envelopes that carry payload beyond the message (e.g. the wiki 409
   // conflict shape with current_sha/current_content) are data, not prose —
   // callers parse them out of the message text, so leave those intact.
-  if (Object.keys(rec).some((k) => k !== "error" && k !== "message")) {
+  // `request_id` is the exception: it is a support handle, not payload, and an
+  // envelope that carries one still has prose worth rendering.
+  if (
+    Object.keys(rec).some(
+      (k) => k !== "error" && k !== "message" && k !== "request_id",
+    )
+  ) {
     return null;
   }
-  const candidate = [rec.error, rec.message].find(
-    (v): v is string => typeof v === "string" && v.trim().length > 0,
-  );
+  // Prefer a sentence-shaped `message` over a code-shaped `error`. The broker's
+  // richer envelopes put the machine code in `error` and the human sentence in
+  // `message`; reading `error` first would render "composio_signin_expired" at
+  // a user, or fall through and render the raw JSON.
+  const candidate = [rec.error, rec.message]
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .sort((a, b) => Number(/\s/.test(b)) - Number(/\s/.test(a)))[0];
   if (!candidate) return null;
   const text = candidate.trim();
   // A code-like token (no whitespace) is not a sentence — leave it alone.
@@ -223,6 +233,12 @@ export class ApiError extends Error {
   readonly bodyText: string;
   readonly errorCode: string | null;
   readonly retryAfter: string | null;
+  /**
+   * The upstream request id, when the broker included one. It is deliberately
+   * absent from `message`: support can quote it from a details affordance, but
+   * it has no business in a sentence shown to a user.
+   */
+  readonly requestId: string | null;
 
   constructor(args: {
     readonly status: number;
@@ -230,6 +246,7 @@ export class ApiError extends Error {
     readonly bodyText: string;
     readonly errorCode?: string | null;
     readonly retryAfter?: string | null;
+    readonly requestId?: string | null;
   }) {
     super(
       humanizeApiErrorBody(args.bodyText) ??
@@ -241,6 +258,7 @@ export class ApiError extends Error {
     this.bodyText = args.bodyText;
     this.errorCode = args.errorCode ?? null;
     this.retryAfter = args.retryAfter ?? null;
+    this.requestId = args.requestId ?? null;
   }
 }
 
@@ -452,7 +470,30 @@ async function apiErrorFromResponse(response: Response): Promise<ApiError> {
     bodyText,
     errorCode: errorCodeFromBodyText(bodyText),
     retryAfter: response.headers.get("Retry-After"),
+    requestId: requestIdFromBodyText(bodyText),
   });
+}
+
+function requestIdFromBodyText(bodyText: string): string | null {
+  if (bodyText.length === 0) return null;
+  try {
+    const parsed = JSON.parse(bodyText) as unknown;
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return null;
+    }
+    const { request_id: requestId } = parsed as Readonly<
+      Record<string, unknown>
+    >;
+    return typeof requestId === "string" && requestId.trim().length > 0
+      ? requestId.trim()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function errorCodeFromBodyText(bodyText: string): string | null {

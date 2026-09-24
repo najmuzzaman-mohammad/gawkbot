@@ -650,6 +650,9 @@ func (b *Broker) WikiReadLog() *ReadLog {
 
 // StartOnPort launches the broker on the given port. Use 0 for an OS-assigned port.
 func (b *Broker) StartOnPort(port int) error {
+	// Every Composio request in the process can now recover from a revoked
+	// credential by re-minting through the CLI (broker_composio_remint.go).
+	b.registerComposioReauth()
 	mux := http.NewServeMux()
 	b.registerPlatformRoutes(mux)
 	b.registerTaskRoutes(mux)

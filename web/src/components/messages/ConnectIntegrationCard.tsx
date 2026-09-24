@@ -7,6 +7,7 @@ import {
   getComposioSigninStatus,
   getIntegrationConnectStatus,
   type IntegrationConnectResult,
+  isComposioSigninExpired,
   startComposioSignin,
   startIntegrationConnection,
 } from "../../api/integrations";
@@ -119,6 +120,13 @@ export function ConnectIntegrationCard({
       }
     },
     onError: (err: unknown) => {
+      // Composio revoked this office's credential and the broker could not
+      // re-mint one. The user does not need to read about that — they need the
+      // sign-in flow, which then chains straight back into this connection.
+      if (isComposioSigninExpired(err)) {
+        signinMutation.mutate();
+        return;
+      }
       showNotice(
         err instanceof Error ? err.message : `Failed to connect ${name}`,
         "error",

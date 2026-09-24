@@ -817,16 +817,18 @@ func TestComposioApplyAuthHeaders(t *testing.T) {
 }
 
 func TestComposioHasAuth(t *testing.T) {
+	// Pointers, not values: ComposioREST carries an atomic credential slot for
+	// re-minted credentials, so copying one is a vet error (copylocks).
 	cases := []struct {
 		name string
-		c    ComposioREST
+		c    *ComposioREST
 		want bool
 	}{
-		{"project key", ComposioREST{APIKey: "ak_x"}, true},
-		{"user key + org", ComposioREST{UserAPIKey: "uak_x", OrgID: "ok_1"}, true},
-		{"user key without org", ComposioREST{UserAPIKey: "uak_x"}, false},
-		{"org without user key", ComposioREST{OrgID: "ok_1"}, false},
-		{"nothing", ComposioREST{}, false},
+		{"project key", &ComposioREST{APIKey: "ak_x"}, true},
+		{"user key + org", &ComposioREST{UserAPIKey: "uak_x", OrgID: "ok_1"}, true},
+		{"user key without org", &ComposioREST{UserAPIKey: "uak_x"}, false},
+		{"org without user key", &ComposioREST{OrgID: "ok_1"}, false},
+		{"nothing", &ComposioREST{}, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nex-crm/wuphf/internal/action"
 	"github.com/nex-crm/wuphf/internal/config"
 )
 
@@ -34,9 +35,25 @@ import (
 // provisioning → done | error. cli_missing is a terminal start response that a
 // later start retries from scratch.
 //
-// Only project-scoped `ak_` keys are accepted: the user-scoped `uak_` key the
-// CLI stores in user_data.json is CLI-only and 401s against the SDK, so it is
-// explicitly rejected rather than stored.
+// Credential preference — resolved against composio CLI 0.2.31 on 2026-09-23:
+// `composio dev init` DOES still mint a project-scoped `ak_` key. Its init path
+// resolves an existing project key from GET /api/v3/auth/session/info and, when
+// there is none, creates one via
+// POST /api/v3/org/project/{project_id}/api_keys/create, then writes it to
+// <cwd>/.env.local as COMPOSIO_API_KEY. So the `ak_` key is the primary
+// credential: it is Composio's documented public-API auth and it does not
+// expire with a CLI session.
+//
+// The user-scoped `uak_` key from user_data.json is a FALLBACK, used only when
+// the mint above fails. It does authenticate against the REST API (with
+// x-org-id), but it is a session credential: Composio revokes it on re-login
+// and on expiry, and answers 401 UserApiKey_Unauthorized afterwards. That is
+// why a stored `uak_` key must be treated as expiring — see
+// broker_composio_remint.go, which detects the rejection and re-mints.
+//
+// An `ak_`-shaped key is still the only thing accepted OUT OF .env.local: a
+// `uak_` value appearing there would mean the CLI wrote a session key into the
+// project-key slot, which is a bug, not a credential.
 //
 // Degraded-honest fallback: if the login URL cannot be parsed from the CLI
 // output, the flow still moves to awaiting_login with an empty auth_url — the
@@ -194,11 +211,28 @@ type composioSigninState struct {
 
 // composioSigninFlow holds the broker's in-memory sign-in state. Zero value is
 // ready to use; guarded by its own mutex so the flow never contends with b.mu.
+//
+// It also carries the SILENT re-mint's single-flight bookkeeping
+// (broker_composio_remint.go). Both live here on purpose: the interactive
+// sign-in and the silent re-mint drive the same CLI to mint the same
+// credential, so one lock arbitrates both and there is exactly one
+// single-flight mechanism for Composio credential minting in the broker.
 type composioSigninFlow struct {
 	mu       sync.Mutex
 	state    composioSigninState
 	actor    string
 	deadline time.Time
+
+	// remintDone is non-nil while a silent re-mint is in flight; late callers
+	// wait on it and share the winner's result instead of shelling out again.
+	remintDone chan struct{}
+	// remintCreds/remintErr/remintAt cache the last completed re-mint. Within
+	// composioRemintCooldown they are served directly, so a burst of parallel
+	// requests against a revoked credential costs one CLI invocation, not one
+	// per request.
+	remintCreds action.ComposioCredentials
+	remintErr   error
+	remintAt    time.Time
 }
 
 // handleComposioSigninStart kicks off (or re-joins) the sign-in flow.
@@ -459,13 +493,15 @@ type composioProvisionedCreds struct {
 
 // composioProvisionCreds resolves usable Composio SDK credentials after login.
 //
-// Preferred path: `composio dev init` writes a project ak_ key to .env.local
-// (older CLIs, and the same path trustclaw uses). The current composio CLI no
-// longer mints an ak_ key this way, so we fall back to the user-key mode: the
-// uak_ session key + org id the CLI already wrote to user_data.json, scoped to
-// the org's default project (resolved best-effort; the SDK works without it).
+// Preferred path: `composio dev init` resolves or creates a project ak_ key and
+// writes it to .env.local — still true in CLI 0.2.31 (see the header comment
+// for the endpoints it uses). Only if that fails do we fall back to the
+// user-key mode: the uak_ session key + org id the CLI already wrote to
+// user_data.json, scoped to the org's default project (resolved best-effort;
+// the SDK works without it). That fallback is a revocable session credential,
+// so it is a last resort, not a peer.
 func composioProvisionCreds() (composioProvisionedCreds, error) {
-	if key, err := composioProvisionProjectKey(); err == nil {
+	if key, err := composioProvisionProjectKey(composioDevInitTimeout); err == nil {
 		return composioProvisionedCreds{APIKey: key}, nil
 	}
 	ud, err := readComposioUserData()
@@ -563,8 +599,12 @@ func parseComposioLoginURL(output string) string {
 // composioProvisionProjectKey runs `composio dev init -y --no-browser` in a
 // temp dir and parses the project API key it writes to .env.local. The temp
 // dir is always removed; the key never touches logs.
-func composioProvisionProjectKey() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), composioDevInitTimeout)
+//
+// budget is the hard wall-clock cap on the subprocess. The interactive sign-in
+// flow gives it a generous one; the request-path re-mint gives it a short one,
+// because a user is waiting on the other end of an HTTP request.
+func composioProvisionProjectKey(budget time.Duration) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
 	dir, err := os.MkdirTemp("", "wuphf-composio-signin-")
 	if err != nil {
@@ -576,6 +616,9 @@ func composioProvisionProjectKey() (string, error) {
 		return "", err
 	}
 	cmd.Dir = dir
+	// Explicitly no stdin: `dev init` is non-interactive with -y, but a future
+	// prompt must hit EOF and fail fast rather than block a caller forever.
+	cmd.Stdin = nil
 	// Output discarded on purpose: dev init may echo project metadata and the
 	// key it writes; nothing from it belongs in broker logs or errors.
 	if err := cmd.Run(); err != nil {

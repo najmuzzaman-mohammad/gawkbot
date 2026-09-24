@@ -1,4 +1,4 @@
-import { get, post } from "./client";
+import { ApiError, get, post } from "./client";
 
 export type IntegrationProvider = "composio" | "one" | string;
 
@@ -9,6 +9,12 @@ export interface IntegrationProviderStatus {
   supports_connect: boolean;
   supports_disconnect: boolean;
   detail?: string;
+  /**
+   * The stored Composio credential is dead and the broker could not re-mint
+   * one, so the only fix is a fresh browser sign-in. `detail` already carries
+   * the human sentence; this flag tells the UI to offer the button.
+   */
+  needs_signin?: boolean;
 }
 
 export interface IntegrationConnection {
@@ -200,4 +206,27 @@ export async function startComposioSignin(): Promise<ComposioSigninState> {
 
 export async function getComposioSigninStatus(): Promise<ComposioSigninState> {
   return get<ComposioSigninState>("/integrations/composio/signin/status");
+}
+
+/**
+ * The broker's machine-readable code for "Composio revoked this office's
+ * credential and the silent re-mint could not replace it". Mirrors
+ * composioSignInExpiredCode in internal/team/broker_integrations.go.
+ */
+export const COMPOSIO_SIGNIN_EXPIRED = "composio_signin_expired";
+
+/**
+ * True when a failed integration call was a dead Composio sign-in rather than
+ * an outage. The UI branches on this to show the sign-in panel instead of an
+ * error toast, so no surface has to recognise a 401 by its text.
+ */
+export function isComposioSigninExpired(error: unknown): boolean {
+  return (
+    error instanceof ApiError && error.errorCode === COMPOSIO_SIGNIN_EXPIRED
+  );
+}
+
+/** The upstream request id for a failed call, for a support-details affordance. */
+export function integrationErrorRequestId(error: unknown): string | null {
+  return error instanceof ApiError ? error.requestId : null;
 }

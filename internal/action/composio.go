@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/nex-crm/wuphf/internal/config"
@@ -28,14 +30,22 @@ type ComposioREST struct {
 	APIKey string
 	// UserAPIKey/OrgID/ProjectID are the user-key auth mode: the `uak_` session
 	// key plus org (required) and project (optional) ids, sent as
-	// x-user-api-key / x-org-id / x-project-id. Used when no project ak_ key is
-	// available (the current composio CLI can't mint one via `dev init`).
+	// x-user-api-key / x-org-id / x-project-id. This is a CLI SESSION
+	// credential: Composio revokes it on re-login and on session expiry, which
+	// is why every request path can re-mint (see composio_auth.go).
 	UserAPIKey string
 	OrgID      string
 	ProjectID  string
 	UserID     string
 	BaseURL    string
 	Client     *http.Client
+	// Reauth overrides the process-wide re-mint provider for this client.
+	// Normally nil — SetComposioReauth registers one for every caller at once.
+	// Tests set it directly.
+	Reauth ComposioReauthFunc
+	// refreshed holds credentials adopted after a successful re-mint, so a
+	// long-lived client stops replaying a credential Composio has revoked.
+	refreshed atomic.Pointer[ComposioCredentials]
 }
 
 type ComposioAPIError struct {
@@ -45,10 +55,24 @@ type ComposioAPIError struct {
 	Status     string
 	RequestID  string
 	RetryAfter string
+	// Code and Slug are Composio's machine-readable classification, parsed
+	// from the response body. Its human `message` is deliberately not kept:
+	// the project-key branch echoes a masked key into it.
+	Code int
+	Slug string
+	// CredentialKind names which auth mode Composio rejected, when it rejected
+	// the credential rather than the request.
+	CredentialKind ComposioCredentialKind
+	// credentialRevoked marks a rejection of the credential itself, so Unwrap
+	// can expose ErrComposioCredentialRevoked to errors.Is.
+	credentialRevoked bool
 }
 
 func (e *ComposioAPIError) Error() string {
 	parts := []string{"composio API failed", strings.TrimSpace(e.Method), strings.TrimSpace(e.Path), strings.TrimSpace(e.Status)}
+	if slug := strings.TrimSpace(e.Slug); slug != "" {
+		parts = append(parts, "slug="+slug)
+	}
 	if requestID := strings.TrimSpace(e.RequestID); requestID != "" {
 		parts = append(parts, "request_id="+requestID)
 	}
@@ -56,6 +80,19 @@ func (e *ComposioAPIError) Error() string {
 		parts = append(parts, "retry_after="+retryAfter)
 	}
 	return strings.Join(compactStrings(parts), " ")
+}
+
+// CredentialRevoked reports that Composio rejected the stored credential itself.
+func (e *ComposioAPIError) CredentialRevoked() bool { return e != nil && e.credentialRevoked }
+
+// Unwrap exposes ErrComposioCredentialRevoked to errors.Is so every caller —
+// including ones several wraps away — can branch on the cause instead of on the
+// message or the status code.
+func (e *ComposioAPIError) Unwrap() error {
+	if e != nil && e.credentialRevoked {
+		return ErrComposioCredentialRevoked
+	}
+	return nil
 }
 
 func NewComposioFromEnv() *ComposioREST {
@@ -77,30 +114,33 @@ func NewComposioFromEnv() *ComposioREST {
 // hasAuth reports whether the client carries usable Composio credentials:
 // either a project `ak_` key, or the user-key pair (`uak_` + org id).
 func (c *ComposioREST) hasAuth() bool {
-	if strings.TrimSpace(c.APIKey) != "" {
-		return true
-	}
-	return strings.TrimSpace(c.UserAPIKey) != "" && strings.TrimSpace(c.OrgID) != ""
+	return !c.creds().empty()
 }
 
 // applyAuthHeaders sets the auth headers for the active mode: x-api-key for a
 // project key, else x-user-api-key + x-org-id (+ x-project-id when known).
 //
 // x-api-key (project ak_ key) is Composio's DOCUMENTED public-API auth and is
-// preferred whenever a key is present (manual paste). The x-user-api-key trio
-// is the auth the official `composio` CLI uses internally; it is not in the
-// public REST docs but is stable in practice (the CLI relies on it) and is the
-// only path available to the one-click sign-in, since the current CLI can't
-// mint a project ak_ key. Verified working on both /api/v3 and /api/v3.1.
+// what the sign-in flow mints and stores: `composio dev init` resolves or
+// creates a project key (POST /api/v3/org/project/{id}/api_keys/create) and
+// writes it to .env.local — verified in composio CLI 0.2.31.
+//
+// The x-user-api-key trio is the auth the official `composio` CLI uses
+// internally. It works against /api/v3 and /api/v3.1, but it is a SESSION
+// credential: Composio revokes it on re-login and on expiry, answering
+// 401 UserApiKey_Unauthorized thereafter. It is therefore only a fallback for
+// when the project-key mint fails, and every request path can detect the
+// rejection and re-mint (composio_auth.go).
 func (c *ComposioREST) applyAuthHeaders(h http.Header) {
-	if key := strings.TrimSpace(c.APIKey); key != "" {
-		h.Set("x-api-key", key)
+	creds := c.creds()
+	if creds.APIKey != "" {
+		h.Set("x-api-key", creds.APIKey)
 		return
 	}
-	h.Set("x-user-api-key", strings.TrimSpace(c.UserAPIKey))
-	h.Set("x-org-id", strings.TrimSpace(c.OrgID))
-	if proj := strings.TrimSpace(c.ProjectID); proj != "" {
-		h.Set("x-project-id", proj)
+	h.Set("x-user-api-key", creds.UserAPIKey)
+	h.Set("x-org-id", creds.OrgID)
+	if creds.ProjectID != "" {
+		h.Set("x-project-id", creds.ProjectID)
 	}
 }
 
@@ -709,21 +749,61 @@ func (c *ComposioREST) delete(ctx context.Context, path string) ([]byte, error) 
 	return c.do(ctx, http.MethodDelete, path, nil, nil)
 }
 
+// do issues the request and, when Composio rejects the STORED CREDENTIAL (not
+// the request), attempts exactly one silent re-mint and exactly one retry
+// before giving up. A user whose CLI session is still good never sees anything
+// but their integration working; a user whose CLI session is gone too gets the
+// typed ErrComposioCredentialRevoked cause, which the HTTP boundary turns into
+// a human sentence plus a re-sign-in button.
+//
+// Loop safety: one re-mint and one retry per request, and the retry is skipped
+// unless the provider actually handed back a DIFFERENT credential — replaying
+// the same dead key would only burn a second round trip. Concurrency safety is
+// the provider's job (it single-flights the CLI invocation).
 func (c *ComposioREST) do(ctx context.Context, method, path string, query url.Values, body any) ([]byte, error) {
 	if !c.Configured() {
 		return nil, fmt.Errorf("composio is not configured; set COMPOSIO_API_KEY (or sign in with Composio) and a user identity")
 	}
-	u := strings.TrimRight(c.BaseURL, "/") + path
-	if encoded := query.Encode(); encoded != "" {
-		u += "?" + encoded
-	}
-	var reader io.Reader
+	var payload []byte
 	if body != nil {
 		raw, err := json.Marshal(body)
 		if err != nil {
 			return nil, err
 		}
-		reader = bytes.NewReader(raw)
+		payload = raw
+	}
+	raw, err := c.attempt(ctx, method, path, query, payload)
+	var apiErr *ComposioAPIError
+	if !errors.As(err, &apiErr) || !apiErr.CredentialRevoked() {
+		return raw, err
+	}
+	reauth := c.reauth()
+	if reauth == nil {
+		return nil, err
+	}
+	next, reauthErr := reauth(ctx)
+	if reauthErr != nil {
+		// Recovery is impossible (no valid CLI session). Keep the typed cause
+		// so the boundary can speak human; the re-mint failure itself is not
+		// re-wrapped, because its text is diagnostic, not user-facing.
+		return nil, err
+	}
+	if !c.adoptCredentials(next) {
+		return nil, err
+	}
+	return c.attempt(ctx, method, path, query, payload)
+}
+
+// attempt performs a single Composio round trip. A non-2xx is returned as a
+// *ComposioAPIError carrying Composio's machine-readable classification.
+func (c *ComposioREST) attempt(ctx context.Context, method, path string, query url.Values, payload []byte) ([]byte, error) {
+	u := strings.TrimRight(c.BaseURL, "/") + path
+	if encoded := query.Encode(); encoded != "" {
+		u += "?" + encoded
+	}
+	var reader io.Reader
+	if payload != nil {
+		reader = bytes.NewReader(payload)
 	}
 	req, err := http.NewRequestWithContext(ctx, method, u, reader)
 	if err != nil {
@@ -731,7 +811,7 @@ func (c *ComposioREST) do(ctx context.Context, method, path string, query url.Va
 	}
 	c.applyAuthHeaders(req.Header)
 	req.Header.Set("Accept", "application/json")
-	if body != nil {
+	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	resp, err := c.Client.Do(req)
@@ -755,13 +835,22 @@ func (c *ComposioREST) do(ctx context.Context, method, path string, query url.Va
 		return nil, fmt.Errorf("composio: %s %s response exceeded %d bytes; narrow the query", method, path, composioMaxResponseBytes)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		revoked, kind, code, slug, bodyRequestID := classifyComposioAuthFailure(resp.StatusCode, raw)
 		return nil, &ComposioAPIError{
 			Method:     method,
 			Path:       path,
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,
-			RequestID:  firstNonEmpty(resp.Header.Get("x-request-id"), resp.Header.Get("request-id")),
-			RetryAfter: resp.Header.Get("Retry-After"),
+			RequestID: firstNonEmpty(
+				resp.Header.Get("x-request-id"),
+				resp.Header.Get("request-id"),
+				bodyRequestID,
+			),
+			RetryAfter:        resp.Header.Get("Retry-After"),
+			Code:              code,
+			Slug:              slug,
+			CredentialKind:    kind,
+			credentialRevoked: revoked,
 		}
 	}
 	return raw, nil

@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { OpenNewWindow } from "iconoir-react";
 
 import { updateConfig } from "../../../api/client";
-import {
-  type ComposioSigninState,
-  getComposioSigninStatus,
-  startComposioSignin,
-} from "../../../api/integrations";
-import { CommandRow } from "../../ui/CommandRow";
 import { showNotice } from "../../ui/Toast";
+import { ComposioSigninPanel } from "./ComposioSigninPanel";
 import { GitHubLogo, GmailLogo, SlackLogo } from "./IntegrationLogos";
+import { useComposioSignin } from "./useComposioSignin";
 
 // ComposioOnboarding is the first-run state of the Integrations page when no
 // Composio API key is connected. Composio powers the whole integration catalog
@@ -24,15 +20,6 @@ import { GitHubLogo, GmailLogo, SlackLogo } from "./IntegrationLogos";
 // root URL routes signed-in users to their active project.
 const COMPOSIO_KEYS_URL = "https://dashboard.composio.dev";
 
-type SigninPhase =
-  | "idle"
-  | "installing"
-  | "cli_missing"
-  | "awaiting_login"
-  | "provisioning"
-  | "done"
-  | "error";
-
 interface ComposioOnboardingProps {
   /** Called after the key is saved so the page can re-fetch config + catalog. */
   onConnected: () => void;
@@ -40,14 +27,7 @@ interface ComposioOnboardingProps {
 
 export function ComposioOnboarding({ onConnected }: ComposioOnboardingProps) {
   const queryClient = useQueryClient();
-  const [phase, setPhase] = useState<SigninPhase>("idle");
-  const [authUrl, setAuthUrl] = useState("");
-  const [installCommand, setInstallCommand] = useState("");
-  const [signinError, setSigninError] = useState("");
   const [showManual, setShowManual] = useState(false);
-  // Auto-open the login URL once per flow; re-renders and status polls must
-  // not spawn extra tabs.
-  const openedRef = useRef(false);
 
   const finishConnected = useCallback(async () => {
     showNotice("Integrations connected. Loading…", "success");
@@ -56,77 +36,12 @@ export function ComposioOnboarding({ onConnected }: ComposioOnboardingProps) {
     onConnected();
   }, [queryClient, onConnected]);
 
-  const applySigninState = useCallback(
-    (state: ComposioSigninState) => {
-      switch (state.status) {
-        case "installing":
-          // The broker is auto-installing the Composio CLI before it can mint
-          // a login URL. We must enter (and keep polling) this phase — without
-          // it the page would stall on "idle" and never open the sign-in tab.
-          setPhase("installing");
-          setInstallCommand(state.install_command ?? "");
-          break;
-        case "cli_missing":
-          setPhase("cli_missing");
-          setInstallCommand(state.install_command ?? "");
-          break;
-        case "awaiting_login":
-          setPhase("awaiting_login");
-          setAuthUrl(state.auth_url ?? "");
-          if (state.auth_url && !openedRef.current) {
-            openedRef.current = true;
-            window.open(state.auth_url, "_blank", "noopener");
-          }
-          break;
-        case "provisioning":
-          setPhase("provisioning");
-          break;
-        case "done":
-          setPhase("done");
-          void finishConnected();
-          break;
-        case "error":
-          setPhase("error");
-          setSigninError(state.reason ?? "Sign-in failed. Try again.");
-          break;
-        default:
-          break;
-      }
-    },
-    [finishConnected],
-  );
-
-  const signinMutation = useMutation({
-    mutationFn: startComposioSignin,
-    onSuccess: applySigninState,
-    onError: (err: unknown) => {
-      setPhase("error");
-      setSigninError(
-        err instanceof Error ? err.message : "Could not start sign-in",
-      );
-    },
-  });
-
-  const startSignin = () => {
-    openedRef.current = false;
-    setSigninError("");
-    signinMutation.mutate();
-  };
-
-  const polling =
-    phase === "installing" ||
-    phase === "awaiting_login" ||
-    phase === "provisioning";
-  const statusQuery = useQuery({
-    queryKey: ["composio-signin-status"],
-    queryFn: getComposioSigninStatus,
-    enabled: polling,
-    refetchInterval: polling ? 1500 : false,
-  });
-  const statusState = statusQuery.data;
-  useEffect(() => {
-    if (polling && statusState) applySigninState(statusState);
-  }, [polling, statusState, applySigninState]);
+  // Stable callback: the hook keys its status-poll effect on it, so a fresh
+  // arrow every render would re-run that effect on every render.
+  const handleSignedIn = useCallback(() => {
+    void finishConnected();
+  }, [finishConnected]);
+  const signin = useComposioSignin({ onDone: handleSignedIn });
 
   const connectMutation = useMutation({
     mutationFn: (key: string) => updateConfig({ composio_api_key: key }),
@@ -163,17 +78,18 @@ export function ComposioOnboarding({ onConnected }: ComposioOnboardingProps) {
           <span className="composio-onb-more">+250 more</span>
         </div>
 
-        <SigninPanel
-          phase={phase}
-          authUrl={authUrl}
-          installCommand={installCommand}
-          starting={signinMutation.isPending}
-          onStart={startSignin}
+        <ComposioSigninPanel
+          phase={signin.phase}
+          authUrl={signin.authUrl}
+          installCommand={signin.installCommand}
+          starting={signin.starting}
+          onStart={signin.start}
+          ctaLabel="Connect integrations"
         />
 
-        {phase === "error" && signinError ? (
+        {signin.phase === "error" && signin.error ? (
           <p className="composio-onb-error" role="alert">
-            {signinError}
+            {signin.error}
           </p>
         ) : null}
 
@@ -199,109 +115,6 @@ export function ComposioOnboarding({ onConnected }: ComposioOnboardingProps) {
         </p>
       </div>
     </section>
-  );
-}
-
-interface SigninPanelProps {
-  phase: SigninPhase;
-  authUrl: string;
-  installCommand: string;
-  starting: boolean;
-  onStart: () => void;
-}
-
-/** The primary sign-in surface — one panel per flow phase. */
-function SigninPanel({
-  phase,
-  authUrl,
-  installCommand,
-  starting,
-  onStart,
-}: SigninPanelProps) {
-  if (phase === "installing") {
-    return (
-      <div className="composio-onb-panel" role="status">
-        <p className="composio-onb-panel-title">Setting up integrations…</p>
-        <p className="composio-onb-panel-note">
-          One-time setup. We’ll open the sign-in page automatically as soon as
-          it’s ready.
-        </p>
-        <p className="composio-onb-wait">Working on it…</p>
-      </div>
-    );
-  }
-  if (phase === "cli_missing") {
-    return (
-      <div className="composio-onb-panel" role="status">
-        <p className="composio-onb-panel-title">One quick terminal step</p>
-        <p className="composio-onb-panel-note">
-          Automatic setup didn’t finish. Run this in a terminal, then try again:
-        </p>
-        <CommandRow command={installCommand} />
-        <div className="composio-onb-actions">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={onStart}
-            disabled={starting}
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    );
-  }
-  if (phase === "awaiting_login") {
-    return (
-      <div className="composio-onb-panel" role="status">
-        <p className="composio-onb-panel-title">
-          Finish signing in in your browser
-        </p>
-        {authUrl ? (
-          <p className="composio-onb-panel-note">
-            We opened the sign-in page in a new tab. If it didn’t appear,{" "}
-            <a
-              className="composio-onb-getkey"
-              href={authUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              open the sign-in link
-              <OpenNewWindow width={13} height={13} aria-hidden="true" />
-            </a>
-            .
-          </p>
-        ) : (
-          <p className="composio-onb-panel-note">
-            Run <code>composio login</code> in a terminal to finish signing in —
-            we’ll pick it up automatically.
-          </p>
-        )}
-        <p className="composio-onb-wait">Waiting for you to finish…</p>
-      </div>
-    );
-  }
-  if (phase === "provisioning" || phase === "done") {
-    return (
-      <div className="composio-onb-panel" role="status">
-        <p className="composio-onb-panel-title">Connecting your account…</p>
-        <p className="composio-onb-panel-note">
-          Saving your credentials to this workspace.
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="composio-onb-actions">
-      <button
-        type="button"
-        className="btn btn-primary composio-onb-submit"
-        onClick={onStart}
-        disabled={starting}
-      >
-        {starting ? "Connecting…" : "Connect integrations"}
-      </button>
-    </div>
   );
 }
 
