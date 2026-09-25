@@ -34,6 +34,7 @@ import {
   isCatalogModel,
   modelOptionsForKind,
 } from "../../lib/modelCatalog";
+import { DEFAULT_LLM_KINDS } from "../../lib/providerBinding";
 import { router } from "../../lib/router";
 import { useAppStore } from "../../stores/app";
 import { HarnessBadge } from "../ui/HarnessBadge";
@@ -43,6 +44,7 @@ import { BotInstructionsSection } from "./BotInstructionsSection";
 
 const PROVIDER_LABELS: Record<LLMRuntimeKind, string> = {
   "claude-code": "Claude Code",
+  atlascloud: "Atlas Cloud",
   codex: "Codex",
   opencode: "Opencode",
   "mlx-lm": "MLX-LM",
@@ -526,14 +528,8 @@ function RuntimeSection({
     staleTime: 30_000,
   });
   const localStatuses: LocalProviderStatus[] = localStatusQuery.data ?? [];
-  const llmKinds: LLMRuntimeKind[] = (configQuery.data?.llm_provider_kinds ?? [
-    "claude-code",
-    "codex",
-    "opencode",
-    "mlx-lm",
-    "ollama",
-    "exo",
-  ]) as LLMRuntimeKind[];
+  const llmKinds: LLMRuntimeKind[] = (configQuery.data?.llm_provider_kinds ??
+    DEFAULT_LLM_KINDS) as LLMRuntimeKind[];
   const globalDefault = configQuery.data?.llm_provider ?? "claude-code";
 
   const binding = bindingFromMember(agent.provider);
