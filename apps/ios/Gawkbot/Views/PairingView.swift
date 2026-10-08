@@ -17,7 +17,7 @@ struct PairingView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 28) {
-                    BlobAvatarView(slug: "cos", size: 96, openness: 1)
+                    MoodAvatarView(slug: "cos", mood: .idle, size: 96, halo: true)
                         .padding(.top, 32)
                     VStack(spacing: 6) {
                         Text("gawkbot").font(.system(size: 34, weight: .bold, design: .rounded))
@@ -59,6 +59,7 @@ struct PairingView: View {
                 }
                 .padding(.bottom, 40)
             }
+            .background(Color.softCanvas)
             .sheet(isPresented: $showScanner) {
                 QRScannerSheet { code in
                     showScanner = false

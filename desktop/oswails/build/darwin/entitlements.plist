@@ -9,5 +9,10 @@
   <true/>
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
   <true/>
+  <!-- Push-to-talk in the notch (notch_darwin.m): the hardened runtime blocks
+       the microphone unless this is granted. macOS still asks the human the
+       first time, with NSMicrophoneUsageDescription from Info.plist. -->
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
 </dict>
 </plist>

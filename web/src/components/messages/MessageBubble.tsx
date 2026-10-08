@@ -311,6 +311,10 @@ export function MessageBubble({
         isHuman ? "human" : isSyntheticSender ? "system" : "agent"
       }
       data-author-slug={message.from}
+      // Present only on the person at this keyboard ("you" / bare "human"),
+      // not on other human team members. Themes that lay a conversation out
+      // left/right (Soft) read it; no other theme styles it.
+      data-author-self={isLocalUser ? "" : undefined}
     >
       {/* Avatar */}
       {isRosterBot ? (
@@ -321,7 +325,7 @@ export function MessageBubble({
           aria-label={`Open bot panel for ${agent?.name || message.from}`}
           onClick={() => setActiveBotSlug(message.from)}
         >
-          <PixelAvatar slug={message.from} size={24} />
+          <PixelAvatar slug={message.from} size={24} avatar={agent?.avatar} />
           {harness ? (
             <HarnessBadge
               kind={harness}

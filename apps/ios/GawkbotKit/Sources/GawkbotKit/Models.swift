@@ -20,21 +20,37 @@ public struct Bot: Codable, Identifiable, Hashable, Sendable {
     /// Live activity line ("reviewing work packet"), when the broker has one.
     public var task: String?
     public var builtIn: Bool?
+    /// The bot's chosen look, when someone picked one. Nil draws the
+    /// slug-derived silhouette and colour.
+    public var avatar: BotAvatar?
 
     public var id: String { slug }
 
-    public init(slug: String, name: String, role: String? = nil, status: String? = nil, task: String? = nil, builtIn: Bool? = nil) {
+    public init(slug: String, name: String, role: String? = nil, status: String? = nil, task: String? = nil, builtIn: Bool? = nil, avatar: BotAvatar? = nil) {
         self.slug = slug
         self.name = name
         self.role = role
         self.status = status
         self.task = task
         self.builtIn = builtIn
+        self.avatar = avatar
     }
 
     enum CodingKeys: String, CodingKey {
-        case slug, name, role, status, task
+        case slug, name, role, status, task, avatar
         case builtIn = "built_in"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        slug = try c.decode(String.self, forKey: .slug)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? slug
+        role = try c.decodeIfPresent(String.self, forKey: .role)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        task = try c.decodeIfPresent(String.self, forKey: .task)
+        builtIn = try c.decodeIfPresent(Bool.self, forKey: .builtIn)
+        // A malformed avatar must not cost the whole roster: read it as unset.
+        avatar = try? c.decodeIfPresent(BotAvatar.self, forKey: .avatar)
     }
 
     /// The DM channel the human shares with this bot.
@@ -106,8 +122,10 @@ public struct BotRequest: Codable, Identifiable, Hashable, Sendable {
     public var choices: [InterviewOption]?
     public var recommendedID: String?
     public var createdAt: String?
+    /// True when the asking bot's work is held up until this is answered.
+    public var blocking: Bool?
 
-    public init(id: String, from: String, question: String, title: String? = nil, kind: String? = nil, status: String? = nil, channel: String? = nil, options: [InterviewOption]? = nil, recommendedID: String? = nil, createdAt: String? = nil) {
+    public init(id: String, from: String, question: String, title: String? = nil, kind: String? = nil, status: String? = nil, channel: String? = nil, options: [InterviewOption]? = nil, recommendedID: String? = nil, createdAt: String? = nil, blocking: Bool? = nil) {
         self.id = id
         self.from = from
         self.question = question
@@ -119,10 +137,11 @@ public struct BotRequest: Codable, Identifiable, Hashable, Sendable {
         self.choices = nil
         self.recommendedID = recommendedID
         self.createdAt = createdAt
+        self.blocking = blocking
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, from, question, title, kind, status, channel, options, choices
+        case id, from, question, title, kind, status, channel, options, choices, blocking
         case recommendedID = "recommended_id"
         case createdAt = "created_at"
     }

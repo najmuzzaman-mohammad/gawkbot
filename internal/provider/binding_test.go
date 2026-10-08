@@ -4,7 +4,37 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/nex-crm/wuphf/internal/agentdetect"
 )
+
+// agentdetect duplicates the cli-agent kind string to stay dependency-free;
+// pin the two together so a rename cannot drift silently.
+func TestCLIAgentKindMatchesAgentDetect(t *testing.T) {
+	t.Parallel()
+	if KindCLIAgent != agentdetect.ProviderKindCLIAgent {
+		t.Fatalf("KindCLIAgent=%q, agentdetect.ProviderKindCLIAgent=%q", KindCLIAgent, agentdetect.ProviderKindCLIAgent)
+	}
+}
+
+func TestBindingJSONRoundTrip_CLIAgent(t *testing.T) {
+	t.Parallel()
+	in := ProviderBinding{Kind: KindCLIAgent, Model: "m", CLIAgent: &CLIAgentProviderBinding{Agent: "gemini"}}
+	data, err := json.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), `"cli_agent":{"agent":"gemini"}`) {
+		t.Fatalf("marshal = %s", data)
+	}
+	var out ProviderBinding
+	if err := json.Unmarshal(data, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.CLIAgent == nil || out.CLIAgent.Agent != "gemini" || out.Kind != KindCLIAgent {
+		t.Fatalf("round trip = %+v", out)
+	}
+}
 
 func TestValidateKind(t *testing.T) {
 	t.Parallel()
@@ -21,6 +51,7 @@ func TestValidateKind(t *testing.T) {
 		{"openclaw_http", "openclaw-http", false},
 		{"hermes_agent", "hermes-agent", false},
 		{"slack", "slack", false},
+		{"cli_agent", "cli-agent", false},
 		{"unknown", "gemini", true},
 		{"typo", "claud-code", true},
 		{"uppercase_rejected", "Codex", true},

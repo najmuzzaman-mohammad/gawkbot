@@ -1,0 +1,151 @@
+/* ═══════════════════════════════════════════════════════════════
+   WUPHF Theme: Glass Light
+   Near-white layered surfaces, graphite ink, a deep green accent,
+   hairline borders and frosted glass panes. Sibling of
+   nex-glass-dark.css; where the glass goes is decided once, for both,
+   in glass-base.css. Token values only.
+
+   Contrast, measured with the WCAG formula on the opaque stops:
+     --text            #1d1d1f on --bg-subtle #f5f5f7 15.5:1
+     --text-secondary  #5f5f64 on --bg-warm #f2f2f5    5.7:1
+     --text-tertiary   #6a6a6f on --bg-warm #f2f2f5    4.8:1
+     --accent          #1a7f3c on --bg-card #ffffff    5.1:1
+                               on --bg-warm #f2f2f5    4.5:1
+     --accent-fg       #ffffff on --accent #1a7f3c     5.1:1
+     --mention-fg      #17652f on its own tint         6.2:1
+   The bright system green (#34c759) is 2.2:1 on white — fine for a dot,
+   not for a link — so it is kept for presence/status only.
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url("./glass-base.css");
+
+html[data-theme="nex-glass-light"] {
+  color-scheme: light;
+
+  /* ── Overlays for a light surface ── */
+  --overlay-soft: rgba(0, 0, 0, 0.035);
+  --overlay: rgba(0, 0, 0, 0.06);
+  --overlay-strong: rgba(0, 0, 0, 0.12);
+  --scrim: rgba(0, 0, 0, 0.22);
+  --overlay-white-soft: rgba(255, 255, 255, 0.08);
+  --overlay-white: rgba(255, 255, 255, 0.16);
+  --overlay-white-strong: rgba(255, 255, 255, 0.45);
+
+  /* ── Surfaces, layered: card (white) > bg > subtle > warm (hover) ── */
+  --bg: #fbfbfd;
+  --bg-subtle: #f5f5f7;
+  --bg-card: #ffffff;
+  --bg-warm: #f2f2f5;
+  --bg-row-active: #e8e8ed;
+
+  /* ── Ink ── */
+  --text: #1d1d1f;
+  --text-secondary: #5f5f64;
+  --text-tertiary: #6a6a6f;
+  --text-disabled: #aeaeb2;
+
+  /* ── Hairlines ── */
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.05);
+  --border-dark: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.2);
+
+  /* ── Accent: the brand green, deep enough to carry text on white ── */
+  --accent: #1a7f3c;
+  --accent-warm: #146b31;
+  --accent-bg: rgba(26, 127, 60, 0.1);
+  --accent-bg-strong: rgba(26, 127, 60, 0.24);
+  --accent-fg: #ffffff;
+  --glass-focus: rgba(26, 127, 60, 0.32);
+
+  /* ── Status ── */
+  --success-500: #146b31;
+  --success-400: #1a7f3c;
+  --success-300: #34c759;
+  --success-200: #bfe8cb;
+  --success-100: #e8f6ec;
+  --error-500: #a51f17;
+  --error-400: #c4271d;
+  --error-300: #ff6961;
+  --error-200: #fbd5d2;
+  --error-100: #fdeeed;
+  --warning-500: #8a4b00;
+  --warning-400: #a35a00;
+  --warning-300: #ff9f0a;
+  --warning-200: #fbe3bf;
+  --warning-100: #fef4e5;
+  --cyan-100: #e6f4fb;
+  --tertiary-100: var(--accent-bg);
+  --green: var(--success-400);
+  --green-dark: var(--success-500);
+  --green-bg: var(--success-100);
+  --red: var(--error-400);
+  --red-dark: var(--error-500);
+  --red-bg: var(--error-100);
+  --yellow: var(--warning-400);
+  --yellow-dark: var(--warning-500);
+  --yellow-bg: var(--warning-100);
+  --blue: #0a6fb8;
+  --blue-bg: var(--cyan-100);
+  --purple: #8e44ad;
+  --purple-bg: rgba(142, 68, 173, 0.1);
+
+  /* ── Sidebar: frosted pane + its opaque stand-in for sticky chrome ── */
+  --nex-sidebar: #f2f2f5;
+  --nex-sidebar-glass: rgba(242, 242, 246, 0.7);
+  --nex-sidebar-hover: rgba(0, 0, 0, 0.05);
+  --nex-sidebar-active: rgba(26, 127, 60, 0.12);
+  --nex-sidebar-active-ring: rgba(26, 127, 60, 0.1);
+  --nex-sidebar-text: #5f5f64;
+  --nex-sidebar-text-active: #1d1d1f;
+  --nex-presence: #34c759;
+
+  /* ── Glass material ── */
+  --glass-pane: rgba(255, 255, 255, 0.74);
+  --glass-pane-border: rgba(0, 0, 0, 0.08);
+  --glass-field: #ffffff;
+  --glass-wash-1: rgba(52, 199, 89, 0.12);
+  --glass-wash-2: rgba(10, 132, 255, 0.08);
+
+  /* ── Elevation: soft and wide, never a hard drop ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card-soft:
+    0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --shadow-popover:
+    0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 8px 24px -6px rgba(0, 0, 0, 0.14),
+    0 24px 56px -16px rgba(0, 0, 0, 0.16);
+  --shadow-modal:
+    0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06),
+    0 28px 72px -16px rgba(0, 0, 0, 0.24);
+  --shadow-overlay:
+    0 2px 6px rgba(0, 0, 0, 0.06), 0 32px 80px -16px rgba(0, 0, 0, 0.24);
+
+  /* ── Inline accents ── */
+  --mention-bg: rgba(26, 127, 60, 0.1);
+  --mention-fg: #17652f;
+  --syntax-number: #0a6fb8;
+  --syntax-bool: #a35a00;
+
+  /* ── Wiki editor chrome (portals to body, so set at html scope) ── */
+  --wk-wikilink: var(--accent);
+
+  /* ── shadcn/Tailwind primitives (HSL triplets). --accent and --border
+     are deliberately not restated; see nex-glass-dark.css. ── */
+  --background: 240 33% 99%;
+  --foreground: 240 3% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 3% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 3% 12%;
+  --primary: 140 66% 30%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 14% 96%;
+  --secondary-foreground: 240 3% 12%;
+  --muted: 240 14% 96%;
+  --muted-foreground: 240 2% 38%;
+  --destructive: 4 74% 44%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 240 6% 90%;
+  --ring: 140 66% 30%;
+  --radius: 11px;
+}

@@ -106,4 +106,46 @@ describe("<AgentWizard>", () => {
     ];
     expect(body.personality).toBeUndefined();
   });
+
+  it("sends a picked avatar in the create body", async () => {
+    postMock.mockResolvedValue({});
+    render(wrap(<BotWizard open={true} onClose={vi.fn()} />));
+
+    fireEvent.click(screen.getByRole("button", { name: "Manual" }));
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Revenue Ops" },
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "Shield" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Violet" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const [, body] = postMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(body.avatar).toEqual({ shape: "shield", color: "#8b6bb1" });
+  });
+
+  it("omits `avatar` when the look is left automatic", async () => {
+    postMock.mockResolvedValue({});
+    render(wrap(<BotWizard open={true} onClose={vi.fn()} />));
+
+    fireEvent.click(screen.getByRole("button", { name: "Manual" }));
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Quiet Bot" },
+    });
+    // Choose, then change your mind.
+    fireEvent.click(screen.getByRole("radio", { name: "Dome" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset to automatic" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const [, body] = postMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(body).not.toHaveProperty("avatar", expect.anything());
+    expect(body.avatar).toBeUndefined();
+  });
 });

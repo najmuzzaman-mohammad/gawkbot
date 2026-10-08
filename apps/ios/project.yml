@@ -22,6 +22,8 @@ settings:
     INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
     INFOPLIST_KEY_NSCameraUsageDescription: "Scan the pairing code shown in your office's Access & Health page."
+    INFOPLIST_KEY_NSMicrophoneUsageDescription: "gawkbot listens only while you hold the mic button, so you can answer your agents or message them by voice. Nothing is sent until you tap Send."
+    INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Your words are turned into text so you can answer or message your agents. When this iPhone can transcribe on its own it does; otherwise Apple's speech recognition service does it. Nothing reaches your office until you tap Send."
     INFOPLIST_KEY_CFBundleDisplayName: gawkbot
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -40,6 +42,10 @@ targets:
           - CFBundleURLName: bot.gawk.pair
             CFBundleURLSchemes: [gawkbot]
         NSCameraUsageDescription: "Scan the pairing code shown in your office's Access & Health page."
+        # Hold-to-talk in the inbox (Speech + AVAudioEngine, system
+        # frameworks that auto-link from their imports).
+        NSMicrophoneUsageDescription: "gawkbot listens only while you hold the mic button, so you can answer your agents or message them by voice. Nothing is sent until you tap Send."
+        NSSpeechRecognitionUsageDescription: "Your words are turned into text so you can answer or message your agents. When this iPhone can transcribe on its own it does; otherwise Apple's speech recognition service does it. Nothing reaches your office until you tap Send."
         UILaunchScreen: {}
         NSAppTransportSecurity:
           # Offices run over http on a LAN or a Tailscale address; anything

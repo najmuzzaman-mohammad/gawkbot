@@ -694,6 +694,12 @@ func (b *Broker) StartOnPort(port int) error {
 	// home) reads this one endpoint so the numbers cannot drift.
 	mux.HandleFunc("/office/stats", b.requireAuth(b.handleOfficeStats))
 	mux.HandleFunc("/office-members/generate", b.requireAuth(b.handleGenerateMember))
+	// Agent CLIs found on this machine, adoptable as office bots
+	// (broker_local_agents.go). Owner-only: not on the human allowlist.
+	mux.HandleFunc("/agents/local", b.requireAuth(b.handleLocalAgents))
+	mux.HandleFunc("/agents/local/adopt", b.requireAuth(b.handleAdoptLocalAgents))
+	// One-poll snapshot for the Mac notch (broker_notch.go). Owner-only.
+	mux.HandleFunc("/notch/state", b.requireAuth(b.handleNotchState))
 	mux.HandleFunc("/channels", b.requireAuth(b.handleChannels))
 	mux.HandleFunc("/channels/dm", b.requireAuth(b.handleCreateDM))
 	mux.HandleFunc("/channels/generate", b.requireAuth(b.handleGenerateChannel))

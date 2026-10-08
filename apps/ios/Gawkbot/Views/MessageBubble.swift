@@ -1,37 +1,56 @@
 import SwiftUI
 import GawkbotKit
 
+extension ChatMessage {
+    /// Office notices, acks and task changes: a centred grey line, not a bubble.
+    var rendersAsSystemLine: Bool {
+        isSystem || kind == "system" || kind == "task_created" || kind == "task_updated"
+    }
+}
+
+/// One message, iMessage style: yours on the right in the accent, the bot's
+/// on the left in a soft neutral bubble with its avatar beside the first
+/// bubble of each run, office notices centred.
 struct MessageRow: View {
     let message: ChatMessage
-    let botSlug: String
+    /// The sender's chosen look (nil: derived from the slug).
+    var avatar: BotAvatar? = nil
+    /// First bubble of a run from this sender: carries the avatar and a gap above.
+    let isRunStart: Bool
+    /// Last bubble of a run: carries the tail and a gap below.
     let isTail: Bool
 
+    static let avatarSize: CGFloat = 28
+
     var body: some View {
-        if message.isSystem || message.kind == "system" || message.kind == "task_created" || message.kind == "task_updated" {
+        if message.rendersAsSystemLine {
             SystemLine(text: message.content)
         } else if message.isFromHuman {
             HStack(alignment: .bottom) {
-                Spacer(minLength: 60)
+                Spacer(minLength: 56)
                 Bubble(text: message.content, mine: true, tail: isTail)
             }
-            .padding(.bottom, isTail ? 6 : 0)
+            .padding(.top, isRunStart ? 6 : 0)
+            .padding(.bottom, isTail ? 4 : 0)
         } else {
-            HStack(alignment: .bottom, spacing: 6) {
-                if isTail {
-                    BlobAvatarView(slug: message.from, size: 26)
+            HStack(alignment: .top, spacing: 8) {
+                if isRunStart {
+                    BlobAvatarView(slug: message.from, avatar: avatar, size: MessageRow.avatarSize)
+                        .padding(.top, 3)
                 } else {
-                    Color.clear.frame(width: 26, height: 26)
+                    Color.clear.frame(width: MessageRow.avatarSize, height: 1)
                 }
                 Bubble(text: message.content, mine: false, tail: isTail)
-                Spacer(minLength: 60)
+                Spacer(minLength: 56)
             }
-            .padding(.bottom, isTail ? 6 : 0)
+            .padding(.top, isRunStart ? 6 : 0)
+            .padding(.bottom, isTail ? 4 : 0)
         }
     }
 }
 
-/// An iMessage-shaped bubble. Blue for the human, gray for the bot, with a
-/// tail on the last bubble of a run.
+/// An iMessage-shaped bubble: the accent with white text for the human, a
+/// soft neutral for the bot, with a tail on the last bubble of a run.
 struct Bubble: View {
     let text: String
     let mine: Bool
@@ -44,8 +63,8 @@ struct Bubble: View {
             .font(.body)
             .foregroundStyle(mine ? Color.white : Color.primary)
             .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(BubbleShape(mine: mine, tail: tail).fill(mine ? Color.accentColor : Color(.systemGray5)))
+            .padding(.vertical, 9)
+            .background(BubbleShape(mine: mine, tail: tail).fill(mine ? Color.accentColor : Color.softBubble))
             .textSelection(.enabled)
             .accessibilityLabel(mine ? "You said: \(text)" : text)
     }
@@ -55,7 +74,7 @@ struct Bubble: View {
 struct BubbleShape: Shape {
     let mine: Bool
     let tail: Bool
-    private let radius: CGFloat = 18
+    private let radius: CGFloat = 20
 
     func path(in rect: CGRect) -> Path {
         var p = Path(roundedRect: rect, cornerRadius: radius, style: .continuous)
@@ -80,7 +99,7 @@ struct BubbleShape: Shape {
 struct SystemLine: View {
     let text: String
     var body: some View {
-        Text(text)
+        Text(verbatim: text)
             .font(.caption)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)

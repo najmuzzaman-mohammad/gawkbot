@@ -1,0 +1,1004 @@
+/* The Mac notch surface (notch.html).
+
+   Not themed like the app: the collapsed strip must be the exact black of
+   the camera housing it grows out of, so the notch scopes its own tokens
+   here instead of loading /themes/*.css. The open panel is a dark glass
+   sheet: near-black, a specular top edge, translucent cards with hairline
+   borders, spring easing everywhere. */
+
+:root {
+  --notch-bg: #000000;
+  --notch-sheet-top: #141418;
+  --notch-sheet-bottom: #0a0a0c;
+  --notch-glass: rgba(255, 255, 255, 0.06);
+  --notch-glass-hover: rgba(255, 255, 255, 0.1);
+  --notch-glass-strong: rgba(255, 255, 255, 0.14);
+  --notch-hairline: rgba(255, 255, 255, 0.09);
+  --notch-specular: rgba(255, 255, 255, 0.16);
+  --notch-text: rgba(255, 255, 255, 0.94);
+  --notch-text-secondary: rgba(235, 235, 245, 0.62);
+  --notch-text-tertiary: rgba(235, 235, 245, 0.38);
+  --notch-accent: #30d158;
+  --notch-accent-ink: #00230b;
+  --notch-blue: #0a84ff;
+  --mood-working: #64d2ff;
+  --mood-idle: #8e8e93;
+  --mood-needs-you: #ffd60a;
+  --mood-error: #ff453a;
+  --mood-done: #30d158;
+  --notch-radius: 22px;
+  /* How far each agent in the gang tucks behind the one before it. */
+  --nb-overlap: -7px;
+  --notch-card-radius: 16px;
+  --notch-spring: cubic-bezier(0.32, 1.25, 0.42, 1);
+  --notch-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --notch-font:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui,
+    sans-serif;
+  --notch-mono: "SF Mono", ui-monospace, Menlo, monospace;
+}
+
+html,
+body,
+#notch-root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: transparent;
+  color: var(--notch-text);
+  font-family: var(--notch-font);
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-right: 5px;
+  border-radius: 5px;
+  font: 600 10px / 1 var(--notch-font);
+  color: var(--notch-text-secondary);
+  background: var(--notch-glass-strong);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────── */
+
+.notch-host,
+.notch-root {
+  position: absolute;
+  inset: 0 0 auto 0;
+}
+.notch-root {
+  pointer-events: none;
+}
+.notch-root > * {
+  pointer-events: auto;
+}
+
+.notch-shell {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--notch-bg);
+  border-radius: 0 0 14px 14px;
+}
+.notch-shell.is-expanded {
+  border-radius: 0 0 var(--notch-radius) var(--notch-radius);
+  background: linear-gradient(
+    180deg,
+    var(--notch-bg) 0,
+    var(--notch-sheet-top) 44px,
+    var(--notch-sheet-bottom) 100%
+  );
+  box-shadow:
+    0 0 0 0.5px var(--notch-hairline),
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Strip ────────────────────────────────────────────────────────────── */
+
+.notch-strip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+.notch-ear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+.notch-ear-right {
+  justify-content: flex-end;
+}
+.notch-ear-text {
+  display: none;
+}
+.notch-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 11px / 1 var(--notch-font);
+  color: #1c1400;
+  background: var(--mood-needs-you);
+  box-shadow: 0 0 12px rgba(255, 214, 10, 0.45);
+}
+
+/* The gang: everyone who needs you, piled up and overlapping. */
+.notch-gang {
+  display: inline-flex;
+  align-items: center;
+}
+.notch-gang-member {
+  display: inline-flex;
+  margin-left: var(--nb-overlap);
+  filter: drop-shadow(-2px 0 0 var(--notch-bg));
+  z-index: calc(10 - var(--gang-i));
+}
+.notch-gang-member:first-child {
+  margin-left: 0;
+}
+
+/* ── Stage (below the strip, collapsed only) ──────────────────────────── */
+
+.notch-stage {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.notch-chat {
+  width: 300px;
+}
+.notch-chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.notch-bubble {
+  max-width: 250px;
+  padding: 8px 12px;
+  border-radius: 16px 16px 16px 5px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--notch-text);
+  background: rgba(30, 30, 34, 0.92);
+  box-shadow:
+    0 0 0 0.5px var(--notch-hairline),
+    inset 0 1px 0 var(--notch-specular),
+    0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.notch-bubble b {
+  font-weight: 600;
+  color: var(--mood-needs-you);
+  margin-right: 2px;
+}
+
+/* ── Bot ──────────────────────────────────────────────────────────────── */
+
+.notch-bot {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.notch-bot .nb-body {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
+}
+.notch-bot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.nb-prop {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--notch-font);
+}
+.nb-bang {
+  top: -6px;
+  right: -6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 10px / 1 var(--notch-font);
+  color: #1c1400;
+  background: var(--mood-needs-you);
+}
+.nb-z {
+  top: -10px;
+  right: -6px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--notch-text-tertiary);
+  opacity: 0;
+}
+.nb-sweat {
+  top: 8%;
+  right: -2px;
+  width: 6px;
+  height: 8px;
+  border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+  background: var(--mood-working);
+  opacity: 0.85;
+}
+.nb-sparkles i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--mood-needs-you);
+  opacity: 0;
+}
+.nb-sparkles i:nth-child(1) {
+  left: -8px;
+  top: 0;
+}
+.nb-sparkles i:nth-child(2) {
+  left: calc(var(--nb-size) + 2px);
+  top: -2px;
+  background: var(--mood-working);
+}
+.nb-sparkles i:nth-child(3) {
+  left: calc(var(--nb-size) / 2);
+  top: -9px;
+  background: var(--mood-done);
+}
+
+/* ── Panel ────────────────────────────────────────────────────────────── */
+
+.npanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 16px 12px;
+  gap: 10px;
+}
+.nhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 2px 2px;
+}
+.nhead-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.nhead-text small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--notch-text-tertiary);
+}
+.nicon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: var(--notch-glass);
+  color: var(--notch-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.nicon-wide {
+  width: auto;
+  padding: 0 12px;
+  font: 600 12px var(--notch-font);
+  color: var(--notch-text-secondary);
+}
+.nicon:hover {
+  background: var(--notch-glass-hover);
+}
+
+.nscroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.nscroll::-webkit-scrollbar {
+  display: none;
+}
+.nsection {
+  margin: 4px 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--notch-text-tertiary);
+}
+
+.nq {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow:
+    inset 0 0 0 0.5px var(--notch-hairline),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.nq.is-selected {
+  background: var(--notch-glass-hover);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 214, 10, 0.45),
+    inset 0 1px 0 var(--notch-specular),
+    0 6px 20px rgba(0, 0, 0, 0.3);
+}
+.nq-body {
+  flex: 1;
+  min-width: 0;
+}
+.nq-from {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--notch-text-secondary);
+}
+.nq-from b {
+  color: var(--notch-text);
+  font-weight: 600;
+}
+.nq-text {
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.38;
+  overflow-wrap: anywhere;
+}
+.nq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.nbtn {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: none;
+  font: 600 12.5px / 1 var(--notch-font);
+  color: var(--notch-text);
+  background: var(--notch-glass-strong);
+  cursor: pointer;
+}
+.nbtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+.nbtn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.nbtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.nbtn.is-primary {
+  color: var(--notch-accent-ink);
+  background: var(--notch-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.nbtn.is-primary kbd {
+  color: var(--notch-accent-ink);
+  background: rgba(0, 0, 0, 0.14);
+  box-shadow: none;
+}
+.nbtn.is-quiet {
+  background: transparent;
+  color: var(--notch-text-secondary);
+}
+
+.ntag {
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--notch-text-secondary);
+  background: var(--notch-glass);
+}
+.ntag.is-elsewhere {
+  color: var(--mood-working);
+  background: rgba(100, 210, 255, 0.12);
+}
+.ntag.is-blocking {
+  color: var(--mood-needs-you);
+  background: rgba(255, 214, 10, 0.12);
+}
+
+.nagents {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+  overflow: hidden;
+}
+.nagent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nagent + .nagent {
+  box-shadow: inset 0 0.5px 0 var(--notch-hairline);
+}
+.nagent:hover {
+  background: var(--notch-glass);
+}
+.nagent-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nagent-detail {
+  flex: 1;
+  min-width: 0;
+  color: var(--notch-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: none;
+  font: 500 13px / 1 var(--notch-font);
+  color: var(--notch-text-tertiary);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+  cursor: text;
+}
+.nask:hover {
+  background: var(--notch-glass-hover);
+}
+.nask-keys kbd {
+  margin: 0 0 0 4px;
+}
+
+.ncompose {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 20px;
+  background: var(--notch-glass-hover);
+  box-shadow:
+    inset 0 0 0 0.5px var(--notch-hairline),
+    inset 0 1px 0 var(--notch-specular);
+}
+.ncompose.is-listening {
+  box-shadow:
+    inset 0 0 0 1px rgba(10, 132, 255, 0.6),
+    0 0 24px rgba(10, 132, 255, 0.25);
+}
+.ncompose-to {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--notch-text-tertiary);
+  padding: 0 4px;
+}
+.ncompose-to b {
+  color: var(--notch-text-secondary);
+  font-weight: 600;
+}
+.ncompose-x {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font: 500 11px var(--notch-font);
+  color: var(--notch-text-tertiary);
+  cursor: pointer;
+}
+.ncompose-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ncompose input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  outline: none;
+  border-radius: 10px;
+  background: transparent;
+  font: 14px var(--notch-font);
+  color: var(--notch-text);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.ncompose input::placeholder {
+  color: var(--notch-text-tertiary);
+}
+.nmic {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background: var(--notch-glass-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.nmic.is-on {
+  background: var(--notch-blue);
+}
+.nmic-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+.nmic-wave i {
+  width: 2.5px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--notch-text);
+}
+.nmic-wave i:nth-child(2),
+.nmic-wave i:nth-child(3) {
+  height: 11px;
+}
+
+.nerror {
+  font-size: 12px;
+  color: var(--mood-error);
+  padding: 0 4px;
+}
+
+.nkeys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  font-size: 10.5px;
+  color: var(--notch-text-tertiary);
+}
+.nkeys kbd {
+  margin-right: 3px;
+}
+
+/* ── Motion (only for people who have not asked for less) ─────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .notch-shell {
+    transition:
+      width 0.42s var(--notch-spring),
+      height 0.42s var(--notch-spring),
+      border-radius 0.3s var(--notch-ease),
+      box-shadow 0.3s var(--notch-ease);
+  }
+  .npanel {
+    animation: n-fade-up 0.32s var(--notch-ease) both;
+  }
+  .nq,
+  .nbtn,
+  .nagent,
+  .nask {
+    transition:
+      background 0.18s var(--notch-ease),
+      box-shadow 0.18s var(--notch-ease),
+      transform 0.18s var(--notch-spring);
+  }
+
+  .nb-working .nb-body {
+    animation: nb-bob 1.4s ease-in-out infinite;
+  }
+  .nb-idle .nb-body {
+    animation: nb-breathe 4s ease-in-out infinite;
+  }
+  .nb-idle .nb-z {
+    animation: nb-z 4s ease-out infinite;
+  }
+  .nb-needs_you .nb-body {
+    animation: nb-hop 1.1s var(--notch-spring) infinite;
+  }
+  .nb-needs_you .nb-bang {
+    animation: nb-pulse 1.1s ease-in-out infinite;
+  }
+  .nb-error .nb-body {
+    animation: nb-shake 0.9s ease-in-out infinite;
+  }
+  .nb-error .nb-sweat {
+    animation: nb-drip 1.8s ease-in infinite;
+  }
+  .nb-done .nb-body {
+    animation: nb-celebrate 1.4s var(--notch-spring) infinite;
+  }
+  .nb-done .nb-sparkles i {
+    animation: nb-sparkle 1.4s ease-out infinite;
+  }
+  .nb-done .nb-sparkles i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .nb-done .nb-sparkles i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  .nb-act-fidget .nb-body {
+    animation: nb-fidget 0.7s ease-in-out infinite;
+  }
+  .nb-act-talking .nb-body {
+    animation: nb-talk 0.32s ease-in-out infinite;
+  }
+  .nb-act-peeking {
+    animation: nb-peek 3.2s var(--notch-ease) both;
+  }
+  .nb-act-peeking .nb-body {
+    animation: nb-look 3.2s ease-in-out both;
+  }
+
+  .gang-bored-1 .notch-gang-member {
+    animation: gang-jostle 0.9s ease-in-out infinite;
+    animation-delay: calc(var(--gang-i) * -0.23s);
+  }
+  .notch-chat {
+    animation: n-bubble 0.35s var(--notch-spring) both;
+  }
+  .ncompose.is-listening .nmic-wave i {
+    animation: n-wave 0.7s ease-in-out infinite;
+  }
+  .ncompose.is-listening .nmic-wave i:nth-child(2) {
+    animation-delay: -0.2s;
+  }
+  .ncompose.is-listening .nmic-wave i:nth-child(3) {
+    animation-delay: -0.4s;
+  }
+  .ncompose.is-listening .nmic-wave i:nth-child(4) {
+    animation-delay: -0.1s;
+  }
+}
+
+@keyframes n-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes n-bubble {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+@keyframes n-wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1.25);
+  }
+}
+/* Mood loops. Every body scales about the middle of its baseline
+   (.nb-body transform-origin), so a squash sits the blob onto the floor
+   and a stretch lifts it off it. Rising segments ease out and falling ones
+   ease in, so the motion reads as weight rather than as a metronome; each
+   landing overshoots and settles, which is what makes it read as soft. */
+
+/* Working: a busy little bounce in place, squishing on every landing. */
+@keyframes nb-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.05, 0.95);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  }
+  32% {
+    transform: translateY(-7%) scale(0.96, 1.05);
+    animation-timing-function: ease-in-out;
+  }
+  52% {
+    transform: translateY(-8%) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.8, 0.4);
+  }
+  78% {
+    transform: translateY(0) scale(1.07, 0.93);
+    animation-timing-function: ease-out;
+  }
+  90% {
+    transform: translateY(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
+  }
+}
+/* Idle: slow, heavy breathing. Sinks and spreads on the out-breath, then
+   rises a hair past round on the in-breath before settling. */
+@keyframes nb-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  42% {
+    transform: scale(1.065, 0.945);
+  }
+  58% {
+    transform: scale(1.05, 0.958);
+  }
+  80% {
+    transform: scale(0.988, 1.014);
+  }
+}
+@keyframes nb-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px) scale(0.7);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(5px, -8px) scale(1.1);
+  }
+}
+/* Needs you: crouch, spring up tall, land flat, jiggle to rest. */
+@keyframes nb-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+    animation-timing-function: ease-out;
+  }
+  10% {
+    transform: translateY(0) scale(1.18, 0.8);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  26% {
+    transform: translateY(-20%) scale(0.86, 1.16);
+    animation-timing-function: ease-out;
+  }
+  40% {
+    transform: translateY(-30%) scale(0.97, 1.04);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  54% {
+    transform: translateY(0) scale(1.2, 0.8);
+    animation-timing-function: ease-out;
+  }
+  64% {
+    transform: translateY(-3%) scale(0.93, 1.08);
+    animation-timing-function: ease-in-out;
+  }
+  74% {
+    transform: translateY(0) scale(1.04, 0.96);
+    animation-timing-function: ease-in-out;
+  }
+  84% {
+    transform: translateY(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
+  }
+}
+@keyframes nb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+}
+/* Error: a jelly shudder. Each swing leans, shears and squishes, and
+   each is smaller than the last, then a pause before the next fit. */
+@keyframes nb-shake {
+  0%,
+  64%,
+  100% {
+    transform: translateX(0) rotate(0) skewX(0) scale(1, 1);
+  }
+  6% {
+    transform: translateX(-1px) rotate(-9deg) skewX(5deg) scale(1.06, 0.94);
+  }
+  16% {
+    transform: translateX(1px) rotate(8deg) skewX(-4deg) scale(0.96, 1.04);
+  }
+  26% {
+    transform: translateX(-1px) rotate(-6deg) skewX(3deg) scale(1.04, 0.96);
+  }
+  36% {
+    transform: translateX(0.5px) rotate(4deg) skewX(-2deg) scale(0.98, 1.02);
+  }
+  46% {
+    transform: translateX(0) rotate(-2deg) skewX(1deg) scale(1.01, 0.99);
+  }
+  56% {
+    transform: translateX(0) rotate(1deg) skewX(0) scale(1, 1);
+  }
+}
+@keyframes nb-drip {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+/* Done: a deep crouch, a big twisting leap, a splat of a landing, and a
+   couple of happy jiggles. */
+@keyframes nb-celebrate {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0) scale(1, 1);
+    animation-timing-function: ease-out;
+  }
+  12% {
+    transform: translateY(0) rotate(0) scale(1.22, 0.78);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  28% {
+    transform: translateY(-26%) rotate(-6deg) scale(0.84, 1.18);
+    animation-timing-function: ease-out;
+  }
+  42% {
+    transform: translateY(-36%) rotate(-12deg) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  58% {
+    transform: translateY(0) rotate(5deg) scale(1.22, 0.8);
+    animation-timing-function: ease-out;
+  }
+  68% {
+    transform: translateY(-5%) rotate(-2deg) scale(0.92, 1.09);
+    animation-timing-function: ease-in-out;
+  }
+  78% {
+    transform: translateY(0) rotate(1deg) scale(1.05, 0.95);
+    animation-timing-function: ease-in-out;
+  }
+  88% {
+    transform: translateY(0) rotate(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
+  }
+}
+@keyframes nb-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.4);
+  }
+}
+@keyframes nb-fidget {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes nb-talk {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.06, 0.94);
+  }
+}
+/* Slides out from under the camera housing, hangs there, ducks back. */
+@keyframes nb-peek {
+  0% {
+    transform: translateY(-110%);
+  }
+  18% {
+    transform: translateY(14px);
+  }
+  24% {
+    transform: translateY(10px);
+  }
+  80% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(-110%);
+  }
+}
+/* ...and looks around while it's out. */
+@keyframes nb-look {
+  0%,
+  25% {
+    transform: rotate(0) translateX(0);
+  }
+  38% {
+    transform: rotate(-10deg) translateX(-2px);
+  }
+  52% {
+    transform: rotate(10deg) translateX(2px);
+  }
+  64%,
+  100% {
+    transform: rotate(0) translateX(0);
+  }
+}
+@keyframes gang-jostle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}

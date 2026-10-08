@@ -1,9 +1,12 @@
 import Foundation
 
 /// A stand-in office for previews, screenshots, and tests. Seeded with a
-/// small newsroom roster; `send` answers a few seconds later through the
-/// event stream (typing first, then the reply) so the UI can be exercised
-/// end to end without a broker.
+/// small newsroom roster (one of them a gateway agent that runs elsewhere)
+/// and three pending questions; `send` answers a few seconds later through
+/// the event stream (typing first, then the reply) so the UI can be exercised
+/// end to end without a broker. `/notch/state` is derived from the same
+/// state, so answering a card in the inbox or in a thread clears it in both,
+/// and a bot that replies goes working → done → idle.
 public actor MockBroker: BrokerAPI {
     public struct Config: Sendable {
         /// Delay before the bot starts "typing" and before it replies.
@@ -21,6 +24,14 @@ public actor MockBroker: BrokerAPI {
     private var pending: [BotRequest] = []
     private var counter = 100
     private var listeners: [UUID: AsyncStream<BrokerEvent>.Continuation] = [:]
+    /// Live moods that replace a bot's seeded one, with a stamp so a stale
+    /// "settle back to idle" never clears a newer mood.
+    private var moods: [String: (mood: Mood, detail: String?, stamp: Int)] = [:]
+    /// Chosen looks, by slug. Hermes starts with a picked shape and its
+    /// derived colour, so a partial override is on show in -mock mode.
+    private var avatars: [String: BotAvatar] = MockBroker.seedAvatars
+
+    public static let seedAvatars: [String: BotAvatar] = ["hermes": BotAvatar(shape: "blob")]
 
     public init(config: Config = Config()) {
         self.config = config
@@ -28,7 +39,7 @@ public actor MockBroker: BrokerAPI {
         for bot in bots {
             store[bot.dmChannel] = MockBroker.seedThread(for: bot)
         }
-        pending = [MockBroker.seedRequest]
+        pending = MockBroker.seedRequests(now: Date())
     }
 
     public static let roster: [Bot] = [
@@ -37,6 +48,18 @@ public actor MockBroker: BrokerAPI {
         Bot(slug: "gtm-lead", name: "GTM Lead", role: "go-to-market", status: "idle"),
         Bot(slug: "founding-engineer", name: "Founding Engineer", role: "engineering", status: "idle"),
         Bot(slug: "prospect-scout", name: "Rita Scout", role: "Outbound Prospecting Analyst", status: "idle"),
+        Bot(slug: "hermes", name: "Hermes", role: "community", status: "idle"),
+    ]
+
+    /// Who made each bot, where it runs, and its resting mood. Spans every
+    /// mood and the origins the inbox labels, plus one gateway agent.
+    public static let notchAgents: [NotchAgent] = [
+        NotchAgent(slug: "cos", name: "Chief of Staff", mood: .idle, origin: "built_in", runsOn: "this_machine", runsOnDetail: "this machine", isLead: true),
+        NotchAgent(slug: "designer", name: "Designer", mood: .working, detail: "reviewing work packet", origin: "user", runsOn: "this_machine", runsOnDetail: "this machine"),
+        NotchAgent(slug: "gtm-lead", name: "GTM Lead", mood: .working, detail: "scoring sponsor prospects", origin: "chief_of_staff", runsOn: "this_machine", runsOnDetail: "this machine"),
+        NotchAgent(slug: "founding-engineer", name: "Founding Engineer", mood: .done, detail: "just finished", origin: "user", runsOn: "this_machine", runsOnDetail: "this machine"),
+        NotchAgent(slug: "prospect-scout", name: "Rita Scout", mood: .error, detail: "looks stuck", origin: "adopted", runsOn: "this_machine", runsOnDetail: "agent CLI on this machine"),
+        NotchAgent(slug: "hermes", name: "Hermes", mood: .idle, origin: "imported", runsOn: "elsewhere", runsOnDetail: "Hermes gateway"),
     ]
 
     public static let seedRequest = BotRequest(
@@ -51,8 +74,51 @@ public actor MockBroker: BrokerAPI {
             InterviewOption(id: "approve", label: "Approve"),
             InterviewOption(id: "reject", label: "Reject"),
         ],
-        recommendedID: "approve"
+        recommendedID: "approve",
+        blocking: true
     )
+
+    /// The pending questions: the designer's blocking approval, a choice from
+    /// the Chief of Staff with a write-in option, and an approval from the
+    /// gateway agent.
+    static func seedRequests(now: Date) -> [BotRequest] {
+        func at(_ minutesAgo: Double) -> String { ISO8601.format(now.addingTimeInterval(-minutesAgo * 60)) }
+        var designer = seedRequest
+        designer.createdAt = at(12)
+        let sponsor = BotRequest(
+            id: "request-26",
+            from: "cos",
+            question: "Pigment said yes to the top slot and Linear wants it too. Who gets the hero placement on Thursday?",
+            title: "Which sponsor leads Thursday?",
+            kind: "interview",
+            status: "pending",
+            channel: DMChannel.slug(for: "cos"),
+            options: [
+                InterviewOption(id: "pigment", label: "Pigment"),
+                InterviewOption(id: "linear", label: "Linear"),
+                InterviewOption(id: "other", label: "Someone else", requiresText: true),
+            ],
+            recommendedID: "pigment",
+            createdAt: at(6)
+        )
+        let recap = BotRequest(
+            id: "request-27",
+            from: "hermes",
+            question: "The recap of Tuesday's community call is drafted: five bullets and the recording link. It goes to 312 members.",
+            title: "Post the community-call recap?",
+            kind: "approval",
+            status: "pending",
+            channel: DMChannel.slug(for: "hermes"),
+            options: [
+                InterviewOption(id: "approve", label: "Post it"),
+                InterviewOption(id: "edit", label: "Edit first", requiresText: true),
+                InterviewOption(id: "reject", label: "Hold"),
+            ],
+            recommendedID: "approve",
+            createdAt: at(3)
+        )
+        return [designer, sponsor, recap]
+    }
 
     static func seedThread(for bot: Bot) -> [ChatMessage] {
         let ch = bot.dmChannel
@@ -78,6 +144,10 @@ public actor MockBroker: BrokerAPI {
             return [
                 ChatMessage(id: "m7", from: "founding-engineer", channel: ch, content: "RSVP app builds clean. Publishing to Apps now.", timestamp: at(300)),
             ]
+        case "hermes":
+            return [
+                ChatMessage(id: "m9", from: "hermes", channel: ch, content: "Recap of Tuesday's community call is drafted. Waiting on you before it goes out.", timestamp: at(4)),
+            ]
         default:
             return [
                 ChatMessage(id: "m8", from: bot.slug, channel: ch, content: "Standing by.", timestamp: at(1440)),
@@ -87,7 +157,13 @@ public actor MockBroker: BrokerAPI {
 
     // MARK: - BrokerAPI
 
-    public func members() async throws -> [Bot] { bots }
+    public func members() async throws -> [Bot] {
+        bots.map { seed in
+            var bot = seed
+            bot.avatar = avatars[bot.slug]
+            return bot
+        }
+    }
 
     public func messages(channel: String, sinceID: String?, limit: Int) async throws -> [ChatMessage] {
         let all = store[channel] ?? []
@@ -115,6 +191,11 @@ public actor MockBroker: BrokerAPI {
 
     public func answer(requestID: String, choiceID: String, text: String?) async throws {
         guard let idx = pending.firstIndex(where: { $0.id == requestID }) else { return }
+        // Same refusal as the broker: a write-in option needs the words.
+        let option = pending[idx].buttons.first { $0.id == choiceID }
+        if option?.requiresText == true && (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw BrokerError.http(400, "custom_text required for this response")
+        }
         var req = pending.remove(at: idx)
         req.status = "answered"
         let bot = req.from
@@ -124,6 +205,63 @@ public actor MockBroker: BrokerAPI {
         store[channel, default: []].append(ack)
         broadcast(.message(ack))
         Task { await self.reply(to: "approved", from: bot, in: channel) }
+    }
+
+    public func answer(requestID: String, customText: String) async throws {
+        try await answer(requestID: requestID, choiceID: "", text: customText)
+    }
+
+    public func notchState() async throws -> NotchState {
+        var names: [String: String] = [:]
+        for bot in bots { names[bot.slug] = bot.name }
+        let asking = Set(pending.map(\.from))
+        let agents = MockBroker.notchAgents.map { seed -> NotchAgent in
+            var agent = seed
+            agent.avatar = avatars[agent.slug]
+            if asking.contains(agent.slug) {
+                agent.mood = .needsYou
+                agent.detail = "waiting on you"
+            } else if let live = moods[agent.slug] {
+                agent.mood = live.mood
+                agent.detail = live.detail
+            }
+            return agent
+        }
+        let attention = NotchState.order(pending.map { NotchAttention(request: $0, fromName: names[$0.from]) })
+        let ranked = NotchState.rankAgents(agents)
+        let summary = NotchState.summary(attention: attention, agents: ranked)
+        return NotchState(
+            lead: "cos",
+            leadName: "Chief of Staff",
+            leadDM: DMChannel.slug(for: "cos"),
+            mood: summary.mood,
+            headline: summary.headline,
+            agents: ranked,
+            attention: attention
+        )
+    }
+
+    /// Same validation as the broker's normalizeMemberAvatar: shape must be a
+    /// known id, colour must be #rrggbb, both are lower-cased, and an empty
+    /// avatar resets to the derived look.
+    public func updateAvatar(slug: String, avatar: BotAvatar?) async throws {
+        guard bots.contains(where: { $0.slug == slug }) else {
+            throw BrokerError.http(404, "member not found")
+        }
+        let shape = (avatar?.shape ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let color = (avatar?.color ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if shape.isEmpty && color.isEmpty {
+            avatars[slug] = nil
+            return
+        }
+        if !shape.isEmpty && BotAvatar.shapeIndex(named: shape) == nil {
+            throw BrokerError.http(400, "avatar shape must be one of \(BotAvatar.shapeIDs.joined(separator: ", "))")
+        }
+        if !color.isEmpty && BotAvatar.normalizedColor(color) == nil {
+            throw BrokerError.http(400, "avatar color must be a #rrggbb hex colour")
+        }
+        avatars[slug] = BotAvatar(shape: shape.isEmpty ? nil : shape, color: color.isEmpty ? nil : color)
+        broadcast(.other(name: "office_changed"))
     }
 
     public nonisolated func events() -> AsyncStream<BrokerEvent> {
@@ -149,14 +287,33 @@ public actor MockBroker: BrokerAPI {
 
     private func reply(to prompt: String, from bot: String, in channel: String) async {
         try? await Task.sleep(for: config.typingDelay)
+        setMood(bot, .working, "drafting a reply")
         broadcast(.activity(BotActivity(slug: bot, status: "active", activity: "typing")))
         try? await Task.sleep(for: config.replyDelay)
         counter += 1
         let text = MockBroker.cannedReply(bot: bot, prompt: prompt)
         let msg = ChatMessage(id: "m\(counter)", from: bot, channel: channel, content: text, timestamp: ISO8601.format(Date()))
         store[channel, default: []].append(msg)
+        let stamp = setMood(bot, .done, "just finished")
         broadcast(.activity(BotActivity(slug: bot, status: "idle", activity: "waiting for work")))
         broadcast(.message(msg))
+        Task {
+            try? await Task.sleep(for: .seconds(8))
+            await self.settle(bot, stamp: stamp)
+        }
+    }
+
+    @discardableResult
+    private func setMood(_ slug: String, _ mood: Mood, _ detail: String?) -> Int {
+        counter += 1
+        moods[slug] = (mood: mood, detail: detail, stamp: counter)
+        return counter
+    }
+
+    /// Back to idle, unless something newer has set the mood since.
+    private func settle(_ slug: String, stamp: Int) async {
+        guard moods[slug]?.stamp == stamp else { return }
+        moods[slug] = (mood: .idle, detail: nil, stamp: stamp)
     }
 
     static func cannedReply(bot: String, prompt: String) -> String {

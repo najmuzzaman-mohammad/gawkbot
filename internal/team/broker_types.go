@@ -692,6 +692,16 @@ type officeMember struct {
 	CreatedAt    string                   `json:"created_at,omitempty"`
 	BuiltIn      bool                     `json:"built_in,omitempty"`
 	Provider     provider.ProviderBinding `json:"provider,omitempty"`
+	// Origin records who made this bot: user, chief_of_staff, bot,
+	// built_in, adopted (an agent CLI found on this machine) or imported (a
+	// gateway/transport bot). Stamped on create; empty on rows written
+	// before it existed, which memberOrigin infers. See broker_member_origin.go.
+	Origin string `json:"origin,omitempty"`
+	// AdoptedFrom is the agentdetect catalog id an adopted bot came from.
+	AdoptedFrom string `json:"adopted_from,omitempty"`
+	// Avatar is the look the human picked (broker_member_avatar.go); nil
+	// means "derive it from the slug".
+	Avatar *MemberAvatar `json:"avatar,omitempty"`
 	// Watching declares the file-glob, wiki-glob, tool-name, and task-tag
 	// categories this bot should be auto-assigned as a reviewer for when
 	// a task enters review. See broker_reviewer_routing.go (Lane D) for

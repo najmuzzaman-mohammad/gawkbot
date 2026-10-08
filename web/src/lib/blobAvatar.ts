@@ -1,29 +1,24 @@
-// blobAvatar.ts — retro blob bot marks.
+// blobAvatar.ts — the office's blob bot marks.
 //
-// WHAT THIS IS COPYING, AND WHERE IT DELIBERATELY DIVERGES.
+// One filled body with two eyes CUT OUT of it (holes in the silhouette, not
+// shapes drawn on top), in one of eight hand-plotted silhouettes and a body
+// colour. One character system, many costumes.
 //
-// Grok Bot's avatar is one filled body with two white eyes CUT OUT of it (holes
-// in the silhouette, not shapes drawn on top), user-picked shape and colour,
-// and a clean flat iMessage-ish finish. That "one character system, many
-// costumes" bet is the good idea and we take it.
+// The look is DERIVED by default and PICKABLE on top. Every bot gets a shape
+// and colour from its slug, so a roster is varied and a bot looks the same
+// everywhere without anyone choosing. A person can override either field
+// (MemberAvatar on the wire, resolveAvatar below); an unset field keeps the
+// derived value, so bots made before avatars were pickable are unchanged.
 //
-// Three deliberate differences:
+// The silhouettes and palette are the office's own. This file is the pixel
+// finish (a coarse grid, hard edges, no antialiasing); blobAvatarSmooth.ts
+// traces the same shapes as a clean vector.
 //
-//  1. RETRO, NOT FLAT. Theirs is a smooth vector blob. Ours is drawn on a
-//     coarse pixel grid with hard edges and no antialiasing, because the
-//     product's whole visual language is pixel-art and a smooth blob would be
-//     the one un-pixelled thing on the screen.
-//  2. DERIVED, NOT PICKED. Theirs asks the user for a shape and a colour at
-//     creation. Ours derives both from the bot's slug, so a bot looks the
-//     same everywhere forever without anyone choosing, and a roster of bots
-//     is automatically varied. Nobody wants to fill in a colour field for
-//     their eleventh bot.
-//  3. NOT THEIR GEOMETRY. The silhouettes and palette here are ours. We are
-//     not reproducing a measured copy of their mark.
-//
-// The eyes are holes, like theirs, and that part matters: punching the eye out
-// of the body means the eye reads as the body's own colour hole rather than a
-// white sticker, and it clips correctly at the silhouette edge.
+// The eyes are holes, and that part matters: punching the eye out of the
+// body means the eye reads as the body's own colour hole rather than a white
+// sticker, and it clips correctly at the silhouette edge.
+
+import type { AvatarShape } from "../api/memberTypes";
 
 /** Grid resolution. Coarse on purpose — this is pixel art, not a vector blob. */
 export const BLOB_GRID = 16;
@@ -229,6 +224,38 @@ export const BLOB_COLORS: readonly string[] = [
   "#9a6f9c", // mauve
 ];
 
+/** Human names for BLOB_COLORS, index-aligned (picker labels). */
+export const BLOB_COLOR_NAMES: readonly string[] = [
+  "Olive",
+  "Periwinkle",
+  "Amber brown",
+  "Teal",
+  "Rose",
+  "Moss",
+  "Violet",
+  "Ochre",
+  "Steel blue",
+  "Clay",
+  "Sage",
+  "Mauve",
+];
+
+/**
+ * Silhouette names, index-aligned with SILHOUETTES. WIRE CONTRACT: the same
+ * list, in the same order, as AvatarShapes in
+ * internal/team/broker_member_avatar.go.
+ */
+export const AVATAR_SHAPES: readonly AvatarShape[] = [
+  "block",
+  "dome",
+  "drop",
+  "bean",
+  "pill",
+  "loaf",
+  "shield",
+  "blob",
+];
+
 /** FNV-1a. Small, stable, and good enough to spread slugs across two tables. */
 function hashSlug(slug: string): number {
   let h = 0x811c9dc5;
@@ -251,6 +278,62 @@ export function blobShapeIndex(slug: string): number {
 
 export function blobColor(slug: string): string {
   return BLOB_COLORS[(hashSlug(slug) >>> 8) % BLOB_COLORS.length];
+}
+
+/**
+ * A chosen look, as the broker sends it (MemberAvatar). Typed loosely here
+ * because it is untrusted wire data: anything unknown falls back.
+ */
+export interface AvatarChoice {
+  readonly shape?: string;
+  readonly color?: string;
+}
+
+export interface ResolvedAvatar {
+  readonly shapeIndex: number;
+  /** `#rrggbb`, lower-case. */
+  readonly color: string;
+}
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/;
+
+/** A `#rrggbb` colour, lower-cased, or undefined if it is not one. */
+export function normalizeAvatarColor(
+  color: string | undefined,
+): string | undefined {
+  const c = color?.trim().toLowerCase();
+  return c && HEX_COLOR.test(c) ? c : undefined;
+}
+
+/** The SILHOUETTES index for a shape name, or -1 if it is not one. */
+export function avatarShapeIndex(shape: string | undefined): number {
+  const s = shape?.trim().toLowerCase();
+  return s ? AVATAR_SHAPES.indexOf(s as AvatarShape) : -1;
+}
+
+/** True when `avatar` sets at least one valid field, i.e. is not automatic. */
+export function hasAvatarChoice(avatar?: AvatarChoice | null): boolean {
+  return (
+    avatarShapeIndex(avatar?.shape) >= 0 ||
+    normalizeAvatarColor(avatar?.color) !== undefined
+  );
+}
+
+/**
+ * The shape and colour to draw for `slug`. Each field of `avatar` that is
+ * set and valid wins; an unset or unrecognised one falls back to the slug's
+ * derived value, so a malformed avatar degrades to the automatic look rather
+ * than to nothing.
+ */
+export function resolveAvatar(
+  slug: string,
+  avatar?: AvatarChoice | null,
+): ResolvedAvatar {
+  const picked = avatarShapeIndex(avatar?.shape);
+  return {
+    shapeIndex: picked >= 0 ? picked : blobShapeIndex(slug),
+    color: normalizeAvatarColor(avatar?.color) ?? blobColor(slug),
+  };
 }
 
 /** Eye geometry, in grid cells. */
@@ -280,8 +363,10 @@ export function eyeSpec(openness: number): EyeSpec {
 export interface DrawBlobOptions {
   /** 1 wide open, 0 narrowed. Only the working bot should animate. */
   readonly openness?: number;
-  /** Override the derived colour (theme previews, stories). */
+  /** Override the colour outright (theme previews, stories). Beats avatar. */
   readonly color?: string;
+  /** The bot's chosen look; unset fields fall back to the derived one. */
+  readonly avatar?: AvatarChoice | null;
 }
 
 /**
@@ -299,8 +384,9 @@ export function drawBlobAvatar(
   size: number,
   options: DrawBlobOptions = {},
 ): void {
-  const shape = SILHOUETTES[blobShapeIndex(slug)];
-  const color = options.color ?? blobColor(slug);
+  const look = resolveAvatar(slug, options.avatar);
+  const shape = SILHOUETTES[look.shapeIndex];
+  const color = options.color ?? look.color;
   const cell = size / BLOB_GRID;
 
   ctx.clearRect(0, 0, size, size);

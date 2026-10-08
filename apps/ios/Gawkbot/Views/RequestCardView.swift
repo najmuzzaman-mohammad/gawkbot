@@ -44,8 +44,8 @@ struct RequestCardView: View {
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(.secondarySystemBackground)))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.orange.opacity(0.35), lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Color.softCard))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.orange.opacity(0.35), lineWidth: 1))
         .sheet(item: $textFor) { option in
             NavigationStack {
                 Form {

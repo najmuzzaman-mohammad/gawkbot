@@ -182,10 +182,11 @@ final class MockBrokerTests: XCTestCase {
     func testAnsweringARequestRemovesItAndAcksInTheThread() async throws {
         let broker = MockBroker(config: .init(typingDelay: .milliseconds(5), replyDelay: .milliseconds(5)))
         let before = try await broker.requests(channel: nil)
-        XCTAssertEqual(before.map(\.id), ["request-25"])
+        XCTAssertEqual(before.map(\.id), ["request-25", "request-26", "request-27"])
         try await broker.answer(requestID: "request-25", choiceID: "approve", text: nil)
         let after = try await broker.requests(channel: nil)
-        XCTAssertTrue(after.isEmpty)
+        XCTAssertFalse(after.contains { $0.id == "request-25" })
+        XCTAssertEqual(after.count, 2)
         let thread = try await broker.messages(channel: DMChannel.slug(for: "designer"), sinceID: nil, limit: 50)
         XCTAssertTrue(thread.contains { $0.kind == "system" && $0.content.hasPrefix("Approved @designer") })
     }

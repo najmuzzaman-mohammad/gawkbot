@@ -37,6 +37,58 @@ the single-instance lock.
    SSE / WebSocket / WebAuthn — the `wails://` custom scheme cannot carry a
    WebSocket.
 
+## The Chief of Staff in the camera notch (macOS)
+
+The app also floats a second, native surface over the MacBook camera notch:
+no desktop widget, nothing in the Dock. `notch_darwin.m` is plain Cocoa
+because Wails v2 is single-window: a borderless, transparent,
+non-activating `NSPanel` at status-bar level on every Space, hosting a
+`WKWebView` of `<office>/notch.html` (`web/notch.html`, `web/src/notch/`).
+
+- **Collapsed**: exactly the notch's height, one "ear" wider on each side.
+  The left ear is the Chief of Staff acting out the office's mood; the right
+  ear shows the agents that most need looking at plus a count of things
+  waiting on you. The gawkbots are the brand mark's hollow eyes, animated
+  per mood: working, idle, needs you, error, done.
+- **Hover**: a Force Touch trackpad tap (`NSHapticFeedbackManager`) and the
+  strip drops into a panel: what needs you (one-tap answers through
+  `/requests/answer`), every agent with who made it and where it runs, and a
+  box that messages the Chief of Staff's DM through `/messages`.
+- **Peek**: when something new needs you, the notch taps and opens for four
+  seconds on its own. That is the notification.
+- **No notch**: the same strip renders as a pill at the top centre of the
+  screen.
+- **Full view and back**: the panel's "Full view" button (or O) opens the
+  main window at the selected conversation. Closing that window hides it
+  (`HideWindowOnClose`, macOS only) instead of quitting, so you are back to
+  just the notch. The Dock icon follows: shown while the full view is open
+  or minimised, gone when only the notch is left.
+- **Sounds**: a different cartoon sound per moment (a question, an approval,
+  an error, a finish, a sent reply, a peek, bored chatter), synthesized live
+  with Web Audio (`web/src/notch/sounds.ts`), with a mute toggle in the panel.
+- **Antics**: now and then an agent peeks out from under the notch for no
+  reason. When several need you they pile onto the notch, and if you leave
+  them waiting they start talking to each other below it
+  (`web/src/notch/antics.ts`). The collapsed panel grows a transparent
+  "stage" below the strip for this; only the strip itself reacts to hover.
+- **Keyboard**: ⌃⌥Space opens the notch from anywhere (Carbon
+  `RegisterEventHotKey`, so no Accessibility permission is needed).
+  J/K move between questions, 1–9 answer, ↵ takes the recommended answer,
+  R replies, M messages the Chief of Staff, hold V to talk, Esc closes. The
+  panel becomes key while open but is non-activating, so the app you were in
+  stays active.
+- **Voice**: hold V (or the mic button) to talk. `SFSpeechRecognizer` turns
+  speech into text, on-device when the Mac supports it. The transcript lands
+  in the reply box and nothing is sent until you press ↵. This needs macOS
+  10.15+, the `audio-input` entitlement, and the microphone and speech
+  usage strings in `build/darwin/Info.plist`.
+
+Data is one poll of `GET /notch/state` (`internal/team/broker_notch.go`).
+The page↔native contract is in `web/src/notch/bridge.ts`. The panel refuses
+navigation off the office origin, and "open in app" accepts only in-app paths
+(`notch_path.go`). Geometry comes from `NSScreen.safeAreaInsets` and the
+auxiliary top areas (macOS 12+). Off macOS, `startNotch` is a no-op.
+
 ## Build
 
 The shell is behind the `desktop` build tag so `go build ./...` / CI don't pull

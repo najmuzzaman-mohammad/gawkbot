@@ -1,0 +1,350 @@
+/* ═══════════════════════════════════════════════════════════════
+   WUPHF Theme base: Glass
+   Shared layer for the two Glass flavours (nex-glass-dark.css and
+   nex-glass-light.css). Not a theme on its own — it has no entry in
+   web/src/lib/themes.ts — so it carries only what both flavours share:
+   the system type stack, the radius and motion scale, and the handful of
+   selector rules that put translucent glass on the sidebar, popovers and
+   dialogs.
+
+   Every colour here is a token. The flavour files set the values; this
+   file only says WHERE they go. If you find yourself writing a literal
+   colour below, it belongs in a flavour file as a token instead.
+
+   Structural rules live in nex.css (scoped [data-theme^="nex"]) and are
+   inherited — both Glass ids start with "nex-glass", so they match. Most
+   of what follows exists because nex.css hardcodes the white-on-purple
+   rail inks (rgba(255,255,255,…), #22d3ee, rgba(159,77,191,…)) and Glass
+   has no purple rail: its sidebar is a translucent pane in the theme's
+   own ink, in both flavours.
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url("./nex.css");
+
+html[data-theme^="nex-glass"] {
+  /* ── Type: the platform's own UI face. Every display/pixel token
+     resolves to the same stack so no heading, logo or chrome label falls
+     back to pixel type under Glass. --font-serif keeps a reading serif for
+     long-form wiki text, led by the system's own (New York on Apple). ── */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui,
+    sans-serif;
+  --font-logo:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui,
+    sans-serif;
+  --font-pixel: var(--font-sans);
+  --font-serif: ui-serif, "New York", "Newsreader", Georgia, serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "SFMono-Regular", "Geist Mono", Menlo, Consolas,
+    monospace;
+
+  /* ── Radii: continuous-corner feel. Controls ~8-11px, cards 16px, sheets
+     22px. A per-theme axis (nex runs 4/8/12/16). ── */
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+
+  /* ── Controls ── */
+  --btn-radius: var(--radius-md);
+  --btn-font-weight: 600;
+  --btn-primary-shadow: var(--shadow-sm);
+  --btn-danger-shadow: var(--shadow-sm);
+  --input-bg: var(--glass-field);
+  --input-border: var(--border-dark);
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 1px;
+  --focus-ring-color: var(--glass-focus);
+
+  /* ── Motion: a touch slower and eased, so state changes glide. ── */
+  --duration-fast: 0.14s;
+  --duration-base: 0.2s;
+  --duration-slow: 0.28s;
+
+  /* ── Glass material. One token so every pane blurs the same way. ── */
+  --glass-blur: saturate(180%) blur(24px);
+}
+
+/* ═══ BASE ═══ */
+html[data-theme^="nex-glass"] body {
+  background-color: var(--bg);
+  /* Two soft washes of the theme's own accent and its cool companion,
+     fixed to the viewport. They are what the translucent sidebar and
+     popovers have to blur — a glass pane over a flat colour is just a
+     slightly different flat colour. */
+  background-image:
+    radial-gradient(
+      60rem 40rem at -10% -10%,
+      var(--glass-wash-1) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      50rem 36rem at 0% 110%,
+      var(--glass-wash-2) 0%,
+      transparent 60%
+    );
+  background-attachment: fixed;
+  font-family: var(--font-sans);
+  letter-spacing: -0.006em;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-theme^="nex-glass"] ::selection {
+  background: var(--accent-bg-strong);
+  color: var(--text);
+}
+
+html[data-theme^="nex-glass"] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+/* ═══ SIDEBAR — a translucent pane in the theme's own ink ═══ */
+html[data-theme^="nex-glass"] .sidebar {
+  background: var(--nex-sidebar-glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--border);
+  /* nex.css remaps these to white-on-purple for its rail. Glass has no
+     rail colour, so hand the theme's own inks back (captured on <html> by
+     nex.css as --text-*-root). */
+  --text: var(--text-root);
+  --text-secondary: var(--text-secondary-root);
+  --text-tertiary: var(--text-tertiary-root);
+  --text-disabled: var(--text-disabled-root);
+  --sidebar-fade-color: var(--nex-sidebar);
+}
+html[data-theme^="nex-glass"] .sidebar-header,
+html[data-theme^="nex-glass"] .sidebar-bottom {
+  background: transparent;
+  border-bottom-color: var(--border);
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-header,
+html[data-theme^="nex-glass"] .sidebar .sidebar-scroll-wrap.is-agents,
+html[data-theme^="nex-glass"] .sidebar .sidebar-section + .sidebar-section {
+  border-color: var(--border);
+}
+html[data-theme^="nex-glass"] .sidebar-rail-top,
+html[data-theme^="nex-glass"] .sidebar-rail-middle {
+  border-bottom-color: var(--border);
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-logo {
+  color: var(--text);
+  font-family: var(--font-logo);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-section-title,
+html[data-theme^="nex-glass"] .sidebar .sidebar-add-btn,
+html[data-theme^="nex-glass"] .sidebar .sidebar-summary,
+html[data-theme^="nex-glass"] .sidebar .sidebar-hint,
+html[data-theme^="nex-glass"] .sidebar .sidebar-bot-task,
+html[data-theme^="nex-glass"] .sidebar .sidebar-bot-activity {
+  color: var(--text-tertiary);
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-section-title {
+  letter-spacing: 0.02em;
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-section-title:hover,
+html[data-theme^="nex-glass"] .sidebar .sidebar-section-toggle:hover,
+html[data-theme^="nex-glass"] .sidebar .sidebar-add-btn:hover {
+  color: var(--text);
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-icon-btn {
+  color: var(--text-secondary);
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-icon-btn:hover {
+  background: var(--nex-sidebar-hover);
+  color: var(--text);
+}
+html[data-theme^="nex-glass"] .sidebar .sidebar-icon-btn.active,
+html[data-theme^="nex-glass"] .sidebar .sidebar-icon-btn.active:hover {
+  background: var(--nex-sidebar-active);
+  color: var(--nex-sidebar-text-active);
+}
+/* nex.css paints these with the rail colour so sticky chrome reads as
+   pinned. On a glass pane an opaque fill shows up as a band, so they stay
+   clear at rest and only frost once a title bar is actually pinned over
+   scrolling rows (layout.css sets data-stuck). */
+html[data-theme^="nex-glass"] .sidebar .usage-toggle,
+html[data-theme^="nex-glass"] .sidebar .sidebar-section-title-bar {
+  background: transparent;
+}
+html[data-theme^="nex-glass"]
+  .sidebar
+  .sidebar-section-title-bar[data-stuck="true"] {
+  background: var(--nex-sidebar-glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 1px 0 var(--border);
+}
+html[data-theme^="nex-glass"] .sidebar .usage-toggle {
+  color: var(--text-secondary);
+  border-top-color: var(--border);
+}
+html[data-theme^="nex-glass"] .sidebar .usage-toggle:hover {
+  background: var(--nex-sidebar-hover);
+  color: var(--text);
+}
+html[data-theme^="nex-glass"] .sidebar .usage-toggle.open,
+html[data-theme^="nex-glass"] .sidebar .usage-panel.open {
+  background: var(--accent-bg);
+  color: var(--text);
+  border-top-color: var(--border);
+}
+html[data-theme^="nex-glass"] .sidebar .usage-panel,
+html[data-theme^="nex-glass"] .sidebar .usage-table td {
+  color: var(--text-secondary);
+}
+html[data-theme^="nex-glass"] .sidebar .usage-toggle > span,
+html[data-theme^="nex-glass"] .sidebar .usage-toggle.open > span,
+html[data-theme^="nex-glass"] .sidebar .usage-toggle.open > svg,
+html[data-theme^="nex-glass"] .sidebar .usage-total,
+html[data-theme^="nex-glass"] .sidebar .usage-total-cost,
+html[data-theme^="nex-glass"] .sidebar .usage-panel.open .usage-total,
+html[data-theme^="nex-glass"] .sidebar .usage-panel.open .usage-total-cost,
+html[data-theme^="nex-glass"] .sidebar .usage-panel.open .usage-table td {
+  color: var(--text);
+  stroke: currentColor;
+}
+html[data-theme^="nex-glass"] .sidebar .usage-table th,
+html[data-theme^="nex-glass"] .sidebar .usage-panel.open .usage-table th {
+  color: var(--text-tertiary);
+  border-bottom-color: var(--border);
+}
+html[data-theme^="nex-glass"] .sidebar .usage-total,
+html[data-theme^="nex-glass"] .sidebar .usage-panel.open .usage-total {
+  border-top-color: var(--border);
+}
+
+/* Rows: rounded pills inset from the pane edge, the way a source list
+   draws its selection. */
+html[data-theme^="nex-glass"] .sidebar-item,
+html[data-theme^="nex-glass"] .sidebar-agent {
+  border-radius: var(--radius-sm);
+  transition:
+    background var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+html[data-theme^="nex-glass"] .sidebar-item.active,
+html[data-theme^="nex-glass"] .sidebar-agent.active {
+  background: var(--nex-sidebar-active);
+  color: var(--nex-sidebar-text-active);
+  box-shadow: inset 0 0 0 1px var(--nex-sidebar-active-ring);
+}
+html[data-theme^="nex-glass"] .sidebar-agent .status-dot,
+html[data-theme^="nex-glass"] .sidebar-agent .status-dot.lurking {
+  background: var(--text-disabled);
+}
+html[data-theme^="nex-glass"] .thought-bubble {
+  color: var(--text-tertiary);
+}
+
+/* ═══ MAIN ═══ */
+html[data-theme^="nex-glass"] .channel-title {
+  letter-spacing: -0.015em;
+}
+/* nex.css hardcodes a light-theme body ink (#3b3b3e) here, which would put
+   near-black text on the dark flavour. */
+html[data-theme^="nex-glass"] .message-text {
+  color: var(--text);
+}
+html[data-theme^="nex-glass"] .message:hover {
+  background: var(--overlay-soft);
+}
+html[data-theme^="nex-glass"] .message-text code {
+  background: var(--overlay);
+  border-color: transparent;
+  color: var(--text);
+}
+
+/* ═══ COMPOSER — a floating field ═══ */
+html[data-theme^="nex-glass"] .composer-inner {
+  background: var(--glass-field);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-base) ease,
+    box-shadow var(--duration-base) ease;
+}
+html[data-theme^="nex-glass"] .composer-inner:focus-within {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px var(--glass-focus),
+    var(--shadow-sm);
+}
+html[data-theme^="nex-glass"] .composer-send {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-radius: var(--radius-full);
+}
+html[data-theme^="nex-glass"] .composer-send:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-fg);
+  filter: brightness(1.08);
+}
+
+/* ═══ GLASS PANES — popovers, menus and dialogs ═══
+   One material for everything that floats: translucent fill, the shared
+   blur, a hairline and the theme's popover shadow. */
+html[data-theme^="nex-glass"] .theme-switcher-menu,
+html[data-theme^="nex-glass"] .theme-dropdown,
+html[data-theme^="nex-glass"] .workspace-dropdown,
+html[data-theme^="nex-glass"] .sidebar-rail-popover,
+html[data-theme^="nex-glass"] .sidebar-bot-peek,
+html[data-theme^="nex-glass"] .autocomplete,
+html[data-theme^="nex-glass"] .message-actions,
+html[data-theme^="nex-glass"] .message-hover-actions,
+html[data-theme^="nex-glass"] .dr-menu,
+html[data-theme^="nex-glass"] .wk-bubble-menu,
+html[data-theme^="nex-glass"] .wk-insert-menu,
+html[data-theme^="nex-glass"] .pam-menu {
+  background: var(--glass-pane);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-pane-border);
+  box-shadow: var(--shadow-popover);
+}
+html[data-theme^="nex-glass"] .modal-shell,
+html[data-theme^="nex-glass"] .confirm-card,
+html[data-theme^="nex-glass"] .interview-card,
+html[data-theme^="nex-glass"] .cmd-palette,
+html[data-theme^="nex-glass"] .search-modal,
+html[data-theme^="nex-glass"] .help-modal,
+html[data-theme^="nex-glass"] .version-modal,
+html[data-theme^="nex-glass"] .bot-wizard-modal,
+html[data-theme^="nex-glass"] .channel-wizard-modal {
+  background: var(--glass-pane);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-pane-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+}
+/* Scrims: dim AND soften what is behind a dialog, rather than a flat
+   black wash. */
+html[data-theme^="nex-glass"] .cmd-palette-overlay,
+html[data-theme^="nex-glass"] .confirm-overlay,
+html[data-theme^="nex-glass"] .interview-overlay {
+  background: var(--scrim);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* ═══ CARDS ═══ */
+html[data-theme^="nex-glass"] .card,
+html[data-theme^="nex-glass"] .task-card {
+  border-color: var(--border);
+  box-shadow: var(--shadow-card-soft);
+}
+
+/* ═══ Reduced transparency: honour the OS setting by going opaque. ═══ */
+@media (prefers-reduced-transparency: reduce) {
+  html[data-theme^="nex-glass"] {
+    --glass-blur: none;
+    --nex-sidebar-glass: var(--nex-sidebar);
+    --glass-pane: var(--bg-card);
+  }
+}

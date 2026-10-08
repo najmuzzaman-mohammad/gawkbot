@@ -21,6 +21,10 @@
         <string>10.13.0</string>
         <key>NSHighResolutionCapable</key>
         <true/>
+        <key>NSMicrophoneUsageDescription</key>
+        <string>gawkbot listens only while you hold the talk key in the notch, so you can answer your agents out loud.</string>
+        <key>NSSpeechRecognitionUsageDescription</key>
+        <string>gawkbot turns what you say into text so you can read it before it is sent to an agent.</string>
         <key>NSHumanReadableCopyright</key>
         <string>{{.Info.Copyright}}</string>
         {{if .Info.FileAssociations}}

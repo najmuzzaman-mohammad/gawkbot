@@ -2,162 +2,121 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Download gawkbot Desktop for macOS and Windows</title>
-<meta name="description" content="Download the gawkbot desktop app for macOS and Windows. Your team of always-on onlookers in a native window, with no browser tab and no terminal.">
+<meta name="description" content="Download the gawkbot desktop app for macOS and Windows. On a Mac it puts every coding agent in the notch, with one inbox for their questions. Free and open source.">
 <link rel="canonical" href="https://gawk.bot/download.html">
 <meta property="og:title" content="Download gawkbot Desktop">
-<meta property="og:description" content="Your team of always-on onlookers, as a native desktop app for macOS and Windows.">
+<meta property="og:description" content="gawkbot as a native app for macOS and Windows. On a Mac, every agent's questions land in the notch.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://gawk.bot/download.html">
 <meta property="og:image" content="https://gawk.bot/og-image.png">
-<meta name="theme-color" content="#F4F3EF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+<!-- theme-color must track --bg in style.css for each colour scheme. -->
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0e" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  /* Same six semantics as the landing page. Edit the sources only. */
-  :root {
-    color-scheme: light dark;
-    --ink: #0E0E11; --paper: #F4F3EF; --raised: #FBFAF7;
-    --line: #D8D5CD; --mute: #6E6C66; --accent: #C8402F;
-
-    --bg: var(--paper); --surface: var(--raised); --surface-high: var(--raised);
-    --border: var(--line); --yellow: var(--ink); --yellow-dark: var(--ink);
-    --green: var(--ink); --blue: var(--mute);
-    --text: var(--ink); --text-muted: var(--mute);
-    --font-display: 'Press Start 2P', monospace;
-    --font-vt: 'VT323', monospace;
-    --font-mono: 'DM Mono', monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ink: #EDEBE4; --paper: #121214; --raised: #191919;
-      --line: #2E2D2A; --mute: #8B8880; --accent: #E0563F;
-    }
-  }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg); color: var(--text); font-family: var(--font-mono);
-    font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased;
-    background-image: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
-    min-height: 100vh;
-  }
-  a { color: var(--yellow); }
-  /* nav */
-  nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 24px; border-bottom: 2px solid var(--border);
-    position: sticky; top: 0; background: var(--bg); z-index: 10;
-  }
-  .nav-logo { font-family: var(--font-display); font-size: 13px; color: var(--text); text-decoration: none; }
-  .nav-logo .by { color: var(--text-muted); font-size: 8px; }
-  .nav-right { display: flex; align-items: center; gap: 18px; }
-  .nav-right a { font-size: 14px; text-decoration: none; color: var(--text-muted); }
-  .nav-right a:hover { color: var(--yellow); }
-  /* layout */
-  main { max-width: 920px; margin: 0 auto; padding: 56px 22px 96px; }
-  .hero { text-align: center; margin-bottom: 56px; }
-  h1 { font-family: var(--font-display); font-size: 26px; line-height: 1.4; color: var(--text); margin-bottom: 18px; }
-  h1 .accent { color: var(--yellow); }
-  .lead { font-family: var(--font-vt); font-size: 24px; color: var(--text-muted); max-width: 620px; margin: 0 auto 28px; }
-  /* primary detected button */
-  .btn-primary {
-    font-family: var(--font-display); font-size: 11px; color: var(--bg);
-    background: var(--yellow); border: none; padding: 16px 26px; cursor: pointer;
-    box-shadow: 4px 4px 0 var(--yellow-dark); text-decoration: none;
-    display: inline-flex; align-items: center; gap: 10px; letter-spacing: 0.06em;
-    transition: transform .08s, box-shadow .08s;
-  }
-  .btn-primary:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--yellow-dark); }
-  .btn-primary:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--yellow-dark); }
-  .btn-sub { display: block; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 12px; }
-  /* cards */
-  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-  @media (max-width: 760px) { .cards { grid-template-columns: 1fr; } h1 { font-size: 19px; } }
-  .card {
-    background: var(--surface); border: 2px solid var(--border); padding: 26px 24px;
-    display: flex; flex-direction: column;
-  }
-  .card.detected { border-color: var(--yellow); box-shadow: 4px 4px 0 var(--yellow-dark); }
-  .card h2 { font-family: var(--font-display); font-size: 13px; color: var(--text); margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
-  .card .meta { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
-  .badge-you { font-family: var(--font-display); font-size: 7px; color: var(--bg); background: var(--green); padding: 3px 7px; }
-  .btn-dl {
-    font-family: var(--font-display); font-size: 10px; color: var(--bg); background: var(--yellow);
-    border: none; padding: 13px 18px; cursor: pointer; text-decoration: none; text-align: center;
-    box-shadow: 3px 3px 0 var(--yellow-dark); letter-spacing: 0.05em; transition: transform .08s, box-shadow .08s;
-  }
-  .btn-dl:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--yellow-dark); }
-  .btn-dl.ghost { color: var(--yellow); background: transparent; border: 2px solid var(--yellow); box-shadow: none; }
-  ol.steps { list-style: none; counter-reset: s; margin: 18px 0 0; }
-  ol.steps li { counter-increment: s; position: relative; padding: 6px 0 6px 30px; font-size: 14px; }
-  ol.steps li::before {
-    content: counter(s); position: absolute; left: 0; top: 6px;
-    font-family: var(--font-display); font-size: 9px; color: var(--bg); background: var(--yellow-dark);
-    width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
-  }
-  code { font-family: var(--font-mono); background: var(--surface-high); color: var(--green); padding: 1px 6px; font-size: 13px; }
-  /* callout */
-  .callout { background: var(--surface-high); border-left: 3px solid var(--green); padding: 14px 16px; margin-top: 18px; font-size: 13.5px; }
-  .callout .ct { font-family: var(--font-display); font-size: 8px; color: var(--green); display: block; margin-bottom: 8px; letter-spacing: 0.06em; }
-  .callout ol { margin: 6px 0 0 18px; }
-  .callout li { margin: 3px 0; }
-  /* alt section */
-  .alt { margin-top: 56px; background: var(--surface); border: 2px solid var(--border); padding: 24px; }
-  .alt h3 { font-family: var(--font-display); font-size: 11px; color: var(--text); margin-bottom: 12px; }
-  .cmd { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--bg); border: 2px solid var(--yellow-dark); padding: 12px 14px; margin: 8px 0; }
-  .cmd code { background: none; color: var(--text); font-size: 14px; }
-  .cmd button { font-family: var(--font-display); font-size: 8px; color: var(--yellow); background: transparent; border: 1px solid var(--yellow-dark); padding: 6px 9px; cursor: pointer; }
-  .muted { color: var(--text-muted); font-size: 13.5px; }
-  footer { border-top: 2px solid var(--border); padding: 28px 24px; text-align: center; color: var(--text-muted); font-size: 13px; }
-  footer a { margin: 0 8px; text-decoration: none; }
-  .legal { margin: 18px auto 0; padding-top: 16px; border-top: 1px solid var(--line); max-width: 80ch; font-size: 11.5px; line-height: 1.75; text-align: left; }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav>
-  <a class="nav-logo" href="/">gawkbot <span class="by">Desktop</span></a>
-  <div class="nav-right">
-    <a href="/">← Home</a>
-    <a href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">GitHub</a>
-  </div>
-</nav>
+<a class="skip-link" href="#main">Skip to content</a>
 
-<main>
-  <section class="hero">
-    <h1>gawkbot <span class="accent">Desktop</span></h1>
-    <p class="lead">Your team of always-on onlookers in a native window, with no browser tab and no terminal. Same workspace as the CLI, and the same amount of finished work.</p>
-    <a class="btn-primary" id="primaryDownload" href="https://github.com/najmuzzaman-mohammad/gawkbot/releases" target="_blank" rel="noopener">Download</a>
-    <span class="btn-sub" id="primarySub">Pick your platform below</span>
+<!-- The bot marks. Paths are smoothBlob() output from web/src/lib/blobAvatarSmooth.ts,
+     pasted verbatim so the site draws exactly the characters the app draws.
+     Shape and colour are derived from each slug (web/src/lib/blobAvatar.ts);
+     the "-n" variants are the same marks with the eyes narrowed, for blinking.
+     The eyes are holes (fill-rule evenodd), so whatever is behind shows through. -->
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="blob-gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.38"/>
+      <stop offset="0.45" stop-color="#fff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.18"/>
+    </linearGradient>
+    <path id="p-pill" fill-rule="evenodd" d="M5.5 0C6.75 -0.417 9.25 -0.417 10.5 0C11.75 0.417 12.583 0.25 13 2.5C13.417 4.75 13.417 11.25 13 13.5C12.583 15.75 11.75 15.583 10.5 16C9.25 16.417 6.75 16.417 5.5 16C4.25 15.583 3.417 15.75 3 13.5C2.583 11.25 2.583 4.75 3 2.5C3.417 0.25 4.25 0.417 5.5 0ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-pill-n" fill-rule="evenodd" d="M5.5 0C6.75 -0.417 9.25 -0.417 10.5 0C11.75 0.417 12.583 0.25 13 2.5C13.417 4.75 13.417 11.25 13 13.5C12.583 15.75 11.75 15.583 10.5 16C9.25 16.417 6.75 16.417 5.5 16C4.25 15.583 3.417 15.75 3 13.5C2.583 11.25 2.583 4.75 3 2.5C3.417 0.25 4.25 0.417 5.5 0ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-shield" fill-rule="evenodd" d="M3.5 1C5.417 0.583 10.583 0.583 12.5 1C14.417 1.417 14.583 2.417 15 3.5C15.417 4.583 15.167 6.667 15 7.5C14.833 8.333 14.167 8.167 14 8.5C13.833 8.833 14.917 8.417 14 9.5C13.083 10.583 9.583 14.083 8.5 15C7.417 15.917 8.583 15.917 7.5 15C6.417 14.083 2.917 10.583 2 9.5C1.083 8.417 2.167 8.833 2 8.5C1.833 8.167 1.167 8.333 1 7.5C0.833 6.667 0.583 4.583 1 3.5C1.417 2.417 1.583 1.417 3.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-shield-n" fill-rule="evenodd" d="M3.5 1C5.417 0.583 10.583 0.583 12.5 1C14.417 1.417 14.583 2.417 15 3.5C15.417 4.583 15.167 6.667 15 7.5C14.833 8.333 14.167 8.167 14 8.5C13.833 8.833 14.917 8.417 14 9.5C13.083 10.583 9.583 14.083 8.5 15C7.417 15.917 8.583 15.917 7.5 15C6.417 14.083 2.917 10.583 2 9.5C1.083 8.417 2.167 8.833 2 8.5C1.833 8.167 1.167 8.333 1 7.5C0.833 6.667 0.583 4.583 1 3.5C1.417 2.417 1.583 1.417 3.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-drop" fill-rule="evenodd" d="M7.5 1C7.917 0.75 8.083 0.75 8.5 1C8.917 1.25 9.75 2.083 10 2.5C10.25 2.917 9.333 2.667 10 3.5C10.667 4.333 13.333 6.667 14 7.5C14.667 8.333 13.833 8.167 14 8.5C14.167 8.833 14.833 9 15 9.5C15.167 10 15.333 10.833 15 11.5C14.667 12.167 13.667 13 13 13.5C12.333 14 11.417 14.25 11 14.5C10.583 14.75 11.417 14.917 10.5 15C9.583 15.083 6.417 15.083 5.5 15C4.583 14.917 5.417 14.75 5 14.5C4.583 14.25 3.667 14 3 13.5C2.333 13 1.333 12.167 1 11.5C0.667 10.833 0.833 10 1 9.5C1.167 9 1.833 8.833 2 8.5C2.167 8.167 1.333 8.333 2 7.5C2.667 6.667 5.333 4.333 6 3.5C6.667 2.667 5.75 2.917 6 2.5C6.25 2.083 7.083 1.25 7.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-drop-n" fill-rule="evenodd" d="M7.5 1C7.917 0.75 8.083 0.75 8.5 1C8.917 1.25 9.75 2.083 10 2.5C10.25 2.917 9.333 2.667 10 3.5C10.667 4.333 13.333 6.667 14 7.5C14.667 8.333 13.833 8.167 14 8.5C14.167 8.833 14.833 9 15 9.5C15.167 10 15.333 10.833 15 11.5C14.667 12.167 13.667 13 13 13.5C12.333 14 11.417 14.25 11 14.5C10.583 14.75 11.417 14.917 10.5 15C9.583 15.083 6.417 15.083 5.5 15C4.583 14.917 5.417 14.75 5 14.5C4.583 14.25 3.667 14 3 13.5C2.333 13 1.333 12.167 1 11.5C0.667 10.833 0.833 10 1 9.5C1.167 9 1.833 8.833 2 8.5C2.167 8.167 1.333 8.333 2 7.5C2.667 6.667 5.333 4.333 6 3.5C6.667 2.667 5.75 2.917 6 2.5C6.25 2.083 7.083 1.25 7.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-dome" fill-rule="evenodd" d="M6.5 1C7.083 0.917 8.917 0.917 9.5 1C10.083 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5 15 6.5C15.167 8 15.083 13.083 15 14.5C14.917 15.917 16.75 14.917 14.5 15C12.25 15.083 3.75 15.083 1.5 15C-0.75 14.917 1.083 15.917 1 14.5C0.917 13.083 0.833 8 1 6.5C1.167 5 1.833 5.833 2 5.5C2.167 5.167 1.667 5 2 4.5C2.333 4 3.333 3 4 2.5C4.667 2 5.583 1.75 6 1.5C6.417 1.25 5.917 1.083 6.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-dome-n" fill-rule="evenodd" d="M6.5 1C7.083 0.917 8.917 0.917 9.5 1C10.083 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5 15 6.5C15.167 8 15.083 13.083 15 14.5C14.917 15.917 16.75 14.917 14.5 15C12.25 15.083 3.75 15.083 1.5 15C-0.75 14.917 1.083 15.917 1 14.5C0.917 13.083 0.833 8 1 6.5C1.167 5 1.833 5.833 2 5.5C2.167 5.167 1.667 5 2 4.5C2.333 4 3.333 3 4 2.5C4.667 2 5.583 1.75 6 1.5C6.417 1.25 5.917 1.083 6.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-block" fill-rule="evenodd" d="M4.5 2C6.083 1.583 9.917 1.583 11.5 2C13.083 2.417 13.583 3.917 14 4.5C14.417 5.083 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.25 12.083 14 12.5C13.75 12.917 14.25 13.75 12.5 14C10.75 14.25 5.25 14.25 3.5 14C1.75 13.75 2.25 12.917 2 12.5C1.75 12.083 2.167 11.833 2 11.5C1.833 11.167 1.167 11.333 1 10.5C0.833 9.667 0.833 7.333 1 6.5C1.167 5.667 1.833 5.833 2 5.5C2.167 5.167 1.583 5.083 2 4.5C2.417 3.917 2.917 2.417 4.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-block-n" fill-rule="evenodd" d="M4.5 2C6.083 1.583 9.917 1.583 11.5 2C13.083 2.417 13.583 3.917 14 4.5C14.417 5.083 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.25 12.083 14 12.5C13.75 12.917 14.25 13.75 12.5 14C10.75 14.25 5.25 14.25 3.5 14C1.75 13.75 2.25 12.917 2 12.5C1.75 12.083 2.167 11.833 2 11.5C1.833 11.167 1.167 11.333 1 10.5C0.833 9.667 0.833 7.333 1 6.5C1.167 5.667 1.833 5.833 2 5.5C2.167 5.167 1.583 5.083 2 4.5C2.417 3.917 2.917 2.417 4.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-loaf" fill-rule="evenodd" d="M3.5 3C5.083 2.917 10.917 2.917 12.5 3C14.083 3.083 12.583 3.25 13 3.5C13.417 3.75 14.5 4.167 15 4.5C15.5 4.833 15.833 4.5 16 5.5C16.167 6.5 16.417 9.25 16 10.5C15.583 11.75 15.75 12.583 13.5 13C11.25 13.417 4.75 13.417 2.5 13C0.25 12.583 0.417 11.75 0 10.5C-0.417 9.25 -0.167 6.5 0 5.5C0.167 4.5 0.5 4.833 1 4.5C1.5 4.167 2.583 3.75 3 3.5C3.417 3.25 1.917 3.083 3.5 3ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-loaf-n" fill-rule="evenodd" d="M3.5 3C5.083 2.917 10.917 2.917 12.5 3C14.083 3.083 12.583 3.25 13 3.5C13.417 3.75 14.5 4.167 15 4.5C15.5 4.833 15.833 4.5 16 5.5C16.167 6.5 16.417 9.25 16 10.5C15.583 11.75 15.75 12.583 13.5 13C11.25 13.417 4.75 13.417 2.5 13C0.25 12.583 0.417 11.75 0 10.5C-0.417 9.25 -0.167 6.5 0 5.5C0.167 4.5 0.5 4.833 1 4.5C1.5 4.167 2.583 3.75 3 3.5C3.417 3.25 1.917 3.083 3.5 3ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-bean" fill-rule="evenodd" d="M3.5 2C4.083 1.75 4.917 1.75 5.5 2C6.083 2.25 5.583 3.083 7 3.5C8.417 3.917 12.667 4.167 14 4.5C15.333 4.833 14.833 4.5 15 5.5C15.167 6.5 15.167 9.5 15 10.5C14.833 11.5 14.167 11.167 14 11.5C13.833 11.833 14.333 12.167 14 12.5C13.667 12.833 12.417 13.25 12 13.5C11.583 13.75 12.75 13.917 11.5 14C10.25 14.083 5.75 14.083 4.5 14C3.25 13.917 4.417 13.75 4 13.5C3.583 13.25 2.333 12.833 2 12.5C1.667 12.167 2.167 11.833 2 11.5C1.833 11.167 1.167 11.5 1 10.5C0.833 9.5 0.833 6.5 1 5.5C1.167 4.5 1.833 4.833 2 4.5C2.167 4.167 1.75 3.917 2 3.5C2.25 3.083 2.917 2.25 3.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-bean-n" fill-rule="evenodd" d="M3.5 2C4.083 1.75 4.917 1.75 5.5 2C6.083 2.25 5.583 3.083 7 3.5C8.417 3.917 12.667 4.167 14 4.5C15.333 4.833 14.833 4.5 15 5.5C15.167 6.5 15.167 9.5 15 10.5C14.833 11.5 14.167 11.167 14 11.5C13.833 11.833 14.333 12.167 14 12.5C13.667 12.833 12.417 13.25 12 13.5C11.583 13.75 12.75 13.917 11.5 14C10.25 14.083 5.75 14.083 4.5 14C3.25 13.917 4.417 13.75 4 13.5C3.583 13.25 2.333 12.833 2 12.5C1.667 12.167 2.167 11.833 2 11.5C1.833 11.167 1.167 11.5 1 10.5C0.833 9.5 0.833 6.5 1 5.5C1.167 4.5 1.833 4.833 2 4.5C2.167 4.167 1.75 3.917 2 3.5C2.25 3.083 2.917 2.25 3.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-blob" fill-rule="evenodd" d="M5.5 1C6.25 0.917 8.75 0.917 9.5 1C10.25 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.667 12 14 12.5C13.333 13 10.75 14.083 10 14.5C9.25 14.917 10.083 14.917 9.5 15C8.917 15.083 7.083 15.083 6.5 15C5.917 14.917 6.417 14.75 6 14.5C5.583 14.25 4.667 14 4 13.5C3.333 13 2.333 12 2 11.5C1.667 11 2.167 10.833 2 10.5C1.833 10.167 1.167 10.333 1 9.5C0.833 8.667 0.833 6.333 1 5.5C1.167 4.667 1.833 4.833 2 4.5C2.167 4.167 1.833 3.833 2 3.5C2.167 3.167 2.5 2.833 3 2.5C3.5 2.167 4.583 1.75 5 1.5C5.417 1.25 4.75 1.083 5.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-blob-n" fill-rule="evenodd" d="M5.5 1C6.25 0.917 8.75 0.917 9.5 1C10.25 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.667 12 14 12.5C13.333 13 10.75 14.083 10 14.5C9.25 14.917 10.083 14.917 9.5 15C8.917 15.083 7.083 15.083 6.5 15C5.917 14.917 6.417 14.75 6 14.5C5.583 14.25 4.667 14 4 13.5C3.333 13 2.333 12 2 11.5C1.667 11 2.167 10.833 2 10.5C1.833 10.167 1.167 10.333 1 9.5C0.833 8.667 0.833 6.333 1 5.5C1.167 4.667 1.833 4.833 2 4.5C2.167 4.167 1.833 3.833 2 3.5C2.167 3.167 2.5 2.833 3 2.5C3.5 2.167 4.583 1.75 5 1.5C5.417 1.25 4.75 1.083 5.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+  </defs>
+  <symbol id="b-auth-refactor" viewBox="0 0 16 16" overflow="visible"><use href="#p-pill" fill="#a8546b"/><use href="#p-pill" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-auth-refactor-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-pill-n" fill="#a8546b"/><use href="#p-pill-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-flaky-tests" viewBox="0 0 16 16" overflow="visible"><use href="#p-shield" fill="#3f9c8f"/><use href="#p-shield" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-flaky-tests-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-shield-n" fill="#3f9c8f"/><use href="#p-shield-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-landing-copy" viewBox="0 0 16 16" overflow="visible"><use href="#p-drop" fill="#b3702f"/><use href="#p-drop" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-landing-copy-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-drop-n" fill="#b3702f"/><use href="#p-drop-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-changelog" viewBox="0 0 16 16" overflow="visible"><use href="#p-dome" fill="#6f8f43"/><use href="#p-dome" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-changelog-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-dome-n" fill="#6f8f43"/><use href="#p-dome-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-test-fixer" viewBox="0 0 16 16" overflow="visible"><use href="#p-block" fill="#6b7fd7"/><use href="#p-block" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-test-fixer-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-block-n" fill="#6b7fd7"/><use href="#p-block-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-release-train" viewBox="0 0 16 16" overflow="visible"><use href="#p-loaf" fill="#8b6bb1"/><use href="#p-loaf" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-release-train-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-loaf-n" fill="#8b6bb1"/><use href="#p-loaf-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-db-migrate" viewBox="0 0 16 16" overflow="visible"><use href="#p-bean" fill="#5f9e6b"/><use href="#p-bean" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-db-migrate-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-bean-n" fill="#5f9e6b"/><use href="#p-bean-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-ui-polish" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob" fill="#c08a3e"/><use href="#p-blob" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-ui-polish-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob-n" fill="#c08a3e"/><use href="#p-blob-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-brand" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob" fill="#3f9c8f"/><use href="#p-blob" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-brand-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob-n" fill="#3f9c8f"/><use href="#p-blob-n" fill="url(#blob-gloss)"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="gawkbot home">
+      <svg class="blob" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-brand"/></svg>
+      gawkbot
+    </a>
+    <div class="nav-right">
+      <a class="btn btn-glass" href="/">Home</a>
+      <a class="btn btn-glass" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg> GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="dl-hero">
+    <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-brand"/></svg>
+    <h1 class="h2">gawkbot <span class="grad">Desktop</span></h1>
+    <p class="lead">Your workspace in a native window, with no browser tab and no terminal. On a Mac it also moves into the notch, where every agent's questions wait for you.</p>
+    <a class="btn btn-primary" id="primaryDownload" href="https://github.com/najmuzzaman-mohammad/gawkbot/releases" target="_blank" rel="noopener">Download</a>
+    <span class="dl-sub" id="primarySub">Pick your platform below</span>
   </section>
 
-  <section class="cards">
+  <section class="dl-cards" aria-label="Downloads">
     <!-- macOS -->
-    <article class="card" id="card-mac">
-      <h2>macOS <span class="badge-you" id="you-mac" hidden>YOU</span></h2>
-      <p class="meta">Universal (Apple Silicon and Intel) · macOS 11+ · signed and notarized by Apple</p>
-      <a class="btn-dl" id="dlMac" href="https://github.com/najmuzzaman-mohammad/gawkbot/releases">Download .dmg</a>
+    <article class="dl-card glass" id="card-mac">
+      <h2>macOS <span class="badge-you" id="you-mac" hidden>This Mac</span></h2>
+      <p class="dl-meta">Universal (Apple Silicon and Intel) · macOS 11+ · signed and notarized by Apple</p>
+      <a class="btn btn-primary" id="dlMac" href="https://github.com/najmuzzaman-mohammad/gawkbot/releases">Download .dmg</a>
       <ol class="steps">
         <li>Open the downloaded <code>gawkbot-mac.dmg</code>.</li>
         <li>Drag <strong>gawkbot</strong> into your <strong>Applications</strong> folder.</li>
-        <li>Launch it from Applications or Spotlight. Your workspace opens in the app.</li>
+        <li>Launch it from Applications or Spotlight. Your workspace opens in the app, and the notch comes alive.</li>
       </ol>
-      <div class="callout" style="border-left-color: var(--yellow)">
-        <span class="ct" style="color: var(--yellow)">No scary warnings</span>
+      <div class="callout">
+        <span class="ct">No scary warnings</span>
         It is notarized by Apple, so it opens straight away, with no "unidentified developer" prompt.
       </div>
     </article>
 
     <!-- Windows -->
-    <article class="card" id="card-win">
-      <h2>Windows <span class="badge-you" id="you-win" hidden>YOU</span></h2>
-      <p class="meta">Windows 10/11 · 64-bit · WebView2 (built in to Windows)</p>
-      <a class="btn-dl" id="dlWin" href="https://github.com/najmuzzaman-mohammad/gawkbot/releases">Download installer</a>
+    <article class="dl-card glass" id="card-win">
+      <h2>Windows <span class="badge-you" id="you-win" hidden>This PC</span></h2>
+      <p class="dl-meta">Windows 10/11 · 64-bit · WebView2 (built in to Windows)</p>
+      <a class="btn btn-primary" id="dlWin" href="https://github.com/najmuzzaman-mohammad/gawkbot/releases">Download installer</a>
       <ol class="steps">
         <li>Run the downloaded <code>gawkbot-windows-setup.exe</code>.</li>
         <li>Follow the installer, then launch <strong>gawkbot</strong> from the Start menu.</li>
@@ -173,27 +132,45 @@
     </article>
   </section>
 
-  <p style="text-align:center; margin-top:28px; font-size:13.5px;">
-    <a href="https://github.com/najmuzzaman-mohammad/gawkbot/releases" target="_blank" rel="noopener">View all releases &amp; previous versions on GitHub →</a>
+  <div class="dl-notch glass">
+    <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-flaky-tests"/></svg>
+    <p><strong>The notch is Mac only.</strong> Macs without a notch get the same strip as a pill at the top centre of the screen. On Windows you get the full workspace in a window.</p>
+  </div>
+
+  <p class="dl-all">
+    <a href="https://github.com/najmuzzaman-mohammad/gawkbot/releases" target="_blank" rel="noopener">View all releases and previous versions on GitHub →</a>
   </p>
 
-  <section class="alt">
-    <h3>Prefer the terminal? Or on Linux?</h3>
-    <p class="muted">The desktop app and the CLI are the same workspace, so use whichever you like. The CLI runs everywhere, including Linux:</p>
-    <div class="cmd">
-      <code>npx gawkbot@latest</code>
-      <button type="button" data-copy="npx gawkbot@latest" aria-label="Copy command">COPY</button>
-    </div>
-    <p class="muted">A native Linux desktop build is on the roadmap; for now Linux runs via the CLI above (your workspace opens at <code>localhost:7891</code>).</p>
+  <section class="dl-alt glass">
+    <h3 class="h3">Prefer the terminal? Or on Linux?</h3>
+    <p>The desktop app and the CLI are the same workspace, so use whichever you like. The CLI runs everywhere, including Linux:</p>
+    <button class="cmd" type="button" data-copy="npx gawkbot@latest" aria-label="Copy the command: npx gawkbot@latest">
+      <span><span class="prompt">$ </span>npx gawkbot@latest</span>
+      <span class="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h9"/></svg><span class="copy-label">Copy</span></span>
+    </button>
+    <p>A native Linux desktop build is on the roadmap; for now Linux runs via the CLI above (your workspace opens at <code>localhost:7891</code>).</p>
   </section>
 </main>
 
-<footer>
-  <a href="/">Home</a>
-  <a href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">GitHub</a>
-  <a href="https://github.com/najmuzzaman-mohammad/gawkbot/releases" target="_blank" rel="noopener">All releases</a>
-  <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Sustainable Use License</a>
-  <div class="legal">gawkbot is an independent, source-available project. It is a parody. It is not affiliated with, endorsed by, or sponsored by xAI, SpaceXAI, X Corp, or Cursor. Grok and Grok Bot are trademarks of their respective owners.</div>
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div>
+        <a class="brand" href="/">
+          <svg class="blob" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-brand"/></svg>
+          gawkbot
+        </a>
+        <p class="footer-sub">The agents are working. You have the notch.</p>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/najmuzzaman-mohammad/gawkbot/releases" target="_blank" rel="noopener">All releases</a>
+        <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Sustainable Use License</a>
+      </nav>
+    </div>
+    <p class="footer-legal">gawkbot is an independent, source-available project. It is a parody. It is not affiliated with, endorsed by, or sponsored by xAI, SpaceXAI, X Corp, or Cursor. Grok and Grok Bot are trademarks of their respective owners.</p>
+  </div>
 </footer>
 
 <script>
@@ -203,8 +180,8 @@
     var WIN_ASSET = "gawkbot-windows-setup.exe";
 
     // Detect OS to highlight the matching card + relabel the hero button.
-    var ua = navigator.userBot || "";
-    var plat = (navigator.userBotData && navigator.userBotData.platform) || navigator.platform || "";
+    var ua = navigator.userAgent || "";
+    var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
     var isMac = /Mac/i.test(plat) || /Mac OS X/i.test(ua);
     var isWin = /Win/i.test(plat) || /Windows/i.test(ua);
 
@@ -279,9 +256,16 @@
     // Copy buttons
     document.querySelectorAll("[data-copy]").forEach(function (b) {
       b.addEventListener("click", function () {
-        var done = function () { var t = b.textContent; b.textContent = "COPIED"; setTimeout(function () { b.textContent = t; }, 1400); };
+        var label = b.querySelector(".copy-label");
+        var done = function (ok) {
+          if (label) label.textContent = ok ? "Copied" : "Press \u2318C";
+          b.classList.toggle("copied", ok);
+          setTimeout(function () { if (label) label.textContent = "Copy"; b.classList.remove("copied"); }, 1600);
+        };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(b.getAttribute("data-copy")).then(done).catch(function () {});
+          navigator.clipboard.writeText(b.getAttribute("data-copy")).then(function () { done(true); }, function () { done(false); });
+        } else {
+          done(false);
         }
       });
     });

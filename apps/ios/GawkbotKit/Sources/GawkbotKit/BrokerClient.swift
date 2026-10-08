@@ -58,6 +58,26 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
         let _: OK = try await post("/requests/answer", body: body)
     }
 
+    public func answer(requestID: String, customText: String) async throws {
+        struct OK: Decodable { let ok: Bool? }
+        let _: OK = try await post("/requests/answer", body: ["id": requestID, "custom_text": customText])
+    }
+
+    public func notchState() async throws -> NotchState {
+        try await get("/notch/state", query: [:])
+    }
+
+    public func updateAvatar(slug: String, avatar: BotAvatar?) async throws {
+        let body: [String: Any] = [
+            "action": "update",
+            "slug": slug,
+            "avatar": (avatar ?? BotAvatar()).wireBody,
+        ]
+        // The broker answers with the updated member; the app re-reads the
+        // roster and /notch/state instead, so only the status matters.
+        _ = try await execute(makePost("/office-members", body: body))
+    }
+
     public func events() -> AsyncStream<BrokerEvent> {
         AsyncStream { continuation in
             let task = Task {
@@ -109,13 +129,17 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
     }
 
     private func post<T: Decodable>(_ path: String, body: [String: Any]) async throws -> T {
+        try await perform(makePost(path, body: body), what: path)
+    }
+
+    private func makePost(_ path: String, body: [String: Any]) throws -> URLRequest {
         let url = baseURL.appendingPathComponent(path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         authorize(&req)
-        return try await perform(req, what: path)
+        return req
     }
 
     private func authorize(_ req: inout URLRequest) {
@@ -124,16 +148,23 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
     }
 
     private func perform<T: Decodable>(_ req: URLRequest, what: String) async throws -> T {
+        let data = try await execute(req)
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw BrokerError.decoding(what)
+        }
+    }
+
+    /// Runs a request and returns the body of a 2xx answer; anything else
+    /// throws (401/403 as `.unauthorized`).
+    private func execute(_ req: URLRequest) async throws -> Data {
         let (data, response) = try await session.data(for: req)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         if code == 401 || code == 403 { throw BrokerError.unauthorized }
         guard (200..<300).contains(code) else {
             throw BrokerError.http(code, String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
         }
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw BrokerError.decoding(what)
-        }
+        return data
     }
 }

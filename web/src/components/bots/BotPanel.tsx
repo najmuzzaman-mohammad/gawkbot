@@ -330,6 +330,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
               slug={agent.slug}
               size={36}
               className="pixel-avatar-panel"
+              avatar={agent.avatar}
             />
             <HarnessBadge
               kind={resolveHarness(agent.provider, defaultHarness)}

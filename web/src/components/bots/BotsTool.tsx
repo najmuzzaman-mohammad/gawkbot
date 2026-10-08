@@ -60,7 +60,7 @@ function BotCard({ agent, defaultHarness }: BotCardProps) {
       aria-label={`Configure ${displayName}`}
     >
       <span className="bots-tool-card-avatar avatar-with-harness">
-        <PixelAvatar slug={agent.slug} size={40} />
+        <PixelAvatar slug={agent.slug} size={40} avatar={agent.avatar} />
         <HarnessBadge
           kind={harness}
           size={12}

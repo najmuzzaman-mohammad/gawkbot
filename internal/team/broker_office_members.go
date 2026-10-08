@@ -27,6 +27,13 @@ type officeMemberListEntry struct {
 	Task         string `json:"task,omitempty"`
 	LiveActivity string `json:"liveActivity,omitempty"`
 	LastTime     string `json:"lastTime,omitempty"`
+	// RunsOn is where the bot's turns execute: this_machine or elsewhere
+	// (gateway, Slack, cloud computer); RunsOnDetail says which. ManagedBy
+	// is the Chief of Staff for every member but the lead itself. The
+	// embedded officeMember.Origin is filled in for legacy rows.
+	RunsOn       string `json:"runs_on,omitempty"`
+	RunsOnDetail string `json:"runs_on_detail,omitempty"`
+	ManagedBy    string `json:"managed_by,omitempty"`
 	// Online + LastSeenAt are presence fields populated from b.memberPresence
 	// (broker_presence.go), distinct from Status/Activity above which describe
 	// "is the bot processing right now". Online tracks "does the adapter
@@ -52,10 +59,18 @@ type officeMemberMutationBody struct {
 	AllowedTools []string                  `json:"allowed_tools"`
 	CreatedBy    string                    `json:"created_by"`
 	Provider     *provider.ProviderBinding `json:"provider,omitempty"`
+	// origin / adoptedFrom are set only by in-process callers (local agent
+	// adoption). Unexported so an HTTP client cannot claim an origin: HTTP
+	// creates derive it from created_by.
+	origin      string
+	adoptedFrom string
 	// Computer / CloudBackend are pointers so "not sent" and "set to auto"
 	// (empty string) stay distinguishable.
 	Computer     *string `json:"computer,omitempty"`
 	CloudBackend *string `json:"cloud_backend,omitempty"`
+	// Avatar sets the bot's chosen look. On update, sending {} (both fields
+	// empty) clears it back to the derived look; omitting it leaves it alone.
+	Avatar *MemberAvatar `json:"avatar,omitempty"`
 }
 
 func validComputerDestination(v string) bool {
@@ -97,8 +112,14 @@ func (b *Broker) serveOfficeMemberList(w http.ResponseWriter) {
 	b.mu.Lock()
 	now := time.Now()
 	members := make([]officeMemberListEntry, 0, len(b.members))
+	lead := officeLeadSlugFrom(b.members)
 	for _, member := range b.members {
 		entry := officeMemberListEntry{officeMember: cloneOfficeMemberForRead(member)}
+		entry.Origin = memberOrigin(member, lead)
+		entry.RunsOn, entry.RunsOnDetail = memberRunsOn(member)
+		if member.Slug != lead {
+			entry.ManagedBy = lead
+		}
 		if snapshot, ok := b.activity[member.Slug]; ok {
 			entry.Status = snapshot.Status
 			entry.Activity = snapshot.Activity
@@ -169,6 +190,14 @@ func cloneOfficeMemberForRead(member officeMember) officeMember {
 	if member.Provider.Slack != nil {
 		slack := *member.Provider.Slack
 		clone.Provider.Slack = &slack
+	}
+	if member.Provider.CLIAgent != nil {
+		cliAgent := *member.Provider.CLIAgent
+		clone.Provider.CLIAgent = &cliAgent
+	}
+	if member.Avatar != nil {
+		avatar := *member.Avatar
+		clone.Avatar = &avatar
 	}
 	return clone
 }
@@ -256,6 +285,14 @@ func (b *Broker) createOfficeMember(r *http.Request, slug string, body officeMem
 		AllowedTools: normalizeStringList(body.AllowedTools),
 		CreatedBy:    strings.TrimSpace(body.CreatedBy),
 		CreatedAt:    now,
+		AdoptedFrom:  body.adoptedFrom,
+	}
+	member.Origin = body.origin
+	if member.Origin == "" {
+		b.mu.Lock()
+		lead := officeLeadSlugFrom(b.members)
+		b.mu.Unlock()
+		member.Origin = originForCreate(member.CreatedBy, lead)
 	}
 	if body.Provider != nil {
 		member.Provider = *body.Provider
@@ -269,6 +306,11 @@ func (b *Broker) createOfficeMember(r *http.Request, slug string, body officeMem
 	if body.CloudBackend != nil {
 		member.CloudBackend = strings.TrimSpace(*body.CloudBackend)
 	}
+	avatar, avatarErr := normalizeMemberAvatar(body.Avatar)
+	if avatarErr != nil {
+		return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusBadRequest, avatarErr.Error())
+	}
+	member.Avatar = avatar
 	applyOfficeMemberDefaults(&member)
 
 	// For openclaw bots, reach the gateway BEFORE we persist: if the
@@ -520,6 +562,14 @@ func (b *Broker) updateOfficeMember(r *http.Request, slug string, body officeMem
 	}
 	if body.CloudBackend != nil {
 		member.CloudBackend = strings.TrimSpace(*body.CloudBackend)
+	}
+	if body.Avatar != nil {
+		avatar, avatarErr := normalizeMemberAvatar(body.Avatar)
+		if avatarErr != nil {
+			b.mu.Unlock()
+			return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusBadRequest, avatarErr.Error())
+		}
+		member.Avatar = avatar
 	}
 	applyOfficeMemberDefaults(member)
 	write, err := b.prepareBrokerStateWriteLocked()

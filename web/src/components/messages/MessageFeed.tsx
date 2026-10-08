@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import type { Message } from "../../api/client";
+import { useOfficeMembers } from "../../hooks/useMembers";
 import { useMessages } from "../../hooks/useMessages";
 import { formatDateLabel } from "../../lib/format";
 import { OFFICE_LOADING_PHRASES } from "../../lib/officeLoadingPhrases";
 import { useChannelSlug } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
+import { dmBotForChannel, EmptyHero } from "../layout/EmptyHero";
 import { ThinkingLoader } from "../ui/ThinkingLoader";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
@@ -119,6 +121,9 @@ function ChannelMessageFeed({
   };
 
   const { data: rawMessages = [], isLoading } = useMessages(currentChannel);
+  // Whose DM this is, for the empty state's hero. Undefined off a bot's DM.
+  const { data: members = [] } = useOfficeMembers();
+  const dmBot = dmBotForChannel(currentChannel, members);
   const messages = useMemo(() => {
     const visible = messagesAfterClearMarker(rawMessages, clearMarkerId);
     if (!readOnly) return visible;
@@ -164,6 +169,12 @@ function ChannelMessageFeed({
     return (
       <div className="messages">
         <div className="channel-empty-state">
+          {dmBot ? (
+            <EmptyHero
+              slug={dmBot.slug}
+              line={`Say hi to ${dmBot.name || dmBot.slug}.`}
+            />
+          ) : null}
           <span className="eyebrow">quiet before the standup</span>
           <span className="title">#{currentChannel} is empty. For now.</span>
           <span className="body">

@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>gawkbot: the open source Grok Bot, bots you (almost) control</title>
-<meta name="description" content="The open source Grok Bot. gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so you have a false sense of control.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>gawkbot: every coding agent, managed from your Mac's notch</title>
+<meta name="description" content="gawkbot puts every coding agent on your Mac, and the ones in the cloud, in the notch. Approve, answer and talk back with one key or your voice, or reply from your iPhone. Free and open source.">
 <link rel="canonical" href="https://gawk.bot">
-<meta property="og:title" content="gawkbot: the open source Grok Bot, bots you (almost) control">
-<meta property="og:description" content="gawkbot is the open source Grok Bot. gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so that you have a false sense of control.">
+<meta property="og:title" content="gawkbot: every coding agent, managed from your Mac's notch">
+<meta property="og:description" content="One inbox in the notch for every agent's questions. Approve with a keystroke, talk back with your voice, reply from your iPhone. Free and open source.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://gawk.bot">
 <meta property="og:site_name" content="gawkbot">
@@ -18,21 +18,24 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The round green gawkbot mark over the words: gawkbot, the open source Grok Bot. Bots that collaborate, make apps, and have their own computers.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="gawkbot: the open source Grok Bot, bots you (almost) control">
-<meta name="twitter:description" content="gawkbot is the open source Grok Bot. gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so that you have a false sense of control.">
+<meta name="twitter:title" content="gawkbot: every coding agent, managed from your Mac's notch">
+<meta name="twitter:description" content="One inbox in the notch for every agent's questions. Approve with a keystroke, talk back with your voice, reply from your iPhone. Free and open source.">
 <meta name="twitter:image" content="https://gawk.bot/og-image.png?v=3">
 <meta name="twitter:image:alt" content="The round green gawkbot mark over the words: gawkbot, the open source Grok Bot. Bots that collaborate, make apps, and have their own computers.">
-<!-- theme-color cannot reference a CSS custom property, so these two are the
-     only brand colors outside :root. They must track --paper in each mode. -->
-<meta name="theme-color" content="#F4F3EF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+<!-- theme-color cannot read a CSS custom property, so these two must track
+     --bg in style.css for each colour scheme. -->
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0e" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Inter is only the fallback for machines without the Apple system font. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script>document.documentElement.classList.add('js');</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -65,10 +68,18 @@
       "alternateName": ["open source Grok Bot", "open source grokbot", "Grok Bot alternative"],
       "url": "https://gawk.bot",
       "applicationCategory": "DeveloperApplication",
-      "applicationSubCategory": "AI bots",
+      "applicationSubCategory": "AI agent manager",
       "operatingSystem": "macOS, Linux, Windows",
-      "description": "gawkbot is the open source Grok Bot. gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so that you have a false sense of control. Runs on your machine with Claude Code, Codex, or a local model.",
-      "keywords": "open source grok bot, grokbot alternative, self-hosted AI bots, AI teammates, microapps, Claude Code, Codex",
+      "description": "gawkbot puts every coding agent on your Mac, and the ones in the cloud, in the notch: one inbox for their questions, answered with a keystroke, a click or your voice, or from your iPhone. Free and open source.",
+      "featureList": [
+        "One inbox in the Mac notch for every agent's questions",
+        "Approve, reject or pick an answer with one keystroke",
+        "Voice replies, confirmed before they are sent",
+        "iPhone app, built from source, that replies to agents on your Mac and in the cloud",
+        "Detects Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Factory Droid, Ollama, OpenClaw and Hermes",
+        "Every external action waits for your approval"
+      ],
+      "keywords": "AI agent manager, Mac notch, coding agents, Claude Code, Codex, agent inbox, open source grok bot",
       "isAccessibleForFree": true,
       "license": "https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE",
       "codeRepository": "https://github.com/najmuzzaman-mohammad/gawkbot",
@@ -81,1342 +92,615 @@
         "priceCurrency": "USD"
       },
       "publisher": { "@id": "https://gawk.bot/#org" }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://gawk.bot/#faq",
+      "mainEntity": [
+        { "@type": "Question", "name": "Is gawkbot free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. There is no subscription, no seat count, no trial and no usage fee. You bring the agents and API keys you already use. The source is public under the Sustainable Use License: free to self-host for your own internal business purposes and for non-commercial use." } },
+        { "@type": "Question", "name": "Which agents does it work with?", "acceptedAnswer": { "@type": "Answer", "text": "Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Factory Droid, Ollama, OpenClaw and Hermes. Each one is tagged with the tool that started it and whether it runs on your Mac or in the cloud." } },
+        { "@type": "Question", "name": "Do I need a MacBook with a notch?", "acceptedAnswer": { "@type": "Answer", "text": "No. On a Mac without a notch the same strip shows as a pill at the top centre of the screen, with the same panel, shortcuts and sounds." } },
+        { "@type": "Question", "name": "Is there an iPhone app?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, and it is new. It lives in the repo under apps/ios and you build it with Xcode; it is not on the App Store. Pair it once by scanning a QR code from the web app. Push notifications are not in yet." } },
+        { "@type": "Question", "name": "Where does my data go?", "acceptedAnswer": { "@type": "Answer", "text": "gawkbot runs on your machine and your workspace is local files you can read. Anonymous product analytics, when a build has them, are counts and shapes only, never your content, and you can switch them off in onboarding or Settings. A build from source ships without an analytics key, so it never phones home." } },
+        { "@type": "Question", "name": "Can an agent do something external without asking me?", "acceptedAnswer": { "@type": "Answer", "text": "No. Reads are free, but sends, pushes, purchases and deletes wait in the notch until you approve them. You approve each action, never a blanket grant." } },
+        { "@type": "Question", "name": "How does voice work?", "acceptedAnswer": { "@type": "Answer", "text": "Hold V and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; in a browser it uses the browser's own speech recognition. You see the transcript first, and nothing is sent until you press Return." } },
+        { "@type": "Question", "name": "Does it work on Windows or Linux?", "acceptedAnswer": { "@type": "Answer", "text": "The web app does: run npx gawkbot on macOS, Windows or Linux and it opens in your browser, and there is a desktop app for Windows. The notch itself is Mac only." } }
+      ]
     }
   ]
 }
 </script>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  /* ════════════════════════════════════════════════════════════════════
-     gawkbot BRAND PALETTE. Single source of truth.
-
-     Six semantics, one accent:
-       ink     foreground, near-black on light, bone on dark
-       paper   page background
-       raised  cards and panels lifted off the page
-       line    hairline borders
-       mute    secondary text
-       accent  "bloodshot". The eye, errors, and destructive actions
-               ONLY. It is never decoration.
-
-     Never pure black or pure white, in either mode.
-
-     The ONE exception to the monochrome rule is the bot marks. Their
-     twelve muted body colors are not decoration either: a bot's color
-     is derived from its slug and identifies it, the same way its shape
-     does, so the roster reads as a set of individuals rather than a
-     paint chart. Those values live in web/src/lib/blobAvatar.ts and are
-     injected from there, never retyped.
-     ═══════════════════════════════════════════════════════════════════ */
-  :root {
-    color-scheme: light dark;
-
-    /* -- channel sources, LIGHT ------------------------------------ */
-    --ink-rgb: 14,14,17;
-    --paper-rgb: 244,243,239;
-    --accent-rgb: 200,64,47;
-
-    /* -- named semantics ------------------------------------------- */
-    --ink: rgb(var(--ink-rgb));
-    --paper: rgb(var(--paper-rgb));
-    --raised: #FBFAF7;
-    --line: #D8D5CD;
-    --mute: #6E6C66;
-    --accent: rgb(var(--accent-rgb));
-
-    /* -- derived translucent variants ------------------------------ */
-    --ink-glow: rgba(var(--ink-rgb), 0.10);
-    --ink-halo: rgba(var(--ink-rgb), 0.04);
-    --ink-soft: rgba(var(--ink-rgb), 0.28);
-    --ink-strong: rgba(var(--ink-rgb), 0.75);
-    --scanline: rgba(var(--ink-rgb), 0.045);
-
-    /* -- legacy aliases -------------------------------------------- */
-    /* The rules below this block were authored against these names.
-       They now resolve to the semantics above, which is why the whole
-       page re-skins from the triplets alone. --yellow* are historical
-       names for "the mark color", not yellow. */
-    --bg: var(--paper);
-    --surface: var(--raised);
-    --surface-high: var(--raised);
-    --border: var(--line);
-    --text: var(--ink);
-    --text-muted: var(--mute);
-    --yellow: var(--ink);
-    --yellow-dark: var(--ink);
-    --yellow-glow: var(--ink-glow);
-    --accent-halo: var(--ink-halo);
-    --bg2: var(--surface);
-    --bg3: var(--surface-high);
-    --yellow-dim: var(--yellow-glow);
-    --accent-lime: var(--ink);
-    --text-dim: var(--text-muted);
-
-    --font-display: 'Press Start 2P', monospace;
-    --font-vt: 'VT323', monospace;
-    --font-mono: 'DM Mono', monospace;
-  }
-
-  /* Dark mode redefines ONLY the sources. Every derived value and alias
-     follows automatically. */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ink-rgb: 237,235,228;
-      --paper-rgb: 18,18,20;
-      --accent-rgb: 224,86,63;
-      --raised: #191919;
-      --line: #2E2D2A;
-      --mute: #8B8880;
-    }
-  }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-mono);
-    line-height: 1.6;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  /* ── NAV ─────────────────────────────────────────────── */
-  nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    height: 44px;
-    background: var(--bg);
-    border-bottom: 2px solid var(--yellow);
-    display: flex; align-items: center;
-    padding: 0 24px;
-    gap: 24px;
-  }
-  .nav-logo {
-    display: flex; align-items: center; gap: 10px;
-    text-decoration: none;
-    margin-right: auto;
-  }
-  .nav-social { display: flex; align-items: center; gap: 4px; }
-  .nav-social-link {
-    display: flex; align-items: center; gap: 5px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    text-decoration: none;
-    letter-spacing: 0.04em;
-    transition: color 0.15s;
-    min-width: 44px; min-height: 44px; padding: 0 10px;
-    justify-content: center;
-  }
-  .nav-social-link:hover { color: var(--yellow); }
-  .nav-social-link svg { flex-shrink: 0; }
-  .nav-star-count { font-size: 10px; }
-  .nav-badge {
-    font-family: var(--font-display);
-    font-size: 8px;
-    color: var(--bg);
-    background: var(--yellow);
-    padding: 0 12px;
-    min-height: 44px;
-    border: none;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-  }
-
-  /* ── HERO ─────────────────────────────────────────── */
-  .hero {
-    padding-top: 88px;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hero::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse 700px 400px at 50% 48%, var(--accent-halo) 0%, transparent 70%),
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 3px,
-        var(--scanline) 3px,
-        var(--scanline) 4px
-      );
-    pointer-events: none; z-index: 1;
-  }
-
-  .hero-inner {
-    position: relative; z-index: 2;
-    display: flex; flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 0 24px;
-    max-width: 900px;
-    width: 100%;
-  }
-
-  /* ── THE MARK ─────────────────────────────────────── */
-  /* Two hollow pixel eyes on an 11x15 grid. Outlines only: the emptiness is
-     the joke. Never fill them. currentColor throughout, so the mark inverts
-     for free in dark mode and on ink-filled surfaces. */
-  .gawkbot-mark { width: auto; color: var(--ink); display: block; }
-  .nav-mark { height: 18px; flex-shrink: 0; }
-  .hero-mark { height: clamp(76px, 13vw, 124px); margin: 0 auto 14px; }
-  .hero-bots {
-    display: flex;
-    justify-content: center;
-    gap: clamp(8px, 1.6vw, 16px);
-    margin: 0 auto 26px;
-  }
-  .hero-bot { height: clamp(26px, 4vw, 40px); width: auto; display: block; }
-  /* Same discrete blink as the roster marks; eyes narrow, never fully shut. */
-  .hero-bot .blob-open { animation: blob-eye-open 5.6s steps(1, end) infinite; }
-  .hero-bot .blob-shut { animation: blob-eye-shut 5.6s steps(1, end) infinite; }
-  .hero-bot-1 path { animation-delay: 0.7s; }
-  .hero-bot-2 path { animation-delay: 2.1s; }
-  .hero-bot-3 path { animation-delay: 3.4s; }
-  .hero-bot-4 path { animation-delay: 1.3s; }
-  .hero-bot-5 path { animation-delay: 4.6s; }
-  .is-page-hidden .hero-bot path { animation-play-state: paused; }
-  .footer-mark { height: 16px; flex-shrink: 0; }
-
-  .nav-wordmark {
-    font-family: var(--font-display);
-    font-size: 12px;
-    letter-spacing: -0.03em;
-    color: var(--ink);
-    text-transform: lowercase;
-  }
-
-  /* The eyes narrow and widen, like someone actually looking at something.
-     Applied ONLY to the hero copy: below roughly 24px the whole travel is a
-     couple of pixels and reads as a wobble, so the nav and footer marks ship
-     the static open state. */
-  .hero-mark .gawkbot-eyes {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: gawkbot-look 3.2s ease-in-out infinite alternate;
-  }
-  @keyframes gawkbot-look {
-    from { transform: scaleY(1); }
-    to   { transform: scaleY(0.42); }
-  }
-  .is-page-hidden .hero-mark .gawkbot-eyes { animation-play-state: paused; }
-
-
-  .hero-title {
-    font-family: var(--font-display);
-    /* Set slightly small for the space it occupies. It is not shouting. */
-    font-size: clamp(30px, 5.6vw, 54px);
-    color: var(--ink);
-    line-height: 1.1;
-    letter-spacing: -0.035em;
-    text-transform: lowercase;
-    margin-bottom: 18px;
-  }
-  .hero-lede {
-    font-family: var(--font-display);
-    font-size: clamp(13px, 1.9vw, 18px);
-    line-height: 1.6;
-    color: var(--ink);
-    letter-spacing: -0.01em;
-    margin-bottom: 18px;
-  }
-  .visually-hidden {
-    position: absolute !important;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-  .hero-tagline {
-    font-family: var(--font-mono);
-    font-size: clamp(14px, 1.8vw, 17px);
-    color: var(--text);
-    line-height: 1.7;
-    max-width: 600px;
-    margin-bottom: 40px;
-  }
-
-  .install-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    margin-bottom: 32px;
-    width: 100%;
-    max-width: 560px;
-    scroll-margin-top: 60px;
-  }
-
-  .install-tabs { display: flex; width: 100%; }
-  .install-tab {
-    flex: 1;
-    min-height: 44px;
-    padding: 10px 12px;
-    font-family: var(--font-display);
-    font-size: 8px;
-    letter-spacing: 0.08em;
-    color: var(--text-dim);
-    background: var(--bg);
-    border: 2px solid var(--yellow-dark);
-    border-bottom: 2px solid var(--yellow);
-    cursor: pointer;
-    text-align: center;
-    transition: color 0.15s, background 0.15s;
-  }
-  .install-tab.active {
-    color: var(--yellow);
-    background: var(--bg3);
-    border: 2px solid var(--yellow);
-    border-bottom: 2px solid var(--bg3);
-  }
-
-  .install-block {
-    width: 100%;
-    background: var(--bg3);
-    border: 2px solid var(--yellow);
-    border-top: none;
-    box-shadow: 4px 4px 0 var(--yellow-dark);
-    display: none;
-    flex-direction: column;
-    gap: 6px;
-    padding: 14px 20px;
-  }
-  .install-block.active { display: flex; }
-
-  .install-line {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 44px;
-    padding: 0;
-    color: inherit;
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-    text-align: left;
-  }
-  .install-line:hover,
-  .install-line:focus-visible { background: var(--bg2); }
-
-  .install-prompt {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: var(--accent-lime);
-    flex-shrink: 0;
-  }
-  .install-cmd {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: var(--text);
-    flex: 1;
-    text-align: left;
-    overflow-wrap: anywhere;
-  }
-  .install-copy {
-    font-family: var(--font-display);
-    font-size: 8px;
-    color: var(--text-dim);
-    flex-shrink: 0;
-    letter-spacing: 0.08em;
-  }
-  .install-copy.copied { color: var(--accent); }
-
-  .install-note {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 16px;
-  }
-
-  .hero-ctas {
-    display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center;
-  }
-  .hero-badges {
-    display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center;
-    margin-top: 28px;
-  }
-  .hn-badge { display: inline-flex; line-height: 0; }
-  .hn-badge img { height: 48px; width: auto; display: block; }
-
-  .btn-primary {
-    font-family: var(--font-display);
-    font-size: 10px;
-    color: var(--bg);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--yellow);
-    border: none;
-    padding: 14px 24px;
-    cursor: pointer;
-    box-shadow: 4px 4px 0 var(--yellow-dark);
-    text-decoration: none;
-    letter-spacing: 0.06em;
-  }
-  .btn-primary:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--yellow-dark); }
-  .btn-primary:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--yellow-dark); }
-
-  .btn-ghost {
-    font-family: var(--font-display);
-    font-size: 10px;
-    color: var(--yellow);
-    background: transparent;
-    border: 2px solid var(--yellow);
-    padding: 12px 22px;
-    cursor: pointer;
-    box-shadow: 3px 3px 0 var(--yellow-dark);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    letter-spacing: 0.06em;
-  }
-  .btn-ghost:hover { background: var(--yellow-dim); }
-
-  /* ── AMBIENT STRIP ────────────────────────────────── */
-  .ambient-strip {
-    background: var(--yellow);
-    padding: 12px 0;
-    overflow: hidden;
-    white-space: nowrap;
-    border-top: 2px solid var(--yellow-dark);
-    border-bottom: 2px solid var(--yellow-dark);
-  }
-  .ambient-scroll {
-    display: inline-flex; gap: 64px;
-    animation: marquee 120s steps(240, end) infinite;
-    will-change: transform;
-  }
-  .is-page-hidden .ambient-scroll { animation-play-state: paused; }
-  @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
-  .ambient-item {
-    font-family: var(--font-vt);
-    font-size: 22px;
-    color: var(--bg);
-    letter-spacing: 0.06em;
-    flex-shrink: 0;
-  }
-
-  /* ── SECTIONS ─────────────────────────────────────── */
-  /* scroll-margin keeps an external deep link to #message or #trust from
-     landing underneath the 44px fixed nav. */
-  section { padding: 60px 24px; max-width: 1000px; margin: 0 auto; scroll-margin-top: 56px; }
-  /* Rhythm, not a metronome. The roster sits close under the ticker it
-     follows, and the punchline gets the most air on the page. */
-  #roster { padding-top: 52px; }
-  #price { padding-top: 80px; padding-bottom: 72px; }
-
-  .section-eyebrow {
-    font-family: var(--font-display);
-    font-size: 8px;
-    color: var(--yellow);
-    letter-spacing: 0.14em;
-    margin-bottom: 16px;
-    display: flex; align-items: center; gap: 12px;
-  }
-  .section-eyebrow::after {
-    content: '';
-    flex: 1;
-    height: 2px;
-    background: var(--yellow-dark);
-  }
-  .section-eyebrow::before {
-    content: '';
-    width: 8px; height: 8px;
-    background: var(--accent-lime);
-    flex-shrink: 0;
-  }
-
-  /* Press Start 2P advances about one em per character, so a title is
-     roughly as wide as its character count times its size. 32px keeps the
-     longest line here inside the 1000px measure instead of ragging to
-     three lines. */
-  .section-title {
-    font-family: var(--font-display);
-    font-size: clamp(20px, 2.8vw, 32px);
-    color: var(--text);
-    line-height: 1.45;
-    margin-bottom: 14px;
-  }
-
-  .section-sub {
-    font-family: var(--font-vt);
-    font-size: clamp(20px, 2.4vw, 26px);
-    color: var(--mute);
-    letter-spacing: 0.02em;
-    margin-bottom: 22px;
-  }
-
-  .section-body {
-    font-family: var(--font-mono);
-    font-size: 16px;
-    color: var(--text);
-    line-height: 1.8;
-    max-width: 640px;
-    margin-bottom: 38px;
-  }
-
-  /* ── THE ROSTER ───────────────────────────────────── */
-  /* A staff list, not a card grid. Each row is one bot: its mark, its
-     name, and what it is currently doing instead of the work. The marks
-     are the product's real avatars, injected from blobAvatar.ts. */
-  .roster {
-    list-style: none;
-    border-top: 2px solid var(--yellow-dark);
-  }
-  .roster li {
-    display: flex;
-    align-items: center;
-    gap: clamp(16px, 3vw, 28px);
-    padding: 12px 4px;
-    border-bottom: 1px solid var(--line);
-  }
-  /* Sized to a whole multiple of the 16px grid (64 = 4x, 48 = 3x on small
-     screens). At a fractional scale the renderer has to round some cells to
-     2px and some to 3px, and the silhouette edge goes visibly lumpy. The
-     source file rounds to whole device pixels for the same reason.
-
-     The eyes are punched OUT of the body with fill-rule evenodd, exactly as
-     the app clears them, so the paper shows through and the mark needs no
-     knowledge of the background in either theme. */
-  .roster-mark {
-    width: 64px;
-    height: 64px;
-    flex-shrink: 0;
-  }
-  .roster-name {
-    font-family: var(--font-display);
-    font-size: 11px;
-    letter-spacing: 0.02em;
-    color: var(--ink);
-    width: 11ch;
-    flex-shrink: 0;
-  }
-  .roster-doing {
-    font-family: var(--font-mono);
-    font-size: 14.5px;
-    line-height: 1.6;
-    color: var(--mute);
-  }
-
-  /* Eyes narrow, they never shut: a closed mark reads as broken rather
-     than as blinking. Discrete swap, no tween, to match the pixel grid. */
-  .blob-shut { opacity: 0; }
-  .roster-mark .blob-open { animation: blob-eye-open 5.6s steps(1, end) infinite; }
-  .roster-mark .blob-shut { animation: blob-eye-shut 5.6s steps(1, end) infinite; }
-  @keyframes blob-eye-open { 0%, 93% { opacity: 1; } 94%, 100% { opacity: 0; } }
-  @keyframes blob-eye-shut { 0%, 93% { opacity: 0; } 94%, 100% { opacity: 1; } }
-  .roster li:nth-child(1) .roster-mark path { animation-delay: 0s; }
-  .roster li:nth-child(2) .roster-mark path { animation-delay: 1.7s; }
-  .roster li:nth-child(3) .roster-mark path { animation-delay: 3.1s; }
-  .roster li:nth-child(4) .roster-mark path { animation-delay: 0.9s; }
-  .roster li:nth-child(5) .roster-mark path { animation-delay: 4.3s; }
-  .roster li:nth-child(6) .roster-mark path { animation-delay: 2.4s; }
-  .is-page-hidden .roster-mark path { animation-play-state: paused; }
-
-  /* ── DIRECT MESSAGE DEMO ──────────────────────────── */
-  /* This is a DM with ONE bot, deliberately. The product has no channels:
-     a human talks to exactly one bot at a time, and mentioning another
-     makes the bot you are talking to go consult it and report back. The
-     consulted bots never appear as speakers in the log, which is why they
-     are rendered as a subordinate aside rather than as messages. A demo
-     showing five bots piling into one room would be selling the exact
-     surface the DM model exists to replace. */
-  .dm {
-    max-width: 620px;
-    border: 2px solid var(--yellow);
-    background: var(--bg3);
-    box-shadow: 4px 4px 0 var(--yellow-dark);
-  }
-
-  .dm-header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 2px solid var(--yellow-dark);
-  }
-  .dm-header-name {
-    font-family: var(--font-display);
-    font-size: 10px;
-    color: var(--ink);
-  }
-  .dm-header-kind {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--mute);
-    margin-left: auto;
-  }
-
-  .dm-log {
-    display: flex; flex-direction: column; gap: 14px;
-    padding: 16px;
-  }
-
-  .dm-row { display: flex; gap: 12px; align-items: flex-start; }
-  /* You sit on the other side, so the one-to-one shape is legible at a
-     glance without a label saying "one to one". */
-  .dm-row.you { flex-direction: row-reverse; }
-
-  /* 32px and 16px are whole multiples of the 16px grid. See .roster-mark. */
-  .dm-avatar { width: 32px; height: 32px; flex-shrink: 0; }
-  /* You are the one square with no eyes in it. */
-  .dm-avatar.you { background: var(--yellow); }
-
-  .dm-bubble {
-    font-family: var(--font-vt); font-size: 20px;
-    line-height: 1.4; color: var(--text);
-    background: var(--bg);
-    border: 2px solid var(--yellow-dark);
-    padding: 9px 14px;
-  }
-  .dm-row.you .dm-bubble {
-    background: var(--yellow-dim);
-    border-color: var(--yellow);
-    color: var(--yellow);
-  }
-
-  /* The side trip. Dashed, muted, and indented under the bot you are
-     actually talking to, because none of this happens in your conversation. */
-  .dm-consult {
-    margin-left: 44px;
-    padding: 2px 0 2px 16px;
-    border-left: 2px dashed var(--line);
-    display: flex; flex-direction: column; gap: 9px;
-  }
-  .dm-consult-label {
-    font-family: var(--font-display);
-    font-size: 7px;
-    letter-spacing: 0.1em;
-    color: var(--mute);
-  }
-  .dm-consult-row { display: flex; align-items: center; gap: 10px; }
-  .dm-consult-mark { width: 16px; height: 16px; flex-shrink: 0; }
-  .dm-consult-name {
-    font-family: var(--font-mono); font-size: 11px;
-    color: var(--mute); width: 10ch; flex-shrink: 0;
-  }
-  .dm-consult-text {
-    font-family: var(--font-mono); font-size: 12.5px;
-    color: var(--mute); line-height: 1.5;
-  }
-
-  /* ── THE MICROAPP ─────────────────────────────────── */
-  /* Rendered inside the conversation, because that is where it arrives.
-     It is a static illustration: the buttons are spans, not <button>, so
-     nothing here is focusable or announces itself as an interactive
-     control that does nothing. The whole block sits inside the DM's
-     role="img", which carries the description. */
-  .microapp {
-    margin-left: 44px;
-    border: 2px solid var(--yellow);
-    background: var(--bg);
-    box-shadow: 3px 3px 0 var(--yellow-dark);
-  }
-  .microapp-bar {
-    display: flex; align-items: baseline; gap: 12px;
-    padding: 9px 12px;
-    border-bottom: 2px solid var(--yellow-dark);
-  }
-  .microapp-title {
-    font-family: var(--font-display); font-size: 8px;
-    letter-spacing: 0.06em; color: var(--ink);
-  }
-  .microapp-by {
-    font-family: var(--font-mono); font-size: 10.5px;
-    color: var(--mute); margin-left: auto;
-  }
-  .microapp-stats {
-    display: flex; gap: 2px;
-    background: var(--line);
-    border-bottom: 2px solid var(--yellow-dark);
-  }
-  .microapp-stat {
-    flex: 1; background: var(--bg3);
-    padding: 10px 12px;
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  .microapp-stat-n {
-    font-family: var(--font-display); font-size: 15px;
-    line-height: 1.2; color: var(--ink);
-  }
-  .microapp-stat-l {
-    font-family: var(--font-mono); font-size: 10.5px;
-    color: var(--mute);
-  }
-  /* The only accent on the page outside the cursor, and it is doing its
-     documented job: the one thing that actually wants a human. */
-  .microapp-stat.need .microapp-stat-n { color: var(--accent); }
-
-  .microapp-rows { display: flex; flex-direction: column; }
-  .microapp-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--line);
-    font-family: var(--font-mono); font-size: 12.5px;
-  }
-  .microapp-row-what { color: var(--text); }
-  .microapp-row-state {
-    margin-left: auto; font-size: 10.5px;
-    letter-spacing: 0.04em;
-  }
-  .microapp-row-state.done { color: var(--mute); }
-  .microapp-row-state.need { color: var(--accent); }
-
-  .microapp-actions {
-    display: flex; gap: 8px; align-items: center;
-    padding: 12px;
-  }
-  .microapp-btn {
-    font-family: var(--font-display); font-size: 8px;
-    letter-spacing: 0.06em;
-    background: var(--yellow); color: var(--bg);
-    padding: 9px 14px;
-  }
-  .microapp-btn.ghost {
-    background: transparent; color: var(--mute);
-    border: 2px solid var(--line);
-  }
-
-  /* ── TRUST ────────────────────────────────────────── */
-  .trust-card {
-    background: var(--bg2);
-    border: 2px solid var(--yellow);
-    box-shadow: 4px 4px 0 var(--yellow-dark);
-    padding: clamp(24px, 4vw, 34px);
-  }
-  .trust-label {
-    font-family: var(--font-display);
-    font-size: 9px;
-    color: var(--yellow);
-    letter-spacing: 0.12em;
-    margin-bottom: 20px;
-  }
-  .trust-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .trust-list li {
-    font-family: var(--font-mono);
-    font-size: 14.5px;
-    line-height: 1.65;
-    color: var(--text);
-    padding-left: 24px;
-    position: relative;
-  }
-  .trust-list li::before {
-    content: '+';
-    position: absolute;
-    left: 0;
-    top: 0;
-    color: var(--accent-lime);
-    font-family: var(--font-display);
-    font-size: 12px;
-    line-height: 1.6;
-  }
-
-  /* ── PRICE. The punchline, and the loudest thing on the page. ─────── */
-  /* Comparison strip. Same card language as the trust card, one table. */
-  .compare-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .compare {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--bg2);
-    border: 2px solid var(--yellow);
-    box-shadow: 4px 4px 0 var(--yellow-dark);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-  .compare th, .compare td {
-    text-align: left;
-    vertical-align: top;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--line);
-  }
-  .compare th {
-    font-family: var(--font-display);
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    color: var(--yellow);
-    white-space: nowrap;
-  }
-  .compare tbody th { color: var(--mute); font-family: var(--font-mono); font-size: 13px; letter-spacing: 0; width: 22%; }
-  .compare tbody tr:last-child td, .compare tbody tr:last-child th { border-bottom: 0; }
-  .compare-more {
-    display: inline-block;
-    margin-top: 22px;
-    font-family: var(--font-display);
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    color: var(--yellow);
-    text-decoration: none;
-    border-bottom: 2px solid var(--yellow-dark);
-    padding-bottom: 4px;
-  }
-  .compare-more:hover { border-bottom-color: var(--accent); }
-  .compare-updated { font-family: var(--font-mono); font-size: 12px; color: var(--mute); margin-top: 14px; }
-
-  .price-block {
-    text-align: center;
-    padding: 12px 0 40px;
-  }
-  .price-headline {
-    font-family: var(--font-display);
-    font-size: clamp(56px, 15vw, 148px);
-    line-height: 1;
-    letter-spacing: -0.05em;
-    color: var(--ink);
-    text-transform: lowercase;
-  }
-  .price-sub {
-    font-family: var(--font-vt);
-    font-size: clamp(22px, 3.4vw, 34px);
-    color: var(--mute);
-    letter-spacing: 0.02em;
-    margin-top: 14px;
-  }
-  .price-terms {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    line-height: 1.8;
-    color: var(--text);
-    max-width: 640px;
-    margin: 0 auto;
-    text-align: center;
-  }
-  .price-cta {
-    display: flex; gap: 16px; align-items: center;
-    justify-content: center; flex-wrap: wrap;
-    margin-top: 28px;
-  }
-  /* ── FOOTER ───────────────────────────────────────── */
-  footer {
-    padding: 40px 24px 36px;
-    max-width: 1000px;
-    margin: 0 auto;
-    border-top: 2px solid var(--yellow-dark);
-  }
-  .footer-top {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px 40px;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
-  .footer-logo {
-    display: flex; align-items: center; gap: 10px;
-    font-family: var(--font-display);
-    font-size: 9px;
-    color: var(--yellow);
-    letter-spacing: 0.05em;
-  }
-  .footer-sub {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 10px;
-  }
-  .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
-  .footer-links a {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-  }
-  .footer-links a:hover { color: var(--yellow); }
-  .footer-legal {
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    line-height: 1.75;
-    color: var(--mute);
-    margin-top: 26px;
-    padding-top: 22px;
-    border-top: 1px solid var(--line);
-    max-width: 80ch;
-  }
-
-  /* ── RESPONSIVE ──────────────────────────────────── */
-  @media (max-width: 720px) {
-    section { padding: 60px 20px; }
-    .roster li { flex-wrap: wrap; gap: 14px; padding: 14px 2px; }
-    .roster-mark { width: 48px; height: 48px; }
-    .roster-name { width: auto; }
-    .roster-doing { flex-basis: 100%; font-size: 14px; }
-    .dm-log { padding: 14px; gap: 12px; }
-    .dm-bubble { font-size: 19px; }
-    /* The consult aside stops being an indent and becomes a stacked block:
-       at 390px a 44px margin plus a 10ch name column leaves nothing for the
-       line itself. */
-    .dm-consult { margin-left: 12px; padding-left: 12px; }
-    .dm-consult-row { align-items: flex-start; flex-wrap: wrap; gap: 4px 10px; }
-    .dm-consult-name { width: auto; }
-    .dm-consult-text { flex-basis: 100%; }
-    .microapp { margin-left: 0; }
-    .microapp-stats { flex-wrap: wrap; }
-    .microapp-stat { flex-basis: 30%; }
-    .microapp-actions { flex-wrap: wrap; }
-  }
-  @media (max-width: 640px) {
-    .nav-star-count { display: none; }
-    .nav-wordmark { display: none; }
-    .nav-social-link { padding: 0 8px; }
-    .nav-badge { padding: 0 10px; }
-    .footer-top { flex-direction: column; }
-    .price-block { padding-bottom: 28px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.001ms !important;
-      animation-iteration-count: 1 !important;
-      scroll-behavior: auto !important;
-      transition-duration: 0.001ms !important;
-    }
-    .ambient-scroll,
-    .hero-mark .gawkbot-eyes,
-    .hero-bot path,
-    .roster-mark path {
-      animation: none !important;
-    }
-    .btn-primary:hover,
-    .btn-primary:active { transform: none; }
-  }
-</style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
-<!-- NAV. Four things. The page is short enough that section anchors were
-     scaffolding for a site that no longer exists. -->
-<nav>
-  <a class="nav-logo" href="#top" aria-label="gawkbot, back to top">
-    <svg class="gawkbot-mark nav-mark" viewBox="0 0 11 15" shape-rendering="crispEdges" aria-hidden="true"><g class="gawkbot-eyes" fill="currentColor"><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="1" height="11"/><rect x="3" y="2" width="1" height="11"/><rect x="1" y="13" width="2" height="1"/><rect x="8" y="1" width="2" height="1"/><rect x="7" y="2" width="1" height="11"/><rect x="10" y="2" width="1" height="11"/><rect x="8" y="13" width="2" height="1"/></g></svg>
-    <span class="nav-wordmark">gawkbot</span>
-  </a>
-  <div class="nav-social">
-    <a class="nav-social-link" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener" aria-label="GitHub">
-      <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-      <span class="nav-star-count" id="navStars">&#9733;</span>
+<!-- The bot marks. Paths are smoothBlob() output from web/src/lib/blobAvatarSmooth.ts,
+     pasted verbatim so the site draws exactly the characters the app draws.
+     Shape and colour are derived from each slug (web/src/lib/blobAvatar.ts);
+     the "-n" variants are the same marks with the eyes narrowed, for blinking.
+     The eyes are holes (fill-rule evenodd), so whatever is behind shows through. -->
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="blob-gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.38"/>
+      <stop offset="0.45" stop-color="#fff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.18"/>
+    </linearGradient>
+    <path id="p-pill" fill-rule="evenodd" d="M5.5 0C6.75 -0.417 9.25 -0.417 10.5 0C11.75 0.417 12.583 0.25 13 2.5C13.417 4.75 13.417 11.25 13 13.5C12.583 15.75 11.75 15.583 10.5 16C9.25 16.417 6.75 16.417 5.5 16C4.25 15.583 3.417 15.75 3 13.5C2.583 11.25 2.583 4.75 3 2.5C3.417 0.25 4.25 0.417 5.5 0ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-pill-n" fill-rule="evenodd" d="M5.5 0C6.75 -0.417 9.25 -0.417 10.5 0C11.75 0.417 12.583 0.25 13 2.5C13.417 4.75 13.417 11.25 13 13.5C12.583 15.75 11.75 15.583 10.5 16C9.25 16.417 6.75 16.417 5.5 16C4.25 15.583 3.417 15.75 3 13.5C2.583 11.25 2.583 4.75 3 2.5C3.417 0.25 4.25 0.417 5.5 0ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-shield" fill-rule="evenodd" d="M3.5 1C5.417 0.583 10.583 0.583 12.5 1C14.417 1.417 14.583 2.417 15 3.5C15.417 4.583 15.167 6.667 15 7.5C14.833 8.333 14.167 8.167 14 8.5C13.833 8.833 14.917 8.417 14 9.5C13.083 10.583 9.583 14.083 8.5 15C7.417 15.917 8.583 15.917 7.5 15C6.417 14.083 2.917 10.583 2 9.5C1.083 8.417 2.167 8.833 2 8.5C1.833 8.167 1.167 8.333 1 7.5C0.833 6.667 0.583 4.583 1 3.5C1.417 2.417 1.583 1.417 3.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-shield-n" fill-rule="evenodd" d="M3.5 1C5.417 0.583 10.583 0.583 12.5 1C14.417 1.417 14.583 2.417 15 3.5C15.417 4.583 15.167 6.667 15 7.5C14.833 8.333 14.167 8.167 14 8.5C13.833 8.833 14.917 8.417 14 9.5C13.083 10.583 9.583 14.083 8.5 15C7.417 15.917 8.583 15.917 7.5 15C6.417 14.083 2.917 10.583 2 9.5C1.083 8.417 2.167 8.833 2 8.5C1.833 8.167 1.167 8.333 1 7.5C0.833 6.667 0.583 4.583 1 3.5C1.417 2.417 1.583 1.417 3.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-drop" fill-rule="evenodd" d="M7.5 1C7.917 0.75 8.083 0.75 8.5 1C8.917 1.25 9.75 2.083 10 2.5C10.25 2.917 9.333 2.667 10 3.5C10.667 4.333 13.333 6.667 14 7.5C14.667 8.333 13.833 8.167 14 8.5C14.167 8.833 14.833 9 15 9.5C15.167 10 15.333 10.833 15 11.5C14.667 12.167 13.667 13 13 13.5C12.333 14 11.417 14.25 11 14.5C10.583 14.75 11.417 14.917 10.5 15C9.583 15.083 6.417 15.083 5.5 15C4.583 14.917 5.417 14.75 5 14.5C4.583 14.25 3.667 14 3 13.5C2.333 13 1.333 12.167 1 11.5C0.667 10.833 0.833 10 1 9.5C1.167 9 1.833 8.833 2 8.5C2.167 8.167 1.333 8.333 2 7.5C2.667 6.667 5.333 4.333 6 3.5C6.667 2.667 5.75 2.917 6 2.5C6.25 2.083 7.083 1.25 7.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-drop-n" fill-rule="evenodd" d="M7.5 1C7.917 0.75 8.083 0.75 8.5 1C8.917 1.25 9.75 2.083 10 2.5C10.25 2.917 9.333 2.667 10 3.5C10.667 4.333 13.333 6.667 14 7.5C14.667 8.333 13.833 8.167 14 8.5C14.167 8.833 14.833 9 15 9.5C15.167 10 15.333 10.833 15 11.5C14.667 12.167 13.667 13 13 13.5C12.333 14 11.417 14.25 11 14.5C10.583 14.75 11.417 14.917 10.5 15C9.583 15.083 6.417 15.083 5.5 15C4.583 14.917 5.417 14.75 5 14.5C4.583 14.25 3.667 14 3 13.5C2.333 13 1.333 12.167 1 11.5C0.667 10.833 0.833 10 1 9.5C1.167 9 1.833 8.833 2 8.5C2.167 8.167 1.333 8.333 2 7.5C2.667 6.667 5.333 4.333 6 3.5C6.667 2.667 5.75 2.917 6 2.5C6.25 2.083 7.083 1.25 7.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-dome" fill-rule="evenodd" d="M6.5 1C7.083 0.917 8.917 0.917 9.5 1C10.083 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5 15 6.5C15.167 8 15.083 13.083 15 14.5C14.917 15.917 16.75 14.917 14.5 15C12.25 15.083 3.75 15.083 1.5 15C-0.75 14.917 1.083 15.917 1 14.5C0.917 13.083 0.833 8 1 6.5C1.167 5 1.833 5.833 2 5.5C2.167 5.167 1.667 5 2 4.5C2.333 4 3.333 3 4 2.5C4.667 2 5.583 1.75 6 1.5C6.417 1.25 5.917 1.083 6.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-dome-n" fill-rule="evenodd" d="M6.5 1C7.083 0.917 8.917 0.917 9.5 1C10.083 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5 15 6.5C15.167 8 15.083 13.083 15 14.5C14.917 15.917 16.75 14.917 14.5 15C12.25 15.083 3.75 15.083 1.5 15C-0.75 14.917 1.083 15.917 1 14.5C0.917 13.083 0.833 8 1 6.5C1.167 5 1.833 5.833 2 5.5C2.167 5.167 1.667 5 2 4.5C2.333 4 3.333 3 4 2.5C4.667 2 5.583 1.75 6 1.5C6.417 1.25 5.917 1.083 6.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-block" fill-rule="evenodd" d="M4.5 2C6.083 1.583 9.917 1.583 11.5 2C13.083 2.417 13.583 3.917 14 4.5C14.417 5.083 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.25 12.083 14 12.5C13.75 12.917 14.25 13.75 12.5 14C10.75 14.25 5.25 14.25 3.5 14C1.75 13.75 2.25 12.917 2 12.5C1.75 12.083 2.167 11.833 2 11.5C1.833 11.167 1.167 11.333 1 10.5C0.833 9.667 0.833 7.333 1 6.5C1.167 5.667 1.833 5.833 2 5.5C2.167 5.167 1.583 5.083 2 4.5C2.417 3.917 2.917 2.417 4.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-block-n" fill-rule="evenodd" d="M4.5 2C6.083 1.583 9.917 1.583 11.5 2C13.083 2.417 13.583 3.917 14 4.5C14.417 5.083 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.25 12.083 14 12.5C13.75 12.917 14.25 13.75 12.5 14C10.75 14.25 5.25 14.25 3.5 14C1.75 13.75 2.25 12.917 2 12.5C1.75 12.083 2.167 11.833 2 11.5C1.833 11.167 1.167 11.333 1 10.5C0.833 9.667 0.833 7.333 1 6.5C1.167 5.667 1.833 5.833 2 5.5C2.167 5.167 1.583 5.083 2 4.5C2.417 3.917 2.917 2.417 4.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-loaf" fill-rule="evenodd" d="M3.5 3C5.083 2.917 10.917 2.917 12.5 3C14.083 3.083 12.583 3.25 13 3.5C13.417 3.75 14.5 4.167 15 4.5C15.5 4.833 15.833 4.5 16 5.5C16.167 6.5 16.417 9.25 16 10.5C15.583 11.75 15.75 12.583 13.5 13C11.25 13.417 4.75 13.417 2.5 13C0.25 12.583 0.417 11.75 0 10.5C-0.417 9.25 -0.167 6.5 0 5.5C0.167 4.5 0.5 4.833 1 4.5C1.5 4.167 2.583 3.75 3 3.5C3.417 3.25 1.917 3.083 3.5 3ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-loaf-n" fill-rule="evenodd" d="M3.5 3C5.083 2.917 10.917 2.917 12.5 3C14.083 3.083 12.583 3.25 13 3.5C13.417 3.75 14.5 4.167 15 4.5C15.5 4.833 15.833 4.5 16 5.5C16.167 6.5 16.417 9.25 16 10.5C15.583 11.75 15.75 12.583 13.5 13C11.25 13.417 4.75 13.417 2.5 13C0.25 12.583 0.417 11.75 0 10.5C-0.417 9.25 -0.167 6.5 0 5.5C0.167 4.5 0.5 4.833 1 4.5C1.5 4.167 2.583 3.75 3 3.5C3.417 3.25 1.917 3.083 3.5 3ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-bean" fill-rule="evenodd" d="M3.5 2C4.083 1.75 4.917 1.75 5.5 2C6.083 2.25 5.583 3.083 7 3.5C8.417 3.917 12.667 4.167 14 4.5C15.333 4.833 14.833 4.5 15 5.5C15.167 6.5 15.167 9.5 15 10.5C14.833 11.5 14.167 11.167 14 11.5C13.833 11.833 14.333 12.167 14 12.5C13.667 12.833 12.417 13.25 12 13.5C11.583 13.75 12.75 13.917 11.5 14C10.25 14.083 5.75 14.083 4.5 14C3.25 13.917 4.417 13.75 4 13.5C3.583 13.25 2.333 12.833 2 12.5C1.667 12.167 2.167 11.833 2 11.5C1.833 11.167 1.167 11.5 1 10.5C0.833 9.5 0.833 6.5 1 5.5C1.167 4.5 1.833 4.833 2 4.5C2.167 4.167 1.75 3.917 2 3.5C2.25 3.083 2.917 2.25 3.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-bean-n" fill-rule="evenodd" d="M3.5 2C4.083 1.75 4.917 1.75 5.5 2C6.083 2.25 5.583 3.083 7 3.5C8.417 3.917 12.667 4.167 14 4.5C15.333 4.833 14.833 4.5 15 5.5C15.167 6.5 15.167 9.5 15 10.5C14.833 11.5 14.167 11.167 14 11.5C13.833 11.833 14.333 12.167 14 12.5C13.667 12.833 12.417 13.25 12 13.5C11.583 13.75 12.75 13.917 11.5 14C10.25 14.083 5.75 14.083 4.5 14C3.25 13.917 4.417 13.75 4 13.5C3.583 13.25 2.333 12.833 2 12.5C1.667 12.167 2.167 11.833 2 11.5C1.833 11.167 1.167 11.5 1 10.5C0.833 9.5 0.833 6.5 1 5.5C1.167 4.5 1.833 4.833 2 4.5C2.167 4.167 1.75 3.917 2 3.5C2.25 3.083 2.917 2.25 3.5 2ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-blob" fill-rule="evenodd" d="M5.5 1C6.25 0.917 8.75 0.917 9.5 1C10.25 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.667 12 14 12.5C13.333 13 10.75 14.083 10 14.5C9.25 14.917 10.083 14.917 9.5 15C8.917 15.083 7.083 15.083 6.5 15C5.917 14.917 6.417 14.75 6 14.5C5.583 14.25 4.667 14 4 13.5C3.333 13 2.333 12 2 11.5C1.667 11 2.167 10.833 2 10.5C1.833 10.167 1.167 10.333 1 9.5C0.833 8.667 0.833 6.333 1 5.5C1.167 4.667 1.833 4.833 2 4.5C2.167 4.167 1.833 3.833 2 3.5C2.167 3.167 2.5 2.833 3 2.5C3.5 2.167 4.583 1.75 5 1.5C5.417 1.25 4.75 1.083 5.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V8.1A0.9 0.9 0 0 1 6 9H6A0.9 0.9 0 0 1 5.1 8.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V8.1A0.9 0.9 0 0 1 10 9H10A0.9 0.9 0 0 1 9.1 8.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+    <path id="p-blob-n" fill-rule="evenodd" d="M5.5 1C6.25 0.917 8.75 0.917 9.5 1C10.25 1.083 9.583 1.25 10 1.5C10.417 1.75 11.333 2 12 2.5C12.667 3 13.667 4 14 4.5C14.333 5 13.833 5.167 14 5.5C14.167 5.833 14.833 5.667 15 6.5C15.167 7.333 15.167 9.667 15 10.5C14.833 11.333 14.167 11.167 14 11.5C13.833 11.833 14.667 12 14 12.5C13.333 13 10.75 14.083 10 14.5C9.25 14.917 10.083 14.917 9.5 15C8.917 15.083 7.083 15.083 6.5 15C5.917 14.917 6.417 14.75 6 14.5C5.583 14.25 4.667 14 4 13.5C3.333 13 2.333 12 2 11.5C1.667 11 2.167 10.833 2 10.5C1.833 10.167 1.167 10.333 1 9.5C0.833 8.667 0.833 6.333 1 5.5C1.167 4.667 1.833 4.833 2 4.5C2.167 4.167 1.833 3.833 2 3.5C2.167 3.167 2.5 2.833 3 2.5C3.5 2.167 4.583 1.75 5 1.5C5.417 1.25 4.75 1.083 5.5 1ZM6 5H6A0.9 0.9 0 0 1 6.9 5.9V6.1A0.9 0.9 0 0 1 6 7H6A0.9 0.9 0 0 1 5.1 6.1V5.9A0.9 0.9 0 0 1 6 5ZM10 5H10A0.9 0.9 0 0 1 10.9 5.9V6.1A0.9 0.9 0 0 1 10 7H10A0.9 0.9 0 0 1 9.1 6.1V5.9A0.9 0.9 0 0 1 10 5Z"/>
+  </defs>
+  <symbol id="b-auth-refactor" viewBox="0 0 16 16" overflow="visible"><use href="#p-pill" fill="#a8546b"/><use href="#p-pill" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-auth-refactor-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-pill-n" fill="#a8546b"/><use href="#p-pill-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-flaky-tests" viewBox="0 0 16 16" overflow="visible"><use href="#p-shield" fill="#3f9c8f"/><use href="#p-shield" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-flaky-tests-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-shield-n" fill="#3f9c8f"/><use href="#p-shield-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-landing-copy" viewBox="0 0 16 16" overflow="visible"><use href="#p-drop" fill="#b3702f"/><use href="#p-drop" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-landing-copy-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-drop-n" fill="#b3702f"/><use href="#p-drop-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-changelog" viewBox="0 0 16 16" overflow="visible"><use href="#p-dome" fill="#6f8f43"/><use href="#p-dome" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-changelog-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-dome-n" fill="#6f8f43"/><use href="#p-dome-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-test-fixer" viewBox="0 0 16 16" overflow="visible"><use href="#p-block" fill="#6b7fd7"/><use href="#p-block" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-test-fixer-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-block-n" fill="#6b7fd7"/><use href="#p-block-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-release-train" viewBox="0 0 16 16" overflow="visible"><use href="#p-loaf" fill="#8b6bb1"/><use href="#p-loaf" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-release-train-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-loaf-n" fill="#8b6bb1"/><use href="#p-loaf-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-db-migrate" viewBox="0 0 16 16" overflow="visible"><use href="#p-bean" fill="#5f9e6b"/><use href="#p-bean" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-db-migrate-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-bean-n" fill="#5f9e6b"/><use href="#p-bean-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-ui-polish" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob" fill="#c08a3e"/><use href="#p-blob" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-ui-polish-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob-n" fill="#c08a3e"/><use href="#p-blob-n" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-brand" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob" fill="#3f9c8f"/><use href="#p-blob" fill="url(#blob-gloss)"/></symbol>
+  <symbol id="b-brand-n" viewBox="0 0 16 16" overflow="visible"><use href="#p-blob-n" fill="#3f9c8f"/><use href="#p-blob-n" fill="url(#blob-gloss)"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="gawkbot home">
+      <svg class="blob" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-brand"/></svg>
+      gawkbot
     </a>
-    <a class="nav-badge" href="#install">INSTALL</a>
-  </div>
-</nav>
-
-<main>
-
-<!-- 1. HERO -->
-<section class="hero" id="top">
-  <div class="hero-inner">
-
-    <svg class="gawkbot-mark hero-mark" viewBox="0 0 11 15" role="img" aria-label="The gawkbot mark: two hollow eyes. They are yours."><title>gawkbot</title><g class="gawkbot-eyes" fill="currentColor"><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="1" height="11"/><rect x="3" y="2" width="1" height="11"/><rect x="1" y="13" width="2" height="1"/><rect x="8" y="1" width="2" height="1"/><rect x="7" y="2" width="1" height="11"/><rect x="10" y="2" width="1" height="11"/><rect x="8" y="13" width="2" height="1"/></g></svg>
-    <!-- The five bots, already at work under the mark. Same silhouettes and
-         colours as the roster below (generated from web/src/lib/blobAvatar.ts,
-         so they cannot drift from what the app renders), same never-fully-shut
-         blink, staggered so they read as individuals rather than a chorus. -->
-    <div class="hero-bots" aria-label="Five gawkbots: filer, reconciler, triager, scheduler, and chaser" role="img">
-      <svg class="hero-bot hero-bot-1" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <svg class="hero-bot hero-bot-2" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#3f9c8f" fill-rule="evenodd" d="M5 1H10V2H5ZM3 2H12V3H3ZM2 3H13V4H2ZM2 4H14V5H2ZM1 5H14V6H1ZM1 6H15V10H1ZM2 10H15V11H2ZM2 11H14V12H2ZM3 12H14V13H3ZM4 13H12V14H4ZM6 14H10V15H6ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#3f9c8f" fill-rule="evenodd" d="M5 1H10V2H5ZM3 2H12V3H3ZM2 3H13V4H2ZM2 4H14V5H2ZM1 5H14V6H1ZM1 6H15V10H1ZM2 10H15V11H2ZM2 11H14V12H2ZM3 12H14V13H3ZM4 13H12V14H4ZM6 14H10V15H6ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <svg class="hero-bot hero-bot-3" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#a8546b" fill-rule="evenodd" d="M6 1H10V2H6ZM4 2H12V3H4ZM3 3H13V4H3ZM2 4H14V6H2ZM1 6H15V15H1ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#a8546b" fill-rule="evenodd" d="M6 1H10V2H6ZM4 2H12V3H4ZM3 3H13V4H3ZM2 4H14V6H2ZM1 6H15V15H1ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <svg class="hero-bot hero-bot-4" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8a7a2e" fill-rule="evenodd" d="M7 1H9V2H7ZM6 2H10V4H6ZM5 4H11V5H5ZM4 5H12V6H4ZM3 6H13V7H3ZM2 7H14V9H2ZM1 9H15V12H1ZM2 12H14V13H2ZM3 13H13V14H3ZM5 14H11V15H5ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8a7a2e" fill-rule="evenodd" d="M7 1H9V2H7ZM6 2H10V4H6ZM5 4H11V5H5ZM4 5H12V6H4ZM3 6H13V7H3ZM2 7H14V9H2ZM1 9H15V12H1ZM2 12H14V13H2ZM3 13H13V14H3ZM5 14H11V15H5ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <svg class="hero-bot hero-bot-5" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#6b7fd7" fill-rule="evenodd" d="M3 3H13V4H3ZM1 4H15V5H1ZM0 5H16V11H0ZM1 11H15V12H1ZM2 12H14V13H2ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#6b7fd7" fill-rule="evenodd" d="M3 3H13V4H3ZM1 4H15V5H1ZM0 5H16V11H0ZM1 11H15V12H1ZM2 12H14V13H2ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-    </div>
-
-
-    <!-- The hidden half of the H1 is what a screen reader announces and what
-         search engines read, so it carries the same thesis as the tab title. -->
-    <h1 class="hero-title">gawkbot<span class="visually-hidden">, the open source Grok Bot. Bots you almost control</span></h1>
-
-    <p class="hero-lede">open source bots that (almost) serve you</p>
-
-    <p class="hero-tagline">
-      gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so that you have a false sense of control.
-    </p>
-
-    <div class="install-wrap" id="install">
-      <div class="install-tabs" role="tablist" aria-label="Install options">
-        <button class="install-tab active" id="installTabNpx" type="button" role="tab" aria-selected="true" aria-controls="installBlock">NPX</button>
-        <button class="install-tab" id="installTabBuild" type="button" role="tab" aria-selected="false" aria-controls="installBlockBuild" tabindex="-1">CLONE + BUILD</button>
-      </div>
-      <div class="install-block active" id="installBlock" data-tab="npx" role="tabpanel" aria-labelledby="installTabNpx">
-        <button class="install-line" type="button" data-copy="npx gawkbot@latest" aria-label="Copy NPX install command">
-          <span class="install-prompt">$</span>
-          <span class="install-cmd">npx gawkbot@latest</span>
-          <span class="install-copy">COPY</span>
-        </button>
-      </div>
-      <div class="install-block" id="installBlockBuild" data-tab="build" role="tabpanel" aria-labelledby="installTabBuild" hidden>
-        <button class="install-line" type="button" data-copy="git clone https://github.com/najmuzzaman-mohammad/gawkbot.git &amp;&amp; cd gawkbot" aria-label="Copy clone command">
-          <span class="install-prompt">$</span>
-          <span class="install-cmd">git clone https://github.com/najmuzzaman-mohammad/gawkbot.git &amp;&amp; cd gawkbot</span>
-          <span class="install-copy">COPY</span>
-        </button>
-        <button class="install-line" type="button" data-copy="go build -o gawkbot ./cmd/gawkbot &amp;&amp; ./gawkbot" aria-label="Copy build and run command">
-          <span class="install-prompt">$</span>
-          <span class="install-cmd">go build -o gawkbot ./cmd/gawkbot &amp;&amp; ./gawkbot</span>
-          <span class="install-copy">COPY</span>
-        </button>
-      </div>
-      <div class="visually-hidden" id="copyStatus" aria-live="polite" aria-atomic="true"></div>
-      <p class="install-note">Runs on your machine, with your keys. No account, no cloud, no per-seat pricing.</p>
-    </div>
-
-    <div class="hero-ctas">
-      <a href="/download.html" class="btn-primary">
-        <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M7 1h2v6h3l-4 5-4-5h3V1zM2 13h12v2H2z"/></svg>
-        Download
-      </a>
-      <a href="https://github.com/najmuzzaman-mohammad/gawkbot" class="btn-ghost" target="_blank" rel="noopener">
-        <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" style="margin-right:6px" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        GitHub &nbsp;<span id="heroStars">&#9733;</span>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#inbox">Inbox</a>
+      <a href="#voice">Voice</a>
+      <a href="#iphone">iPhone</a>
+      <a href="#keys">Shortcuts</a>
+      <a href="#agents">Agents</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn btn-glass" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub <span class="stars" id="navStars"></span>
       </a>
     </div>
+  </div>
+</header>
 
-    <div class="hero-badges">
-      <a href="https://news.ycombinator.com/item?id=47899844" target="_blank" rel="noopener noreferrer" class="hn-badge" aria-label="Hacker News Life of Product Week's number 1"><img src="hn-badge.svg" alt="Hacker News Life of Product Week's number 1" width="223" height="48"></a>
+<main id="main">
+
+<!-- ═══ HERO ═══════════════════════════════════════════════════════ -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap">
+    <p class="badge glass reveal"><b>New</b> The notch is now your agents' inbox</p>
+    <h1 class="h1 reveal d1" id="hero-title">Every agent, <span class="grad">right in the notch.</span></h1>
+    <p class="lead reveal d2">gawkbot finds every coding agent on your Mac, and the ones you run in the cloud, and gives them one place to ask you things. Approve, pick an answer or talk back without leaving what you were doing.</p>
+    <div class="cta-row reveal d3">
+      <button class="cmd" type="button" data-copy="npx gawkbot" aria-label="Copy the install command: npx gawkbot">
+        <span><span class="prompt">$ </span>npx gawkbot</span>
+        <span class="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h9"/></svg><span class="copy-label">Copy</span></span>
+      </button>
+      <a class="btn btn-glass" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
     </div>
+    <p class="cta-note reveal d3">Free and open source. The notch comes with the <a href="/download.html">Mac app</a>; the web app runs anywhere.</p>
+    <p class="visually-hidden" role="status" aria-live="polite" id="copyStatus"></p>
 
+    <!-- The MacBook top edge. Pure HTML and CSS; nothing here is a screenshot. -->
+    <figure class="mac reveal" role="img" aria-label="Illustration: the top of a MacBook screen. Agents peek out of both sides of the notch, and a dark glass panel has dropped out of it, listing three questions from agents with Approve and Reject buttons, seven agents tagged by the tool that made them and where they run, and a bar for replying by voice or text.">
+      <div class="mac-screen">
+        <div class="menubar" aria-hidden="true">
+          <div class="menubar-left">
+            <b>gawkbot</b><span class="mi">File</span>
+          </div>
+          <div class="menubar-right">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9 9 0 0 1 12.4 0M9.2 16a4 4 0 0 1 5.6 0"/><circle cx="12" cy="19.3" r="1.2" fill="currentColor" stroke="none"/></svg>
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+            <span class="batt"></span>
+            <span>Thu 9:41</span>
+          </div>
+        </div>
+        <div class="win" aria-hidden="true"></div>
+
+        <div class="island reveal" aria-hidden="true">
+          <div class="strip">
+            <div class="ear ear-l">
+              <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
+              <span class="mood">3 waiting on you</span>
+            </div>
+            <div class="notch-hw"></div>
+            <div class="ear ear-r">
+              <svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
+              <svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
+              <svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
+              <span class="count">3</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="pcol">
+              <div class="ptitle">Needs you <span>3</span></div>
+              <div class="q sel">
+                <div class="q-head">
+                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
+                  <div><div class="q-who">auth-refactor</div><div class="tags"><span class="tag">Claude Code</span><span class="tag">this Mac</span></div></div>
+                </div>
+                <p class="q-text">Run the migration on staging? It drops the old sessions table.</p>
+                <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve <kbd>↵</kbd></span></div>
+              </div>
+              <div class="q">
+                <div class="q-head">
+                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
+                  <div><div class="q-who">flaky-tests</div><div class="tags"><span class="tag">Codex</span><span class="tag cloud">cloud</span></div></div>
+                </div>
+                <p class="q-text">The checkout test fails one run in ten. Which fix should I keep?</p>
+                <div class="q-acts"><span class="chip-btn"><kbd>1</kbd> Add a retry</span><span class="chip-btn pick"><kbd>2</kbd> Freeze the clock</span></div>
+              </div>
+              <div class="q">
+                <div class="q-head">
+                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
+                  <div><div class="q-who">landing-copy</div><div class="tags"><span class="tag">Opencode</span><span class="tag">this Mac</span></div></div>
+                </div>
+                <p class="q-text">Push the branch and open a pull request?</p>
+                <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve</span></div>
+              </div>
+            </div>
+            <div class="pcol">
+              <div class="ptitle">Agents <span>7</span></div>
+              <ul class="agents">
+                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg><div><div class="agent-name">auth-refactor</div><div class="agent-meta">Claude Code · this Mac</div></div><span class="state need">Needs you</span></li>
+                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg><div><div class="agent-name">flaky-tests</div><div class="agent-meta">Codex · cloud</div></div><span class="state need">Needs you</span></li>
+                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg><div><div class="agent-name">landing-copy</div><div class="agent-meta">Opencode · this Mac</div></div><span class="state need">Needs you</span></li>
+                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><div><div class="agent-name">changelog</div><div class="agent-meta">Gemini CLI · this Mac</div></div><span class="state work">Working</span></li>
+                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-test-fixer"/></svg><div><div class="agent-name">test-fixer</div><div class="agent-meta">Cursor CLI · cloud</div></div><span class="state work">Working</span></li>
+                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-ui-polish"/></svg><div><div class="agent-name">ui-polish</div><div class="agent-meta">Amp · cloud</div></div><span class="state work">Working</span></li>
+                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-release-train"/></svg><div><div class="agent-name">release-train</div><div class="agent-meta">Aider · this Mac</div></div><span class="state done">Done</span></li>
+              </ul>
+            </div>
+            <div class="voicebar">
+              <span class="mic"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="vtext">Reply to auth-refactor, or hold V to talk</span>
+              <span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span>
+            </div>
+            <div class="hints">
+              <span class="hint"><kbd>J</kbd><kbd>K</kbd> move</span>
+              <span class="hint"><kbd>1</kbd>–<kbd>9</kbd> answer</span>
+              <span class="hint"><kbd>↵</kbd> recommended</span>
+              <span class="hint"><kbd>V</kbd> talk</span>
+              <span class="hint"><kbd>R</kbd> reply</span>
+              <span class="hint"><kbd>esc</kbd> close</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
   </div>
 </section>
 
-<!-- AMBIENT TICKER -->
-<div class="ambient-strip">
-  <div class="ambient-scroll" id="ticker"></div>
-</div>
-
-<!-- 2. THE ROSTER. Replaces the old computer, office, and teaching sections.
-     Same three jokes, one screen, and it is the only place the real bot
-     marks can carry the point: they are looking at you. -->
-<section id="roster">
-  <div class="section-eyebrow">THE BOTS</div>
-  <h2 class="section-title">They do the boring part.</h2>
-  <p class="section-sub">You find out afterwards, on a dashboard.</p>
-  <p class="section-body">
-    Every bot runs on your machine as its own worker, with a shell, a browser, and a working directory of its own. It uses the tools you allow it, nothing more, and then it does the thing you have been putting off since March.
-  </p>
-
-  <ul class="roster" role="list">
-    <li>
-      <svg class="roster-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <span class="roster-name">filer</span>
-      <span class="roster-doing">Filed forty-one expense reports overnight. Left you a chart to look at.</span>
-    </li>
-    <li>
-      <svg class="roster-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#3f9c8f" fill-rule="evenodd" d="M5 1H10V2H5ZM3 2H12V3H3ZM2 3H13V4H2ZM2 4H14V5H2ZM1 5H14V6H1ZM1 6H15V10H1ZM2 10H15V11H2ZM2 11H14V12H2ZM3 12H14V13H3ZM4 13H12V14H4ZM6 14H10V15H6ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#3f9c8f" fill-rule="evenodd" d="M5 1H10V2H5ZM3 2H12V3H3ZM2 3H13V4H2ZM2 4H14V5H2ZM1 5H14V6H1ZM1 6H15V10H1ZM2 10H15V11H2ZM2 11H14V12H2ZM3 12H14V13H3ZM4 13H12V14H4ZM6 14H10V15H6ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <span class="roster-name">reconciler</span>
-      <span class="roster-doing">Matched the invoices against the bank. Two did not agree. Both now do.</span>
-    </li>
-    <li>
-      <svg class="roster-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#a8546b" fill-rule="evenodd" d="M6 1H10V2H6ZM4 2H12V3H4ZM3 3H13V4H3ZM2 4H14V6H2ZM1 6H15V15H1ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#a8546b" fill-rule="evenodd" d="M6 1H10V2H6ZM4 2H12V3H4ZM3 3H13V4H3ZM2 4H14V6H2ZM1 6H15V15H1ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <span class="roster-name">triager</span>
-      <span class="roster-doing">Triaged your inbox before you woke up. Ninety-three down to four.</span>
-    </li>
-    <li>
-      <svg class="roster-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8a7a2e" fill-rule="evenodd" d="M7 1H9V2H7ZM6 2H10V4H6ZM5 4H11V5H5ZM4 5H12V6H4ZM3 6H13V7H3ZM2 7H14V9H2ZM1 9H15V12H1ZM2 12H14V13H2ZM3 13H13V14H3ZM5 14H11V15H5ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8a7a2e" fill-rule="evenodd" d="M7 1H9V2H7ZM6 2H10V4H6ZM5 4H11V5H5ZM4 5H12V6H4ZM3 6H13V7H3ZM2 7H14V9H2ZM1 9H15V12H1ZM2 12H14V13H2ZM3 13H13V14H3ZM5 14H11V15H5ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <span class="roster-name">scheduler</span>
-      <span class="roster-doing">Booked the six meetings you kept not booking. Invitations are out.</span>
-    </li>
-    <li>
-      <svg class="roster-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#6b7fd7" fill-rule="evenodd" d="M3 3H13V4H3ZM1 4H15V5H1ZM0 5H16V11H0ZM1 11H15V12H1ZM2 12H14V13H2ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#6b7fd7" fill-rule="evenodd" d="M3 3H13V4H3ZM1 4H15V5H1ZM0 5H16V11H0ZM1 11H15V12H1ZM2 12H14V13H2ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <span class="roster-name">chaser</span>
-      <span class="roster-doing">Chased everyone who owed you a reply. Got four. Still working on Dave.</span>
-    </li>
-    <li>
-      <svg class="roster-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#c08a3e" fill-rule="evenodd" d="M3 1H13V2H3ZM2 2H14V3H2ZM1 3H15V8H1ZM2 8H14V10H2ZM3 10H13V11H3ZM4 11H12V12H4ZM5 12H11V13H5ZM6 13H10V14H6ZM7 14H9V15H7ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#c08a3e" fill-rule="evenodd" d="M3 1H13V2H3ZM2 2H14V3H2ZM1 3H15V8H1ZM2 8H14V10H2ZM3 10H13V11H3ZM4 11H12V12H4ZM5 12H11V13H5ZM6 13H10V14H6ZM7 14H9V15H7ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <span class="roster-name">tidier</span>
-      <span class="roster-doing">Renamed nine hundred files to the convention you described once, badly.</span>
-    </li>
-  </ul>
-</section>
-
-<!-- 3. MESSAGE IT LIKE A TEAMMATE. One bot, one conversation. The others are
-     consulted off to the side and never walk in. -->
-<section id="message">
-  <div class="section-eyebrow">MICROAPPS</div>
-  <h2 class="section-title">It is already done. <br>Here is an app about it.</h2>
-  <p class="section-body">
-    You talk to one bot at a time. Mention another and yours goes off to consult it rather than dragging it into your conversation. Ask for something menial and it tends to be finished before you have described it properly. Then it builds you a microapp, so there is somewhere to click.
-  </p>
-
-  <div class="dm" role="img" aria-label="A direct message with one bot called filer. You ask it to do the expense reports. It has already filed all forty-one, having consulted two other bots off to the side, and it has built you a small app to review them. Three card charges still need your approval.">
-    <div class="dm-header">
-      <svg class="dm-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-      <span class="dm-header-name">filer</span>
-      <span class="dm-header-kind">direct message</span>
+<!-- ═══ INBOX ══════════════════════════════════════════════════════ -->
+<section class="section" id="inbox" aria-labelledby="inbox-title">
+  <div class="wrap split">
+    <div>
+      <p class="eyebrow reveal">Inbox</p>
+      <h2 class="h2 reveal" id="inbox-title">One inbox for every agent's questions.</h2>
+      <p class="lead reveal" style="margin-top:20px">Agents stop and ask, usually in a terminal tab you closed an hour ago. gawkbot collects every question in one list, so nothing sits there waiting while you look somewhere else.</p>
+      <ul class="points reveal">
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Tagged at a glance.</strong> Each question shows which agent asked, the tool that started it, and whether it runs on this Mac or in the cloud.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Answer in place.</strong> Approve, reject, pick an option or type a reply, right there in the panel.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Nothing external without you.</strong> Sends, pushes, purchases and deletes wait for your yes. Reads don't have to.</span></li>
+      </ul>
     </div>
-
-    <div class="dm-log">
-      <div class="dm-row you">
-        <div class="dm-avatar you" aria-hidden="true"></div>
-        <div class="dm-bubble">Can someone do the expense reports?</div>
-      </div>
-
-      <div class="dm-row">
-        <svg class="dm-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-        <div class="dm-bubble">They were filed at 04:12. All forty-one of them.</div>
-      </div>
-
-      <div class="dm-consult">
-        <div class="dm-consult-label">FILER CONSULTED 2 BOTS</div>
-        <div class="dm-consult-row">
-          <svg class="dm-consult-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#3f9c8f" fill-rule="evenodd" d="M5 1H10V2H5ZM3 2H12V3H3ZM2 3H13V4H2ZM2 4H14V5H2ZM1 5H14V6H1ZM1 6H15V10H1ZM2 10H15V11H2ZM2 11H14V12H2ZM3 12H14V13H3ZM4 13H12V14H4ZM6 14H10V15H6ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#3f9c8f" fill-rule="evenodd" d="M5 1H10V2H5ZM3 2H12V3H3ZM2 3H13V4H2ZM2 4H14V5H2ZM1 5H14V6H1ZM1 6H15V10H1ZM2 10H15V11H2ZM2 11H14V12H2ZM3 12H14V13H3ZM4 13H12V14H4ZM6 14H10V15H6ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-          <span class="dm-consult-name">reconciler</span>
-          <span class="dm-consult-text">Matched them against the bank. Two did not. Both fixed.</span>
+    <div class="stack" aria-label="Three example questions from agents" role="img">
+      <div class="card glass reveal">
+        <div class="q-head">
+          <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-auth-refactor"/></svg>
+          <div><div class="q-who">auth-refactor</div><div class="tags"><span class="tag">Claude Code</span><span class="tag">this Mac</span></div></div>
+          <span class="kind">Approval</span>
         </div>
-        <div class="dm-consult-row">
-          <svg class="dm-consult-mark" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#a8546b" fill-rule="evenodd" d="M6 1H10V2H6ZM4 2H12V3H4ZM3 3H13V4H3ZM2 4H14V6H2ZM1 6H15V15H1ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#a8546b" fill-rule="evenodd" d="M6 1H10V2H6ZM4 2H12V3H4ZM3 3H13V4H3ZM2 4H14V6H2ZM1 6H15V15H1ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-          <span class="dm-consult-name">triager</span>
-          <span class="dm-consult-text">Pulled the receipts out of your inbox.</span>
-        </div>
+        <p class="q-text">Run the migration on staging? It drops the old sessions table.</p>
+        <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve <kbd>↵</kbd></span></div>
       </div>
-
-      <div class="dm-row">
-        <svg class="dm-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-        <div class="dm-bubble">I built you an app to look through them.</div>
+      <div class="card glass reveal d1">
+        <div class="q-head">
+          <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-flaky-tests"/></svg>
+          <div><div class="q-who">flaky-tests</div><div class="tags"><span class="tag">Codex</span><span class="tag cloud">cloud</span></div></div>
+          <span class="kind">Choice</span>
+        </div>
+        <p class="q-text">Which fix should I keep?</p>
+        <div class="q-acts"><span class="chip-btn"><kbd>1</kbd> Add a retry</span><span class="chip-btn pick"><kbd>2</kbd> Freeze the clock</span><span class="chip-btn"><kbd>3</kbd> Skip it</span></div>
       </div>
-
-      <!-- The payoff. Deliberately an ordinary little dashboard: the joke only
-           works if it looks like the thing you were hoping for. -->
-      <div class="microapp">
-        <div class="microapp-bar">
-          <span class="microapp-title">Expenses, August</span>
-          <span class="microapp-by">built by filer</span>
+      <div class="card glass reveal d2">
+        <div class="q-head">
+          <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-changelog"/></svg>
+          <div><div class="q-who">changelog</div><div class="tags"><span class="tag">Gemini CLI</span><span class="tag">this Mac</span></div></div>
+          <span class="kind">Question</span>
         </div>
-        <div class="microapp-stats">
-          <div class="microapp-stat"><span class="microapp-stat-n">41</span><span class="microapp-stat-l">filed</span></div>
-          <div class="microapp-stat"><span class="microapp-stat-n">2</span><span class="microapp-stat-l">corrected</span></div>
-          <div class="microapp-stat need"><span class="microapp-stat-n">3</span><span class="microapp-stat-l">need you</span></div>
-        </div>
-        <div class="microapp-rows">
-          <div class="microapp-row"><span class="microapp-row-what">Flights, Lisbon</span><span class="microapp-row-state done">filed</span></div>
-          <div class="microapp-row"><span class="microapp-row-what">Hotel, three nights</span><span class="microapp-row-state done">filed</span></div>
-          <div class="microapp-row"><span class="microapp-row-what">Card charge, unrecognised</span><span class="microapp-row-state need">your call</span></div>
-        </div>
-        <div class="microapp-actions">
-          <span class="microapp-btn">APPROVE ALL</span>
-          <span class="microapp-btn ghost">Review 3</span>
-        </div>
-      </div>
-
-      <div class="dm-row you">
-        <div class="dm-avatar you" aria-hidden="true"></div>
-        <div class="dm-bubble">Did I need to approve any of that?</div>
-      </div>
-
-      <div class="dm-row">
-        <svg class="dm-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path class="blob-open" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V9H5ZM9 5H11V9H9Z"/><path class="blob-shut" fill="#8b6bb1" fill-rule="evenodd" d="M3 2H6V3H3ZM2 3H7V4H2ZM2 4H14V5H2ZM1 5H15V11H1ZM2 11H14V13H2ZM4 13H12V14H4ZM5 5H7V7H5ZM9 5H11V7H9Z"/></svg>
-        <div class="dm-bubble">The card charges, yes. They are in the app, waiting for you.</div>
+        <p class="q-text">What should this release be called?</p>
+        <div class="reply"><span>Type a reply…</span><span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 4. TRUST. The honest section. Not a joke, and it says so. -->
-<section id="trust">
-  <div class="section-eyebrow">PERMISSIONS</div>
-  <h2 class="section-title">Trust your bots with less over time.</h2>
-  <p class="section-body">
-    This is the part that is not a joke. A bot with your credentials and a browser is a real risk, and the honest posture is to grant it as little as possible for as long as possible. The defaults below are the actual defaults.
-  </p>
+<!-- ═══ VOICE ══════════════════════════════════════════════════════ -->
+<section class="section" id="voice" aria-labelledby="voice-title" style="padding-top:0">
+  <div class="wrap split flip">
+    <div>
+      <p class="eyebrow reveal">Voice</p>
+      <h2 class="h2 reveal" id="voice-title">Talk back with your voice.</h2>
+      <p class="lead reveal" style="margin-top:20px">Some answers are quicker said than typed. Hold <kbd class="k">V</kbd>, say it, let go. gawkbot shows you what it heard, and nothing goes to the agent until you press <kbd class="k">↵</kbd>.</p>
+      <ul class="points reveal">
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>On-device on the Mac.</strong> The Mac app uses Apple's speech recognition, on-device when your Mac supports it.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>A draft, not a send.</strong> Fix a word before it goes, or press Esc and it never happened.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>In the browser too.</strong> The web app uses your browser's own speech recognition.</span></li>
+      </ul>
+    </div>
+    <div class="voice-card glass reveal" role="img" aria-label="Illustration: a glowing microphone button, a moving sound wave, and the words being transcribed, ready to send to the agent auth-refactor.">
+      <div class="orb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="transcript" aria-hidden="true">Approve it, but back up the sessions table first<span class="live"> and tell me when it's done</span></p>
+      <div class="voice-foot" aria-hidden="true">
+        <span class="hint"><kbd>↵</kbd> send to auth-refactor</span>
+        <span class="hint"><kbd>esc</kbd> throw it away</span>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <div class="trust-card">
-    <div class="trust-label">WHAT IT ACTUALLY DOES</div>
-    <ul class="trust-list" role="list">
-      <li>Runs on your machine, with your keys. There is no gawkbot cloud in the path, and no account to create. Point it at a local model and nothing leaves at all.</li>
-      <li>Every send, commit, purchase, and delete is gated behind an approval you have to click. Approval is per action, not a blanket grant, and it does not persist.</li>
-      <li>Each bot works in its own directory with its own tool allowlist, so what a bot can touch is per bot rather than per workspace. Your credentials never leave your machine.</li>
-      <li>Every tool call is written to a local log you can read. If a bot did something, there is a line for it.</li>
-      <li>Permissions shrink by default. A grant you stop using expires rather than accumulating quietly.</li>
+<!-- ═══ IPHONE ═════════════════════════════════════════════════════ -->
+<section class="section" id="iphone" aria-labelledby="iphone-title" style="padding-top:0">
+  <div class="wrap split">
+    <div>
+      <p class="eyebrow reveal">iPhone</p>
+      <h2 class="h2 reveal" id="iphone-title">Reply from your iPhone, even to agents running in the cloud.</h2>
+      <p class="lead reveal" style="margin-top:20px">Walk away from the desk and the questions come with you. Pair your phone once with a QR code from the web app, then answer with a tap, a few words or the mic.</p>
+      <ul class="points reveal">
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Every agent in one list.</strong> The ones on your Mac and the ones in the cloud, with the same faces as on the desktop.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Same one-tap answers.</strong> Approvals and choices arrive as cards with buttons.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Hold to talk.</strong> The big button at the bottom does what you would expect.</span></li>
+      </ul>
+      <p class="fineprint reveal">The iPhone app is new and builds from source with Xcode, from <code>apps/ios</code> in the repo. It is not on the App Store, and push notifications are not in yet.</p>
+    </div>
+    <div class="phone-wrap reveal">
+      <div class="phone" role="img" aria-label="Illustration: an iPhone showing the gawkbot inbox. An approval card from auth-refactor sits at the top with Reject and Approve buttons, three more agents wait below, and a large microphone button says hold to talk.">
+        <div class="phone-screen" aria-hidden="true">
+          <div class="island-ip"></div>
+          <div class="status"><span>9:41</span><span class="glyphs"><span class="bars"><i></i><i></i><i></i><i></i></span><span class="batt"></span></span></div>
+          <div class="ip-title">Inbox</div>
+          <div class="ip-sub">4 agents need you</div>
+          <div class="ip-card">
+            <div class="q-head">
+              <svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
+              <div><div class="q-who">auth-refactor</div><div class="tags"><span class="tag">Claude Code</span><span class="tag">Mac</span></div></div>
+            </div>
+            <p class="q-text">Run the migration on staging? It drops the old sessions table.</p>
+            <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve</span></div>
+          </div>
+          <ul class="ip-list">
+            <li class="ip-row"><svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg><div style="min-width:0"><div class="ip-name">flaky-tests <span class="tag cloud" style="font-size:10px;padding:1px 6px;border-radius:999px;color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,transparent)">cloud</span></div><div class="ip-prev">Which fix should I keep?</div></div><div class="ip-time">2m<br><span class="dot"></span></div></li>
+            <li class="ip-row"><svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg><div style="min-width:0"><div class="ip-name">landing-copy</div><div class="ip-prev">Push the branch and open a PR?</div></div><div class="ip-time">6m<br><span class="dot"></span></div></li>
+            <li class="ip-row"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><div style="min-width:0"><div class="ip-name">changelog</div><div class="ip-prev">What should this release be called?</div></div><div class="ip-time">11m<br><span class="dot"></span></div></li>
+          </ul>
+          <div class="ip-bottom">
+            <span class="ip-mic"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+            <span class="ip-hold">Hold to talk</span>
+          </div>
+          <span class="ip-home"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ KEYBOARD ═══════════════════════════════════════════════════ -->
+<section class="section" id="keys" aria-labelledby="keys-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center">
+      <p class="eyebrow reveal">Keyboard</p>
+      <h2 class="h2 reveal" id="keys-title">Everything is a keystroke.</h2>
+      <p class="lead reveal">Your hands stay where they are. Open the notch from anywhere, walk the list, answer, and get back to work.</p>
+    </div>
+    <div class="keys">
+      <div class="key-tile wide glass reveal">
+        <div class="caps"><kbd aria-label="Control">⌃</kbd><kbd aria-label="Option">⌥</kbd><kbd class="long">Space</kbd></div>
+        <h3>Open the notch</h3>
+        <p>From anywhere on your Mac, whichever app has focus.</p>
+      </div>
+      <div class="key-tile glass reveal d1">
+        <div class="caps"><kbd>J</kbd><kbd>K</kbd> or <kbd aria-label="Up arrow">↑</kbd><kbd aria-label="Down arrow">↓</kbd></div>
+        <h3>Move between questions</h3>
+        <p>Down the list and back up again.</p>
+      </div>
+      <div class="key-tile glass reveal d2">
+        <div class="caps"><kbd>1</kbd>–<kbd>9</kbd></div>
+        <h3>Pick an answer</h3>
+        <p>Every option is numbered. One key answers it.</p>
+      </div>
+      <div class="key-tile glass reveal">
+        <div class="caps"><kbd aria-label="Return">↵</kbd></div>
+        <h3>Take the recommendation</h3>
+        <p>When the agent suggests an answer, Return takes it.</p>
+      </div>
+      <div class="key-tile glass reveal d1">
+        <div class="caps"><kbd>V</kbd> hold</div>
+        <h3>Talk</h3>
+        <p>Speak while it's held. Let go to read the transcript.</p>
+      </div>
+      <div class="key-tile glass reveal d2">
+        <div class="caps"><kbd>R</kbd></div>
+        <h3>Reply in words</h3>
+        <p>Opens a reply box for the selected question.</p>
+      </div>
+      <div class="key-tile glass reveal d3">
+        <div class="caps"><kbd>esc</kbd></div>
+        <h3>Close</h3>
+        <p>Puts the notch away, or cancels the reply you're typing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ AGENTS ═════════════════════════════════════════════════════ -->
+<section class="section" id="agents" aria-labelledby="agents-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center">
+      <p class="eyebrow reveal">Detection</p>
+      <h2 class="h2 reveal" id="agents-title">Detects every agent on your machine.</h2>
+      <p class="lead reveal">No setup per tool. gawkbot notices the agents you already run and tags each one with the tool that started it and where it runs.</p>
+    </div>
+    <ul class="chips reveal" aria-label="Supported agents">
+      <li class="chip glass">Claude Code</li>
+      <li class="chip glass">Codex</li>
+      <li class="chip glass">Opencode</li>
+      <li class="chip glass">Gemini CLI</li>
+      <li class="chip glass">Cursor CLI</li>
+      <li class="chip glass">Aider</li>
+      <li class="chip glass">Goose</li>
+      <li class="chip glass">Amp</li>
+      <li class="chip glass">Qwen Code</li>
+      <li class="chip glass">Copilot CLI</li>
+      <li class="chip glass">Crush</li>
+      <li class="chip glass">Factory Droid</li>
+      <li class="chip glass">Ollama</li>
+      <li class="chip glass">OpenClaw</li>
+      <li class="chip glass">Hermes</li>
     </ul>
+    <p class="chips-note reveal">Using one that isn't here? <a href="https://github.com/najmuzzaman-mohammad/gawkbot/issues" target="_blank" rel="noopener" style="color:var(--accent)">Open an issue</a>.</p>
   </div>
 </section>
 
-<!-- 5. THE OPEN SOURCE GROK BOT. Category anchor for search: one definition,
-     one honest table, one link to the full comparison page. -->
-<section id="grok-bot">
-  <div class="section-eyebrow">OPEN SOURCE GROK BOT</div>
-  <h2 class="section-title">The open source Grok Bot.</h2>
-  <p class="section-body">
-    gawkbot is an open source Grok Bot: a team of always-on AI bots that runs on your own machine instead of a vendor's cloud. It is free, it uses the coding bot you already pay for (Claude Code, Codex, or a local model), every external action waits for your approval, and it builds you a microapp so you have something to look at.
-  </p>
-  <div class="compare-wrap">
-    <table class="compare">
-      <caption class="visually-hidden">gawkbot compared with Grok Bot</caption>
-      <thead>
-        <tr><th scope="col"></th><th scope="col">GROK BOT (xAI)</th><th scope="col">GAWKBOT</th></tr>
-      </thead>
-      <tbody>
-        <tr><th scope="row">Price</th><td>Bundled with SuperGrok and Cursor paid plans</td><td>Free. No account, no seats, no usage fees</td></tr>
-        <tr><th scope="row">Source</th><td>Closed</td><td>Public, Sustainable Use License</td></tr>
-        <tr><th scope="row">Runs on</th><td>xAI's cloud</td><td>Your machine, with your keys</td></tr>
-        <tr><th scope="row">Models</th><td>Grok, chosen for you</td><td>Claude Code, Codex, Opencode, local models, Hermes, OpenClaw</td></tr>
-        <tr><th scope="row">Approvals</th><td>Bots act on your accounts around the clock</td><td>Every send, commit, purchase, and delete waits for your click</td></tr>
-      </tbody>
-    </table>
+<!-- ═══ FUN ════════════════════════════════════════════════════════ -->
+<section class="section" id="fun" aria-labelledby="fun-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center">
+      <p class="eyebrow reveal">Personality</p>
+      <h2 class="h2 reveal" id="fun-title">Fun on purpose.</h2>
+      <p class="lead reveal">Waiting on an agent is dull. Being waited on shouldn't be. So the agents got a little personality, and the notch got a sense of humour.</p>
+    </div>
+    <div class="fun">
+      <article class="fun-card glass reveal">
+        <div class="stage" aria-hidden="true"><div class="mini-notch"><svg class="blob peeker" viewBox="0 0 16 16"><use href="#b-test-fixer"/></svg></div></div>
+        <h3 class="h3">They peek.</h3>
+        <p>Every so often, for no reason at all, someone pops out of the notch, has a look around and ducks back in.</p>
+      </article>
+      <article class="fun-card glass reveal d1">
+        <div class="stage" aria-hidden="true"><div class="mini-notch gang"><svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-db-migrate"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-release-train"/></svg></div></div>
+        <h3 class="h3">They gang up.</h3>
+        <p>When several agents need you at once, they don't queue politely. They pile onto the notch together.</p>
+      </article>
+      <article class="fun-card glass reveal">
+        <div class="stage" aria-hidden="true">
+          <div class="mini-notch talk"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-ui-polish"/></svg></div>
+          <span class="bubble a">Is the human still there?</span>
+          <span class="bubble b">Reading the diff. Slowly.</span>
+        </div>
+        <h3 class="h3">They get chatty.</h3>
+        <p>Keep them waiting and they get restless, then start talking to each other about it.</p>
+      </article>
+      <article class="fun-card glass reveal d1">
+        <div class="stage speaker" aria-hidden="true"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div></div>
+        <h3 class="h3">Every alert sounds different.</h3>
+        <p>Each kind of moment has its own cartoon sound, so you know what happened before you look. They are synthesised live; nothing is sampled. Go on:</p>
+        <div class="sounds">
+          <button class="sound" type="button" data-sound="question"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Question <span>boing</span></button>
+          <button class="sound" type="button" data-sound="approval"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Approval <span>doo-dee</span></button>
+          <button class="sound" type="button" data-sound="error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Error <span>wah-wah</span></button>
+          <button class="sound" type="button" data-sound="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Done <span>ta-da</span></button>
+          <button class="sound" type="button" data-sound="sent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Sent <span>pop</span></button>
+        </div>
+      </article>
+    </div>
   </div>
-  <a class="compare-more" href="/open-source-grok-bot.html">READ THE FULL GAWKBOT VS GROK BOT COMPARISON &rarr;</a>
-  <p class="compare-updated">Last updated 1 September 2026. If a row is wrong, <a href="https://github.com/najmuzzaman-mohammad/gawkbot/issues">file an issue</a> and it gets fixed.</p>
 </section>
 
-<!-- 6. PRICE. The punchline. -->
-<section id="price">
-  <div class="section-eyebrow">PRICE</div>
-  <div class="price-block">
-    <p class="price-headline">Free.</p>
-    <p class="price-sub">The work has already started.</p>
+<!-- ═══ PRICING ════════════════════════════════════════════════════ -->
+<section class="section" id="pricing" aria-labelledby="pricing-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center">
+      <p class="eyebrow reveal">Pricing</p>
+      <h2 class="h2 reveal" id="pricing-title">Free. Open source. No subscription, no seat count, no trial.</h2>
+    </div>
+    <div class="plan glass reveal">
+      <div class="plan-top">
+        <div>
+          <div class="plan-name">gawkbot</div>
+          <div class="plan-price">$0<small>for all of it</small></div>
+        </div>
+        <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-brand"/></svg>
+      </div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>The notch for Mac, with every shortcut</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>The web app, on macOS, Windows and Linux</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>The iPhone app, built from source</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Every agent it detects, local or in the cloud</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Voice replies, and all the silly sounds</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Your own agents and API keys, with no usage fee from us</li>
+      </ul>
+      <div class="cta-row">
+        <button class="cmd" type="button" data-copy="npx gawkbot" aria-label="Copy the install command: npx gawkbot">
+          <span><span class="prompt">$ </span>npx gawkbot</span>
+          <span class="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h9"/></svg><span class="copy-label">Copy</span></span>
+        </button>
+        <a class="btn btn-glass" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">Read the source</a>
+      </div>
+    </div>
+    <p class="terms reveal">Public source under the <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Sustainable Use License</a>. Free to self-host, on your own API keys, for your own internal business purposes and for non-commercial use. You can read it, modify it and distribute your changes; the licence does not let you sell gawkbot itself as a hosted product. There are no seats, no usage fees, and no plan to add them.</p>
   </div>
-  <p class="price-terms">
-    Source-available under the Sustainable Use License. Free to run and free to self-host, for your own internal business purposes and for non-commercial use. You can read it, modify it, and distribute your changes. The licence does not let you sell gawkbot itself as a hosted product. There are no seats, no usage fees, and no plan to add them.
-  </p>
-  <div class="price-cta">
-    <a class="btn-primary" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      Read the source
-    </a>
-    <a class="btn-ghost" href="/download.html">Download</a>
+</section>
+
+<!-- ═══ FAQ ════════════════════════════════════════════════════════ -->
+<section class="section" id="faq" aria-labelledby="faq-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center">
+      <p class="eyebrow reveal">FAQ</p>
+      <h2 class="h2 reveal" id="faq-title">Questions, answered.</h2>
+    </div>
+    <div class="faq reveal">
+      <details class="glass">
+        <summary>Is gawkbot free?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">Yes. There is no subscription, no seat count, no trial and no usage fee. You bring the agents and API keys you already use. The source is public under the Sustainable Use License: free to self-host for your own internal business purposes and for non-commercial use.</div>
+      </details>
+      <details class="glass">
+        <summary>Which agents does it work with?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Factory Droid, Ollama, OpenClaw and Hermes. Each one is tagged with the tool that started it and whether it runs on your Mac or in the cloud.</div>
+      </details>
+      <details class="glass">
+        <summary>Do I need a MacBook with a notch?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">No. On a Mac without a notch the same strip shows as a pill at the top centre of the screen, with the same panel, shortcuts and sounds.</div>
+      </details>
+      <details class="glass">
+        <summary>Is there an iPhone app?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">Yes, and it is new. It lives in the repo under <code>apps/ios</code> and you build it with Xcode; it is not on the App Store. Pair it once by scanning a QR code from the web app. Push notifications are not in yet.</div>
+      </details>
+      <details class="glass">
+        <summary>Where does my data go?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">gawkbot runs on your machine and your workspace is local files you can read. Anonymous product analytics, when a build has them, are counts and shapes only, never your content, and you can switch them off in onboarding or Settings. A build from source ships without an analytics key, so it never phones home.</div>
+      </details>
+      <details class="glass">
+        <summary>Can an agent do something external without asking me?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">No. Reads are free, but sends, pushes, purchases and deletes wait in the notch until you approve them. You approve each action, never a blanket grant.</div>
+      </details>
+      <details class="glass">
+        <summary>How does voice work?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">Hold <kbd class="k">V</kbd> and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; in a browser it uses the browser's own speech recognition. You see the transcript first, and nothing is sent until you press <kbd class="k">↵</kbd>.</div>
+      </details>
+      <details class="glass">
+        <summary>Does it work on Windows or Linux?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
+        <div class="answer">The web app does: run <code>npx gawkbot</code> on macOS, Windows or Linux and it opens in your browser, and there is a <a href="/download.html" style="color:var(--accent)">desktop app for Windows</a>. The notch itself is Mac only.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CLOSER ═════════════════════════════════════════════════════ -->
+<section class="section closer" aria-labelledby="closer-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="blob-row reveal" aria-hidden="true">
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-test-fixer"/></svg>
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-changelog"/></svg>
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-db-migrate"/></svg>
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-release-train"/></svg>
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
+      <svg class="blob glow" viewBox="0 0 16 16"><use href="#b-ui-polish"/></svg>
+    </div>
+    <h2 class="h2 reveal" id="closer-title">Give your agents<br>somewhere to wait.</h2>
+    <div class="cta-row reveal">
+      <button class="cmd" type="button" data-copy="npx gawkbot" aria-label="Copy the install command: npx gawkbot">
+        <span><span class="prompt">$ </span>npx gawkbot</span>
+        <span class="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h9"/></svg><span class="copy-label">Copy</span></span>
+      </button>
+      <a class="btn btn-glass" href="/download.html">Download for Mac</a>
+    </div>
   </div>
 </section>
 
 </main>
 
-<!-- 7. FOOTER -->
-<footer>
-  <div class="footer-top">
-    <div>
-      <div class="footer-logo">
-        <svg class="gawkbot-mark footer-mark" viewBox="0 0 11 15" shape-rendering="crispEdges" aria-hidden="true"><g class="gawkbot-eyes" fill="currentColor"><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="1" height="11"/><rect x="3" y="2" width="1" height="11"/><rect x="1" y="13" width="2" height="1"/><rect x="8" y="1" width="2" height="1"/><rect x="7" y="2" width="1" height="11"/><rect x="10" y="2" width="1" height="11"/><rect x="8" y="13" width="2" height="1"/></g></svg>
-        <span>gawkbot</span>
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div>
+        <a class="brand" href="/">
+          <svg class="blob" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-brand"/></svg>
+          gawkbot
+        </a>
+        <p class="footer-sub">The agents are working. You have the notch.</p>
       </div>
-      <div class="footer-sub">The bots are working. You have the dashboard open.</div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/najmuzzaman-mohammad/gawkbot#readme" target="_blank" rel="noopener">Docs</a>
+        <a href="https://www.npmjs.com/package/gawkbot" target="_blank" rel="noopener">npm</a>
+        <a href="https://discord.gg/gjSySC3PzV" target="_blank" rel="noopener">Discord</a>
+        <a href="/download.html">Download</a>
+        <a href="/open-source-grok-bot.html">Open source Grok Bot</a>
+        <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+      </nav>
     </div>
-    <div class="footer-links">
-      <a href="https://github.com/najmuzzaman-mohammad/gawkbot">GitHub</a>
-      <a href="https://github.com/najmuzzaman-mohammad/gawkbot#readme" target="_blank" rel="noopener">Docs</a>
-      <a href="/download.html">Download</a>
-      <a href="/open-source-grok-bot.html">Open source Grok Bot</a>
-      <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
-    </div>
+    <p class="footer-legal">gawkbot is an independent, source-available project. It is a parody. It is not affiliated with, endorsed by, or sponsored by xAI, SpaceXAI, X Corp, or Cursor. Grok and Grok Bot are trademarks of their respective owners. Other agent names on this page belong to their owners and are listed only to say what gawkbot detects.</p>
   </div>
-  <p class="footer-legal">gawkbot is an independent, source-available project. It is a parody. It is not affiliated with, endorsed by, or sponsored by xAI, SpaceXAI, X Corp, or Cursor. Grok and Grok Bot are trademarks of their respective owners.</p>
 </footer>
 
 <script>
 (function () {
   'use strict';
 
-  // ── PAGE VISIBILITY. Marquee and eyes idle when the tab is hidden. ──
-  function updatePageMotionClass() {
-    document.body.classList.toggle('is-page-hidden', document.hidden);
-  }
-  updatePageMotionClass();
-  document.addEventListener('visibilitychange', updatePageMotionClass);
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ── TICKER ──────────────────────────────────────────────────────────
-  // Every line here is the same joke from a different angle: the work is
-  // finished and the human is looking at a screen about it. The bots are
-  // never the butt of it. They are competent; that is the premise.
-  var quotes = [
-    'Your expense reports were filed at 04:12. There is a chart about it.',
-    'The backlog was cleared overnight. You have a dashboard to look at.',
-    'Approval required. The work is finished. It is waiting for you to click.',
-    'Forty-one invoices reconciled. You get a green tick and a filter.',
-    'It renamed nine hundred files while you slept. The progress bar is already full.',
-    'The migration ran at three in the morning. You were sent a summary.',
-    'Your inbox was triaged before you woke up. Ninety-three down to four.',
-    'It finished the task, then built you somewhere to watch it be finished.',
-    'The models did the boring part. You get the pleasant feeling of being in charge.',
-    'Standup notes written, circulated, and filed. You have a toggle.',
-    'Nothing needs your attention. There is a screen for it anyway.',
-    'It built you an app to manage the thing it had already done.'
-  ];
-  var ticker = document.getElementById('ticker');
-  if (ticker) {
-    quotes.concat(quotes).forEach(function (q) {
-      var span = document.createElement('span');
-      span.className = 'ambient-item';
-      span.textContent = '▶ ' + q;
-      ticker.appendChild(span);
-    });
+  // ── SCROLL REVEAL ───────────────────────────────────────────────────
+  // Without IntersectionObserver, or with reduced motion, everything is
+  // simply shown. The .js class (set in <head>) is what hides it at all, so
+  // a page without JavaScript never has invisible content.
+  var reveals = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+  if (reduceMotion || !('IntersectionObserver' in window)) {
+    reveals.forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    reveals.forEach(function (el) { io.observe(el); });
   }
-
-  // ── GITHUB STARS ────────────────────────────────────────────────────
-  function renderStars(n) {
-    var text = '★ ' + (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n));
-    ['navStars', 'heroStars'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = text;
-    });
-  }
-  fetch('https://api.github.com/repos/najmuzzaman-mohammad/gawkbot')
-    .then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (d) {
-      if (d && typeof d.stargazers_count === 'number') renderStars(d.stargazers_count);
-    })
-    .catch(function () { /* the badge already reads as a star on its own */ });
-
-  // ── INSTALL TABS ────────────────────────────────────────────────────
-  var tabs = [
-    { tab: document.getElementById('installTabNpx'), panel: document.getElementById('installBlock') },
-    { tab: document.getElementById('installTabBuild'), panel: document.getElementById('installBlockBuild') }
-  ];
-  function selectTab(index) {
-    tabs.forEach(function (t, i) {
-      var on = i === index;
-      if (!t.tab || !t.panel) return;
-      t.tab.classList.toggle('active', on);
-      t.tab.setAttribute('aria-selected', String(on));
-      t.tab.tabIndex = on ? 0 : -1;
-      t.panel.classList.toggle('active', on);
-      t.panel.hidden = !on;
-    });
-  }
-  tabs.forEach(function (t, i) {
-    if (!t.tab) return;
-    t.tab.addEventListener('click', function () { selectTab(i); });
-    t.tab.addEventListener('keydown', function (e) {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      e.preventDefault();
-      var next = (i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
-      selectTab(next);
-      if (tabs[next].tab) tabs[next].tab.focus();
-    });
-  });
 
   // ── COPY ────────────────────────────────────────────────────────────
   var status = document.getElementById('copyStatus');
-  document.querySelectorAll('.install-line').forEach(function (btn) {
+  document.querySelectorAll('.cmd[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var text = btn.getAttribute('data-copy') || '';
-      var label = btn.querySelector('.install-copy');
+      var label = btn.querySelector('.copy-label');
       function done(ok) {
-        if (label) {
-          label.textContent = ok ? 'COPIED' : 'PRESS CTRL C';
-          label.classList.toggle('copied', ok);
-          setTimeout(function () {
-            label.textContent = 'COPY';
-            label.classList.remove('copied');
-          }, 1600);
-        }
-        if (status) status.textContent = ok ? 'Copied ' + text : 'Copy failed. Select the command and copy it manually.';
+        if (label) label.textContent = ok ? 'Copied' : 'Press ⌘C';
+        btn.classList.toggle('copied', ok);
+        if (status) status.textContent = ok ? 'Copied ' + text : 'Copy failed. Select the command and copy it yourself.';
+        setTimeout(function () {
+          if (label) label.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 1600);
       }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
@@ -1425,8 +709,120 @@
       }
     });
   });
+
+  // ── GITHUB STARS ────────────────────────────────────────────────────
+  // A live count from the public API, or nothing at all. Never a made-up one.
+  fetch('https://api.github.com/repos/najmuzzaman-mohammad/gawkbot')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || typeof d.stargazers_count !== 'number') return;
+      var n = d.stargazers_count;
+      var el = document.getElementById('navStars');
+      if (el) el.textContent = '★ ' + (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n));
+    })
+    .catch(function () { /* the button reads fine without a count */ });
+
+  // ── BLINKING ────────────────────────────────────────────────────────
+  // Every mark has a "-n" twin with narrowed eyes (see the sprite). A blink
+  // is swapping to the twin for a moment. One mark at a time, at random.
+  if (!reduceMotion) {
+    var marks = Array.prototype.slice.call(document.querySelectorAll('svg.blob use'));
+    var blinkOnce = function () {
+      if (!document.hidden && marks.length) {
+        var use = marks[Math.floor(Math.random() * marks.length)];
+        var href = use.getAttribute('href') || '';
+        if (href.slice(-2) !== '-n') {
+          use.setAttribute('href', href + '-n');
+          setTimeout(function () { use.setAttribute('href', href); }, 150);
+        }
+      }
+      setTimeout(blinkOnce, 500 + Math.random() * 900);
+    };
+    setTimeout(blinkOnce, 1200);
+  }
+
+  // ── SOUNDS ──────────────────────────────────────────────────────────
+  // The notch's cartoon sounds, the same recipes as web/src/notch/sounds.ts:
+  // a few oscillators with pitch and gain envelopes, synthesised on click.
+  var ctx = null;
+  var master = null;
+  function audio() {
+    if (ctx) return ctx;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try {
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = 0.32;
+      master.connect(ctx.destination);
+    } catch (e) { ctx = null; }
+    return ctx;
+  }
+  function note(semi) { return 440 * Math.pow(2, semi / 12); }
+  function tone(c, out, t0, spec) {
+    var osc = c.createOscillator();
+    var g = c.createGain();
+    osc.type = spec.type || 'sine';
+    var start = t0 + spec.start;
+    var end = start + spec.dur;
+    var step = spec.dur / Math.max(1, spec.freqs.length - 1);
+    osc.frequency.setValueAtTime(spec.freqs[0], start);
+    spec.freqs.slice(1).forEach(function (f, i) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, f), start + step * (i + 1));
+    });
+    if (spec.wobble) {
+      var lfo = c.createOscillator();
+      var depth = c.createGain();
+      lfo.frequency.value = spec.wobbleRate || 18;
+      depth.gain.setValueAtTime(spec.wobble, start);
+      depth.gain.exponentialRampToValueAtTime(0.01, end);
+      lfo.connect(depth).connect(osc.frequency);
+      lfo.start(start);
+      lfo.stop(end);
+    }
+    var peak = spec.gain || 0.6;
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(peak, start + Math.min(0.012, spec.dur / 4));
+    g.gain.exponentialRampToValueAtTime(0.0001, end);
+    osc.connect(g).connect(out);
+    osc.start(start);
+    osc.stop(end + 0.02);
+  }
+  var recipes = {
+    question: [
+      { type: 'triangle', freqs: [220, 520, 330, 300], start: 0, dur: 0.42, wobble: 70, wobbleRate: 22, gain: 0.7 }
+    ],
+    approval: [
+      { type: 'sine', freqs: [note(3)], start: 0, dur: 0.14, gain: 0.55 },
+      { type: 'sine', freqs: [note(10)], start: 0.13, dur: 0.22, gain: 0.6 },
+      { type: 'triangle', freqs: [note(22)], start: 0.13, dur: 0.18, gain: 0.12 }
+    ],
+    error: [
+      { type: 'sawtooth', freqs: [note(-2), note(-3)], start: 0, dur: 0.24, gain: 0.22, wobble: 6, wobbleRate: 7 },
+      { type: 'sawtooth', freqs: [note(-4), note(-5)], start: 0.24, dur: 0.24, gain: 0.22, wobble: 6, wobbleRate: 7 },
+      { type: 'sawtooth', freqs: [note(-6), note(-11)], start: 0.48, dur: 0.55, gain: 0.24, wobble: 10, wobbleRate: 6 }
+    ],
+    done: [
+      { type: 'triangle', freqs: [note(3)], start: 0, dur: 0.12, gain: 0.5 },
+      { type: 'triangle', freqs: [note(7)], start: 0.09, dur: 0.12, gain: 0.5 },
+      { type: 'triangle', freqs: [note(10)], start: 0.18, dur: 0.12, gain: 0.5 },
+      { type: 'sine', freqs: [note(15)], start: 0.27, dur: 0.45, gain: 0.55, wobble: 8, wobbleRate: 6 }
+    ],
+    sent: [{ type: 'sine', freqs: [380, 1100], start: 0, dur: 0.08, gain: 0.6 }]
+  };
+  document.querySelectorAll('[data-sound]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var c = audio();
+      var r = recipes[btn.getAttribute('data-sound')];
+      if (!c || !master || !r) return;
+      try {
+        if (c.state === 'suspended') c.resume();
+        var t0 = c.currentTime + 0.01;
+        r.forEach(function (t) { tone(c, master, t0, t); });
+      } catch (e) { /* a sound glitch must never break the page */ }
+    });
+  });
 })();
 </script>
-
 </body>
 </html>

@@ -58,6 +58,8 @@ func defaultHeadlessCodexRunTurn(l *Launcher, ctx context.Context, slug, notific
 		err = l.runHeadlessCodexTurn(ctx, slug, notification, channel...)
 	case kind == provider.KindOpencode:
 		err = l.runHeadlessOpencodeTurn(ctx, slug, notification, channel...)
+	case kind == provider.KindCLIAgent:
+		err = l.runHeadlessCLIAgentTurn(ctx, slug, notification, channel...)
 	case isOpenAICompatKind(kind):
 		err = l.runHeadlessOpenAICompatTurn(ctx, slug, notification, channel...)
 	default:

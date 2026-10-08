@@ -68,18 +68,18 @@ export function TypingIndicator({ channel }: { channel?: string } = {}) {
 
   // Up to three stacked avatars echo who is composing; the bubble itself
   // carries the live loader so the focus stays on the incoming message.
-  const avatarSlugs = active.slice(0, 3).map((m) => m.slug);
+  const avatarMembers = active.slice(0, 3);
 
   return (
     <div className="message typing-message" data-testid="typing-indicator">
       <div className="message-avatar typing-message-avatar">
-        {avatarSlugs.map((slug, i) => (
+        {avatarMembers.map((m, i) => (
           <span
-            key={slug}
+            key={m.slug}
             className="typing-avatar-stack-item"
-            style={{ zIndex: avatarSlugs.length - i }}
+            style={{ zIndex: avatarMembers.length - i }}
           >
-            <PixelAvatar slug={slug} size={24} />
+            <PixelAvatar slug={m.slug} size={24} avatar={m.avatar} />
           </span>
         ))}
       </div>

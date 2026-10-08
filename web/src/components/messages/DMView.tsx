@@ -3,6 +3,7 @@ import { NavArrowDown, NavArrowUp } from "iconoir-react";
 
 import { useMessages } from "../../hooks/useMessages";
 import { BotWorkbenchPane } from "../bots/BotWorkbenchPane";
+import { EmptyHero } from "../layout/EmptyHero";
 import { Composer } from "./Composer";
 import { InterviewBar } from "./InterviewBar";
 import { MessageBubble } from "./MessageBubble";
@@ -98,7 +99,10 @@ export function DMView({ agentSlug, channelSlug }: DMViewProps) {
                 </div>
               ) : (
                 <div className="dm-chat-preview dm-chat-preview-empty">
-                  No messages yet — start the conversation below.
+                  <EmptyHero slug={agentSlug} line="Say hi below." />
+                  <span className="dm-chat-preview-empty-text">
+                    No messages yet — start the conversation below.
+                  </span>
                 </div>
               )}
               <TypingIndicator />
