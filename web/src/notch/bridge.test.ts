@@ -7,7 +7,7 @@ import {
   readGeometry,
 } from "./bridge";
 import { BUSY_OFFICE } from "./fixtures";
-import { newAttentionIds } from "./NotchApp";
+import { moodTransitions, newAttentionIds } from "./NotchApp";
 
 type Host = {
   webkit?: unknown;
@@ -62,5 +62,15 @@ describe("notch bridge", () => {
     expect(newAttentionIds(new Set(["req-1", "req-2"]), BUSY_OFFICE)).toEqual(
       [],
     );
+  });
+
+  it("sounds once when an agent errors or finishes, not on every poll", () => {
+    const prev = new Map(BUSY_OFFICE.agents.map((a) => [a.slug, a.mood]));
+    expect(moodTransitions(null, BUSY_OFFICE.agents)).toEqual([]);
+    expect(moodTransitions(prev, BUSY_OFFICE.agents)).toEqual([]);
+    const next = BUSY_OFFICE.agents.map((a) =>
+      a.slug === "designer" ? { ...a, mood: "done" as const } : a,
+    );
+    expect(moodTransitions(prev, next)).toEqual(["done"]);
   });
 });

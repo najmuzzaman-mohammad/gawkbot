@@ -58,6 +58,25 @@ non-activating `NSPanel` at status-bar level on every Space, hosting a
   seconds on its own. That is the notification.
 - **No notch**: the same strip renders as a pill at the top centre of the
   screen.
+- **Sounds**: a different cartoon sound per moment (a question, an approval,
+  an error, a finish, a sent reply, a peek, bored chatter), synthesized live
+  with Web Audio (`web/src/notch/sounds.ts`), with a mute toggle in the panel.
+- **Antics**: now and then an agent peeks out from under the notch for no
+  reason. When several need you they pile onto the notch, and if you leave
+  them waiting they start talking to each other below it
+  (`web/src/notch/antics.ts`). The collapsed panel grows a transparent
+  "stage" below the strip for this; only the strip itself reacts to hover.
+- **Keyboard**: ⌃⌥Space opens the notch from anywhere (Carbon
+  `RegisterEventHotKey`, so no Accessibility permission is needed).
+  J/K move between questions, 1–9 answer, ↵ takes the recommended answer,
+  R replies, M messages the Chief of Staff, hold V to talk, Esc closes. The
+  panel becomes key while open but is non-activating, so the app you were in
+  stays active.
+- **Voice**: hold V (or the mic button) to talk. `SFSpeechRecognizer` turns
+  speech into text, on-device when the Mac supports it. The transcript lands
+  in the reply box and nothing is sent until you press ↵. This needs macOS
+  10.15+, the `audio-input` entitlement, and the microphone and speech
+  usage strings in `build/darwin/Info.plist`.
 
 Data is one poll of `GET /notch/state` (`internal/team/broker_notch.go`).
 The page↔native contract is in `web/src/notch/bridge.ts`. The panel refuses

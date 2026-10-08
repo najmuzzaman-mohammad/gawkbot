@@ -12,7 +12,12 @@ export function answerRequest(id: string, choiceId: string) {
   return post("/requests/answer", { id, choice_id: choiceId });
 }
 
-/** Sends the human's note to the Chief of Staff's DM, as the composer does. */
-export function messageChiefOfStaff(leadDM: string, content: string) {
-  return post("/messages", { from: "you", channel: leadDM, content });
+/** Answers a pending request in words (typed or spoken). */
+export function answerWithText(id: string, customText: string) {
+  return post("/requests/answer", { id, custom_text: customText });
+}
+
+/** Posts the human's message into a DM, exactly as the app's composer does. */
+export function sendMessage(channel: string, content: string) {
+  return post("/messages", { from: "you", channel, content });
 }

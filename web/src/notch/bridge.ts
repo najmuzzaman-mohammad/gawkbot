@@ -11,9 +11,16 @@ import type { NotchGeometry } from "./types";
 //   { type: "open", path }                     open the main window at path
 //   { type: "keyboard", active }               the message box wants focus
 //   { type: "collapse" }                       close the panel
+//   { type: "voice", action: "start"|"stop" }  push-to-talk (SFSpeechRecognizer)
+//   { type: "stage", height }                  room the collapsed notch needs
+//                                              below the strip (peeks, chat)
+//   { type: "sound", on }                      the sound toggle, so native
+//                                              can mirror it if it ever plays
 //
 // Native → page, via evaluateJavaScript:
 //   window.gawkNotch.setExpanded(boolean)
+//   window.gawkNotch.focusKeyboard()           the global hotkey opened it
+//   window.gawkNotch.voice({kind, text, message})  kind: partial|final|error|end
 //
 // Geometry arrives as query params: ?nw=<notch width>&nh=<notch height>&ew=<ear width>.
 // Outside the Mac app (a browser, Storybook, tests) every call is a no-op.
@@ -23,7 +30,10 @@ export type NativeMessage =
   | { type: "attention"; count: number; headline: string }
   | { type: "open"; path: string }
   | { type: "keyboard"; active: boolean }
-  | { type: "collapse" };
+  | { type: "collapse" }
+  | { type: "voice"; action: "start" | "stop" }
+  | { type: "sound"; on: boolean }
+  | { type: "stage"; height: number };
 
 interface WebkitHandlers {
   webkit?: {
@@ -31,7 +41,7 @@ interface WebkitHandlers {
       gawkNotch?: { postMessage: (msg: NativeMessage) => void };
     };
   };
-  gawkNotch?: { setExpanded: (expanded: boolean) => void };
+  gawkNotch?: NativeReceiver;
 }
 
 function host(): WebkitHandlers {
@@ -50,11 +60,18 @@ export function postNative(msg: NativeMessage): void {
   }
 }
 
+export interface NativeReceiver {
+  setExpanded: (expanded: boolean) => void;
+  focusKeyboard?: () => void;
+  voice?: (event: { kind: string; text?: string; message?: string }) => void;
+}
+
 /** Installs window.gawkNotch for the native side; returns an uninstaller. */
 export function installNativeReceiver(
   setExpanded: (expanded: boolean) => void,
+  extra: Omit<NativeReceiver, "setExpanded"> = {},
 ): () => void {
-  host().gawkNotch = { setExpanded: (v) => setExpanded(!!v) };
+  host().gawkNotch = { setExpanded: (v) => setExpanded(!!v), ...extra };
   return () => {
     delete host().gawkNotch;
   };
