@@ -631,6 +631,42 @@ function RuntimeSection({
     );
   }
 
+  if (binding.kind === "cli-agent") {
+    // Adopted from an agent CLI on this machine. Not editable here: the
+    // generic runtime picker has no cli-agent entry, so saving would silently
+    // reset the bot to the install default and orphan its agent.
+    const agentID = binding.cli_agent?.agent || "agent";
+    return (
+      <div className="bot-profile-section op-runtime">
+        <SectionTitle>runtime</SectionTitle>
+        <div className="op-runtime-grid">
+          <span className="op-runtime-label">runs on</span>
+          <span className="op-runtime-value">
+            <span className="op-runtime-managed">
+              <Lock width={11} height={11} />
+              {agentID} CLI on this machine
+            </span>
+          </span>
+          {!!binding.model && (
+            <>
+              <span className="op-runtime-label">model</span>
+              <span
+                className="op-runtime-value"
+                style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+              >
+                {binding.model}
+              </span>
+            </>
+          )}
+        </div>
+        <p className="op-runtime-note">
+          Adopted from Settings → Agents on this machine. It runs on that CLI's
+          own sign-in; the Chief of Staff delegates work to it.
+        </p>
+      </div>
+    );
+  }
+
   const dirty =
     draftKind !== ((binding.kind as LLMRuntimeKind | undefined) ?? "") ||
     draftModel.trim() !== (binding.model ?? "").trim();

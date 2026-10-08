@@ -428,6 +428,10 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 			"Add, remove, disable, or enable a bot in a specific office channel.",
 		), handleTeamChannelMember)
 		mcp.AddTool(server, officeWriteTool(
+			"team_local_agents",
+			"List the agent CLIs installed or running on the human's machine (Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, ...) and adopt them as office bots you manage. Adopting ALWAYS requires explicit human approval: it raises an approval request and blocks until the human decides.",
+		), handleTeamLocalAgents)
+		mcp.AddTool(server, officeWriteTool(
 			"team_member",
 			"Propose creating (or remove) a team-wide member. Reuse an existing teammate whenever one can cover the work. Creating a NEW member ALWAYS requires explicit human approval: this tool raises an approval request and blocks until the human decides, then returns an error if they decline so you assign the work to an existing specialist instead.",
 		), handleTeamMember)

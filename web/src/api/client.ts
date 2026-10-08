@@ -746,7 +746,7 @@ export interface ProviderBinding {
   // "inherit from global default". Use IsGatewayKind on a Kind to decide
   // whether to render the runtime picker (LLM kinds) or a "Managed by
   // <Gateway>" badge (gateway kinds) in the bot profile.
-  kind?: LLMProvider | "";
+  kind?: LLMProvider | "cli-agent" | "";
   // model is the runtime-specific model identifier. Free-form on the wire —
   // validated by each provider implementation, not at the schema layer.
   // Common shapes: "claude-3-5-sonnet-latest", "gpt-4o", "llama3.1:8b".
@@ -757,6 +757,12 @@ export interface ProviderBinding {
   openclaw?: {
     session_key?: string;
     agent_id?: string;
+  };
+  // cli_agent is populated only when kind === "cli-agent": a third-party
+  // agent CLI adopted from this machine (Settings → Agents on this machine).
+  // agent is an internal/agentdetect catalog id ("gemini", "aider", ...).
+  cli_agent?: {
+    agent?: string;
   };
 }
 

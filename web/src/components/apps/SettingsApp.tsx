@@ -32,6 +32,7 @@ import { ImageGenSection } from "./SettingsApp.imageGen";
 import { BoxAccountSection } from "./settings/BoxAccountSection";
 import { Field, KeyField, SaveButton } from "./settings/components";
 import { SECTION_GROUPS } from "./settings/constants";
+import { LocalAgentsSection } from "./settings/LocalAgentsSection";
 import { PrivacySection } from "./settings/PrivacySection";
 import { RuntimeProviderChecklist } from "./settings/RuntimeProviderChecklist";
 import { styles } from "./settings/styles";
@@ -1372,6 +1373,7 @@ export function SettingsApp() {
       </nav>
       <div style={styles.body} key={dataKey}>
         {section === "general" && <GeneralSection cfg={data} save={save} />}
+        {section === "agents" && <LocalAgentsSection />}
         {section === "local-llms" && (
           <LocalLLMsSection cfg={data} save={save} />
         )}

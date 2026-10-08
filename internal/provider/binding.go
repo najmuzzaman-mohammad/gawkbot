@@ -24,6 +24,11 @@ const (
 	KindMLXLM  = "mlx-lm"
 	KindOllama = "ollama"
 	KindExo    = "exo"
+	// KindCLIAgent runs a third-party agent CLI detected on this machine
+	// (Gemini CLI, Cursor CLI, Aider, Goose, Amp, ...) through its
+	// non-interactive mode. Which agent is named by
+	// ProviderBinding.CLIAgent.Agent, an internal/agentdetect catalog id.
+	KindCLIAgent = "cli-agent"
 )
 
 // ProviderBinding is the per-bot runtime selection persisted on an office
@@ -38,6 +43,13 @@ type ProviderBinding struct {
 	Model    string                   `json:"model,omitempty"`
 	Openclaw *OpenclawProviderBinding `json:"openclaw,omitempty"`
 	Slack    *SlackProviderBinding    `json:"slack,omitempty"`
+	CLIAgent *CLIAgentProviderBinding `json:"cli_agent,omitempty"`
+}
+
+// CLIAgentProviderBinding names the detected agent a KindCLIAgent bot runs
+// on. Agent is an internal/agentdetect catalog id ("gemini", "aider", ...).
+type CLIAgentProviderBinding struct {
+	Agent string `json:"agent,omitempty"`
 }
 
 // OpenclawProviderBinding holds OpenClaw-specific parameters. SessionKey is
@@ -74,11 +86,11 @@ func ValidateKind(s string) error {
 	switch s {
 	case "",
 		KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot,
-		KindSlack, KindMLXLM, KindOllama, KindExo:
+		KindSlack, KindMLXLM, KindOllama, KindExo, KindCLIAgent:
 		return nil
 	default:
-		return fmt.Errorf("unknown provider kind %q (valid: %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, or empty)",
-			s, KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot, KindSlack, KindMLXLM, KindOllama, KindExo)
+		return fmt.Errorf("unknown provider kind %q (valid: %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, or empty)",
+			s, KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot, KindSlack, KindMLXLM, KindOllama, KindExo, KindCLIAgent)
 	}
 }
 

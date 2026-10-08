@@ -170,6 +170,10 @@ func cloneOfficeMemberForRead(member officeMember) officeMember {
 		slack := *member.Provider.Slack
 		clone.Provider.Slack = &slack
 	}
+	if member.Provider.CLIAgent != nil {
+		cliAgent := *member.Provider.CLIAgent
+		clone.Provider.CLIAgent = &cliAgent
+	}
 	return clone
 }
 
