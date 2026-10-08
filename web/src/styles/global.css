@@ -172,6 +172,21 @@
   --input-bg-disabled: var(--bg-warm);
   --input-border: var(--border);
 
+  /* Workspace rail — the far-left switcher (WorkspaceRail.tsx). Dark chrome
+     with light ink by default: --neutral-950 is the darkest stop of each
+     theme's own ramp. A theme that wants a light rail (Glass Light) sets
+     these as a set; reassigning --neutral-950 instead would turn every other
+     surface that reaches for the darkest ramp stop light as well. */
+  --workspace-rail-bg: var(--neutral-950);
+  --workspace-rail-border: var(--overlay-white-soft);
+  --workspace-rail-ink: var(--neutral-100);
+  --workspace-rail-ink-muted: var(--neutral-300);
+  --workspace-rail-tint: var(--overlay-white-soft);
+  --workspace-rail-dash: var(--neutral-500);
+  --workspace-rail-hover: rgba(255, 255, 255, 0.06);
+  --workspace-rail-press: rgba(255, 255, 255, 0.1);
+  --workspace-rail-dot-ring: var(--neutral-900);
+
   /* ─── Phase 2 onboarding preview-state tokens ─── */
   /* Visual language: dashed border + lavender bg = "this thing is staged,
      not committed yet." Used by the sidebar preview overlay that shows

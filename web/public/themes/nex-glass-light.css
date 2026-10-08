@@ -100,6 +100,20 @@ html[data-theme="nex-glass-light"] {
   --nex-sidebar-text-active: #1d1d1f;
   --nex-presence: #34c759;
 
+  /* ── Workspace rail: the same frosted pane as the sidebar beside it, in
+     graphite ink. The default (global.css) is dark chrome off the neutral
+     ramp, which this theme leaves at the base's dark stops, so without
+     these the rail stayed a black bar beside a white app. ── */
+  --workspace-rail-bg: var(--nex-sidebar-glass);
+  --workspace-rail-border: var(--border);
+  --workspace-rail-ink: var(--text);
+  --workspace-rail-ink-muted: var(--text-secondary);
+  --workspace-rail-tint: var(--overlay);
+  --workspace-rail-dash: var(--border-strong);
+  --workspace-rail-hover: var(--nex-sidebar-hover);
+  --workspace-rail-press: var(--overlay-strong);
+  --workspace-rail-dot-ring: var(--nex-sidebar);
+
   /* ── Glass material ── */
   --glass-pane: rgba(255, 255, 255, 0.74);
   --glass-pane-border: rgba(0, 0, 0, 0.08);

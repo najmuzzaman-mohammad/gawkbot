@@ -3576,9 +3576,9 @@ html[data-theme="nex"]
 /* Workspace rail add-button hover */
 .workspace-rail-add {
   border-radius: 8px;
-  border: 1px dashed var(--neutral-500);
+  border: 1px dashed var(--workspace-rail-dash);
   background: transparent;
-  color: var(--neutral-300);
+  color: var(--workspace-rail-ink-muted);
   font-family: var(--font-sans);
   display: flex;
   align-items: center;
@@ -3591,13 +3591,13 @@ html[data-theme="nex"]
 }
 @media (hover: hover) and (pointer: fine) {
   .workspace-rail-add:hover {
-    border-color: var(--neutral-300);
-    color: var(--neutral-100);
-    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--workspace-rail-ink-muted);
+    color: var(--workspace-rail-ink);
+    background: var(--workspace-rail-hover);
   }
 }
 .workspace-rail-add:active {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--workspace-rail-press);
   transition-duration: 100ms;
 }
 
