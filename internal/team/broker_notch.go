@@ -41,6 +41,8 @@ type notchAgent struct {
 	RunsOn       string `json:"runs_on,omitempty"`
 	RunsOnDetail string `json:"runs_on_detail,omitempty"`
 	IsLead       bool   `json:"is_lead,omitempty"`
+	// Avatar is the bot's chosen look, when it has one.
+	Avatar *MemberAvatar `json:"avatar,omitempty"`
 }
 
 type notchOption struct {
@@ -149,6 +151,10 @@ func (b *Broker) notchStateLocked(now time.Time) notchState {
 			Name:   names[m.Slug],
 			Origin: memberOrigin(m, lead),
 			IsLead: m.Slug == lead,
+		}
+		if m.Avatar != nil {
+			avatar := *m.Avatar
+			agent.Avatar = &avatar
 		}
 		agent.RunsOn, agent.RunsOnDetail = memberRunsOn(m)
 		snap := b.activity[m.Slug]

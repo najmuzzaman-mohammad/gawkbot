@@ -699,6 +699,9 @@ type officeMember struct {
 	Origin string `json:"origin,omitempty"`
 	// AdoptedFrom is the agentdetect catalog id an adopted bot came from.
 	AdoptedFrom string `json:"adopted_from,omitempty"`
+	// Avatar is the look the human picked (broker_member_avatar.go); nil
+	// means "derive it from the slug".
+	Avatar *MemberAvatar `json:"avatar,omitempty"`
 	// Watching declares the file-glob, wiki-glob, tool-name, and task-tag
 	// categories this bot should be auto-assigned as a reviewer for when
 	// a task enters review. See broker_reviewer_routing.go (Lane D) for

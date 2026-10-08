@@ -68,6 +68,9 @@ type officeMemberMutationBody struct {
 	// (empty string) stay distinguishable.
 	Computer     *string `json:"computer,omitempty"`
 	CloudBackend *string `json:"cloud_backend,omitempty"`
+	// Avatar sets the bot's chosen look. On update, sending {} (both fields
+	// empty) clears it back to the derived look; omitting it leaves it alone.
+	Avatar *MemberAvatar `json:"avatar,omitempty"`
 }
 
 func validComputerDestination(v string) bool {
@@ -192,6 +195,10 @@ func cloneOfficeMemberForRead(member officeMember) officeMember {
 		cliAgent := *member.Provider.CLIAgent
 		clone.Provider.CLIAgent = &cliAgent
 	}
+	if member.Avatar != nil {
+		avatar := *member.Avatar
+		clone.Avatar = &avatar
+	}
 	return clone
 }
 
@@ -299,6 +306,11 @@ func (b *Broker) createOfficeMember(r *http.Request, slug string, body officeMem
 	if body.CloudBackend != nil {
 		member.CloudBackend = strings.TrimSpace(*body.CloudBackend)
 	}
+	avatar, avatarErr := normalizeMemberAvatar(body.Avatar)
+	if avatarErr != nil {
+		return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusBadRequest, avatarErr.Error())
+	}
+	member.Avatar = avatar
 	applyOfficeMemberDefaults(&member)
 
 	// For openclaw bots, reach the gateway BEFORE we persist: if the
@@ -550,6 +562,14 @@ func (b *Broker) updateOfficeMember(r *http.Request, slug string, body officeMem
 	}
 	if body.CloudBackend != nil {
 		member.CloudBackend = strings.TrimSpace(*body.CloudBackend)
+	}
+	if body.Avatar != nil {
+		avatar, avatarErr := normalizeMemberAvatar(body.Avatar)
+		if avatarErr != nil {
+			b.mu.Unlock()
+			return officeMemberMutationResult{}, newOfficeMemberMutationError(http.StatusBadRequest, avatarErr.Error())
+		}
+		member.Avatar = avatar
 	}
 	applyOfficeMemberDefaults(member)
 	write, err := b.prepareBrokerStateWriteLocked()
