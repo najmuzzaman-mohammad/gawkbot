@@ -10,7 +10,7 @@
   </a>
 </p>
 
-### open source grok bot. gawkbots use local VMs as computers (cloud option available) and build microapps to manage all your work.
+### open source grok bot. Every agent on your machine becomes a gawkbot your Chief of Staff manages, and they all ask you from the Mac notch or your iPhone.
 
 https://github.com/user-attachments/assets/84c4b8cf-fb5d-4e9b-b720-213648c2e20b
 
@@ -19,6 +19,11 @@ integrations in minutes. Describe the job in one sentence — or demo it once on
 a call — and your AI builds the bot that runs it: its own screen, its own
 schedule, its own tools, with a human approval gate on everything it sends.
 Runs local, on your machine, on your account.
+
+Already running Claude Code, Codex or Opencode? gawkbot finds them, adopts
+them, and hands them to your Chief of Staff. When any of them needs you, a
+little gawkbot pops out of your Mac's camera notch. Answer with one key,
+talk back with your voice, or reply from your iPhone.
 
 gawkbots automate your menial work via AI models and build you microapps to
 manage the outcome, so that you have a false sense of control.
@@ -40,7 +45,7 @@ an approval gate on every external action. The honest version, row by row:
 | Price | Bundled with SuperGrok and Cursor paid plans | Free. No account, no seats, no usage fees |
 | Source | Closed | Public, Sustainable Use License |
 | Runs on | xAI's cloud | Your machine, with your keys |
-| Models | Grok, chosen for you | Claude Code, Codex, Opencode, local models, Hermes, OpenClaw |
+| Models | Grok, chosen for you | Claude Code, Codex, Opencode, local models, Hermes, OpenClaw, plus any agent CLI it finds on your machine |
 | Bot computers | One per bot, in the cloud | Not yet. Per-bot directory and tool allowlist on your machine |
 | Approvals | Bots act on your accounts around the clock | Every send, commit, purchase, and delete waits for your click |
 
@@ -99,6 +104,60 @@ Every bot ships with all six. Not a chatbot in a trench coat.
 If your workflow names a system that is not connected yet ("audit our
 HubSpot"), gawkbot asks before building — build against live workspace data
 now, or hold while you connect. It never silently re-scopes your job.
+
+## Every agent you already run
+
+gawkbot looks for the agents already on your machine. It checks your `PATH`,
+the agents' config folders and the process list, and it never launches
+anything to look. It knows Claude Code, Codex, Opencode, Gemini CLI, Cursor
+CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Droid, Ollama, MLX-LM,
+Exo, OpenClaw and Hermes gateways, and the Cursor and Windsurf IDEs.
+
+Adopt one from **Settings → Agents on this machine**, or ask the Chief of
+Staff to do it (it asks for your approval first). An adopted agent becomes a
+gawkbot on the team. It runs the agent's own CLI on your own sign-in, and
+gawkbot's keys are kept out of its environment.
+
+Every bot is tagged with who made it (**yours**, **hired by CoS**,
+**adopted**, **imported**) and where it runs (**this machine** or
+**elsewhere**), so you can always tell your bots apart from the ones
+reporting in from somewhere else.
+
+## The notch
+
+On a Mac, the Chief of Staff lives in the camera notch. You get no desktop
+widget and no dock badge.
+
+- **It moves to tell you what's going on.** Each bot shows a mood: working,
+  idle, needs you, error or done. Bots peek out now and then just for fun.
+  When several need you, they pile up on the notch, and if you keep them
+  waiting they start chatting with each other.
+- **It sounds like what happened.** Every kind of event has its own short
+  cartoon sound (a question, an approval, an error, a finished job), and the
+  trackpad taps when you hover.
+- **You do it all from the keyboard.** <kbd>⌃⌥Space</kbd> opens it from
+  anywhere. Then:
+
+  | Key | Does |
+  |---|---|
+  | <kbd>J</kbd> / <kbd>K</kbd> | Move between questions |
+  | <kbd>1</kbd>–<kbd>9</kbd> | Pick an answer |
+  | <kbd>↵</kbd> | Take the recommended answer |
+  | <kbd>R</kbd> | Reply in your own words |
+  | <kbd>M</kbd> | Message the Chief of Staff |
+  | <kbd>V</kbd> (hold), <kbd>⌥V</kbd> while typing | Talk instead of typing |
+  | <kbd>O</kbd> | Open the full app; close its window to come back to the notch |
+  | <kbd>Esc</kbd> | Close |
+
+- **You can just talk.** Hold <kbd>V</kbd> and say it. Speech is turned into
+  text by macOS, and nothing is sent until you press send.
+
+## On your iPhone
+
+`apps/ios` has the same inbox for your phone: every bot's question in one
+list, hold-to-talk replies, the same sounds and haptics, and hardware-keyboard
+shortcuts. It reaches bots running in the cloud as well as the ones on your
+Mac. Build steps are in [apps/ios/README.md](apps/ios/README.md).
 
 ## Setup prompt (for AI bots)
 
@@ -254,7 +313,12 @@ Every claim in this README, grounded to the code that makes it true.
 | Per-bot typed tables (Data tab) | ✅ shipped | `web/src/operator/surfaces/AppDataTab.tsx` |
 | Mix runtimes: Claude Code, Codex, Opencode, local models, Hermes, OpenClaw | ✅ shipped | `internal/provider/`, first-run pre-pick screen |
 | Multi-workspace, share, and public-tunnel invites | ✅ shipped | `cmd/wuphf/workspace.go`, `cmd/wuphf/tunnel.go`, `internal/workspaces/` |
-| Pixel-art bot portraits (every bot has a face) | ✅ shipped | `web/src/components/ui/PixelAvatar.tsx` |
+| Smooth bot avatars, picked per bot (every bot has a face) | ✅ shipped | `web/src/components/ui/BlobAvatar.tsx`, `web/src/components/bots/AvatarPicker.tsx` |
+| Finds the agent CLIs on your machine and adopts them as bots | ✅ shipped | `internal/agentdetect/`, `internal/team/broker_local_agents.go`, `web/src/components/apps/settings/LocalAgentsSection.tsx` |
+| Chief of Staff adopts agents behind an approval card | ✅ shipped | `internal/teammcp/server_local_agents.go` |
+| Every bot tagged with who made it and where it runs | ✅ shipped | `internal/team/broker_member_origin.go` |
+| The notch: moods, peeks, sounds, keyboard, voice | ✅ shipped | `web/src/notch/`, `desktop/oswails/notch_darwin.m` |
+| iPhone inbox with voice replies | 🟡 partial: written, not yet built in CI | `apps/ios/` |
 | Routine runner packaged into the npx/desktop installs | 🔜 planned | supervisor adopts it the moment it ships |
 
 Legend: ✅ shipped · 🟡 partial · 🔜 planned. If a claim and a status disagree, the code wins — file an issue.
