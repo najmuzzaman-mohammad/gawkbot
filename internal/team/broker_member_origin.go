@@ -76,7 +76,9 @@ func memberOrigin(m officeMember, lead string) string {
 }
 
 // memberRunsOn reports where a member's turns execute and a short human
-// description of it ("Gemini CLI on this machine", "OpenClaw gateway").
+// description of it ("Gemini CLI on this machine", "Codex CLI on a cloud
+// computer", "OpenClaw gateway"). The notch and the phone split the detail
+// on " on " to show the tool as its own tag, so keep that shape.
 func memberRunsOn(m officeMember) (where, detail string) {
 	switch m.Provider.Kind {
 	case provider.KindOpenclaw, provider.KindOpenclawHTTP:
@@ -94,17 +96,30 @@ func memberRunsOn(m officeMember) (where, detail string) {
 		}
 		return RunsOnThisMachine, name + " on this machine"
 	}
+	tool := toolNameForKind(m.Provider.Kind)
 	if strings.TrimSpace(m.Computer) == computerCloud {
-		return RunsOnElsewhere, "cloud computer"
+		if tool == "" {
+			return RunsOnElsewhere, "cloud computer"
+		}
+		return RunsOnElsewhere, tool + " on a cloud computer"
 	}
-	kind := m.Provider.Kind
-	if kind == "" {
+	if tool == "" {
 		return RunsOnThisMachine, "this machine"
 	}
-	if spec, ok := agentdetect.Lookup(adoptionIDForKind(kind)); ok {
-		return RunsOnThisMachine, spec.Name + " on this machine"
+	return RunsOnThisMachine, tool + " on this machine"
+}
+
+// toolNameForKind is the catalog name of the agent CLI behind a native
+// provider kind ("Codex CLI"), the kind itself when the catalog does not
+// know it, and "" for the default binding.
+func toolNameForKind(kind string) string {
+	if kind == "" {
+		return ""
 	}
-	return RunsOnThisMachine, kind + " on this machine"
+	if spec, ok := agentdetect.Lookup(adoptionIDForKind(kind)); ok {
+		return spec.Name
+	}
+	return kind
 }
 
 // adoptionIDForKind maps a native provider kind back to its catalog id.

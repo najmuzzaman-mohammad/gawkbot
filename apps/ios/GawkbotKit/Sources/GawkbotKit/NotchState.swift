@@ -126,16 +126,27 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
         }
     }
 
-    /// "elsewhere · Hermes gateway". Nil for agents on the office's machine.
+    /// "elsewhere · Hermes gateway", or "Claude Code · your machine" for an
+    /// agent on the office's machine whose tool the broker names
+    /// ("Claude Code on this machine"). Nil for a plain local agent.
     public var whereTag: AgentTag? {
-        guard runsElsewhere else { return nil }
         let detail = (runsOnDetail ?? "").trimmingCharacters(in: .whitespaces)
-        return AgentTag(text: detail.isEmpty ? "elsewhere" : "elsewhere · \(detail)", style: .elsewhere)
+        if runsElsewhere {
+            return AgentTag(text: detail.isEmpty ? "elsewhere" : "elsewhere · \(detail)", style: .elsewhere)
+        }
+        let suffix = " on this machine"
+        guard detail.hasSuffix(suffix) else { return nil }
+        let tool = String(detail.dropLast(suffix.count)).trimmingCharacters(in: .whitespaces)
+        guard !tool.isEmpty else { return nil }
+        return AgentTag(text: "\(tool) · your machine", style: .neutral)
     }
 
     /// The one chip a question card shows: where it runs when that is not
     /// here (the surprising fact), otherwise who made it.
-    public var primaryTag: AgentTag? { whereTag ?? originTag }
+    public var primaryTag: AgentTag? {
+        if runsElsewhere, let whereTag { return whereTag }
+        return originTag ?? whereTag
+    }
 
     /// Every chip, for the roster.
     public var tags: [AgentTag] { [originTag, whereTag].compactMap { $0 } }

@@ -104,6 +104,15 @@ final class InboxOrderingTests: XCTestCase {
         XCTAssertEqual(gateway.tags.map(\.text), ["imported", "elsewhere · Hermes gateway"])
         XCTAssertEqual(agent("user", runsOn: "elsewhere").whereTag?.text, "elsewhere")
         XCTAssertNil(agent("user").whereTag)
+        XCTAssertNil(agent("user", detail: "this machine").whereTag)
+
+        // A local agent shows the tool that runs it, after who made it; the
+        // question card keeps one chip, who made it.
+        let local = agent("adopted", detail: "Gemini CLI on this machine")
+        XCTAssertEqual(local.whereTag, AgentTag(text: "Gemini CLI · your machine", style: .neutral))
+        XCTAssertEqual(local.tags.map(\.text), ["adopted", "Gemini CLI · your machine"])
+        XCTAssertEqual(local.primaryTag?.text, "adopted")
+        XCTAssertEqual(agent(nil, detail: "Codex CLI on this machine").primaryTag?.text, "Codex CLI · your machine")
     }
 
     func testSummaryMatchesTheBrokerHeadline() {
