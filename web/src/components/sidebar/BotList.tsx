@@ -112,6 +112,7 @@ function SidebarBotRow({
             size={24}
             className="pixel-avatar-sidebar"
             working={working}
+            avatar={agent.avatar}
           />
           {/* The harness badge is dropped in blob mode. On the old character
               sprite it sat over the body; a blob has no body to spare, so it

@@ -14,6 +14,7 @@ import RootRoute from "./routes/RootRoute";
 import "./styles/fonts.css";
 import "./styles/shadcn.css";
 import "./styles/global.css";
+import "./styles/avatar-motion.css";
 import "./styles/layout.css";
 import "./styles/messages.css";
 import "./styles/bots.css";

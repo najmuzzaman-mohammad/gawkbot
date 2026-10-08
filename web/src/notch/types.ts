@@ -1,6 +1,8 @@
 // Wire types for GET /notch/state. Mirrors internal/team/broker_notch.go;
 // keep the Mood strings in lockstep with the Mood* constants there.
 
+import type { MemberAvatar } from "../api/memberTypes";
+
 export type Mood = "working" | "idle" | "needs_you" | "error" | "done";
 
 export interface NotchAgent {
@@ -12,6 +14,8 @@ export interface NotchAgent {
   runs_on?: "this_machine" | "elsewhere";
   runs_on_detail?: string;
   is_lead?: boolean;
+  /** The bot's chosen look; absent means the slug-derived one. */
+  avatar?: MemberAvatar;
 }
 
 export interface NotchOption {

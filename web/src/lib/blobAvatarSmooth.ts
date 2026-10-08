@@ -1,7 +1,8 @@
 // blobAvatarSmooth.ts — the blob mark as a smooth vector.
 //
 // Same character system as blobAvatar.ts, drawn without the pixel grid:
-// the SAME per-slug silhouette and colour (blobShapeIndex / blobColor), the
+// the SAME silhouette and colour (resolveAvatar: the bot's chosen look, else
+// the per-slug blobShapeIndex / blobColor), the
 // SAME eye placement (eyeSpec), just traced as a curve. A bot keeps its
 // identity across the switch; only the finish changes from pixelled to clean.
 //
@@ -13,10 +14,10 @@
 // (whatever is behind shows through) exactly as in the pixel version.
 
 import {
+  type AvatarChoice,
   BLOB_GRID,
-  blobColor,
-  blobShapeIndex,
   eyeSpec,
+  resolveAvatar,
   SILHOUETTES,
 } from "./blobAvatar";
 
@@ -106,14 +107,24 @@ function roundedRect(x: number, y: number, w: number, h: number): string {
 
 const cache = new Map<string, SmoothBlob>();
 
-/** The smooth mark for `slug`. openness: 1 wide open, 0 narrowed. */
-export function smoothBlob(slug: string, openness = 1): SmoothBlob {
+/**
+ * The smooth mark for `slug`. openness: 1 wide open, 0 narrowed. `avatar` is
+ * the bot's chosen look; its unset fields fall back to the slug's own.
+ */
+export function smoothBlob(
+  slug: string,
+  openness = 1,
+  avatar?: AvatarChoice | null,
+): SmoothBlob {
   const o = Math.round(Math.min(1, Math.max(0, openness)) * 20) / 20;
-  const key = `${slug}\u0000${o}`;
+  const { shapeIndex, color } = resolveAvatar(slug, avatar);
+  // Keyed on the resolved look, not the slug: the mark is a pure function of
+  // shape, colour and openness, so bots sharing a look share an entry.
+  const key = `${shapeIndex}|${color}|${o}`;
   const hit = cache.get(key);
   if (hit) return hit;
 
-  const body = closedSpline(simplify(silhouetteOutline(blobShapeIndex(slug))));
+  const body = closedSpline(simplify(silhouetteOutline(shapeIndex)));
   const spec = eyeSpec(o);
   // Smooth eyes read a touch narrower than the pixel cells they replace.
   const eyes = [spec.leftX, spec.rightX].map((x) => ({
@@ -125,7 +136,7 @@ export function smoothBlob(slug: string, openness = 1): SmoothBlob {
   const blob: SmoothBlob = {
     d: body + eyes.map((e) => roundedRect(e.x, e.y, e.w, e.h)).join(""),
     body,
-    color: blobColor(slug),
+    color,
     eyes,
   };
   cache.set(key, blob);

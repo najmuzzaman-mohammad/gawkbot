@@ -1,3 +1,4 @@
+import type { MemberAvatar } from "../api/memberTypes";
 import { BlobAvatar } from "../components/ui/BlobAvatar";
 import type { Mood } from "./types";
 
@@ -34,6 +35,8 @@ interface NotchBotProps {
   phase?: number;
   /** Hide the mood prop (badge, z, sparkles) at very small sizes. */
   bare?: boolean;
+  /** The bot's chosen look (NotchAgent.avatar). */
+  avatar?: MemberAvatar;
 }
 
 function Prop({ mood }: { mood: Mood }) {
@@ -65,6 +68,7 @@ export function NotchBot({
   label,
   phase = 0,
   bare = false,
+  avatar,
 }: NotchBotProps) {
   const name = label ?? `${slug}: ${MOOD_WORDS[mood]}`;
   const openness = mood === "working" ? 0.6 : mood === "idle" ? 0.15 : 1;
@@ -86,7 +90,13 @@ export function NotchBot({
       data-slug={slug}
     >
       <span className="nb-body" style={{ animationDelay: `${-phase * 0.37}s` }}>
-        <BlobAvatar slug={slug} size={size} openness={openness} glossy={true} />
+        <BlobAvatar
+          slug={slug}
+          size={size}
+          openness={openness}
+          glossy={true}
+          avatar={avatar}
+        />
       </span>
       {bare ? null : <Prop mood={mood} />}
     </span>

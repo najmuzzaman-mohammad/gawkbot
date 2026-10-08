@@ -9,6 +9,7 @@ import {
   getLocalProvidersStatus,
   type LLMRuntimeKind,
   type LocalProviderStatus,
+  type MemberAvatar,
   post,
 } from "../../api/client";
 import { useWindowEscape } from "../../hooks/useWindowEscape";
@@ -19,6 +20,7 @@ import {
   isCatalogModel,
   modelOptionsForKind,
 } from "../../lib/modelCatalog";
+import { AvatarPicker } from "./AvatarPicker";
 
 // "inherit" is the wizard-only sentinel that maps to an absent ProviderBinding
 // in the POST body (the broker then falls back to the install-wide default at
@@ -175,6 +177,8 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
   const [slugEdited, setSlugEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // undefined = automatic (derived from the slug); sent only when chosen.
+  const [avatar, setAvatar] = useState<MemberAvatar | undefined>(undefined);
   const queryClient = useQueryClient();
 
   // Pull the registered runtime list off the wire so the picker stays in sync
@@ -294,6 +298,8 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
         // The soul/personality seeds the bot's SOUL.md (its persona, voice,
         // and boundaries) — the file the broker loads into the system prompt.
         personality: form.soul.trim() || undefined,
+        // Omitted when automatic: the broker then derives it from the slug.
+        avatar,
       };
 
       await post("/office-members", body);
@@ -302,6 +308,7 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
 
       setForm(INITIAL_FORM);
       setSlugEdited(false);
+      setAvatar(undefined);
       onCreated?.();
       onClose();
     } catch (err: unknown) {
@@ -317,6 +324,7 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
     if (generating || submitting) return;
     setForm(INITIAL_FORM);
     setSlugEdited(false);
+    setAvatar(undefined);
     setError(null);
     setMode("describe");
     setPrompt("");
@@ -457,6 +465,18 @@ export function BotWizard({ open, onClose, onCreated }: BotWizardProps) {
                   setSlugEdited(true);
                   updateField("slug", e.target.value);
                 }}
+              />
+            </div>
+
+            {/* Avatar: previews with the slug, so "automatic" shows the real
+                derived look as the name is typed. */}
+            <div className="bot-wizard-field">
+              <span className="label">Avatar</span>
+              <AvatarPicker
+                slug={form.slug}
+                value={avatar}
+                onChange={setAvatar}
+                disabled={submitting}
               />
             </div>
 

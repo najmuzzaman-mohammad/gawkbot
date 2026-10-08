@@ -103,6 +103,7 @@ function Question({
     >
       <NotchBot
         slug={item.from || "someone"}
+        avatar={agent?.avatar}
         mood="needs_you"
         size={28}
         bare={true}
@@ -287,6 +288,7 @@ export function NotchPanel(props: PanelProps) {
       <div className="nhead">
         <NotchBot
           slug={state.lead ?? "cos"}
+          avatar={bySlug.get(state.lead ?? "cos")?.avatar}
           mood={state.mood}
           size={34}
           label=""
@@ -351,6 +353,7 @@ export function NotchPanel(props: PanelProps) {
                 >
                   <NotchBot
                     slug={a.slug}
+                    avatar={a.avatar}
                     mood={a.mood}
                     size={24}
                     phase={i}

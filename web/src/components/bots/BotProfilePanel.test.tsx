@@ -10,6 +10,7 @@ const getChannelsMock = vi.hoisted(() => vi.fn());
 const getOfficeTasksMock = vi.hoisted(() => vi.fn());
 const listBotLogTasksMock = vi.hoisted(() => vi.fn());
 const navigateMock = vi.hoisted(() => vi.fn());
+const postMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../api/client", async () => {
   const actual =
@@ -20,6 +21,7 @@ vi.mock("../../api/client", async () => {
     ...actual,
     getSkillsList: getSkillsListMock,
     getChannels: getChannelsMock,
+    post: postMock,
   };
 });
 
@@ -340,5 +342,64 @@ describe("<AgentProfilePanel>", () => {
       to: "/apps/$appId",
       params: { appId: "activity" },
     });
+  });
+});
+
+describe("<BotProfilePanel> avatar", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSkillsListMock.mockResolvedValue({ skills: [] });
+    getChannelsMock.mockResolvedValue({ channels: [] });
+    getOfficeTasksMock.mockResolvedValue({ tasks: [] });
+    listBotLogTasksMock.mockResolvedValue({ tasks: [] });
+  });
+
+  it("saves a picked avatar as an update, and invalidates the roster", async () => {
+    const user = userEvent.setup();
+    postMock.mockResolvedValue({});
+    const qc = makeQC();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    render(wrap(<BotProfilePanel agent={baseBot} onClose={vi.fn()} />, qc));
+
+    const save = screen.getByRole("button", { name: "Save avatar" });
+    expect(save).toBeDisabled();
+    await user.click(screen.getByRole("radio", { name: "Pill" }));
+    await user.click(screen.getByRole("radio", { name: "Teal" }));
+    await user.click(save);
+
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith("/office-members", {
+        action: "update",
+        slug: "planner",
+        avatar: { shape: "pill", color: "#3f9c8f" },
+      }),
+    );
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["office-members"] }),
+    );
+  });
+
+  it("resets a chosen avatar by sending an empty one", async () => {
+    const user = userEvent.setup();
+    postMock.mockResolvedValue({});
+    render(
+      wrap(
+        <BotProfilePanel
+          agent={{ ...baseBot, avatar: { shape: "loaf", color: "#a35a45" } }}
+          onClose={vi.fn()}
+        />,
+      ),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Reset to automatic" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Save avatar" }));
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith("/office-members", {
+        action: "update",
+        slug: "planner",
+        avatar: {},
+      }),
+    );
   });
 });

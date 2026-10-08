@@ -1,0 +1,180 @@
+/* ─── Avatar picker (components/bots/AvatarPicker.tsx) ───
+   Tokens only. The one literal colour on screen is the swatch fill, which
+   is the bot's DATA (a palette entry or a picked #rrggbb), passed in as
+   --avatar-swatch, not a design choice. Motion on the previews (press
+   squash, hover wobble) comes from avatar-motion.css. */
+
+.avatar-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.avatar-picker-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+.avatar-picker-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+.avatar-picker-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.avatar-picker-mode {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.avatar-picker-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+/* Each group is a native fieldset of radios; drop the browser chrome. */
+.avatar-picker-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.avatar-picker-label {
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Shapes: a 4×2 grid of live previews. */
+.avatar-picker-shapes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1-5);
+  max-width: 260px;
+}
+.avatar-picker-shape {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: var(--space-1-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+}
+.avatar-picker-shape:hover {
+  background: var(--overlay-soft);
+  border-color: var(--border-strong);
+}
+.avatar-picker-shape[data-checked] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* The radio itself is visually hidden; its tile shows the keyboard focus. */
+.avatar-picker-shape:has(:focus-visible),
+.avatar-picker-swatch:has(:focus-visible),
+.avatar-picker-custom:has(:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+.avatar-picker-group:disabled {
+  opacity: 0.5;
+}
+.avatar-picker-group:disabled
+  :is(.avatar-picker-shape, .avatar-picker-swatch, .avatar-picker-custom) {
+  cursor: not-allowed;
+}
+
+/* Colours: palette swatches, then the custom one. */
+.avatar-picker-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+.avatar-picker-swatch,
+.avatar-picker-custom {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--avatar-swatch);
+  cursor: pointer;
+}
+.avatar-picker-swatch[data-checked],
+.avatar-picker-custom[data-checked] {
+  box-shadow:
+    0 0 0 2px var(--bg-card),
+    0 0 0 4px var(--accent);
+}
+.avatar-picker-custom {
+  display: inline-flex;
+  width: auto;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) 0 var(--space-1);
+  background: var(--bg-card);
+}
+/* The swatch dot inside "Custom" shows the picked colour. */
+.avatar-picker-custom::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--avatar-swatch);
+  border: 1px solid var(--border);
+}
+.avatar-picker-custom-text {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+/* The native input covers the whole chip so a click anywhere opens it,
+   but stays invisible: the chip is the visual. */
+.avatar-picker-custom-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .avatar-picker-shape,
+  .avatar-picker-swatch,
+  .avatar-picker-custom {
+    transition:
+      background-color var(--avatar-press-duration) ease-out,
+      border-color var(--avatar-press-duration) ease-out,
+      box-shadow var(--avatar-press-duration) ease-out,
+      transform var(--avatar-release-duration) var(--avatar-spring);
+  }
+  .avatar-picker-group:not(:disabled) .avatar-picker-swatch:active,
+  .avatar-picker-group:not(:disabled) .avatar-picker-custom:active {
+    transform: scale(0.86);
+    transition-duration: var(--avatar-press-duration);
+  }
+}

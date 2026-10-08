@@ -735,22 +735,51 @@ kbd {
     transform: scaleY(1.25);
   }
 }
+/* Mood loops. Every body scales about the middle of its baseline
+   (.nb-body transform-origin), so a squash sits the blob onto the floor
+   and a stretch lifts it off it. Rising segments ease out and falling ones
+   ease in, so the motion reads as weight rather than as a metronome; each
+   landing overshoots and settles, which is what makes it read as soft. */
+
+/* Working: a busy little bounce in place, squishing on every landing. */
 @keyframes nb-bob {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1.05, 0.95);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
   }
-  50% {
-    transform: translateY(-1.5px);
+  32% {
+    transform: translateY(-7%) scale(0.96, 1.05);
+    animation-timing-function: ease-in-out;
+  }
+  52% {
+    transform: translateY(-8%) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.8, 0.4);
+  }
+  78% {
+    transform: translateY(0) scale(1.07, 0.93);
+    animation-timing-function: ease-out;
+  }
+  90% {
+    transform: translateY(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
   }
 }
+/* Idle: slow, heavy breathing. Sinks and spreads on the out-breath, then
+   rises a hair past round on the in-breath before settling. */
 @keyframes nb-breathe {
   0%,
   100% {
     transform: scale(1, 1);
   }
-  50% {
-    transform: scale(1.035, 0.965);
+  42% {
+    transform: scale(1.065, 0.945);
+  }
+  58% {
+    transform: scale(1.05, 0.958);
+  }
+  80% {
+    transform: scale(0.988, 1.014);
   }
 }
 @keyframes nb-z {
@@ -766,22 +795,40 @@ kbd {
     transform: translate(5px, -8px) scale(1.1);
   }
 }
+/* Needs you: crouch, spring up tall, land flat, jiggle to rest. */
 @keyframes nb-hop {
   0%,
   100% {
     transform: translateY(0) scale(1, 1);
+    animation-timing-function: ease-out;
   }
-  12% {
-    transform: translateY(0) scale(1.1, 0.88);
+  10% {
+    transform: translateY(0) scale(1.18, 0.8);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  26% {
+    transform: translateY(-20%) scale(0.86, 1.16);
+    animation-timing-function: ease-out;
   }
   40% {
-    transform: translateY(-22%) scale(0.94, 1.07);
+    transform: translateY(-30%) scale(0.97, 1.04);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
   }
-  62% {
-    transform: translateY(0) scale(1.06, 0.94);
+  54% {
+    transform: translateY(0) scale(1.2, 0.8);
+    animation-timing-function: ease-out;
+  }
+  64% {
+    transform: translateY(-3%) scale(0.93, 1.08);
+    animation-timing-function: ease-in-out;
   }
   74% {
-    transform: translateY(0) scale(1, 1);
+    transform: translateY(0) scale(1.04, 0.96);
+    animation-timing-function: ease-in-out;
+  }
+  84% {
+    transform: translateY(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
   }
 }
 @keyframes nb-pulse {
@@ -793,20 +840,31 @@ kbd {
     transform: scale(1.25);
   }
 }
+/* Error: a jelly shudder. Each swing leans, shears and squishes, and
+   each is smaller than the last, then a pause before the next fit. */
 @keyframes nb-shake {
   0%,
-  60%,
+  64%,
   100% {
-    transform: rotate(0);
+    transform: translateX(0) rotate(0) skewX(0) scale(1, 1);
   }
-  10%,
-  30%,
-  50% {
-    transform: rotate(-7deg) translateX(-1px);
+  6% {
+    transform: translateX(-1px) rotate(-9deg) skewX(5deg) scale(1.06, 0.94);
   }
-  20%,
-  40% {
-    transform: rotate(7deg) translateX(1px);
+  16% {
+    transform: translateX(1px) rotate(8deg) skewX(-4deg) scale(0.96, 1.04);
+  }
+  26% {
+    transform: translateX(-1px) rotate(-6deg) skewX(3deg) scale(1.04, 0.96);
+  }
+  36% {
+    transform: translateX(0.5px) rotate(4deg) skewX(-2deg) scale(0.98, 1.02);
+  }
+  46% {
+    transform: translateX(0) rotate(-2deg) skewX(1deg) scale(1.01, 0.99);
+  }
+  56% {
+    transform: translateX(0) rotate(1deg) skewX(0) scale(1, 1);
   }
 }
 @keyframes nb-drip {
@@ -822,19 +880,41 @@ kbd {
     transform: translateY(8px);
   }
 }
+/* Done: a deep crouch, a big twisting leap, a splat of a landing, and a
+   couple of happy jiggles. */
 @keyframes nb-celebrate {
   0%,
   100% {
     transform: translateY(0) rotate(0) scale(1, 1);
+    animation-timing-function: ease-out;
   }
-  15% {
-    transform: translateY(0) scale(1.12, 0.86);
+  12% {
+    transform: translateY(0) rotate(0) scale(1.22, 0.78);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
   }
-  45% {
-    transform: translateY(-28%) rotate(-8deg) scale(0.92, 1.1);
+  28% {
+    transform: translateY(-26%) rotate(-6deg) scale(0.84, 1.18);
+    animation-timing-function: ease-out;
   }
-  70% {
-    transform: translateY(0) rotate(4deg) scale(1.05, 0.95);
+  42% {
+    transform: translateY(-36%) rotate(-12deg) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  58% {
+    transform: translateY(0) rotate(5deg) scale(1.22, 0.8);
+    animation-timing-function: ease-out;
+  }
+  68% {
+    transform: translateY(-5%) rotate(-2deg) scale(0.92, 1.09);
+    animation-timing-function: ease-in-out;
+  }
+  78% {
+    transform: translateY(0) rotate(1deg) scale(1.05, 0.95);
+    animation-timing-function: ease-in-out;
+  }
+  88% {
+    transform: translateY(0) rotate(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
   }
 }
 @keyframes nb-sparkle {

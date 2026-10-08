@@ -5,6 +5,7 @@ import { Lock, Xmark } from "iconoir-react";
 import type {
   LLMRuntimeKind,
   LocalProviderStatus,
+  MemberAvatar,
   OfficeMember,
   ProviderBinding,
   Skill,
@@ -25,6 +26,7 @@ import {
   updateTaskStatus,
 } from "../../api/tasks";
 import { useDefaultHarness } from "../../hooks/useConfig";
+import { hasAvatarChoice, normalizeAvatarColor } from "../../lib/blobAvatar";
 import type { HarnessKind } from "../../lib/harness";
 import { resolveHarness } from "../../lib/harness";
 import { humanizeActivity } from "../../lib/humanizeActivity";
@@ -39,6 +41,7 @@ import { useAppStore } from "../../stores/app";
 import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
+import { AvatarPicker } from "./AvatarPicker";
 import { BotInstructionsSection } from "./BotInstructionsSection";
 import { MemberProvenance } from "./MemberProvenance";
 
@@ -755,6 +758,95 @@ function RuntimeSection({
   );
 }
 
+/** Comparable form of an avatar: "" for each unset field. */
+function avatarKey(avatar: MemberAvatar | undefined): string {
+  if (!hasAvatarChoice(avatar)) return "|";
+  return `${avatar?.shape ?? ""}|${normalizeAvatarColor(avatar?.color) ?? ""}`;
+}
+
+// The bot's look. Edited as a draft and saved explicitly, because the custom
+// colour input fires on every drag step and each step must not be a POST.
+// Saving "automatic" sends `avatar: {}`, which the broker reads as "clear it
+// back to the derived look"; omitting the field would leave it unchanged.
+function AvatarSection({ agent }: { agent: OfficeMember }) {
+  const queryClient = useQueryClient();
+  const saved = agent.avatar;
+  const savedShape = saved?.shape;
+  const savedColor = saved?.color;
+  const [draft, setDraft] = useState<MemberAvatar | undefined>(saved);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Re-sync when the saved look changes underneath (a refetch after save,
+  // another tab, or a different bot in the same mounted panel).
+  useEffect(() => {
+    setDraft(
+      savedShape || savedColor
+        ? { shape: savedShape, color: savedColor }
+        : undefined,
+    );
+    setSaveError(null);
+  }, [savedShape, savedColor]);
+
+  const mutation = useMutation({
+    mutationFn: async (next: MemberAvatar | undefined) => {
+      await post("/office-members", {
+        action: "update",
+        slug: agent.slug,
+        avatar: next ?? {},
+      });
+    },
+    onSuccess: () => {
+      setSaveError(null);
+      void queryClient.invalidateQueries({ queryKey: ["office-members"] });
+    },
+    onError: (err: unknown) => {
+      setSaveError(err instanceof Error ? err.message : "Failed to save");
+    },
+  });
+
+  const dirty = avatarKey(draft) !== avatarKey(saved);
+
+  return (
+    <div className="bot-profile-section">
+      <SectionTitle>avatar</SectionTitle>
+      <AvatarPicker
+        slug={agent.slug}
+        value={draft}
+        onChange={(next) => {
+          setDraft(next);
+          setSaveError(null);
+        }}
+        disabled={mutation.isPending}
+      />
+      {saveError ? (
+        <div className="bot-wizard-error" style={{ marginTop: 8 }} role="alert">
+          {saveError}
+        </div>
+      ) : null}
+      <div className="op-runtime-actions">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={!dirty || mutation.isPending}
+          onClick={() => {
+            setDraft(saved);
+            setSaveError(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={!dirty || mutation.isPending}
+          onClick={() => mutation.mutate(draft)}
+        >
+          {mutation.isPending ? "Saving..." : "Save avatar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // EditableName replaces the static name display with an inline-edit field.
 // Click the name to edit; Enter or blur saves, Escape cancels. Trimmed
 // empty values are rejected (the name is required at the broker layer
@@ -953,6 +1045,7 @@ export function BotProfilePanel({
                 slug={agent.slug}
                 size={36}
                 className="pixel-avatar-panel"
+                avatar={agent.avatar}
               />
               <HarnessBadge
                 kind={resolveHarness(agent.provider, defaultHarness)}
@@ -1003,6 +1096,9 @@ export function BotProfilePanel({
             <p className="bot-profile-role-text">{agent.role}</p>
           </div>
         ) : null}
+
+        {/* Avatar: shape + colour, or automatic */}
+        <AvatarSection agent={agent} />
 
         {/* Provenance: who made it, where it runs, who manages it */}
         {agent.origin || agent.runs_on ? (

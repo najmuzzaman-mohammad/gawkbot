@@ -1,6 +1,12 @@
 import { type CSSProperties, useEffect, useId, useRef } from "react";
 
+import { BLINK_MIN_SIZE, useAvatarBlink } from "../../lib/avatarBlink";
 import { AVATAR_MODE } from "../../lib/avatarMode";
+import {
+  type AvatarChoice,
+  drawBlobAvatarCanvas,
+  hasAvatarChoice,
+} from "../../lib/blobAvatar";
 import { BLOB_GRID, smoothBlob } from "../../lib/blobAvatarSmooth";
 import {
   drawPixelAvatar,
@@ -44,6 +50,12 @@ interface PixelAvatarProps {
    * rather than a dozen permanent repaints.
    */
   working?: boolean;
+  /**
+   * The bot's chosen look (OfficeMember.avatar). Unset fields fall back to
+   * the slug-derived shape and colour. In sprite mode a chosen look is drawn
+   * as the pixel blob, since the character portrait has no shape to pick.
+   */
+  avatar?: AvatarChoice | null;
 }
 
 /**
@@ -77,16 +89,24 @@ function composeClassName(...names: (string | undefined)[]): string {
  * scaleY on the two mask shapes (global.css, `.pixel-avatar--smooth`), which
  * runs on the compositor with no JavaScript loop at all, and is switched off
  * under prefers-reduced-motion. An idle avatar is a static SVG.
+ *
+ * Squash, wobble and blink come from styles/avatar-motion.css: the svg is
+ * the wobble target, the inner group the squash target, and the eye shapes
+ * the blink target. Large idle avatars join the page's single blink pool
+ * (lib/avatarBlink.ts); a working one is already moving its eyes.
  */
 function SmoothAvatar({
   slug,
   size,
   className,
   working = false,
+  avatar,
 }: PixelAvatarProps) {
   const maskId = `pixel-avatar-eyes-${useId().replace(/[^\w-]/g, "")}`;
-  const blob = smoothBlob(slug, 1);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const blob = smoothBlob(slug, 1, avatar);
   const { body } = blob;
+  useAvatarBlink(svgRef, !!body && !working && size >= BLINK_MIN_SIZE);
 
   const style = {
     // Inline, like the canvas renderer's backing-size style, so a wrapper
@@ -101,9 +121,11 @@ function SmoothAvatar({
 
   return (
     <svg
+      ref={svgRef}
       className={composeClassName(
         "pixel-avatar",
         "pixel-avatar--smooth",
+        "avatar-motion",
         className,
       )}
       width={size}
@@ -130,7 +152,7 @@ function SmoothAvatar({
             {blob.eyes.map((eye) => (
               <rect
                 key={eye.x}
-                className="pixel-avatar-eye"
+                className="pixel-avatar-eye avatar-motion-eye"
                 x={eye.x}
                 y={eye.y}
                 width={eye.w}
@@ -140,12 +162,16 @@ function SmoothAvatar({
               />
             ))}
           </mask>
-          <path d={body} fill={blob.color} mask={`url(#${maskId})`} />
+          <g className="avatar-motion-body">
+            <path d={body} fill={blob.color} mask={`url(#${maskId})`} />
+          </g>
         </>
       ) : (
         // Path layout not what splitBlobBody expects: draw the static mark
         // (eyes as evenodd holes) rather than a wrong shape. No gawk.
-        <path d={blob.d} fill={blob.color} fillRule="evenodd" />
+        <g className="avatar-motion-body">
+          <path d={blob.d} fill={blob.color} fillRule="evenodd" />
+        </g>
       )}
     </svg>
   );
@@ -154,6 +180,9 @@ function SmoothAvatar({
 /**
  * The pixel-character portrait on a <canvas>. Kept whole so reverting the
  * avatar system is one constant in lib/avatarMode.ts.
+ *
+ * A bot with a chosen look is drawn as the pixel BLOB in that shape and
+ * colour instead: someone picked a blob, and a portrait would ignore them.
  */
 function SpriteAvatar({
   slug,
@@ -161,21 +190,31 @@ function SpriteAvatar({
   className,
   eyes,
   working = false,
+  avatar,
 }: PixelAvatarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const shape = avatar?.shape;
+  const color = avatar?.color;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const wantsEyes = eyes ?? size >= EYES_MIN_SIZE;
+    const chosen = { shape, color };
+    const asBlob = hasAvatarChoice(chosen);
+    // The blob mark always has its eyes; they are what makes it a face.
+    const wantsEyes = asBlob || (eyes ?? size >= EYES_MIN_SIZE);
     const reduceMotion =
       typeof window !== "undefined" && typeof window.matchMedia === "function"
         ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
         : false;
 
     const paint = (openness: number) => {
-      drawPixelAvatar(canvas, slug, size, { eyes: wantsEyes, openness });
+      if (asBlob) {
+        drawBlobAvatarCanvas(canvas, slug, size, { avatar: chosen, openness });
+      } else {
+        drawPixelAvatar(canvas, slug, size, { eyes: wantsEyes, openness });
+      }
     };
 
     // Static path. Idle bots, small avatars, and reduced-motion all land
@@ -208,7 +247,7 @@ function SpriteAvatar({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [slug, size, eyes, working]);
+  }, [slug, size, eyes, working, shape, color]);
 
   return (
     <canvas

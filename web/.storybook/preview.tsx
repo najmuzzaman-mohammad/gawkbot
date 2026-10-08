@@ -6,6 +6,7 @@ import { DEFAULT_THEME, THEMES, type Theme } from "../src/lib/themes";
 import "../src/styles/fonts.css";
 import "../src/styles/shadcn.css";
 import "../src/styles/global.css";
+import "../src/styles/avatar-motion.css";
 import "../src/styles/layout.css";
 import "../src/styles/messages.css";
 import "../src/styles/bots.css";

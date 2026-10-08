@@ -1,3 +1,4 @@
+import type { AvatarChoice } from "../../lib/blobAvatar";
 import { PixelAvatar as CanvasPixelAvatar } from "../ui/PixelAvatar";
 
 /**
@@ -13,6 +14,8 @@ interface PixelAvatarProps {
   size?: number;
   className?: string;
   title?: string;
+  /** The bot's chosen look, when the caller has the member at hand. */
+  avatar?: AvatarChoice | null;
 }
 
 export default function PixelAvatar({
@@ -20,20 +23,26 @@ export default function PixelAvatar({
   size = 14,
   className = "wk-avatar",
   title,
+  avatar,
 }: PixelAvatarProps) {
   // The underlying component is aria-hidden; the wiki uses avatars purely
   // decorative next to bot slug labels, so no extra role/title is needed.
   // `title` is accepted for API compatibility with the legacy stub and set
   // via a wrapping span when provided.
-  const avatar = (
-    <CanvasPixelAvatar slug={slug} size={size} className={className} />
+  const mark = (
+    <CanvasPixelAvatar
+      slug={slug}
+      size={size}
+      className={className}
+      avatar={avatar}
+    />
   );
   if (title) {
     return (
       <span className="wk-avatar-wrap" title={title}>
-        {avatar}
+        {mark}
       </span>
     );
   }
-  return avatar;
+  return mark;
 }

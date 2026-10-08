@@ -128,7 +128,7 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
       <div className="bot-subspace-header-identity">
         {/* Large pixel avatar with harness badge */}
         <div className="bot-subspace-header-avatar avatar-with-harness">
-          <PixelAvatar slug={agent.slug} size={48} />
+          <PixelAvatar slug={agent.slug} size={48} avatar={agent.avatar} />
           <HarnessBadge
             kind={harness}
             size={16}

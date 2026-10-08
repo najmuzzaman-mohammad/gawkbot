@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AVATAR_SHAPES,
+  BLOB_COLOR_NAMES,
   BLOB_COLORS,
   BLOB_GRID,
   blobColor,
   blobShapeIndex,
   drawBlobAvatar,
   eyeSpec,
+  hasAvatarChoice,
+  resolveAvatar,
   SILHOUETTES,
 } from "./blobAvatar";
 
@@ -162,5 +166,87 @@ describe("drawing", () => {
     const { ctx } = fakeCtx();
     drawBlobAvatar(ctx, "cos", 32, { color: "#123456" });
     expect(ctx.fillStyle).toBe("#123456");
+  });
+});
+
+describe("chosen avatars", () => {
+  it("names every silhouette, in the broker's wire order", () => {
+    // WIRE CONTRACT with AvatarShapes in internal/team/broker_member_avatar.go.
+    // The index IS the silhouette, so a reorder here silently swaps shapes.
+    expect(AVATAR_SHAPES).toEqual([
+      "block",
+      "dome",
+      "drop",
+      "bean",
+      "pill",
+      "loaf",
+      "shield",
+      "blob",
+    ]);
+    expect(AVATAR_SHAPES).toHaveLength(SILHOUETTES.length);
+    expect(BLOB_COLOR_NAMES).toHaveLength(BLOB_COLORS.length);
+  });
+
+  it("falls back to the derived look when nothing is chosen", () => {
+    const derived = {
+      shapeIndex: blobShapeIndex("cos"),
+      color: blobColor("cos"),
+    };
+    expect(resolveAvatar("cos")).toEqual(derived);
+    expect(resolveAvatar("cos", null)).toEqual(derived);
+    expect(resolveAvatar("cos", {})).toEqual(derived);
+  });
+
+  it("lets each field win on its own", () => {
+    expect(resolveAvatar("cos", { shape: "pill" })).toEqual({
+      shapeIndex: AVATAR_SHAPES.indexOf("pill"),
+      color: blobColor("cos"),
+    });
+    expect(resolveAvatar("cos", { color: "#112233" })).toEqual({
+      shapeIndex: blobShapeIndex("cos"),
+      color: "#112233",
+    });
+  });
+
+  it("normalises case and degrades bad wire data to the derived field", () => {
+    expect(resolveAvatar("cos", { shape: " LOAF ", color: "#AABBCC" })).toEqual(
+      { shapeIndex: AVATAR_SHAPES.indexOf("loaf"), color: "#aabbcc" },
+    );
+    // Unknown shape, short hex, a CSS injection attempt: all ignored.
+    for (const bad of [
+      { shape: "star" },
+      { color: "#abc" },
+      { color: "red" },
+      { color: "#000000;background:url(x)" },
+    ]) {
+      expect(resolveAvatar("cos", bad)).toEqual(resolveAvatar("cos"));
+      expect(hasAvatarChoice(bad)).toBe(false);
+    }
+    expect(hasAvatarChoice({ shape: "dome" })).toBe(true);
+    expect(hasAvatarChoice({ color: "#010203" })).toBe(true);
+    expect(hasAvatarChoice(undefined)).toBe(false);
+  });
+
+  it("draws the chosen shape and colour on the pixel grid", () => {
+    // A slug whose derived shape is not BLOCK, so the override is visible.
+    const slug = ["cos", "planner", "designer", "gemini"].find(
+      (s) => blobShapeIndex(s) !== 0,
+    ) as string;
+    const rows = (avatar?: { shape?: string; color?: string }) => {
+      const fills: string[] = [];
+      const ctx = {
+        fillStyle: "",
+        clearRect: () => undefined,
+        fillRect: (x: number, y: number, w: number) =>
+          fills.push(`${y}:${x}+${w}`),
+      } as unknown as CanvasRenderingContext2D;
+      drawBlobAvatar(ctx, slug, BLOB_GRID, { avatar });
+      return { fills, color: ctx.fillStyle };
+    };
+    const chosen = rows({ shape: "block", color: "#102030" });
+    expect(chosen.color).toBe("#102030");
+    // BLOCK's first filled row is row 2, spanning [4, 12).
+    expect(chosen.fills[0]).toBe("2:4+8");
+    expect(rows().fills).not.toEqual(chosen.fills);
   });
 });

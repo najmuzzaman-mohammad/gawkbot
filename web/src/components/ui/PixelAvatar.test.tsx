@@ -1,8 +1,10 @@
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { BLINK_MIN_SIZE } from "../../lib/avatarBlink";
 import type { AvatarMode } from "../../lib/avatarMode";
-import { blobColor } from "../../lib/blobAvatar";
+import { BLOB_GRID, blobColor, blobShapeIndex } from "../../lib/blobAvatar";
+import { smoothBlob } from "../../lib/blobAvatarSmooth";
 import { EYE_OPENNESS_MIN } from "../../lib/pixelAvatar";
 import { PixelAvatar } from "./PixelAvatar";
 
@@ -16,6 +18,11 @@ vi.mock("../../lib/avatarMode", () => ({
 }));
 
 const drawPixelAvatar = vi.hoisted(() => vi.fn());
+const useAvatarBlink = vi.hoisted(() => vi.fn());
+vi.mock("../../lib/avatarBlink", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../lib/avatarBlink")>()),
+  useAvatarBlink,
+}));
 vi.mock("../../lib/pixelAvatar", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../lib/pixelAvatar")>()),
   drawPixelAvatar,
@@ -41,6 +48,7 @@ beforeEach(() => {
   vi.stubGlobal("requestAnimationFrame", raf);
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
   drawPixelAvatar.mockClear();
+  useAvatarBlink.mockClear();
 });
 
 afterEach(() => {
@@ -101,6 +109,39 @@ describe("<PixelAvatar> in blob mode", () => {
     const { container } = render(<PixelAvatar slug="cos" size={14} />);
     expect(container.querySelectorAll(".pixel-avatar-eye")).toHaveLength(2);
   });
+
+  it("draws the bot's chosen shape and colour", () => {
+    const shape = blobShapeIndex("cos") === 4 ? "loaf" : "pill";
+    const avatar = { shape, color: "#13579b" } as const;
+    const { container } = render(
+      <PixelAvatar slug="cos" size={32} avatar={avatar} />,
+    );
+    const body = container.querySelector(".avatar-motion-body path");
+    expect(body).toHaveAttribute("fill", "#13579b");
+    expect(body).toHaveAttribute("d", smoothBlob("cos", 1, avatar).body);
+    expect(body?.getAttribute("d")).not.toBe(smoothBlob("cos").body);
+  });
+
+  it("carries the motion hooks: wobble on the svg, squash on the body", () => {
+    const { container } = render(<PixelAvatar slug="cos" size={32} />);
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveClass("avatar-motion");
+    // The eye mask moves with the body, so the eyes stay put on a squash.
+    const group = svg?.querySelector(".avatar-motion-body");
+    expect(group?.querySelector("path[mask]")).not.toBeNull();
+    expect(container.querySelectorAll(".avatar-motion-eye")).toHaveLength(2);
+  });
+
+  it("joins the blink pool only when large and idle", () => {
+    const enabled = () => useAvatarBlink.mock.lastCall?.[1];
+    render(<PixelAvatar slug="cos" size={BLINK_MIN_SIZE} />);
+    expect(enabled()).toBe(true);
+    render(<PixelAvatar slug="cos" size={BLINK_MIN_SIZE - 8} />);
+    expect(enabled()).toBe(false);
+    // A working bot is already moving its eyes.
+    render(<PixelAvatar slug="cos" size={48} working={true} />);
+    expect(enabled()).toBe(false);
+  });
 });
 
 describe("<PixelAvatar> in sprite mode", () => {
@@ -131,6 +172,22 @@ describe("<PixelAvatar> in sprite mode", () => {
     render(<PixelAvatar slug="cos" size={16} working={true} />);
     // Below EYES_MIN_SIZE the sprite has no eyes, so nothing to animate.
     expect(raf).not.toHaveBeenCalled();
+  });
+
+  it("draws a chosen look as the pixel blob instead of the portrait", () => {
+    const { container } = render(
+      <PixelAvatar slug="cos" size={40} avatar={{ shape: "dome" }} />,
+    );
+    const canvas = container.querySelector("canvas");
+    expect(drawPixelAvatar).not.toHaveBeenCalled();
+    // The pixel blob paints into a grid-sized backing buffer.
+    expect(canvas?.width).toBe(BLOB_GRID);
+    expect(canvas?.style.width).toBe("40px");
+  });
+
+  it("keeps the portrait when the avatar is automatic", () => {
+    render(<PixelAvatar slug="cos" size={40} avatar={{}} />);
+    expect(drawPixelAvatar).toHaveBeenCalledTimes(1);
   });
 
   it("drops the motion, not the eyes, under reduced motion", () => {

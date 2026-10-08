@@ -67,6 +67,7 @@ export function NotchStrip({
       <div className="notch-ear">
         <NotchBot
           slug={lead?.slug ?? state?.lead ?? "cos"}
+          avatar={lead?.avatar}
           mood={state?.mood ?? "idle"}
           size={bot}
           bare={true}
@@ -92,6 +93,7 @@ export function NotchStrip({
               >
                 <NotchBot
                   slug={a.slug}
+                  avatar={a.avatar}
                   mood="needs_you"
                   size={bot}
                   phase={i + 1}
@@ -107,6 +109,7 @@ export function NotchStrip({
             <NotchBot
               key={a.slug}
               slug={a.slug}
+              avatar={a.avatar}
               mood={a.mood}
               size={bot - 2}
               phase={i + 1}
@@ -154,6 +157,7 @@ export function NotchStage({
         >
           <NotchBot
             slug={peeker.slug}
+            avatar={peeker.avatar}
             mood={peeker.mood === "error" ? "error" : "idle"}
             act="peeking"
             size={30}
@@ -174,6 +178,7 @@ export function NotchStage({
             {speaker ? (
               <NotchBot
                 slug={speaker.slug}
+                avatar={speaker.avatar}
                 mood="needs_you"
                 act="talking"
                 size={26}

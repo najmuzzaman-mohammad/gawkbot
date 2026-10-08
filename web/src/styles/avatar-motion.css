@@ -1,0 +1,138 @@
+/* ─── Avatar motion: soft, squishy, alive ───
+   Shared by every blob mark (components/ui/PixelAvatar.tsx in blob mode,
+   components/ui/BlobAvatar.tsx). Three behaviours, all CSS, all under
+   prefers-reduced-motion: no-preference:
+
+     press   an avatar inside something pressable squashes onto its base
+             while held and springs back with an overshoot on release.
+     hover   an avatar inside a hovered row or card gives one gentle wobble.
+     blink   the eyes narrow briefly. lib/avatarBlink.ts decides WHEN (random
+             gaps, large avatars only, one avatar at a time); this file
+             decides how it looks.
+
+   Structure the components render:
+     svg.avatar-motion            the wobble target (whole mark)
+       g.avatar-motion-body       the squash target (body + its eye mask)
+       .avatar-motion-eye         the blink target (mask shapes)
+
+   Two different elements carry the two transforms so a press during a
+   hover wobble composes instead of one cancelling the other. */
+
+:root {
+  /* Overshooting spring: settles past 1 and back, which is the "squish". */
+  --avatar-spring: cubic-bezier(0.34, 1.72, 0.5, 1);
+  /* Quick, slightly accelerating press-in. */
+  --avatar-press-ease: cubic-bezier(0.3, 0, 0.6, 1);
+  --avatar-press-duration: 90ms;
+  --avatar-release-duration: 520ms;
+  --avatar-wobble-duration: 640ms;
+  --avatar-blink-duration: 220ms;
+  /* How flat a press makes the body: wider and shorter, volume roughly kept. */
+  --avatar-squash-x: 1.14;
+  --avatar-squash-y: 0.84;
+  /* How narrow the eyes get mid-blink. Never shut: a closed blob reads as
+     broken, not blinking (see eyeSpec in lib/blobAvatar.ts). */
+  --avatar-blink-min: 0.22;
+}
+
+/* The squash widens the body past its box; let it, rather than shear it
+   off at the SVG viewport. */
+.avatar-motion {
+  overflow: visible;
+  transform-origin: 50% 100%;
+}
+.avatar-motion-body {
+  /* Scale about the middle of the baseline, in viewBox units, so every
+     silhouette squashes onto the floor it stands on. */
+  transform-box: view-box;
+  transform-origin: 50% 100%;
+}
+.avatar-motion-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Release: spring back, overshooting through round. */
+  .avatar-motion-body {
+    transition: transform var(--avatar-release-duration) var(--avatar-spring);
+  }
+
+  /* Press: squash while held. */
+  :is(
+      button,
+      a[href],
+      label,
+      [role="button"],
+      [role="radio"],
+      [role="option"],
+      [role="menuitem"],
+      [role="tab"]
+    ):not(:disabled):not([aria-disabled="true"]):active
+    .avatar-motion-body {
+    transform: scale(var(--avatar-squash-x), var(--avatar-squash-y));
+    transition-duration: var(--avatar-press-duration);
+    transition-timing-function: var(--avatar-press-ease);
+  }
+
+  /* Hover: one wobble on entry. Pointer devices only, so a tap on a phone
+     does not leave a sticky hover that re-wobbles on every repaint. */
+  @media (hover: hover) {
+    :is(
+        button,
+        a[href],
+        label,
+        [role="button"],
+        [role="radio"],
+        [role="option"],
+        [role="menuitem"],
+        [role="tab"]
+      ):not(:disabled):hover
+      .avatar-motion {
+      animation: avatar-wobble var(--avatar-wobble-duration) ease-out 1;
+    }
+  }
+
+  .avatar-motion[data-blinking="true"]:not([data-working="true"])
+    .avatar-motion-eye {
+    animation: avatar-blink var(--avatar-blink-duration) ease-in-out 1;
+  }
+}
+
+/* A jelly wobble: a lean, a smaller lean back, settling. Each swing also
+   squishes a touch, so it reads as soft rather than as a rigid rotation. */
+@keyframes avatar-wobble {
+  0% {
+    transform: none;
+  }
+  16% {
+    transform: rotate(-6deg) scale(1.04, 0.96);
+  }
+  36% {
+    transform: rotate(4.5deg) scale(0.97, 1.03);
+  }
+  56% {
+    transform: rotate(-2.5deg) scale(1.02, 0.98);
+  }
+  76% {
+    transform: rotate(1deg) scale(0.995, 1.005);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Narrow, hold for a beat, reopen slightly past round, settle. */
+@keyframes avatar-blink {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  38%,
+  52% {
+    transform: scaleY(var(--avatar-blink-min));
+  }
+  78% {
+    transform: scaleY(1.08);
+  }
+}

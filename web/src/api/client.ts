@@ -14,8 +14,8 @@ const brokerHandshakeTimeoutMs = 8000;
 
 import type { MemberAvatar, MemberOrigin, MemberRunsOn } from "./memberTypes";
 
-export type { MemberOrigin, MemberRunsOn } from "./memberTypes";
-export type { AvatarShape, MemberAvatar } from "./memberTypes";
+// memberTypes.ts holds only wire types; re-export them all from here.
+export type * from "./memberTypes";
 
 // The analytics config the broker injects via /api-token. Captured at boot so
 // RootRoute can configure PostHog without a second round trip. Null until
