@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>gawkbot: every coding agent, managed from your Mac's notch</title>
+<title>gawkbot: never leave your agents hanging</title>
 <meta name="description" content="gawkbot puts every coding agent on your Mac, and the ones in the cloud, in the notch. Approve, answer and talk back with one key or your voice, or reply from your iPhone. Free and open source.">
 <link rel="canonical" href="https://gawk.bot">
 <meta property="og:title" content="gawkbot: every coding agent, managed from your Mac's notch">
@@ -121,6 +121,14 @@
      The eyes are holes (fill-rule evenodd), so whatever is behind shows through. -->
 <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
   <defs>
+    <!-- Edge refraction for liquid glass: a smooth noise field displaces what
+         is behind the glass. Only applied where the browser supports SVG
+         filters on the backdrop (html.lg-refract). -->
+    <filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="11" result="noise"/>
+      <feGaussianBlur in="noise" stdDeviation="2.5" result="soft"/>
+      <feDisplacementMap in="SourceGraphic" in2="soft" scale="26" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
     <linearGradient id="blob-gloss" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#fff" stop-opacity="0.38"/>
       <stop offset="0.45" stop-color="#fff" stop-opacity="0.06"/>
@@ -179,7 +187,7 @@
       <a href="#faq">FAQ</a>
     </nav>
     <div class="nav-right">
-      <a class="btn btn-glass" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">
+      <a class="btn btn-glass lg lg-lens" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
         GitHub <span class="stars" id="navStars"></span>
       </a>
@@ -192,111 +200,133 @@
 <!-- ═══ HERO ═══════════════════════════════════════════════════════ -->
 <section class="hero" aria-labelledby="hero-title">
   <div class="wrap">
-    <p class="badge glass reveal"><b>New</b> The notch is now your agents' inbox</p>
-    <h1 class="h1 reveal d1" id="hero-title">Every agent, <span class="grad">right in the notch.</span></h1>
-    <p class="lead reveal d2">gawkbot finds every coding agent on your Mac, and the ones you run in the cloud, and gives them one place to ask you things. Approve, pick an answer or talk back without leaving what you were doing.</p>
+    <!-- The announcement is written in a notch, hanging from the top bar. -->
+    <p class="notch-badge">
+      <svg class="blob nb-peek" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-flaky-tests"/></svg>
+      <span>The notch is now your agents' inbox</span>
+      <i class="nb-cam" aria-hidden="true"></i>
+    </p>
+    <h1 class="h1 reveal d1" id="hero-title">Never leave your agents <span class="grad">hanging.</span></h1>
+    <p class="lead reveal d2">gawkbot finds every coding agent on your Mac, and the ones you run in the cloud, and gives them one place to ask you things. When one needs you, it comes out of the notch. Answer with a key, or just say it.</p>
     <div class="cta-row reveal d3">
       <button class="cmd" type="button" data-copy="npx gawkbot" aria-label="Copy the install command: npx gawkbot">
         <span><span class="prompt">$ </span>npx gawkbot</span>
         <span class="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h9"/></svg><span class="copy-label">Copy</span></span>
       </button>
-      <a class="btn btn-glass" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">
+      <a class="btn btn-glass lg lg-lens" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
         View on GitHub
       </a>
     </div>
     <p class="cta-note reveal d3">Free and open source. The notch comes with the <a href="/download.html">Mac app</a>; the web app runs anywhere.</p>
     <p class="visually-hidden" role="status" aria-live="polite" id="copyStatus"></p>
+  </div>
 
-    <!-- The MacBook top edge. Pure HTML and CSS; nothing here is a screenshot. -->
-    <figure class="mac reveal" role="img" aria-label="Illustration: the top of a MacBook screen. Agents peek out of both sides of the notch, and a dark glass panel has dropped out of it, listing three questions from agents with Approve and Reject buttons, seven agents tagged by the tool that made them and where they run, and a bar for replying by voice or text.">
-      <div class="mac-screen">
-        <div class="menubar" aria-hidden="true">
-          <div class="menubar-left">
-            <b>gawkbot</b><span class="mi">File</span>
-          </div>
-          <div class="menubar-right">
-            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9 9 0 0 1 12.4 0M9.2 16a4 4 0 0 1 5.6 0"/><circle cx="12" cy="19.3" r="1.2" fill="currentColor" stroke="none"/></svg>
-            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
-            <span class="batt"></span>
-            <span>Thu 9:41</span>
-          </div>
-        </div>
-        <div class="win" aria-hidden="true"></div>
-
-        <div class="island reveal" aria-hidden="true">
-          <div class="strip">
-            <div class="ear ear-l">
-              <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
-              <span class="mood">3 waiting on you</span>
-            </div>
-            <div class="notch-hw"></div>
-            <div class="ear ear-r">
-              <svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
-              <svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
-              <svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
-              <span class="count">3</span>
+  <!-- The scroll scene. Scrolling down plays it forward: an agent's question
+       lands in the notch, you glance up, and the inbox pulls down out of the
+       notch. Scrolling back up plays it backwards. Without JavaScript, or with
+       reduced motion, it simply shows the inbox open.
+       This is an HTML recreation of the real notch panel (web/src/notch/NotchPanel.tsx),
+       not a screenshot. -->
+  <div class="scene" data-scene data-step="3">
+    <div class="scene-pin">
+      <figure class="mac" role="img" aria-label="Illustration: the top of a MacBook screen. A question from an agent arrives in the notch, the pointer moves up to it, and a dark glass inbox pulls down out of the notch, listing three questions from agents with numbered answers, the agents on the team, and a bar for messaging the Chief of Staff.">
+        <div class="mac-screen">
+          <div class="wall" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="menubar" aria-hidden="true">
+            <div class="menubar-left"><b>Code</b><span class="mi">File</span><span class="mi">Edit</span><span class="mi">View</span></div>
+            <div class="menubar-right">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9 9 0 0 1 12.4 0M9.2 16a4 4 0 0 1 5.6 0"/><circle cx="12" cy="19.3" r="1.2" fill="currentColor" stroke="none"/></svg>
+              <span class="batt"></span>
+              <span>Thu 9:41</span>
             </div>
           </div>
+          <div class="win lg" aria-hidden="true">
+            <div class="win-bar"><i></i><i></i><i></i><span>checkout.test.ts</span></div>
+            <div class="code">
+              <p><b>describe</b>(<s>"checkout"</s>, () =&gt; {</p>
+              <p class="in1"><b>it</b>(<s>"charges the card once"</s>, <b>async</b> () =&gt; {</p>
+              <p class="in2"><b>const</b> cart = <u>await</u> seedCart(<s>3</s>);</p>
+              <p class="in2"><b>const</b> res = <u>await</u> checkout(cart, clock.now());</p>
+              <p class="in2">expect(res.charges).toHaveLength(<s>1</s>);</p>
+              <p class="in1">});</p>
+              <p>});</p>
+            </div>
+          </div>
 
-          <div class="panel">
-            <div class="pcol">
-              <div class="ptitle">Needs you <span>3</span></div>
-              <div class="q sel">
-                <div class="q-head">
-                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
-                  <div><div class="q-who">auth-refactor</div><div class="tags"><span class="tag">Claude Code</span><span class="tag">this Mac</span></div></div>
-                </div>
-                <p class="q-text">Run the migration on staging? It drops the old sessions table.</p>
-                <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve <kbd>↵</kbd></span></div>
+          <div class="cursor" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 2.5v17.2l4.6-4.3 3 6.9 3-1.3-3-6.8h6.3z"/></svg></div>
+
+          <div class="island" aria-hidden="true">
+            <div class="ripple"></div>
+            <div class="strip">
+              <div class="ear ear-l">
+                <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
+                <span class="ear-text"><b>flaky-tests</b> needs you</span>
               </div>
-              <div class="q">
-                <div class="q-head">
+              <div class="notch-hw"></div>
+              <div class="ear ear-r">
+                <span class="ear-gang">
+                  <svg class="blob g1" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
+                  <svg class="blob g2" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
+                  <svg class="blob g3" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
+                </span>
+                <span class="count">3</span>
+              </div>
+            </div>
+
+            <div class="drop">
+              <div class="drop-inner">
+                <div class="nhead stg" style="--i:0">
+                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
+                  <div class="nhead-text"><small>Chief of Staff</small>3 agents need you</div>
+                  <span class="nbtn lg">↗ Full view</span>
+                </div>
+
+                <div class="nsec stg" style="--i:1">Needs you · 3</div>
+                <div class="nq sel lg stg" style="--i:2">
                   <svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
-                  <div><div class="q-who">flaky-tests</div><div class="tags"><span class="tag">Codex</span><span class="tag cloud">cloud</span></div></div>
+                  <div class="nq-body">
+                    <div class="nq-from"><b>flaky-tests</b><span class="ntag cloud">cloud</span><span class="ntag hold">holding up work</span></div>
+                    <p class="nq-text"><strong>Checkout fails one run in ten.</strong> Which fix should I keep?</p>
+                    <div class="nq-acts"><span class="nbtn lg"><kbd>1</kbd>Add a retry</span><span class="nbtn lg primary"><kbd>2</kbd>Freeze the clock</span><span class="nbtn quiet"><kbd>R</kbd>Reply</span></div>
+                  </div>
                 </div>
-                <p class="q-text">The checkout test fails one run in ten. Which fix should I keep?</p>
-                <div class="q-acts"><span class="chip-btn"><kbd>1</kbd> Add a retry</span><span class="chip-btn pick"><kbd>2</kbd> Freeze the clock</span></div>
-              </div>
-              <div class="q">
-                <div class="q-head">
+                <div class="nq lg stg" style="--i:3">
+                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
+                  <div class="nq-body">
+                    <div class="nq-from"><b>auth-refactor</b><span class="ntag">adopted</span></div>
+                    <p class="nq-text">Run the migration on staging? It drops the old sessions table.</p>
+                    <div class="nq-acts"><span class="nbtn lg primary">Approve</span><span class="nbtn lg">Reject</span><span class="nbtn quiet">Reply</span></div>
+                  </div>
+                </div>
+                <div class="nq lg stg" style="--i:4">
                   <svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
-                  <div><div class="q-who">landing-copy</div><div class="tags"><span class="tag">Opencode</span><span class="tag">this Mac</span></div></div>
+                  <div class="nq-body">
+                    <div class="nq-from"><b>landing-copy</b><span class="ntag">yours</span></div>
+                    <p class="nq-text">Push the branch and open a pull request?</p>
+                  </div>
                 </div>
-                <p class="q-text">Push the branch and open a pull request?</p>
-                <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve</span></div>
+
+                <div class="nsec stg" style="--i:5">Agents · 6</div>
+                <div class="nagents stg" style="--i:6">
+                  <span class="nagent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><b>changelog</b><em class="work">working</em></span>
+                  <span class="nagent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-test-fixer"/></svg><b>test-fixer</b><em class="work">working</em></span>
+                  <span class="nagent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-release-train"/></svg><b>release-train</b><em class="done">done</em></span>
+                </div>
+
+                <div class="nask lg stg" style="--i:7"><span>Ask Chief of Staff to manage any agent…</span><span class="nask-keys"><kbd>M</kbd><kbd>V</kbd></span></div>
+                <div class="nkeys stg" style="--i:8"><span><kbd>J</kbd><kbd>K</kbd> move</span><span><kbd>1–9</kbd> answer</span><span><kbd>↵</kbd> recommended</span><span><kbd>V</kbd> talk</span><span><kbd>O</kbd> full view</span><span><kbd>esc</kbd> close</span></div>
               </div>
-            </div>
-            <div class="pcol">
-              <div class="ptitle">Agents <span>7</span></div>
-              <ul class="agents">
-                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg><div><div class="agent-name">auth-refactor</div><div class="agent-meta">Claude Code · this Mac</div></div><span class="state need">Needs you</span></li>
-                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg><div><div class="agent-name">flaky-tests</div><div class="agent-meta">Codex · cloud</div></div><span class="state need">Needs you</span></li>
-                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg><div><div class="agent-name">landing-copy</div><div class="agent-meta">Opencode · this Mac</div></div><span class="state need">Needs you</span></li>
-                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><div><div class="agent-name">changelog</div><div class="agent-meta">Gemini CLI · this Mac</div></div><span class="state work">Working</span></li>
-                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-test-fixer"/></svg><div><div class="agent-name">test-fixer</div><div class="agent-meta">Cursor CLI · cloud</div></div><span class="state work">Working</span></li>
-                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-ui-polish"/></svg><div><div class="agent-name">ui-polish</div><div class="agent-meta">Amp · cloud</div></div><span class="state work">Working</span></li>
-                <li class="agent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-release-train"/></svg><div><div class="agent-name">release-train</div><div class="agent-meta">Aider · this Mac</div></div><span class="state done">Done</span></li>
-              </ul>
-            </div>
-            <div class="voicebar">
-              <span class="mic"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-              <span class="vtext">Reply to auth-refactor, or hold V to talk</span>
-              <span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span>
-            </div>
-            <div class="hints">
-              <span class="hint"><kbd>J</kbd><kbd>K</kbd> move</span>
-              <span class="hint"><kbd>1</kbd>–<kbd>9</kbd> answer</span>
-              <span class="hint"><kbd>↵</kbd> recommended</span>
-              <span class="hint"><kbd>V</kbd> talk</span>
-              <span class="hint"><kbd>R</kbd> reply</span>
-              <span class="hint"><kbd>esc</kbd> close</span>
             </div>
           </div>
         </div>
-      </div>
-    </figure>
+      </figure>
+      <ol class="scene-steps" aria-hidden="true">
+        <li data-s="1"><b>1</b> An agent gets stuck</li>
+        <li data-s="2"><b>2</b> You glance up</li>
+        <li data-s="3"><b>3</b> The inbox pulls down</li>
+      </ol>
+    </div>
   </div>
 </section>
 
@@ -314,7 +344,7 @@
       </ul>
     </div>
     <div class="stack" aria-label="Three example questions from agents" role="img">
-      <div class="card glass reveal">
+      <div class="card glass lg reveal">
         <div class="q-head">
           <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-auth-refactor"/></svg>
           <div><div class="q-who">auth-refactor</div><div class="tags"><span class="tag">Claude Code</span><span class="tag">this Mac</span></div></div>
@@ -323,7 +353,7 @@
         <p class="q-text">Run the migration on staging? It drops the old sessions table.</p>
         <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve <kbd>↵</kbd></span></div>
       </div>
-      <div class="card glass reveal d1">
+      <div class="card glass lg reveal d1">
         <div class="q-head">
           <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-flaky-tests"/></svg>
           <div><div class="q-who">flaky-tests</div><div class="tags"><span class="tag">Codex</span><span class="tag cloud">cloud</span></div></div>
@@ -332,7 +362,7 @@
         <p class="q-text">Which fix should I keep?</p>
         <div class="q-acts"><span class="chip-btn"><kbd>1</kbd> Add a retry</span><span class="chip-btn pick"><kbd>2</kbd> Freeze the clock</span><span class="chip-btn"><kbd>3</kbd> Skip it</span></div>
       </div>
-      <div class="card glass reveal d2">
+      <div class="card glass lg reveal d2">
         <div class="q-head">
           <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-changelog"/></svg>
           <div><div class="q-who">changelog</div><div class="tags"><span class="tag">Gemini CLI</span><span class="tag">this Mac</span></div></div>
@@ -358,7 +388,7 @@
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>In the browser too.</strong> The web app uses your browser's own speech recognition.</span></li>
       </ul>
     </div>
-    <div class="voice-card glass reveal" role="img" aria-label="Illustration: a glowing microphone button, a moving sound wave, and the words being transcribed, ready to send to the agent auth-refactor.">
+    <div class="voice-card glass lg reveal" role="img" aria-label="Illustration: a glowing microphone button, a moving sound wave, and the words being transcribed, ready to send to the agent auth-refactor.">
       <div class="orb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <p class="transcript" aria-hidden="true">Approve it, but back up the sessions table first<span class="live"> and tell me when it's done</span></p>
@@ -424,37 +454,37 @@
       <p class="lead reveal">Your hands stay where they are. Open the notch from anywhere, walk the list, answer, and get back to work.</p>
     </div>
     <div class="keys">
-      <div class="key-tile wide glass reveal">
+      <div class="key-tile wide glass lg reveal">
         <div class="caps"><kbd aria-label="Control">⌃</kbd><kbd aria-label="Option">⌥</kbd><kbd class="long">Space</kbd></div>
         <h3>Open the notch</h3>
         <p>From anywhere on your Mac, whichever app has focus.</p>
       </div>
-      <div class="key-tile glass reveal d1">
+      <div class="key-tile glass lg reveal d1">
         <div class="caps"><kbd>J</kbd><kbd>K</kbd> or <kbd aria-label="Up arrow">↑</kbd><kbd aria-label="Down arrow">↓</kbd></div>
         <h3>Move between questions</h3>
         <p>Down the list and back up again.</p>
       </div>
-      <div class="key-tile glass reveal d2">
+      <div class="key-tile glass lg reveal d2">
         <div class="caps"><kbd>1</kbd>–<kbd>9</kbd></div>
         <h3>Pick an answer</h3>
         <p>Every option is numbered. One key answers it.</p>
       </div>
-      <div class="key-tile glass reveal">
+      <div class="key-tile glass lg reveal">
         <div class="caps"><kbd aria-label="Return">↵</kbd></div>
         <h3>Take the recommendation</h3>
         <p>When the agent suggests an answer, Return takes it.</p>
       </div>
-      <div class="key-tile glass reveal d1">
+      <div class="key-tile glass lg reveal d1">
         <div class="caps"><kbd>V</kbd> hold</div>
         <h3>Talk</h3>
         <p>Speak while it's held. Let go to read the transcript.</p>
       </div>
-      <div class="key-tile glass reveal d2">
+      <div class="key-tile glass lg reveal d2">
         <div class="caps"><kbd>R</kbd></div>
         <h3>Reply in words</h3>
         <p>Opens a reply box for the selected question.</p>
       </div>
-      <div class="key-tile glass reveal d3">
+      <div class="key-tile glass lg reveal d3">
         <div class="caps"><kbd>esc</kbd></div>
         <h3>Close</h3>
         <p>Puts the notch away, or cancels the reply you're typing.</p>
@@ -501,17 +531,17 @@
       <p class="lead reveal">Waiting on an agent is dull. Being waited on shouldn't be. So the agents got a little personality, and the notch got a sense of humour.</p>
     </div>
     <div class="fun">
-      <article class="fun-card glass reveal">
+      <article class="fun-card glass lg reveal">
         <div class="stage" aria-hidden="true"><div class="mini-notch"><svg class="blob peeker" viewBox="0 0 16 16"><use href="#b-test-fixer"/></svg></div></div>
         <h3 class="h3">They peek.</h3>
         <p>Every so often, for no reason at all, someone pops out of the notch, has a look around and ducks back in.</p>
       </article>
-      <article class="fun-card glass reveal d1">
+      <article class="fun-card glass lg reveal d1">
         <div class="stage" aria-hidden="true"><div class="mini-notch gang"><svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-db-migrate"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-release-train"/></svg></div></div>
         <h3 class="h3">They gang up.</h3>
         <p>When several agents need you at once, they don't queue politely. They pile onto the notch together.</p>
       </article>
-      <article class="fun-card glass reveal">
+      <article class="fun-card glass lg reveal">
         <div class="stage" aria-hidden="true">
           <div class="mini-notch talk"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-ui-polish"/></svg></div>
           <span class="bubble a">Is the human still there?</span>
@@ -520,7 +550,7 @@
         <h3 class="h3">They get chatty.</h3>
         <p>Keep them waiting and they get restless, then start talking to each other about it.</p>
       </article>
-      <article class="fun-card glass reveal d1">
+      <article class="fun-card glass lg reveal d1">
         <div class="stage speaker" aria-hidden="true"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div></div>
         <h3 class="h3">Every alert sounds different.</h3>
         <p>Each kind of moment has its own cartoon sound, so you know what happened before you look. They are synthesised live; nothing is sampled. Go on:</p>
@@ -564,7 +594,7 @@
           <span><span class="prompt">$ </span>npx gawkbot</span>
           <span class="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h9"/></svg><span class="copy-label">Copy</span></span>
         </button>
-        <a class="btn btn-glass" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">Read the source</a>
+        <a class="btn btn-glass lg lg-lens" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">Read the source</a>
       </div>
     </div>
     <p class="terms reveal">Public source under the <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Sustainable Use License</a>. Free to self-host, on your own API keys, for your own internal business purposes and for non-commercial use. You can read it, modify it and distribute your changes; the licence does not let you sell gawkbot itself as a hosted product. There are no seats, no usage fees, and no plan to add them.</p>
@@ -579,35 +609,35 @@
       <h2 class="h2 reveal" id="faq-title">Questions, answered.</h2>
     </div>
     <div class="faq reveal">
-      <details class="glass">
+      <details class="glass lg">
         <summary>Is gawkbot free?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">Yes. There is no subscription, no seat count, no trial and no usage fee. You bring the agents and API keys you already use. The source is public under the Sustainable Use License: free to self-host for your own internal business purposes and for non-commercial use.</div>
       </details>
-      <details class="glass">
+      <details class="glass lg">
         <summary>Which agents does it work with?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Factory Droid, Ollama, OpenClaw and Hermes. Each one is tagged with the tool that started it and whether it runs on your Mac or in the cloud.</div>
       </details>
-      <details class="glass">
+      <details class="glass lg">
         <summary>Do I need a MacBook with a notch?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">No. On a Mac without a notch the same strip shows as a pill at the top centre of the screen, with the same panel, shortcuts and sounds.</div>
       </details>
-      <details class="glass">
+      <details class="glass lg">
         <summary>Is there an iPhone app?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">Yes, and it is new. It lives in the repo under <code>apps/ios</code> and you build it with Xcode; it is not on the App Store. Pair it once by scanning a QR code from the web app. Push notifications are not in yet.</div>
       </details>
-      <details class="glass">
+      <details class="glass lg">
         <summary>Where does my data go?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">gawkbot runs on your machine and your workspace is local files you can read. Anonymous product analytics, when a build has them, are counts and shapes only, never your content, and you can switch them off in onboarding or Settings. A build from source ships without an analytics key, so it never phones home.</div>
       </details>
-      <details class="glass">
+      <details class="glass lg">
         <summary>Can an agent do something external without asking me?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">No. Reads are free, but sends, pushes, purchases and deletes wait in the notch until you approve them. You approve each action, never a blanket grant.</div>
       </details>
-      <details class="glass">
+      <details class="glass lg">
         <summary>How does voice work?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">Hold <kbd class="k">V</kbd> and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; in a browser it uses the browser's own speech recognition. You see the transcript first, and nothing is sent until you press <kbd class="k">↵</kbd>.</div>
       </details>
-      <details class="glass">
+      <details class="glass lg">
         <summary>Does it work on Windows or Linux?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
         <div class="answer">The web app does: run <code>npx gawkbot</code> on macOS, Windows or Linux and it opens in your browser, and there is a <a href="/download.html" style="color:var(--accent)">desktop app for Windows</a>. The notch itself is Mac only.</div>
       </details>
@@ -634,7 +664,7 @@
         <span><span class="prompt">$ </span>npx gawkbot</span>
         <span class="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a3 3 0 0 1 3-3h9"/></svg><span class="copy-label">Copy</span></span>
       </button>
-      <a class="btn btn-glass" href="/download.html">Download for Mac</a>
+      <a class="btn btn-glass lg lg-lens" href="/download.html">Download for Mac</a>
     </div>
   </div>
 </section>
@@ -686,6 +716,69 @@
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
     reveals.forEach(function (el) { io.observe(el); });
   }
+
+
+  // ── THE NOTCH SCENE ─────────────────────────────────────────────────
+  // Scroll drives three 0..1 values on the scene: --n (a question lands in
+  // the notch), --c (the pointer goes up to it) and --o (the inbox pulls
+  // down). Scrolling back up runs them backwards. With reduced motion the
+  // scene stays put with the inbox open, which is also what CSS shows
+  // without this script.
+  var scene = document.querySelector('[data-scene]');
+  if (scene && !reduceMotion) {
+    var root = document.documentElement;
+    root.classList.add('scene-live');
+    scene.classList.add('is-live');
+    var inner = scene.querySelector('.drop-inner');
+    var clamp01 = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+    var seg = function (p, a, b) { return clamp01((p - a) / (b - a)); };
+    var easeOut = function (t) { return 1 - Math.pow(1 - t, 3); };
+    var easeInOut = function (t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+    var measure = function () {
+      if (inner) scene.style.setProperty('--ph', inner.scrollHeight + 'px');
+    };
+    var pinged = false;
+    var hovered = false;
+    var raf = 0;
+    var frame = function () {
+      raf = 0;
+      var r = scene.getBoundingClientRect();
+      var vh = window.innerHeight;
+      // 0 when the scene's top is 60% down the screen, 1 when its bottom
+      // reaches the bottom of the screen.
+      var span = r.height - vh * 0.4;
+      var p = span > 0 ? clamp01((vh * 0.6 - r.top) / span) : 1;
+      var n = easeOut(seg(p, 0.04, 0.2));
+      var c = easeInOut(seg(p, 0.22, 0.38));
+      var o = easeOut(seg(p, 0.4, 0.78));
+      scene.style.setProperty('--n', n.toFixed(4));
+      scene.style.setProperty('--c', c.toFixed(4));
+      scene.style.setProperty('--o', o.toFixed(4));
+      scene.setAttribute('data-step', p < 0.21 ? '1' : p < 0.4 ? '2' : '3');
+      // The ripples replay each time their moment is crossed going down.
+      if (n >= 0.999 && !pinged) { scene.classList.remove('is-pinged'); void scene.offsetWidth; scene.classList.add('is-pinged'); }
+      if (n < 0.999) scene.classList.remove('is-pinged');
+      pinged = n >= 0.999;
+      if (c >= 0.999 && !hovered) { scene.classList.remove('is-hover'); void scene.offsetWidth; scene.classList.add('is-hover'); }
+      if (c < 0.999) scene.classList.remove('is-hover');
+      hovered = c >= 0.999;
+    };
+    var request = function () { if (!raf) raf = requestAnimationFrame(frame); };
+    measure();
+    frame();
+    window.addEventListener('scroll', request, { passive: true });
+    window.addEventListener('resize', function () { measure(); request(); });
+  }
+
+  // ── LIQUID GLASS REFRACTION ─────────────────────────────────────────
+  // Only browsers that run SVG filters on the backdrop get the bent edges;
+  // everyone else keeps the plain blur, which already reads as glass.
+  try {
+    var ua = navigator.userAgent;
+    if (/Chrome\//.test(ua) && !/Edg\/|OPR\//.test(ua) && CSS.supports('backdrop-filter', 'url(#lg-refract)')) {
+      document.documentElement.classList.add('lg-refract');
+    }
+  } catch (e) { /* no refraction, still glass */ }
 
   // ── COPY ────────────────────────────────────────────────────────────
   var status = document.getElementById('copyStatus');
