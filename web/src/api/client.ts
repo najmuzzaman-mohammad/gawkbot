@@ -12,6 +12,11 @@ let useProxy = true;
 let token: string | null = null;
 const brokerHandshakeTimeoutMs = 8000;
 
+import type { MemberAvatar, MemberOrigin, MemberRunsOn } from "./memberTypes";
+
+export type { MemberOrigin, MemberRunsOn } from "./memberTypes";
+export type { AvatarShape, MemberAvatar } from "./memberTypes";
+
 // The analytics config the broker injects via /api-token. Captured at boot so
 // RootRoute can configure PostHog without a second round trip. Null until
 // initApi runs (or when the broker omits the block, e.g. older servers).
@@ -818,30 +823,16 @@ export interface OfficeMember {
   computer?: "" | "off" | "sandbox" | "cloud";
   /** Cloud provider for `computer: "cloud"`. "" means box. */
   cloud_backend?: "" | "box";
-  /**
-   * Who made this bot. Mirrors internal/team/broker_member_origin.go:
-   * "user" (you), "chief_of_staff", "bot" (another teammate), "built_in",
-   * "adopted" (an agent CLI found on this machine), "imported" (a gateway
-   * or Slack bot).
-   */
+  /** Who made this bot (memberTypes.ts). */
   origin?: MemberOrigin;
-  /** agentdetect catalog id for adopted bots ("gemini", "codex", ...). */
   adopted_from?: string;
-  /** Where the bot's turns execute. */
-  runs_on?: "this_machine" | "elsewhere";
-  /** Human description of runs_on ("OpenClaw gateway", "Gemini CLI on this machine"). */
+  runs_on?: MemberRunsOn;
   runs_on_detail?: string;
   /** The Chief of Staff slug; absent on the lead itself. */
   managed_by?: string;
+  /** Chosen look (memberTypes.ts); absent means the slug-derived one. */
+  avatar?: MemberAvatar;
 }
-
-export type MemberOrigin =
-  | "user"
-  | "chief_of_staff"
-  | "bot"
-  | "built_in"
-  | "adopted"
-  | "imported";
 
 /**
  * Lane A piggybacks `humanHasPosted` onto the existing `/office-members`

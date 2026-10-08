@@ -65,7 +65,9 @@ export default defineConfig({
     // (notch.html, hosted by desktop/oswails over the camera notch).
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, "index.html"),
+        // The key names the entry chunk: scripts/check-bundle-size.sh
+        // budgets `index-*.js`, so the app entry must stay "index".
+        index: path.resolve(__dirname, "index.html"),
         notch: path.resolve(__dirname, "notch.html"),
       },
     },
