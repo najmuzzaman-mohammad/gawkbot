@@ -68,7 +68,8 @@ export function ConsultRelayMarker({ payload }: ConsultRelayMarkerProps) {
   // inventing a name would be worse than showing nothing.
   if (!slug) return null;
 
-  const name = members.find((m) => m.slug === slug)?.name || slug;
+  const member = members.find((m) => m.slug === slug);
+  const name = member?.name || slug;
   const verb = payload.direction === "received" ? "Message from" : "Messaged";
   const canOpen = channel.length > 0;
 
@@ -85,7 +86,7 @@ export function ConsultRelayMarker({ payload }: ConsultRelayMarkerProps) {
         aria-label={`${verb} ${name} — open the conversation, read only`}
       >
         <span className="consult-relay-verb">{verb}</span>
-        <PixelAvatar slug={slug} size={16} />
+        <PixelAvatar slug={slug} size={16} avatar={member?.avatar} />
         <span className="consult-relay-agent">{name}</span>
       </button>
 

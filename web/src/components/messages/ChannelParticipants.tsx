@@ -143,7 +143,11 @@ function AddParticipantMenu({
               aria-label={`Add ${displayName} to #${channelSlug}`}
             >
               <span className="channel-participant-avatar">
-                <PixelAvatar slug={member.slug} size={24} />
+                <PixelAvatar
+                  slug={member.slug}
+                  size={24}
+                  avatar={member.avatar}
+                />
               </span>
               <span className="channel-participant-body">
                 <span className="channel-participant-name">{displayName}</span>
@@ -196,7 +200,7 @@ function ParticipantRow({
         aria-label={`Open bot panel for ${displayName}`}
       >
         <span className="channel-participant-avatar">
-          <PixelAvatar slug={member.slug} size={24} />
+          <PixelAvatar slug={member.slug} size={24} avatar={member.avatar} />
         </span>
         <span className="channel-participant-body">
           <span className="channel-participant-name">{displayName}</span>

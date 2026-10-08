@@ -5,6 +5,7 @@ import {
   SPACE_SCOPES,
   type SpaceScope,
 } from "../../../api/dataspaces";
+import type { MemberAvatar } from "../../../api/memberTypes";
 import { useUpdateSpaceAccess } from "../../../hooks/useDataSpaces";
 import { useOfficeMembers } from "../../../hooks/useMembers";
 import {
@@ -44,18 +45,20 @@ const BOT_AVATAR_SIZE = 18;
 
 interface BotLevelRowProps {
   row: BotRow;
+  /** The bot's chosen look; absent draws the slug-derived one. */
+  avatar?: MemberAvatar;
   draft: AccessDraft;
   onChange: (draft: AccessDraft) => void;
 }
 
 /** One bot: avatar, slug, and a three-way radio group drawn as segments. */
-function BotLevelRow({ row, draft, onChange }: BotLevelRowProps) {
+function BotLevelRow({ row, avatar, draft, onChange }: BotLevelRowProps) {
   const groupName = useId();
   const current = draftLevel(draft, row.bot);
   return (
     <li className="data-share-bot">
       <span className="data-share-bot-name">
-        <PixelAvatar slug={row.bot} size={BOT_AVATAR_SIZE} />
+        <PixelAvatar slug={row.bot} size={BOT_AVATAR_SIZE} avatar={avatar} />
         <span>@{row.bot}</span>
         {row.isInOffice ? null : (
           <span className="data-chip">not in the office</span>
@@ -84,6 +87,8 @@ interface ShareSpaceDialogViewProps {
   space: DataSpace;
   /** Office bot slugs. The owner and the operator are filtered out here. */
   roster: readonly string[];
+  /** Chosen looks by bot slug, from the same roster. Stories may omit it. */
+  avatars?: ReadonlyMap<string, MemberAvatar>;
   onClose: () => void;
 }
 
@@ -94,6 +99,7 @@ interface ShareSpaceDialogViewProps {
 export function ShareSpaceDialogView({
   space,
   roster,
+  avatars,
   onClose,
 }: ShareSpaceDialogViewProps) {
   const scopeGroupName = useId();
@@ -206,6 +212,7 @@ export function ShareSpaceDialogView({
                     <BotLevelRow
                       key={row.bot}
                       row={row}
+                      avatar={avatars?.get(row.bot)}
                       draft={draft}
                       onChange={setDraft}
                     />
@@ -260,7 +267,16 @@ export function ShareSpaceDialog({ space, onClose }: ShareSpaceDialogProps) {
   const roster = membersQuery.data
     ? membersQuery.data.map((member) => member.slug)
     : space.access.grants.map((grant) => grant.bot);
+  const avatars = new Map<string, MemberAvatar>();
+  for (const member of membersQuery.data ?? []) {
+    if (member.avatar) avatars.set(member.slug, member.avatar);
+  }
   return (
-    <ShareSpaceDialogView space={space} roster={roster} onClose={onClose} />
+    <ShareSpaceDialogView
+      space={space}
+      roster={roster}
+      avatars={avatars}
+      onClose={onClose}
+    />
   );
 }

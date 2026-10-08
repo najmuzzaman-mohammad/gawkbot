@@ -26,6 +26,8 @@ vi.mock("../../../hooks/useMembers", () => ({
   useOfficeMembers: () => ({
     data: holder.roster.map((slug) => ({ slug, name: slug, role: "" })),
   }),
+  // The page's owner byline reads its look from the same roster.
+  useMemberAvatar: () => undefined,
 }));
 
 const SPACE = SEED_RAISE_SPACE_ID;

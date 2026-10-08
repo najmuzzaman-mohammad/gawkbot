@@ -1,3 +1,4 @@
+import { useMemberAvatar } from "../../hooks/useMembers";
 import type { AvatarChoice } from "../../lib/blobAvatar";
 import { PixelAvatar as CanvasPixelAvatar } from "../ui/PixelAvatar";
 
@@ -14,7 +15,11 @@ interface PixelAvatarProps {
   size?: number;
   className?: string;
   title?: string;
-  /** The bot's chosen look, when the caller has the member at hand. */
+  /**
+   * The bot's chosen look, when the caller has the member at hand. Omitted,
+   * it is read from the office roster by slug: wiki bylines, edit logs and
+   * audit rows only carry the author's slug.
+   */
   avatar?: AvatarChoice | null;
 }
 
@@ -25,6 +30,7 @@ export default function PixelAvatar({
   title,
   avatar,
 }: PixelAvatarProps) {
+  const rosterAvatar = useMemberAvatar(slug);
   // The underlying component is aria-hidden; the wiki uses avatars purely
   // decorative next to bot slug labels, so no extra role/title is needed.
   // `title` is accepted for API compatibility with the legacy stub and set
@@ -34,7 +40,7 @@ export default function PixelAvatar({
       slug={slug}
       size={size}
       className={className}
-      avatar={avatar}
+      avatar={avatar ?? rosterAvatar}
     />
   );
   if (title) {
