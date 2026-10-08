@@ -285,9 +285,17 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 // NSEvent monitor.
 - (void)registerHotKey {
 	EventTypeSpec spec = {kEventClassKeyboard, kEventHotKeyPressed};
-	InstallApplicationEventHandler(&GawkHotKeyHandler, 1, &spec, NULL, NULL);
+	OSStatus status = InstallApplicationEventHandler(&GawkHotKeyHandler, 1, &spec, NULL, NULL);
 	EventHotKeyID hotKeyID = {'gawk', 1};
-	RegisterEventHotKey(kVK_Space, controlKey | optionKey, hotKeyID, GetApplicationEventTarget(), 0, &gHotKey);
+	if (status == noErr) {
+		status = RegisterEventHotKey(kVK_Space, controlKey | optionKey, hotKeyID, GetApplicationEventTarget(), 0, &gHotKey);
+	}
+	if (status != noErr) {
+		// Another app already owns ⌃⌥Space, or Carbon refused. The notch
+		// still opens on hover; only the keyboard shortcut is missing.
+		NSLog(@"gawkbot notch: global hotkey ⌃⌥Space not registered (OSStatus %d)", (int)status);
+	}
+	goNotchHotKeyStatus((int)status);
 }
 
 - (void)hotkeyPressed {
