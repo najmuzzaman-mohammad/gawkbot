@@ -31,6 +31,27 @@ export function directChannelSlug(
 }
 
 /**
+ * The bot on the other side of the human's DM `channel`, or "" when the
+ * channel is not one (a named channel, a pair of two bots, a blank slug).
+ *
+ * This is not a second reading of the pair-sort: it takes whichever half is
+ * not the human and accepts it only when {@link directChannelSlug} rebuilds
+ * the exact slug, so it can never disagree with the builder above.
+ */
+export function directChannelPeer(
+  channel: string,
+  humanSlug = "human",
+): string {
+  const slug = channel.trim().toLowerCase();
+  const human = humanSlug.trim().toLowerCase();
+  const halves = slug.split("__");
+  if (halves.length !== 2) return "";
+  const [first, second] = halves;
+  const peer = first === human ? second : second === human ? first : "";
+  return peer && directChannelSlug(peer, human) === slug ? peer : "";
+}
+
+/**
  * The DM channel a bot's work belongs in, or "" when no bot is named.
  *
  * The empty return is the point, and it is why callers should prefer this over
