@@ -75,6 +75,8 @@ func (l *Launcher) runHeadlessCLIAgentTurn(ctx context.Context, slug string, not
 	// to its own model backend never needs them.
 	env := l.buildHeadlessCodexEnv(slug, workspaceDir, firstNonEmpty(channel...))
 	env = setEnvValue(env, "WUPHF_HEADLESS_PROVIDER", HeadlessProviderCLIAgent)
+	// user-global; intentionally NOT under WUPHF_RUNTIME_HOME: the agent CLI
+	// keeps its own sign-in under the real HOME.
 	if home, err := os.UserHomeDir(); err == nil && strings.TrimSpace(home) != "" {
 		env = setEnvValue(env, "HOME", home)
 	}
