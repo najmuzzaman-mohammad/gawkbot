@@ -18,7 +18,7 @@ struct ConversationListView: View {
                 }
             }
             .listStyle(.plain)
-            .navigationTitle("Bots")
+            .navigationTitle("Chats")
             .navigationDestination(for: String.self) { channel in
                 ThreadView(channel: channel)
             }

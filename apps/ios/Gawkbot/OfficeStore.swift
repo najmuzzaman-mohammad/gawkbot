@@ -3,8 +3,9 @@ import SwiftUI
 import GawkbotKit
 
 /// The one observable the views read. Owns the broker connection, the
-/// roster, per-thread messages, typing state, pending requests, and unread
-/// counts. Everything mutates on the main actor.
+/// roster, per-thread messages, typing state, pending requests, unread
+/// counts, and the inbox (`/notch/state`, polled every 3 s while the app is
+/// in front). Everything mutates on the main actor.
 @MainActor
 final class OfficeStore: ObservableObject {
     enum Phase: Equatable {
@@ -27,16 +28,29 @@ final class OfficeStore: ObservableObject {
     /// to confirm it. Never applied on its own: a crafted gawkbot:// link
     /// must not be able to point the app at an attacker's office.
     @Published var proposedPairing: Pairing? = nil
+    /// The inbox: every agent's mood and every question waiting on you.
+    @Published private(set) var notch: NotchState? = nil
+    /// Cards answered on this phone, hidden until a poll confirms they are gone.
+    @Published private(set) var hiddenAttention: Set<String> = []
+    @Published var tab: AppTab = .inbox
+
+    /// Sounds and haptics for inbox events.
+    let feedback: FeedbackPlayer
 
     let isMock: Bool
     private let credentials: CredentialStore
     private var broker: BrokerAPI?
     private var eventTask: Task<Void, Never>?
     private var typingTimers: [String: Task<Void, Never>] = [:]
+    private var pollTask: Task<Void, Never>?
+    private var isForeground = true
+    private var notchSeq = 0
+    static let pollInterval: Duration = .seconds(3)
 
     init(credentials: CredentialStore, forceMock: Bool) {
         self.credentials = credentials
         self.isMock = forceMock
+        self.feedback = FeedbackPlayer()
         if forceMock {
             connect(MockBroker())
         } else if let pairing = credentials.load() {
@@ -75,6 +89,10 @@ final class OfficeStore: ObservableObject {
     func unpair() {
         eventTask?.cancel()
         eventTask = nil
+        pollTask?.cancel()
+        pollTask = nil
+        notch = nil
+        hiddenAttention = []
         credentials.clear()
         broker = nil
         bots = []
@@ -89,7 +107,12 @@ final class OfficeStore: ObservableObject {
         if url.scheme == Pairing.scheme, url.host == "pair" {
             propose(text: url.absoluteString)
         } else if url.scheme == Pairing.scheme, url.host == "thread", let slug = url.pathComponents.dropFirst().first {
+            tab = .chats
             openThread = DMChannel.slug(for: slug)
+        } else if url.scheme == Pairing.scheme, url.host == "inbox" {
+            tab = .inbox
+        } else if url.scheme == Pairing.scheme, url.host == "chats" {
+            tab = .chats
         }
     }
 
@@ -107,7 +130,10 @@ final class OfficeStore: ObservableObject {
         }
         debugOpenSlug = value(after: "-open")
         debugSendText = value(after: "-send")
-        if let slug = debugOpenSlug { openThread = DMChannel.slug(for: slug) }
+        if let slug = debugOpenSlug {
+            tab = .chats
+            openThread = DMChannel.slug(for: slug)
+        }
     }
     private var debugOpenSlug: String?
     private var debugSendText: String?
@@ -126,6 +152,8 @@ final class OfficeStore: ObservableObject {
 
     private func connect(_ api: BrokerAPI) {
         broker = api
+        notch = nil
+        hiddenAttention = []
         phase = .connecting
         eventTask?.cancel()
         Task { await self.load() }
@@ -143,6 +171,7 @@ final class OfficeStore: ObservableObject {
             requests = try await broker.requests(channel: nil).filter(\.isPending)
             phase = .ready
             startEvents()
+            startPolling()
             #if DEBUG
             runDebugSendIfNeeded()
             #endif
@@ -198,7 +227,10 @@ final class OfficeStore: ObservableObject {
             append([msg], to: msg.channel, countUnread: true)
             if !msg.isFromHuman { setTyping(msg.from, false) }
             if msg.kind?.contains("request") == true || msg.kind == "human_request_raised" {
-                Task { await self.reloadRequests() }
+                Task {
+                    await self.reloadRequests()
+                    await self.refreshNotch()
+                }
             }
         case let .activity(act):
             setTyping(act.slug, act.isWorking)
@@ -251,6 +283,7 @@ final class OfficeStore: ObservableObject {
         do {
             let sent = try await broker.send(channel: channel, content: content)
             append([sent], to: channel, countUnread: false)
+            feedback.playSound(.sent)
         } catch {
             pairingError = (error as? BrokerError)?.errorDescription ?? error.localizedDescription
         }
@@ -261,9 +294,121 @@ final class OfficeStore: ObservableObject {
         do {
             try await broker.answer(requestID: request.id, choiceID: choice.id, text: text)
             requests.removeAll { $0.id == request.id }
+            feedback.playSound(.sent)
+            await refreshNotch()
         } catch {
             pairingError = (error as? BrokerError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    // MARK: - Inbox
+
+    /// Questions to show, in inbox order, minus the ones just answered here.
+    var inbox: [NotchAttention] {
+        (notch?.sortedAttention ?? []).filter { !hiddenAttention.contains($0.id) }
+    }
+
+    var agents: [NotchAgent] { notch?.agents ?? [] }
+
+    func agent(_ slug: String) -> NotchAgent? { notch?.agent(slug) }
+
+    /// Called by the tab view as the scene comes and goes: poll only while
+    /// the app is in front.
+    func setForeground(_ active: Bool) {
+        isForeground = active
+        if active {
+            startPolling()
+        } else {
+            pollTask?.cancel()
+            pollTask = nil
+        }
+    }
+
+    private func startPolling() {
+        guard pollTask == nil, isForeground, phase == .ready else { return }
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                await self.refreshNotch()
+                try? await Task.sleep(for: OfficeStore.pollInterval)
+            }
+        }
+    }
+
+    /// One poll of `/notch/state`. Plays the sound for whatever changed (a
+    /// new question, an approval, an agent erroring or finishing). Offices
+    /// without the endpoint get an inbox built from `/requests` instead.
+    func refreshNotch() async {
+        guard let broker, phase == .ready else { return }
+        notchSeq += 1
+        let seq = notchSeq
+        let fresh: NotchState
+        do {
+            fresh = try await broker.notchState()
+        } catch {
+            guard case BrokerError.http(404, _)? = error as? BrokerError else { return }
+            if let reqs = try? await broker.requests(channel: nil) { requests = reqs.filter(\.isPending) }
+            fresh = NotchState.derived(bots: bots, requests: requests, working: typing)
+        }
+        // A slower, older poll must not overwrite a newer one.
+        guard seq == notchSeq else { return }
+        let cues = InboxEvents.cues(from: notch, to: fresh)
+        notch = fresh
+        hiddenAttention.formIntersection(fresh.attention.map(\.id))
+        if let cue = cues.first { feedback.play(cue) }
+    }
+
+    /// Answers an inbox card with an option (and the typed text a write-in
+    /// option needs), or with free text alone when `option` is nil. The card
+    /// leaves at once; it comes back if the office refuses.
+    @discardableResult
+    func answer(_ item: NotchAttention, option: InterviewOption?, text: String?) async -> Bool {
+        guard let broker else { return false }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) { _ = hiddenAttention.insert(item.id) }
+        do {
+            if let option {
+                try await broker.answer(requestID: item.id, choiceID: option.id, text: text)
+            } else {
+                try await broker.answer(requestID: item.id, customText: text ?? "")
+            }
+            requests.removeAll { $0.id == item.id }
+            feedback.play(.sent)
+            await refreshNotch()
+            return true
+        } catch {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) { _ = hiddenAttention.remove(item.id) }
+            pairingError = (error as? BrokerError)?.errorDescription ?? error.localizedDescription
+            feedback.playHaptic(.error)
+            return false
+        }
+    }
+
+    /// Sends a confirmed voice transcript where the person pointed it.
+    func sendVoice(_ text: String, to target: VoiceTarget) async {
+        let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty else { return }
+        switch target {
+        case let .answer(requestID, _):
+            if let item = notch?.attention.first(where: { $0.id == requestID }) {
+                await answer(item, option: nil, text: content)
+            } else {
+                pairingError = "That question was already answered, so nothing was sent."
+            }
+        case let .message(channel, _):
+            await send(content, to: channel)
+            feedback.playHaptic(.sent)
+        }
+    }
+
+    /// Opens an agent's DM in the Chats tab.
+    func openChat(with slug: String) {
+        tab = .chats
+        openThread = DMChannel.slug(for: slug)
+    }
+
+    var officeAddress: String {
+        if isMock { return "Canned office (-mock)" }
+        return credentials.load()?.brokerURL.absoluteString ?? "Not paired"
     }
 
     // MARK: - Derived

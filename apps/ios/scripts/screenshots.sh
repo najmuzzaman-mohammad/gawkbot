@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Boot a simulator, install the app in mock mode, and capture the
-# conversation list and a thread. Output PNGs land in $OUT (default
-# /tmp/gawkbot-ios-shots).
+# Boot a simulator, install the app in mock mode, and capture the inbox,
+# the conversation list, and a couple of threads. Output PNGs land in $OUT
+# (default /tmp/gawkbot-ios-shots).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${OUT:-/tmp/gawkbot-ios-shots}"
@@ -33,7 +33,14 @@ app=$(find build/Build/Products -name "Gawkbot.app" -maxdepth 3 | head -1)
 xcrun simctl install "$udid" "$app"
 xcrun simctl terminate "$udid" bot.gawk.ios 2>/dev/null || true
 xcrun simctl launch "$udid" bot.gawk.ios -mock >/dev/null
-sleep 3
+sleep 4
+xcrun simctl io "$udid" screenshot "$OUT/00-inbox.png" >/dev/null
+xcrun simctl ui "$udid" appearance dark
+sleep 1
+xcrun simctl io "$udid" screenshot "$OUT/00-inbox-dark.png" >/dev/null
+xcrun simctl ui "$udid" appearance light
+xcrun simctl openurl "$udid" "gawkbot://chats"
+sleep 2
 xcrun simctl io "$udid" screenshot "$OUT/01-conversations.png" >/dev/null
 xcrun simctl openurl "$udid" "gawkbot://thread/cos"
 sleep 2

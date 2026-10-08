@@ -22,7 +22,7 @@ struct RootView: View {
                     Button("Pair again") { store.unpair() }.buttonStyle(.borderedProminent)
                 }
             case .ready:
-                ConversationListView()
+                MainTabView()
             }
         }
         .sheet(item: Binding(get: { store.proposedPairing.map(ProposedPairing.init) }, set: { if $0 == nil { store.proposedPairing = nil } })) { proposal in

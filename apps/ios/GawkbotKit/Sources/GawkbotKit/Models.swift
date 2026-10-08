@@ -106,8 +106,10 @@ public struct BotRequest: Codable, Identifiable, Hashable, Sendable {
     public var choices: [InterviewOption]?
     public var recommendedID: String?
     public var createdAt: String?
+    /// True when the asking bot's work is held up until this is answered.
+    public var blocking: Bool?
 
-    public init(id: String, from: String, question: String, title: String? = nil, kind: String? = nil, status: String? = nil, channel: String? = nil, options: [InterviewOption]? = nil, recommendedID: String? = nil, createdAt: String? = nil) {
+    public init(id: String, from: String, question: String, title: String? = nil, kind: String? = nil, status: String? = nil, channel: String? = nil, options: [InterviewOption]? = nil, recommendedID: String? = nil, createdAt: String? = nil, blocking: Bool? = nil) {
         self.id = id
         self.from = from
         self.question = question
@@ -119,10 +121,11 @@ public struct BotRequest: Codable, Identifiable, Hashable, Sendable {
         self.choices = nil
         self.recommendedID = recommendedID
         self.createdAt = createdAt
+        self.blocking = blocking
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, from, question, title, kind, status, channel, options, choices
+        case id, from, question, title, kind, status, channel, options, choices, blocking
         case recommendedID = "recommended_id"
         case createdAt = "created_at"
     }

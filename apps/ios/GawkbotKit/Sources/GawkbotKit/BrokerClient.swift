@@ -58,6 +58,15 @@ public final class BrokerClient: BrokerAPI, @unchecked Sendable {
         let _: OK = try await post("/requests/answer", body: body)
     }
 
+    public func answer(requestID: String, customText: String) async throws {
+        struct OK: Decodable { let ok: Bool? }
+        let _: OK = try await post("/requests/answer", body: ["id": requestID, "custom_text": customText])
+    }
+
+    public func notchState() async throws -> NotchState {
+        try await get("/notch/state", query: [:])
+    }
+
     public func events() -> AsyncStream<BrokerEvent> {
         AsyncStream { continuation in
             let task = Task {

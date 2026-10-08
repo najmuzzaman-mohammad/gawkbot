@@ -46,6 +46,10 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan the pairing code shown in your office's Access &amp; Health page.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>gawkbot listens only while you hold the mic button, so you can answer your agents or message them by voice. Nothing is sent until you tap Send.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Your words are turned into text so you can answer or message your agents. When this iPhone can transcribe on its own it does; otherwise Apple's speech recognition service does it. Nothing reaches your office until you tap Send.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>
