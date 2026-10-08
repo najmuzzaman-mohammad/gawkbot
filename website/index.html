@@ -77,7 +77,7 @@
         "Voice replies, confirmed before they are sent",
         "iPhone app, built from source, that replies to agents on your Mac and in the cloud",
         "Detects Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Factory Droid, Ollama, OpenClaw and Hermes",
-        "Every external action waits for your approval"
+        "Actions through your connected accounts wait for your approval, one at a time"
       ],
       "keywords": "AI agent manager, Mac notch, coding agents, Claude Code, Codex, agent inbox, open source grok bot",
       "isAccessibleForFree": true,
@@ -100,10 +100,10 @@
         { "@type": "Question", "name": "Is gawkbot free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. There is no subscription, no seat count, no trial and no usage fee. You bring the agents and API keys you already use. The source is public under the Sustainable Use License: free to self-host for your own internal business purposes and for non-commercial use." } },
         { "@type": "Question", "name": "Which agents does it work with?", "acceptedAnswer": { "@type": "Answer", "text": "Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Factory Droid, Ollama, OpenClaw and Hermes. Each one is tagged with the tool that started it and whether it runs on your Mac or in the cloud." } },
         { "@type": "Question", "name": "Do I need a MacBook with a notch?", "acceptedAnswer": { "@type": "Answer", "text": "No. On a Mac without a notch the same strip shows as a pill at the top centre of the screen, with the same panel, shortcuts and sounds." } },
-        { "@type": "Question", "name": "Is there an iPhone app?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, and it is new. It lives in the repo under apps/ios and you build it with Xcode; it is not on the App Store. Pair it once by scanning a QR code from the web app. Push notifications are not in yet." } },
-        { "@type": "Question", "name": "Where does my data go?", "acceptedAnswer": { "@type": "Answer", "text": "gawkbot runs on your machine and your workspace is local files you can read. Anonymous product analytics, when a build has them, are counts and shapes only, never your content, and you can switch them off in onboarding or Settings. A build from source ships without an analytics key, so it never phones home." } },
-        { "@type": "Question", "name": "Can an agent do something external without asking me?", "acceptedAnswer": { "@type": "Answer", "text": "No. Reads are free, but sends, pushes, purchases and deletes wait in the notch until you approve them. You approve each action, never a blanket grant." } },
-        { "@type": "Question", "name": "How does voice work?", "acceptedAnswer": { "@type": "Answer", "text": "Hold V and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; in a browser it uses the browser's own speech recognition. You see the transcript first, and nothing is sent until you press Return." } },
+        { "@type": "Question", "name": "Is there an iPhone app?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, and it is new. It lives in the repo under apps/ios and you build it with Xcode; it is not on the App Store. Pair it once by scanning the code in Access &amp; Health, with the phone on a network that can reach your Mac (your Wi-Fi or Tailscale). Push notifications are not in yet." } },
+        { "@type": "Question", "name": "Where does my data go?", "acceptedAnswer": { "@type": "Answer", "text": "gawkbot runs on your machine and your workspace is local files you can read. Release builds include anonymous product analytics (counts and shapes, never your content) and, unless you turn it off, session replay that masks everything you type but can show what is on screen. Switch either off in onboarding or Settings. A build from source has no analytics key and sends no analytics; the only call home is the update check." } },
+        { "@type": "Question", "name": "Can an agent do something external without asking me?", "acceptedAnswer": { "@type": "Answer", "text": "Not through your connected accounts. Reads are free, but an email, a post or any other action through an account you connected waits in the notch until you approve it, one action at a time, unless you choose always-allow for that one action. An agent working in a repo on your machine still uses the tool's own permissions." } },
+        { "@type": "Question", "name": "How does voice work?", "acceptedAnswer": { "@type": "Answer", "text": "Hold V and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; on the iPhone it is the same. You see the transcript first, and nothing is sent until you press Return." } },
         { "@type": "Question", "name": "Does it work on Windows or Linux?", "acceptedAnswer": { "@type": "Answer", "text": "The web app does: run npx gawkbot on macOS, Windows or Linux and it opens in your browser, and there is a desktop app for Windows. The notch itself is Mac only." } }
       ]
     }
@@ -174,7 +174,7 @@
       <i class="nb-cam" aria-hidden="true"></i>
     </p>
     <h1 class="h1 reveal d1" id="hero-title">Never leave your agents <span class="grad">hanging.</span></h1>
-    <p class="lead reveal d2">gawkbot finds every coding agent on your Mac, and the ones you run in the cloud, and gives them one place to ask you things. When one needs you, it comes out of the notch. Answer with a key, or just say it.</p>
+    <p class="lead reveal d2">gawkbot finds the coding agents installed on your Mac, turns them into a team, and gives them, and the ones you run on a cloud computer, one place to ask you things. When one needs you, it comes out of the notch. Answer with a key, or just say it.</p>
     <div class="cta-row reveal d3">
       <button class="cmd" type="button" data-copy="npx gawkbot" aria-label="Copy the install command: npx gawkbot">
         <span><span class="prompt">$ </span>npx gawkbot</span>
@@ -197,7 +197,7 @@
        not a screenshot. -->
   <div class="scene" data-scene data-step="3">
     <div class="scene-pin">
-      <figure class="mac" role="img" aria-label="Illustration: the top of a MacBook screen. A question from an agent arrives in the notch, the pointer moves up to it, and a dark glass inbox pulls down out of the notch, listing three questions from agents with numbered answers, the agents on the team, and a bar for messaging the Chief of Staff.">
+      <figure class="mac" role="img" aria-label="Illustration: the top of a MacBook screen. Three agents that need an answer pile onto the notch with a count, the pointer moves up to it, and a dark glass inbox pulls down out of the notch, listing three questions from agents with numbered answers, the agents on the team, and a bar for messaging the Chief of Staff.">
         <div class="mac-screen">
           <div class="wall" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           <div class="menubar" aria-hidden="true">
@@ -228,7 +228,6 @@
             <div class="strip">
               <div class="ear ear-l">
                 <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
-                <span class="ear-text"><b>flaky-tests</b> needs you</span>
               </div>
               <div class="notch-hw"></div>
               <div class="ear ear-r">
@@ -245,7 +244,7 @@
               <div class="drop-inner">
                 <div class="nhead stg" style="--i:0">
                   <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
-                  <div class="nhead-text"><small>Chief of Staff</small>3 agents need you</div>
+                  <div class="nhead-text"><small>Chief of Staff</small>3 things need you</div>
                   <span class="nbtn lg">↗ Full view</span>
                 </div>
 
@@ -253,7 +252,7 @@
                 <div class="nq sel lg stg" style="--i:2">
                   <svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
                   <div class="nq-body">
-                    <div class="nq-from"><b>flaky-tests</b><span class="ntag cloud">cloud</span><span class="ntag hold">holding up work</span></div>
+                    <div class="nq-from"><b>flaky-tests</b><span class="ntag cloud">cloud computer</span><span class="ntag hold">holding up work</span></div>
                     <p class="nq-text"><strong>Checkout fails one run in ten.</strong> Which fix should I keep?</p>
                     <div class="nq-acts"><span class="nbtn lg"><kbd>1</kbd>Add a retry</span><span class="nbtn lg primary"><kbd>2</kbd>Freeze the clock</span><span class="nbtn quiet"><kbd>R</kbd>Reply</span></div>
                   </div>
@@ -303,11 +302,11 @@
     <div>
       <p class="eyebrow reveal">Inbox</p>
       <h2 class="h2 reveal" id="inbox-title">One inbox for every agent's questions.</h2>
-      <p class="lead reveal" style="margin-top:20px">Agents stop and ask, usually in a terminal tab you closed an hour ago. gawkbot collects every question in one list, so nothing sits there waiting while you look somewhere else.</p>
+      <p class="lead reveal" style="margin-top:20px">Agents stop and ask, and the question sits in a tab you closed an hour ago. gawkbot runs your agents as a team and collects every question they ask in one list, so nothing sits there waiting while you look somewhere else.</p>
       <ul class="points reveal">
-        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Tagged at a glance.</strong> Each question shows which agent asked, the tool that started it, and whether it runs on this Mac or in the cloud.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Tagged at a glance.</strong> Each question shows which agent asked, the tool that runs it, and whether it runs on this Mac or on a cloud computer.</span></li>
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Answer in place.</strong> Approve, reject, pick an option or type a reply, right there in the panel.</span></li>
-        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Nothing external without you.</strong> Sends, pushes, purchases and deletes wait for your yes. Reads don't have to.</span></li>
+        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Nothing through your accounts without you.</strong> Emails, posts and every other action through an account you connected wait for your yes, one at a time. Reads don't have to.</span></li>
       </ul>
     </div>
     <div class="stack" aria-label="Three example questions from agents" role="img">
@@ -332,7 +331,7 @@
       <div class="card glass lg reveal d2">
         <div class="q-head">
           <svg class="blob glow" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-changelog"/></svg>
-          <div><div class="q-who">changelog</div><div class="tags"><span class="tag">Gemini CLI</span><span class="tag">this Mac</span></div></div>
+          <div><div class="q-who">changelog</div><div class="tags"><span class="tag">Opencode</span><span class="tag">this Mac</span></div></div>
           <span class="kind">Question</span>
         </div>
         <p class="q-text">What should this release be called?</p>
@@ -352,7 +351,6 @@
       <ul class="points reveal">
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>On-device on the Mac.</strong> The Mac app uses Apple's speech recognition, on-device when your Mac supports it.</span></li>
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>A draft, not a send.</strong> Fix a word before it goes, or press Esc and it never happened.</span></li>
-        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>In the browser too.</strong> The web app uses your browser's own speech recognition.</span></li>
       </ul>
     </div>
     <div class="voice-card glass lg reveal" role="img" aria-label="Illustration: a glowing microphone button, a moving sound wave, and the words being transcribed, ready to send to the agent auth-refactor.">
@@ -373,7 +371,7 @@
     <div>
       <p class="eyebrow reveal">iPhone</p>
       <h2 class="h2 reveal" id="iphone-title">Reply from your iPhone, even to agents running in the cloud.</h2>
-      <p class="lead reveal" style="margin-top:20px">Walk away from the desk and the questions come with you. Pair your phone once with a QR code from the web app, then answer with a tap, a few words or the mic.</p>
+      <p class="lead reveal" style="margin-top:20px">Walk away from the desk and the questions come with you. Pair your phone once by scanning the code in Access &amp; Health, with the phone on a network that can reach your Mac (your Wi-Fi or Tailscale), then answer with a tap, a few words or the mic.</p>
       <ul class="points reveal">
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Every agent in one list.</strong> The ones on your Mac and the ones in the cloud, with the same faces as on the desktop.</span></li>
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Same one-tap answers.</strong> Approvals and choices arrive as cards with buttons.</span></li>
@@ -466,7 +464,7 @@
     <div class="section-head center">
       <p class="eyebrow reveal">Detection</p>
       <h2 class="h2 reveal" id="agents-title">Detects every agent on your machine.</h2>
-      <p class="lead reveal">No setup per tool. gawkbot notices the agents you already run and tags each one with the tool that started it and where it runs.</p>
+      <p class="lead reveal">No setup per tool. gawkbot notices the agents you already have; one click adopts them, and each one is tagged with the tool that runs it and where it runs. Claude Code, Codex, Opencode and local models can ask you in the inbox; the others take work and report back.</p>
     </div>
     <ul class="chips reveal" aria-label="Supported agents">
       <li class="chip glass">Claude Code</li>
@@ -511,8 +509,8 @@
       <article class="fun-card glass lg reveal">
         <div class="stage" aria-hidden="true">
           <div class="mini-notch talk"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><svg class="blob" viewBox="0 0 16 16"><use href="#b-ui-polish"/></svg></div>
-          <span class="bubble a">Is the human still there?</span>
-          <span class="bubble b">Reading the diff. Slowly.</span>
+          <span class="bubble a">Is the human even there?</span>
+          <span class="bubble b">Cursor moved four minutes ago. I'm counting that.</span>
         </div>
         <h3 class="h3">They get chatty.</h3>
         <p>Keep them waiting and they get restless, then start talking to each other about it.</p>
@@ -564,7 +562,7 @@
         <a class="btn btn-glass lg lg-lens" href="https://github.com/najmuzzaman-mohammad/gawkbot" target="_blank" rel="noopener">Read the source</a>
       </div>
     </div>
-    <p class="terms reveal">Public source under the <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Sustainable Use License</a>. Free to self-host, on your own API keys, for your own internal business purposes and for non-commercial use. You can read it, modify it and distribute your changes; the licence does not let you sell gawkbot itself as a hosted product. There are no seats, no usage fees, and no plan to add them.</p>
+    <p class="terms reveal">Public source under the <a href="https://github.com/najmuzzaman-mohammad/gawkbot/blob/main/LICENSE" target="_blank" rel="noopener">Sustainable Use License</a>. Free to self-host, on your own API keys, for your own internal business purposes and for non-commercial use. You can read it, modify it and share your changes free of charge for non-commercial use; the licence does not let you sell gawkbot itself as a hosted product. There are no seats, no usage fees, and no plan to add them.</p>
   </div>
 </section>
 
@@ -590,19 +588,19 @@
       </details>
       <details class="glass lg">
         <summary>Is there an iPhone app?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
-        <div class="answer">Yes, and it is new. It lives in the repo under <code>apps/ios</code> and you build it with Xcode; it is not on the App Store. Pair it once by scanning a QR code from the web app. Push notifications are not in yet.</div>
+        <div class="answer">Yes, and it is new. It lives in the repo under <code>apps/ios</code> and you build it with Xcode; it is not on the App Store. Pair it once by scanning the code in Access &amp; Health, with the phone on a network that can reach your Mac (your Wi-Fi or Tailscale). Push notifications are not in yet.</div>
       </details>
       <details class="glass lg">
         <summary>Where does my data go?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
-        <div class="answer">gawkbot runs on your machine and your workspace is local files you can read. Anonymous product analytics, when a build has them, are counts and shapes only, never your content, and you can switch them off in onboarding or Settings. A build from source ships without an analytics key, so it never phones home.</div>
+        <div class="answer">gawkbot runs on your machine and your workspace is local files you can read. Release builds include anonymous product analytics (counts and shapes, never your content) and, unless you turn it off, session replay that masks everything you type but can show what is on screen. Switch either off in onboarding or Settings. A build from source has no analytics key and sends no analytics; the only call home is the update check.</div>
       </details>
       <details class="glass lg">
         <summary>Can an agent do something external without asking me?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
-        <div class="answer">No. Reads are free, but sends, pushes, purchases and deletes wait in the notch until you approve them. You approve each action, never a blanket grant.</div>
+        <div class="answer">Not through your connected accounts. Reads are free, but an email, a post or any other action through an account you connected waits in the notch until you approve it, one action at a time, unless you choose always-allow for that one action. An agent working in a repo on your machine still uses the tool's own permissions.</div>
       </details>
       <details class="glass lg">
         <summary>How does voice work?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
-        <div class="answer">Hold <kbd class="k">V</kbd> and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; in a browser it uses the browser's own speech recognition. You see the transcript first, and nothing is sent until you press <kbd class="k">↵</kbd>.</div>
+        <div class="answer">Hold <kbd class="k">V</kbd> and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; on the iPhone it is the same. You see the transcript first, and nothing is sent until you press <kbd class="k">↵</kbd>.</div>
       </details>
       <details class="glass lg">
         <summary>Does it work on Windows or Linux?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>

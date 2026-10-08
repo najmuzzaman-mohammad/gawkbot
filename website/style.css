@@ -581,12 +581,6 @@ section { position: relative; }
 .ear { display: flex; align-items: center; gap: 7px; min-width: 0; height: 100%; overflow: hidden; }
 .ear-r { justify-content: flex-end; }
 .ear .blob { width: 24px; height: 24px; }
-.ear-text {
-  font-size: 12.5px; white-space: nowrap; color: var(--notch-ink-2);
-  opacity: calc(var(--n) * 2 - 1 - var(--o) * 2);
-  transform: translateX(calc((1 - var(--n)) * -12px));
-}
-.ear-text b { color: var(--notch-ink); font-weight: 650; }
 .ear-gang { display: flex; align-items: center; }
 .ear-gang .blob { transform: translateY(calc((1 - var(--n)) * 30px)); }
 .ear-gang .g2 { margin-left: -9px; transform: translateY(calc((1 - var(--n)) * 36px)); }
@@ -678,7 +672,6 @@ section { position: relative; }
   .menubar .mi, .menubar .ic { display: none; }
   .island { --w-closed: 250px; --w-note: 300px; --w-open: 128%; zoom: 0.78; }
   .notch-hw { width: 110px; }
-  .ear-text { display: none; }
   .win { left: 4%; right: 4%; top: 150px; }
   .code { font-size: 11.5px; padding: 14px; }
   .nagents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
