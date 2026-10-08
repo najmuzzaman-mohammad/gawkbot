@@ -7,8 +7,8 @@ import Foundation
 /// has dressed looks exactly as it always did.
 ///
 /// WIRE CONTRACT: `MemberAvatar` in internal/team/broker_member_avatar.go.
-/// `shape` is one of `shapeIDs` (indices 0–7 of `BlobAvatar.silhouettes`, in
-/// that order); `color` is `#rrggbb`. Update with
+/// `shape` is one of `shapeIDs` (the species, in the order of
+/// `GawkAvatar.bodyPoints`); `color` is `#rrggbb`. Update with
 /// `POST /office-members {action:"update", slug, avatar}`; `avatar: {}` resets.
 public struct BotAvatar: Codable, Hashable, Sendable {
     public var shape: String?
@@ -19,7 +19,7 @@ public struct BotAvatar: Codable, Hashable, Sendable {
         self.color = color
     }
 
-    /// The silhouette ids, in the order of `BlobAvatar.silhouettes`.
+    /// The species ids, in wire order (AVATAR_SHAPES on the web).
     public static let shapeIDs: [String] = ["block", "dome", "drop", "bean", "pill", "loaf", "shield", "blob"]
 
     enum CodingKeys: String, CodingKey {
@@ -60,7 +60,7 @@ public struct BotAvatar: Codable, Hashable, Sendable {
         return shapeIDs.firstIndex(of: id)
     }
 
-    /// The shape id for an index, wrapping like the silhouette table does.
+    /// The shape id for an index, wrapping like the web's modulo.
     public static func shapeID(at index: Int) -> String {
         let n = shapeIDs.count
         return shapeIDs[((index % n) + n) % n]

@@ -107,9 +107,14 @@ as light/dark pairs.
 
 ### Avatars
 
-Flat filled blobs with the eyes cut out, drawn as smooth vectors (a port of
-`web/src/lib/blobAvatarSmooth.ts`, tested against it) in the office's own
-eight silhouettes: block, dome, drop, bean, pill, loaf, shield, blob.
+Each bot is a small soft character: a rounded body lit from the top left
+with a glossy highlight, big glossy eyes, a mouth and a signature accessory
+per species (antenna, ears, curl, sprout, antennae, feet, horns, bubble).
+The geometry is `GawkAvatar` in GawkbotKit, a port of
+`web/src/lib/gawkAvatar.ts` tested against it, in the office's eight
+species: block, dome, drop, bean, pill, loaf, shield, blob. The face
+follows the mood: concentrating (working), sleepy (idle), asking (needs
+you), worried (hit a snag), eyes-closed smile (done).
 
 - **Chosen or automatic.** A bot wears the `avatar: {shape, color}` the
   office sends on `/office-members` and `/notch/state` when one is set;
@@ -137,7 +142,7 @@ eight silhouettes: block, dome, drop, bean, pill, loaf, shield, blob.
 - `GawkbotKit/` — Swift package, no UIKit. Wire models (`NotchState` for
   the inbox), `BrokerClient` (REST + server-sent events), `MockBroker` (a
   canned office for previews, screenshots, and tests), `Pairing`, the
-  blob-avatar ports (pixel `BlobAvatar` and vector `SmoothBlob`), the
+  avatar ports (`BlobAvatar` for the look, `GawkAvatar` for the geometry), the
   chosen look (`BotAvatar`, `BlobAvatar.resolve`), and the inbox's pure
   logic: `InboxKeymap`, `InboxCursor`, `VoiceTarget`, `InboxEvents` (which
   sound a poll deserves), `CartoonSynth`, `MoodMotion` (mood loops, tap

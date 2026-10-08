@@ -2,17 +2,13 @@ import { useMemo, useRef } from "react";
 
 import type { OfficeMember } from "../../api/client";
 import { useBotEventPeek } from "../../hooks/useBotEventPeek";
-import { useDefaultHarness } from "../../hooks/useConfig";
 import { useFirstRunNudge } from "../../hooks/useFirstRunNudge";
 import { useOfficeMembers } from "../../hooks/useMembers";
 import { useOverflow } from "../../hooks/useOverflow";
-import { AVATAR_MODE } from "../../lib/avatarMode";
-import { type HarnessKind, resolveHarness } from "../../lib/harness";
 import { router } from "../../lib/router";
 import { useCurrentRoute } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
 import { BotWizard, useBotWizard } from "../bots/BotWizard";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { BotEventPeek } from "./BotEventPeek";
 import { BotEventPill, BotEventTickProvider } from "./BotEventPill";
@@ -56,7 +52,6 @@ interface SidebarBotRowProps {
   isDMActive: boolean;
   isFirst: boolean;
   showNudge: boolean;
-  defaultHarness: HarnessKind;
   onSelect: (slug: string) => void;
 }
 
@@ -70,7 +65,6 @@ function SidebarBotRow({
   isDMActive,
   isFirst,
   showNudge,
-  defaultHarness,
   onSelect,
 }: SidebarBotRowProps) {
   const peek = useBotEventPeek(agent.slug);
@@ -83,7 +77,6 @@ function SidebarBotRow({
     (s) => s.computerStates[agent.slug]?.state === "ready",
   );
   const onComputer = working && computerReady;
-  const harness = resolveHarness(agent.provider, defaultHarness);
   const displayName = agent.name || agent.slug;
 
   return (
@@ -114,18 +107,6 @@ function SidebarBotRow({
             working={working}
             avatar={agent.avatar}
           />
-          {/* The harness badge is dropped in blob mode. On the old character
-              sprite it sat over the body; a blob has no body to spare, so it
-              lands on the mark itself and competes with the one status signal
-              that has to survive at 24px -- the working dot. In sprite mode it
-              behaves exactly as before. */}
-          {AVATAR_MODE !== "blob" && (
-            <HarnessBadge
-              kind={harness}
-              size={10}
-              className="harness-badge-on-avatar"
-            />
-          )}
           {/* Top-right of the avatar carries exactly ONE dot, and which one
               depends on the more important fact being true.
 
@@ -246,7 +227,6 @@ export function BotList() {
   const activeBotSlug = route.kind === "bot-detail" ? route.agentSlug : null;
   const wizard = useBotWizard();
   const overflowRef = useOverflow<HTMLDivElement>();
-  const defaultHarness = useDefaultHarness();
   const { showNudge } = useFirstRunNudge();
   const isReconnecting = useAppStore((s) => s.isReconnecting);
 
@@ -301,7 +281,6 @@ export function BotList() {
                     isDMActive={activeBotSlug === cos.slug}
                     isFirst={cos.slug === firstBotSlug}
                     showNudge={showNudge}
-                    defaultHarness={defaultHarness}
                     onSelect={handleSelect}
                   />
                 </div>
@@ -326,7 +305,6 @@ export function BotList() {
                           isDMActive={activeBotSlug === agent.slug}
                           isFirst={agent.slug === firstBotSlug}
                           showNudge={showNudge}
-                          defaultHarness={defaultHarness}
                           onSelect={handleSelect}
                         />
                       </div>

@@ -4,8 +4,7 @@ import { PixelAvatar as CanvasPixelAvatar } from "../ui/PixelAvatar";
 
 /**
  * Wiki-surface bot avatar — default-export wrapper over the shared
- * `components/ui/PixelAvatar`, so it draws whatever that draws (the smooth
- * vector mark in blob mode, the canvas sprite in sprite mode). Keeps the
+ * `components/ui/PixelAvatar`, so it draws whatever that draws. Keeps the
  * wiki's byline, backlinks, edit-log entries, Sources list, and catalog cards
  * visually in sync with bot avatars rendered elsewhere in the app.
  */

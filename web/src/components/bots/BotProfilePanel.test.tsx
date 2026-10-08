@@ -364,14 +364,14 @@ describe("<BotProfilePanel> avatar", () => {
     const save = screen.getByRole("button", { name: "Save avatar" });
     expect(save).toBeDisabled();
     await user.click(screen.getByRole("radio", { name: "Pill" }));
-    await user.click(screen.getByRole("radio", { name: "Teal" }));
+    await user.click(screen.getByRole("radio", { name: "Coral" }));
     await user.click(save);
 
     await waitFor(() =>
       expect(postMock).toHaveBeenCalledWith("/office-members", {
         action: "update",
         slug: "planner",
-        avatar: { shape: "pill", color: "#3f9c8f" },
+        avatar: { shape: "pill", color: "#ff7a59" },
       }),
     );
     await waitFor(() =>

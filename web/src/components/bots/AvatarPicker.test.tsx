@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { MemberAvatar } from "../../api/memberTypes";
 import {
+  AVATAR_COLORS,
   AVATAR_SHAPES,
-  BLOB_COLORS,
   blobColor,
   blobShapeIndex,
 } from "../../lib/blobAvatar";
@@ -53,7 +53,7 @@ describe("<AvatarPicker>", () => {
     }
 
     expect(within(colorGroup()).getAllByRole("radio")).toHaveLength(
-      BLOB_COLORS.length,
+      AVATAR_COLORS.length,
     );
     expect(
       within(colorGroup()).getByRole("radio", { checked: true }),
@@ -108,10 +108,10 @@ describe("<AvatarPicker>", () => {
   it("picks palette and custom colours, keeping the shape", async () => {
     const onChange = vi.fn();
     render(<Harness initial={{ shape: "loaf" }} onChange={onChange} />);
-    await userEvent.click(screen.getByRole("radio", { name: "Teal" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Mint" }));
     expect(onChange).toHaveBeenLastCalledWith({
       shape: "loaf",
-      color: "#3f9c8f",
+      color: "#45cfa0",
     });
 
     fireEvent.change(screen.getByLabelText("Custom colour"), {

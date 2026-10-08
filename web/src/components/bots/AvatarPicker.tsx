@@ -2,9 +2,9 @@ import { type CSSProperties, type KeyboardEvent, useId, useRef } from "react";
 
 import type { AvatarShape, MemberAvatar } from "../../api/memberTypes";
 import {
+  AVATAR_COLOR_NAMES,
+  AVATAR_COLORS,
   AVATAR_SHAPES,
-  BLOB_COLOR_NAMES,
-  BLOB_COLORS,
   hasAvatarChoice,
   normalizeAvatarColor,
   resolveAvatar,
@@ -13,7 +13,7 @@ import { BlobAvatar } from "../ui/BlobAvatar";
 
 import "../../styles/avatar-picker.css";
 
-// Pick a bot's look: one of the office's eight blob silhouettes and a body
+// Pick a bot's look: one of the office's eight species and a body
 // colour. `value` undefined means AUTOMATIC: the look derived from the slug,
 // which is what every bot had before avatars were pickable. Each field is
 // independent, so picking only a shape keeps the derived colour (and vice
@@ -91,7 +91,7 @@ export function AvatarPicker({
   const previewSlug = slug.trim() || "new-bot";
   const automatic = !hasAvatarChoice(value);
   const look = resolveAvatar(previewSlug, value);
-  const paletteIndex = BLOB_COLORS.indexOf(look.color);
+  const paletteIndex = AVATAR_COLORS.indexOf(look.color);
   const customColor = paletteIndex < 0;
 
   const pickShape = (shape: AvatarShape) =>
@@ -106,10 +106,10 @@ export function AvatarPicker({
     shapeRefs.current[to]?.focus();
   };
   const onColorKey = (e: KeyboardEvent<HTMLInputElement>, i: number) => {
-    const to = nextIndex(e.key, i, BLOB_COLORS.length);
+    const to = nextIndex(e.key, i, AVATAR_COLORS.length);
     if (to === null) return;
     e.preventDefault();
-    pickColor(BLOB_COLORS[to]);
+    pickColor(AVATAR_COLORS[to]);
     colorRefs.current[to]?.focus();
   };
 
@@ -183,7 +183,7 @@ export function AvatarPicker({
       <fieldset className="avatar-picker-group" disabled={disabled}>
         <legend className="avatar-picker-label">Colour</legend>
         <div className="avatar-picker-colors">
-          {BLOB_COLORS.map((color, i) => (
+          {AVATAR_COLORS.map((color, i) => (
             <label
               key={color}
               className="avatar-picker-swatch"
@@ -199,7 +199,7 @@ export function AvatarPicker({
                 className="sr-only"
                 name={`${id}-color`}
                 value={color}
-                aria-label={BLOB_COLOR_NAMES[i] ?? color}
+                aria-label={AVATAR_COLOR_NAMES[i] ?? color}
                 checked={i === paletteIndex}
                 onChange={() => pickColor(color)}
                 onKeyDown={(e) => onColorKey(e, i)}

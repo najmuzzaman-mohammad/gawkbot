@@ -19,17 +19,15 @@ beforeEach(() => {
   roster.avatars.clear();
 });
 
-/** The fill the smooth mark painted its body with. */
+/** The mid tone of the body gradient: the colour the bot was given. */
 function bodyFill(container: HTMLElement): string | null {
-  return (
-    container.querySelector(".pixel-avatar path")?.getAttribute("fill") ?? null
-  );
+  const stops = container.querySelectorAll(".pixel-avatar linearGradient stop");
+  return stops[1]?.getAttribute("stop-color") ?? null;
 }
 
-// The wrapper renders whatever the shared avatar renders: the smooth SVG
-// mark in blob mode (the shipped default), a <canvas> in sprite mode. The
-// assertions target the shared `.pixel-avatar` class so they hold for both;
-// components/ui/PixelAvatar.test.tsx covers each mode's element directly.
+// The wrapper renders whatever the shared avatar renders. The assertions
+// target the shared `.pixel-avatar` class; components/ui/PixelAvatar.test.tsx
+// covers the element itself.
 describe("<PixelAvatar> (wiki wrapper)", () => {
   it("renders the shared bot avatar", () => {
     // Arrange / Act
