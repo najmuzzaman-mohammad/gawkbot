@@ -46,7 +46,7 @@ an approval gate on every external action. The honest version, row by row:
 | Source | Closed | Public, Sustainable Use License |
 | Runs on | xAI's cloud | Your machine, with your keys |
 | Models | Grok, chosen for you | Claude Code, Codex, Opencode, local models, Hermes, OpenClaw, plus any agent CLI it finds on your machine |
-| Bot computers | One per bot, in the cloud | Not yet. Per-bot directory and tool allowlist on your machine |
+| Bot computers | One per bot, in the cloud | Each bot gets a sandbox on your machine or a cloud computer, with its own directory and tool allowlist |
 | Approvals | Bots act on your accounts around the clock | Every send, commit, purchase, and delete waits for your click |
 
 Full comparison, where Grok Bot is better, and the other open source

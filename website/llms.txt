@@ -1,16 +1,16 @@
 # gawkbot
 
-> gawkbot is the open source Grok Bot. gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so that you have a false sense of control. Free, runs on your machine with Claude Code, Codex, Opencode, or a local model, and every send, commit, purchase, and delete waits for your approval.
+> gawkbot is the open source Grok Bot. gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so that you have a false sense of control. Free, runs on your machine with Claude Code, Codex, Opencode, or a local model, and every action through your connected accounts waits for your approval.
 
 gawkbot is an independent, source-available project under the Sustainable Use License. It is a parody of xAI's Grok Bot and is not affiliated with xAI, X Corp, or Cursor.
 
 ## Key facts
 
 - Install: `npx gawkbot@latest` (needs Claude Code, Codex CLI, or Opencode signed in)
-- Price: free, no account, no cloud, no seats, no usage fees
+- Price: free, no account, no gawkbot cloud service, no seats, no usage fees
 - Runs on: your machine, with your keys; local models keep everything offline
 - Models: Claude Code (default), Codex CLI, Opencode, local models, Hermes Bot, OpenClaw
-- Bot computers: not yet; each bot has its own directory and tool allowlist on your machine
+- Bot computers: each bot gets a sandbox on your machine or a cloud computer, with its own directory and tool allowlist
 - Approvals: per action on every external write, never a blanket grant
 - Platforms: macOS and Windows desktop apps, Linux via the CLI
 - Licence: Sustainable Use License (read, modify, self-host; do not resell as a hosted product)
