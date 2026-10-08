@@ -23,9 +23,11 @@
 #include "_cgo_export.h"
 
 static const CGFloat kEarWidth = 72.0;
-// Keep in sync with EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx.
-static const CGFloat kExpandedWidth = 440.0;
-static const CGFloat kExpandedHeight = 420.0;
+// The open panel. The page draws itself at exactly this size, so keep these
+// equal to EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx:
+// a smaller window clips the composer and the shortcut footer.
+static const CGFloat kExpandedWidth = 460.0;
+static const CGFloat kExpandedHeight = 560.0;
 // Matches the .notch-shell CSS transition, so the panel shrinks only after
 // the page has finished animating closed.
 static const NSTimeInterval kCollapseDelay = 0.3;
