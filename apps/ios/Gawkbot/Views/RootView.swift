@@ -11,16 +11,20 @@ struct RootView: View {
                 PairingView()
             case .connecting:
                 VStack(spacing: 12) {
-                    ProgressView()
+                    MoodAvatarView(slug: "cos", mood: .working, size: 72, halo: true)
                     Text("Reaching your office…").foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.softCanvas)
             case let .failed(reason):
                 VStack(spacing: 16) {
-                    Image(systemName: "wifi.exclamationmark").font(.system(size: 40)).foregroundStyle(.secondary)
+                    MoodAvatarView(slug: "cos", mood: .error, size: 72, halo: true)
                     Text("Could not reach the office").font(.headline)
                     Text(reason).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal)
                     Button("Pair again") { store.unpair() }.buttonStyle(.borderedProminent)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.softCanvas)
             case .ready:
                 MainTabView()
             }

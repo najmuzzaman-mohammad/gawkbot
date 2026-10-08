@@ -10,14 +10,22 @@ struct ConversationListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             List {
+                if store.bots.isEmpty {
+                    EmptyStateView(slug: "cos", mood: .idle, line: "No bots yet. Hire one in the office and it shows up here.")
+                        .cardRow()
+                }
                 ForEach(store.bots) { bot in
                     NavigationLink(value: bot.dmChannel) {
                         ConversationRow(bot: bot)
                     }
                     .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Color.softHairline)
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color.softCanvas)
             .navigationTitle("Chats")
             .navigationDestination(for: String.self) { channel in
                 ThreadView(channel: channel)
@@ -60,9 +68,8 @@ struct ConversationRow: View {
                 Circle().fill(Color.accentColor).frame(width: 10, height: 10).opacity(unread > 0 ? 1 : 0)
             }
             .frame(width: 12)
-            WorkingBlobAvatarView(slug: bot.slug, size: 48, working: typing)
-                .padding(4)
-                .background(Circle().fill(Color(.secondarySystemBackground)))
+            // No tap-squish here: the row is a NavigationLink and the tap is its.
+            WorkingBlobAvatarView(slug: bot.slug, avatar: store.avatar(for: bot.slug), size: 44, working: typing, halo: true)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(bot.name).font(.body.weight(.semibold)).lineLimit(1)
@@ -75,7 +82,7 @@ struct ConversationRow: View {
                     }
                     Text(preview)
                         .font(.subheadline)
-                        .foregroundStyle(typing ? Color.secondary : Color.secondary)
+                        .foregroundStyle(Color.secondary)
                         .lineLimit(2)
                         .italic(typing)
                 }

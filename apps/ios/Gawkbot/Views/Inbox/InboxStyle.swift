@@ -1,70 +1,8 @@
 import SwiftUI
 import GawkbotKit
 
-// Shared look for the inbox: frosted cards over a soft colour wash, tag
-// chips, and mood pills. System materials and semantic colours only, so it
-// follows light and dark mode on its own.
-
-/// Soft blurred colour behind the glass so the material has something to
-/// frost. Static (no motion), so Reduce Motion has nothing to turn off.
-struct InboxBackdrop: View {
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        let strength = scheme == .dark ? 0.32 : 0.20
-        ZStack {
-            Color(.systemGroupedBackground)
-            Circle()
-                .fill(Color.accentColor.opacity(strength))
-                .frame(width: 340, height: 340)
-                .blur(radius: 90)
-                .offset(x: -130, y: -280)
-            Circle()
-                .fill(Color.orange.opacity(strength * 0.9))
-                .frame(width: 300, height: 300)
-                .blur(radius: 100)
-                .offset(x: 150, y: 20)
-            Circle()
-                .fill(Color.purple.opacity(strength * 0.8))
-                .frame(width: 280, height: 280)
-                .blur(radius: 110)
-                .offset(x: -80, y: 360)
-        }
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
-    }
-}
-
-/// A frosted, generously rounded card.
-struct GlassCard: ViewModifier {
-    var cornerRadius: CGFloat = 24
-    var padding: CGFloat = 16
-
-    func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
-            )
-            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
-    }
-}
-
-extension View {
-    func glassCard(cornerRadius: CGFloat = 24, padding: CGFloat = 16) -> some View {
-        modifier(GlassCard(cornerRadius: cornerRadius, padding: padding))
-    }
-
-    /// A List row that is just a card on the backdrop: no separator, no
-    /// cell background.
-    func cardRow() -> some View {
-        listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-    }
-}
+// Shared pieces for the inbox: tag chips and mood pills. The soft canvas,
+// cards and `cardRow()` live in Views/Theme.swift.
 
 struct TagChip: View {
     let tag: AgentTag

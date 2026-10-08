@@ -70,10 +70,12 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
     public var runsOn: String?
     public var runsOnDetail: String?
     public var isLead: Bool
+    /// The agent's chosen look, when it has one; nil is the derived look.
+    public var avatar: BotAvatar?
 
     public var id: String { slug }
 
-    public init(slug: String, name: String, mood: Mood, detail: String? = nil, origin: String? = nil, runsOn: String? = nil, runsOnDetail: String? = nil, isLead: Bool = false) {
+    public init(slug: String, name: String, mood: Mood, detail: String? = nil, origin: String? = nil, runsOn: String? = nil, runsOnDetail: String? = nil, isLead: Bool = false, avatar: BotAvatar? = nil) {
         self.slug = slug
         self.name = name
         self.mood = mood
@@ -82,10 +84,11 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
         self.runsOn = runsOn
         self.runsOnDetail = runsOnDetail
         self.isLead = isLead
+        self.avatar = avatar
     }
 
     enum CodingKeys: String, CodingKey {
-        case slug, name, mood, detail, origin
+        case slug, name, mood, detail, origin, avatar
         case runsOn = "runs_on"
         case runsOnDetail = "runs_on_detail"
         case isLead = "is_lead"
@@ -101,6 +104,7 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
         runsOn = try c.decodeIfPresent(String.self, forKey: .runsOn)
         runsOnDetail = try c.decodeIfPresent(String.self, forKey: .runsOnDetail)
         isLead = try c.decodeIfPresent(Bool.self, forKey: .isLead) ?? false
+        avatar = try? c.decodeIfPresent(BotAvatar.self, forKey: .avatar)
     }
 
     /// Cloud and gateway agents (OpenClaw, Hermes, Slack). They are answered
@@ -347,7 +351,8 @@ public struct NotchState: Codable, Hashable, Sendable {
                 mood: mood,
                 detail: mood == .needsYou ? "waiting on you" : bot.task,
                 origin: bot.builtIn == true ? "built_in" : nil,
-                isLead: bot.slug == lead
+                isLead: bot.slug == lead,
+                avatar: bot.avatar
             )
         }
         let attention = order(pending.map { NotchAttention(request: $0, fromName: names[$0.from]) })

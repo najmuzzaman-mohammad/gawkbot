@@ -13,6 +13,8 @@ struct ReplyTarget: Identifiable {
 /// that option; without one, it is the whole answer (`custom_text`).
 struct ReplySheet: View {
     let target: ReplyTarget
+    /// The asking agent's chosen look (nil: derived from its slug).
+    var avatar: BotAvatar? = nil
     let onSend: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -25,7 +27,7 @@ struct ReplySheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 10) {
-                    BlobAvatarView(slug: target.attention.from, size: 32)
+                    BlobAvatarView(slug: target.attention.from, avatar: avatar, size: 32)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(target.attention.displayName).font(.subheadline.weight(.semibold))
                         if let option = target.option {
@@ -41,7 +43,7 @@ struct ReplySheet: View {
                     .lineLimit(3...8)
                     .focused($focused)
                     .padding(12)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(Color.softFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 Text("Sent to the office as your answer. Anything it leads to still goes through the office's approvals.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)

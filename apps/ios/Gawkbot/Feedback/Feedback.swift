@@ -12,6 +12,16 @@ enum FeedbackKeys {
     }
 }
 
+/// One-off haptics for touches that are not inbox events (squishing an
+/// avatar). Honour the same Settings toggle as `FeedbackPlayer`.
+enum Haptics {
+    @MainActor
+    static func lightTap() {
+        guard FeedbackKeys.isOn(FeedbackKeys.haptics) else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+}
+
 /// A sound and a haptic per event, each behind its own Settings toggle.
 @MainActor
 final class FeedbackPlayer {

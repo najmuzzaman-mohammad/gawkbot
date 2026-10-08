@@ -1,19 +1,22 @@
 import SwiftUI
 import GawkbotKit
 
-/// The bot's mark, same silhouette and colour as the office web app, drawn
-/// as a smooth vector (`SmoothBlob`, the port of blobAvatarSmooth.ts). The
-/// eyes are holes: the path is filled even-odd, so the background shows
-/// through and it composites on any surface. `openness` narrows the eyes;
-/// the working bot blinks.
+/// The bot's mark, drawn as a smooth vector (`SmoothBlob`, the port of
+/// blobAvatarSmooth.ts): one flat filled body with the eyes cut out. The
+/// silhouette and colour are the bot's chosen `avatar` where one is set,
+/// otherwise the same slug-derived look as the office web app
+/// (`BlobAvatar.resolve`). The path is filled even-odd, so the eyes are
+/// holes and the mark composites on any surface. `openness` narrows the eyes.
 struct BlobAvatarView: View {
     let slug: String
+    var avatar: BotAvatar? = nil
     var size: CGFloat = 40
     var openness: Double = 1
 
     var body: some View {
-        BlobShape(slug: slug, openness: openness)
-            .fill(Color(hex: BlobAvatar.colorHex(slug)), style: FillStyle(eoFill: true, antialiased: true))
+        let look = BlobAvatar.resolve(slug: slug, avatar: avatar)
+        BlobShape(slug: slug, avatar: avatar, openness: openness)
+            .fill(Color(hex: look.color), style: FillStyle(eoFill: true, antialiased: true))
             .frame(width: size, height: size)
             .accessibilityHidden(true)
     }
@@ -23,6 +26,7 @@ struct BlobAvatarView: View {
 /// eyes in one path. Scaled from the 16-unit grid to fit, centred.
 struct BlobShape: Shape {
     let slug: String
+    var avatar: BotAvatar? = nil
     var openness: Double
 
     var animatableData: Double {
@@ -31,7 +35,7 @@ struct BlobShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        let mark = SmoothBlob.mark(slug, openness: openness)
+        let mark = SmoothBlob.mark(slug, avatar: avatar, openness: openness)
         let grid = CGFloat(BlobAvatar.grid)
         let scale = min(rect.width, rect.height) / grid
         let originX = rect.midX - scale * grid / 2
@@ -61,51 +65,97 @@ struct BlobShape: Shape {
     }
 }
 
-/// An avatar with its mood's small loop: bounce (needs you), bob and blink
-/// (working), breathe (idle), shake (error), hop (done). Driven by a
-/// TimelineView so it costs nothing when paused; Reduce Motion keeps it
-/// still.
+/// A squishy avatar. With a mood it plays that mood's loop (hop, bob and
+/// blink, breathe, shake, happy hop); large ones also blink now and then;
+/// a tap squashes it and springs it back with a light haptic. All the maths
+/// is `MoodMotion` in GawkbotKit. Driven by a TimelineView that pauses when
+/// nothing is moving; Reduce Motion keeps it still (a tap still gives the
+/// haptic).
 struct MoodAvatarView: View {
     let slug: String
-    let mood: Mood
+    var avatar: BotAvatar? = nil
+    /// Nil: no loop. It still squishes on tap, and blinks when large.
+    var mood: Mood? = nil
     var size: CGFloat = 44
+    /// A soft disc of the avatar's own colour behind it.
+    var halo: Bool = false
+    /// Off where a tap belongs to something else (a List row's link).
+    var squishOnTap: Bool = true
+
+    /// From this size up an avatar is big enough for a blink to read.
+    static let blinkSize: CGFloat = 56
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var tappedAt: Date?
+    @State private var squishing = false
+
+    private var blinks: Bool { size >= MoodAvatarView.blinkSize }
+    private var paused: Bool { reduceMotion || (mood == nil && !blinks && !squishing) }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
-            let pose = MoodMotion.pose(
-                for: reduceMotion ? nil : mood,
-                time: context.date.timeIntervalSinceReferenceDate,
-                seed: MoodMotion.seed(for: slug)
-            )
-            BlobAvatarView(slug: slug, size: size, openness: pose.openness)
-                .scaleEffect(x: CGFloat(pose.scaleX), y: CGFloat(pose.scaleY), anchor: .bottom)
-                .rotationEffect(.degrees(pose.rotation), anchor: .bottom)
-                .offset(x: CGFloat(pose.dx) * size, y: CGFloat(pose.dy) * size)
+        let look = BlobAvatar.resolve(slug: slug, avatar: avatar)
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: paused)) { context in
+            let p = currentPose(at: context.date)
+            BlobAvatarView(slug: slug, avatar: avatar, size: size, openness: p.openness)
+                .scaleEffect(x: CGFloat(p.scaleX), y: CGFloat(p.scaleY), anchor: .bottom)
+                .rotationEffect(.degrees(p.rotation), anchor: .bottom)
+                .offset(x: CGFloat(p.dx) * size, y: CGFloat(p.dy) * size)
         }
         .frame(width: size, height: size)
+        .padding(halo ? size * 0.14 : 0)
+        .background {
+            if halo {
+                Circle().fill(Color(hex: look.color).opacity(0.16))
+            }
+        }
+        .contentShape(Circle())
+        .simultaneousGesture(TapGesture().onEnded { squish() }, including: squishOnTap ? .all : .subviews)
         .accessibilityHidden(true)
+    }
+
+    private func currentPose(at date: Date) -> MoodPose {
+        guard !reduceMotion else { return .rest }
+        let t = date.timeIntervalSinceReferenceDate
+        let seed = MoodMotion.seed(for: slug)
+        var p = MoodMotion.pose(for: mood, time: t, seed: seed)
+        if blinks {
+            p.openness = min(p.openness, MoodMotion.idleBlink(time: t, seed: seed))
+        }
+        if let tappedAt {
+            p = p.combined(with: MoodMotion.tap(elapsed: date.timeIntervalSince(tappedAt)))
+        }
+        return p
+    }
+
+    private func squish() {
+        Haptics.lightTap()
+        guard !reduceMotion else { return }
+        let now = Date()
+        tappedAt = now
+        squishing = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(MoodMotion.tapDuration))
+            // A newer tap restarts the spring; only the last one stops the clock.
+            if tappedAt == now {
+                squishing = false
+                tappedAt = nil
+            }
+        }
     }
 }
 
-/// A bot that is mid-turn blinks like the sidebar avatar in the office.
+/// A conversation-list or toolbar avatar: still while the bot is idle,
+/// bobbing and blinking while it is mid-turn.
 struct WorkingBlobAvatarView: View {
     let slug: String
+    var avatar: BotAvatar? = nil
     var size: CGFloat = 40
     let working: Bool
-    @State private var openness: Double = 1
+    var halo: Bool = false
+    var squishOnTap: Bool = false
 
     var body: some View {
-        BlobAvatarView(slug: slug, size: size, openness: working ? openness : 1)
-            .task(id: working) {
-                guard working else { openness = 1; return }
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .milliseconds(Int.random(in: 1800...3200)))
-                    withAnimation(.easeInOut(duration: 0.12)) { openness = 0 }
-                    try? await Task.sleep(for: .milliseconds(140))
-                    withAnimation(.easeInOut(duration: 0.12)) { openness = 1 }
-                }
-            }
+        MoodAvatarView(slug: slug, avatar: avatar, mood: working ? .working : nil, size: size, halo: halo, squishOnTap: squishOnTap)
     }
 }
 

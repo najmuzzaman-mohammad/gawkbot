@@ -25,6 +25,11 @@ public protocol BrokerAPI: Sendable {
     /// `GET /notch/state`: every agent's mood and everything waiting on the
     /// person, in one poll. The inbox's source.
     func notchState() async throws -> NotchState
+    /// Sets a bot's look: `POST /office-members {action:"update", slug,
+    /// avatar:{shape,color}}`. Only the avatar's valid fields are sent; nil
+    /// or an automatic avatar sends `avatar: {}`, which resets the bot to its
+    /// slug-derived look.
+    func updateAvatar(slug: String, avatar: BotAvatar?) async throws
     /// A long-lived stream of live events. Finishes when the connection drops;
     /// callers reconnect.
     func events() -> AsyncStream<BrokerEvent>

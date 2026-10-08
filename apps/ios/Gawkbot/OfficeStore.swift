@@ -400,6 +400,37 @@ final class OfficeStore: ObservableObject {
         }
     }
 
+    // MARK: - Avatars
+
+    /// A bot's chosen look. `/notch/state` (polled every 3 s) is the fresher
+    /// source, so an agent on it wins even when its avatar is nil (reset
+    /// from the web); the roster covers offices without it.
+    func avatar(for slug: String) -> BotAvatar? {
+        if let agent = notch?.agent(slug) { return agent.avatar }
+        return bots.first { $0.slug == slug }?.avatar
+    }
+
+    /// Sets (or, with nil, resets) a bot's look on the office, then re-reads
+    /// the roster and the inbox. Returns the office's refusal as text, or nil
+    /// on success. The picker shows the error itself: an alert from the root
+    /// cannot present over its sheet.
+    func updateAvatar(slug: String, to avatar: BotAvatar?) async -> String? {
+        guard let broker else { return "Not connected to an office." }
+        do {
+            try await broker.updateAvatar(slug: slug, avatar: avatar)
+        } catch {
+            return (error as? BrokerError)?.errorDescription ?? error.localizedDescription
+        }
+        // Show it at once; the reads below confirm it.
+        let applied: BotAvatar? = (avatar?.isAutomatic ?? true) ? nil : avatar
+        if let i = bots.firstIndex(where: { $0.slug == slug }) { bots[i].avatar = applied }
+        if let i = notch?.agents.firstIndex(where: { $0.slug == slug }) { notch?.agents[i].avatar = applied }
+        feedback.playHaptic(.sent)
+        if let roster = try? await broker.members() { bots = OfficeStore.order(roster) }
+        await refreshNotch()
+        return nil
+    }
+
     /// Opens an agent's DM in the Chats tab.
     func openChat(with slug: String) {
         tab = .chats

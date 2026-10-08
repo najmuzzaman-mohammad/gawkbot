@@ -55,7 +55,7 @@ struct SettingsView: View {
                                 .font(.callout.monospaced())
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .background(Color.softFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                         }
                     }
                 } header: {
@@ -64,6 +64,8 @@ struct SettingsView: View {
                     Text("With a hardware keyboard, in the Inbox. Hold ⌘ on iPad to see them. ⌘V and other ⌘ shortcuts are left alone.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.softCanvas)
             .navigationTitle("Settings")
         }
     }

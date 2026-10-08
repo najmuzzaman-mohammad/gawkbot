@@ -44,7 +44,7 @@ struct InboxView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .background(InboxBackdrop())
+                .background(SoftBackdrop())
                 .refreshable { await store.refreshNotch() }
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: items.map(\.id))
                 .onChange(of: selectedID) { _, id in
@@ -70,7 +70,7 @@ struct InboxView: View {
                 InboxShortcuts(enabled: shortcutsEnabled, perform: perform)
             }
             .sheet(item: $replyTarget) { target in
-                ReplySheet(target: target) { text in
+                ReplySheet(target: target, avatar: store.avatar(for: target.attention.from)) { text in
                     Task { await store.answer(target.attention, option: target.option, text: text) }
                 }
             }
@@ -90,9 +90,7 @@ struct InboxView: View {
     private var headerSection: some View {
         if let notch = store.notch {
             HStack(spacing: 14) {
-                MoodAvatarView(slug: notch.lead ?? "cos", mood: notch.mood, size: 52)
-                    .padding(6)
-                    .background(.thinMaterial, in: Circle())
+                MoodAvatarView(slug: notch.lead ?? "cos", avatar: store.avatar(for: notch.lead ?? "cos"), mood: notch.mood, size: 56, halo: true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(notch.leadName ?? "Chief of Staff")
                         .font(.caption.weight(.semibold))
@@ -103,7 +101,7 @@ struct InboxView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .glassCard()
+            .softCard()
             .cardRow()
             .accessibilityElement(children: .combine)
         } else {
@@ -188,15 +186,8 @@ struct InboxView: View {
     }
 
     private var allClear: some View {
-        VStack(spacing: 10) {
-            MoodAvatarView(slug: store.notch?.lead ?? "cos", mood: .done, size: 56)
-            Text("Nothing needs you").font(.headline)
-            Text("New questions from any agent land here.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .glassCard()
+        let lead = store.notch?.lead ?? "cos"
+        return EmptyStateView(slug: lead, avatar: store.avatar(for: lead), mood: .done, line: "Nothing needs you right now.")
     }
 
     private func card(for item: NotchAttention) -> some View {

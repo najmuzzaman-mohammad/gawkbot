@@ -1,7 +1,7 @@
 import SwiftUI
 import GawkbotKit
 
-/// One question or approval, as a frosted card: who asks (avatar, name,
+/// One question or approval, as a soft card: who asks (avatar, name,
 /// where it runs), what, and the options as buttons. The recommended option
 /// is the filled one. Options that need words open the reply sheet.
 struct AttentionCard: View {
@@ -27,7 +27,7 @@ struct AttentionCard: View {
             }
             options
         }
-        .glassCard()
+        .softCard()
         .overlay {
             if selected {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -42,9 +42,7 @@ struct AttentionCard: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            MoodAvatarView(slug: item.from, mood: agent?.mood ?? .needsYou, size: 40)
-                .padding(5)
-                .background(.thinMaterial, in: Circle())
+            MoodAvatarView(slug: item.from, avatar: agent?.avatar, mood: agent?.mood ?? .needsYou, size: 40, halo: true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.displayName).font(.subheadline.weight(.semibold)).lineLimit(1)
                 HStack(spacing: 6) {
@@ -106,7 +104,7 @@ struct AttentionCard: View {
 }
 
 /// Generous rounded buttons. The recommended one is filled with the accent;
-/// the rest are frosted. An explicit style (not .automatic) also keeps a
+/// the rest sit on a quiet neutral fill. An explicit style (not .automatic) also keeps a
 /// List row from turning a tap anywhere into a tap on every button.
 struct OptionButtonStyle: ButtonStyle {
     let prominent: Bool
@@ -122,12 +120,13 @@ struct OptionButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(prominent ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(quiet ? Material.ultraThinMaterial : Material.thinMaterial))
+                    .fill(prominent ? Color.accentColor : (quiet ? Color.clear : Color.softFill))
             }
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            // A soft press: squash a little, spring back with some bounce.
+            .scaleEffect(x: configuration.isPressed ? 0.98 : 1, y: configuration.isPressed ? 0.94 : 1)
+            .opacity(configuration.isPressed ? 0.88 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.55), value: configuration.isPressed)
     }
 
     private var foreground: Color {
@@ -145,9 +144,7 @@ struct AgentRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            MoodAvatarView(slug: agent.slug, mood: agent.mood, size: 36)
-                .padding(5)
-                .background(.thinMaterial, in: Circle())
+            MoodAvatarView(slug: agent.slug, avatar: agent.avatar, mood: agent.mood, size: 36, halo: true)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(agent.name).font(.body.weight(.semibold)).lineLimit(1)
@@ -175,7 +172,7 @@ struct AgentRow: View {
                 }
             }
         }
-        .glassCard(cornerRadius: 20, padding: 12)
+        .softCard(cornerRadius: 20, padding: 12)
         .overlay {
             if selected {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)

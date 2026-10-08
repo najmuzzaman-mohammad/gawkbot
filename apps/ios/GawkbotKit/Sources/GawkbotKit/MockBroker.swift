@@ -27,6 +27,11 @@ public actor MockBroker: BrokerAPI {
     /// Live moods that replace a bot's seeded one, with a stamp so a stale
     /// "settle back to idle" never clears a newer mood.
     private var moods: [String: (mood: Mood, detail: String?, stamp: Int)] = [:]
+    /// Chosen looks, by slug. Hermes starts with a picked shape and its
+    /// derived colour, so a partial override is on show in -mock mode.
+    private var avatars: [String: BotAvatar] = MockBroker.seedAvatars
+
+    public static let seedAvatars: [String: BotAvatar] = ["hermes": BotAvatar(shape: "blob")]
 
     public init(config: Config = Config()) {
         self.config = config
@@ -152,7 +157,13 @@ public actor MockBroker: BrokerAPI {
 
     // MARK: - BrokerAPI
 
-    public func members() async throws -> [Bot] { bots }
+    public func members() async throws -> [Bot] {
+        bots.map { seed in
+            var bot = seed
+            bot.avatar = avatars[bot.slug]
+            return bot
+        }
+    }
 
     public func messages(channel: String, sinceID: String?, limit: Int) async throws -> [ChatMessage] {
         let all = store[channel] ?? []
@@ -206,6 +217,7 @@ public actor MockBroker: BrokerAPI {
         let asking = Set(pending.map(\.from))
         let agents = MockBroker.notchAgents.map { seed -> NotchAgent in
             var agent = seed
+            agent.avatar = avatars[agent.slug]
             if asking.contains(agent.slug) {
                 agent.mood = .needsYou
                 agent.detail = "waiting on you"
@@ -227,6 +239,29 @@ public actor MockBroker: BrokerAPI {
             agents: ranked,
             attention: attention
         )
+    }
+
+    /// Same validation as the broker's normalizeMemberAvatar: shape must be a
+    /// known id, colour must be #rrggbb, both are lower-cased, and an empty
+    /// avatar resets to the derived look.
+    public func updateAvatar(slug: String, avatar: BotAvatar?) async throws {
+        guard bots.contains(where: { $0.slug == slug }) else {
+            throw BrokerError.http(404, "member not found")
+        }
+        let shape = (avatar?.shape ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let color = (avatar?.color ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if shape.isEmpty && color.isEmpty {
+            avatars[slug] = nil
+            return
+        }
+        if !shape.isEmpty && BotAvatar.shapeIndex(named: shape) == nil {
+            throw BrokerError.http(400, "avatar shape must be one of \(BotAvatar.shapeIDs.joined(separator: ", "))")
+        }
+        if !color.isEmpty && BotAvatar.normalizedColor(color) == nil {
+            throw BrokerError.http(400, "avatar color must be a #rrggbb hex colour")
+        }
+        avatars[slug] = BotAvatar(shape: shape.isEmpty ? nil : shape, color: color.isEmpty ? nil : color)
+        broadcast(.other(name: "office_changed"))
     }
 
     public nonisolated func events() -> AsyncStream<BrokerEvent> {

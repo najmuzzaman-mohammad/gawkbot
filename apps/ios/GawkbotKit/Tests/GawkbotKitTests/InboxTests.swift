@@ -400,8 +400,10 @@ final class MoodMotionTests: XCTestCase {
                 XCTAssertLessThanOrEqual(abs(p.dx), 0.05, "\(mood)")
                 XCTAssertLessThanOrEqual(abs(p.dy), 0.2, "\(mood)")
                 XCTAssertLessThanOrEqual(abs(p.rotation), 8, "\(mood)")
-                XCTAssertEqual(p.scaleX, 1, accuracy: 0.06, "\(mood)")
-                XCTAssertEqual(p.scaleY, 1, accuracy: 0.06, "\(mood)")
+                // Squishy, not small: squash-and-stretch goes to about ±20 %
+                // (SquishMotionTests pins the envelopes).
+                XCTAssertEqual(p.scaleX, 1, accuracy: 0.2, "\(mood)")
+                XCTAssertEqual(p.scaleY, 1, accuracy: 0.25, "\(mood)")
             }
             XCTAssertTrue(moved, "\(mood) animates")
         }

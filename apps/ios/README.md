@@ -90,25 +90,63 @@ voice confirmation has the keyboard.
 
 ### Look and feel
 
-System materials over a soft colour wash, large titles, SF Symbols, spring
-animations, light and dark mode. Avatars are smooth vector marks: the same
-per-slug silhouette and colour as the office web app (a port of
-`web/src/lib/blobAvatarSmooth.ts`, tested against it), each with a small
-mood animation (bounce, bob, breathe, shake, hop) that Reduce Motion turns
-off.
+"Soft", to match the office web app's default: warm off-white (light) or
+soft charcoal (dark) canvases, solid rounded cards with a hairline and a
+gentle shadow, quiet neutral fills for buttons, large titles, SF Symbols.
+System materials are kept for the few things that float over content (the
+voice bar, the chat composer, sheets). Colours live in `Views/Theme.swift`
+as light/dark pairs.
+
+- **Chats** are iMessage-style: your bubbles on the right in the accent,
+  the bot's on the left in a soft neutral bubble with its avatar beside the
+  first bubble of each run, tails on the last.
+- **Thread header**: a big avatar hero (in the bot's mood) with its name,
+  what it is doing, and **Change look**.
+- **Empty states** are one large avatar and one line (no questions waiting,
+  no bots yet, a new thread, connecting, a failed connection).
+
+### Avatars
+
+Flat filled blobs with the eyes cut out, drawn as smooth vectors (a port of
+`web/src/lib/blobAvatarSmooth.ts`, tested against it) in the office's own
+eight silhouettes: block, dome, drop, bean, pill, loaf, shield, blob.
+
+- **Chosen or automatic.** A bot wears the `avatar: {shape, color}` the
+  office sends on `/office-members` and `/notch/state` when one is set;
+  any unset or invalid field falls back to the look derived from the slug,
+  the same as the web (`BlobAvatar.resolve`, tested against the web's
+  `resolveAvatar`).
+- **Squishy.** Each mood has a loop with squash and stretch and a little
+  overshoot: two quick hops (needs you), a squishy bob and blink (working),
+  a slow breath with some jelly in it (idle), a wobbling shake (hit a snag),
+  a big happy hop (done). Tap an avatar and it squashes and springs back,
+  with a light haptic. Large avatars (56 pt and up) blink now and then.
+  The maths is pure (`MoodMotion` in GawkbotKit) and its envelopes are
+  unit-tested: bounded, continuous, back to rest. Reduce Motion keeps every
+  avatar still (a tap still gives the haptic); the Haptics toggle in
+  Settings covers the tap too.
+- **Change look.** In a thread, **Change look** opens a sheet with a live
+  preview, the eight shapes (each previewed in the colour being picked),
+  the 12-colour palette, a colour picker for anything else, and **Reset to
+  automatic**. Save sends `POST /office-members {action:"update", slug,
+  avatar:{shape,color}}` (reset sends `avatar: {}`), then re-reads the
+  roster and the inbox. A refusal from the office shows in the sheet.
 
 ## Layout
 
 - `GawkbotKit/` — Swift package, no UIKit. Wire models (`NotchState` for
   the inbox), `BrokerClient` (REST + server-sent events), `MockBroker` (a
   canned office for previews, screenshots, and tests), `Pairing`, the
-  blob-avatar ports (pixel `BlobAvatar` and vector `SmoothBlob`), and the
-  inbox's pure logic: `InboxKeymap`, `InboxCursor`, `VoiceTarget`,
-  `InboxEvents` (which sound a poll deserves), `CartoonSynth`, `MoodMotion`.
+  blob-avatar ports (pixel `BlobAvatar` and vector `SmoothBlob`), the
+  chosen look (`BotAvatar`, `BlobAvatar.resolve`), and the inbox's pure
+  logic: `InboxKeymap`, `InboxCursor`, `VoiceTarget`, `InboxEvents` (which
+  sound a poll deserves), `CartoonSynth`, `MoodMotion` (mood loops, tap
+  squash, blink).
   Tests run on the Mac: `cd GawkbotKit && swift test`.
 - `Gawkbot/` — the SwiftUI app: `OfficeStore` (the one observable, which
   also polls the inbox), the pairing screen, the tab shell, the inbox
-  (`Views/Inbox/`), the conversation list and thread view, settings,
+  (`Views/Inbox/`), the conversation list and thread view, the look picker
+  (`Views/AvatarPickerSheet`), the soft theme (`Views/Theme`), settings,
   `Voice/VoiceRecorder` (Speech), and `Feedback/` (sound engine + haptics).
 - `project.yml` — XcodeGen spec. The `.xcodeproj` is generated, not committed.
 
@@ -131,7 +169,9 @@ talk to `MockBroker`. The inbox opens on three questions (a blocking
 approval, a choice with a write-in option, and an approval from Hermes, a
 gateway agent running elsewhere) and a roster across every mood. Replies
 arrive a couple of seconds after you send or answer, typing dots first, and
-the bot goes working → done (with its sound) → idle. `scripts/screenshots.sh`
+the bot goes working → done (with its sound) → idle. Hermes starts with a
+picked shape (blob) and its automatic colour; **Change look** works against
+the mock too, with the office's validation. `scripts/screenshots.sh`
 boots a simulator in this mode and captures the inbox (light and dark), the
 list, and a couple of threads. Deep links: `gawkbot://inbox`,
 `gawkbot://chats`, `gawkbot://thread/<slug>`.

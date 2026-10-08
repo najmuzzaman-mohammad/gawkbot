@@ -122,9 +122,22 @@ public enum SmoothBlob {
         }
     }
 
-    /// The smooth mark for `slug`. openness: 1 wide open, 0 narrowed.
+    /// The smooth mark for `slug`, derived look. openness: 1 wide open, 0 narrowed.
     public static func mark(_ slug: String, openness: Double = 1) -> Mark {
-        let body = bodies[BlobAvatar.shapeIndex(slug)]
-        return Mark(start: body.start, segments: body.segments, eyes: eyes(openness: openness), colorHex: BlobAvatar.colorHex(slug))
+        mark(shapeIndex: BlobAvatar.shapeIndex(slug), colorHex: BlobAvatar.colorHex(slug), openness: openness)
+    }
+
+    /// The smooth mark for `slug` wearing its chosen `avatar` (either field
+    /// may be unset; see `BlobAvatar.resolve`). A nil avatar is the derived look.
+    public static func mark(_ slug: String, avatar: BotAvatar?, openness: Double = 1) -> Mark {
+        let look = BlobAvatar.resolve(slug: slug, avatar: avatar)
+        return mark(shapeIndex: look.shapeIndex, colorHex: look.color, openness: openness)
+    }
+
+    /// One silhouette (wrapping like the web's modulo) in a given colour.
+    public static func mark(shapeIndex: Int, colorHex: String, openness: Double = 1) -> Mark {
+        let n = bodies.count
+        let body = bodies[((shapeIndex % n) + n) % n]
+        return Mark(start: body.start, segments: body.segments, eyes: eyes(openness: openness), colorHex: colorHex)
     }
 }
