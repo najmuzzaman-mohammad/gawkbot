@@ -32,6 +32,7 @@ function renderNotch(overrides: Partial<NotchViewProps> = {}) {
     onOpen: vi.fn(),
     onKeyboard: vi.fn(),
     onToggleSound: vi.fn(),
+    onOpenFull: vi.fn(),
     ...overrides,
   };
   render(<NotchView {...props} />);
@@ -135,6 +136,14 @@ describe("open notch", () => {
       .getByRole("button", { name: "Talk" })
       .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     expect(props.onVoice).toHaveBeenCalledWith(true);
+  });
+
+  it("opens the full app from the widget", async () => {
+    const props = renderNotch({ expanded: true });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open full view" }),
+    );
+    expect(props.onOpenFull).toHaveBeenCalled();
   });
 
   it("can mute its sounds", async () => {

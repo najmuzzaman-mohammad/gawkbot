@@ -109,6 +109,9 @@ static const CGFloat kMaxStageHeight = 160.0;
 @property(nonatomic, strong) id speechTask;
 @property(nonatomic, strong) AVAudioEngine *audioEngine;
 @property(nonatomic) BOOL voiceActive;
+// Widget-only mode: with the main window closed the app is just the notch,
+// so it leaves the Dock; opening the full view brings the Dock icon back.
+@property(nonatomic, strong) NSTimer *dockWatch;
 - (void)hotkeyPressed;
 @end
 
@@ -232,6 +235,47 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	[self.webView loadRequest:[NSURLRequest requestWithURL:[self pageURL]]];
 	[self.panel orderFrontRegardless];
 	[self registerHotKey];
+	[self startDockWatch];
+}
+
+#pragma mark Widget-only mode
+
+// Closing the main window hides it (HideWindowOnClose in main.go) rather
+// than quitting, so the notch keeps running. This watch keeps the Dock icon
+// honest: shown while the full view is open or minimised (minimised windows
+// live in the Dock), gone when the notch is all there is. Polled rather than
+// hooked so it does not depend on which Wails close path ran.
+- (BOOL)fullViewIsOpen {
+	for (NSWindow *window in [NSApp windows]) {
+		if (window == self.panel) {
+			continue;
+		}
+		if (window.isVisible || window.isMiniaturized) {
+			return YES;
+		}
+	}
+	return NO;
+}
+
+- (void)setDockVisible:(BOOL)visible {
+	NSApplicationActivationPolicy want = visible ? NSApplicationActivationPolicyRegular
+	                                            : NSApplicationActivationPolicyAccessory;
+	if (NSApp.activationPolicy != want) {
+		[NSApp setActivationPolicy:want];
+	}
+}
+
+- (void)startDockWatch {
+	__weak GawkNotchController *weakSelf = self;
+	self.dockWatch = [NSTimer scheduledTimerWithTimeInterval:1.0
+	                                                 repeats:YES
+	                                                   block:^(NSTimer *timer) {
+		(void)timer;
+		GawkNotchController *strongSelf = weakSelf;
+		if (strongSelf != nil) {
+			[strongSelf setDockVisible:[strongSelf fullViewIsOpen]];
+		}
+	}];
 }
 
 // ⌃⌥Space opens the notch from anywhere, ready for the keyboard. Carbon's
@@ -426,6 +470,9 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	} else if ([type isEqualToString:@"open"]) {
 		NSString *path = [body[@"path"] isKindOfClass:[NSString class]] ? body[@"path"] : @"";
 		if ([path hasPrefix:@"/"] && ![path hasPrefix:@"//"]) {
+			// Back in the Dock first, so the window comes up as a normal app
+			// window rather than an accessory's.
+			[self setDockVisible:YES];
 			[NSApp activateIgnoringOtherApps:YES];
 			goNotchOpen((char *)path.UTF8String);
 		}

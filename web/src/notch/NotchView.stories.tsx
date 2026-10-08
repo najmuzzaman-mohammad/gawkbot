@@ -37,6 +37,7 @@ const meta: Meta<typeof NotchView> = {
     onOpen: noop,
     onKeyboard: noop,
     onToggleSound: noop,
+    onOpenFull: noop,
   },
   decorators: [
     (Story) => (

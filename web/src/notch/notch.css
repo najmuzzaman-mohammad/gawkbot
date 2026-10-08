@@ -320,6 +320,12 @@ kbd {
   font-size: 13px;
   cursor: pointer;
 }
+.nicon-wide {
+  width: auto;
+  padding: 0 12px;
+  font: 600 12px var(--notch-font);
+  color: var(--notch-text-secondary);
+}
 .nicon:hover {
   background: var(--notch-glass-hover);
 }

@@ -242,6 +242,8 @@ export interface KeyHandlers {
   open: (target: ReplyTarget) => void;
   voice: (on: boolean) => void;
   close: () => void;
+  /** Open the full app at the selected question's conversation. */
+  openFull: () => void;
 }
 
 /** Runs one keyboard action. Returns false when the key was not ours. */
@@ -278,6 +280,9 @@ export function runKeyAction(action: NotchAction, h: KeyHandlers): boolean {
     }
     case "close":
       h.close();
+      return true;
+    case "open_full":
+      h.openFull();
       return true;
     default:
       return false;

@@ -81,4 +81,11 @@ describe("keyAction", () => {
       type: "close",
     });
   });
+
+  it("O opens the full app", () => {
+    expect(k("o")).toEqual({ type: "open_full" });
+    expect(keyAction({ key: "o", typing: true }, approval)).toEqual({
+      type: "none",
+    });
+  });
 });

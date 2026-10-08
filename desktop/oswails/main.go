@@ -114,6 +114,11 @@ func main() {
 		Width:            1400,
 		Height:           900,
 		BackgroundColour: &options.RGBA{R: 11, G: 11, B: 13, A: 1},
+		// On the Mac the notch is the always-there surface, so closing the
+		// full view hides it and leaves the notch running ("back to just the
+		// widget"); the notch's "Full view" brings it back. Elsewhere there is
+		// no notch to return to, so closing still quits.
+		HideWindowOnClose: runtime.GOOS == "darwin",
 		OnStartup: func(ctx context.Context) {
 			appCtx = ctx
 			// The Chief of Staff in the camera notch (notch_darwin.m). It

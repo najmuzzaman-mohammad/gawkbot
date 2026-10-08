@@ -20,6 +20,7 @@ function handlers(over: Partial<KeyHandlers> = {}): KeyHandlers {
     open: vi.fn(),
     voice: vi.fn(),
     close: vi.fn(),
+    openFull: vi.fn(),
     ...over,
   };
 }
@@ -48,6 +49,12 @@ describe("runKeyAction", () => {
     const h = handlers();
     expect(runKeyAction({ type: "close" }, h)).toBe(true);
     expect(h.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes O to the full view", () => {
+    const h = handlers();
+    expect(runKeyAction({ type: "open_full" }, h)).toBe(true);
+    expect(h.openFull).toHaveBeenCalledTimes(1);
   });
 
   it("ignores keys that are not ours", () => {

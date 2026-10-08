@@ -38,6 +38,8 @@ export interface PanelProps {
   onOpen: (path: string) => void;
   onKeyboard: (active: boolean) => void;
   onToggleSound: () => void;
+  /** Leave the widget for the full app; closing that window comes back here. */
+  onOpenFull: () => void;
 }
 
 function originTag(
@@ -297,6 +299,15 @@ export function NotchPanel(props: PanelProps) {
           <small>{leadName}</small>
           {state.headline}
         </div>
+        <button
+          type="button"
+          className="nicon nicon-wide"
+          aria-label="Open full view"
+          title="Open the full app (O). Close its window to come back to the notch."
+          onClick={props.onOpenFull}
+        >
+          <span aria-hidden="true">↗</span> Full view
+        </button>
         <button
           type="button"
           className="nicon"

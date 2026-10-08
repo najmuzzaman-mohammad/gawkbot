@@ -58,6 +58,11 @@ non-activating `NSPanel` at status-bar level on every Space, hosting a
   seconds on its own. That is the notification.
 - **No notch**: the same strip renders as a pill at the top centre of the
   screen.
+- **Full view and back**: the panel's "Full view" button (or O) opens the
+  main window at the selected conversation. Closing that window hides it
+  (`HideWindowOnClose`, macOS only) instead of quitting, so you are back to
+  just the notch. The Dock icon follows: shown while the full view is open
+  or minimised, gone when only the notch is left.
 - **Sounds**: a different cartoon sound per moment (a question, an approval,
   an error, a finish, a sent reply, a peek, bored chatter), synthesized live
   with Web Audio (`web/src/notch/sounds.ts`), with a mute toggle in the panel.

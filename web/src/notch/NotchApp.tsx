@@ -188,6 +188,18 @@ export function NotchApp({
     };
   }, [selected, agents, leadTarget]);
 
+  // Out to the full app, at whatever is selected. On the Mac, closing that
+  // window hides it again (HideWindowOnClose) and the notch is all that is
+  // left, so this is a round trip, not a hand-off.
+  const openFull = useCallback(() => {
+    postNative({
+      type: "open",
+      path: selected?.channel
+        ? `/channels/${encodeURIComponent(selected.channel)}`
+        : "/",
+    });
+  }, [selected]);
+
   useNotchKeys(expanded, {
     attention,
     selected,
@@ -198,6 +210,7 @@ export function NotchApp({
     lead: leadTarget,
     open: openComposer,
     voice: setVoice,
+    openFull,
     close: () => {
       if (composer) cancelComposer();
       else if (inApp) postNative({ type: "collapse" });
@@ -253,6 +266,7 @@ export function NotchApp({
         onOpen={(path) => postNative({ type: "open", path })}
         onKeyboard={(active) => postNative({ type: "keyboard", active })}
         onToggleSound={toggleSound}
+        onOpenFull={openFull}
       />
     </div>
   );
