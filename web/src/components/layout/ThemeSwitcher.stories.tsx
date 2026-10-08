@@ -12,3 +12,12 @@ export default meta;
 type Story = StoryObj<typeof ThemeSwitcher>;
 
 export const Default: Story = {};
+
+/** The default theme for new installs. */
+export const GlassDark: Story = {
+  globals: { theme: "nex-glass-dark" },
+};
+
+export const GlassLight: Story = {
+  globals: { theme: "nex-glass-light" },
+};

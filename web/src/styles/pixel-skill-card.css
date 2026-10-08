@@ -98,7 +98,7 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  font-family: "Geist Pixel", "Geist Mono", ui-monospace, monospace;
+  font-family: var(--font-pixel);
   color: var(--psc-ink);
   background: linear-gradient(
     180deg,
@@ -157,7 +157,7 @@
   border-bottom: var(--psc-px) solid var(--psc-frame-edge);
 }
 .pixel-skill-card__name {
-  font-family: "Geist Sans", "Geist Pixel", monospace;
+  font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.25;
   letter-spacing: 0.5px;
@@ -175,7 +175,7 @@
    author chip on a TCG card and on a busy frame, it disappeared. Bump
    to full ink color, drop the opacity, lift the size. */
 .pixel-skill-card__byline {
-  font-family: "Geist Pixel", monospace;
+  font-family: var(--font-pixel);
   font-size: 16px;
   letter-spacing: 0.4px;
   color: var(--psc-ink);
@@ -253,7 +253,7 @@
   border-right: var(--psc-px) solid var(--psc-frame-edge);
   font-size: 14px;
   color: var(--psc-ink-muted);
-  font-family: "Geist Pixel", monospace;
+  font-family: var(--font-pixel);
   letter-spacing: 0.5px;
 }
 .pixel-skill-card__stats-row {
@@ -320,7 +320,7 @@
 }
 .pixel-skill-card__flavor {
   margin: 0;
-  font-family: "Geist Pixel", "Geist Mono", monospace;
+  font-family: var(--font-pixel);
   font-size: 17px;
   line-height: 1.35;
   color: var(--psc-ink);
@@ -338,7 +338,7 @@
   border-left: var(--psc-px) solid var(--psc-frame-edge);
   border-right: var(--psc-px) solid var(--psc-frame-edge);
   border-top: 1px dashed rgba(43, 29, 14, 0.3);
-  font-family: "Geist Pixel", monospace;
+  font-family: var(--font-pixel);
 }
 .pixel-skill-card__trigger-label {
   display: block;
@@ -371,13 +371,13 @@
   background: var(--psc-frame-b);
   border: var(--psc-px) solid var(--psc-frame-edge);
   border-top-width: 0;
-  font-family: "Geist Pixel", monospace;
+  font-family: var(--font-pixel);
   font-size: 14px;
   color: rgba(255, 255, 255, 0.92);
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
 }
 .pixel-skill-card__set {
-  font-family: "Geist Sans", monospace;
+  font-family: var(--font-sans);
   font-size: 9px;
   letter-spacing: 0.5px;
   flex: 0 0 auto;
@@ -393,7 +393,7 @@
   right: 10px;
   z-index: 2;
   padding: 4px 8px;
-  font-family: "Geist Sans", monospace;
+  font-family: var(--font-sans);
   font-size: 9px;
   line-height: 1.25;
   letter-spacing: 0.5px;
@@ -499,7 +499,7 @@
   padding: 8px 10px;
   background: rgba(255, 255, 255, 0.5);
   color: var(--psc-frame-edge);
-  font-family: "Geist Sans", monospace;
+  font-family: var(--font-sans);
   font-size: 9px;
   letter-spacing: 0.5px;
   border: var(--psc-px) solid var(--psc-frame-edge);
@@ -530,7 +530,7 @@
   padding: 8px 10px;
 }
 .pixel-skill-card__back-eyebrow {
-  font-family: "Geist Sans", monospace;
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 1px;
   color: var(--psc-ink);
@@ -547,7 +547,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  font-family: "Geist Pixel", "Geist Mono", monospace;
+  font-family: var(--font-pixel);
   scrollbar-width: thin;
   scrollbar-color: var(--psc-frame-edge) transparent;
 }
@@ -562,7 +562,7 @@
 }
 .pixel-skill-card__back-title {
   margin: 0 0 2px;
-  font-family: "Geist Sans", monospace;
+  font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.25;
   letter-spacing: 0.4px;
@@ -571,7 +571,7 @@
 .pixel-skill-card__back-name {
   margin: 0 0 12px;
   padding: 0 0 8px;
-  font-family: "Geist Pixel", monospace;
+  font-family: var(--font-pixel);
   font-size: 14px;
   letter-spacing: 0.3px;
   color: var(--psc-ink-muted);
@@ -579,7 +579,7 @@
 }
 .pixel-skill-card__detail-list {
   margin: 0;
-  font-family: "Geist Pixel", monospace;
+  font-family: var(--font-pixel);
   font-size: 16px;
   line-height: 1.35;
   display: grid;
@@ -593,7 +593,7 @@
    Start 2P. The bitmap font at 8px reads as decoration; this reads as a
    real label against the 16px VT323 value. */
 .pixel-skill-card__detail-row dt {
-  font-family: "Geist Pixel", monospace;
+  font-family: var(--font-pixel);
   font-size: 13px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -621,7 +621,7 @@
   padding: 10px;
   background: var(--psc-energy);
   color: var(--psc-energy-ink);
-  font-family: "Geist Sans", monospace;
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.5px;
   border: var(--psc-px) solid var(--psc-frame-edge);

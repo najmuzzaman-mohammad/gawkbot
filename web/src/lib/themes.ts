@@ -5,6 +5,10 @@
  *   1. Drop the CSS file under `web/public/themes/<id>.css`.
  *   2. Append an entry to `THEMES` below.
  *
+ * Not every file in `public/themes/` is a theme: `glass-base.css` is the
+ * shared layer both Glass flavours import, the way the nex-* themes import
+ * `nex.css`. The default theme leads the list.
+ *
  * The `Theme` union, the switcher menu, and the loader in `RootRoute` all
  * derive their behaviour from this list.
  */
@@ -28,6 +32,20 @@ export interface ThemeDef {
 }
 
 export const THEMES = [
+  {
+    id: "nex-glass-dark",
+    name: "Glass Dark",
+    desc: "Native dark, frosted glass.",
+    swatch: { primary: "#1c1c1f", accent: "#30d158", surface: "#111113" },
+    cssPath: "/themes/nex-glass-dark.css",
+  },
+  {
+    id: "nex-glass-light",
+    name: "Glass Light",
+    desc: "Native light, frosted glass.",
+    swatch: { primary: "#f2f2f5", accent: "#1a7f3c", surface: "#ffffff" },
+    cssPath: "/themes/nex-glass-light.css",
+  },
   {
     id: "nex-shell",
     name: "Shell",
@@ -60,7 +78,12 @@ export const THEMES = [
 
 export type Theme = (typeof THEMES)[number]["id"];
 
-export const DEFAULT_THEME: Theme = "nex-shell";
+/**
+ * What a fresh install renders. Only read when nothing is persisted under
+ * `wuphf-theme` (see stores/app.ts), so changing it never moves a user who
+ * already picked a theme.
+ */
+export const DEFAULT_THEME: Theme = "nex-glass-dark";
 
 const THEME_IDS: ReadonlySet<string> = new Set(THEMES.map((t) => t.id));
 

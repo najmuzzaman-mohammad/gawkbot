@@ -46,7 +46,8 @@ describe("<ChannelHeader>", () => {
     });
     fireEvent.click(trigger);
 
-    const dark = screen.getByRole("menuitemradio", { name: /Dark/ });
+    // Anchored: "Glass Dark" also contains "Dark".
+    const dark = screen.getByRole("menuitemradio", { name: /^Dark/ });
     fireEvent.click(dark);
 
     expect(useAppStore.getState().theme).toBe("nex-dark");
@@ -116,12 +117,12 @@ describe("<ChannelHeader>", () => {
     const menu = screen.getByRole("menu");
     const items = screen.getAllByRole("menuitemradio");
 
-    // Menu opens with focus on the active item (Light — index 1, after
-    // the Shell default that now leads the registry).
-    expect(document.activeElement).toBe(items[1]);
+    // Menu opens with focus on the active item (Light — index 3, after
+    // the two Glass flavours and Shell; the default leads the registry).
+    expect(document.activeElement).toBe(items[3]);
 
     fireEvent.keyDown(menu, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(items[2]);
+    expect(document.activeElement).toBe(items[4]);
 
     fireEvent.keyDown(menu, { key: "End" });
     expect(document.activeElement).toBe(items[items.length - 1]);

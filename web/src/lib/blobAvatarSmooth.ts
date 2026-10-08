@@ -25,6 +25,8 @@ type Point = readonly [number, number];
 export interface SmoothBlob {
   /** Body outline plus eye holes, in a 0..BLOB_GRID viewBox. Fill evenodd. */
   readonly d: string;
+  /** The body outline alone, without the eye holes (for mask-based renderers). */
+  readonly body: string;
   readonly color: string;
   /** Eye boxes, for callers that animate the eyes separately. */
   readonly eyes: readonly { x: number; y: number; w: number; h: number }[];
@@ -122,6 +124,7 @@ export function smoothBlob(slug: string, openness = 1): SmoothBlob {
   }));
   const blob: SmoothBlob = {
     d: body + eyes.map((e) => roundedRect(e.x, e.y, e.w, e.h)).join(""),
+    body,
     color: blobColor(slug),
     eyes,
   };

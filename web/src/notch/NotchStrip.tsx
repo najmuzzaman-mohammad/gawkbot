@@ -88,7 +88,7 @@ export function NotchStrip({
               <span
                 className="notch-gang-member"
                 key={a.slug}
-                style={{ ["--i" as string]: i }}
+                style={{ ["--gang-i" as string]: i }}
               >
                 <NotchBot
                   slug={a.slug}

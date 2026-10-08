@@ -1654,6 +1654,39 @@ body {
   height: 56px;
 }
 
+/* ─── Smooth (vector) avatars — AVATAR_MODE "blob" ───
+   The mark is an SVG whose eyes are cut by a mask (components/ui/
+   PixelAvatar.tsx). The gawk narrows those two mask shapes about their own
+   centre; nothing else moves. The narrowest scale and the period are set
+   inline by the component from the same constants the sprite gawk uses, so
+   the two systems cannot drift apart. */
+.pixel-avatar--smooth {
+  image-rendering: auto;
+  flex-shrink: 0;
+}
+.pixel-avatar--smooth .pixel-avatar-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.pixel-avatar--smooth[data-working="true"] .pixel-avatar-eye {
+  animation: pixel-avatar-gawk var(--pixel-avatar-gawk-period) ease-in-out
+    infinite;
+}
+@keyframes pixel-avatar-gawk {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(var(--pixel-avatar-gawk-min));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pixel-avatar--smooth[data-working="true"] .pixel-avatar-eye {
+    animation: none;
+  }
+}
+
 /* ─── Harness badge (overlaid on agent avatars) ─── */
 .avatar-with-harness {
   position: relative;

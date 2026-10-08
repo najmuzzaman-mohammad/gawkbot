@@ -16,6 +16,29 @@ type Story = StoryObj<typeof PixelAvatar>;
 
 export const Default: Story = {};
 
+/**
+ * The bot that is processing right now. In blob mode the eyes narrow and
+ * widen smoothly (CSS on the SVG mask); under prefers-reduced-motion they
+ * stay open and still.
+ */
+export const Working: Story = {
+  args: { working: true },
+};
+
+/** Byline through panel scale, idle and working side by side. */
+export const Sizes: StoryObj = {
+  render: () => (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 16 }}>
+      {[14, 24, 32, 48, 72].map((size) => (
+        <div key={size} style={{ display: "flex", gap: 6 }}>
+          <PixelAvatar slug="cos" size={size} />
+          <PixelAvatar slug="cos" size={size} working={true} />
+        </div>
+      ))}
+    </div>
+  ),
+};
+
 export const Gallery: StoryObj = {
   render: () => (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>

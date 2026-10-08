@@ -29,6 +29,10 @@ describe("smoothBlob", () => {
     // body + 2 eyes = 3 subpaths, each closed
     expect(d.match(/Z/g)?.length).toBe(3);
     expect(d).not.toMatch(/NaN|Infinity/);
+    // The body outline is the first closed subpath of d, eyes excluded.
+    const { body } = smoothBlob("cos");
+    expect(d.startsWith(body)).toBe(true);
+    expect(body.match(/Z/g)?.length).toBe(1);
   });
 
   it("narrows the eyes as openness drops, without closing them", () => {

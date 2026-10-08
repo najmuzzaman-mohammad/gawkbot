@@ -27,6 +27,8 @@
   --mood-error: #ff453a;
   --mood-done: #30d158;
   --notch-radius: 22px;
+  /* How far each agent in the gang tucks behind the one before it. */
+  --nb-overlap: -7px;
   --notch-card-radius: 16px;
   --notch-spring: cubic-bezier(0.32, 1.25, 0.42, 1);
   --notch-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -154,9 +156,9 @@ kbd {
 }
 .notch-gang-member {
   display: inline-flex;
-  margin-left: calc(var(--nb-overlap, -7px));
+  margin-left: var(--nb-overlap);
   filter: drop-shadow(-2px 0 0 var(--notch-bg));
-  z-index: calc(10 - var(--i));
+  z-index: calc(10 - var(--gang-i));
 }
 .notch-gang-member:first-child {
   margin-left: 0;
@@ -685,7 +687,7 @@ kbd {
 
   .gang-bored-1 .notch-gang-member {
     animation: gang-jostle 0.9s ease-in-out infinite;
-    animation-delay: calc(var(--i) * -0.23s);
+    animation-delay: calc(var(--gang-i) * -0.23s);
   }
   .notch-chat {
     animation: n-bubble 0.35s var(--notch-spring) both;
