@@ -41,6 +41,9 @@ type localAgentsResponse struct {
 type localAgentAdoptBody struct {
 	IDs []string `json:"ids"`
 	All bool     `json:"all"`
+	// Actor is who asked: the Chief of Staff's tool sends its slug; the
+	// Settings page sends nothing, which means the human.
+	Actor string `json:"actor"`
 }
 
 type localAgentAdopted struct {
@@ -97,6 +100,11 @@ func (b *Broker) adoptedSlugForLocked(id string) string {
 		return ""
 	}
 	want := adoptionBinding(spec)
+	for _, m := range b.members {
+		if m.AdoptedFrom == spec.ID {
+			return m.Slug
+		}
+	}
 	for _, m := range b.members {
 		if !strings.HasPrefix(m.Slug, spec.ID) {
 			continue
@@ -204,7 +212,7 @@ func (b *Broker) handleAdoptLocalAgents(w http.ResponseWriter, r *http.Request) 
 			resp.Skipped = append(resp.Skipped, localAgentSkipped{ID: id, Reason: "no free bot slug"})
 			continue
 		}
-		member, err := b.adoptLocalAgent(r, slug, spec, lead)
+		member, err := b.adoptLocalAgent(r, slug, spec, body.Actor)
 		if err != nil {
 			resp.Skipped = append(resp.Skipped, localAgentSkipped{ID: id, Reason: err.Error()})
 			continue
@@ -235,15 +243,17 @@ func (b *Broker) freeAdoptionSlugLocked(id string) string {
 // adoptLocalAgent creates the office member through the same path the bot
 // wizard uses, so channel seeding, persistence and change events match a
 // hand-made hire. The caller holds officeMemberMutationMu.
-func (b *Broker) adoptLocalAgent(r *http.Request, slug string, spec agentdetect.Spec, lead string) (officeMember, error) {
+func (b *Broker) adoptLocalAgent(r *http.Request, slug string, spec agentdetect.Spec, actor string) (officeMember, error) {
 	binding := adoptionBinding(spec)
 	role := spec.Name + " agent"
 	if spec.Vendor != "" {
 		role = fmt.Sprintf("%s agent (%s), adopted from this machine", spec.Name, spec.Vendor)
 	}
-	createdBy := lead
+	// created_by is whoever pressed adopt; origin says it was adopted;
+	// the Chief of Staff manages it either way (managed_by on the roster).
+	createdBy := normalizeActorSlug(actor)
 	if createdBy == "" {
-		createdBy = "human"
+		createdBy = createdByHumanValue
 	}
 	body := officeMemberMutationBody{
 		Action:      "create",
@@ -254,6 +264,8 @@ func (b *Broker) adoptLocalAgent(r *http.Request, slug string, spec agentdetect.
 		Personality: fmt.Sprintf("The %s install on this machine, working for the Chief of Staff. Takes delegated work, does it, and reports back plainly.", spec.Name),
 		CreatedBy:   createdBy,
 		Provider:    &binding,
+		origin:      OriginAdopted,
+		adoptedFrom: spec.ID,
 	}
 	result, mErr := b.createOfficeMember(r, slug, body)
 	if mErr != nil {

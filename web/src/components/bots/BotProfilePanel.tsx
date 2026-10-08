@@ -40,6 +40,7 @@ import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
 import { BotInstructionsSection } from "./BotInstructionsSection";
+import { MemberProvenance } from "./MemberProvenance";
 
 const PROVIDER_LABELS: Record<LLMRuntimeKind, string> = {
   "claude-code": "Claude Code",
@@ -1000,6 +1001,14 @@ export function BotProfilePanel({
           <div className="bot-profile-section">
             <SectionTitle>role</SectionTitle>
             <p className="bot-profile-role-text">{agent.role}</p>
+          </div>
+        ) : null}
+
+        {/* Provenance: who made it, where it runs, who manages it */}
+        {agent.origin || agent.runs_on ? (
+          <div className="bot-profile-section">
+            <SectionTitle>origin</SectionTitle>
+            <MemberProvenance member={agent} />
           </div>
         ) : null}
 

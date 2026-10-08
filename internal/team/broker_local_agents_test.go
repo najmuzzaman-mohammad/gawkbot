@@ -116,8 +116,11 @@ func TestAdoptAllLocalAgentsCreatesBotsManagedByTheLead(t *testing.T) {
 		t.Fatalf("gemini bot = %+v, want a cli-agent member bound to gemini", gemini)
 	}
 	for _, m := range []*officeMember{codex, gemini} {
-		if m.CreatedBy != lead {
-			t.Fatalf("@%s created_by = %q, want the lead %q", m.Slug, m.CreatedBy, lead)
+		// The human pressed adopt (no actor), so they created it; origin
+		// records that it came from this machine.
+		if m.CreatedBy != "human" || m.Origin != OriginAdopted || m.AdoptedFrom != m.Slug {
+			t.Fatalf("@%s created_by=%q origin=%q adopted_from=%q, want human/adopted/%s",
+				m.Slug, m.CreatedBy, m.Origin, m.AdoptedFrom, m.Slug)
 		}
 	}
 

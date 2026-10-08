@@ -135,7 +135,7 @@ func handleTeamLocalAgents(ctx context.Context, _ *mcp.CallToolRequest, args Tea
 	}
 
 	var result localAgentsAdoptResult
-	if err := brokerPostJSON(ctx, "/agents/local/adopt", map[string]any{"ids": ids}, &result); err != nil {
+	if err := brokerPostJSON(ctx, "/agents/local/adopt", map[string]any{"ids": ids, "actor": actor}, &result); err != nil {
 		return toolError(err), nil, nil
 	}
 	var b strings.Builder

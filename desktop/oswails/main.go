@@ -13,10 +13,12 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/nex-crm/wuphf/internal/team"
 	"github.com/wailsapp/wails/v2"
@@ -52,6 +54,20 @@ func freePort() (int, error) {
 	}
 	defer func() { _ = l.Close() }()
 	return l.Addr().(*net.TCPAddr).Port, nil
+}
+
+// openInMainWindow brings the main window forward at an in-app path. The
+// URL is absolute on the office origin because the window may still be on
+// the wails:// bootstrap page, and it is JSON-encoded into the script so the
+// path is data, never code.
+func openInMainWindow(ctx context.Context, officeURL, path string) {
+	dest, err := json.Marshal(strings.TrimRight(officeURL, "/") + path)
+	if err != nil {
+		return
+	}
+	wailsruntime.WindowUnminimise(ctx)
+	wailsruntime.WindowShow(ctx)
+	wailsruntime.WindowExecJS(ctx, "window.location.assign("+string(dest)+")")
 }
 
 func main() {
@@ -98,7 +114,15 @@ func main() {
 		Width:            1400,
 		Height:           900,
 		BackgroundColour: &options.RGBA{R: 11, G: 11, B: 13, A: 1},
-		OnStartup:        func(ctx context.Context) { appCtx = ctx },
+		OnStartup: func(ctx context.Context) {
+			appCtx = ctx
+			// The Chief of Staff in the camera notch (notch_darwin.m). It
+			// loads <office>/notch.html itself and retries until the broker
+			// answers, so it can start before the in-process boot finishes.
+			startNotch(target, func(path string) {
+				openInMainWindow(ctx, target, path)
+			})
+		},
 		OnShutdown: func(context.Context) {
 			// If we booted the broker in-process (rather than attaching to a
 			// running peer), clear the office.json sidecar so the next launch

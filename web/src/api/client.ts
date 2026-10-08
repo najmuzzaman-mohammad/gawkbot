@@ -818,7 +818,30 @@ export interface OfficeMember {
   computer?: "" | "off" | "sandbox" | "cloud";
   /** Cloud provider for `computer: "cloud"`. "" means box. */
   cloud_backend?: "" | "box";
+  /**
+   * Who made this bot. Mirrors internal/team/broker_member_origin.go:
+   * "user" (you), "chief_of_staff", "bot" (another teammate), "built_in",
+   * "adopted" (an agent CLI found on this machine), "imported" (a gateway
+   * or Slack bot).
+   */
+  origin?: MemberOrigin;
+  /** agentdetect catalog id for adopted bots ("gemini", "codex", ...). */
+  adopted_from?: string;
+  /** Where the bot's turns execute. */
+  runs_on?: "this_machine" | "elsewhere";
+  /** Human description of runs_on ("OpenClaw gateway", "Gemini CLI on this machine"). */
+  runs_on_detail?: string;
+  /** The Chief of Staff slug; absent on the lead itself. */
+  managed_by?: string;
 }
+
+export type MemberOrigin =
+  | "user"
+  | "chief_of_staff"
+  | "bot"
+  | "built_in"
+  | "adopted"
+  | "imported";
 
 /**
  * Lane A piggybacks `humanHasPosted` onto the existing `/office-members`
