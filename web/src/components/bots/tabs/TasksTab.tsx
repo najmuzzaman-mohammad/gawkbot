@@ -16,6 +16,7 @@ import {
   stageForState,
 } from "../../../lib/types/lifecycle";
 import { useAppStore } from "../../../stores/app";
+import { EmptyHero } from "../../layout/EmptyHero";
 import { LifecycleStatePill } from "../../lifecycle/LifecycleStatePill";
 
 interface TasksTabProps {
@@ -88,6 +89,7 @@ export function TasksTab({ agentSlug }: TasksTabProps) {
   if (botTasks.length === 0) {
     return (
       <div className="bot-tasks-tab">
+        <EmptyHero slug={agentSlug} line="Nothing on my plate yet." />
         <p className="bot-tasks-empty">No tasks owned by @{agentSlug} yet.</p>
       </div>
     );

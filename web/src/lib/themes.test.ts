@@ -11,16 +11,23 @@ const THEMES_DIR = join(
 );
 
 /** Files in public/themes that are shared layers, not selectable themes. */
-const SHARED_LAYERS = new Set(["glass-base.css"]);
+const SHARED_LAYERS = new Set(["glass-base.css", "soft-base.css"]);
 
 function themeCss(file: string): string {
   return readFileSync(join(THEMES_DIR, file), "utf8");
 }
 
 describe("theme registry", () => {
-  it("defaults new installs to Glass Dark, which leads the list", () => {
-    expect(DEFAULT_THEME).toBe("nex-glass-dark");
+  it("defaults new installs to Soft Light, which leads the list", () => {
+    expect(DEFAULT_THEME).toBe("nex-soft-light");
     expect(THEMES[0].id).toBe(DEFAULT_THEME);
+  });
+
+  it("ships both Soft flavours", () => {
+    expect(isTheme("nex-soft-light")).toBe(true);
+    expect(isTheme("nex-soft-dark")).toBe(true);
+    expect(getTheme("nex-soft-light").name).toBe("Soft Light");
+    expect(getTheme("nex-soft-dark").name).toBe("Soft Dark");
   });
 
   it("ships both Glass flavours", () => {
@@ -30,7 +37,14 @@ describe("theme registry", () => {
   });
 
   it("keeps the themes users may already have persisted", () => {
-    for (const id of ["nex-shell", "nex", "nex-dark", "noir-gold"]) {
+    for (const id of [
+      "nex-glass-dark",
+      "nex-glass-light",
+      "nex-shell",
+      "nex",
+      "nex-dark",
+      "noir-gold",
+    ]) {
       expect(isTheme(id)).toBe(true);
     }
     expect(isTheme("not-a-theme")).toBe(false);
@@ -107,5 +121,100 @@ describe("Glass themes", () => {
         );
       }
     }
+  });
+});
+
+/** Selectors of every rule in a stylesheet, comments and at-rule heads out. */
+function selectorsOf(css: string): string[] {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/@import[^;]*;/g, "")
+    .split("}")
+    .map((block) => block.split("{")[0].trim())
+    .filter((sel) => sel && !sel.startsWith("@"))
+    .flatMap((sel) => sel.split(","))
+    .map((sel) => sel.trim())
+    .filter(Boolean);
+}
+
+describe("Soft themes", () => {
+  const base = themeCss("soft-base.css");
+
+  it("resolves every display and pixel font token to the system stack", () => {
+    expect(base).toMatch(/--font-sans:\s*-apple-system/);
+    expect(base).toMatch(/--font-logo:\s*-apple-system/);
+    expect(base).toContain("--font-pixel: var(--font-sans);");
+  });
+
+  it("scopes its shared layer to both flavours and nothing else", () => {
+    const softIds = THEMES.filter((t) => t.id.startsWith("nex-soft"));
+    expect(softIds.map((t) => t.id)).toEqual([
+      "nex-soft-light",
+      "nex-soft-dark",
+    ]);
+    const selectors = selectorsOf(base);
+    // Coverage: a parse that found nothing would pass the check below.
+    expect(selectors.length).toBeGreaterThan(60);
+    const unscoped = selectors.filter(
+      (sel) => !sel.startsWith('html[data-theme^="nex-soft"]'),
+    );
+    expect(unscoped).toEqual([]);
+  });
+
+  it("writes no literal colour in the shared layer", () => {
+    const body = base
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/@import[^;]*;/g, "");
+    expect(body).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(body).not.toMatch(/rgba?\(/i);
+  });
+
+  it("defines the soft tokens the shared layer reads, in both flavours", () => {
+    const read = new Set(
+      Array.from(base.matchAll(/var\((--(?:soft|nex-sidebar)[\w-]*)/g)).map(
+        (m) => m[1],
+      ),
+    );
+    // Defined by the base itself (geometry, not colour).
+    for (const own of [
+      "--soft-bubble-radius",
+      "--soft-bubble-tail",
+      "--soft-bubble-max",
+    ]) {
+      expect(base).toMatch(new RegExp(`${own}:`));
+      read.delete(own);
+    }
+    // Coverage: the bubbles, the field and the sidebar all read tokens.
+    expect(read.size).toBeGreaterThanOrEqual(8);
+    for (const file of ["nex-soft-light.css", "nex-soft-dark.css"]) {
+      const css = themeCss(file);
+      for (const token of read) {
+        expect(css, `${file} defines ${token}`).toMatch(
+          new RegExp(`${token}:`),
+        );
+      }
+    }
+  });
+
+  it("lays bubbles out from attributes MessageBubble renders in every theme", () => {
+    // The right-hand side keys off data-author-self, never a Soft-only class.
+    expect(base).toContain(".message[data-author-self]");
+    expect(base).not.toMatch(/\.message-mine|\.message-self\b/);
+  });
+
+  it("is the only theme that switches the empty-state hero on", () => {
+    const messages = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../styles/messages.css"),
+      "utf8",
+    );
+    expect(messages).toMatch(
+      /\.empty-hero\s*\{\s*display:\s*var\(--empty-hero-display,\s*none\);/,
+    );
+    const files = readdirSync(THEMES_DIR).filter((f) => f.endsWith(".css"));
+    expect(files.length).toBeGreaterThanOrEqual(THEMES.length);
+    const setters = files.filter((f) =>
+      /--empty-hero-display\s*:/.test(themeCss(f)),
+    );
+    expect(setters).toEqual(["soft-base.css"]);
   });
 });

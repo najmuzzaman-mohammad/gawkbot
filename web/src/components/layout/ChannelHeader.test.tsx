@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { THEMES } from "../../lib/themes";
 import { useAppStore } from "../../stores/app";
 import { ChannelHeader } from "./ChannelHeader";
 
@@ -117,12 +118,18 @@ describe("<ChannelHeader>", () => {
     const menu = screen.getByRole("menu");
     const items = screen.getAllByRole("menuitemradio");
 
-    // Menu opens with focus on the active item (Light — index 3, after
-    // the two Glass flavours and Shell; the default leads the registry).
-    expect(document.activeElement).toBe(items[3]);
+    // Menu opens with focus on the active item. Its index is read from the
+    // registry rather than hardcoded: the default theme leads the list, so
+    // every new default shifts Light down a slot.
+    const light = THEMES.findIndex((t) => t.id === "nex");
+    expect(items).toHaveLength(THEMES.length);
+    // Coverage: ArrowDown below needs a real item after Light.
+    expect(light).toBeGreaterThanOrEqual(0);
+    expect(light).toBeLessThan(items.length - 1);
+    expect(document.activeElement).toBe(items[light]);
 
     fireEvent.keyDown(menu, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(items[4]);
+    expect(document.activeElement).toBe(items[light + 1]);
 
     fireEvent.keyDown(menu, { key: "End" });
     expect(document.activeElement).toBe(items[items.length - 1]);

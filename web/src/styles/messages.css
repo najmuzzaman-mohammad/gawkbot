@@ -1668,6 +1668,13 @@ html[data-theme] .interview-bar-actions .btn-primary:hover {
   margin-top: 8px;
 }
 
+/* ─── Empty-state hero (components/layout/EmptyHero.tsx) ───
+   Off unless the active theme opts in by setting --empty-hero-display;
+   the theme also owns the hero's layout. */
+.empty-hero {
+  display: var(--empty-hero-display, none);
+}
+
 /* ─── Thread toggle ─── */
 .inline-thread-toggle {
   display: inline-flex;

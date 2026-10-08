@@ -5,9 +5,9 @@
  *   1. Drop the CSS file under `web/public/themes/<id>.css`.
  *   2. Append an entry to `THEMES` below.
  *
- * Not every file in `public/themes/` is a theme: `glass-base.css` is the
- * shared layer both Glass flavours import, the way the nex-* themes import
- * `nex.css`. The default theme leads the list.
+ * Not every file in `public/themes/` is a theme: `soft-base.css` and
+ * `glass-base.css` are the shared layers each pair of flavours imports, the
+ * way the nex-* themes import `nex.css`. The default theme leads the list.
  *
  * The `Theme` union, the switcher menu, and the loader in `RootRoute` all
  * derive their behaviour from this list.
@@ -32,6 +32,20 @@ export interface ThemeDef {
 }
 
 export const THEMES = [
+  {
+    id: "nex-soft-light",
+    name: "Soft Light",
+    desc: "Friendly chat bubbles, bright and airy.",
+    swatch: { primary: "#f6f7f8", accent: "#0e7a41", surface: "#fcfcfd" },
+    cssPath: "/themes/nex-soft-light.css",
+  },
+  {
+    id: "nex-soft-dark",
+    name: "Soft Dark",
+    desc: "Friendly chat bubbles, after hours.",
+    swatch: { primary: "#131417", accent: "#34d17a", surface: "#0e0f11" },
+    cssPath: "/themes/nex-soft-dark.css",
+  },
   {
     id: "nex-glass-dark",
     name: "Glass Dark",
@@ -83,7 +97,7 @@ export type Theme = (typeof THEMES)[number]["id"];
  * `wuphf-theme` (see stores/app.ts), so changing it never moves a user who
  * already picked a theme.
  */
-export const DEFAULT_THEME: Theme = "nex-glass-dark";
+export const DEFAULT_THEME: Theme = "nex-soft-light";
 
 const THEME_IDS: ReadonlySet<string> = new Set(THEMES.map((t) => t.id));
 

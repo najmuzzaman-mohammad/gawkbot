@@ -167,3 +167,40 @@ describe("<MessageBubble> synthetic senders", () => {
     ).toBeGreaterThan(0);
   });
 });
+
+// Chat-layout themes put YOUR messages on the right. They read this one
+// attribute, so it must mark the person at this keyboard and nobody else:
+// another human team member, a bot, or a system line stays on the left.
+describe("<MessageBubble> data-author-self", () => {
+  const base: Message = {
+    id: "msg-self",
+    from: "human",
+    channel: "general",
+    content: "Morning.",
+    timestamp: "2026-10-08T09:00:00Z",
+  };
+
+  /** The bubble's data-author-self, or undefined when no bubble rendered. */
+  function selfAttr(from: string): string | null | undefined {
+    const { container, unmount } = renderWithQueryClient(
+      <MessageBubble message={{ ...base, id: `msg-${from}`, from }} />,
+    );
+    const bubble = container.querySelector("[data-author-kind]");
+    const value = bubble ? bubble.getAttribute("data-author-self") : undefined;
+    unmount();
+    return value;
+  }
+
+  it("marks the local human, whichever local slug the broker used", () => {
+    expect(selfAttr("human")).toBe("");
+    expect(selfAttr("you")).toBe("");
+  });
+
+  it("leaves other humans, bots and system lines unmarked", () => {
+    // toBeNull, not toBeFalsy: undefined would mean no bubble rendered at
+    // all, which must not pass as "unmarked".
+    expect(selfAttr("human:sam")).toBeNull();
+    expect(selfAttr("pm")).toBeNull();
+    expect(selfAttr("system")).toBeNull();
+  });
+});
