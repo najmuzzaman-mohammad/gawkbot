@@ -137,7 +137,7 @@ func headAndTail(path string, size int64) (head, tail [][]byte) {
 	if err != nil {
 		return nil, nil
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	buf := make([]byte, sessionHeadBytes)
 	n, _ := io.ReadFull(f, buf)
 	head = bytes.Split(buf[:n], []byte("\n"))
@@ -234,7 +234,7 @@ func lastClaudeTitle(path string) string {
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	title := ""
 	r := bufio.NewReaderSize(f, 1<<20)
 	for {

@@ -183,8 +183,8 @@ jobs:
           codesign --deep --force --options runtime --timestamp \
             --entitlements desktop/oswails/build/darwin/entitlements.plist \
             --sign "$SIGN_IDENTITY" \
-            desktop/oswails/build/bin/WUPHF.app
-          codesign --verify --deep --strict --verbose=2 desktop/oswails/build/bin/WUPHF.app
+            desktop/oswails/build/bin/gawkbot.app
+          codesign --verify --deep --strict --verbose=2 desktop/oswails/build/bin/gawkbot.app
 
       - name: Package + sign .dmg
         env:
@@ -192,13 +192,13 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           stage="$RUNNER_TEMP/dmg"; mkdir -p "$stage"
-          cp -R desktop/oswails/build/bin/WUPHF.app "$stage/"
+          cp -R desktop/oswails/build/bin/gawkbot.app "$stage/"
           ln -s /Applications "$stage/Applications"
           mkdir -p dist
           # Size the image explicitly instead of letting -srcfolder estimate it.
           #
           # v0.237.0 failed here with "hdiutil: create failed - No space left on
-          # device" followed by "could not access /Volumes/WUPHF/WUPHF.app/... -
+          # device" followed by "could not access /Volumes/gawkbot/gawkbot.app/... -
           # No space left on device". That second path is the MOUNTED IMAGE, not
           # the runner: the same run reported 138Gi free on / after the cleanup
           # step above. hdiutil's own estimate for this universal bundle simply
@@ -213,7 +213,7 @@ jobs:
           stage_mb=$(du -sm "$stage" | awk '{print $1}')
           image_mb=$(( stage_mb + stage_mb / 2 + 100 ))
           echo "staged ${stage_mb} MB -> image ${image_mb} MB"
-          hdiutil create -volname "WUPHF" -srcfolder "$stage" -size "${image_mb}m" -ov -format UDZO "dist/WUPHF-$VERSION.dmg"
+          hdiutil create -volname "gawkbot" -srcfolder "$stage" -size "${image_mb}m" -ov -format UDZO "dist/WUPHF-$VERSION.dmg"
           ls -lh "dist/WUPHF-$VERSION.dmg"
           codesign --sign "$SIGN_IDENTITY" --timestamp "dist/WUPHF-$VERSION.dmg"
 

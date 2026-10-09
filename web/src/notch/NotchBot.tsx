@@ -12,6 +12,7 @@ import type { Mood } from "./types";
 //
 //   working    gentle bob, spinning eyes
 //   idle       slow breathing, half-closed eyes, a "z" drifting up
+//   tucked     the same, under a blanket: the office is quiet, it is asleep
 //   needs_you  bouncy hop, a talking face, an "!" badge
 //   error      a shake, a frown, a sweat drop
 //   done       a happy hop, a big smile, sparkles
@@ -49,6 +50,11 @@ interface NotchBotProps {
   bare?: boolean;
   /** The bot's chosen look (NotchAgent.avatar). */
   avatar?: MemberAvatar;
+  /**
+   * Asleep under a blanket: nothing is going on, so it has turned in. For
+   * the lead in the notch when the office is quiet.
+   */
+  tucked?: boolean;
 }
 
 function Prop({ mood }: { mood: Mood }) {
@@ -81,6 +87,7 @@ export function NotchBot({
   phase = 0,
   bare = false,
   avatar,
+  tucked = false,
 }: NotchBotProps) {
   const name = label ?? `${slug}: ${MOOD_WORDS[mood]}`;
   // A named bot is an image with a name; an unnamed one is decoration.
@@ -89,7 +96,7 @@ export function NotchBot({
     : ({ "aria-hidden": true } as const);
   return (
     <span
-      className={`notch-bot nb-${mood}${act ? ` nb-act-${act}` : ""}`}
+      className={`notch-bot nb-${mood}${act ? ` nb-act-${act}` : ""}${tucked ? " nb-tucked" : ""}`}
       style={{
         width: size,
         height: size,
@@ -108,8 +115,10 @@ export function NotchBot({
           live={true}
           avatar={avatar}
         />
+        {tucked ? <span className="nb-blanket" aria-hidden="true" /> : null}
       </span>
-      {bare ? null : <Prop mood={mood} />}
+      {tucked ? <span className="nb-prop nb-z">z</span> : null}
+      {bare || tucked ? null : <Prop mood={mood} />}
     </span>
   );
 }

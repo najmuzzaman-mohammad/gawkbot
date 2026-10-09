@@ -231,3 +231,31 @@ func TestNotchBriefFallsBackToTheAskersOpenTask(t *testing.T) {
 		t.Fatalf("task = %+v", br.Task)
 	}
 }
+
+// The lead is the face of the notch, so by default it is the logo; a look
+// the human picked for it wins.
+func TestNotchLeadLooksLikeTheLogoByDefault(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	lead := officeLeadSlugFrom(b.members)
+	const other = "eng"
+	b.members = append(b.members, officeMember{Slug: other, Name: "Engineer"})
+	b.memberIndex[other] = len(b.members) - 1
+	b.mu.Unlock()
+
+	s := fetchNotchState(t, b)
+	got := notchAgentBySlug(t, s, lead).Avatar
+	if got == nil || got.Shape != "flower" || got.Color != "#5aa9ff" {
+		t.Fatalf("lead avatar = %+v, want the brand flower", got)
+	}
+	if a := notchAgentBySlug(t, s, other).Avatar; a != nil {
+		t.Fatalf("another bot was given the logo: %+v", a)
+	}
+
+	b.mu.Lock()
+	b.members[b.memberIndex[lead]].Avatar = &MemberAvatar{Shape: "bear", Color: "#ff7a59"}
+	b.mu.Unlock()
+	if got := notchAgentBySlug(t, fetchNotchState(t, b), lead).Avatar; got == nil || got.Shape != "bear" {
+		t.Fatalf("chosen look lost: %+v", got)
+	}
+}

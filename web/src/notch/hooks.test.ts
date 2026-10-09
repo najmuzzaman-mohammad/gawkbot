@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { BUSY_OFFICE } from "./fixtures";
-import { type KeyHandlers, runKeyAction, trackFirstSeen } from "./hooks";
+import {
+  type KeyHandlers,
+  moveOptionFocus,
+  runKeyAction,
+  trackFirstSeen,
+} from "./hooks";
 
 function handlers(over: Partial<KeyHandlers> = {}): KeyHandlers {
   return {
@@ -72,5 +77,39 @@ describe("trackFirstSeen", () => {
     ]);
     trackFirstSeen(m, BUSY_OFFICE.attention, 99);
     expect(m.get("req-1")).toBe(50);
+  });
+});
+
+describe("moveOptionFocus", () => {
+  it("walks the selected question's buttons and wraps at the ends", () => {
+    document.body.innerHTML = `
+      <div class="npanel">
+        <article class="nq"><div class="nq-actions"><button id="other">x</button></div></article>
+        <article class="nq is-selected"><div class="nq-actions">
+          <button id="a">Approve</button><button id="b" disabled>Busy</button>
+          <button id="c">Reject</button><button id="d">Reply</button>
+        </div></article>
+      </div>`;
+    const focused = () => document.activeElement?.id;
+    expect(moveOptionFocus(1)).toBe(true);
+    expect(focused()).toBe("a");
+    moveOptionFocus(1);
+    // Skips the disabled one, never leaves the selected question.
+    expect(focused()).toBe("c");
+    moveOptionFocus(1);
+    expect(focused()).toBe("d");
+    moveOptionFocus(1);
+    expect(focused()).toBe("a");
+    moveOptionFocus(-1);
+    expect(focused()).toBe("d");
+    document.body.innerHTML = "";
+    expect(moveOptionFocus(1)).toBe(false);
+  });
+
+  it("starts from the last button going left", () => {
+    document.body.innerHTML = `<article class="nq is-selected"><div class="nq-actions"><button id="a">A</button><button id="z">Z</button></div></article>`;
+    moveOptionFocus(-1);
+    expect(document.activeElement?.id).toBe("z");
+    document.body.innerHTML = "";
   });
 });

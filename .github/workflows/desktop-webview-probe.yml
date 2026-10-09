@@ -72,7 +72,7 @@ jobs:
         run: |
           export WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1
           xvfb-run -a -s "-screen 0 1440x900x24" dbus-run-session -- bash -c '
-            ./desktop/oswails/build/bin/WUPHF >app.log 2>&1 &
+            ./desktop/oswails/build/bin/gawkbot >app.log 2>&1 &
             sleep 18
             ss -tnp 2>/dev/null | grep 127.0.0.1:7973 || true
             import -window root webview-linux.png || true
@@ -82,7 +82,7 @@ jobs:
       - name: Run + screenshot (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          open desktop/oswails/build/bin/WUPHF.app
+          open desktop/oswails/build/bin/gawkbot.app
           sleep 18
           /usr/sbin/screencapture -x webview-macos.png || true
         shell: bash

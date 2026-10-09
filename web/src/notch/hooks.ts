@@ -303,8 +303,11 @@ export interface KeyHandlers {
 /** Runs one keyboard action. Returns false when the key was not ours. */
 export function runKeyAction(action: NotchAction, h: KeyHandlers): boolean {
   switch (action.type) {
+    case "option":
+      return moveOptionFocus(action.delta);
     case "move": {
       if (h.attention.length === 0) return false;
+      dropButtonFocus();
       const i = Math.max(
         0,
         h.attention.findIndex((a) => a.id === h.selected?.id),
@@ -343,6 +346,40 @@ export function runKeyAction(action: NotchAction, h: KeyHandlers): boolean {
   }
 }
 
+/** A button in the open panel has the focus. */
+function focusOnButton(): boolean {
+  const el = document.activeElement;
+  return el instanceof HTMLButtonElement && el.closest(".npanel") !== null;
+}
+
+/**
+ * Steps the focus along the selected question's buttons, wrapping at the
+ * ends. With none in focus yet, → starts at the first and ← at the last.
+ * Returns false when there is no selected question to move within.
+ */
+export function moveOptionFocus(delta: 1 | -1): boolean {
+  const buttons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>(
+      ".nq.is-selected .nq-actions button:not(:disabled)",
+    ),
+  );
+  if (buttons.length === 0) return false;
+  const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+  const next =
+    at < 0
+      ? delta > 0
+        ? 0
+        : buttons.length - 1
+      : (at + delta + buttons.length) % buttons.length;
+  buttons[next].focus();
+  return true;
+}
+
+/** Moving to another question leaves the button the arrows had reached. */
+function dropButtonFocus(): void {
+  if (focusOnButton()) (document.activeElement as HTMLElement).blur();
+}
+
 function typingInField(): boolean {
   const el = document.activeElement;
   return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
@@ -360,6 +397,7 @@ export function useNotchKeys(active: boolean, handlers: KeyHandlers): void {
           key: e.key,
           code: e.code,
           typing: typingInField(),
+          onButton: focusOnButton(),
           repeat: e.repeat,
           meta: e.metaKey,
           ctrl: e.ctrlKey,

@@ -41,6 +41,9 @@
 
   /* Controls on the sheet: plain fills, the way the system draws them on
      its own glass. One step up on hover, one more when pressed. */
+  /* The lead's blanket when the office is quiet. */
+  --notch-blanket: #6f7fb3;
+  --notch-blanket-fold: #b9c4ea;
   --notch-control: rgba(255, 255, 255, 0.1);
   --notch-control-hover: rgba(255, 255, 255, 0.16);
   --notch-control-press: rgba(255, 255, 255, 0.22);
@@ -270,6 +273,24 @@ kbd {
   font: 800 10px / 1 var(--notch-font);
   color: #1c1400;
   background: var(--mood-needs-you);
+}
+/* The blanket: pulled up to the chin, with a turned-down fold along the
+   top. It sits inside the body so it rises and falls with the breathing. */
+.nb-blanket {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -6%;
+  height: 54%;
+  border-radius: 46% 46% 34% 34% / 36% 36% 30% 30%;
+  background: var(--notch-blanket);
+  box-shadow:
+    inset 0 2.5px 0 var(--notch-blanket-fold),
+    0 1px 1.5px rgba(0, 0, 0, 0.45);
+}
+.nb-tucked .nb-z {
+  top: -9px;
+  right: -7px;
 }
 .nb-z {
   top: -10px;
@@ -573,6 +594,11 @@ kbd {
 .nicon:active {
   background: var(--notch-control-press);
   transform: scale(0.97);
+}
+/* Where the arrow keys are: a clear ring, on every control in the panel. */
+.npanel button:focus-visible {
+  outline: 2px solid var(--notch-blue);
+  outline-offset: 2px;
 }
 .nbtn:disabled {
   opacity: 0.45;
@@ -901,6 +927,12 @@ kbd {
   }
   .nb-idle .nb-body {
     animation: nb-breathe 4s ease-in-out infinite;
+  }
+  .nb-tucked .nb-body {
+    animation: nb-breathe 4s ease-in-out infinite;
+  }
+  .nb-tucked .nb-z {
+    animation: nb-z 4s ease-out infinite;
   }
   .nb-idle .nb-z {
     animation: nb-z 4s ease-out infinite;

@@ -2,6 +2,7 @@
 // agent is one keystroke:
 //
 //   J / ↓        next question          K / ↑      previous question
+//   ← / →        move along the question's buttons (↵ presses the one in focus)
 //   1–9          pick that answer       ↵          the recommended answer
 //   R            reply in words         V (hold)   reply with your voice
 //                                       ⌥V (hold)  the same, from inside the reply box
@@ -15,6 +16,8 @@ import type { NotchAttention } from "./types";
 
 export type NotchAction =
   | { type: "move"; delta: 1 | -1 }
+  /** Step the focus along the selected question's buttons. */
+  | { type: "option"; delta: 1 | -1 }
   | { type: "choose"; optionId: string }
   | { type: "reply" }
   | { type: "voice_start" }
@@ -30,6 +33,11 @@ export interface KeyInput {
   code?: string;
   /** True while a text field has focus: only Esc and Enter are ours then. */
   typing: boolean;
+  /**
+   * True while one of the panel's buttons has the focus (the arrows put it
+   * there): Enter then presses that button, as it would anywhere.
+   */
+  onButton?: boolean;
   repeat?: boolean;
   meta?: boolean;
   ctrl?: boolean;
@@ -108,7 +116,12 @@ export function keyAction(
     return { type: "none" };
   const delta = MOVES[key];
   if (delta) return { type: "move", delta };
-  if (key === "Enter") return enterAction(selected);
+  if (key === "ArrowRight") return { type: "option", delta: 1 };
+  if (key === "ArrowLeft") return { type: "option", delta: -1 };
+  // A focused button takes Enter itself; we must not also answer for it.
+  if (key === "Enter") {
+    return input.onButton ? { type: "none" } : enterAction(selected);
+  }
   if (/^[1-9]$/.test(key)) {
     const opt = oneTap(selected)[Number(key) - 1];
     return opt ? { type: "choose", optionId: opt.id } : { type: "none" };
@@ -119,6 +132,7 @@ export function keyAction(
 /** The shortcut legend shown in the panel footer. */
 export const SHORTCUTS: readonly [string, string][] = [
   ["J K", "move"],
+  ["← →", "buttons"],
   ["1–9", "answer"],
   ["↵", "recommended"],
   ["R", "reply"],

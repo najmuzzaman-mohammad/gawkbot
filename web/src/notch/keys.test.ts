@@ -88,4 +88,17 @@ describe("keyAction", () => {
       type: "none",
     });
   });
+
+  it("steps along a question's buttons with the left and right arrows", () => {
+    const key = (k: string, onButton = false) =>
+      keyAction({ key: k, typing: false, onButton }, undefined);
+    expect(key("ArrowRight")).toEqual({ type: "option", delta: 1 });
+    expect(key("ArrowLeft")).toEqual({ type: "option", delta: -1 });
+    // While typing a reply the arrows move the caret, not the focus.
+    expect(keyAction({ key: "ArrowRight", typing: true }, undefined)).toEqual({
+      type: "none",
+    });
+    // Enter on the button in focus is that button's own press.
+    expect(key("Enter", true)).toEqual({ type: "none" });
+  });
 });

@@ -66,7 +66,7 @@ git tag desktop-v0.1.1 && git push origin desktop-v0.1.1
 ```bash
 cd web && bun run build && cd ..
 cd desktop/oswails && wails build -s -skipbindings -tags desktop && cd ../..
-APP=desktop/oswails/build/bin/WUPHF.app
+APP=desktop/oswails/build/bin/gawkbot.app
 codesign --deep --force --options runtime --timestamp \
   --entitlements desktop/oswails/build/darwin/entitlements.plist \
   --sign "Developer ID Application: GarageSpace, Inc. (GXAA6X232R)" "$APP"

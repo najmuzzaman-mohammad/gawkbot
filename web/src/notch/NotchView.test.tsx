@@ -6,8 +6,8 @@ import { gang } from "./antics";
 import { BUSY_OFFICE, MACBOOK_NOTCH, NO_NOTCH, QUIET_OFFICE } from "./fixtures";
 import { NotchView, type NotchViewProps } from "./NotchView";
 
-function renderNotch(overrides: Partial<NotchViewProps> = {}) {
-  const props: NotchViewProps = {
+function notchProps(overrides: Partial<NotchViewProps> = {}): NotchViewProps {
+  return {
     state: BUSY_OFFICE,
     geometry: MACBOOK_NOTCH,
     expanded: false,
@@ -37,8 +37,17 @@ function renderNotch(overrides: Partial<NotchViewProps> = {}) {
     onAgentsOpen: vi.fn(),
     ...overrides,
   };
+}
+
+function renderNotch(overrides: Partial<NotchViewProps> = {}) {
+  const props = notchProps(overrides);
   render(<NotchView {...props} />);
   return props;
+}
+
+function renderNotchWith(overrides: Partial<NotchViewProps>) {
+  const props = notchProps(overrides);
+  return render(<NotchView {...props} />);
 }
 
 describe("collapsed notch", () => {
@@ -92,6 +101,24 @@ describe("collapsed notch", () => {
     expect(
       screen.queryByRole("img", { name: `${flyer.name} needs you` }),
     ).toBeNull();
+  });
+
+  it("tucks the lead in under a blanket when nothing is going on", () => {
+    const quiet = {
+      ...QUIET_OFFICE,
+      mood: "idle" as const,
+      attention: [],
+      agents: QUIET_OFFICE.agents.map((a) => ({ ...a, mood: "idle" as const })),
+    };
+    const { unmount } = renderNotchWith({ state: quiet, gang: [] });
+    expect(
+      screen.getByRole("img", { name: /asleep, nothing needs you/ }),
+    ).toHaveClass("nb-tucked");
+    expect(document.querySelector(".nb-blanket")).not.toBeNull();
+    unmount();
+    // Someone working, or anything waiting on the human: it is up.
+    renderNotch();
+    expect(document.querySelector(".nb-blanket")).toBeNull();
   });
 
   it("renders as a pill on Macs without a notch", () => {

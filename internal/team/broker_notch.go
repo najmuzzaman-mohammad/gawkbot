@@ -55,6 +55,13 @@ type notchOption struct {
 	RequiresText bool `json:"requires_text,omitempty"`
 }
 
+// The brand mark's look: the sky-blue flower. Keep equal to BRAND_AVATAR in
+// web/src/lib/orbAvatar.ts, which the favicon and app icons are baked from.
+const (
+	brandAvatarShape = "flower"
+	brandAvatarColor = "#5aa9ff"
+)
+
 // How much of a decision brief the notch card shows before it is opened.
 const notchContextMax = 320
 
@@ -210,6 +217,10 @@ func (b *Broker) notchStateLocked(now time.Time) notchState {
 		if m.Avatar != nil {
 			avatar := *m.Avatar
 			agent.Avatar = &avatar
+		} else if m.Slug == lead {
+			// The lead is the face of the notch: until it is given a look of
+			// its own, it is the logo.
+			agent.Avatar = &MemberAvatar{Shape: brandAvatarShape, Color: brandAvatarColor}
 		}
 		agent.RunsOn, agent.RunsOnDetail = memberRunsOn(m)
 		snap := b.activity[m.Slug]

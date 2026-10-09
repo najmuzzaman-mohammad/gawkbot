@@ -110,7 +110,7 @@ func main() {
 	var appCtx context.Context
 
 	if err := wails.Run(&options.App{
-		Title:            "WUPHF",
+		Title:            "gawkbot",
 		Width:            1400,
 		Height:           900,
 		BackgroundColour: &options.RGBA{R: 11, G: 11, B: 13, A: 1},

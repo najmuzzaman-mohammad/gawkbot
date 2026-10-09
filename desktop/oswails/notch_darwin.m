@@ -53,6 +53,14 @@ static const CGFloat kMaxStageHeight = 160.0;
 - (BOOL)canBecomeMainWindow {
 	return NO;
 }
+// AppKit keeps windows below the menu bar by moving them down when they are
+// placed. The notch IS in the menu bar's row: left alone, the strip landed
+// one row lower, under the camera housing and over other apps' own top
+// edge. The frame asked for is the frame it gets.
+- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen *)screen {
+	(void)screen;
+	return frameRect;
+}
 @end
 
 // Hosts the web view and owns the hover tracking area.
@@ -207,8 +215,10 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	self.panel.backgroundColor = [NSColor clearColor];
 	self.panel.hasShadow = NO;
 	// Above the menu bar so the ears can sit beside the camera housing.
-	self.panel.level = NSStatusWindowLevel;
+	// The level is set after floatingPanel, which resets it to the floating
+	// level (below the menu bar) when it is turned on.
 	self.panel.floatingPanel = YES;
+	self.panel.level = NSStatusWindowLevel;
 	self.panel.hidesOnDeactivate = NO;
 	// Closing the full view hides the whole application (Wails calls
 	// [NSApp hide:] for HideWindowOnClose), and a hidden app hides every
