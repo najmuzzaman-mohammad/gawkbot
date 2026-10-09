@@ -1,37 +1,52 @@
 // blobAvatar.ts — which look a bot has.
 //
-// A bot's look is a SPECIES (one of eight body shapes) and a COLOUR. Both
+// A bot's look is a BODY (one of the eight orb bodies) and a COLOUR. Both
 // are derived from the slug by default, so a roster is varied and a bot
 // looks the same everywhere without anyone choosing; a person can override
 // either field (MemberAvatar on the wire, resolveAvatar below), and an unset
 // field keeps the derived value, so bots made before avatars were pickable
 // are unchanged.
 //
-// This module decides WHAT a bot looks like. lib/gawkAvatar.ts draws it.
+// This module decides WHAT a bot looks like. lib/orbAvatar.ts draws it.
 
 import type { AvatarShape } from "../api/memberTypes";
 
 /**
- * Species ids, index-aligned with the bodies in gawkAvatar.ts. WIRE
+ * Body ids: the orb bodies in vendor/orb-mascot, by their own names. WIRE
  * CONTRACT: the same list, in the same order, as AvatarShapes in
  * internal/team/broker_member_avatar.go and BotAvatar.shapeIDs on iOS.
  */
 export const AVATAR_SHAPES: readonly AvatarShape[] = [
-  "block",
-  "dome",
+  "bear",
+  "lemon",
+  "ghost",
+  "cloud",
   "drop",
-  "bean",
-  "pill",
-  "loaf",
-  "shield",
-  "blob",
+  "stack",
+  "seacow",
+  "flower",
 ];
 
 /**
+ * The previous character set's ids, as bots that chose one before the orbs
+ * still carry them. Each maps onto the orb that stands in for it. Mirrored
+ * in the broker and on iOS.
+ */
+export const LEGACY_AVATAR_SHAPES: Readonly<Record<string, AvatarShape>> = {
+  block: "stack",
+  dome: "bear",
+  drop: "drop",
+  bean: "seacow",
+  pill: "lemon",
+  loaf: "cloud",
+  shield: "ghost",
+  blob: "flower",
+};
+
+/**
  * Body colours. Saturated but soft, picked so twelve of them next to each
- * other read as one set, and so the near-black eyes stay the highest-
- * contrast thing on the face. Each is the mid tone; gawkAvatar.ts derives
- * the lit and shaded tones from it.
+ * other read as one set. The orb derives its eye colour and its light and
+ * shadow tints from whichever it gets, so any of these works.
  */
 export const AVATAR_COLORS: readonly string[] = [
   "#ff7a59", // coral
@@ -113,10 +128,17 @@ export function normalizeAvatarColor(
   return c && HEX_COLOR.test(c) ? c : undefined;
 }
 
-/** The AVATAR_SHAPES index for a shape name, or -1 if it is not one. */
+/**
+ * The AVATAR_SHAPES index for a shape name, or -1 if it is not one. A
+ * legacy id counts as the orb it maps to.
+ */
 export function avatarShapeIndex(shape: string | undefined): number {
   const s = shape?.trim().toLowerCase();
-  return s ? AVATAR_SHAPES.indexOf(s as AvatarShape) : -1;
+  if (!s) return -1;
+  const legacy = Object.hasOwn(LEGACY_AVATAR_SHAPES, s)
+    ? LEGACY_AVATAR_SHAPES[s]
+    : undefined;
+  return AVATAR_SHAPES.indexOf((legacy ?? s) as AvatarShape);
 }
 
 /** True when `avatar` sets at least one valid field, i.e. is not automatic. */

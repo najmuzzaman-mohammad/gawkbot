@@ -67,11 +67,11 @@ export const Gallery: StoryObj = {
 
 /** A picked look (OfficeMember.avatar) overrides the slug's own. */
 export const ChosenLook: Story = {
-  args: { slug: "alex", avatar: { shape: "bean", color: "#45cfa0" } },
+  args: { slug: "alex", avatar: { shape: "seacow", color: "#45cfa0" } },
 };
 
 /**
- * Every silhouette, each in its own palette colour. Each sits in a button, so
+ * Every body, each in its own palette colour. Each sits in a button, so
  * hovering wobbles it and pressing squashes it (styles/avatar-motion.css);
  * the 48px ones also join the page's single blink pool.
  */

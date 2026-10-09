@@ -2,9 +2,8 @@ import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BLINK_MIN_SIZE } from "../../lib/avatarBlink";
-import { blobColor, blobShapeIndex } from "../../lib/blobAvatar";
-import { gawkMark } from "../../lib/gawkAvatar";
-import { BlobAvatar } from "./BlobAvatar";
+import { AVATAR_SHAPES, blobColor, blobShapeIndex } from "../../lib/blobAvatar";
+import { OrbAvatar } from "./OrbAvatar";
 import { PixelAvatar } from "./PixelAvatar";
 
 const useAvatarBlink = vi.hoisted(() => vi.fn());
@@ -25,8 +24,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** The two eyes: the only rounded rects the orb draws. */
+const eyes = (root: Element) => root.querySelectorAll("rect[rx]");
+
 describe("<PixelAvatar>", () => {
-  it("renders the character as an svg with the call-site classes", () => {
+  it("renders the orb as an svg with the call-site classes", () => {
     const { container } = render(
       <PixelAvatar slug="cos" size={40} className="pam-avatar" />,
     );
@@ -43,56 +45,65 @@ describe("<PixelAvatar>", () => {
     expect(svg?.style.height).toBe("40px");
   });
 
-  it("paints the body in the bot's own tones, with two eyes", () => {
+  it("paints the bot's own body in its own colour, with two eyes", () => {
     const { container } = render(<PixelAvatar slug="cos" size={32} />);
-    const mark = gawkMark("cos");
-    expect(mark.color).toBe(blobColor("cos"));
-    const body = container.querySelector(
-      `.avatar-motion-body > path[d="${mark.body}"]`,
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveAttribute(
+      "data-body",
+      AVATAR_SHAPES[blobShapeIndex("cos")],
     );
-    expect(body).not.toBeNull();
-    const gradientId = body?.getAttribute("fill")?.slice(5, -1);
-    const stops = container.querySelectorAll(`#${gradientId} stop`);
-    expect(stops).toHaveLength(3);
-    expect(stops[1]).toHaveAttribute("stop-color", mark.color);
-    expect(container.querySelectorAll(".pixel-avatar-eye")).toHaveLength(2);
-    // Two avatars on one page must not share gradient ids.
+    // The body is the goo of circles, each filled in the bot's colour.
+    const pieces = container.querySelectorAll(
+      `circle[fill="${blobColor("cos")}"], ellipse[fill="${blobColor("cos")}"]`,
+    );
+    expect(pieces.length).toBeGreaterThan(0);
+    expect(eyes(container)).toHaveLength(2);
+    // Two avatars on one page must not share filter or mask ids.
+    const filterId = container.querySelector("filter")?.id;
     const second = render(<PixelAvatar slug="cos" size={32} />).container;
-    expect(second.querySelector("linearGradient")?.id).not.toBe(gradientId);
+    expect(filterId).toBeTruthy();
+    expect(second.querySelector("filter")?.id).not.toBe(filterId);
   });
 
-  it("animates with CSS only while working, and never schedules frames", () => {
+  it("is still when idle and runs the orb's loop only while working", () => {
     const { container, rerender } = render(
       <PixelAvatar slug="cos" size={32} />,
     );
     const svg = container.querySelector("svg");
-    expect(svg).not.toHaveAttribute("data-working");
+    expect(svg).toHaveAttribute("data-face", "calm");
+    expect(svg).not.toHaveAttribute("data-live");
+    expect(raf).not.toHaveBeenCalled();
 
     rerender(<PixelAvatar slug="cos" size={32} working={true} />);
-    expect(svg).toHaveAttribute("data-working", "true");
-    expect(svg?.style.getPropertyValue("--pixel-avatar-gawk-min")).not.toBe("");
-    expect(raf).not.toHaveBeenCalled();
+    expect(svg).toHaveAttribute("data-face", "working");
+    expect(svg).toHaveAttribute("data-live", "true");
+    expect(raf).toHaveBeenCalled();
   });
 
   it("draws eyes even at byline size", () => {
     const { container } = render(<PixelAvatar slug="cos" size={14} />);
-    expect(container.querySelectorAll(".pixel-avatar-eye")).toHaveLength(2);
+    expect(eyes(container)).toHaveLength(2);
   });
 
-  it("draws the bot's chosen species and colour", () => {
-    const shape = blobShapeIndex("cos") === 4 ? "loaf" : "pill";
+  it("draws the bot's chosen body and colour", () => {
+    const shape = AVATAR_SHAPES[(blobShapeIndex("cos") + 3) % 8];
     const avatar = { shape, color: "#13579b" } as const;
     const { container } = render(
       <PixelAvatar slug="cos" size={32} avatar={avatar} />,
     );
     const svg = container.querySelector("svg");
-    expect(svg).toHaveAttribute("data-shape", shape);
-    const mark = gawkMark("cos", { avatar });
-    expect(
-      container.querySelector(`.avatar-motion-body > path[d="${mark.body}"]`),
-    ).not.toBeNull();
-    expect(mark.body).not.toBe(gawkMark("cos").body);
-    expect(container.innerHTML).toContain('stop-color="#13579b"');
+    expect(svg).toHaveAttribute("data-body", shape);
+    expect(container.innerHTML).toContain('fill="#13579b"');
+  });
+
+  it("understands the previous character set's shape ids", () => {
+    const { container } = render(
+      <PixelAvatar slug="cos" size={32} avatar={{ shape: "shield" }} />,
+    );
+    expect(container.querySelector("svg")).toHaveAttribute(
+      "data-body",
+      "ghost",
+    );
   });
 
   it("carries the motion hooks: wobble on the svg, squash on the body", () => {
@@ -100,7 +111,6 @@ describe("<PixelAvatar>", () => {
     const svg = container.querySelector("svg");
     expect(svg).toHaveClass("avatar-motion");
     expect(svg?.querySelector(".avatar-motion-body")).not.toBeNull();
-    expect(container.querySelectorAll(".avatar-motion-eye")).toHaveLength(2);
   });
 
   it("joins the blink pool only when large and idle", () => {
@@ -109,39 +119,46 @@ describe("<PixelAvatar>", () => {
     expect(enabled()).toBe(true);
     render(<PixelAvatar slug="cos" size={BLINK_MIN_SIZE - 8} />);
     expect(enabled()).toBe(false);
-    // A working bot is already moving its eyes.
+    // A working bot is live: it blinks on its own.
     render(<PixelAvatar slug="cos" size={48} working={true} />);
     expect(enabled()).toBe(false);
   });
 });
 
-describe("<BlobAvatar>", () => {
+describe("<OrbAvatar>", () => {
   it("is an image when named and decoration when not", () => {
     const named = render(
-      <BlobAvatar slug="cos" size={40} label="Chief of Staff" />,
+      <OrbAvatar slug="cos" size={40} label="Chief of Staff" />,
     ).container.querySelector("svg");
     expect(named).toHaveAttribute("role", "img");
     expect(named).toHaveAttribute("aria-label", "Chief of Staff");
     const bare = render(
-      <BlobAvatar slug="cos" size={40} />,
+      <OrbAvatar slug="cos" size={40} />,
     ).container.querySelector("svg");
     expect(bare).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("changes its face with the expression, and never blinks a happy face", () => {
-    const calm = render(<BlobAvatar slug="cos" size={48} />).container
-      .innerHTML;
-    const happy = render(<BlobAvatar slug="cos" size={48} expression="happy" />)
-      .container.innerHTML;
+  it("changes its face, and never blinks a happy face", () => {
+    const mouth = (face: "calm" | "happy" | "oops") =>
+      render(<OrbAvatar slug="cos" size={48} face={face} />)
+        .container.querySelector("path[stroke-linecap]")
+        ?.getAttribute("d");
+    const calm = mouth("calm");
+    const oops = mouth("oops");
+    const happy = mouth("happy");
+    expect(calm).toBeTruthy();
+    expect(oops).not.toBe(calm);
     expect(happy).not.toBe(calm);
-    // Last call is the happy one: closed eyes have nothing to blink.
+    // Last call is the happy one: a grin that wide has nothing to blink.
     expect(useAvatarBlink.mock.lastCall?.[1]).toBe(false);
   });
 
-  it("clips the highlight to the body so a rotated highlight cannot leak", () => {
-    const { container } = render(<BlobAvatar slug="cos" size={48} />);
-    const clipped = container.querySelector("g[clip-path] ellipse[transform]");
-    expect(clipped).not.toBeNull();
-    expect(container.querySelector("ellipse[clip-path]")).toBeNull();
+  it("blinks through the pool: the orb's own blink, on request", () => {
+    render(<OrbAvatar slug="cos" size={48} />);
+    const onBlink = useAvatarBlink.mock.lastCall?.[2];
+    expect(typeof onBlink).toBe("function");
+    onBlink();
+    // The orb animates a blink over a few frames.
+    expect(raf).toHaveBeenCalled();
   });
 });

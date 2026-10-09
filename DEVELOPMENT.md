@@ -71,19 +71,11 @@ Plain `go test -race ./...` will reproduce the `internal/team` flakes documented
 
 ## Latest Published CLI
 
-The old standalone CLI is no longer vendored in this repo.
-
-If you need the latest published CLI separately:
-
-```bash
-bash scripts/install-latest-wuphf-cli.sh
-```
-
-The same install step is also wired into setup:
-
-```bash
-./wuphf init
-```
+The old standalone CLI is no longer vendored in this repo, and the npm
+package is retired. The Mac app is how people get gawkbot; the CLI binaries
+goreleaser uploads to the
+[GitHub Releases page](https://github.com/najmuzzaman-mohammad/gawkbot/releases)
+are there for contributors and scripts.
 
 ## Environments
 

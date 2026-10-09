@@ -154,8 +154,8 @@ jobs:
         # The two private package.json files (root + web/) must stay at
         # "0.0.0" — they are not published, but the same hand-edit pattern
         # that staled the VERSION file also staled both of these. Pinning
-        # to "0.0.0" matches npm/package.json's release-overwritten default
-        # and makes "anything else" a clear lint failure.
+        # to "0.0.0" keeps the rule simple and makes "anything else" a clear
+        # lint failure.
         run: |
           contents=$(tr -d '[:space:]' < internal/buildinfo/VERSION)
           if [ "$contents" != "dev" ]; then
@@ -515,7 +515,7 @@ jobs:
       # onboarding-into-office redesign: the 9-step modal wizard is gone,
       # replaced by a single pre-pick screen plus an in-Shell CEO DM. The
       # PrePickScreen + in-office onboarding surfaces are covered by Vitest
-      # + RTL unit/integration tests in the npm-tests job; this e2e job
+      # + RTL unit/integration tests in the web job; this e2e job
       # now boots wuphf once in the seeded state for the shell suite.
       - name: Seed onboarding state + start wuphf for shell tests
         run: |
@@ -589,22 +589,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-
-  # Pure-function tests for the npm wrapper's `process.platform === "win32"`
-  # branches (archiveExtension, binaryFilename, archiveName, etc). These
-  # branches are only exercised in the wild on actual Windows machines, so
-  # without a unit test a refactor that drops `.zip`/`.exe` handling regresses
-  # silently. Runs in <2s; no real network or filesystem.
-  npm-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # ratchet:oven-sh/setup-bun@v2.2.0
-        with:
-          bun-version: "1.3.13"
-      - name: Run npm wrapper tests
-        working-directory: npm
-        run: bun test
 
   # Real Windows runner smoke. Catches behavioral regressions that compile
   # cleanly but exit silently on first launch — the class of bug the

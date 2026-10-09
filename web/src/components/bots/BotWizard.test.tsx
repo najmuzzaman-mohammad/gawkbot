@@ -115,7 +115,7 @@ describe("<AgentWizard>", () => {
     fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "Revenue Ops" },
     });
-    fireEvent.click(screen.getByRole("radio", { name: "Shield" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Cloud" }));
     fireEvent.click(screen.getByRole("radio", { name: "Lavender" }));
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
 
@@ -124,7 +124,7 @@ describe("<AgentWizard>", () => {
       string,
       Record<string, unknown>,
     ];
-    expect(body.avatar).toEqual({ shape: "shield", color: "#b48cff" });
+    expect(body.avatar).toEqual({ shape: "cloud", color: "#b48cff" });
   });
 
   it("omits `avatar` when the look is left automatic", async () => {
@@ -136,7 +136,7 @@ describe("<AgentWizard>", () => {
       target: { value: "Quiet Bot" },
     });
     // Choose, then change your mind.
-    fireEvent.click(screen.getByRole("radio", { name: "Dome" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Lemon" }));
     fireEvent.click(screen.getByRole("button", { name: "Reset to automatic" }));
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
 

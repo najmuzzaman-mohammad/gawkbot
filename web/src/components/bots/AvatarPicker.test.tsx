@@ -80,8 +80,8 @@ describe("<AvatarPicker>", () => {
 
   it("moves and selects with arrow keys, wrapping, as one radio group", async () => {
     const onChange = vi.fn();
-    render(<Harness initial={{ shape: "block" }} onChange={onChange} />);
-    const block = screen.getByRole("radio", { name: "Block" });
+    render(<Harness initial={{ shape: "bear" }} onChange={onChange} />);
+    const bear = screen.getByRole("radio", { name: "Bear" });
     // One shared name makes the eight inputs one group: one Tab stop.
     const names = new Set(
       within(shapeGroup())
@@ -90,27 +90,27 @@ describe("<AvatarPicker>", () => {
     );
     expect(names.size).toBe(1);
 
-    block.focus();
+    bear.focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(onChange).toHaveBeenLastCalledWith({ shape: "dome" });
-    expect(screen.getByRole("radio", { name: "Dome" })).toHaveFocus();
+    expect(onChange).toHaveBeenLastCalledWith({ shape: "lemon" });
+    expect(screen.getByRole("radio", { name: "Lemon" })).toHaveFocus();
 
     await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
-    expect(onChange).toHaveBeenLastCalledWith({ shape: "blob" });
-    expect(screen.getByRole("radio", { name: "Blob" })).toHaveFocus();
+    expect(onChange).toHaveBeenLastCalledWith({ shape: "flower" });
+    expect(screen.getByRole("radio", { name: "Flower" })).toHaveFocus();
 
     await userEvent.keyboard("{Home}");
-    expect(onChange).toHaveBeenLastCalledWith({ shape: "block" });
+    expect(onChange).toHaveBeenLastCalledWith({ shape: "bear" });
     await userEvent.keyboard("{End}");
-    expect(onChange).toHaveBeenLastCalledWith({ shape: "blob" });
+    expect(onChange).toHaveBeenLastCalledWith({ shape: "flower" });
   });
 
   it("picks palette and custom colours, keeping the shape", async () => {
     const onChange = vi.fn();
-    render(<Harness initial={{ shape: "loaf" }} onChange={onChange} />);
+    render(<Harness initial={{ shape: "cloud" }} onChange={onChange} />);
     await userEvent.click(screen.getByRole("radio", { name: "Mint" }));
     expect(onChange).toHaveBeenLastCalledWith({
-      shape: "loaf",
+      shape: "cloud",
       color: "#45cfa0",
     });
 
@@ -118,7 +118,7 @@ describe("<AvatarPicker>", () => {
       target: { value: "#ABCDEF" },
     });
     expect(onChange).toHaveBeenLastCalledWith({
-      shape: "loaf",
+      shape: "cloud",
       color: "#abcdef",
     });
     // A custom colour checks nothing in the palette; the Custom chip is.

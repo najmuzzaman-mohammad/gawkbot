@@ -1669,36 +1669,12 @@ body {
   height: 56px;
 }
 
-/* ─── Bot avatars (components/ui/BlobAvatar.tsx) ───
-   The character is an SVG whose eyes are two shapes with the
-   `pixel-avatar-eye` class. The working gawk narrows them about their own
-   centre; nothing else moves. The narrowest scale and the period are set
-   inline by the component. */
+/* ─── Bot avatars (components/ui/OrbAvatar.tsx) ───
+   The character is an SVG the orb core draws into; the working loop is the
+   orb's own, so nothing here animates. */
 .pixel-avatar--smooth {
   image-rendering: auto;
   flex-shrink: 0;
-}
-.pixel-avatar--smooth .pixel-avatar-eye {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.pixel-avatar--smooth[data-working="true"] .pixel-avatar-eye {
-  animation: pixel-avatar-gawk var(--pixel-avatar-gawk-period) ease-in-out
-    infinite;
-}
-@keyframes pixel-avatar-gawk {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  50% {
-    transform: scaleY(var(--pixel-avatar-gawk-min));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pixel-avatar--smooth[data-working="true"] .pixel-avatar-eye {
-    animation: none;
-  }
 }
 
 /* ─── Harness badge (overlaid on agent avatars) ─── */

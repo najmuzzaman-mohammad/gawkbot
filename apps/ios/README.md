@@ -107,14 +107,16 @@ as light/dark pairs.
 
 ### Avatars
 
-Each bot is a small soft character: a rounded body lit from the top left
-with a glossy highlight, big glossy eyes, a mouth and a signature accessory
-per species (antenna, ears, curl, sprout, antennae, feet, horns, bubble).
-The geometry is `GawkAvatar` in GawkbotKit, a port of
-`web/src/lib/gawkAvatar.ts` tested against it, in the office's eight
-species: block, dome, drop, bean, pill, loaf, shield, blob. The face
-follows the mood: concentrating (working), sleepy (idle), asking (needs
-you), worried (hit a snag), eyes-closed smile (done).
+Each bot is an orb: a goo body of circles filleted into one blob, a light
+and a shadow tint in its own colour (OKLab), and two eyes and a mouth that
+sit on the sphere inside. The geometry is `OrbAvatar` in GawkbotKit, ported
+from Nex's Orb Mascot (orb-mascot core.js, MIT) and tested against its
+numbers, in the office's eight bodies: bear, lemon, ghost, cloud, drop,
+stack, sea cow, flower. The app's `BlobAvatarView` paints it with a Canvas
+(blur then alpha threshold for the goo). The face follows the mood: narrowed
+eyes (working), sleepy (idle), wide-eyed asking (needs you), a frown (hit a
+snag), a grin (done). Shape ids an older office stored (block, dome, bean,
+pill, loaf, shield, blob) still resolve to the orb each maps to.
 
 - **Chosen or automatic.** A bot wears the `avatar: {shape, color}` the
   office sends on `/office-members` and `/notch/state` when one is set;
@@ -142,7 +144,7 @@ you), worried (hit a snag), eyes-closed smile (done).
 - `GawkbotKit/` — Swift package, no UIKit. Wire models (`NotchState` for
   the inbox), `BrokerClient` (REST + server-sent events), `MockBroker` (a
   canned office for previews, screenshots, and tests), `Pairing`, the
-  avatar ports (`BlobAvatar` for the look, `GawkAvatar` for the geometry), the
+  avatar ports (`BlobAvatar` for the look, `OrbAvatar` for the geometry), the
   chosen look (`BotAvatar`, `BlobAvatar.resolve`), and the inbox's pure
   logic: `InboxKeymap`, `InboxCursor`, `VoiceTarget`, `InboxEvents` (which
   sound a poll deserves), `CartoonSynth`, `MoodMotion` (mood loops, tap

@@ -2,6 +2,30 @@ import { get, postWithTimeout } from "./client";
 
 export const UPGRADE_CHECK_QUERY_KEY = ["upgrade-check"] as const;
 
+// LATEST_RELEASE_URL is where the Mac app ships. The broker sends the same
+// link in upgrade_command by default (internal/upgradecheck
+// DefaultUpgradeCommand); the UI keeps its own copy so an older broker
+// that omits the field still gets a download link rather than a shell
+// command to paste.
+export const LATEST_RELEASE_URL =
+  "https://github.com/najmuzzaman-mohammad/gawkbot/releases/latest";
+export const DOWNLOAD_LATEST_INSTRUCTION = `Download the latest Mac app: ${LATEST_RELEASE_URL}`;
+
+// canRunUpgrade is true only when the broker detected a package-manager
+// install it can upgrade in place. Otherwise the upgrade path is the Mac
+// app download, and the UI must not promise a click-to-install.
+export function canRunUpgrade(
+  check:
+    | Pick<UpgradeCheckResponse, "install_method" | "install_command">
+    | undefined,
+): boolean {
+  return !!(
+    check?.install_command &&
+    check.install_method &&
+    check.install_method !== "unknown"
+  );
+}
+
 export type UpgradeInstallMethod = "global" | "local" | "unknown";
 
 export interface UpgradeCheckResponse {
@@ -53,8 +77,8 @@ export function getUpgradeChangelog(from: string, to: string) {
   return get<UpgradeChangelogResponse>("/upgrade-changelog", { from, to });
 }
 
-// runUpgrade triggers `npm install [-g] gawkbot@latest` on the host that the
-// broker is running on. The 130s timeout is just above the broker-side
+// runUpgrade asks the broker to upgrade the install it detected on its own
+// host (a package-manager install; see canRunUpgrade). The 130s timeout is just above the broker-side
 // upgradeRunTimeout (120s) so the client gives the server enough room to
 // surface its own deadline error instead of failing first with a generic
 // "fetch timed out".

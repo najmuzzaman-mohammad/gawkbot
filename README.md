@@ -60,18 +60,16 @@ Website: [gawk.bot](https://gawk.bot).
 by default, or [Codex CLI](https://github.com/openai/codex) / [Opencode](https://opencode.ai).
 The first-run screen verifies your runtime before anything else happens.
 
-```bash
-npx gawkbot
-```
+**Download for Mac:** [gawk.bot/download.html](https://gawk.bot/download.html)
+resolves the latest signed `.dmg`; every build is also on the
+[GitHub Releases page](https://github.com/najmuzzaman-mohammad/gawkbot/releases).
+Open it, drag gawkbot into Applications, and launch it. You verify your
+runtime, name your office, and hand off your first workflow — you land on your
+first bot being built, live.
 
-That's it. The browser opens, you verify your runtime, name your office, and
-hand off your first workflow — you land on your first bot being built, live.
-
-Prefer a global install?
-
-```bash
-npm install -g gawkbot && gawkbot
-```
+**On your iPhone:** the companion app lives in [`apps/ios`](apps/ios/README.md)
+and you build it with Xcode. Pair it once by scanning the code in Access &
+Health. See [On your iPhone](#on-your-iphone) below.
 
 Building from source (requires Go and Bun):
 
@@ -132,8 +130,9 @@ widget and no dock badge.
   idle, needs you, error or done. Bots peek out now and then just for fun.
   When several need you, they pile up on the notch, and if you keep them
   waiting they start chatting with each other.
-- **It sounds like what happened.** Every kind of event has its own short
-  cartoon sound (a question, an approval, an error, a finished job), and the
+- **It sounds like what happened.** Every kind of event has its own cartoon
+  cue: a slide whistle and a boing for a question, a bell for an approval,
+  a sad trombone for an error, a xylophone ta-da for a finished job. The
   trackpad taps when you hover.
 - **You do it all from the keyboard.** <kbd>⌃⌥Space</kbd> opens it from
   anywhere. Then:
@@ -165,7 +164,8 @@ Paste this into Claude Code, Codex, or Cursor and let your bot drive the install
 
 ```text
 Set up https://github.com/najmuzzaman-mohammad/gawkbot for me. Read `README.md`
-first, then run `npx gawkbot` — the web UI opens at http://localhost:7891.
+first, then build from source (`go build -o gawkbot ./cmd/wuphf`) and run
+`./gawkbot` — the web UI opens at http://localhost:7891.
 
 Walk the onboarding: verify the runtime, name the office, and start the first
 workflow. Confirm you land on a bot being built (a live build feed beside a
@@ -319,7 +319,7 @@ Every claim in this README, grounded to the code that makes it true.
 | Every bot tagged with who made it and where it runs | ✅ shipped | `internal/team/broker_member_origin.go` |
 | The notch: moods, peeks, sounds, keyboard, voice | ✅ shipped | `web/src/notch/`, `desktop/oswails/notch_darwin.m` |
 | iPhone inbox with voice replies | 🟡 partial: written, not yet built in CI | `apps/ios/` |
-| Routine runner packaged into the npx/desktop installs | 🔜 planned | supervisor adopts it the moment it ships |
+| Routine runner packaged into the desktop install | 🔜 planned | supervisor adopts it the moment it ships |
 
 Legend: ✅ shipped · 🟡 partial · 🔜 planned. If a claim and a status disagree, the code wins — file an issue.
 

@@ -141,15 +141,18 @@ final class BlobAvatarParityTests: XCTestCase {
         XCTAssertEqual(BlobAvatar.colorHex(" COS "), BlobAvatar.colorHex("cos"))
     }
 
-    func testEyesNarrowButNeverShut() {
-        func ry(_ openness: Double, _ e: GawkAvatar.Expression = .calm) -> Double {
-            if case let .ellipse(_, _, ry, _) = GawkAvatar.mark("cos", expression: e, openness: openness).eyes[0].geometry { return ry }
-            return .nan
+    func testBlinkClosesTheEyes() {
+        // The view turns the motion's openness into a blink: blink = 1 - openness.
+        func ry(_ openness: Double, _ face: OrbAvatar.Face = .calm) -> Double {
+            var f = face
+            f.blink = 1 - openness
+            return OrbAvatar.mark(slug: "cos", face: f).eyes[0].ry
         }
-        // gawkMark("cos").eyes from the TS: 5.8 open, 1.044 narrowed, 3.19 focused.
-        XCTAssertEqual(ry(1), 5.8, accuracy: 1e-9)
-        XCTAssertEqual(ry(0), 1.044, accuracy: 1e-9)
-        XCTAssertEqual(ry(1, .focus), 3.19, accuracy: 1e-9)
+        // core.js _eye: a 22-unit disc, height × (1 - 0.94·blink) × squash.
+        XCTAssertEqual(ry(1), 11, accuracy: 1e-9)
+        XCTAssertEqual(ry(0), 11 * 0.06, accuracy: 1e-9)
+        XCTAssertEqual(ry(1, .working), 11 * 0.7, accuracy: 1e-9)
+        XCTAssertEqual(ry(-3), ry(0), "clamped")
         XCTAssertEqual(ry(7), ry(1), "clamped")
     }
 }

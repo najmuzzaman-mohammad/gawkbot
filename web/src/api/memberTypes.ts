@@ -19,19 +19,21 @@ export type MemberOrigin =
 export type MemberRunsOn = "this_machine" | "elsewhere";
 
 /**
- * The office's blob silhouettes, by name. WIRE CONTRACT: mirrors
+ * The orb bodies a bot can be, by name. WIRE CONTRACT: mirrors
  * AvatarShapes in internal/team/broker_member_avatar.go, in the order of
- * AVATAR_SHAPES in web/src/lib/blobAvatar.ts (the species in gawkAvatar.ts).
+ * AVATAR_SHAPES in web/src/lib/blobAvatar.ts (the bodies in
+ * vendor/orb-mascot). Older brokers may still send the ids of the previous
+ * character set; blobAvatar.ts maps those onto these.
  */
 export type AvatarShape =
-  | "block"
-  | "dome"
+  | "bear"
+  | "lemon"
+  | "ghost"
+  | "cloud"
   | "drop"
-  | "bean"
-  | "pill"
-  | "loaf"
-  | "shield"
-  | "blob";
+  | "stack"
+  | "seacow"
+  | "flower";
 
 /**
  * A bot's chosen look. Both fields are optional; an unset one falls back to

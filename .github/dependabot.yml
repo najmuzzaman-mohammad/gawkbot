@@ -93,20 +93,3 @@ updates:
     commit-message:
       prefix: "chore(e2e)"
       include: "scope"
-
-  # npm wrapper that ships `npx wuphf` to the npm registry. Bumps here
-  # affect the public install surface — keep its own group so they get
-  # individual review, not lumped with the dev-tooling root group.
-  - package-ecosystem: "npm"
-    directory: "/npm"
-    schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 5
-    cooldown:
-      default-days: 21
-    groups:
-      npm-wrapper-dependencies:
-        patterns: ["*"]
-    commit-message:
-      prefix: "chore(npm)"
-      include: "scope"

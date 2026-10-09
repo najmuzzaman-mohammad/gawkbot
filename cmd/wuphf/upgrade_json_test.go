@@ -22,7 +22,7 @@ func TestUpgradeJSONOutput(t *testing.T) {
 		UpgradeAvailable: true,
 		IsDevBuild:       false,
 		CompareURL:       "https://github.com/nex-crm/wuphf/compare/v0.79.10...v0.79.15",
-		UpgradeCommand:   "npm install -g gawkbot@latest",
+		UpgradeCommand:   upgradecheck.DefaultUpgradeCommand,
 	}
 
 	// Successful Check → no Error field in the JSON.
@@ -49,12 +49,12 @@ func TestUpgradeJSONOutput(t *testing.T) {
 
 	// Failed Check → Error field populated, embedded Result still
 	// present so observability tools see what we did know.
-	out2 := upgradeJSONOutput(res, errors.New("npm registry status 503"))
+	out2 := upgradeJSONOutput(res, errors.New("github releases status 503"))
 	buf2, _ := json.Marshal(out2)
 	var decoded2 map[string]any
 	_ = json.Unmarshal(buf2, &decoded2)
-	if got, _ := decoded2["error"].(string); got != "npm registry status 503" {
-		t.Errorf("expected error field %q, got %v", "npm registry status 503", decoded2["error"])
+	if got, _ := decoded2["error"].(string); got != "github releases status 503" {
+		t.Errorf("expected error field %q, got %v", "github releases status 503", decoded2["error"])
 	}
 	if got, _ := decoded2["current"].(string); got != "0.79.10" {
 		t.Errorf("expected current field preserved on failure, got %v", decoded2["current"])

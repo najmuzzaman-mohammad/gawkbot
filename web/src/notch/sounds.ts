@@ -1,18 +1,22 @@
 // Cartoon sound effects for the notch, synthesized live with Web Audio.
 //
-// Nothing is sampled or bundled: every effect is a couple of oscillators with
-// pitch and gain envelopes, so the sounds are ours, weigh nothing, and can be
-// tuned in code. One sound per kind of moment, so the human learns what
-// happened before looking:
+// Nothing is sampled or bundled: every effect is a few oscillators (or a
+// burst of noise) with pitch, filter and gain envelopes, so the sounds are
+// ours, weigh nothing, and can be tuned in code. They are written the way
+// a Saturday-morning cartoon's foley is: a slide whistle for something
+// coming your way, a spring for a question, a bicycle bell for a yes, a
+// muted trombone for a flop, a xylophone run and a cymbal for a win, a
+// bubble pop for a send. One sound per kind of moment, so the human learns
+// what happened before looking:
 //
-//   question  "boing"      a sprung pitch wobble: someone has a question
-//   approval  "doo-dee"    two rising notes: something waits for your yes
-//   error     "wah-wah"    a sad descending trombone-ish slide
-//   done      "ta-da"      a bright three-note arpeggio
-//   sent      "pop"        a short bubbly pop when you answer or send
-//   peek      "pip"        a tiny chirp when an agent peeks out for fun
-//   babble    gibberish    squeaky syllables while bored agents chat
-//   listen    blip up/down voice capture starting and stopping
+//   question      slide whistle up, then a "boing": someone has a question
+//   approval      "ding ding!" a counter bell, twice: something waits on your yes
+//   error         "wah wah wah waaah": the sad trombone, with the mute in
+//   done          "ta-daaa!": a xylophone run up and a cymbal shimmer
+//   sent          "pop!": a bubble pop when you answer or send
+//   peek          "yoo-hoo": a squeaky two-note call when an agent peeks out
+//   babble        gibberish: squeaky syllables while bored agents chat
+//   listen        a short whistle up / down as voice capture starts and stops
 //
 // Browsers (and WKWebView) keep an AudioContext suspended until a user
 // gesture unless the host allows it; the Mac app does (see notch_darwin.m).
@@ -35,6 +39,7 @@ type Ctor = typeof AudioContext;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+let noiseBuffer: AudioBuffer | null = null;
 let enabled = readEnabled();
 
 function readEnabled(): boolean {
@@ -83,148 +88,326 @@ export function unlock(): void {
   if (c && c.state === "suspended") void c.resume();
 }
 
-interface Tone {
-  type?: OscillatorType;
+/** A filter on a tone: its cutoff follows `freqs` over the tone's length. */
+interface ToneFilter {
+  type: "lowpass" | "bandpass" | "highpass";
+  freqs: number[];
+  q?: number;
+}
+
+export interface Tone {
+  /** Oscillator wave, or `noise` for a burst of white noise. */
+  type?: OscillatorType | "noise";
   /** Frequencies (Hz) at evenly spaced points over the tone's duration. */
   freqs: number[];
   start: number;
   dur: number;
   gain?: number;
-  /** Vibrato depth in Hz (the "boing" wobble). */
+  /** How long the gain takes to reach its peak (a soft or a hard start). */
+  attack?: number;
+  /** Vibrato depth in Hz, fading out over the tone (the "boing" wobble). */
   wobble?: number;
   wobbleRate?: number;
+  /** Keep the wobble going instead of fading it (a slide whistle's warble). */
+  wobbleHold?: boolean;
+  filter?: ToneFilter;
+}
+
+/** Two seconds of white noise, made once. */
+function noise(c: AudioContext): AudioBuffer {
+  if (noiseBuffer) return noiseBuffer;
+  const buf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  noiseBuffer = buf;
+  return buf;
+}
+
+/** Ramp `param` through `values`, spread evenly from `start` to `end`. */
+function ramp(
+  param: AudioParam,
+  values: number[],
+  start: number,
+  end: number,
+): void {
+  const step = (end - start) / Math.max(1, values.length - 1);
+  param.setValueAtTime(Math.max(20, values[0]), start);
+  values.slice(1).forEach((v, i) => {
+    param.exponentialRampToValueAtTime(Math.max(20, v), start + step * (i + 1));
+  });
 }
 
 function tone(c: AudioContext, out: AudioNode, t0: number, spec: Tone): void {
-  const osc = c.createOscillator();
-  const g = c.createGain();
-  osc.type = spec.type ?? "sine";
   const start = t0 + spec.start;
   const end = start + spec.dur;
-  const step = spec.dur / Math.max(1, spec.freqs.length - 1);
-  osc.frequency.setValueAtTime(spec.freqs[0], start);
-  spec.freqs.slice(1).forEach((f, i) => {
-    osc.frequency.exponentialRampToValueAtTime(
-      Math.max(20, f),
-      start + step * (i + 1),
-    );
-  });
-  if (spec.wobble) {
-    const lfo = c.createOscillator();
-    const depth = c.createGain();
-    lfo.frequency.value = spec.wobbleRate ?? 18;
-    depth.gain.setValueAtTime(spec.wobble, start);
-    depth.gain.exponentialRampToValueAtTime(0.01, end);
-    lfo.connect(depth).connect(osc.frequency);
-    lfo.start(start);
-    lfo.stop(end);
+  let source: AudioScheduledSourceNode;
+  if (spec.type === "noise") {
+    const src = c.createBufferSource();
+    src.buffer = noise(c);
+    src.loop = true;
+    source = src;
+  } else {
+    const osc = c.createOscillator();
+    osc.type = spec.type ?? "sine";
+    ramp(osc.frequency, spec.freqs, start, end);
+    if (spec.wobble) {
+      const lfo = c.createOscillator();
+      const depth = c.createGain();
+      lfo.frequency.value = spec.wobbleRate ?? 18;
+      depth.gain.setValueAtTime(spec.wobble, start);
+      if (!spec.wobbleHold) {
+        depth.gain.exponentialRampToValueAtTime(0.01, end);
+      }
+      lfo.connect(depth).connect(osc.frequency);
+      lfo.start(start);
+      lfo.stop(end);
+    }
+    source = osc;
   }
+  let head: AudioNode = source;
+  if (spec.filter) {
+    const f = c.createBiquadFilter();
+    f.type = spec.filter.type;
+    f.Q.value = spec.filter.q ?? 1;
+    ramp(f.frequency, spec.filter.freqs, start, end);
+    head.connect(f);
+    head = f;
+  }
+  const g = c.createGain();
   const peak = spec.gain ?? 0.6;
   g.gain.setValueAtTime(0.0001, start);
   g.gain.exponentialRampToValueAtTime(
     peak,
-    start + Math.min(0.012, spec.dur / 4),
+    start + Math.min(spec.attack ?? 0.012, spec.dur / 4),
   );
   g.gain.exponentialRampToValueAtTime(0.0001, end);
-  osc.connect(g).connect(out);
-  osc.start(start);
-  osc.stop(end + 0.02);
+  head.connect(g).connect(out);
+  source.start(start);
+  source.stop(end + 0.02);
 }
 
 /** Note frequency from a semitone offset to A4. */
 const note = (semi: number) => 440 * 2 ** (semi / 12);
 
-const RECIPES: Record<SoundKind, (seed: number) => Tone[]> = {
-  question: () => [
-    {
-      type: "triangle",
-      freqs: [220, 520, 330, 300],
-      start: 0,
-      dur: 0.42,
-      wobble: 70,
-      wobbleRate: 22,
-      gain: 0.7,
-    },
-  ],
-  approval: () => [
-    { type: "sine", freqs: [note(3)], start: 0, dur: 0.14, gain: 0.55 },
-    { type: "sine", freqs: [note(10)], start: 0.13, dur: 0.22, gain: 0.6 },
-    { type: "triangle", freqs: [note(22)], start: 0.13, dur: 0.18, gain: 0.12 },
-  ],
-  error: () => [
-    {
-      type: "sawtooth",
-      freqs: [note(-2), note(-3)],
-      start: 0,
-      dur: 0.24,
-      gain: 0.22,
-      wobble: 6,
-      wobbleRate: 7,
-    },
-    {
-      type: "sawtooth",
-      freqs: [note(-4), note(-5)],
-      start: 0.24,
-      dur: 0.24,
-      gain: 0.22,
-      wobble: 6,
-      wobbleRate: 7,
-    },
-    {
-      type: "sawtooth",
-      freqs: [note(-6), note(-11)],
-      start: 0.48,
-      dur: 0.55,
-      gain: 0.24,
-      wobble: 10,
-      wobbleRate: 6,
-    },
-  ],
-  done: () => [
-    { type: "triangle", freqs: [note(3)], start: 0, dur: 0.12, gain: 0.5 },
-    { type: "triangle", freqs: [note(7)], start: 0.09, dur: 0.12, gain: 0.5 },
-    { type: "triangle", freqs: [note(10)], start: 0.18, dur: 0.12, gain: 0.5 },
+/** A bell: a bright partial a tenth above, dying faster than the fundamental. */
+function bell(f: number, start: number, dur: number, gain: number): Tone[] {
+  return [
+    { type: "sine", freqs: [f], start, dur, gain, attack: 0.004 },
     {
       type: "sine",
-      freqs: [note(15)],
-      start: 0.27,
-      dur: 0.45,
-      gain: 0.55,
-      wobble: 8,
-      wobbleRate: 6,
+      freqs: [f * 2.76],
+      start,
+      dur: dur * 0.45,
+      gain: gain * 0.35,
+      attack: 0.002,
+    },
+  ];
+}
+
+/** A xylophone bar: a quick wooden tick on a short sine. */
+function bar(semi: number, start: number, gain = 0.5): Tone[] {
+  const f = note(semi);
+  return [
+    { type: "sine", freqs: [f], start, dur: 0.16, gain, attack: 0.003 },
+    {
+      type: "triangle",
+      freqs: [f * 3],
+      start,
+      dur: 0.05,
+      gain: gain * 0.25,
+      attack: 0.002,
+    },
+  ];
+}
+
+/** The muted trombone: a sawtooth under a wah of lowpass, with vibrato. */
+function trombone(
+  from: number,
+  to: number,
+  start: number,
+  dur: number,
+  gain: number,
+): Tone {
+  return {
+    type: "sawtooth",
+    freqs: [note(from), note(to)],
+    start,
+    dur,
+    gain,
+    attack: 0.04,
+    wobble: 7,
+    wobbleRate: 5.5,
+    wobbleHold: true,
+    filter: { type: "lowpass", freqs: [1600, 500, 900, 420], q: 4 },
+  };
+}
+
+const RECIPES: Record<SoundKind, (seed: number) => Tone[]> = {
+  // A slide whistle swoops up, then the spring goes "boing".
+  question: () => [
+    {
+      type: "sine",
+      freqs: [320, 420, 980],
+      start: 0,
+      dur: 0.3,
+      gain: 0.5,
+      attack: 0.03,
+      wobble: 14,
+      wobbleRate: 9,
+      wobbleHold: true,
+    },
+    {
+      type: "triangle",
+      freqs: [260, 620, 340, 330],
+      start: 0.3,
+      dur: 0.5,
+      gain: 0.7,
+      wobble: 110,
+      wobbleRate: 24,
+      filter: { type: "lowpass", freqs: [4200, 1400], q: 1.5 },
     },
   ],
-  sent: () => [
-    { type: "sine", freqs: [380, 1100], start: 0, dur: 0.08, gain: 0.6 },
+  // "Ding ding!" the counter bell, hit twice, the second a touch higher.
+  approval: () => [
+    ...bell(note(19), 0, 0.5, 0.5),
+    ...bell(note(21), 0.16, 0.6, 0.55),
   ],
+  // The sad trombone: three stumbling steps down and the long sigh.
+  error: () => [
+    trombone(-7, -7.6, 0, 0.26, 0.26),
+    trombone(-8, -8.6, 0.27, 0.26, 0.26),
+    trombone(-9, -9.6, 0.54, 0.26, 0.26),
+    trombone(-10, -13, 0.82, 0.62, 0.3),
+  ],
+  // "Ta-daaa!": a xylophone run up, a held sparkle, and a cymbal shimmer.
+  done: () => [
+    ...bar(0, 0),
+    ...bar(4, 0.07),
+    ...bar(7, 0.14),
+    ...bar(12, 0.21, 0.55),
+    {
+      type: "sine",
+      freqs: [note(16), note(16)],
+      start: 0.3,
+      dur: 0.7,
+      gain: 0.45,
+      attack: 0.01,
+      wobble: 6,
+      wobbleRate: 6,
+      wobbleHold: true,
+    },
+    {
+      type: "sine",
+      freqs: [note(19)],
+      start: 0.3,
+      dur: 0.6,
+      gain: 0.22,
+      attack: 0.01,
+    },
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0.3,
+      dur: 0.75,
+      gain: 0.16,
+      attack: 0.005,
+      filter: { type: "bandpass", freqs: [7000, 3500], q: 0.8 },
+    },
+  ],
+  // A bubble pop: a fast pitch drop with a tiny click in front of it.
+  sent: () => [
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0,
+      dur: 0.02,
+      gain: 0.2,
+      attack: 0.001,
+      filter: { type: "highpass", freqs: [2500], q: 0.7 },
+    },
+    {
+      type: "sine",
+      freqs: [1100, 380],
+      start: 0.005,
+      dur: 0.1,
+      gain: 0.7,
+      attack: 0.003,
+    },
+  ],
+  // "Yoo-hoo": two squeaky notes, the second swooping down.
   peek: () => [
-    { type: "sine", freqs: [1500, 2300], start: 0, dur: 0.06, gain: 0.25 },
-    { type: "sine", freqs: [1900, 2600], start: 0.08, dur: 0.05, gain: 0.2 },
+    {
+      type: "sine",
+      freqs: [1500, 1950],
+      start: 0,
+      dur: 0.09,
+      gain: 0.28,
+      attack: 0.01,
+      wobble: 30,
+      wobbleRate: 20,
+      wobbleHold: true,
+    },
+    {
+      type: "sine",
+      freqs: [1900, 1350],
+      start: 0.11,
+      dur: 0.14,
+      gain: 0.26,
+      attack: 0.01,
+      wobble: 30,
+      wobbleRate: 20,
+      wobbleHold: true,
+    },
   ],
   babble: (seed) => {
-    // Three to five squeaky syllables at a per-speaker pitch: gibberish
+    // Three to five squeaky syllables at a per-speaker pitch, each with its
+    // own little swoop, and a rising one at the end now and then: gibberish
     // that reads as talking without being words.
-    const base = 520 + (seed % 7) * 70;
+    const base = 480 + (seed % 7) * 70;
     const n = 3 + (seed % 3);
     const out: Tone[] = [];
     for (let i = 0; i < n; i++) {
       const jitter = ((seed * (i + 3)) % 9) - 4;
       const f = base * 2 ** (jitter / 12);
+      const up = i === n - 1 && seed % 2 === 0;
       out.push({
         type: "square",
-        freqs: [f, f * 1.12, f * 0.94],
-        start: i * 0.085,
-        dur: 0.07,
-        gain: 0.08,
+        freqs: up ? [f, f * 1.08, f * 1.35] : [f * 0.92, f * 1.1, f * 0.96],
+        start: i * 0.095,
+        dur: 0.075,
+        gain: 0.09,
+        attack: 0.008,
+        filter: { type: "lowpass", freqs: [2600, 1400], q: 2 },
       });
     }
     return out;
   },
+  // A short slide whistle up as the mic opens, and down as it closes.
   listen_start: () => [
-    { type: "sine", freqs: [660, 990], start: 0, dur: 0.09, gain: 0.35 },
+    {
+      type: "sine",
+      freqs: [560, 1100],
+      start: 0,
+      dur: 0.14,
+      gain: 0.35,
+      attack: 0.02,
+      wobble: 10,
+      wobbleRate: 9,
+      wobbleHold: true,
+    },
   ],
   listen_stop: () => [
-    { type: "sine", freqs: [990, 560], start: 0, dur: 0.09, gain: 0.35 },
+    {
+      type: "sine",
+      freqs: [1100, 520],
+      start: 0,
+      dur: 0.14,
+      gain: 0.35,
+      attack: 0.02,
+      wobble: 10,
+      wobbleRate: 9,
+      wobbleHold: true,
+    },
   ],
 };
 

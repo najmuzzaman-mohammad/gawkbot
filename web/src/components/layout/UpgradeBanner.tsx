@@ -8,8 +8,11 @@ import {
 } from "react";
 
 import {
+  canRunUpgrade,
+  DOWNLOAD_LATEST_INSTRUCTION,
   getUpgradeChangelog,
   getUpgradeCheck,
+  LATEST_RELEASE_URL,
   runUpgrade,
   type UpgradeRunResult,
 } from "../../api/upgrade";
@@ -72,14 +75,18 @@ export function UpgradeBanner() {
   // (intentional: QA preview shouldn't be classified as dev).
   const [isDevBuildSrv, setIsDevBuildSrv] = useState(false);
   // installCommand: the literal command the broker would run on
-  // /upgrade/run for this host. Falls back to the canonical
-  // `npm install -g …` doc string when the server hasn't decided yet
-  // OR sent a "unknown" install method. The chip uses this for its
-  // label so users with a local install never see the global command
-  // promised when they're actually about to get a project-scoped one.
+  // /upgrade/run for this host. Falls back to the Mac app download
+  // instruction when the server hasn't decided yet OR sent a "unknown"
+  // install method. The chip uses this for its label so users with a
+  // local install never see the global command promised when they're
+  // actually about to get a project-scoped one.
   const [installCommand, setInstallCommand] = useState<string>(
-    "npm install -g gawkbot@latest",
+    DOWNLOAD_LATEST_INSTRUCTION,
   );
+  // canRun: the broker detected a package-manager install it can upgrade
+  // in place. Until it says so, the chip is a download link, not a
+  // click-to-install, because that click could only fail.
+  const [canRun, setCanRun] = useState(false);
   // silentUpTo: the "high water mark" version the user has muted up to. A
   // new release re-surfaces the banner only when there's a notable commit
   // between this and `latest` (or when the major segment bumps — see
@@ -128,15 +135,11 @@ export function UpgradeBanner() {
         if (res.latest) setLatest(res.latest);
         setIsDevBuildSrv(!!res.is_dev_build);
         // Replace the chip label only when the server gave us a real
-        // command — for "unknown" installs we keep the canonical
-        // `npm install -g …` so the click outcome's "couldn't detect"
-        // copy still makes sense alongside the chip.
-        if (
-          res.install_command &&
-          res.install_method &&
-          res.install_method !== "unknown"
-        ) {
+        // command — for "unknown" installs we keep the download
+        // instruction and the chip stays a link to the latest release.
+        if (canRunUpgrade(res) && res.install_command) {
           setInstallCommand(res.install_command);
+          setCanRun(true);
         }
       })
       .catch(() => {
@@ -431,7 +434,7 @@ export function UpgradeBanner() {
               latest={stripV(latest)}
               onReload={reload}
             />
-          ) : (
+          ) : canRun ? (
             <button
               type="button"
               className="upgrade-banner-run"
@@ -456,6 +459,16 @@ export function UpgradeBanner() {
               </svg>
               <code>{runChipLabel ?? installCommand}</code>
             </button>
+          ) : (
+            <a
+              className="upgrade-banner-run"
+              href={LATEST_RELEASE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Opens the latest release on GitHub"
+            >
+              <code>Download the latest Mac app</code>
+            </a>
           )}
           <button
             type="button"
@@ -616,7 +629,7 @@ function UpgradeRunOutcome({
         {result.timed_out
           ? "Install timed out."
           : result.install_method === "unknown"
-            ? "Couldn't detect install — run from a terminal:"
+            ? "No package-manager install detected. Download the latest Mac app:"
             : "Install failed:"}
         {result.error ? (
           <>

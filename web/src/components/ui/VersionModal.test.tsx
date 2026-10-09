@@ -54,7 +54,7 @@ describe("<VersionModal>", () => {
       latest: "0.83.0",
       upgrade_available: false,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
     });
     const Wrapper = makeWrapper();
     const { container } = render(
@@ -78,7 +78,7 @@ describe("<VersionModal>", () => {
       latest: "0.83.10",
       upgrade_available: false,
       is_dev_build: true,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
     });
     const Wrapper = makeWrapper();
     render(
@@ -101,7 +101,9 @@ describe("<VersionModal>", () => {
       latest: "0.84.0",
       upgrade_available: true,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
+      install_method: "global",
+      install_command: "npm install -g wuphf@latest",
     });
     vi.spyOn(upgradeApi, "runUpgrade").mockResolvedValue({
       ok: true,
@@ -138,13 +140,13 @@ describe("<VersionModal>", () => {
       latest: "0.84.0",
       upgrade_available: true,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
       install_method: "local",
       install_command: "bun add gawkbot@latest",
     });
     vi.spyOn(upgradeApi, "runUpgrade").mockResolvedValue({
       ok: false,
-      command: "npm install -g gawkbot@latest",
+      command: "npm install -g wuphf@latest",
       error: "permission denied",
     });
 
@@ -164,20 +166,54 @@ describe("<VersionModal>", () => {
       expect(screen.getByText("Install failed")).toBeInTheDocument();
     });
     expect(screen.getByText("permission denied")).toBeInTheDocument();
-    expect(
-      screen.getByText("npm install -g gawkbot@latest"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("npm install -g wuphf@latest")).toBeInTheDocument();
   });
 
-  it("uses the guarded install command when runUpgrade rejects", async () => {
+  it("links the Mac app download instead of Force update when no package manager was detected", async () => {
     vi.spyOn(upgradeApi, "getUpgradeCheck").mockResolvedValue({
       current: "0.83.0",
       latest: "0.84.0",
       upgrade_available: true,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
       install_method: "unknown",
       install_command: "curl https://example.invalid/install.sh | sh",
+    });
+    const runSpy = vi.spyOn(upgradeApi, "runUpgrade");
+
+    const Wrapper = makeWrapper();
+    render(
+      <Wrapper>
+        <VersionModal open={true} onClose={vi.fn()} />
+      </Wrapper>,
+    );
+
+    const link = await screen.findByRole("link", {
+      name: "Download the latest Mac app",
+    });
+    expect(link).toHaveAttribute("href", upgradeApi.LATEST_RELEASE_URL);
+    // The guard must hold: an "unknown" install_method never promotes its
+    // install_command into a click-to-run action.
+    expect(screen.queryByText("Force update")).toBeNull();
+    expect(
+      screen.queryByText("curl https://example.invalid/install.sh | sh"),
+    ).toBeNull();
+    expect(runSpy).not.toHaveBeenCalled();
+    // Restart stays available regardless of how the build was installed.
+    expect(
+      screen.getByRole("button", { name: "Restart broker" }),
+    ).toBeInTheDocument();
+  });
+
+  it("uses the detected install command when runUpgrade rejects", async () => {
+    vi.spyOn(upgradeApi, "getUpgradeCheck").mockResolvedValue({
+      current: "0.83.0",
+      latest: "0.84.0",
+      upgrade_available: true,
+      is_dev_build: false,
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
+      install_method: "global",
+      install_command: "npm install -g wuphf@latest",
     });
     vi.spyOn(upgradeApi, "runUpgrade").mockRejectedValue(
       new Error("broker unavailable"),
@@ -199,10 +235,8 @@ describe("<VersionModal>", () => {
       expect(screen.getByText("Install failed")).toBeInTheDocument();
     });
     expect(screen.getByText("broker unavailable")).toBeInTheDocument();
-    expect(screen.getAllByText("npm install -g gawkbot@latest").length).toBe(2);
-    expect(
-      screen.queryByText("curl https://example.invalid/install.sh | sh"),
-    ).toBeNull();
+    // Chip command plus the outcome's copyable fallback.
+    expect(screen.getAllByText("npm install -g wuphf@latest").length).toBe(2);
   });
 
   it("does not surface a stale Install-complete after close-during-run", async () => {
@@ -217,7 +251,9 @@ describe("<VersionModal>", () => {
       latest: "0.84.0",
       upgrade_available: true,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
+      install_method: "global",
+      install_command: "npm install -g wuphf@latest",
     });
     vi.spyOn(upgradeApi, "runUpgrade").mockImplementation(
       () =>
@@ -275,7 +311,7 @@ describe("<VersionModal>", () => {
       latest: "0.83.0",
       upgrade_available: false,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
     });
     const restartSpy = vi
       .spyOn(clientApi, "restartBroker")
@@ -306,7 +342,7 @@ describe("<VersionModal>", () => {
       latest: "0.83.0",
       upgrade_available: false,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
     });
     vi.spyOn(clientApi, "restartBroker").mockRejectedValue(
       new Error("broker socket closed"),
@@ -341,7 +377,7 @@ describe("<VersionModal>", () => {
       latest: "0.83.0",
       upgrade_available: false,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
     });
     let rejectRestart: (reason?: unknown) => void = () => {};
     vi.spyOn(clientApi, "restartBroker").mockImplementation(
@@ -395,7 +431,9 @@ describe("<VersionModal>", () => {
       latest: "0.83.0",
       upgrade_available: false,
       is_dev_build: false,
-      upgrade_command: "npm install -g gawkbot@latest",
+      upgrade_command: upgradeApi.DOWNLOAD_LATEST_INSTRUCTION,
+      install_method: "global",
+      install_command: "npm install -g wuphf@latest",
     });
     const runSpy = vi
       .spyOn(upgradeApi, "runUpgrade")
