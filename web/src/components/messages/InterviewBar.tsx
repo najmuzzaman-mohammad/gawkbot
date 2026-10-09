@@ -14,12 +14,12 @@ import { useOfficeMembers } from "../../hooks/useMembers";
 import { useRequests } from "../../hooks/useRequests";
 import { track } from "../../lib/analytics";
 import { prefersReducedMotion } from "../../lib/orbAvatar";
-import type { OrbCharacter } from "../../lib/orbCharacter";
 import { parseApprovalContext } from "../../lib/parseApprovalContext";
 import {
   requestOptionNeedsText,
   requestOptionTextHint,
 } from "../../lib/requestOptions";
+import type { Toon } from "../../lib/toon/toon";
 import { play } from "../../notch/sounds";
 import { directChannelSlug, useAppStore } from "../../stores/app";
 import { humanEchoForCeoAnswer } from "../onboarding/humanEcho";
@@ -147,7 +147,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // The asking bot, as a character: it pops up with the question and
   // claps when it gets its answer.
-  const asker = useRef<OrbCharacter | null>(null);
+  const asker = useRef<Toon | null>(null);
   const { data: members = [] } = useOfficeMembers();
 
   const visible = queue.filter((r) => !dismissedIds.has(r.id));

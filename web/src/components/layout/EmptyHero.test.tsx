@@ -48,11 +48,11 @@ describe("<EmptyHero>", () => {
     const { container } = renderHero("Say hi to Chief of Staff.");
     expect(screen.getByTestId("empty-hero")).toBeInTheDocument();
     expect(screen.getByText("Say hi to Chief of Staff.")).toBeInTheDocument();
-    const char = container.querySelector<HTMLElement>(".orb-char");
-    expect(char?.style.getPropertyValue("--oc-size")).toBe("72px");
-    // Hands and a body: a character, not a flat mark.
-    expect(container.querySelectorAll(".orb-char-hand")).toHaveLength(2);
-    expect(container.querySelector(".orb-char-body svg")).not.toBeNull();
+    const char = container.querySelector<HTMLElement>(".toon");
+    expect(char?.style.width).toBe("72px");
+    // Gloves and a body: a character, not a flat mark.
+    expect(container.querySelectorAll(".toon-glove")).toHaveLength(2);
+    expect(container.querySelector(".toon-body")).not.toBeNull();
   });
 
   it("omits the line when none is given", () => {

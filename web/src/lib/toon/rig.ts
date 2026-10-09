@@ -29,6 +29,9 @@ export const VIEW = { x: -100, y: -120, w: 400, h: 400 } as const;
 /** How far below the body the feet stand, in body units. */
 export const LEG = 46;
 
+/** The drawing box for a head-only mark: just the body, a little air. */
+export const MARK_VIEW = { x: -14, y: -14, w: 228, h: 228 } as const;
+
 /** Everything a frame needs. Numbers tween; gloves switch. */
 export interface Pose {
   /** Root offset, rotation (deg) and squash about the feet. */
@@ -126,6 +129,8 @@ export interface RigOptions {
   legs?: boolean;
   /** Hand-drawn line boil: the outline wobbles a little, a few times a second. */
   boil?: boolean;
+  /** Draw into this <svg> instead of making one (React-owned marks). */
+  svg?: SVGSVGElement;
 }
 
 let uid = 0;
@@ -225,11 +230,11 @@ export class ToonRig {
     const P = this.paint;
     const id = this.id;
 
-    const svg = el("svg", {
-      viewBox: `${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`,
-      "aria-hidden": "true",
-      overflow: "visible",
-    });
+    const mark = opts.arms === false && !opts.legs;
+    const v = mark ? MARK_VIEW : VIEW;
+    const svg = opts.svg ?? el("svg", { "aria-hidden": "true" });
+    svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`);
+    svg.setAttribute("overflow", "visible");
     this.svg = svg;
     const defs = el("defs", {}, svg);
     el(
@@ -307,7 +312,7 @@ export class ToonRig {
       svg,
     );
 
-    const ink = el("g", filterAttr, svg);
+    const ink = el("g", { class: "toon-ink", ...filterAttr }, svg);
     // Legs and the arms' hoses go behind the body; gloves in front of it.
     if (opts.legs) {
       const mk = (): Leg => ({
@@ -354,6 +359,7 @@ export class ToonRig {
       "use",
       {
         href: `#${id}-b`,
+        class: "toon-body",
         fill: P.base,
         transform: `translate(${-bw * 0.06} ${-bh * 0.07})`,
       },
@@ -404,7 +410,11 @@ export class ToonRig {
     const mkEye = (n: number): Eye => {
       const clipId = `${id}-eye${n}`;
       const clip = el("ellipse", {}, el("clipPath", { id: clipId }, defs));
-      const white = el("ellipse", { fill: P.white }, this.faceG);
+      const white = el(
+        "ellipse",
+        { class: "toon-eye", fill: P.white },
+        this.faceG,
+      );
       const inner = el("g", { "clip-path": `url(#${clipId})` }, this.faceG);
       const pupil = el("path", { fill: P.ink }, inner);
       const shine = el("circle", { fill: P.white, opacity: 0.9 }, inner);
@@ -453,6 +463,7 @@ export class ToonRig {
     this.mouthLine = el(
       "path",
       {
+        class: "toon-mouth",
         fill: "none",
         stroke: P.ink,
         "stroke-width": 3.4,
@@ -485,7 +496,7 @@ export class ToonRig {
           },
           hoses,
         ),
-        glove: el("g", {}, ink),
+        glove: el("g", { class: "toon-glove" }, ink),
         pose: null,
       });
       this.arms = [mk(), mk()];

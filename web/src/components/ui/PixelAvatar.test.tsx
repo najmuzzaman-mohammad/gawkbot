@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BLINK_MIN_SIZE } from "../../lib/avatarBlink";
 import { AVATAR_SHAPES, blobColor, blobShapeIndex } from "../../lib/blobAvatar";
+import { paintFor } from "../../lib/toon/paint";
 import { OrbAvatar } from "./OrbAvatar";
 import { PixelAvatar } from "./PixelAvatar";
 
@@ -24,8 +25,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** The two eyes: the only rounded rects the orb draws. */
-const eyes = (root: Element) => root.querySelectorAll("rect[rx]");
+/** The two eyes: big inked whites. */
+const eyes = (root: Element) => root.querySelectorAll(".toon-eye");
 
 describe("<PixelAvatar>", () => {
   it("renders the orb as an svg with the call-site classes", () => {
@@ -52,17 +53,17 @@ describe("<PixelAvatar>", () => {
       "data-body",
       AVATAR_SHAPES[blobShapeIndex("cos")],
     );
-    // The body is the goo of circles, each filled in the bot's colour.
-    const pieces = container.querySelectorAll(
-      `circle[fill="${blobColor("cos")}"], ellipse[fill="${blobColor("cos")}"]`,
+    // The body is painted from the bot's own colour.
+    expect(container.querySelector(".toon-body")).toHaveAttribute(
+      "fill",
+      paintFor(blobColor("cos")).base,
     );
-    expect(pieces.length).toBeGreaterThan(0);
     expect(eyes(container)).toHaveLength(2);
-    // Two avatars on one page must not share filter or mask ids.
-    const filterId = container.querySelector("filter")?.id;
+    // Two avatars on one page must not share clip ids.
+    const clipId = container.querySelector("clipPath")?.id;
     const second = render(<PixelAvatar slug="cos" size={32} />).container;
-    expect(filterId).toBeTruthy();
-    expect(second.querySelector("filter")?.id).not.toBe(filterId);
+    expect(clipId).toBeTruthy();
+    expect(second.querySelector("clipPath")?.id).not.toBe(clipId);
   });
 
   it("is still when idle and runs the orb's loop only while working", () => {
@@ -93,7 +94,10 @@ describe("<PixelAvatar>", () => {
     );
     const svg = container.querySelector("svg");
     expect(svg).toHaveAttribute("data-body", shape);
-    expect(container.innerHTML).toContain('fill="#13579b"');
+    expect(container.querySelector(".toon-body")).toHaveAttribute(
+      "fill",
+      paintFor("#13579b").base,
+    );
   });
 
   it("understands the previous character set's shape ids", () => {
@@ -141,7 +145,7 @@ describe("<OrbAvatar>", () => {
   it("changes its face, and never blinks a happy face", () => {
     const mouth = (face: "calm" | "happy" | "oops") =>
       render(<OrbAvatar slug="cos" size={48} face={face} />)
-        .container.querySelector("path[stroke-linecap]")
+        .container.querySelector(".toon-mouth")
         ?.getAttribute("d");
     const calm = mouth("calm");
     const oops = mouth("oops");

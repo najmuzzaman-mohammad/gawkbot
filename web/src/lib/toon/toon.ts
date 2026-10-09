@@ -27,7 +27,7 @@
 import type { AvatarShape } from "../../api/memberTypes";
 import { Fx, worldPuff } from "./fx";
 import type { GlovePose } from "./glove";
-import { type Pose, type PoseKey, REST, ToonRig, VIEW } from "./rig";
+import { MARK_VIEW, type Pose, type PoseKey, REST, ToonRig, VIEW } from "./rig";
 
 export type ToonFace =
   | "calm"
@@ -81,6 +81,11 @@ export interface ToonOptions {
   /** The idle life (bounce, blinks, glances). Default true. */
   live?: boolean;
   face?: ToonFace;
+  /**
+   * Draw into this <svg> as a mark, instead of a positioned character:
+   * the svg is the body's box and nothing is moved around the page.
+   */
+  svg?: SVGSVGElement;
 }
 
 type Ease = (t: number) => number;
@@ -148,6 +153,7 @@ export class Toon {
   private boilAt = 0;
   private boilSeed = 1;
   private readonly boils: boolean;
+  private readonly adopted: boolean;
   private x = 0;
   private y = 0;
   private fly: null | {
@@ -175,15 +181,21 @@ export class Toon {
       arms: opts.arms !== false,
       legs: opts.legs !== false,
       boil: this.boils,
+      svg: opts.svg,
     });
     const root = document.createElement("div");
     root.className = "toon";
     root.style.cssText = `position:absolute;width:${opts.size}px;height:${opts.size}px;pointer-events:none`;
     const k = opts.size / 200;
     const svg = this.rig.svg;
-    svg.style.cssText = `position:absolute;left:${VIEW.x * k}px;top:${VIEW.y * k}px;width:${VIEW.w * k}px;height:${VIEW.h * k}px;overflow:visible;pointer-events:none`;
-    root.appendChild(svg);
-    host.appendChild(root);
+    const mark = opts.arms === false && opts.legs === false;
+    const v = mark ? MARK_VIEW : VIEW;
+    this.adopted = !!opts.svg;
+    if (!this.adopted) {
+      svg.style.cssText = `position:absolute;left:${v.x * k}px;top:${v.y * k}px;width:${v.w * k}px;height:${v.h * k}px;overflow:visible;pointer-events:none`;
+      root.appendChild(svg);
+      host.appendChild(root);
+    }
     this.root = root;
     this.fx = new Fx(this.rig.fx);
     if (opts.face) Object.assign(this.pose, FACE_POSES[opts.face]);
@@ -230,7 +242,8 @@ export class Toon {
       this.fly ||
       this.fx.busy ||
       this.strain > 0 ||
-      this.kicking
+      this.kicking ||
+      t - this.blinkAt < 240
     ) {
       this.raf = requestAnimationFrame(this.frame);
     }
@@ -248,6 +261,7 @@ export class Toon {
     const o = this.off;
     if (!this.live) {
       for (const k of Object.keys(o) as PoseKey[]) o[k] = 0;
+      o.lid = this.blinkLid(t);
       return;
     }
     // A bounce on the beat: down on every beat, arms swinging opposite.
@@ -286,16 +300,7 @@ export class Toon {
       this.nextBlink = t + 1800 + Math.random() * 3200;
       this.blinkAt = t;
     }
-    const since = t - this.blinkAt;
-    o.lid =
-      since < 70
-        ? since / 70
-        : since < 110
-          ? 1
-          : since < 230
-            ? 1 - (since - 110) / 120
-            : 0;
-    o.lid *= 1 - this.pose.lid;
+    o.lid = this.blinkLid(t);
     // A glance now and then, when nothing else is going on.
     if (
       this.acting === 0 &&
@@ -318,6 +323,23 @@ export class Toon {
   }
 
   private blinkAt = -1000;
+
+  private blinkLid(t: number): number {
+    const since = t - this.blinkAt;
+    let shut = 0;
+    if (since < 0) shut = 0;
+    else if (since < 70) shut = since / 70;
+    else if (since < 110) shut = 1;
+    else if (since < 230) shut = 1 - (since - 110) / 120;
+    return shut * (1 - this.pose.lid);
+  }
+
+  /** One blink, now (still marks blink when the page's blink pool says so). */
+  blink(): void {
+    if (this.reduced) return;
+    this.blinkAt = now();
+    this.wake();
+  }
 
   // ── Primitives ──────────────────────────────────────────────────────
 
@@ -1077,6 +1099,7 @@ export class Toon {
     if (this.fly) this.fly.done();
     this.fly = null;
     this.fx.clear();
+    if (this.adopted) this.rig.svg.replaceChildren();
     this.root.remove();
   }
 }

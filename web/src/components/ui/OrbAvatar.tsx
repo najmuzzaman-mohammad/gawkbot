@@ -2,24 +2,16 @@ import { type CSSProperties, useLayoutEffect, useRef } from "react";
 
 import { BLINK_MIN_SIZE, useAvatarBlink } from "../../lib/avatarBlink";
 import type { AvatarChoice } from "../../lib/blobAvatar";
-import {
-  type Face,
-  type Mascot,
-  Orb,
-  orbLook,
-  orbOptions,
-  poseLive,
-  poseStill,
-  prefersReducedMotion,
-} from "../../lib/orbAvatar";
+import { type Face, orbLook } from "../../lib/orbAvatar";
+import { Toon } from "../../lib/toon/toon";
 
-// A bot's orb (lib/orbAvatar.ts), as a React component. One component for
-// every surface: the sidebar, bylines, the notch, the picker, the phone's
-// web views.
+// A bot's mark, as a React component: its own body and colour drawn as a
+// 1930s cartoon toon (lib/toon), head only. One component for every
+// surface: the sidebar, bylines, the picker, the phone's web views.
 //
-// The orb core owns the <svg>'s children: it is built into the element in a
-// layout effect and redrawn in place when the look or the face changes, so
-// React renders an empty <svg> and never reconciles inside it.
+// The toon owns the <svg>'s children: it is drawn into the element in a
+// layout effect and redrawn in place when the face changes, so React
+// renders an empty <svg> and never reconciles inside it.
 //
 // Two modes. A STILL mark (the default) is posed once and does nothing: a
 // sidebar of a dozen teammates is a dozen static drawings, and the page's
@@ -62,43 +54,47 @@ export function OrbAvatar({
   style,
 }: OrbAvatarProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const orb = useRef<Mascot | null>(null);
-  const look = orbLook(slug, avatar);
-  const { body, color } = look;
+  const toon = useRef<Toon | null>(null);
+  const { body, color } = orbLook(slug, avatar);
+  const firstFace = useRef(face);
 
-  // The body is the drawing's structure: a new body is a new orb.
+  // The body, colour and mode are the drawing's structure: a new toon.
   useLayoutEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    const m = new Orb(svg, orbOptions({ body, color }));
+    const t = new Toon(document.body, {
+      body,
+      color,
+      size,
+      svg,
+      arms: false,
+      legs: false,
+      live,
+      face: firstFace.current,
+    });
     // The squash-on-press target for styles/avatar-motion.css.
-    svg.lastElementChild?.classList.add("avatar-motion-body");
-    orb.current = m;
+    svg.querySelector(".toon-ink")?.classList.add("avatar-motion-body");
+    toon.current = t;
     return () => {
-      m.stop();
-      orb.current = null;
+      t.destroy();
+      toon.current = null;
     };
-  }, [body, color]);
+  }, [body, color, size, live]);
 
-  // Colour, face and mode change the orb in place.
+  // Face and gaze change the toon in place: at once for a still mark,
+  // tweened for a live one.
   useLayoutEffect(() => {
-    const m = orb.current;
-    if (!m) return;
-    m.o.color = color;
-    if (live && !prefersReducedMotion()) {
-      m.start();
-      poseLive(m, face);
-    } else {
-      m.stop();
-      poseStill(m, face, { yaw, pitch });
-    }
-  }, [color, face, live, yaw, pitch]);
+    const t = toon.current;
+    if (!t) return;
+    void t.setFace(face, live ? 260 : 0);
+    if (!live) void t.to({ yaw: yaw / 20, pitch: pitch / 15 }, 0);
+  }, [face, live, yaw, pitch]);
 
   // Closed eyes have nothing to blink; a live mark blinks on its own.
   useAvatarBlink(
     svgRef,
     blink && !live && face !== "happy" && size >= BLINK_MIN_SIZE,
-    () => orb.current?.blink(),
+    () => toon.current?.blink(),
   );
 
   const cls = className ? `avatar-motion ${className}` : "avatar-motion";

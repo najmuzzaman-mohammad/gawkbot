@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MemberAvatar } from "../../api/memberTypes";
+import { paintFor } from "../../lib/toon/paint";
 import PixelAvatar from "./PixelAvatar";
 
 // Wiki surfaces only carry an author slug, so the wrapper reads the chosen
@@ -20,11 +21,14 @@ beforeEach(() => {
 });
 
 /** The body's fill: the colour the bot was given. */
+/** The body's paint, mapped back to the swatch it was painted from. */
 function bodyFill(container: HTMLElement): string | null {
-  const piece = container.querySelector(
-    ".pixel-avatar circle[fill], .pixel-avatar ellipse[fill]",
-  );
-  return piece?.getAttribute("fill") ?? null;
+  const fill = container
+    .querySelector(".pixel-avatar .toon-body")
+    ?.getAttribute("fill");
+  if (!fill) return null;
+  const swatch = ["#123456", "#abcdef"].find((c) => paintFor(c).base === fill);
+  return swatch ?? fill;
 }
 
 // The wrapper renders whatever the shared avatar renders. The assertions
