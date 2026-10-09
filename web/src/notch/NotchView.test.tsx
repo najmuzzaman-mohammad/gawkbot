@@ -102,6 +102,26 @@ describe("open notch", () => {
     });
   });
 
+  it("tags a local agent with the tool that runs it, after who made it", () => {
+    renderNotch({ expanded: true });
+    const gemini = screen.getByTestId("notch-agent-gemini");
+    expect(
+      Array.from(gemini.querySelectorAll(".ntag")).map((t) => t.textContent),
+    ).toEqual(["adopted", "Gemini CLI · this Mac"]);
+    // No tool from the broker: only the origin.
+    expect(
+      Array.from(
+        screen.getByTestId("notch-agent-codex").querySelectorAll(".ntag"),
+      ).map((t) => t.textContent),
+    ).toEqual(["adopted"]);
+    // A question card keeps one tag: who made it when it runs here.
+    expect(
+      Array.from(
+        screen.getByTestId("notch-attention-req-1").querySelectorAll(".ntag"),
+      ).map((t) => t.textContent),
+    ).toEqual(["adopted", "holding up work"]);
+  });
+
   it("messages any agent from the roster, including ones running elsewhere", async () => {
     const props = renderNotch({ expanded: true });
     expect(screen.getByTestId("notch-agent-hermes")).toHaveTextContent(

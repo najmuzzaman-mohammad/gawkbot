@@ -12,14 +12,14 @@ final class BotAvatarTests: XCTestCase {
     // slug-derived value (blobShapeIndex / blobColor).
     func testResolveMatchesTheWeb() {
         let cases: [(slug: String, avatar: BotAvatar?, shape: Int, color: String)] = [
-            ("cos", BotAvatar(shape: "drop"), 2, "#8b6bb1"),
+            ("cos", BotAvatar(shape: "drop"), 2, "#5aa9ff"),
             ("cos", BotAvatar(color: "#FF8800"), 4, "#ff8800"),
-            ("cos", nil, 4, "#8b6bb1"),
+            ("cos", nil, 4, "#5aa9ff"),
             ("gtm-lead", BotAvatar(shape: "blob", color: "#3f9c8f"), 7, "#3f9c8f"),
-            ("hermes", BotAvatar(shape: "blob"), 7, "#8a7a2e"),
-            ("designer", BotAvatar(shape: "star", color: "red"), 4, "#6b7fd7"),
-            ("founding-engineer", BotAvatar(), 1, "#4d8bb8"),
-            ("pm", nil, 6, "#6f8f43"),
+            ("hermes", BotAvatar(shape: "blob"), 7, "#ff7a59"),
+            ("designer", BotAvatar(shape: "star", color: "red"), 4, "#ffa53d"),
+            ("founding-engineer", BotAvatar(), 1, "#b48cff"),
+            ("pm", nil, 6, "#3cc3df"),
         ]
         for c in cases {
             let look = BlobAvatar.resolve(slug: c.slug, avatar: c.avatar)
@@ -53,7 +53,7 @@ final class BotAvatarTests: XCTestCase {
 
     func testShapeIDsAreTheSilhouetteTable() {
         XCTAssertEqual(BotAvatar.shapeIDs, ["block", "dome", "drop", "bean", "pill", "loaf", "shield", "blob"])
-        XCTAssertEqual(BotAvatar.shapeIDs.count, BlobAvatar.silhouettes.count)
+        XCTAssertEqual(BotAvatar.shapeIDs.count, BlobAvatar.shapeCount)
         XCTAssertEqual(BotAvatar.shapeID(at: 9), "dome", "wraps")
         XCTAssertEqual(BotAvatar.shapeID(at: -1), "blob", "wraps negatives")
     }
@@ -118,7 +118,7 @@ final class BotAvatarTests: XCTestCase {
         XCTAssertNil(state.agents[1].avatar)
         let look = BlobAvatar.resolve(slug: "cos", avatar: state.agents[0].avatar)
         XCTAssertEqual(look.shapeIndex, 2)
-        XCTAssertEqual(look.color, "#8b6bb1")
+        XCTAssertEqual(look.color, "#5aa9ff")
     }
 
     func testEncodingOmitsUnsetFields() throws {
@@ -134,16 +134,16 @@ final class BotAvatarTests: XCTestCase {
         XCTAssertEqual(state.agent("cos")?.avatar, BotAvatar(shape: "loaf"))
     }
 
-    func testSmoothMarkWearsTheAvatar() {
-        XCTAssertEqual(SmoothBlob.mark("cos", avatar: nil), SmoothBlob.mark("cos"), "no override is today's mark")
-        let dressed = SmoothBlob.mark("cos", avatar: BotAvatar(shape: "drop", color: "#3F9C8F"))
-        XCTAssertEqual(dressed.colorHex, "#3f9c8f")
+    func testMarkWearsTheAvatar() {
+        XCTAssertEqual(GawkAvatar.mark("cos", avatar: nil), GawkAvatar.mark("cos"), "no override is today's mark")
+        let dressed = GawkAvatar.mark("cos", avatar: BotAvatar(shape: "drop", color: "#3F9C8F"))
+        XCTAssertEqual(dressed.color, "#3f9c8f")
+        XCTAssertEqual(dressed.shape, "drop")
         // gtm-lead's derived shape is the drop, so its body is the same curve.
-        let drop = SmoothBlob.mark("gtm-lead")
-        XCTAssertEqual(dressed.start, drop.start)
-        XCTAssertEqual(dressed.segments, drop.segments)
+        let drop = GawkAvatar.mark("gtm-lead")
+        XCTAssertEqual(dressed.body, drop.body)
         XCTAssertEqual(dressed.eyes, drop.eyes)
-        XCTAssertEqual(SmoothBlob.mark(shapeIndex: 10, colorHex: "#000000").segments, SmoothBlob.mark(shapeIndex: 2, colorHex: "#000000").segments, "wraps")
+        XCTAssertEqual(GawkAvatar.mark(shapeIndex: 10, colorHex: "#000000").body, GawkAvatar.mark(shapeIndex: 2, colorHex: "#000000").body, "wraps")
     }
 }
 

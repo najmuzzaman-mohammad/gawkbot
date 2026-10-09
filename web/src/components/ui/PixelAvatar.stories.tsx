@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { AVATAR_SHAPES, BLOB_COLORS } from "../../lib/blobAvatar";
+import { AVATAR_COLORS, AVATAR_SHAPES } from "../../lib/blobAvatar";
 import { PixelAvatar } from "./PixelAvatar";
 
 const meta: Meta<typeof PixelAvatar> = {
@@ -67,7 +67,7 @@ export const Gallery: StoryObj = {
 
 /** A picked look (OfficeMember.avatar) overrides the slug's own. */
 export const ChosenLook: Story = {
-  args: { slug: "alex", avatar: { shape: "bean", color: "#3f9c8f" } },
+  args: { slug: "alex", avatar: { shape: "bean", color: "#45cfa0" } },
 };
 
 /**
@@ -99,7 +99,7 @@ export const EveryShape: StoryObj = {
           <PixelAvatar
             slug="alex"
             size={48}
-            avatar={{ shape, color: BLOB_COLORS[i] }}
+            avatar={{ shape, color: AVATAR_COLORS[i] }}
           />
           <span>{shape}</span>
         </button>

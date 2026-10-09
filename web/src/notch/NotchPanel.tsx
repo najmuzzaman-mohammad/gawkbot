@@ -42,12 +42,14 @@ export interface PanelProps {
   onOpenFull: () => void;
 }
 
-function originTag(
-  agent: NotchAgent,
-): { text: string; elsewhere: boolean } | null {
-  if (agent.runs_on === "elsewhere") {
-    return { text: agent.runs_on_detail || "elsewhere", elsewhere: true };
-  }
+// One short tag per fact: who made the agent, then where it runs. Mirrors
+// NotchAgent.tags in the iOS app (GawkbotKit/NotchState.swift).
+interface AgentTag {
+  text: string;
+  elsewhere: boolean;
+}
+
+function originTag(agent: NotchAgent): AgentTag | null {
   switch (agent.origin) {
     case "user":
       return { text: "yours", elsewhere: false };
@@ -60,6 +62,41 @@ function originTag(
     default:
       return null;
   }
+}
+
+// "Hermes gateway" for an agent elsewhere; "Claude Code · this Mac" for a
+// local one whose tool the broker names ("Claude Code on this machine");
+// nothing for a plain local agent.
+function whereTag(agent: NotchAgent): AgentTag | null {
+  const detail = agent.runs_on_detail?.trim() ?? "";
+  if (agent.runs_on === "elsewhere") {
+    return { text: detail || "elsewhere", elsewhere: true };
+  }
+  const tool = detail.replace(/ on this machine$/, "");
+  if (!tool || tool === detail) return null;
+  return { text: `${tool} · this Mac`, elsewhere: false };
+}
+
+/** The one tag a question card shows: where, when that is not here; else who. */
+function primaryTag(agent: NotchAgent): AgentTag | null {
+  const where = whereTag(agent);
+  if (where?.elsewhere) return where;
+  return originTag(agent) ?? where;
+}
+
+/** Every tag, for the roster. */
+function agentTags(agent: NotchAgent): AgentTag[] {
+  return [originTag(agent), whereTag(agent)].filter(
+    (t): t is AgentTag => t !== null,
+  );
+}
+
+function Tag({ tag }: { tag: AgentTag }) {
+  return (
+    <span className={`ntag${tag.elsewhere ? " is-elsewhere" : ""}`}>
+      {tag.text}
+    </span>
+  );
 }
 
 export function dmChannel(a: string, b: string): string {
@@ -90,6 +127,7 @@ function Question({
   onOpen: PanelProps["onOpen"];
 }) {
   const oneTap = (item.options ?? []).filter((o) => !o.requires_text);
+  const tag = agent ? primaryTag(agent) : null;
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     if (selected)
@@ -114,13 +152,7 @@ function Question({
       <div className="nq-body">
         <div className="nq-from">
           <b>{agent?.name ?? item.from_name ?? item.from}</b>
-          {agent && originTag(agent) ? (
-            <span
-              className={`ntag${originTag(agent)?.elsewhere ? " is-elsewhere" : ""}`}
-            >
-              {originTag(agent)?.text}
-            </span>
-          ) : null}
+          {tag ? <Tag tag={tag} /> : null}
           {item.blocking ? (
             <span className="ntag is-blocking">holding up work</span>
           ) : null}
@@ -343,7 +375,7 @@ export function NotchPanel(props: PanelProps) {
           <h3 className="nsection">Agents · {state.agents.length}</h3>
           <div className="nagents">
             {state.agents.map((a, i) => {
-              const tag = originTag(a);
+              const tags = agentTags(a);
               return (
                 <button
                   type="button"
@@ -376,13 +408,9 @@ export function NotchPanel(props: PanelProps) {
                   <span className="nagent-detail">
                     {a.detail || a.mood.replace("_", " ")}
                   </span>
-                  {tag ? (
-                    <span
-                      className={`ntag${tag.elsewhere ? " is-elsewhere" : ""}`}
-                    >
-                      {tag.text}
-                    </span>
-                  ) : null}
+                  {tags.map((tag) => (
+                    <Tag key={tag.text} tag={tag} />
+                  ))}
                 </button>
               );
             })}

@@ -1,12 +1,33 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { MemberAvatar } from "../../api/memberTypes";
 import PixelAvatar from "./PixelAvatar";
 
-// The wrapper renders whatever the shared avatar renders: the smooth SVG
-// mark in blob mode (the shipped default), a <canvas> in sprite mode. The
-// assertions target the shared `.pixel-avatar` class so they hold for both;
-// components/ui/PixelAvatar.test.tsx covers each mode's element directly.
+// Wiki surfaces only carry an author slug, so the wrapper reads the chosen
+// look from the office roster. Stub that read: these tests are about the
+// wrapper, not the roster query.
+const roster = vi.hoisted(() => ({
+  avatars: new Map<string, MemberAvatar>(),
+}));
+
+vi.mock("../../hooks/useMembers", () => ({
+  useMemberAvatar: (slug: string) => roster.avatars.get(slug),
+}));
+
+beforeEach(() => {
+  roster.avatars.clear();
+});
+
+/** The mid tone of the body gradient: the colour the bot was given. */
+function bodyFill(container: HTMLElement): string | null {
+  const stops = container.querySelectorAll(".pixel-avatar linearGradient stop");
+  return stops[1]?.getAttribute("stop-color") ?? null;
+}
+
+// The wrapper renders whatever the shared avatar renders. The assertions
+// target the shared `.pixel-avatar` class; components/ui/PixelAvatar.test.tsx
+// covers the element itself.
 describe("<PixelAvatar> (wiki wrapper)", () => {
   it("renders the shared bot avatar", () => {
     // Arrange / Act
@@ -14,6 +35,29 @@ describe("<PixelAvatar> (wiki wrapper)", () => {
 
     // Assert
     expect(container.querySelector(".pixel-avatar")).not.toBeNull();
+  });
+
+  it("draws the look the bot chose, read from the roster by slug", () => {
+    // Arrange
+    const { container: automatic } = render(<PixelAvatar slug="pm" />);
+    const derived = bodyFill(automatic);
+    roster.avatars.set("pm", { shape: "dome", color: "#123456" });
+
+    // Act
+    const { container } = render(<PixelAvatar slug="pm" />);
+
+    // Assert
+    expect(derived).not.toBeNull();
+    expect(derived).not.toBe("#123456");
+    expect(bodyFill(container)).toBe("#123456");
+  });
+
+  it("prefers an avatar the caller passes over the roster's", () => {
+    roster.avatars.set("pm", { color: "#123456" });
+    const { container } = render(
+      <PixelAvatar slug="pm" avatar={{ color: "#abcdef" }} />,
+    );
+    expect(bodyFill(container)).toBe("#abcdef");
   });
 
   it("applies a default wiki className when none is provided", () => {

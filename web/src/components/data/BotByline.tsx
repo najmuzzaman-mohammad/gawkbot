@@ -1,3 +1,4 @@
+import { useMemberAvatar } from "../../hooks/useMembers";
 import { PixelAvatar } from "../ui/PixelAvatar";
 
 /** `createdBy` value the store records for the human operator. */
@@ -15,13 +16,14 @@ interface BotBylineProps {
  * and record says who made it.
  */
 export function BotByline({ actor, verb = "Created by" }: BotBylineProps) {
+  const avatar = useMemberAvatar(actor);
   if (actor === HUMAN_ACTOR) {
     return <span className="data-byline">{verb} you</span>;
   }
   return (
     <span className="data-byline">
       {verb}
-      <PixelAvatar slug={actor} size={14} />
+      <PixelAvatar slug={actor} size={14} avatar={avatar} />
       <span className="data-byline-slug">@{actor}</span>
     </span>
   );

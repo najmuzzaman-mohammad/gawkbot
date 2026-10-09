@@ -21,7 +21,7 @@ export type MemberRunsOn = "this_machine" | "elsewhere";
 /**
  * The office's blob silhouettes, by name. WIRE CONTRACT: mirrors
  * AvatarShapes in internal/team/broker_member_avatar.go, in the order of
- * SILHOUETTES in web/src/lib/blobAvatar.ts (AVATAR_SHAPES there).
+ * AVATAR_SHAPES in web/src/lib/blobAvatar.ts (the species in gawkAvatar.ts).
  */
 export type AvatarShape =
   | "block"

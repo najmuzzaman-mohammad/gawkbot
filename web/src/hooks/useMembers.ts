@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { OfficeMember, OfficeMembersMeta } from "../api/client";
 import { getMembers, getOfficeMembers } from "../api/client";
+import type { MemberAvatar } from "../api/memberTypes";
 
 export function useOfficeMembers() {
   return useQuery({
@@ -17,6 +18,17 @@ export function useOfficeMembers() {
         return trimmed ? { ...m, task: trimmed } : { ...m, task: undefined };
       }),
   });
+}
+
+/**
+ * One member's chosen look, read from the office roster. For avatar sites that
+ * only know a slug (a byline, an audit row, a data-space owner): a site that
+ * already holds the member passes `member.avatar` straight through instead.
+ * Shares the `office-members` cache, so this adds no request of its own.
+ */
+export function useMemberAvatar(slug: string): MemberAvatar | undefined {
+  const { data: members } = useOfficeMembers();
+  return members?.find((m) => m.slug === slug)?.avatar;
 }
 
 /**

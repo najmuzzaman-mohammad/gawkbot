@@ -173,10 +173,14 @@ type Broker struct {
 	wikiCategoriesSubscribers map[int]chan WikiCategoriesUpdatedEvent
 	governorSubscribers       map[int]chan governorStatus
 	// computerService is lazily built by b.computers() (broker_computer.go).
-	computerOnce        sync.Once
-	computerService     *computerService
-	governor            *governor
-	wikiWorker          *WikiWorker
+	computerOnce    sync.Once
+	computerService *computerService
+	governor        *governor
+	wikiWorker      *WikiWorker
+	// wikiDrainDone closes when the wiki worker this broker started on its
+	// lifecycle context has fully drained. Nil when the broker did not start
+	// one (tests that wire their own worker own its shutdown).
+	wikiDrainDone       <-chan struct{}
 	wikiInitMu          sync.Mutex
 	wikiInitErr         error
 	customApps          *customAppStore
@@ -1025,6 +1029,21 @@ func (b *Broker) Stop() {
 	// lifecycleCancel so ctx-aware hooks (workflow precompile) abort their
 	// model calls promptly instead of holding Stop for their full timeout.
 	b.bgWG.Wait()
+
+	// Then the wiki worker: lifecycleCancel told its drain loop to exit, and
+	// the drain waits for its side goroutines (index reconcile, backup
+	// mirror, extractor). Waiting here means nothing is still committing
+	// into the wiki once Stop returns, so a caller can remove the directory.
+	b.mu.Lock()
+	wikiDrained := b.wikiDrainDone
+	b.mu.Unlock()
+	if wikiDrained != nil {
+		select {
+		case <-wikiDrained:
+		case <-time.After(10 * time.Second):
+			log.Printf("broker stop: wiki worker still draining after 10s; continuing")
+		}
+	}
 }
 
 // handleWebToken returns the broker token to localhost clients without requiring auth.

@@ -1,7 +1,7 @@
 {
   "name": "gawkbot",
   "version": "0.236.2",
-  "description": "The open source Grok Bot. gawkbots automate your menial work via AI models and build you microapps to manage the outcome, so that you have a false sense of control.",
+  "description": "The open source Grok Bot. Every agent on your machine becomes a gawkbot your Chief of Staff manages, and they ask you from the Mac notch or your iPhone. Free, local, on your own keys.",
   "bin": {
     "gawkbot": "bin/gawkbot.js"
   },

@@ -74,13 +74,12 @@ const styles = {
   rail: {
     width: 56,
     flexShrink: 0,
-    // The rail is deliberately the darkest chrome in every theme (the
-    // light-on-dark --neutral-100 ink below has always assumed that), but
-    // --workspace-rail-* was declared nowhere, so the literals below were
-    // the real values and the rail could not follow the theme at all.
-    // --neutral-950 is the darkest stop of each theme's own ramp.
-    background: "var(--neutral-950)",
-    borderRight: "1px solid var(--overlay-white-soft)",
+    // Every colour on the rail is a --workspace-rail-* token (declared in
+    // styles/global.css). The default is dark chrome with light ink, off
+    // each theme's own ramp; a light theme such as Glass Light sets the
+    // whole set rather than one stop, so ink and ground flip together.
+    background: "var(--workspace-rail-bg)",
+    borderRight: "1px solid var(--workspace-rail-border)",
     display: "flex" as const,
     flexDirection: "column" as const,
     alignItems: "center" as const,
@@ -88,7 +87,7 @@ const styles = {
     gap: 14,
     height: "100vh",
     overflowY: "auto" as const,
-    color: "var(--neutral-100)",
+    color: "var(--workspace-rail-ink)",
   },
   icon: (
     active: boolean,
@@ -99,8 +98,8 @@ const styles = {
     height: 36,
     borderRadius: 8,
     border: active ? "2px solid var(--accent)" : "2px solid transparent",
-    background: paused ? "var(--overlay-white-soft)" : bg,
-    color: paused ? "var(--neutral-300)" : readableTextOn(bg),
+    background: paused ? "var(--workspace-rail-tint)" : bg,
+    color: paused ? "var(--workspace-rail-ink-muted)" : readableTextOn(bg),
     fontWeight: 700,
     fontSize: 13,
     fontFamily: "var(--font-sans)",
@@ -132,7 +131,7 @@ const styles = {
       height: 10,
       borderRadius: 999,
       background: color,
-      border: "2px solid var(--neutral-900)",
+      border: "2px solid var(--workspace-rail-dot-ring)",
     };
   },
   addButton: {

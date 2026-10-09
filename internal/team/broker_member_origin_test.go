@@ -47,6 +47,7 @@ func TestMemberRunsOn(t *testing.T) {
 		{officeMember{Provider: provider.ProviderBinding{Kind: provider.KindHermesBot}}, RunsOnElsewhere, "Hermes"},
 		{officeMember{Provider: provider.ProviderBinding{Kind: provider.KindSlack}}, RunsOnElsewhere, "Slack"},
 		{officeMember{Computer: computerCloud}, RunsOnElsewhere, "cloud computer"},
+		{officeMember{Computer: computerCloud, Provider: provider.ProviderBinding{Kind: provider.KindCodex}}, RunsOnElsewhere, "Codex CLI on a cloud computer"},
 	}
 	for _, tc := range cases {
 		where, detail := memberRunsOn(tc.m)

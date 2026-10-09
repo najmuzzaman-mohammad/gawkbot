@@ -1,80 +1,181 @@
 import SwiftUI
 import GawkbotKit
 
-/// The bot's mark, drawn as a smooth vector (`SmoothBlob`, the port of
-/// blobAvatarSmooth.ts): one flat filled body with the eyes cut out. The
-/// silhouette and colour are the bot's chosen `avatar` where one is set,
-/// otherwise the same slug-derived look as the office web app
-/// (`BlobAvatar.resolve`). The path is filled even-odd, so the eyes are
-/// holes and the mark composites on any surface. `openness` narrows the eyes.
+/// The bot's character, painted from `GawkAvatar` (the port of
+/// web/src/lib/gawkAvatar.ts): a lit, glossy body with a face and the
+/// species' accessory. The species and colour are the bot's chosen `avatar`
+/// where one is set, otherwise the slug-derived look (`BlobAvatar.resolve`).
+/// `expression` is the face; `openness` narrows the eyes (a blink).
 struct BlobAvatarView: View {
     let slug: String
     var avatar: BotAvatar? = nil
     var size: CGFloat = 40
     var openness: Double = 1
+    var expression: GawkAvatar.Expression = .calm
 
     var body: some View {
-        let look = BlobAvatar.resolve(slug: slug, avatar: avatar)
-        BlobShape(slug: slug, avatar: avatar, openness: openness)
-            .fill(Color(hex: look.color), style: FillStyle(eoFill: true, antialiased: true))
+        let mark = GawkAvatar.mark(slug, avatar: avatar, expression: expression, openness: openness)
+        GawkCanvas(mark: mark)
             .frame(width: size, height: size)
             .accessibilityHidden(true)
     }
 }
 
-/// The smooth blob as a SwiftUI shape: body spline plus two rounded-rect
-/// eyes in one path. Scaled from the 16-unit grid to fit, centred.
-struct BlobShape: Shape {
-    let slug: String
-    var avatar: BotAvatar? = nil
-    var openness: Double
+/// Paints a `GawkAvatar.Mark` into a square, in the web's drawing order:
+/// shadow and the accessory parts behind, the body with its gradient, the
+/// shading clipped to the body, the eyes, then the accessory parts in front
+/// and the face.
+struct GawkCanvas: View {
+    let mark: GawkAvatar.Mark
 
-    var animatableData: Double {
-        get { openness }
-        set { openness = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        let mark = SmoothBlob.mark(slug, avatar: avatar, openness: openness)
-        let grid = CGFloat(BlobAvatar.grid)
-        let scale = min(rect.width, rect.height) / grid
-        let originX = rect.midX - scale * grid / 2
-        let originY = rect.midY - scale * grid / 2
-        func point(_ p: SmoothBlob.Point) -> CGPoint {
-            CGPoint(x: originX + CGFloat(p.x) * scale, y: originY + CGFloat(p.y) * scale)
-        }
-
-        var path = Path()
-        guard !mark.segments.isEmpty else { return path }
-        path.move(to: point(mark.start))
-        for segment in mark.segments {
-            path.addCurve(to: point(segment.end), control1: point(segment.control1), control2: point(segment.control2))
-        }
-        path.closeSubpath()
-        for eye in mark.eyes {
-            let box = CGRect(
-                x: originX + CGFloat(eye.x) * scale,
-                y: originY + CGFloat(eye.y) * scale,
-                width: CGFloat(eye.width) * scale,
-                height: CGFloat(eye.height) * scale
+    var body: some View {
+        Canvas(rendersAsynchronously: false) { context, size in
+            let scale = min(size.width, size.height) / GawkAvatar.view
+            let origin = CGPoint(
+                x: (size.width - scale * GawkAvatar.view) / 2,
+                y: (size.height - scale * GawkAvatar.view) / 2
             )
-            let r = CGFloat(eye.cornerRadius) * scale
-            path.addRoundedRect(in: box, cornerSize: CGSize(width: r, height: r), style: .circular)
+            let painter = GawkPainter(scale: scale, origin: origin, mark: mark)
+            let bodyPath = painter.path(.curve(mark.body, closed: true))
+            for p in mark.behind { painter.draw(p, in: context, bodyPath: bodyPath) }
+            context.fill(bodyPath, with: painter.shading(.body, bounds: bodyPath.boundingRect))
+            for p in mark.shading { painter.draw(p, in: context, bodyPath: bodyPath) }
+            for p in mark.eyes { painter.draw(p, in: context, bodyPath: bodyPath) }
+            for p in mark.front { painter.draw(p, in: context, bodyPath: bodyPath) }
         }
-        return path
     }
 }
 
-/// A squishy avatar. With a mood it plays that mood's loop (hop, bob and
-/// blink, breathe, shake, happy hop); large ones also blink now and then;
-/// a tap squashes it and springs it back with a light haptic. All the maths
-/// is `MoodMotion` in GawkbotKit. Driven by a TimelineView that pauses when
-/// nothing is moving; Reduce Motion keeps it still (a tap still gives the
-/// haptic).
+/// Geometry → Path and Fill → Shading, scaled from the 64-unit box.
+struct GawkPainter {
+    let scale: CGFloat
+    let origin: CGPoint
+    let mark: GawkAvatar.Mark
+
+    func point(_ p: GawkAvatar.Point) -> CGPoint {
+        CGPoint(x: origin.x + CGFloat(p.x) * scale, y: origin.y + CGFloat(p.y) * scale)
+    }
+
+    func path(_ g: GawkAvatar.Geometry) -> Path {
+        var path = Path()
+        switch g {
+        case let .curve(curve, closed):
+            path.move(to: point(curve.start))
+            for s in curve.segments {
+                path.addCurve(to: point(s.end), control1: point(s.control1), control2: point(s.control2))
+            }
+            if closed { path.closeSubpath() }
+        case let .line(a, b):
+            path.move(to: point(a))
+            path.addLine(to: point(b))
+        case let .quads(start, legs):
+            path.move(to: point(start))
+            for leg in legs {
+                path.addQuadCurve(to: point(leg.end), control: point(leg.control))
+            }
+        case let .ellipse(center, rx, ry, rotation):
+            let c = point(center)
+            let rect = CGRect(x: c.x - CGFloat(rx) * scale, y: c.y - CGFloat(ry) * scale, width: CGFloat(rx) * 2 * scale, height: CGFloat(ry) * 2 * scale)
+            var ellipse = Path(ellipseIn: rect)
+            if rotation != 0 {
+                let t = CGAffineTransform(translationX: c.x, y: c.y)
+                    .rotated(by: CGFloat(rotation) * .pi / 180)
+                    .translatedBy(x: -c.x, y: -c.y)
+                ellipse = ellipse.applying(t)
+            }
+            path.addPath(ellipse)
+        case let .circle(center, r):
+            let c = point(center)
+            path.addEllipse(in: CGRect(x: c.x - CGFloat(r) * scale, y: c.y - CGFloat(r) * scale, width: CGFloat(r) * 2 * scale, height: CGFloat(r) * 2 * scale))
+        }
+        return path
+    }
+
+    /// The shading for a fill, with gradients laid out over `bounds` the way
+    /// SVG lays them over an element's bounding box.
+    func shading(_ fill: GawkAvatar.Fill, bounds: CGRect) -> GraphicsContext.Shading {
+        let t = mark.tones
+        func at(_ fx: Double, _ fy: Double) -> CGPoint {
+            CGPoint(x: bounds.minX + bounds.width * CGFloat(fx), y: bounds.minY + bounds.height * CGFloat(fy))
+        }
+        let radius = max(bounds.width, bounds.height)
+        switch fill {
+        case let .color(hex):
+            return .color(Color(hex: hex))
+        case .body:
+            return .linearGradient(
+                Gradient(stops: [
+                    .init(color: Color(hex: t.light), location: 0),
+                    .init(color: Color(hex: t.base), location: 0.5),
+                    .init(color: Color(hex: t.dark), location: 1),
+                ]),
+                startPoint: at(0.2, 0), endPoint: at(0.8, 1)
+            )
+        case .sheen:
+            return .radialGradient(
+                Gradient(stops: [.init(color: .white.opacity(0.5), location: 0), .init(color: .white.opacity(0), location: 1)]),
+                center: at(0.32, 0.22), startRadius: 0, endRadius: radius * 0.55
+            )
+        case .bounce:
+            let light = Color(hex: t.light)
+            return .radialGradient(
+                Gradient(stops: [.init(color: light.opacity(0.45), location: 0), .init(color: light.opacity(0), location: 1)]),
+                center: at(0.5, 1.05), startRadius: 0, endRadius: radius * 0.6
+            )
+        case .shadow:
+            return .radialGradient(
+                Gradient(stops: [.init(color: .black.opacity(0.28), location: 0), .init(color: .black.opacity(0), location: 1)]),
+                center: at(0.5, 0.5), startRadius: 0, endRadius: bounds.width * 0.5
+            )
+        case .ball:
+            return .radialGradient(
+                Gradient(stops: [.init(color: Color(hex: t.light), location: 0), .init(color: Color(hex: t.dark), location: 1)]),
+                center: at(0.35, 0.3), startRadius: 0, endRadius: radius * 0.75
+            )
+        }
+    }
+
+    func draw(_ p: GawkAvatar.Primitive, in context: GraphicsContext, bodyPath: Path) {
+        var ctx = context
+        if p.paint.clipToBody { ctx.clip(to: bodyPath) }
+        ctx.opacity = p.paint.opacity
+        let shape = path(p.geometry)
+        if let fill = p.paint.fill {
+            ctx.fill(shape, with: shading(fill, bounds: shape.boundingRect))
+        }
+        if let stroke = p.paint.stroke {
+            ctx.stroke(
+                shape,
+                with: .color(Color(hex: stroke)),
+                style: StrokeStyle(lineWidth: CGFloat(p.paint.strokeWidth) * scale, lineCap: .round, lineJoin: .round)
+            )
+        }
+    }
+}
+
+extension Mood {
+    /// The face a bot pulls in each mood.
+    var expression: GawkAvatar.Expression {
+        switch self {
+        case .working: return .focus
+        case .idle: return .sleepy
+        case .needsYou: return .ask
+        case .error: return .oops
+        case .done: return .happy
+        }
+    }
+}
+
+/// A squishy avatar. With a mood it pulls that mood's face and plays its
+/// loop (hop, bob and blink, breathe, shake, happy hop); large ones also
+/// blink now and then; a tap squashes it and springs it back with a light
+/// haptic. All the maths is `MoodMotion` in GawkbotKit. Driven by a
+/// TimelineView that pauses when nothing is moving; Reduce Motion keeps it
+/// still (a tap still gives the haptic).
 struct MoodAvatarView: View {
     let slug: String
     var avatar: BotAvatar? = nil
-    /// Nil: no loop. It still squishes on tap, and blinks when large.
+    /// Nil: a calm face and no loop. It still squishes on tap, and blinks when large.
     var mood: Mood? = nil
     var size: CGFloat = 44
     /// A soft disc of the avatar's own colour behind it.
@@ -89,14 +190,14 @@ struct MoodAvatarView: View {
     @State private var tappedAt: Date?
     @State private var squishing = false
 
-    private var blinks: Bool { size >= MoodAvatarView.blinkSize }
+    private var blinks: Bool { size >= MoodAvatarView.blinkSize && mood != .done }
     private var paused: Bool { reduceMotion || (mood == nil && !blinks && !squishing) }
 
     var body: some View {
         let look = BlobAvatar.resolve(slug: slug, avatar: avatar)
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: paused)) { context in
             let p = currentPose(at: context.date)
-            BlobAvatarView(slug: slug, avatar: avatar, size: size, openness: p.openness)
+            BlobAvatarView(slug: slug, avatar: avatar, size: size, openness: p.openness, expression: mood?.expression ?? .calm)
                 .scaleEffect(x: CGFloat(p.scaleX), y: CGFloat(p.scaleY), anchor: .bottom)
                 .rotationEffect(.degrees(p.rotation), anchor: .bottom)
                 .offset(x: CGFloat(p.dx) * size, y: CGFloat(p.dy) * size)
@@ -145,7 +246,7 @@ struct MoodAvatarView: View {
 }
 
 /// A conversation-list or toolbar avatar: still while the bot is idle,
-/// bobbing and blinking while it is mid-turn.
+/// concentrating (bobbing and gawking) while it is mid-turn.
 struct WorkingBlobAvatarView: View {
     let slug: String
     var avatar: BotAvatar? = nil

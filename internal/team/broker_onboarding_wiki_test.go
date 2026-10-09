@@ -24,6 +24,10 @@ func TestOnboardingCompleteMaterializesWiki(t *testing.T) {
 	t.Setenv("WUPHF_RUNTIME_HOME", tmpHome)
 
 	b := newTestBroker(t)
+	// Stop before the temp HOME is removed (cleanups run last-in, first-out):
+	// onboarding starts the wiki worker, and its background commits would
+	// otherwise race TempDir cleanup.
+	t.Cleanup(b.Stop)
 	if err := b.onboardingCompleteFn("Stand up niche CRM", false, "niche-crm", nil, ""); err != nil {
 		t.Fatalf("onboardingCompleteFn: %v", err)
 	}
@@ -78,6 +82,10 @@ func TestOnboardingCompleteWikiIsIdempotent(t *testing.T) {
 
 	// First run.
 	b := newTestBroker(t)
+	// Stop before the temp HOME is removed (cleanups run last-in, first-out):
+	// onboarding starts the wiki worker, and its background commits would
+	// otherwise race TempDir cleanup.
+	t.Cleanup(b.Stop)
 	if err := b.onboardingCompleteFn("Stand up niche CRM", false, "niche-crm", nil, ""); err != nil {
 		t.Fatalf("first onboardingCompleteFn: %v", err)
 	}
@@ -95,6 +103,7 @@ func TestOnboardingCompleteWikiIsIdempotent(t *testing.T) {
 	// the persistence from the first run (matches production behavior
 	// where a CLI restart reads ~/.wuphf/team/broker-state.json).
 	b2 := newBrokerWithTeamRoom(b.statePath)
+	t.Cleanup(b2.Stop)
 	if err := b2.onboardingCompleteFn("Re-pick niche CRM", false, "niche-crm", nil, ""); err != nil {
 		t.Fatalf("second onboardingCompleteFn: %v", err)
 	}
@@ -123,6 +132,10 @@ func TestOnboardingCompleteSynthesizedBlueprintSeedsGettingStarted(t *testing.T)
 	t.Setenv("WUPHF_RUNTIME_HOME", tmpHome)
 
 	b := newTestBroker(t)
+	// Stop before the temp HOME is removed (cleanups run last-in, first-out):
+	// onboarding starts the wiki worker, and its background commits would
+	// otherwise race TempDir cleanup.
+	t.Cleanup(b.Stop)
 	if err := b.onboardingCompleteFn("Run a bespoke operation", false, "", nil, ""); err != nil {
 		t.Fatalf("onboardingCompleteFn (synthesized): %v", err)
 	}

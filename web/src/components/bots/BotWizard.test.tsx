@@ -116,7 +116,7 @@ describe("<AgentWizard>", () => {
       target: { value: "Revenue Ops" },
     });
     fireEvent.click(screen.getByRole("radio", { name: "Shield" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Violet" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Lavender" }));
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
 
     await waitFor(() => expect(postMock).toHaveBeenCalled());
@@ -124,7 +124,7 @@ describe("<AgentWizard>", () => {
       string,
       Record<string, unknown>,
     ];
-    expect(body.avatar).toEqual({ shape: "shield", color: "#8b6bb1" });
+    expect(body.avatar).toEqual({ shape: "shield", color: "#b48cff" });
   });
 
   it("omits `avatar` when the look is left automatic", async () => {

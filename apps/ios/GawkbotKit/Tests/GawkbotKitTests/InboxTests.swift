@@ -104,6 +104,15 @@ final class InboxOrderingTests: XCTestCase {
         XCTAssertEqual(gateway.tags.map(\.text), ["imported", "elsewhere · Hermes gateway"])
         XCTAssertEqual(agent("user", runsOn: "elsewhere").whereTag?.text, "elsewhere")
         XCTAssertNil(agent("user").whereTag)
+        XCTAssertNil(agent("user", detail: "this machine").whereTag)
+
+        // A local agent shows the tool that runs it, after who made it; the
+        // question card keeps one chip, who made it.
+        let local = agent("adopted", detail: "Gemini CLI on this machine")
+        XCTAssertEqual(local.whereTag, AgentTag(text: "Gemini CLI · your machine", style: .neutral))
+        XCTAssertEqual(local.tags.map(\.text), ["adopted", "Gemini CLI · your machine"])
+        XCTAssertEqual(local.primaryTag?.text, "adopted")
+        XCTAssertEqual(agent(nil, detail: "Codex CLI on this machine").primaryTag?.text, "Codex CLI · your machine")
     }
 
     func testSummaryMatchesTheBrokerHeadline() {
@@ -307,78 +316,76 @@ final class CartoonSynthTests: XCTestCase {
 
 // MARK: - Smooth avatar parity with web/src/lib/blobAvatarSmooth.ts
 
-final class SmoothBlobParityTests: XCTestCase {
+final class GawkAvatarParityTests: XCTestCase {
     // Computed with: cd web && bun -e 'import { blobShapeIndex, blobColor } from "./src/lib/blobAvatar"; …'
     func testShapeAndColourMatchTheWeb() {
         let expected: [(String, Int, String)] = [
-            ("cos", 4, "#8b6bb1"),
-            ("designer", 4, "#6b7fd7"),
-            ("gtm-lead", 2, "#c08a3e"),
-            ("founding-engineer", 1, "#4d8bb8"),
-            ("prospect-scout", 2, "#5f9e6b"),
-            ("pm", 6, "#6f8f43"),
-            ("hermes", 3, "#8a7a2e"),
-            ("scout", 5, "#a35a45"),
-            ("openclaw", 6, "#a35a45"),
-            ("ceo", 6, "#c08a3e"),
+            ("cos", 4, "#5aa9ff"),
+            ("designer", 4, "#ffa53d"),
+            ("founding-engineer", 1, "#b48cff"),
+            ("gtm-lead", 2, "#7b7dff"),
+            ("prospect-scout", 2, "#ff6b8b"),
+            ("pm", 6, "#3cc3df"),
+            ("hermes", 3, "#ff7a59"),
+            ("scout", 5, "#ff79c6"),
+            ("openclaw", 6, "#ff79c6"),
+            ("ceo", 6, "#7b7dff"),
         ]
         for (slug, shape, color) in expected {
             XCTAssertEqual(BlobAvatar.shapeIndex(slug), shape, slug)
             XCTAssertEqual(BlobAvatar.colorHex(slug), color, slug)
-            XCTAssertEqual(SmoothBlob.mark(slug).colorHex, color, slug)
+            XCTAssertEqual(GawkAvatar.mark(slug).color, color, slug)
         }
     }
 
-    func testOutlineMatchesTheWeb() {
-        // silhouetteOutline(4) from the TS.
-        let web: [[Double]] = [[5.5,0],[10.5,0],[11,0.5],[12,1.5],[13,2.5],[13,3.5],[13,4.5],[13,5.5],[13,6.5],[13,7.5],[13,8.5],[13,9.5],[13,10.5],[13,11.5],[13,12.5],[13,13.5],[12,14.5],[11,15.5],[10.5,16],[5.5,16],[5,15.5],[4,14.5],[3,13.5],[3,12.5],[3,11.5],[3,10.5],[3,9.5],[3,8.5],[3,7.5],[3,6.5],[3,5.5],[3,4.5],[3,3.5],[3,2.5],[4,1.5],[5,0.5]]
-        XCTAssertEqual(SmoothBlob.outline(shapeIndex: 4).map { [$0.x, $0.y] }, web)
-    }
+    /// bodyPath(4) from the TS (the pill), which rounds to 2 decimals:
+    /// M x y, then C c1x c1y c2x c2y x y per segment.
+    static let webPill: [Double] = [32,6, 35.67,6,40.17,6,43,8, 45.83,10,48,13.67,49,18, 50,22.33,49.17,29,49,34, 48.83,39,49,44.33,48,48, 47,51.67,45.67,54.33,43,56, 40.33,57.67,35.67,58,32,58, 28.33,58,23.67,57.67,21,56, 18.33,54.33,17,51.67,16,48, 15,44.33,15.17,39,15,34, 14.83,29,14,22.33,15,18, 16,13.67,18.17,10,21,8, 23.83,6,28.33,6,32,6]
 
-    /// The body subpath's numbers in SVG order (M x y, then C c1x c1y c2x c2y x y …),
-    /// extracted from smoothBlob(slug).d, which rounds to 3 decimals.
-    static let webBodies: [String: [Double]] = [
-        "cos": [5.5,0,6.75,-0.417,9.25,-0.417,10.5,0,11.75,0.417,12.583,0.25,13,2.5,13.417,4.75,13.417,11.25,13,13.5,12.583,15.75,11.75,15.583,10.5,16,9.25,16.417,6.75,16.417,5.5,16,4.25,15.583,3.417,15.75,3,13.5,2.583,11.25,2.583,4.75,3,2.5,3.417,0.25,4.25,0.417,5.5,0],
-        "gtm-lead": [7.5,1,7.917,0.75,8.083,0.75,8.5,1,8.917,1.25,9.75,2.083,10,2.5,10.25,2.917,9.333,2.667,10,3.5,10.667,4.333,13.333,6.667,14,7.5,14.667,8.333,13.833,8.167,14,8.5,14.167,8.833,14.833,9,15,9.5,15.167,10,15.333,10.833,15,11.5,14.667,12.167,13.667,13,13,13.5,12.333,14,11.417,14.25,11,14.5,10.583,14.75,11.417,14.917,10.5,15,9.583,15.083,6.417,15.083,5.5,15,4.583,14.917,5.417,14.75,5,14.5,4.583,14.25,3.667,14,3,13.5,2.333,13,1.333,12.167,1,11.5,0.667,10.833,0.833,10,1,9.5,1.167,9,1.833,8.833,2,8.5,2.167,8.167,1.333,8.333,2,7.5,2.667,6.667,5.333,4.333,6,3.5,6.667,2.667,5.75,2.917,6,2.5,6.25,2.083,7.083,1.25,7.5,1],
-        "founding-engineer": [6.5,1,7.083,0.917,8.917,0.917,9.5,1,10.083,1.083,9.583,1.25,10,1.5,10.417,1.75,11.333,2,12,2.5,12.667,3,13.667,4,14,4.5,14.333,5,13.833,5.167,14,5.5,14.167,5.833,14.833,5,15,6.5,15.167,8,15.083,13.083,15,14.5,14.917,15.917,16.75,14.917,14.5,15,12.25,15.083,3.75,15.083,1.5,15,-0.75,14.917,1.083,15.917,1,14.5,0.917,13.083,0.833,8,1,6.5,1.167,5,1.833,5.833,2,5.5,2.167,5.167,1.667,5,2,4.5,2.333,4,3.333,3,4,2.5,4.667,2,5.583,1.75,6,1.5,6.417,1.25,5.917,1.083,6.5,1],
-    ]
-
-    func testSplineMatchesTheWeb() {
-        for (slug, web) in Self.webBodies {
-            let mark = SmoothBlob.mark(slug)
-            var mine = [mark.start.x, mark.start.y]
-            for s in mark.segments {
-                mine += [s.control1.x, s.control1.y, s.control2.x, s.control2.y, s.end.x, s.end.y]
-            }
-            XCTAssertEqual(mine.count, web.count, slug)
-            for (a, b) in zip(mine, web) {
-                XCTAssertEqual(a, b, accuracy: 0.0006, slug)
-            }
+    func testBodySplineMatchesTheWeb() {
+        let body = GawkAvatar.body(shapeIndex: 4)
+        var mine = [body.start.x, body.start.y]
+        for s in body.segments {
+            mine += [s.control1.x, s.control1.y, s.control2.x, s.control2.y, s.end.x, s.end.y]
         }
-    }
-
-    func testEyesMatchTheWeb() {
-        // smoothBlob("cos").eyes and smoothBlob("cos", 0).eyes
-        let open = SmoothBlob.eyes(openness: 1)
-        XCTAssertEqual(open.count, 2)
-        XCTAssertEqual(open[0].x, 5.1, accuracy: 1e-9)
-        XCTAssertEqual(open[1].x, 9.1, accuracy: 1e-9)
-        XCTAssertEqual(open[0].y, 5)
-        XCTAssertEqual(open[0].width, 1.8, accuracy: 1e-9)
-        XCTAssertEqual(open[0].height, 4)
-        XCTAssertEqual(open[0].cornerRadius, 0.9, accuracy: 1e-9)
-        XCTAssertEqual(SmoothBlob.eyes(openness: 0)[0].height, 2, "narrowed, never shut")
-    }
-
-    func testEveryShapeTraces() {
-        for i in 0..<BlobAvatar.silhouettes.count {
-            let outline = SmoothBlob.outline(shapeIndex: i)
-            XCTAssertGreaterThan(outline.count, 4)
-            for p in outline {
-                XCTAssertTrue((0...16).contains(p.x) && (0...16).contains(p.y))
-            }
+        XCTAssertEqual(mine.count, Self.webPill.count)
+        for (a, b) in zip(mine, Self.webPill) {
+            XCTAssertEqual(a, b, accuracy: 0.006)
         }
-        XCTAssertEqual(SmoothBlob.outline(shapeIndex: 12), SmoothBlob.outline(shapeIndex: 4), "wraps like the web's modulo")
+        XCTAssertEqual(GawkAvatar.body(shapeIndex: 12), GawkAvatar.body(shapeIndex: 4), "wraps like the web's modulo")
+    }
+
+    func testTonesMatchTheWeb() {
+        // tones("#5aa9ff") and tones("#f2c94c") from the TS.
+        let sky = GawkAvatar.tones("#5aa9ff")
+        XCTAssertEqual(sky.light, "#92d5ff")
+        XCTAssertEqual(sky.dark, "#004ef8")
+        XCTAssertEqual(sky.deep, "#002aad")
+        let butter = GawkAvatar.tones("#f2c94c")
+        XCTAssertEqual(butter.light, "#f9cd86")
+        XCTAssertEqual(butter.dark, "#ddcc08")
+    }
+
+    func testEveryExpressionHasAFace() {
+        for e in GawkAvatar.Expression.allCases {
+            let m = GawkAvatar.mark("cos", expression: e)
+            XCTAssertEqual(m.eyes.count, 2, "\(e)")
+            XCTAssertFalse(m.front.isEmpty, "\(e)")
+        }
+        // A happy face closes its eyes into arcs.
+        for eye in GawkAvatar.mark("cos", expression: .happy).eyes {
+            if case .quads = eye.geometry {} else { XCTFail("happy eyes are arcs") }
+        }
+        let faces = Set(GawkAvatar.Expression.allCases.map { GawkAvatar.mark("cos", expression: $0).front })
+        XCTAssertEqual(faces.count, GawkAvatar.Expression.allCases.count, "the expressions differ")
+    }
+
+    func testEverySpeciesHasAnAccessory() {
+        for i in 0..<BlobAvatar.shapeCount {
+            let m = GawkAvatar.mark(shapeIndex: i, colorHex: "#5aa9ff")
+            // Beyond the shadow, the body and the face (two catchlights, a mouth).
+            XCTAssertGreaterThan(m.behind.count - 1 + (m.front.count - 3), 0, m.shape)
+        }
     }
 }
 

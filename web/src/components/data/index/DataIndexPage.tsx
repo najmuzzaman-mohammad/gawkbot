@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 
 import type { DataSpace } from "../../../api/dataspaces";
 import { useDataSpaces } from "../../../hooks/useDataSpaces";
+import { useMemberAvatar } from "../../../hooks/useMembers";
 import { formatRelativeTime } from "../../../lib/format";
 import { PixelAvatar } from "../../ui/PixelAvatar";
 import { BotByline } from "../BotByline";
@@ -138,6 +139,7 @@ interface BotGroupProps {
 function BotGroup({ group }: BotGroupProps) {
   const headingId = `data-bot-group-${group.owner}`;
   const sharedLine = sharedWithLine(group.sharedWithCount);
+  const avatar = useMemberAvatar(group.owner);
   return (
     <section
       className="data-bot-group"
@@ -145,7 +147,11 @@ function BotGroup({ group }: BotGroupProps) {
       data-testid={`data-bot-group-${group.owner}`}
     >
       <h2 className="data-bot-group-heading" id={headingId}>
-        <PixelAvatar slug={group.owner} size={GROUP_AVATAR_SIZE} />
+        <PixelAvatar
+          slug={group.owner}
+          size={GROUP_AVATAR_SIZE}
+          avatar={avatar}
+        />
         <span>@{group.owner}</span>
         <span className="data-bot-group-count">
           {countLabel(group.spaces.length, "space", "spaces")}

@@ -12,6 +12,7 @@ const {
   unknownSlashCommandMessage,
   handleSlashCommand,
   askPrefix,
+  composerPlaceholder,
   latestMessageIdFromQueryData,
   emptyMessagesQueryData,
   COMPOSER_HISTORY_LIMIT,
@@ -105,6 +106,42 @@ describe("askPrefix", () => {
   it("defaults to @cos", () => {
     expect(askPrefix(undefined)).toBe("@cos ");
     expect(askPrefix("")).toBe("@cos ");
+  });
+});
+
+describe("composer placeholder", () => {
+  const members = [
+    { slug: "cos", name: "Chief of Staff" },
+    { slug: "planner", name: "  " },
+  ];
+
+  it("names the bot on the other side of a DM", () => {
+    expect(composerPlaceholder("cos__human", members)).toBe(
+      "Message Chief of Staff",
+    );
+  });
+
+  it("finds the bot whichever side of the pair it sorts to", () => {
+    expect(
+      composerPlaceholder("human__zed", [{ slug: "zed", name: "Zed" }]),
+    ).toBe("Message Zed");
+  });
+
+  it("falls back to the slug's name while the roster loads", () => {
+    expect(composerPlaceholder("cos__human", [])).toBe("Message COS");
+    expect(composerPlaceholder("human__planner", members)).toBe(
+      "Message Planner",
+    );
+  });
+
+  it("keeps the # for a named channel", () => {
+    expect(composerPlaceholder("launch", members)).toBe("Message #launch");
+  });
+
+  it("does not read a pair without the human as a DM", () => {
+    expect(composerPlaceholder("ops__social", members)).toBe(
+      "Message #ops__social",
+    );
   });
 });
 

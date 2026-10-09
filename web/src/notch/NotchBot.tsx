@@ -1,20 +1,29 @@
 import type { MemberAvatar } from "../api/memberTypes";
 import { BlobAvatar } from "../components/ui/BlobAvatar";
+import type { Expression } from "../lib/gawkAvatar";
 import type { Mood } from "./types";
 
 // An agent in the notch: its own smooth blob mark (the same one it has
 // everywhere in the office) plus body language for its mood. Motion is CSS
 // in notch.css and only plays under prefers-reduced-motion: no-preference.
 //
-//   working    gentle bob, eyes narrowing in concentration
-//   idle       slow breathing, a "z" drifting up
-//   needs_you  bouncy hop with an "!" badge
-//   error      a shake and a sweat drop
-//   done       a happy hop with sparkles
+//   working    gentle bob, a concentrating face with the eyes gawking
+//   idle       slow breathing, sleepy face, a "z" drifting up
+//   needs_you  bouncy hop, an asking face, an "!" badge
+//   error      a shake, a worried face, a sweat drop
+//   done       a happy hop, eyes-closed smile, sparkles
 //   peeking    slides out from under the notch, looks around, ducks back
 //   fidget     restless sway while waiting too long
 
 export type BotAct = "peeking" | "fidget" | "talking";
+
+const MOOD_FACE: Record<Mood, Expression> = {
+  working: "focus",
+  idle: "sleepy",
+  needs_you: "ask",
+  error: "oops",
+  done: "happy",
+};
 
 const MOOD_WORDS: Record<Mood, string> = {
   working: "working",
@@ -71,7 +80,6 @@ export function NotchBot({
   avatar,
 }: NotchBotProps) {
   const name = label ?? `${slug}: ${MOOD_WORDS[mood]}`;
-  const openness = mood === "working" ? 0.6 : mood === "idle" ? 0.15 : 1;
   // A named bot is an image with a name; an unnamed one is decoration.
   const a11y = name
     ? ({ role: "img", "aria-label": name } as const)
@@ -93,8 +101,9 @@ export function NotchBot({
         <BlobAvatar
           slug={slug}
           size={size}
-          openness={openness}
-          glossy={true}
+          expression={act === "talking" ? "ask" : MOOD_FACE[mood]}
+          working={mood === "working"}
+          blink={false}
           avatar={avatar}
         />
       </span>

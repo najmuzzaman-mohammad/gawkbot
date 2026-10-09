@@ -133,21 +133,24 @@ final class BlobAvatarParityTests: XCTestCase {
 
     func testShapeAndColourMatchTheWeb() {
         XCTAssertEqual(BlobAvatar.shapeIndex("cos"), 4)
-        XCTAssertEqual(BlobAvatar.colorHex("cos"), "#8b6bb1")
+        XCTAssertEqual(BlobAvatar.colorHex("cos"), "#5aa9ff")
         XCTAssertEqual(BlobAvatar.shapeIndex("gtm-lead"), 2)
-        XCTAssertEqual(BlobAvatar.colorHex("gtm-lead"), "#c08a3e")
+        XCTAssertEqual(BlobAvatar.colorHex("gtm-lead"), "#7b7dff")
         XCTAssertEqual(BlobAvatar.shapeIndex("pm"), 6)
-        XCTAssertEqual(BlobAvatar.colorHex("pm"), "#6f8f43")
+        XCTAssertEqual(BlobAvatar.colorHex("pm"), "#3cc3df")
         XCTAssertEqual(BlobAvatar.colorHex(" COS "), BlobAvatar.colorHex("cos"))
     }
 
-    func testEyesArePunchedOutOfTheBody() {
-        let cells = BlobAvatar.cells("cos", openness: 1)
-        XCTAssertFalse(cells.contains { $0.x == 5 && $0.y == 5 })
-        XCTAssertFalse(cells.contains { $0.x == 10 && $0.y == 8 })
-        XCTAssertTrue(cells.contains { $0.x == 8 && $0.y == 8 })
-        XCTAssertEqual(BlobAvatar.eyes(openness: 0).height, 2)
-        XCTAssertEqual(BlobAvatar.eyes(openness: 1).height, 4)
+    func testEyesNarrowButNeverShut() {
+        func ry(_ openness: Double, _ e: GawkAvatar.Expression = .calm) -> Double {
+            if case let .ellipse(_, _, ry, _) = GawkAvatar.mark("cos", expression: e, openness: openness).eyes[0].geometry { return ry }
+            return .nan
+        }
+        // gawkMark("cos").eyes from the TS: 5.8 open, 1.044 narrowed, 3.19 focused.
+        XCTAssertEqual(ry(1), 5.8, accuracy: 1e-9)
+        XCTAssertEqual(ry(0), 1.044, accuracy: 1e-9)
+        XCTAssertEqual(ry(1, .focus), 3.19, accuracy: 1e-9)
+        XCTAssertEqual(ry(7), ry(1), "clamped")
     }
 }
 

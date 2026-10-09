@@ -13,6 +13,7 @@ import { Link } from "@tanstack/react-router";
 import type { DataSpace } from "../../../api/dataspaces";
 import { botAccessLevel } from "../../../api/dataspacesAccess";
 import { useDataSpaces } from "../../../hooks/useDataSpaces";
+import { useOfficeMembers } from "../../../hooks/useMembers";
 import { AccessBadge } from "../../data/index/AccessBadge";
 import { PixelAvatar } from "../../ui/PixelAvatar";
 
@@ -94,6 +95,7 @@ function SpaceRows({
   showOwner: boolean;
   showLevel: boolean;
 }) {
+  const { data: members = [] } = useOfficeMembers();
   return (
     <div className="data-list-scroll">
       <table className="data-list-table">
@@ -136,7 +138,13 @@ function SpaceRows({
               {showOwner ? (
                 <td className="data-list-nowrap">
                   <span className="data-byline">
-                    <PixelAvatar slug={space.owner} size={14} />
+                    <PixelAvatar
+                      slug={space.owner}
+                      size={14}
+                      avatar={
+                        members.find((m) => m.slug === space.owner)?.avatar
+                      }
+                    />
                     <span className="data-byline-slug">@{space.owner}</span>
                   </span>
                 </td>

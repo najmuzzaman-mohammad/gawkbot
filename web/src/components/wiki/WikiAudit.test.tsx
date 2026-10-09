@@ -4,6 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/wiki";
 import WikiAudit from "./WikiAudit";
 
+// Wiki avatars read each author's chosen look from the office roster
+// (useMemberAvatar). These tests are about the wiki surface, so stub that
+// read rather than mounting a QueryClient for it.
+vi.mock("../../hooks/useMembers", () => ({
+  useMemberAvatar: () => undefined,
+}));
+
 const ENTRIES: api.WikiAuditEntry[] = [
   {
     sha: "aaa1111",

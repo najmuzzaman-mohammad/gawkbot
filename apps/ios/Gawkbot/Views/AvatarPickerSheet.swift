@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import GawkbotKit
 
-/// Pick a bot's look: one of the office's eight silhouettes (each previewed
+/// Pick a bot's look: one of the office's eight species (each previewed
 /// in the colour being picked) and a body colour from the 12-colour palette
 /// or any custom colour. A big live preview at the top squishes when tapped.
 /// "Reset to automatic" goes back to the look derived from the bot's slug.

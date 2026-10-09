@@ -4,6 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/wiki";
 import EditLogFooter from "./EditLogFooter";
 
+// Wiki avatars read each author's chosen look from the office roster
+// (useMemberAvatar). These tests are about the wiki surface, so stub that
+// read rather than mounting a QueryClient for it.
+vi.mock("../../hooks/useMembers", () => ({
+  useMemberAvatar: () => undefined,
+}));
+
 function hasDuplicateKeyWarning(calls: unknown[][]) {
   return calls.some((args) =>
     args.some((arg) =>

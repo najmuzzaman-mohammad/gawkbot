@@ -152,6 +152,7 @@ func (b *Broker) initWikiWorker() {
 
 	b.mu.Lock()
 	b.wikiWorker = worker
+	b.wikiDrainDone = worker.Done()
 	b.wikiIndex = idx
 	b.wikiExtractor = extractor
 	b.wikiDLQ = dlq

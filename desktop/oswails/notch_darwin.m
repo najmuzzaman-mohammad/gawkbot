@@ -23,9 +23,11 @@
 #include "_cgo_export.h"
 
 static const CGFloat kEarWidth = 72.0;
-// Keep in sync with EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx.
-static const CGFloat kExpandedWidth = 440.0;
-static const CGFloat kExpandedHeight = 420.0;
+// The open panel. The page draws itself at exactly this size, so keep these
+// equal to EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx:
+// a smaller window clips the composer and the shortcut footer.
+static const CGFloat kExpandedWidth = 460.0;
+static const CGFloat kExpandedHeight = 560.0;
 // Matches the .notch-shell CSS transition, so the panel shrinks only after
 // the page has finished animating closed.
 static const NSTimeInterval kCollapseDelay = 0.3;
@@ -283,9 +285,17 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 // NSEvent monitor.
 - (void)registerHotKey {
 	EventTypeSpec spec = {kEventClassKeyboard, kEventHotKeyPressed};
-	InstallApplicationEventHandler(&GawkHotKeyHandler, 1, &spec, NULL, NULL);
+	OSStatus status = InstallApplicationEventHandler(&GawkHotKeyHandler, 1, &spec, NULL, NULL);
 	EventHotKeyID hotKeyID = {'gawk', 1};
-	RegisterEventHotKey(kVK_Space, controlKey | optionKey, hotKeyID, GetApplicationEventTarget(), 0, &gHotKey);
+	if (status == noErr) {
+		status = RegisterEventHotKey(kVK_Space, controlKey | optionKey, hotKeyID, GetApplicationEventTarget(), 0, &gHotKey);
+	}
+	if (status != noErr) {
+		// Another app already owns ⌃⌥Space, or Carbon refused. The notch
+		// still opens on hover; only the keyboard shortcut is missing.
+		NSLog(@"gawkbot notch: global hotkey ⌃⌥Space not registered (OSStatus %d)", (int)status);
+	}
+	goNotchHotKeyStatus((int)status);
 }
 
 - (void)hotkeyPressed {

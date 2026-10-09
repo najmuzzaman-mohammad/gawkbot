@@ -1,7 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import Byline from "./Byline";
+
+// Wiki avatars read each author's chosen look from the office roster
+// (useMemberAvatar). These tests are about the wiki surface, so stub that
+// read rather than mounting a QueryClient for it.
+vi.mock("../../hooks/useMembers", () => ({
+  useMemberAvatar: () => undefined,
+}));
 
 describe("<Byline>", () => {
   it("renders avatar, author, and timestamp pulse", () => {

@@ -13,18 +13,24 @@ import "C"
 
 import (
 	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
 // The camera-notch surface (notch_darwin.m). It is a second native window the
 // Wails v2 single-window runtime cannot provide, so it is plain Cocoa: a
 // transparent NSPanel over the notch hosting a WKWebView of <office>/notch.html.
-// It talks to the office over the same loopback HTTP as everything else; the
-// only thing crossing into Go is "open the main window at this app path".
+// It talks to the office over the same loopback HTTP as everything else; all
+// that crosses into Go is "open the main window at this app path" and
+// whether the global hotkey registered.
 
 var (
 	notchOpenMu sync.Mutex
 	notchOpenFn func(path string)
+	// notchHotKeyStatus is the OSStatus of registering the global ⌃⌥Space
+	// hotkey (notch_darwin.m registerHotKey): 0 once it took, otherwise the
+	// Carbon error, so a diagnostics surface can say the shortcut is gone.
+	notchHotKeyStatus atomic.Int32
 )
 
 // startNotch shows the notch for officeURL. onOpen runs on its own goroutine
@@ -37,6 +43,11 @@ func startNotch(officeURL string, onOpen func(path string)) {
 	cURL := C.CString(officeURL)
 	defer C.free(unsafe.Pointer(cURL))
 	C.GawkNotchStart(cURL)
+}
+
+//export goNotchHotKeyStatus
+func goNotchHotKeyStatus(status C.int) {
+	notchHotKeyStatus.Store(int32(status))
 }
 
 //export goNotchOpen
