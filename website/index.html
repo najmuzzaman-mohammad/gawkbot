@@ -1005,10 +1005,10 @@
     var angle = 0, speed = 0, lastY = window.scrollY, swinging = 0;
     var swing = function () {
       var y = window.scrollY;
-      speed += Math.max(-40, Math.min(40, y - lastY)) * 0.035;
+      speed += Math.max(-60, Math.min(60, y - lastY)) * 0.018;
       lastY = y;
-      speed += -0.05 * angle - 0.07 * speed;
-      angle = Math.max(-14, Math.min(14, angle + speed));
+      speed += -0.02 * angle - 0.04 * speed;
+      angle = Math.max(-11, Math.min(11, angle + speed));
       dangle.style.transform = 'rotate(' + angle.toFixed(2) + 'deg)';
       if (Math.abs(angle) < 0.02 && Math.abs(speed) < 0.02) {
         dangle.style.transform = '';
@@ -1018,7 +1018,7 @@
       swinging = requestAnimationFrame(swing);
     };
     window.addEventListener('scroll', function () {
-      if (!swinging) { lastY = window.scrollY; swinging = requestAnimationFrame(swing); }
+      if (!swinging) swinging = requestAnimationFrame(swing);
     }, { passive: true });
   }
 

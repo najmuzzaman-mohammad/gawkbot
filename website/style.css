@@ -20,6 +20,11 @@
   --text-2: rgba(235, 235, 245, 0.66);
   --text-3: rgba(235, 235, 245, 0.62);
   --hairline: rgba(255, 255, 255, 0.09);
+  /* The notch is black in both schemes; its rim is what shows on dark. */
+  --notch-body: #000;
+  --notch-lip: #16161a;
+  --notch-rim: rgba(255, 255, 255, 0.34);
+  --notch-rim-side: rgba(255, 255, 255, 0.14);
   --hairline-2: rgba(255, 255, 255, 0.16);
   --fill: rgba(120, 120, 128, 0.24);
   --fill-2: rgba(120, 120, 128, 0.14);
@@ -300,7 +305,12 @@ code, kbd { font-family: var(--font-mono); }
   -webkit-text-fill-color: transparent;
 }
 /* "hanging" hangs from its top left corner and swings when the page moves. */
-.dangle { display: inline-block; transform-origin: 6% 8%; will-change: transform; }
+/* The padding gives the clipped gradient room for the descenders (the
+   title's line-height is 1); the margin takes the same room back. */
+.dangle {
+  display: inline-block; transform-origin: 6% 8%; will-change: transform;
+  padding: 0.08em 0.06em 0.24em; margin: -0.08em -0.06em -0.24em;
+}
 
 /* ── Buttons ──────────────────────────────────────────────────────── */
 .btn {
@@ -393,8 +403,8 @@ section { position: relative; }
 /* ── Hero ─────────────────────────────────────────────────────────── */
 .hero { padding: 0 0 0; text-align: center; }
 /* The brow: the gang piled on a little notch, above the title. */
-.hero-brow { display: flex; justify-content: center; height: 62px; margin-bottom: 14px; }
-.hero { padding-top: clamp(48px, 7vw, 88px); }
+/* It sits flush under the menu bar, so it reads as the notch of the page. */
+.hero-brow { display: flex; justify-content: center; height: 62px; margin-bottom: clamp(28px, 4.4vw, 56px); }
 .hero .h1 { max-width: 13ch; margin: 0 auto; }
 .hero .lead { max-width: 660px; margin: 26px auto 0; }
 .cta-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 40px; }
@@ -447,7 +457,7 @@ section { position: relative; }
    scroll position: --n (agents pile onto the notch), --c (the pointer goes
    up to it) and --o (the inbox pulls down). Everywhere else they stay at 1,
    so the inbox is simply shown open. */
-.scene { --n: 1; --c: 1; --o: 1; position: relative; margin-top: clamp(44px, 6vw, 72px); }
+.scene { --n: 1; --c: 1; --o: 1; --scene-rest: 120px; position: relative; margin-top: clamp(44px, 6vw, 72px); }
 .scene-live .scene { height: 260vh; }
 .scene-pin { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 0 var(--gutter); }
 .scene-live .scene-pin { position: sticky; top: 56px; height: calc(100vh - 56px); justify-content: center; }
@@ -455,6 +465,9 @@ section { position: relative; }
 /* ── A MacBook ────────────────────────────────────────────────────── */
 /* Lid, display, notch cut into the bezel, and the base seen edge-on. */
 .mac { position: relative; width: min(1120px, 100%); }
+/* While pinned, the laptop must fit under the menu bar: sized from the
+   height left over, or its notch slides behind the bar. */
+.scene-live .mac { width: min(1120px, 100%, calc((100vh - 56px - var(--scene-rest)) * 1.52)); }
 .mac-lid {
   position: relative;
   padding: 12px 12px 14px;
@@ -1028,8 +1041,15 @@ section { position: relative; }
 .mini-notch { position: relative; width: 180px; height: 30px; border-radius: 0 0 16px 16px; }
 .mini-notch::after {
   content: ""; position: absolute; inset: 0; z-index: 2;
-  border-radius: inherit; background: #000;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--notch-body) 55%, var(--notch-lip));
+  /* A lit rim along the sides and the bottom lip, so the black notch still
+     has an edge on a black page. */
+  box-shadow:
+    inset 0 -1px 0 var(--notch-rim),
+    inset 1px 0 0 var(--notch-rim-side),
+    inset -1px 0 0 var(--notch-rim-side),
+    0 10px 24px rgba(0, 0, 0, 0.35);
 }
 .mini-notch .blob { position: absolute; z-index: 1; width: 34px; height: 34px; top: 6px; }
 .peeker { left: 20px; animation: peek 4.2s var(--ease-spring) infinite; }
