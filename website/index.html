@@ -108,7 +108,7 @@
         { "@type": "Question", "name": "Where does my data go?", "acceptedAnswer": { "@type": "Answer", "text": "gawkbot runs on your machine and your workspace is local files you can read. Release builds include anonymous product analytics (counts and shapes, never your content) and, unless you turn it off, session replay that masks everything you type but can show what is on screen. Switch either off in onboarding or Settings. A build from source has no analytics key and sends no analytics; the only call home is the update check." } },
         { "@type": "Question", "name": "Can an agent do something external without asking me?", "acceptedAnswer": { "@type": "Answer", "text": "Not through your connected accounts. Reads are free, but an email, a post or any other action through an account you connected waits in the notch until you approve it, one action at a time, unless you choose always-allow for that one action. An agent working in a repo on your machine still uses the tool's own permissions." } },
         { "@type": "Question", "name": "How does voice work?", "acceptedAnswer": { "@type": "Answer", "text": "Hold V and talk. In the Mac app speech recognition uses Apple's speech framework, on-device when your Mac supports it; on the iPhone it is the same. You see the transcript first, and nothing is sent until you press Return." } },
-        { "@type": "Question", "name": "Does it work on Windows or Linux?", "acceptedAnswer": { "@type": "Answer", "text": "gawkbot is a Mac app with an iPhone companion. The notch, the shortcuts and the sounds are Mac only. The source is public, so anyone can build the open-source web app from source and run it on Windows or Linux, but there is no installer for either." } }
+        { "@type": "Question", "name": "Does it work on Windows or Linux?", "acceptedAnswer": { "@type": "Answer", "text": "gawkbot is a Mac app with an iPhone companion. The notch, the shortcuts and the sounds are Mac only. The web app without the notch also has a Windows installer on the download page. Linux has no installer; the source is public, so anyone can build the web app from source and run it there." } }
       ]
     }
   ]
@@ -850,7 +850,7 @@
       </details>
       <details class="glass lg">
         <summary>Does it work on Windows or Linux?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
-        <div class="answer">gawkbot is a <a href="/download.html" class="ink-link">Mac app</a> with an iPhone companion. The notch, the shortcuts and the sounds are Mac only. The source is public, so anyone can build the open-source web app from source and run it on Windows or Linux, but there is no installer for either.</div>
+        <div class="answer">gawkbot is a <a href="/download.html" class="ink-link">Mac app</a> with an iPhone companion. The notch, the shortcuts and the sounds are Mac only. The web app without the notch also has a <a href="/download.html" class="ink-link">Windows installer</a>. Linux has no installer; the source is public, so anyone can build the web app from source and run it there.</div>
       </details>
     </div>
   </div>

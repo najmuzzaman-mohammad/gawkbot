@@ -167,6 +167,10 @@ pre-push:
       files: bash scripts/changed-files-since-base.sh
       glob: "web/{public/themes/**/*.css,src/**/*.{css,ts,tsx}}"
       run: bash scripts/check-css-phantom-tokens.sh
+    site-claims:
+      # robots.txt directives and README claim-table paths. Unscoped on
+      # purpose: moving or deleting any cited file is what breaks it. <1s.
+      run: bash scripts/check-site-claims.sh
     smoke:
       # internal/team's former test-isolation bugs (shared ~/.wuphf/wiki,
       # worktrees registered against the invoking repo, cross-test state

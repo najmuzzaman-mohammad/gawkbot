@@ -241,7 +241,7 @@ gawkbot share
 Cloudflare quick tunnel (`POST /api/share/tunnel/start`; the trycloudflare
 URL is paired with a 6-digit passcode, invites are one-use and expire in 24
 hours, and the join handler is rate-limited per source IP). `cloudflared`
-ships with the npm install (pinned SHA256 per platform). The one-click
+has to be on your PATH; the broker reports it as missing when it is not. The one-click
 button for this is being resurfaced in the operator shell — until then the
 endpoint is the path.
 
@@ -300,20 +300,18 @@ Every claim in this README, grounded to the code that makes it true.
 
 | Claim | Status | Where it lives |
 |---|---|---|
-| Describe a workflow → bot builds live with a streaming activity feed | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx`, `web/src/components/apps/AppActivity.tsx` |
-| Onboarding hands the first workflow straight into the build | ✅ shipped | `web/src/operator/firstWorkflowSeed.ts`, `web/src/operator/OperatorApp.tsx` |
-| New bots get a starter weekly routine from the described workflow | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx` |
-| Routines: broker-owned cron, versioned prompts, per-run transcripts | ✅ shipped | `internal/team/scheduler_operator_routines.go`, `web/src/operator/routines/RoutinesTab.tsx` |
+| Describe a workflow → bot builds live with a streaming activity feed | ✅ shipped | `internal/team/app_builder_bot.go`, `web/src/components/apps/AppActivity.tsx` |
+| New bots get a starter weekly routine from the described workflow | ✅ shipped | `internal/team/broker_apps_starter_routine.go` |
+| Routines: broker-owned cron, versioned prompts, per-run transcripts | ✅ shipped | `internal/team/scheduler_operator_routines.go`, `web/src/components/apps/RoutinesApp.tsx` |
 | The broker spawns and supervises the routine runner | ✅ shipped | `internal/team/bot_service_supervisor.go` |
-| Ask-before-building when a referenced integration is not connected | ✅ shipped | `web/src/operator/builder/describedIntegrations.ts` |
-| Approval gate on external writes | ✅ shipped | `web/src/operator/components/ApprovalPrompt.tsx`, `internal/team/broker_action_grants.go` |
-| Knowledge pages with inline citations | ✅ shipped | `web/src/operator/surfaces/KnowledgeSurface.tsx` |
-| Usage readout — cost, tokens, runs | ✅ shipped | `web/src/operator/surfaces/SettingsSurface.tsx` (GET `/usage`) |
-| Operator is the only front door; legacy office routes redirect | ✅ shipped | `web/src/routes/RootRoute.tsx`, `web/e2e/tests/route-matrix.spec.ts` |
-| Per-bot typed tables (Data tab) | ✅ shipped | `web/src/operator/surfaces/AppDataTab.tsx` |
+| Ask-before-building when a referenced integration is not connected | ✅ shipped | `web/src/appdetail/builder/describedIntegrations.ts` |
+| Approval gate on external writes | ✅ shipped | `web/src/components/messages/ExternalActionApprovalCard.tsx`, `internal/team/broker_action_grants.go` |
+| Knowledge pages with inline citations | ✅ shipped | `web/src/components/wiki/CitedAnswer.tsx` |
+| Usage readout — cost, tokens, runs | ✅ shipped | `web/src/components/sidebar/UsagePanel.tsx` (GET `/usage`) |
+| Per-bot typed tables (Data tab) | ✅ shipped | `web/src/appdetail/surfaces/AppDataTab.tsx` |
 | Mix runtimes: Claude Code, Codex, Opencode, local models, Hermes, OpenClaw | ✅ shipped | `internal/provider/`, first-run pre-pick screen |
 | Multi-workspace, share, and public-tunnel invites | ✅ shipped | `cmd/wuphf/workspace.go`, `cmd/wuphf/tunnel.go`, `internal/workspaces/` |
-| Smooth bot avatars, picked per bot (every bot has a face) | ✅ shipped | `web/src/components/ui/BlobAvatar.tsx`, `web/src/components/bots/AvatarPicker.tsx` |
+| Smooth bot avatars, picked per bot (every bot has a face) | ✅ shipped | `web/src/components/ui/OrbAvatar.tsx`, `web/src/components/bots/AvatarPicker.tsx` |
 | Finds the agent CLIs on your machine and adopts them as bots | ✅ shipped | `internal/agentdetect/`, `internal/team/broker_local_agents.go`, `web/src/components/apps/settings/LocalAgentsSection.tsx` |
 | Chief of Staff adopts agents behind an approval card | ✅ shipped | `internal/teammcp/server_local_agents.go` |
 | Every bot tagged with who made it and where it runs | ✅ shipped | `internal/team/broker_member_origin.go` |

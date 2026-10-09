@@ -123,6 +123,11 @@ jobs:
         # allowlisted. Deferred sites live in
         # scripts/css-phantom-token-allowlist.txt with a stated reason.
         run: bash scripts/check-css-phantom-tokens.sh
+      - name: Check public copy against the repo
+        # robots.txt must use the directive crawlers read, and every path the
+        # README claim table cites must exist. Fails if it finds fewer paths
+        # than expected, so a broken parser cannot pass by matching nothing.
+        run: bash scripts/check-site-claims.sh
       - name: Install ripgrep
         # A PCRE multiline grep check below uses `rg --pcre2`. ripgrep is bundled
         # in ubuntu-latest images today, but we install it explicitly so the
