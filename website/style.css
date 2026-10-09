@@ -1653,44 +1653,50 @@ section { position: relative; }
 }
 .scrub-live .agents-scene .chip { box-shadow: inset 0 0 0 calc(var(--c) * 1.5px) color-mix(in srgb, var(--text) 50%, transparent); }
 
-/* Team: a spotlight walks the real app, one part per beat, while that
-   part's card lights. Regions are fractions of the screenshot, which
-   scripts/website-app-shots.mjs renders at a fixed 1280x800 layout. */
+/* Team: the real app, one screen per beat (data-step 1..7), each shown
+   full size in the same window. The screens are stacked and cross-fade,
+   each easing in from slightly large so the change reads as opening that
+   part of the app. Beats 1-2 belong to the first card, 3-4 to the second,
+   5-6 to the third and 7 to the last; only the current card shows, as the
+   caption under the window. Without the script, or with reduced motion,
+   the window shows the first screen and all four cards sit beside it. */
 .appwin { position: relative; }
-.appwin picture { display: block; position: relative; }
-.spot { display: none; }
-.scrub-live .team-scene .team-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: clamp(16px, 2.4vw, 28px); align-items: center; }
-.scrub-live .team-scene .appwin { margin: 0; }
-.scrub-live .team-scene .keys { grid-template-columns: 1fr; gap: 10px; }
-.scrub-live .team-scene .key-tile { min-height: 0; padding: 16px 18px; opacity: 0.4; transition: opacity 0.35s, box-shadow 0.35s, transform 0.35s; }
-.scrub-live .team-scene .key-tile p { font-size: 14px; }
-.team-scene[data-step="1"] .tt1, .team-scene[data-step="2"] .tt2, .team-scene[data-step="3"] .tt3, .team-scene[data-step="4"] .tt4 {
-  opacity: 1; transform: translateX(-4px); box-shadow: inset 0 0 0 1.5px var(--text), var(--shadow-md);
+.frames { position: relative; overflow: hidden; }
+.frame { display: block; }
+.frame + .frame { display: none; }
+.scrub-live .team-scene .team-grid { display: grid; justify-items: center; gap: 14px; }
+.scrub-live .team-scene .appwin { margin: 0; width: min(1080px, 100%, calc((100vh - 56px - var(--team-rest)) * 1.5)); }
+.scrub-live .team-scene { --team-rest: 230px; }
+.scrub-live .team-scene .frame + .frame { display: block; position: absolute; inset: 0; }
+/* A screen opens whole, for bearings, then scrolling zooms into the part
+   that matters (its beat's variable, 0 to 1): the roster and the chat for
+   the first, the main pane for the rest, so the words are readable. */
+.scrub-live .team-scene .frame {
+  --z: 0; opacity: 0;
+  transform-origin: 100% 20%;
+  transform: scale(calc(1 + var(--z) * 0.36));
+  transition: opacity 0.45s var(--ease-out);
+  will-change: transform, opacity;
 }
-.scrub-live .team-scene .spot {
-  display: block; position: absolute; z-index: 1; pointer-events: none;
-  left: var(--sx, 0%); top: var(--sy, 0%); width: var(--sw, 100%); height: var(--sh, 100%);
-  border-radius: 10px;
-  box-shadow: 0 0 0 2px var(--text), 0 0 0 200vmax rgba(0, 0, 0, 0.52);
-  opacity: 0;
-  transition: left 0.5s var(--ease-out), top 0.5s var(--ease-out), width 0.5s var(--ease-out), height 0.5s var(--ease-out), opacity 0.3s;
+.scrub-live .team-scene .f1 { --z: var(--a); transform-origin: 0% 12%; transform: scale(calc(1 + var(--z) * 0.22)); }
+.scrub-live .team-scene .f2 { --z: var(--b); }
+.scrub-live .team-scene .f3 { --z: var(--c); }
+.scrub-live .team-scene .f4 { --z: var(--d); }
+.scrub-live .team-scene .f5 { --z: var(--e); }
+.scrub-live .team-scene .f6 { --z: var(--f); }
+.scrub-live .team-scene .f7 { --z: var(--g); }
+.team-scene:is([data-step="0"], [data-step="1"]) .f1,
+.team-scene[data-step="2"] .f2, .team-scene[data-step="3"] .f3, .team-scene[data-step="4"] .f4,
+.team-scene[data-step="5"] .f5, .team-scene[data-step="6"] .f6, .team-scene[data-step="7"] .f7 { opacity: 1; }
+.scrub-live .team-scene .keys { display: grid; grid-template-columns: 1fr; width: min(720px, 100%); min-height: 96px; }
+.scrub-live .team-scene .key-tile {
+  grid-area: 1 / 1; min-height: 0; padding: 14px 18px; text-align: center;
+  opacity: 0; transform: translateY(6px); pointer-events: none;
+  transition: opacity 0.35s var(--ease-out), transform 0.35s var(--ease-out);
 }
-.appwin picture { overflow: hidden; }
-.team-scene:is([data-step="1"], [data-step="2"], [data-step="3"], [data-step="4"]) .spot { opacity: 1; }
-/* The roster: the Chief of Staff and the bots that report to it. */
-.team-scene[data-step="1"] .spot { --sx: 4.4%; --sy: 9.5%; --sw: 22.8%; --sh: 36%; }
-/* Scheduled Tasks, under Work. */
-.team-scene[data-step="2"] .spot { --sx: 5%; --sy: 58%; --sw: 21.8%; --sh: 5.6%; }
-/* The Wiki, under Knowledge. */
-.team-scene[data-step="3"] .spot { --sx: 5%; --sy: 71.8%; --sw: 21.8%; --sh: 5.6%; }
-/* Apps, the section the bots' small apps live in. */
-.team-scene[data-step="4"] .spot { --sx: 5%; --sy: 85.6%; --sw: 21.8%; --sh: 5.2%; }
-@media (max-width: 900px) {
-  .scrub-live .team-scene .team-grid { grid-template-columns: 1fr; }
-  .scrub-live .team-scene .key-tile { display: none; }
-  .team-scene[data-step="1"] .tt1, .team-scene[data-step="2"] .tt2, .team-scene[data-step="3"] .tt3, .team-scene[data-step="4"] .tt4 { display: block; transform: none; }
-}
-/* Only the lit card shows its paragraph, so the column fits the screen. */
-.scrub-live .team-scene .key-tile p { display: none; }
-.team-scene[data-step="1"] .tt1 p, .team-scene[data-step="2"] .tt2 p, .team-scene[data-step="3"] .tt3 p, .team-scene[data-step="4"] .tt4 p { display: block; }
-.scrub-live .team-scene .key-tile h3 { margin-bottom: 0; }
+.scrub-live .team-scene .key-tile .caps { display: none; }
+.scrub-live .team-scene .key-tile p { font-size: 14.5px; }
+.team-scene:is([data-step="0"], [data-step="1"], [data-step="2"]) .tt1,
+.team-scene:is([data-step="3"], [data-step="4"]) .tt2,
+.team-scene:is([data-step="5"], [data-step="6"]) .tt3,
+.team-scene[data-step="7"] .tt4 { opacity: 1; transform: none; pointer-events: auto; }

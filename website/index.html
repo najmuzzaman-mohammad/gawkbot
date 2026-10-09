@@ -658,10 +658,12 @@
       <h2 class="h2 reveal" id="team-title">A team, not just an inbox.</h2>
       <p class="lead reveal">Every agent gawkbot adopts joins a team run by a Chief of Staff. The team splits up the work, runs the recurring jobs on a schedule, writes down what it learns, and builds small tools so you can use the results.</p>
     </div>
-    <!-- Scene: a spotlight walks the real app, one part per beat, while
-         its card lights: the Chief of Staff and the bots that report to
-         it, Scheduled Tasks, the Wiki, and the Apps the bots build. -->
-    <div class="team-scene" data-scrub="a:0.04-0.14 b:0.28-0.36 c:0.5-0.58 d:0.72-0.8" style="--scrub-h:300vh">
+    <!-- Scene: the real app, one screen per beat. Each part of the team
+         is shown on its own screen, full size, and where the screen does
+         something a second beat shows it in use: the Chief of Staff's chat
+         then the tasks it handed out, the routines then one opened, the
+         wiki then a page, and an app a bot built. -->
+    <div class="team-scene" data-scrub="a:0.03-0.12 b:0.15-0.25 c:0.28-0.38 d:0.41-0.51 e:0.54-0.64 f:0.67-0.77 g:0.8-0.9" style="--scrub-h:460vh">
     <div class="scrub-pin">
     <div class="team-grid">
     <!-- The real app, not a drawing: screenshots of the current build in
@@ -670,12 +672,37 @@
          the app, so this never shows an old UI. -->
     <figure class="appwin">
       <div class="appwin-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-      <picture>
+      <div class="frames">
+      <picture class="frame f1">
         <source srcset="app-glass-light.webp" media="(prefers-color-scheme: light)">
         <img src="app-glass-dark.webp" width="1280" height="800" loading="lazy" decoding="async"
              alt="The gawkbot app. A glass sidebar lists the Chief of Staff and the four bots that report to it, each with what it is doing, above the Work, Knowledge and Apps sections. The main pane is a chat with the Chief of Staff, which has split a checkout release into tasks for three bots and says their questions are waiting in the notch.">
       </picture>
-      <span class="spot" aria-hidden="true"></span>
+      <picture class="frame f2">
+        <source srcset="app-team-2-light.webp" media="(prefers-color-scheme: light)">
+        <img src="app-team-2-dark.webp" width="1280" height="800" loading="lazy" decoding="async" alt="The tasks the Chief of Staff handed out, each with the bot that owns it and where it stands.">
+      </picture>
+      <picture class="frame f3">
+        <source srcset="app-routines-1-light.webp" media="(prefers-color-scheme: light)">
+        <img src="app-routines-1-dark.webp" width="1280" height="800" loading="lazy" decoding="async" alt="The Scheduled Tasks screen, listing the routines the bots run and when each one runs next.">
+      </picture>
+      <picture class="frame f4">
+        <source srcset="app-routines-2-light.webp" media="(prefers-color-scheme: light)">
+        <img src="app-routines-2-dark.webp" width="1280" height="800" loading="lazy" decoding="async" alt="One routine opened, with its schedule and its past runs.">
+      </picture>
+      <picture class="frame f5">
+        <source srcset="app-wiki-1-light.webp" media="(prefers-color-scheme: light)">
+        <img src="app-wiki-1-dark.webp" width="1280" height="800" loading="lazy" decoding="async" alt="The Wiki, with the pages the bots have written.">
+      </picture>
+      <picture class="frame f6">
+        <source srcset="app-wiki-2-light.webp" media="(prefers-color-scheme: light)">
+        <img src="app-wiki-2-dark.webp" width="1280" height="800" loading="lazy" decoding="async" alt="A wiki page the bots wrote, with its sources cited.">
+      </picture>
+      <picture class="frame f7">
+        <source srcset="app-apps-1-light.webp" media="(prefers-color-scheme: light)">
+        <img src="app-apps-1-dark.webp" width="1280" height="800" loading="lazy" decoding="async" alt="A small app a bot built, running inside gawkbot.">
+      </picture>
+      </div>
     </figure>
     <div class="keys">
       <div class="key-tile glass lg tt1">
@@ -700,7 +727,7 @@
       </div>
     </div>
     </div>
-    <ol class="scrub-steps" aria-hidden="true"><li data-from="1"><b>1</b> A team with a lead</li><li data-from="2"><b>2</b> Routines</li><li data-from="3"><b>3</b> A wiki they keep</li><li data-from="4"><b>4</b> Apps they build</li></ol>
+    <ol class="scrub-steps" aria-hidden="true"><li data-from="1"><b>1</b> A team with a lead</li><li data-from="3"><b>2</b> Routines</li><li data-from="5"><b>3</b> A wiki they keep</li><li data-from="7"><b>4</b> Apps they build</li></ol>
     </div>
     </div>
     <p class="fineprint reveal" style="text-align:center">Routines fire through a small service in the repo, <code>agent/</code>. gawkbot finds and runs it from a source checkout; the Mac download does not include it.</p>
