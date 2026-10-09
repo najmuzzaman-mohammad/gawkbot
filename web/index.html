@@ -28,6 +28,24 @@
 </style>
 </head>
 <body>
+  <!-- Liquid glass refraction: a lens map (bright centre, dark rim) drives a
+       displacement of the backdrop, so a glass pane bends what is behind its
+       edges. Only engines that run SVG filters inside backdrop-filter get
+       it (html.lg-refract, set below); the rest keep the blur. -->
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3CradialGradient id='g' cx='50%25' cy='50%25' r='70%25'%3E%3Cstop offset='0.62' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23c0c0c0'/%3E%3C/radialGradient%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E" result="map" preserveAspectRatio="none"/>
+      <feDisplacementMap in="SourceGraphic" in2="map" scale="22" xChannelSelector="R" yChannelSelector="R"/>
+    </filter>
+  </svg>
+  <script>
+    try {
+      var ua = navigator.userAgent;
+      if (/Chrome\//.test(ua) && !/Edg\/|OPR\//.test(ua) && CSS.supports('backdrop-filter', 'url(#lg-refract)')) {
+        document.documentElement.classList.add('lg-refract');
+      }
+    } catch (e) { /* no refraction, still glass */ }
+  </script>
   <div id="root">
     <div id="skeleton">
       <span>Loading gawkbot</span>

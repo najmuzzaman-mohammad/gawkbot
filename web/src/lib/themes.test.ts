@@ -110,8 +110,22 @@ describe("Glass themes", () => {
         (m) => m[1],
       ),
     );
-    // Defined by the base itself.
-    read.delete("--glass-blur");
+    // The base defines the material itself (the thicknesses, the light,
+    // the tinted accents) from a few flavour tokens; only what it reads
+    // and does not define must come from both flavours.
+    for (const m of base.matchAll(/(--(?:glass|nex-sidebar)[\w-]*)\s*:/g)) {
+      read.delete(m[1]);
+    }
+    // Coverage: the tint and the light on the glass are the flavour's job.
+    for (const flavourOwned of [
+      "--glass-tint",
+      "--glass-sheen",
+      "--glass-shade",
+      "--glass-solid-card",
+      "--glass-wash-3",
+    ]) {
+      expect(read.has(flavourOwned), `base reads ${flavourOwned}`).toBe(true);
+    }
     expect(read.size).toBeGreaterThan(0);
     for (const file of ["nex-glass-dark.css", "nex-glass-light.css"]) {
       const css = themeCss(file);

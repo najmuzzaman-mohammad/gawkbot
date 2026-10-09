@@ -62,8 +62,49 @@ html[data-theme^="nex-glass"] {
   --duration-base: 0.2s;
   --duration-slow: 0.28s;
 
-  /* ── Glass material. One token so every pane blurs the same way. ── */
-  --glass-blur: saturate(180%) blur(24px);
+  /* ── Glass material ──
+     Three thicknesses of one tint (the flavour's --glass-tint), the way
+     Apple's Liquid Glass has regular and clear: regular for chrome that
+     floats over content (sidebar, headers, the composer), thick for panes
+     that must carry their own text (menus, dialogs), thin for controls that
+     sit on another pane. The light that makes it glass is a box-shadow
+     stack: a bright hairline along the top edge (the sheen), a darker one
+     along the bottom (the shade), and a soft inner glow. --glass-refract
+     bends the backdrop at the edges where the engine can (see
+     html.lg-refract in index.html); everywhere else it is a plain blur,
+     which already reads as glass. ── */
+  --glass-thin: color-mix(in srgb, var(--glass-tint) 34%, transparent);
+  --glass-regular: color-mix(in srgb, var(--glass-tint) 62%, transparent);
+  --glass-thick: color-mix(in srgb, var(--glass-tint) 80%, transparent);
+  --glass-blur: saturate(180%) blur(28px);
+  --glass-blur-thin: saturate(160%) blur(14px);
+  --glass-refract: none;
+  --glass-light:
+    inset 0 1px 0 var(--glass-sheen), inset 0 -1px 0 var(--glass-shade),
+    inset 0 0 24px var(--glass-glow);
+  --glass-light-soft:
+    inset 0 1px 0 var(--glass-sheen-soft), inset 0 -1px 0 var(--glass-shade);
+  /* Tinted glass: the accent as a translucent material, for the one
+     primary action on a surface. */
+  --glass-accent: color-mix(in srgb, var(--accent) 84%, transparent);
+  --glass-accent-hover: color-mix(in srgb, var(--accent) 96%, transparent);
+  --glass-danger: color-mix(in srgb, var(--red) 84%, transparent);
+
+  /* ── Surfaces become the material. Every rule that paints a card, a row
+     or a field with these tokens is translucent under Glass without
+     knowing it, so the washes behind show through everywhere and nothing
+     reads as a solid slab. The opaque values live on as --glass-solid-*
+     for reduced transparency. ── */
+  --bg-card: color-mix(in srgb, var(--glass-tint) 56%, transparent);
+  --bg-warm: color-mix(in srgb, var(--glass-tint) 68%, transparent);
+  --bg-row-active: color-mix(in srgb, var(--glass-tint) 78%, transparent);
+  --bg-subtle: color-mix(in srgb, var(--glass-tint) 30%, transparent);
+  --glass-field: var(--glass-thin);
+  --glass-pane: var(--glass-thick);
+  --nex-sidebar-glass: var(--glass-regular);
+}
+html[data-theme^="nex-glass"].lg-refract {
+  --glass-refract: url(#lg-refract);
 }
 
 /* ═══ BASE ═══ */
@@ -75,14 +116,19 @@ html[data-theme^="nex-glass"] body {
      slightly different flat colour. */
   background-image:
     radial-gradient(
-      60rem 40rem at -10% -10%,
+      80rem 52rem at 12% -12%,
       var(--glass-wash-1) 0%,
-      transparent 60%
+      transparent 62%
     ),
     radial-gradient(
-      50rem 36rem at 0% 110%,
+      70rem 48rem at 4% 108%,
       var(--glass-wash-2) 0%,
-      transparent 60%
+      transparent 62%
+    ),
+    radial-gradient(
+      76rem 54rem at 104% 36%,
+      var(--glass-wash-3) 0%,
+      transparent 62%
     );
   background-attachment: fixed;
   font-family: var(--font-sans);
@@ -105,7 +151,8 @@ html[data-theme^="nex-glass"] .sidebar {
   background: var(--nex-sidebar-glass);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--glass-pane-border);
+  box-shadow: inset -1px 0 0 var(--glass-sheen-soft);
   /* nex.css remaps these to white-on-purple for its rail. Glass has no
      rail colour, so hand the theme's own inks back (captured on <html> by
      nex.css as --text-*-root). */
@@ -262,9 +309,11 @@ html[data-theme^="nex-glass"] .message-text code {
 /* ═══ COMPOSER — a floating field ═══ */
 html[data-theme^="nex-glass"] .composer-inner {
   background: var(--glass-field);
-  border: 1px solid var(--border-dark);
+  -webkit-backdrop-filter: var(--glass-blur-thin);
+  backdrop-filter: var(--glass-blur-thin);
+  border: 1px solid var(--glass-pane-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-light-soft), var(--shadow-sm);
   transition:
     border-color var(--duration-base) ease,
     box-shadow var(--duration-base) ease;
@@ -273,12 +322,14 @@ html[data-theme^="nex-glass"] .composer-inner:focus-within {
   border-color: var(--accent);
   box-shadow:
     0 0 0 3px var(--glass-focus),
+    var(--glass-light-soft),
     var(--shadow-sm);
 }
 html[data-theme^="nex-glass"] .composer-send {
-  background: var(--accent);
+  background: var(--glass-accent);
   color: var(--accent-fg);
   border-radius: var(--radius-full);
+  box-shadow: var(--glass-light-soft);
 }
 html[data-theme^="nex-glass"] .composer-send:hover:not(:disabled) {
   background: var(--accent);
@@ -302,10 +353,10 @@ html[data-theme^="nex-glass"] .wk-bubble-menu,
 html[data-theme^="nex-glass"] .wk-insert-menu,
 html[data-theme^="nex-glass"] .pam-menu {
   background: var(--glass-pane);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-refract) var(--glass-blur);
+  backdrop-filter: var(--glass-refract) var(--glass-blur);
   border-color: var(--glass-pane-border);
-  box-shadow: var(--shadow-popover);
+  box-shadow: var(--glass-light), var(--shadow-popover);
 }
 html[data-theme^="nex-glass"] .modal-shell,
 html[data-theme^="nex-glass"] .confirm-card,
@@ -317,11 +368,11 @@ html[data-theme^="nex-glass"] .version-modal,
 html[data-theme^="nex-glass"] .bot-wizard-modal,
 html[data-theme^="nex-glass"] .channel-wizard-modal {
   background: var(--glass-pane);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-refract) var(--glass-blur);
+  backdrop-filter: var(--glass-refract) var(--glass-blur);
   border-color: var(--glass-pane-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-modal);
+  box-shadow: var(--glass-light), var(--shadow-modal);
 }
 /* Scrims: dim AND soften what is behind a dialog, rather than a flat
    black wash. */
@@ -333,18 +384,134 @@ html[data-theme^="nex-glass"] .interview-overlay {
   backdrop-filter: blur(6px);
 }
 
-/* ═══ CARDS ═══ */
-html[data-theme^="nex-glass"] .card,
-html[data-theme^="nex-glass"] .task-card {
-  border-color: var(--border);
-  box-shadow: var(--shadow-card-soft);
+/* ═══ CHROME — the bars that frame the content are regular glass ═══
+   The header blurs, so it needs its own stacking order: a backdrop-filter
+   makes a stacking context, and without the z-index the participants
+   panel (later in the DOM) would paint over the header's own popovers.
+   The participants panel and the status bar are tinted but not blurred:
+   they are content-adjacent, and a blur there would start the same fight
+   with every popover that reaches into them. */
+html[data-theme^="nex-glass"] .channel-header {
+  position: relative;
+  z-index: 2;
+  background: var(--glass-regular);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-pane-border);
+  box-shadow: inset 0 -1px 0 var(--glass-sheen-soft);
+}
+html[data-theme^="nex-glass"] .channel-participants,
+html[data-theme^="nex-glass"] .status-bar {
+  background: var(--glass-thin);
+  border-color: var(--glass-pane-border);
+}
+html[data-theme^="nex-glass"] .status-bar {
+  box-shadow: inset 0 1px 0 var(--glass-sheen-soft);
 }
 
-/* ═══ Reduced transparency: honour the OS setting by going opaque. ═══ */
+html[data-theme^="nex-glass"] .conversation-grid,
+html[data-theme^="nex-glass"] .app-panel {
+  background: transparent;
+}
+
+/* ═══ CARDS — content is not glass, but it is not a slab either: a tinted
+   pane with a hairline and the light along its top edge. ═══ */
+html[data-theme^="nex-glass"] .card,
+html[data-theme^="nex-glass"] .task-card,
+html[data-theme^="nex-glass"] .modal-shell {
+  border-color: var(--glass-pane-border);
+  box-shadow: var(--glass-light-soft), var(--shadow-card-soft);
+}
+
+/* ═══ CONTROLS ═══ */
+/* The primary action is tinted glass: the accent as a translucent
+   material with the light on it, not a solid fill. */
+html[data-theme^="nex-glass"] .btn-primary {
+  background: var(--glass-accent);
+  color: var(--accent-fg);
+  box-shadow: var(--glass-light-soft), var(--btn-primary-shadow);
+}
+html[data-theme^="nex-glass"] .btn-primary:hover {
+  background: var(--glass-accent-hover);
+}
+html[data-theme^="nex-glass"] .btn-danger {
+  background: var(--glass-danger);
+  box-shadow: var(--glass-light-soft), var(--btn-danger-shadow);
+}
+/* Secondary buttons, chips and fields are thin glass on whatever pane
+   they sit on. */
+html[data-theme^="nex-glass"] .btn-ghost,
+html[data-theme^="nex-glass"] .btn-secondary {
+  background: var(--glass-thin);
+  border-color: var(--glass-pane-border);
+  box-shadow: var(--glass-light-soft);
+}
+html[data-theme^="nex-glass"] .btn-ghost:hover,
+html[data-theme^="nex-glass"] .btn-secondary:hover {
+  background: var(--glass-regular);
+  border-color: var(--border-strong);
+}
+html[data-theme^="nex-glass"] .input,
+html[data-theme^="nex-glass"] .search-input,
+html[data-theme^="nex-glass"] select,
+html[data-theme^="nex-glass"] textarea {
+  background: var(--glass-field);
+  border-color: var(--glass-pane-border);
+  box-shadow: inset 0 1px 0 var(--glass-sheen-soft);
+}
+html[data-theme^="nex-glass"] .chip,
+html[data-theme^="nex-glass"] .badge-neutral {
+  background: var(--glass-thin);
+  border-color: var(--glass-pane-border);
+}
+html[data-theme^="nex-glass"] .chip--accent {
+  background: var(--accent-bg);
+}
+
+/* ═══ Reduced transparency: honour the OS setting by going opaque. Every
+   material resolves to the flavour's solid stop and the blur goes. ═══ */
 @media (prefers-reduced-transparency: reduce) {
   html[data-theme^="nex-glass"] {
     --glass-blur: none;
+    --glass-blur-thin: none;
+    --glass-refract: none;
+    --glass-thin: var(--glass-solid-warm);
+    --glass-regular: var(--glass-solid-card);
+    --glass-thick: var(--glass-solid-card);
+    --glass-accent: var(--accent);
+    --glass-accent-hover: var(--accent-warm);
+    --glass-danger: var(--red);
+    --bg-card: var(--glass-solid-card);
+    --bg-warm: var(--glass-solid-warm);
+    --bg-row-active: var(--glass-solid-active);
+    --bg-subtle: var(--glass-solid-subtle);
     --nex-sidebar-glass: var(--nex-sidebar);
-    --glass-pane: var(--bg-card);
+    --glass-pane: var(--glass-solid-card);
+    --glass-field: var(--glass-solid-field);
+  }
+}
+/* More contrast: opaque surfaces and a firmer hairline. */
+@media (prefers-contrast: more) {
+  html[data-theme^="nex-glass"] {
+    --glass-thin: var(--glass-solid-warm);
+    --glass-regular: var(--glass-solid-card);
+    --glass-thick: var(--glass-solid-card);
+    --bg-card: var(--glass-solid-card);
+    --bg-warm: var(--glass-solid-warm);
+    --bg-row-active: var(--glass-solid-active);
+    --glass-pane: var(--glass-solid-card);
+    --glass-pane-border: var(--border-strong);
+  }
+}
+/* No backdrop-filter at all: the panes fall back to their solid stops. */
+@supports not (
+    (backdrop-filter: blur(1px)) or
+    (-webkit-backdrop-filter: blur(1px))
+  ) {
+  html[data-theme^="nex-glass"] {
+    --glass-regular: var(--glass-solid-card);
+    --glass-thick: var(--glass-solid-card);
+    --nex-sidebar-glass: var(--nex-sidebar);
+    --glass-pane: var(--glass-solid-card);
   }
 }
