@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Plus, Xmark } from "iconoir-react";
+import { Plus, X } from "lucide-react";
 
 import {
   FILTER_OPERATORS,
@@ -217,7 +217,7 @@ export function FilterPanel({ type, filters, onChange }: FilterPanelProps) {
                     )
                   }
                 >
-                  <Xmark aria-hidden="true" focusable="false" />
+                  <X aria-hidden="true" focusable="false" />
                 </button>
               </li>
             );

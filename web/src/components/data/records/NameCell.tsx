@@ -1,6 +1,6 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { EditPencil, SidebarExpand } from "iconoir-react";
+import { PanelLeftOpen, Pencil } from "lucide-react";
 
 import type {
   AttributeDefinition,
@@ -117,7 +117,7 @@ export function NameCell({
             disabled={!canRename}
             onClick={start}
           >
-            <EditPencil aria-hidden="true" focusable="false" />
+            <Pencil aria-hidden="true" focusable="false" />
           </button>
         ) : null}
         <button
@@ -125,7 +125,7 @@ export function NameCell({
           className="dr-preview-chip"
           onClick={() => onPreview(recordId)}
         >
-          <SidebarExpand aria-hidden="true" focusable="false" />
+          <PanelLeftOpen aria-hidden="true" focusable="false" />
           Preview
           <span className="sr-only"> {name}</span>
         </button>

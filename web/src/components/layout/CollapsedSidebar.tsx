@@ -9,23 +9,24 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
-  BookStack,
-  ChatBubble,
-  CheckCircle,
+  CircleCheck,
   ClipboardCheck,
   Database,
-  Flash,
-  Group,
+  Library,
+  ListTodo,
+  MessageCircle,
   Package,
+  PanelLeftOpen,
   Play,
+  Puzzle,
   Repeat,
   Search,
   Settings as SettingsIcon,
-  ShareAndroid,
+  Share2,
   Shield,
-  SidebarExpand,
-  TaskList,
-} from "iconoir-react";
+  Users,
+  Zap,
+} from "lucide-react";
 
 import { getUsage } from "../../api/platform";
 import { useOfficeStats } from "../../hooks/useOfficeStats";
@@ -45,17 +46,21 @@ const WIKI_SURFACE_APPS = new Set<string>(WIKI_SURFACE_APP_IDS);
 const APP_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   studio: Play,
   issues: ClipboardCheck,
-  wiki: BookStack,
-  tasks: CheckCircle,
-  requests: TaskList,
-  graph: ShareAndroid,
+  wiki: Library,
+  tasks: CircleCheck,
+  requests: ListTodo,
+  graph: Share2,
   policies: Shield,
   routines: Repeat,
-  skills: Flash,
+  skills: Zap,
   activity: Package,
   "health-check": Search,
   settings: SettingsIcon,
   data: Database,
+  // Same glyphs as the expanded AppList, so the rail never falls back to
+  // the emoji a tool declares.
+  agents: Users,
+  integrations: Puzzle,
 };
 
 type Popover = "team" | "channels" | "usage" | null;
@@ -126,7 +131,7 @@ export function CollapsedSidebar({ onExpand }: { onExpand?: () => void }) {
           onMouseEnter={(e) => showHint(e, "Expand sidebar")}
           onMouseLeave={hideHint}
         >
-          <SidebarExpand />
+          <PanelLeftOpen />
         </button>
         <button
           type="button"
@@ -152,7 +157,7 @@ export function CollapsedSidebar({ onExpand }: { onExpand?: () => void }) {
           onFocus={() => openPopover("team")}
           onBlur={scheduleClose}
         >
-          <Group />
+          <Users />
         </button>
         <button
           type="button"
@@ -165,7 +170,7 @@ export function CollapsedSidebar({ onExpand }: { onExpand?: () => void }) {
           onFocus={() => openPopover("channels")}
           onBlur={scheduleClose}
         >
-          <ChatBubble />
+          <MessageCircle />
         </button>
       </div>
 

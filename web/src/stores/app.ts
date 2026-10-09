@@ -6,7 +6,12 @@ import {
   computePillState,
   type PillState,
 } from "../lib/botEventTimer";
-import { DEFAULT_THEME, isTheme, type Theme } from "../lib/themes";
+import {
+  isTheme,
+  systemDefaultTheme,
+  type Theme,
+  watchSystemAppearance,
+} from "../lib/themes";
 import {
   applyComputerEvent,
   type ComputerLiveState,
@@ -58,12 +63,25 @@ const { HALO_DECAY_MS } = botEventTimerInternal;
  */
 export const MAX_AGENT_HISTORY = 8;
 
+/**
+ * Nothing persisted means the theme follows the system appearance, both at
+ * boot and when it flips while the app is open. Picking a theme (setTheme)
+ * persists it and ends the following; the store exposes `themeFollowsSystem`
+ * so the switcher can say so.
+ */
+const _followsSystem = ((): boolean => {
+  try {
+    return !isTheme(localStorage.getItem("wuphf-theme"));
+  } catch {
+    return true;
+  }
+})();
 const _storedTheme = ((): Theme => {
   try {
     const v = localStorage.getItem("wuphf-theme");
     if (isTheme(v)) return v;
   } catch {}
-  return DEFAULT_THEME;
+  return systemDefaultTheme();
 })();
 if (typeof document !== "undefined") {
   document.documentElement.setAttribute("data-theme", _storedTheme);
@@ -146,6 +164,8 @@ export interface AppStore {
 
   // Theme
   theme: Theme;
+  /** True until the person picks a theme: the app follows the system. */
+  themeFollowsSystem: boolean;
   setTheme: (t: Theme) => void;
 
   // Sidebar
@@ -300,6 +320,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setBrokerConnected: (v) => set({ brokerConnected: v }),
 
   theme: _storedTheme,
+  themeFollowsSystem: _followsSystem,
   setTheme: (t) => {
     // Same try/catch shape as the read path above. Safari private browsing
     // and sandboxed-iframe contexts both throw on localStorage writes; the
@@ -316,7 +337,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       );
     }
     document.documentElement.setAttribute("data-theme", t);
-    set({ theme: t });
+    set({ theme: t, themeFollowsSystem: false });
   },
 
   sidebarBotsOpen: _storedSidebarSections.agents,
@@ -623,3 +644,13 @@ export function selectBotPeek(
       (EMPTY_AGENT_HISTORY as StoredActivitySnapshot[]),
   };
 }
+
+// Follow the system appearance while nothing is persisted. Applied without
+// persisting, so the next boot keeps following.
+watchSystemAppearance((t) => {
+  if (!useAppStore.getState().themeFollowsSystem) return;
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-theme", t);
+  }
+  useAppStore.setState({ theme: t });
+});

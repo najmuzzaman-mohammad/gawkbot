@@ -21,7 +21,7 @@
  */
 
 import { useCallback, useState } from "react";
-import { Eye } from "iconoir-react";
+import { Eye } from "lucide-react";
 
 import type { OfficeMember } from "../../api/client";
 import { useDefaultHarness } from "../../hooks/useConfig";
@@ -178,7 +178,7 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
           data-testid="teach-workflow-btn"
           title={`Show ${agent.name || agent.slug} a workflow on a screenshare`}
         >
-          <Eye width={14} height={14} aria-hidden="true" />
+          <Eye size={14} aria-hidden="true" />
           Teach a workflow
         </button>
       </div>

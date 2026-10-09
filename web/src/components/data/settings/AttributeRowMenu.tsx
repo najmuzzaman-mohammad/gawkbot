@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { MoreHoriz } from "iconoir-react";
+import { Ellipsis } from "lucide-react";
 
 import type { AttributeDefinition } from "../../../api/dataspaces";
 
@@ -33,7 +33,7 @@ export function AttributeRowMenu({
         className="data-row-menu-trigger"
         aria-label={`Actions for ${attribute.name}`}
       >
-        <MoreHoriz aria-hidden="true" width={16} height={16} />
+        <Ellipsis aria-hidden="true" size={16} />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner

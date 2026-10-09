@@ -2,30 +2,30 @@ import type { ComponentType, SVGProps } from "react";
 import {
   AtSign,
   Box,
+  Briefcase,
   Building,
   Calendar,
-  ChatBubble,
-  CheckCircle,
-  CheckSquare,
-  Dollar,
+  ChartColumnIncreasing,
+  CircleCheck,
+  CircleQuestionMark,
+  DollarSign,
+  FileText,
+  Flag,
   Folder,
   Globe,
-  Hashtag,
-  HelpCircle,
-  Label,
+  Hash,
   Link,
   List,
   Mail,
+  MessageCircle,
   Network,
-  Page,
   Phone,
+  SquareCheck,
   Star,
-  StatsUpSquare,
-  Suitcase,
-  Text,
-  TriangleFlag,
+  Tag,
+  Type,
   User,
-} from "iconoir-react";
+} from "lucide-react";
 
 import type { AttributeType } from "../../../api/dataspaces";
 
@@ -33,13 +33,13 @@ export type DataIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 const ATTRIBUTE_TYPE_ICONS: Readonly<Record<AttributeType, DataIconComponent>> =
   {
-    text: Text,
-    number: Hashtag,
-    currency: Dollar,
+    text: Type,
+    number: Hash,
+    currency: DollarSign,
     date: Calendar,
-    toggle: CheckSquare,
+    toggle: SquareCheck,
     select: List,
-    status: StatsUpSquare,
+    status: ChartColumnIncreasing,
     rating: Star,
     url: Link,
     email: AtSign,
@@ -48,7 +48,7 @@ const ATTRIBUTE_TYPE_ICONS: Readonly<Record<AttributeType, DataIconComponent>> =
   };
 
 /** Shown for an attribute type this bundle does not know. */
-const FALLBACK_ATTRIBUTE_TYPE_ICON: DataIconComponent = HelpCircle;
+const FALLBACK_ATTRIBUTE_TYPE_ICON: DataIconComponent = CircleQuestionMark;
 
 /**
  * Widened to `string` for the same reason the value renderers are: the map
@@ -84,19 +84,19 @@ const OBJECT_TYPE_ICONS = {
   user: User,
   building: Building,
   calendar: Calendar,
-  briefcase: Suitcase,
+  briefcase: Briefcase,
   folder: Folder,
-  "check-circle": CheckCircle,
+  "check-circle": CircleCheck,
   star: Star,
-  dollar: Dollar,
+  dollar: DollarSign,
   mail: Mail,
   phone: Phone,
   globe: Globe,
   box: Box,
-  flag: TriangleFlag,
-  chat: ChatBubble,
-  doc: Page,
-  tag: Label,
+  flag: Flag,
+  chat: MessageCircle,
+  doc: FileText,
+  tag: Tag,
 } as const satisfies Readonly<Record<string, DataIconComponent>>;
 
 export type ObjectTypeIconKey = keyof typeof OBJECT_TYPE_ICONS;

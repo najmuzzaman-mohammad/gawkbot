@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { OpenNewWindow } from "iconoir-react";
+import { ExternalLink } from "lucide-react";
 
 import { updateConfig } from "../../../api/client";
 import { showNotice } from "../../ui/Toast";
@@ -178,7 +178,7 @@ function ManualKeyForm({ pending, onSubmit }: ManualKeyFormProps) {
           rel="noopener noreferrer"
         >
           Get an API key
-          <OpenNewWindow width={13} height={13} aria-hidden="true" />
+          <ExternalLink size={13} aria-hidden="true" />
         </a>
       </div>
     </form>

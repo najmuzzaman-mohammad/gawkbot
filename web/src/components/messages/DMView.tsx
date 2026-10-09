@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { NavArrowDown, NavArrowUp } from "iconoir-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { useMessages } from "../../hooks/useMessages";
 import { BotWorkbenchPane } from "../bots/BotWorkbenchPane";
@@ -73,11 +73,7 @@ export function DMView({ agentSlug, channelSlug }: DMViewProps) {
             Chat with @{agentSlug}
           </span>
           <span className="dm-chat-drawer-toggle-icon" aria-hidden="true">
-            {chatExpanded ? (
-              <NavArrowDown width={16} height={16} />
-            ) : (
-              <NavArrowUp width={16} height={16} />
-            )}
+            {chatExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
           </span>
         </button>
 

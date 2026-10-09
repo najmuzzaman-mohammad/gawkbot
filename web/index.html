@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="nex">
+<html lang="en" data-theme="nex-glass-light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,7 +17,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Covered+By+Your+Grace&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  html { color-scheme: light dark; }
   #skeleton { display: flex; align-items: center; justify-content: center; height: 100vh; color: #6b6b6b; font-size: 14px; background: #fff; }
+  @media (prefers-color-scheme: dark) { #skeleton { background: #111113; color: #98989d; } }
   #skeleton .dot { width: 8px; height: 8px; border-radius: 50%; background: #1264a3; margin: 0 3px; animation: pulse 1.4s infinite; display: inline-block; }
   #skeleton .dot:nth-child(2) { animation-delay: 0.16s; }
   #skeleton .dot:nth-child(3) { animation-delay: 0.32s; }
@@ -39,6 +41,14 @@
     </filter>
   </svg>
   <script>
+    // First paint in the right theme: the persisted pick, else the Glass
+    // flavour matching the system appearance. stores/app.ts repeats this
+    // once it loads; doing it here too keeps the skeleton from flashing.
+    try {
+      var picked = localStorage.getItem('wuphf-theme');
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', picked || (dark ? 'nex-glass-dark' : 'nex-glass-light'));
+    } catch (e) { /* theme comes from the store */ }
     try {
       var ua = navigator.userAgent;
       if (/Chrome\//.test(ua) && !/Edg\/|OPR\//.test(ua) && CSS.supports('backdrop-filter', 'url(#lg-refract)')) {

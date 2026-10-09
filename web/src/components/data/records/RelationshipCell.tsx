@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "iconoir-react";
+import { Plus } from "lucide-react";
 
 import type {
   AttributeDefinition,

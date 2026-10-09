@@ -1,10 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    WUPHF Theme: Soft Light
    Near-white surfaces, graphite ink, barely-there hairlines, big round
-   corners and a friendly emerald accent. The default theme for new
-   installs (DEFAULT_THEME in web/src/lib/themes.ts). Your messages sit
-   on the right in the accent; bots answer on the left in a soft grey
-   bubble beside their avatar.
+   corners and a friendly emerald accent. Your messages sit on the right
+   in the accent; bots answer on the left in a soft grey bubble beside
+   their avatar.
 
    Token values only. Where they go is decided once, for both flavours,
    in soft-base.css; nex-soft-dark.css is the sibling.

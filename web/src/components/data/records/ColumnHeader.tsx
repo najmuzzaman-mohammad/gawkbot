@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { MoreHoriz, SortDown, SortUp } from "iconoir-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Ellipsis } from "lucide-react";
 
 import type { AttributeType, SortDirection } from "../../../api/dataspaces";
 import { AttributeTypeIcon } from "../values/attributeTypeIcon";
@@ -47,7 +47,11 @@ export function ColumnHeader({
       </span>
       {sortedDirection ? (
         <span className="dr-col-head-sort" aria-hidden="true">
-          {sortedDirection === "asc" ? <SortUp /> : <SortDown />}
+          {sortedDirection === "asc" ? (
+            <ArrowUpNarrowWide />
+          ) : (
+            <ArrowDownWideNarrow />
+          )}
         </span>
       ) : null}
       {hasMenu ? (
@@ -56,7 +60,7 @@ export function ColumnHeader({
             className="dr-icon-button dr-col-head-menu"
             aria-label={`${label} column options`}
           >
-            <MoreHoriz aria-hidden="true" focusable="false" />
+            <Ellipsis aria-hidden="true" focusable="false" />
           </Menu.Trigger>
           <Menu.Portal>
             <Menu.Positioner

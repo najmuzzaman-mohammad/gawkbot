@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Settings as SettingsIcon, SidebarCollapse } from "iconoir-react";
+import { PanelLeftClose, Settings as SettingsIcon } from "lucide-react";
 
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { NAMED_CHANNELS_ENABLED } from "../../lib/constants";
@@ -117,7 +117,7 @@ export function Sidebar() {
                 title="Collapse sidebar"
                 onClick={collapseSidebar}
               >
-                <SidebarCollapse />
+                <PanelLeftClose />
               </button>
               <button
                 type="button"

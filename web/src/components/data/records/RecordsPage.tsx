@@ -2,7 +2,7 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table";
-import { Plus, Settings } from "iconoir-react";
+import { Plus, Settings } from "lucide-react";
 
 import {
   type DataRecord,

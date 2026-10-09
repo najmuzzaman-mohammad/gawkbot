@@ -85,7 +85,7 @@ export interface ObjectType {
   slug: string;
   name: string;
   namePlural: string;
-  /** iconoir-react icon key resolved by `objectTypeIcon`. */
+  /** lucide-react icon key resolved by `objectTypeIcon`. */
   icon: string;
   description: string;
   attributes: readonly AttributeDefinition[];

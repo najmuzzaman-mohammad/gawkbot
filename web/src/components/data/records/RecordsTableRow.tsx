@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { Row } from "@tanstack/react-table";
-import { OpenNewWindow, SidebarExpand, Trash } from "iconoir-react";
+import { ExternalLink, PanelLeftOpen, Trash2 } from "lucide-react";
 
 import type {
   AttributeValue,
@@ -131,7 +131,7 @@ function RecordCell({
               aria-label={`Preview ${name}`}
               onClick={() => onPreview(record.id)}
             >
-              <SidebarExpand aria-hidden="true" focusable="false" />
+              <PanelLeftOpen aria-hidden="true" focusable="false" />
             </button>
             <Link
               className="dr-icon-button"
@@ -139,7 +139,7 @@ function RecordCell({
               params={{ spaceId, recordId: record.id }}
               aria-label={`Open record ${name}`}
             >
-              <OpenNewWindow aria-hidden="true" focusable="false" />
+              <ExternalLink aria-hidden="true" focusable="false" />
             </Link>
             <button
               type="button"
@@ -147,7 +147,7 @@ function RecordCell({
               aria-label={`Delete ${name}`}
               onClick={() => onDelete(record.id)}
             >
-              <Trash aria-hidden="true" focusable="false" />
+              <Trash2 aria-hidden="true" focusable="false" />
             </button>
           </div>
         </td>

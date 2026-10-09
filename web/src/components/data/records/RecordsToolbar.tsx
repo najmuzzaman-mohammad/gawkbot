@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { Filter, Search, Xmark } from "iconoir-react";
+import { ListFilter, Search, X } from "lucide-react";
 
 import type { FilterClause, ObjectType } from "../../../api/dataspaces";
 import { FilterPanel } from "./FilterPanel";
@@ -94,7 +94,7 @@ function SearchBox({ label, query, onQueryChange }: SearchBoxProps) {
           aria-label="Clear search"
           onClick={clear}
         >
-          <Xmark aria-hidden="true" focusable="false" />
+          <X aria-hidden="true" focusable="false" />
         </button>
       )}
     </div>
@@ -119,7 +119,7 @@ export function RecordsToolbar({
           className="dr-toolbar-button"
           data-active={filterCount > 0 ? "true" : "false"}
         >
-          <Filter aria-hidden="true" focusable="false" />
+          <ListFilter aria-hidden="true" focusable="false" />
           Filter
           {filterCount > 0 ? (
             <span className="dr-count-badge">
@@ -153,7 +153,7 @@ export function RecordsToolbar({
             aria-label="Clear sort"
             onClick={onClearSort}
           >
-            <Xmark aria-hidden="true" focusable="false" />
+            <X aria-hidden="true" focusable="false" />
           </button>
         </p>
       ) : null}

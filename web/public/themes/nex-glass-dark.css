@@ -1,8 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    WUPHF Theme: Glass Dark
    Near-black layered surfaces, soft white ink, a green accent, hairline
-   borders and translucent glass panes. The default theme for new
-   installs (DEFAULT_THEME in web/src/lib/themes.ts).
+   borders and translucent glass panes. What a fresh install gets when
+   the system appearance is dark (DEFAULT_DARK_THEME in
+   web/src/lib/themes.ts); nex-glass-light.css is the light default.
 
    Token values only. Where the glass goes is decided once, for both
    flavours, in glass-base.css; nex-glass-light.css is the sibling.

@@ -1,6 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
 import { Link } from "@tanstack/react-router";
-import { Plus } from "iconoir-react";
+import { Plus } from "lucide-react";
 
 import type { AttributeDefinition } from "../../../api/dataspaces";
 import { AttributeTypeIcon } from "../values/attributeTypeIcon";

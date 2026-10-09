@@ -1,6 +1,6 @@
 // biome-ignore-all lint/a11y/useAriaPropsSupportedByRole: Badge mirrors AppList — aria-label on the span surfaces the pending count to assistive tech.
 import { useEffect, useRef } from "react";
-import { ClipboardCheck } from "iconoir-react";
+import { ClipboardCheck } from "lucide-react";
 
 import { useOfficeStats } from "../../hooks/useOfficeStats";
 import { needsYouCount } from "../../lib/needsYou";

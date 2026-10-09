@@ -1,22 +1,22 @@
 // biome-ignore-all lint/a11y/useAriaPropsSupportedByRole: Passive metadata uses accessible labels queried by screen-reader tests; visual text remains unchanged.
 import { type ComponentType, Fragment, useState } from "react";
 import {
-  BookStack,
   ClipboardCheck,
-  Community,
   Database,
-  Flash,
-  HomeSimple,
+  House,
+  Library,
+  ListTodo,
   Package,
   Play,
   Puzzle,
   Repeat,
   Search,
   Settings,
-  ShareAndroid,
+  Share2,
   Shield,
-  TaskList,
-} from "iconoir-react";
+  Users,
+  Zap,
+} from "lucide-react";
 
 import { navigateToSidebarApp } from "../../lib/sidebarNav";
 import {
@@ -34,22 +34,22 @@ import { TasksNavButton } from "./TasksNavButton";
 const WIKI_SURFACE_APPS = new Set<string>(WIKI_SURFACE_APP_IDS);
 
 const APP_ICONS: Record<string, ComponentType<{ className?: string }>> = {
-  overview: HomeSimple,
+  overview: House,
   studio: Play,
-  wiki: BookStack,
+  wiki: Library,
   tasks: ClipboardCheck,
-  requests: TaskList,
-  graph: ShareAndroid,
+  requests: ListTodo,
+  graph: Share2,
   policies: Shield,
   routines: Repeat,
-  skills: Flash,
+  skills: Zap,
   activity: Package,
   "health-check": Search,
   settings: Settings,
   // Bots + Integrations previously fell back to emoji (🤖 / 🔌), which read
-  // as AI-template slop next to the clean iconoir line-icon set. Give them
+  // as AI-template slop next to the clean Lucide line-icon set. Give them
   // real line icons so every nav row is visually consistent.
-  agents: Community,
+  agents: Users,
   integrations: Puzzle,
   data: Database,
 };

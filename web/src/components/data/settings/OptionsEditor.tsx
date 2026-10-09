@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Plus, Xmark } from "iconoir-react";
+import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 
 import { Button } from "../DataButton";
 import { type DraftOption, mintOptionKey, moveOption } from "./attributeDraft";
@@ -59,7 +59,7 @@ export function OptionsEditor({
                   aria-label={`Move ${label} up`}
                   onClick={() => onChange(moveOption(options, index, -1))}
                 >
-                  <ArrowUp aria-hidden="true" width={16} height={16} />
+                  <ArrowUp aria-hidden="true" size={16} />
                 </Button>
                 <Button
                   type="button"
@@ -69,7 +69,7 @@ export function OptionsEditor({
                   aria-label={`Move ${label} down`}
                   onClick={() => onChange(moveOption(options, index, 1))}
                 >
-                  <ArrowDown aria-hidden="true" width={16} height={16} />
+                  <ArrowDown aria-hidden="true" size={16} />
                 </Button>
                 <Button
                   type="button"
@@ -80,7 +80,7 @@ export function OptionsEditor({
                     onChange(options.filter((item) => item.key !== option.key))
                   }
                 >
-                  <Xmark aria-hidden="true" width={16} height={16} />
+                  <X aria-hidden="true" size={16} />
                 </Button>
               </li>
             );
@@ -96,7 +96,7 @@ export function OptionsEditor({
             onChange([...options, { key: mintOptionKey(), name: "" }])
           }
         >
-          <Plus aria-hidden="true" width={14} height={14} />
+          <Plus aria-hidden="true" size={14} />
           Add option
         </Button>
       </div>

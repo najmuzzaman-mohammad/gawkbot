@@ -33,6 +33,20 @@ export interface ThemeDef {
 
 export const THEMES = [
   {
+    id: "nex-glass-light",
+    name: "Glass Light",
+    desc: "Native light, frosted glass.",
+    swatch: { primary: "#f2f2f5", accent: "#1a7f3c", surface: "#ffffff" },
+    cssPath: "/themes/nex-glass-light.css",
+  },
+  {
+    id: "nex-glass-dark",
+    name: "Glass Dark",
+    desc: "Native dark, frosted glass.",
+    swatch: { primary: "#1c1c1f", accent: "#30d158", surface: "#111113" },
+    cssPath: "/themes/nex-glass-dark.css",
+  },
+  {
     id: "nex-soft-light",
     name: "Soft Light",
     desc: "Friendly chat bubbles, bright and airy.",
@@ -45,20 +59,6 @@ export const THEMES = [
     desc: "Friendly chat bubbles, after hours.",
     swatch: { primary: "#131417", accent: "#34d17a", surface: "#0e0f11" },
     cssPath: "/themes/nex-soft-dark.css",
-  },
-  {
-    id: "nex-glass-dark",
-    name: "Glass Dark",
-    desc: "Native dark, frosted glass.",
-    swatch: { primary: "#1c1c1f", accent: "#30d158", surface: "#111113" },
-    cssPath: "/themes/nex-glass-dark.css",
-  },
-  {
-    id: "nex-glass-light",
-    name: "Glass Light",
-    desc: "Native light, frosted glass.",
-    swatch: { primary: "#f2f2f5", accent: "#1a7f3c", surface: "#ffffff" },
-    cssPath: "/themes/nex-glass-light.css",
   },
   {
     id: "nex-shell",
@@ -93,11 +93,47 @@ export const THEMES = [
 export type Theme = (typeof THEMES)[number]["id"];
 
 /**
- * What a fresh install renders. Only read when nothing is persisted under
- * `wuphf-theme` (see stores/app.ts), so changing it never moves a user who
- * already picked a theme.
+ * What a fresh install renders: Glass, in the flavour that matches the
+ * system appearance (see `systemDefaultTheme`). Only read when nothing is
+ * persisted under `wuphf-theme` (see stores/app.ts), so changing it never
+ * moves a user who already picked a theme.
  */
-export const DEFAULT_THEME: Theme = "nex-soft-light";
+export const DEFAULT_THEME: Theme = "nex-glass-light";
+
+/** The Glass flavour for a dark system appearance. */
+export const DEFAULT_DARK_THEME: Theme = "nex-glass-dark";
+
+const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
+
+/**
+ * The theme a fresh install gets right now: Glass Dark when the system is
+ * in dark mode, Glass Light otherwise. A Mac app follows the system
+ * appearance until the person picks a theme of their own.
+ */
+export function systemDefaultTheme(): Theme {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
+    return DEFAULT_THEME;
+  return window.matchMedia(DARK_SCHEME_QUERY).matches
+    ? DEFAULT_DARK_THEME
+    : DEFAULT_THEME;
+}
+
+/**
+ * Calls `onChange` with the new system default whenever the system
+ * appearance flips. Returns the unsubscribe. A no-op where matchMedia is
+ * missing (tests, SSR).
+ */
+export function watchSystemAppearance(
+  onChange: (theme: Theme) => void,
+): () => void {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
+    return () => {};
+  const query = window.matchMedia(DARK_SCHEME_QUERY);
+  const handler = (e: MediaQueryListEvent) =>
+    onChange(e.matches ? DEFAULT_DARK_THEME : DEFAULT_THEME);
+  query.addEventListener("change", handler);
+  return () => query.removeEventListener("change", handler);
+}
 
 const THEME_IDS: ReadonlySet<string> = new Set(THEMES.map((t) => t.id));
 

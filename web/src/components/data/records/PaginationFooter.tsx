@@ -1,4 +1,4 @@
-import { NavArrowLeft, NavArrowRight } from "iconoir-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { PAGE_SIZE_OPTIONS } from "../../../api/dataspaces";
 
@@ -63,7 +63,7 @@ export function PaginationFooter({
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
-          <NavArrowLeft aria-hidden="true" focusable="false" />
+          <ChevronLeft aria-hidden="true" focusable="false" />
         </button>
         <span className="dr-pagination-page">
           Page {page.toLocaleString()} of {lastPage.toLocaleString()}
@@ -75,7 +75,7 @@ export function PaginationFooter({
           disabled={page >= lastPage}
           onClick={() => onPageChange(page + 1)}
         >
-          <NavArrowRight aria-hidden="true" focusable="false" />
+          <ChevronRight aria-hidden="true" focusable="false" />
         </button>
       </div>
     </nav>

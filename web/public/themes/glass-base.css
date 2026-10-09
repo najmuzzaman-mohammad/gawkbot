@@ -47,8 +47,8 @@ html[data-theme^="nex-glass"] {
   --radius-full: 9999px;
 
   /* ── Controls ── */
-  --btn-radius: var(--radius-md);
-  --btn-font-weight: 600;
+  --btn-radius: var(--radius-full);
+  --btn-font-weight: 500;
   --btn-primary-shadow: var(--shadow-sm);
   --btn-danger-shadow: var(--shadow-sm);
   --input-bg: var(--glass-field);
@@ -146,11 +146,16 @@ html[data-theme^="nex-glass"] ::-webkit-scrollbar-thumb {
   border-radius: var(--radius-full);
 }
 
-/* ═══ SIDEBAR — a translucent pane in the theme's own ink ═══ */
+/* ═══ SIDEBAR — a translucent pane in the theme's own ink ═══
+   On a wide window the pane floats: inset from the window edge with the
+   sheet corners, a hairline all round and the light along its top edge,
+   so the washes run behind it and the content column sits beside it, the
+   way a Liquid Glass sidebar hovers over its window. Narrow layouts keep
+   the flush pane (the mobile rules in layout.css overlay it). */
 html[data-theme^="nex-glass"] .sidebar {
   background: var(--nex-sidebar-glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-refract) var(--glass-blur);
+  backdrop-filter: var(--glass-refract) var(--glass-blur);
   border-right: 1px solid var(--glass-pane-border);
   box-shadow: inset -1px 0 0 var(--glass-sheen-soft);
   /* nex.css remaps these to white-on-purple for its rail. Glass has no
@@ -161,6 +166,15 @@ html[data-theme^="nex-glass"] .sidebar {
   --text-tertiary: var(--text-tertiary-root);
   --text-disabled: var(--text-disabled-root);
   --sidebar-fade-color: var(--nex-sidebar);
+}
+@media (min-width: 769px) {
+  html[data-theme^="nex-glass"] .sidebar {
+    height: calc(100% - 16px);
+    margin: 8px;
+    border: 1px solid var(--glass-pane-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--glass-light-soft), var(--shadow-sm);
+  }
 }
 html[data-theme^="nex-glass"] .sidebar-header,
 html[data-theme^="nex-glass"] .sidebar-bottom {
@@ -191,7 +205,18 @@ html[data-theme^="nex-glass"] .sidebar .sidebar-bot-activity {
   color: var(--text-tertiary);
 }
 html[data-theme^="nex-glass"] .sidebar .sidebar-section-title {
-  letter-spacing: 0.02em;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* Sidebar glyphs in the accent, as a source list tints its symbols;
+   nex.css hands them the row ink for its purple rail. */
+html[data-theme^="nex-glass"] .sidebar-item-icon {
+  color: var(--accent);
+}
+html[data-theme^="nex-glass"] .sidebar-item.active .sidebar-item-icon {
+  color: var(--accent);
 }
 html[data-theme^="nex-glass"] .sidebar .sidebar-section-title:hover,
 html[data-theme^="nex-glass"] .sidebar .sidebar-section-toggle:hover,
@@ -289,6 +314,9 @@ html[data-theme^="nex-glass"] .thought-bubble {
 }
 
 /* ═══ MAIN ═══ */
+html[data-theme^="nex-glass"] .main {
+  background: transparent;
+}
 html[data-theme^="nex-glass"] .channel-title {
   letter-spacing: -0.015em;
 }
@@ -384,21 +412,48 @@ html[data-theme^="nex-glass"] .interview-overlay {
   backdrop-filter: blur(6px);
 }
 
-/* ═══ CHROME — the bars that frame the content are regular glass ═══
-   The header blurs, so it needs its own stacking order: a backdrop-filter
-   makes a stacking context, and without the z-index the participants
-   panel (later in the DOM) would paint over the header's own popovers.
-   The participants panel and the status bar are tinted but not blurred:
-   they are content-adjacent, and a blur there would start the same fight
-   with every popover that reaches into them. */
+/* ═══ CHROME ═══
+   The toolbar is not a bar: it sits on the content column with no fill,
+   and only its control capsules are glass. It keeps its own stacking
+   order so its popovers paint over the participants panel (later in the
+   DOM). The participants panel and the footer are tinted but not blurred:
+   they are content-adjacent, and a blur there would start a fight with
+   every popover that reaches into them. */
 html[data-theme^="nex-glass"] .channel-header {
   position: relative;
   z-index: 2;
+  background: transparent;
+  border-bottom-color: transparent;
+}
+/* Toolbar capsules are regular glass with the light on them; the icon
+   buttons inside show their hover as a darker tint of the same pane. */
+html[data-theme^="nex-glass"] .toolbar-group {
   background: var(--glass-regular);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-refract) var(--glass-blur-thin);
+  backdrop-filter: var(--glass-refract) var(--glass-blur-thin);
   border-color: var(--glass-pane-border);
-  box-shadow: inset 0 -1px 0 var(--glass-sheen-soft);
+  box-shadow: var(--glass-light-soft), var(--shadow-sm);
+}
+html[data-theme^="nex-glass"] .toolbar-group .sidebar-btn:hover {
+  background: var(--overlay);
+}
+/* Segmented control and switch under glass: the track is thin glass, the
+   selected tile is the pane. */
+html[data-theme^="nex-glass"] .segmented {
+  background: var(--glass-thin);
+  box-shadow: inset 0 1px 0 var(--glass-shade);
+}
+html[data-theme^="nex-glass"] .segmented-item[aria-checked="true"],
+html[data-theme^="nex-glass"] .segmented-item[aria-selected="true"],
+html[data-theme^="nex-glass"] .segmented-item.is-active {
+  background: var(--glass-thick);
+  box-shadow: var(--glass-light-soft), var(--shadow-sm);
+}
+html[data-theme^="nex-glass"] .switch {
+  background: var(--overlay-strong);
+}
+html[data-theme^="nex-glass"] .switch:checked {
+  background: var(--accent);
 }
 html[data-theme^="nex-glass"] .channel-participants,
 html[data-theme^="nex-glass"] .status-bar {

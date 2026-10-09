@@ -20,7 +20,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus } from "iconoir-react";
+import { Plus } from "lucide-react";
 
 import {
   usePauseWorkspace,
@@ -85,7 +85,7 @@ const styles = {
     alignItems: "center" as const,
     padding: "14px 0",
     gap: 14,
-    height: "100vh",
+    height: "100%",
     overflowY: "auto" as const,
     color: "var(--workspace-rail-ink)",
   },
@@ -612,7 +612,7 @@ export function WorkspaceRail({
         style={styles.addButton}
         onClick={() => setCreateOpen(true)}
       >
-        <Plus width={16} height={16} strokeWidth={2} />
+        <Plus size={16} />
       </button>
 
       <CreateWorkspaceModal

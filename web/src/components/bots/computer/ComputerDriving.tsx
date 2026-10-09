@@ -1,7 +1,7 @@
 // Who is driving. The person can take the wheel or hand it back; the bot
 // can only ask. While the person holds it, the bot's clicks and keystrokes
 // are refused, not queued, so the copy says exactly that.
-import { HalfMoon, Trash } from "iconoir-react";
+import { Moon, Trash2 } from "lucide-react";
 
 import { confirm } from "../../ui/ConfirmDialog";
 
@@ -141,7 +141,7 @@ export function ComputerDriving({
           disabled={pending}
           title="Put the computer to sleep"
         >
-          <HalfMoon width={14} height={14} aria-hidden="true" />
+          <Moon size={14} aria-hidden="true" />
           Sleep
         </button>
         {destination === "sandbox" ? (
@@ -156,7 +156,7 @@ export function ComputerDriving({
                 : `Delete ${name}'s computer`
             }
           >
-            <Trash width={14} height={14} aria-hidden="true" />
+            <Trash2 size={14} aria-hidden="true" />
             Delete this bot's computer
           </button>
         ) : null}

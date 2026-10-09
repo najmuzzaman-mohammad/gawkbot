@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Xmark } from "iconoir-react";
+import { X } from "lucide-react";
 
 import type { OfficeMember } from "../../api/client";
 import { post } from "../../api/client";
@@ -367,7 +367,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
           onClick={onClose}
           aria-label="Close bot panel"
         >
-          <Xmark width={20} height={20} />
+          <X size={20} />
         </button>
       </div>
 
