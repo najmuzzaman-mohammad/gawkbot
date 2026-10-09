@@ -1,7 +1,7 @@
 import type { OfficeMember } from "../../api/client";
 import { useOfficeMembers } from "../../hooks/useMembers";
 import { directChannelSlug } from "../../lib/channels";
-import { PixelAvatar } from "../ui/PixelAvatar";
+import { BotCharacter } from "../ui/BotCharacter";
 
 /** Rendered size of the hero mark. */
 export const EMPTY_HERO_AVATAR_SIZE = 72;
@@ -14,12 +14,13 @@ interface EmptyHeroProps {
 }
 
 /**
- * A bot's big face over an empty surface: its DM before the first message,
- * its task board before the first task.
+ * A bot over an empty surface, as a character: its DM before the first
+ * message, its task board before the first task. The first time you land
+ * on a bot's empty surface it pops into being and waves hello.
  *
  * Theme-gated, not theme-agnostic. It renders in every theme but is
  * `display: none` unless the active theme sets `--empty-hero-display`
- * (messages.css); today only Soft does. That keeps every other theme's empty
+ * (messages.css); Soft and Glass do. That keeps every other theme's empty
  * states exactly as they were, and lets Soft hide the long-form copy beside
  * it with a `:has(.empty-hero)` rule instead of a second set of markup.
  */
@@ -31,10 +32,11 @@ export function EmptyHero({ slug, line }: EmptyHeroProps) {
   return (
     <div className="empty-hero" data-testid="empty-hero">
       <span className="empty-hero-avatar" aria-hidden="true">
-        <PixelAvatar
+        <BotCharacter
           slug={slug}
           size={EMPTY_HERO_AVATAR_SIZE}
           avatar={member?.avatar}
+          greetKey={`hello:${slug}`}
         />
       </span>
       {line ? <span className="empty-hero-line">{line}</span> : null}

@@ -22,6 +22,9 @@
 @import url("./nex.css");
 
 html[data-theme^="nex-glass"] {
+  /* Empty surfaces greet you: the bot stands there as a character
+     (EmptyHero), laid out at the end of this file. */
+  --empty-hero-display: flex;
   /* ── Type: the platform's own UI face. Every display/pixel token
      resolves to the same stack so no heading, logo or chrome label falls
      back to pixel type under Glass. --font-serif keeps a reading serif for
@@ -898,4 +901,36 @@ html[data-theme^="nex-glass"] .task-suggestion.selected .task-suggestion-num {
     --nex-sidebar-glass: var(--nex-sidebar);
     --glass-pane: var(--glass-solid-card);
   }
+}
+
+/* ── Empty states: the bot as a character over one short line ─────────
+   The bot pops in and waves the first time (EmptyHero). The longer copy
+   beside it steps aside whenever a hero is present. */
+html[data-theme^="nex-glass"] .empty-hero {
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+  padding: 28px 0 8px;
+}
+html[data-theme^="nex-glass"] .empty-hero-avatar {
+  display: flex;
+}
+html[data-theme^="nex-glass"] .empty-hero-line {
+  font-family: var(--font-logo);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+html[data-theme^="nex-glass"]
+  .channel-empty-state:has(.empty-hero)
+  > :not(.empty-hero),
+html[data-theme^="nex-glass"]
+  .bot-tasks-tab:has(.empty-hero)
+  > .bot-tasks-empty,
+html[data-theme^="nex-glass"]
+  .dm-chat-preview-empty:has(.empty-hero)
+  > .dm-chat-preview-empty-text {
+  display: none;
 }

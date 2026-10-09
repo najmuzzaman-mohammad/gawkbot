@@ -905,6 +905,14 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+/* The asking bot stands on the bar's top edge as a character
+   (BotCharacter), half in, half out, so the question visibly comes from
+   someone. */
+.interview-bar-asker {
+  position: relative;
+  flex-shrink: 0;
+  margin: -34px 2px 0 -6px;
+}
 .interview-bar-from {
   font-size: var(--text-sm);
   font-weight: 600;

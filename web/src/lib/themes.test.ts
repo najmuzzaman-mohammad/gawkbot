@@ -250,7 +250,7 @@ describe("Soft themes", () => {
     expect(base).not.toMatch(/\.message-mine|\.message-self\b/);
   });
 
-  it("is the only theme that switches the empty-state hero on", () => {
+  it("switches the empty-state hero on, as Glass does and no other", () => {
     const messages = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../styles/messages.css"),
       "utf8",
@@ -263,6 +263,6 @@ describe("Soft themes", () => {
     const setters = files.filter((f) =>
       /--empty-hero-display\s*:/.test(themeCss(f)),
     );
-    expect(setters).toEqual(["soft-base.css"]);
+    expect(setters.sort()).toEqual(["glass-base.css", "soft-base.css"]);
   });
 });

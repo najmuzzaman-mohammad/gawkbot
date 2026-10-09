@@ -10,17 +10,22 @@ import {
   post,
   postMessage,
 } from "../../api/client";
+import { useOfficeMembers } from "../../hooks/useMembers";
 import { useRequests } from "../../hooks/useRequests";
 import { track } from "../../lib/analytics";
+import { prefersReducedMotion } from "../../lib/orbAvatar";
+import type { OrbCharacter } from "../../lib/orbCharacter";
 import { parseApprovalContext } from "../../lib/parseApprovalContext";
 import {
   requestOptionNeedsText,
   requestOptionTextHint,
 } from "../../lib/requestOptions";
+import { play } from "../../notch/sounds";
 import { directChannelSlug, useAppStore } from "../../stores/app";
 import { humanEchoForCeoAnswer } from "../onboarding/humanEcho";
 import { useOnboardingDMContext } from "../onboarding/OnboardingDMRoute";
 import type { CardStage, CeoSuggestion } from "../onboarding/types";
+import { BotCharacter } from "../ui/BotCharacter";
 import { showNotice } from "../ui/Toast";
 import { ApprovalContextView } from "./ApprovalContextView";
 import { ConnectIntegrationCard } from "./ConnectIntegrationCard";
@@ -140,6 +145,10 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
   const [submitting, setSubmitting] = useState(false);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // The asking bot, as a character: it pops up with the question and
+  // claps when it gets its answer.
+  const asker = useRef<OrbCharacter | null>(null);
+  const { data: members = [] } = useOfficeMembers();
 
   const visible = queue.filter((r) => !dismissedIds.has(r.id));
   const safeCursor = Math.min(cursor, Math.max(visible.length - 1, 0));
@@ -187,6 +196,12 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
     setSubmitting(true);
     try {
       await answerRequest(current.id, option.id, text);
+      // A beat for the asker's clap before the next question takes over.
+      const pleased = asker.current;
+      if (pleased && !prefersReducedMotion()) {
+        play("clap");
+        await pleased.clap();
+      }
       await queryClient.invalidateQueries({ queryKey: ["requests"] });
       setTextMode(null);
       setCustomText("");
@@ -249,6 +264,17 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
       <CeoCardSection />
       <section className="interview-bar" aria-label="Pending bot request">
         <div className="interview-bar-head">
+          {isNotice ? null : (
+            <BotCharacter
+              key={current.from || "agent"}
+              slug={current.from || "agent"}
+              avatar={members.find((m) => m.slug === current.from)?.avatar}
+              size={40}
+              greetKey={current.id}
+              charRef={asker}
+              className="interview-bar-asker"
+            />
+          )}
           <span
             className={`badge ${isNotice ? "badge-neutral" : "badge-yellow"}`}
           >
