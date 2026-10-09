@@ -168,11 +168,6 @@
 <section class="hero" aria-labelledby="hero-title">
   <div class="wrap">
     <!-- The announcement is written in a notch, hanging from the top bar. -->
-    <p class="notch-badge">
-      <svg class="blob nb-peek" viewBox="0 0 16 16" aria-hidden="true"><use href="#b-flaky-tests"/></svg>
-      <span>The notch is now your agents' inbox</span>
-      <i class="nb-cam" aria-hidden="true"></i>
-    </p>
     <h1 class="h1 reveal d1" id="hero-title">Never leave your agents <span class="grad">hanging.</span></h1>
     <p class="lead reveal d2">gawkbot finds the coding agents installed on your Mac, turns them into a team, and gives them, and the ones you run on a cloud computer, one place to ask you things. When one needs you, it comes out of the notch. Answer with a key, or just say it.</p>
     <div class="cta-row reveal d3">
@@ -189,106 +184,113 @@
     <p class="visually-hidden" role="status" aria-live="polite" id="copyStatus"></p>
   </div>
 
-  <!-- The scroll scene. Scrolling down plays it forward: an agent's question
-       lands in the notch, you glance up, and the inbox pulls down out of the
-       notch. Scrolling back up plays it backwards. Without JavaScript, or with
-       reduced motion, it simply shows the inbox open.
-       This is an HTML recreation of the real notch panel (web/src/notch/NotchPanel.tsx),
-       not a screenshot. -->
-  <div class="scene" data-scene data-step="3">
+  <!-- The scene: a MacBook. Scrolling down plays it forward: three agents
+       that need an answer pile onto the notch, the pointer goes up to it,
+       and the inbox pulls down out of the notch. Scrolling back up plays it
+       backwards. Without JavaScript, or with reduced motion, the inbox is
+       simply shown open. Everything here is HTML and CSS; the inbox is the
+       real notch panel's layout (web/src/notch/NotchPanel.tsx), not a
+       screenshot. -->
+  <div class="scene" data-scene data-step="0">
     <div class="scene-pin">
-      <figure class="mac" role="img" aria-label="Illustration: the top of a MacBook screen. Three agents that need an answer pile onto the notch with a count, the pointer moves up to it, and a dark glass inbox pulls down out of the notch, listing three questions from agents with numbered answers, the agents on the team, and a bar for messaging the Chief of Staff.">
-        <div class="mac-screen">
-          <div class="wall" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-          <div class="menubar" aria-hidden="true">
-            <div class="menubar-left"><b>Code</b><span class="mi">File</span><span class="mi">Edit</span><span class="mi">View</span></div>
-            <div class="menubar-right">
-              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9 9 0 0 1 12.4 0M9.2 16a4 4 0 0 1 5.6 0"/><circle cx="12" cy="19.3" r="1.2" fill="currentColor" stroke="none"/></svg>
-              <span class="batt"></span>
-              <span>Thu 9:41</span>
-            </div>
-          </div>
-          <div class="win lg" aria-hidden="true">
-            <div class="win-bar"><i></i><i></i><i></i><span>checkout.test.ts</span></div>
-            <div class="code">
-              <p><b>describe</b>(<s>"checkout"</s>, () =&gt; {</p>
-              <p class="in1"><b>it</b>(<s>"charges the card once"</s>, <b>async</b> () =&gt; {</p>
-              <p class="in2"><b>const</b> cart = <u>await</u> seedCart(<s>3</s>);</p>
-              <p class="in2"><b>const</b> res = <u>await</u> checkout(cart, clock.now());</p>
-              <p class="in2">expect(res.charges).toHaveLength(<s>1</s>);</p>
-              <p class="in1">});</p>
-              <p>});</p>
-            </div>
-          </div>
+      <figure class="mac" role="img" aria-label="Illustration: a MacBook. The announcement sits in the notch: the notch is now your agents' inbox. Three agents that need an answer pile onto the notch with a count, the pointer moves up, and a dark glass inbox pulls down out of the notch with two questions, numbered answers and a bar for messaging the Chief of Staff.">
+        <div class="mac-lid">
+          <div class="mac-screen">
+            <div class="wall" aria-hidden="true"></div>
 
-          <div class="cursor" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 2.5v17.2l4.6-4.3 3 6.9 3-1.3-3-6.8h6.3z"/></svg></div>
-
-          <div class="island" aria-hidden="true">
-            <div class="ripple"></div>
-            <div class="strip">
-              <div class="ear ear-l">
-                <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
-              </div>
-              <div class="notch-hw"></div>
-              <div class="ear ear-r">
-                <span class="ear-gang">
-                  <svg class="blob g1" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
-                  <svg class="blob g2" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
-                  <svg class="blob g3" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
-                </span>
-                <span class="count">3</span>
+            <div class="menubar" aria-hidden="true">
+              <div class="menubar-left"><span class="apple"></span><b>Terminal</b><span>Shell</span><span>Edit</span><span>View</span><span>Window</span><span>Help</span></div>
+              <div class="menubar-right">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9 9 0 0 1 12.4 0M9.2 16a4 4 0 0 1 5.6 0"/><circle cx="12" cy="19.3" r="1.2" fill="currentColor" stroke="none"/></svg>
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+                <span class="batt"></span>
+                <span>Thu 9:41</span>
               </div>
             </div>
 
-            <div class="drop">
-              <div class="drop-inner">
-                <div class="nhead stg" style="--i:0">
-                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-brand"/></svg>
-                  <div class="nhead-text"><small>Chief of Staff</small>3 things need you</div>
-                  <span class="nbtn lg">↗ Full view</span>
-                </div>
+            <div class="term t1" aria-hidden="true">
+              <div class="term-bar"><i></i><i></i><i></i><span><svg class="blob" viewBox="0 0 64 64"><use href="#b-auth-refactor"/></svg>auth-refactor · ~/shop/api</span></div>
+              <div class="term-body">
+                <p class="cmd-line">› Run the sessions migration on staging</p>
+                <p class="dim">● Read migrations/0042_drop_sessions.sql</p>
+                <p class="dim">● Dry run against staging: 1 table dropped, 0 rows kept</p>
+                <p class="warn">✻ Waiting for your approval…</p>
+                <p class="prompt-box">›</p>
+              </div>
+            </div>
+            <div class="term t2" aria-hidden="true">
+              <div class="term-bar"><i></i><i></i><i></i><span><svg class="blob" viewBox="0 0 64 64"><use href="#b-flaky-tests"/></svg>flaky-tests · ~/shop/web</span></div>
+              <div class="term-body">
+                <p class="cmd-line">› Make the checkout test deterministic</p>
+                <p class="dim">● Ran checkout.test.ts 20 times: 2 failures</p>
+                <p class="dim">● Two fixes drafted</p>
+                <p class="warn">✻ Which one should I keep?</p>
+                <p class="prompt-box">›</p>
+              </div>
+            </div>
 
-                <div class="nsec stg" style="--i:1">Needs you · 3</div>
-                <div class="nq sel lg stg" style="--i:2">
-                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-flaky-tests"/></svg>
-                  <div class="nq-body">
-                    <div class="nq-from"><b>flaky-tests</b><span class="ntag cloud">cloud computer</span><span class="ntag hold">holding up work</span></div>
-                    <p class="nq-text"><strong>Checkout fails one run in ten.</strong> Which fix should I keep?</p>
-                    <div class="nq-acts"><span class="nbtn lg"><kbd>1</kbd>Add a retry</span><span class="nbtn lg primary"><kbd>2</kbd>Freeze the clock</span><span class="nbtn quiet"><kbd>R</kbd>Reply</span></div>
-                  </div>
-                </div>
-                <div class="nq lg stg" style="--i:3">
-                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-auth-refactor"/></svg>
-                  <div class="nq-body">
-                    <div class="nq-from"><b>auth-refactor</b><span class="ntag">adopted</span></div>
-                    <p class="nq-text">Run the migration on staging? It drops the old sessions table.</p>
-                    <div class="nq-acts"><span class="nbtn lg primary">Approve</span><span class="nbtn lg">Reject</span><span class="nbtn quiet">Reply</span></div>
-                  </div>
-                </div>
-                <div class="nq lg stg" style="--i:4">
-                  <svg class="blob" viewBox="0 0 16 16"><use href="#b-landing-copy"/></svg>
-                  <div class="nq-body">
-                    <div class="nq-from"><b>landing-copy</b><span class="ntag">yours</span></div>
-                    <p class="nq-text">Push the branch and open a pull request?</p>
-                  </div>
-                </div>
+            <div class="dock" aria-hidden="true">
+              <span class="dock-app dk-term"></span>
+              <span class="dock-app"><svg class="blob" viewBox="0 0 64 64"><use href="#b-brand"/></svg><i class="dot on"></i></span>
+              <span class="dock-app"><svg class="blob" viewBox="0 0 64 64"><use href="#b-changelog"/></svg><i class="dot on"></i></span>
+              <span class="dock-app"><svg class="blob" viewBox="0 0 64 64"><use href="#b-test-fixer"/></svg><i class="dot on"></i></span>
+              <span class="dock-app"><svg class="blob" viewBox="0 0 64 64"><use href="#b-release-train"/></svg><i class="dot"></i></span>
+            </div>
 
-                <div class="nsec stg" style="--i:5">Agents · 6</div>
-                <div class="nagents stg" style="--i:6">
-                  <span class="nagent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-changelog"/></svg><b>changelog</b><em class="work">working</em></span>
-                  <span class="nagent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-test-fixer"/></svg><b>test-fixer</b><em class="work">working</em></span>
-                  <span class="nagent"><svg class="blob" viewBox="0 0 16 16"><use href="#b-release-train"/></svg><b>release-train</b><em class="done">done</em></span>
-                </div>
+            <div class="cursor" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 2.5v17.2l4.6-4.3 3 6.9 3-1.3-3-6.8h6.3z"/></svg></div>
 
-                <div class="nask lg stg" style="--i:7"><span>Ask Chief of Staff to manage any agent…</span><span class="nask-keys"><kbd>M</kbd><kbd>V</kbd></span></div>
-                <div class="nkeys stg" style="--i:8"><span><kbd>J</kbd><kbd>K</kbd> move</span><span><kbd>1–9</kbd> answer</span><span><kbd>↵</kbd> recommended</span><span><kbd>V</kbd> talk</span><span><kbd>O</kbd> full view</span><span><kbd>esc</kbd> close</span></div>
+            <!-- The notch: the camera housing, one ear each side, and the
+                 inbox that pulls down out of it. -->
+            <div class="island" aria-hidden="true">
+              <div class="strip">
+                <div class="ear ear-l">
+                  <svg class="blob" viewBox="0 0 64 64"><use href="#b-brand"/></svg>
+                  <span class="announce"><b>New</b> The notch is now your agents' inbox</span>
+                </div>
+                <div class="notch-hw"></div>
+                <div class="ear ear-r">
+                  <span class="ear-gang">
+                    <svg class="blob g1" viewBox="0 0 64 64"><use href="#b-auth-refactor"/></svg>
+                    <svg class="blob g2" viewBox="0 0 64 64"><use href="#b-flaky-tests"/></svg>
+                  </span>
+                  <span class="count">2</span>
+                </div>
+              </div>
+
+              <div class="drop">
+                <div class="drop-inner">
+                  <div class="nhead stg" style="--i:0">
+                    <svg class="blob" viewBox="0 0 64 64"><use href="#b-brand"/></svg>
+                    <div class="nhead-text"><small>Chief of Staff</small>2 things need you</div>
+                    <span class="nbtn quiet">↗ Full view</span>
+                  </div>
+                  <div class="nq sel stg" style="--i:1">
+                    <svg class="blob" viewBox="0 0 64 64"><use href="#b-auth-refactor"/></svg>
+                    <div class="nq-body">
+                      <div class="nq-from"><b>auth-refactor</b><span class="ntag">Claude Code · this Mac</span></div>
+                      <p class="nq-text">Run the migration on staging? It drops the old sessions table.</p>
+                      <div class="nq-acts"><span class="nbtn primary"><kbd>↵</kbd>Approve</span><span class="nbtn"><kbd>2</kbd>Reject</span><span class="nbtn quiet"><kbd>R</kbd>Reply</span></div>
+                    </div>
+                  </div>
+                  <div class="nq stg" style="--i:2">
+                    <svg class="blob" viewBox="0 0 64 64"><use href="#b-flaky-tests"/></svg>
+                    <div class="nq-body">
+                      <div class="nq-from"><b>flaky-tests</b><span class="ntag">Codex · cloud computer</span></div>
+                      <p class="nq-text">Checkout fails one run in ten. Which fix should I keep?</p>
+                      <div class="nq-acts"><span class="nbtn"><kbd>1</kbd>Add a retry</span><span class="nbtn primary"><kbd>2</kbd>Freeze the clock</span></div>
+                    </div>
+                  </div>
+                  <div class="nask stg" style="--i:3"><span>Ask Chief of Staff to manage any agent…</span><span class="nask-keys"><kbd>M</kbd><kbd>V</kbd></span></div>
+                  <div class="nkeys stg" style="--i:4"><span><kbd>J</kbd><kbd>K</kbd> move</span><span><kbd>1–9</kbd> answer</span><span><kbd>↵</kbd> recommended</span><span><kbd>V</kbd> talk</span><span><kbd>esc</kbd> close</span></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        <div class="mac-base" aria-hidden="true"><span></span></div>
       </figure>
       <ol class="scene-steps" aria-hidden="true">
-        <li data-s="1"><b>1</b> An agent gets stuck</li>
+        <li data-s="1"><b>1</b> Agents get stuck</li>
         <li data-s="2"><b>2</b> You glance up</li>
         <li data-s="3"><b>3</b> The inbox pulls down</li>
       </ol>
@@ -690,6 +692,7 @@
   // scene stays put with the inbox open, which is also what CSS shows
   // without this script.
   var scene = document.querySelector('[data-scene]');
+  if (scene && reduceMotion) scene.setAttribute('data-step', '3');
   if (scene && !reduceMotion) {
     var root = document.documentElement;
     root.classList.add('scene-live');
@@ -713,13 +716,13 @@
       // reaches the bottom of the screen.
       var span = r.height - vh * 0.4;
       var p = span > 0 ? clamp01((vh * 0.6 - r.top) / span) : 1;
-      var n = easeOut(seg(p, 0.04, 0.2));
-      var c = easeInOut(seg(p, 0.22, 0.38));
-      var o = easeOut(seg(p, 0.4, 0.78));
+      var n = easeOut(seg(p, 0.1, 0.26));
+      var c = easeInOut(seg(p, 0.28, 0.42));
+      var o = easeOut(seg(p, 0.44, 0.8));
       scene.style.setProperty('--n', n.toFixed(4));
       scene.style.setProperty('--c', c.toFixed(4));
       scene.style.setProperty('--o', o.toFixed(4));
-      scene.setAttribute('data-step', p < 0.21 ? '1' : p < 0.4 ? '2' : '3');
+      scene.setAttribute('data-step', p < 0.1 ? '0' : p < 0.27 ? '1' : p < 0.43 ? '2' : '3');
       // The ripples replay each time their moment is crossed going down.
       if (n >= 0.999 && !pinged) { scene.classList.remove('is-pinged'); void scene.offsetWidth; scene.classList.add('is-pinged'); }
       if (n < 0.999) scene.classList.remove('is-pinged');
