@@ -177,7 +177,11 @@
 
 <!-- ═══ HERO ═══════════════════════════════════════════════════════ -->
 <section class="hero" aria-labelledby="hero-title">
-  <div class="wrap">
+  <!-- The page opens on the MacBook's own wallpaper, edge to edge. Scrolling
+       shrinks it into the MacBook's display below, where the same wallpaper
+       is waiting. Only with JavaScript and motion allowed. -->
+  <div class="hero-wall" aria-hidden="true" data-hero-wall><div class="wall"></div></div>
+  <div class="wrap hero-copy">
     <!-- The announcement is written in a notch, hanging from the top bar. -->
     <!-- The brow: the gang piled on a notch, as when several agents need you. -->
     <div class="hero-brow reveal" aria-hidden="true"><div class="mini-notch gang"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-auth-refactor"/></svg><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-flaky-tests"/></svg><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-landing-copy"/></svg><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-db-migrate"/></svg><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-release-train"/></svg></div></div>
@@ -951,10 +955,36 @@
     var pinged = false;
     var hovered = false;
     var raf = 0;
+    // The wallpaper that fills the screen at the top of the page: as the
+    // MacBook scrolls up to where it pins, the wallpaper shrinks onto its
+    // display (--w, 0 to 1). It is a full-screen layer moved with a
+    // transform, so its gradients land exactly on the display's own.
+    var heroWall = document.querySelector('[data-hero-wall]');
+    var heroEl = document.querySelector('.hero');
+    var macScreen = scene.querySelector('.mac-screen');
+    var pinEl = scene.querySelector('.scene-pin');
+    var shrink = function (vh) {
+      if (!heroWall || !macScreen || !pinEl) return;
+      var navH = 56;
+      // How far the page scrolls before the MacBook pins under the menu bar.
+      var travel = scene.getBoundingClientRect().top + window.scrollY - navH;
+      var w = travel > 0 ? clamp01(window.scrollY / travel) : 1;
+      var t = easeInOut(w);
+      var s = macScreen.getBoundingClientRect();
+      var vw = document.documentElement.clientWidth;
+      var sx = 1 + (s.width / vw - 1) * t;
+      var sy = 1 + (s.height / vh - 1) * t;
+      var radius = (parseFloat(getComputedStyle(macScreen).borderTopLeftRadius) || 0) * t;
+      heroWall.style.transform = 'translate(' + (s.left * t).toFixed(2) + 'px,' + (s.top * t).toFixed(2) + 'px) scale(' + sx.toFixed(5) + ',' + sy.toFixed(5) + ')';
+      heroWall.style.clipPath = 'inset(0 round ' + (radius / sx).toFixed(2) + 'px / ' + (radius / sy).toFixed(2) + 'px)';
+      heroWall.style.visibility = w >= 1 ? 'hidden' : 'visible';
+      heroEl.style.setProperty('--w', w.toFixed(4));
+    };
     var frame = function () {
       raf = 0;
       var r = scene.getBoundingClientRect();
       var vh = window.innerHeight;
+      shrink(vh);
       // 0 when the scene's top is 60% down the screen, 1 when its bottom
       // reaches the bottom of the screen.
       var span = r.height - vh * 0.4;
