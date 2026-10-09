@@ -58,6 +58,10 @@
 
   /* The notch is hardware-black in both modes, like the real thing. */
   --notch: #000;
+  /* Three of the cast's own colours, for the one coloured word. */
+  --pink: #ff6b8b;
+  --tangerine: #ffa53d;
+  --sky: #5aa9ff;
   /* The brand's sky blue as light in the dark, behind the cast on stage. */
   --night-glow: rgba(90, 169, 255, 0.22);
   --notch-glass: rgba(14, 14, 18, 0.56);
@@ -287,7 +291,16 @@ code, kbd { font-family: var(--font-mono); }
   text-wrap: pretty;
 }
 .muted { color: var(--text-2); }
-.grad { color: var(--text-2); }
+/* The one coloured word on the page: the agents' own colours. */
+.grad {
+  color: var(--pink);
+  background: linear-gradient(100deg, var(--pink), var(--tangerine) 45%, var(--sky));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+/* "hanging" hangs from its top left corner and swings when the page moves. */
+.dangle { display: inline-block; transform-origin: 6% 8%; will-change: transform; }
 
 /* ── Buttons ──────────────────────────────────────────────────────── */
 .btn {
@@ -379,6 +392,8 @@ section { position: relative; }
 
 /* ── Hero ─────────────────────────────────────────────────────────── */
 .hero { padding: 0 0 0; text-align: center; }
+/* The brow: the gang piled on a little notch, above the title. */
+.hero-brow { display: flex; justify-content: center; height: 62px; margin-bottom: 14px; }
 .hero { padding-top: clamp(48px, 7vw, 88px); }
 .hero .h1 { max-width: 13ch; margin: 0 auto; }
 .hero .lead { max-width: 660px; margin: 26px auto 0; }
@@ -1001,7 +1016,7 @@ section { position: relative; }
 .chips-note { text-align: center; margin-top: 28px; font-size: 15px; color: var(--text-3); }
 
 /* Fun */
-.fun { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.fun { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .fun-card { padding: 28px; border-radius: var(--r-xl); overflow: hidden; }
 .fun-card h3 { margin-bottom: 8px; }
 .fun-card p { color: var(--text-2); font-size: 16px; }
@@ -1043,22 +1058,7 @@ section { position: relative; }
 .bubble.a { left: calc(50% - 170px); border-top-left-radius: 4px; }
 .bubble.b { right: calc(50% - 170px); top: 92px; border-top-right-radius: 4px; animation-delay: 1.4s; }
 @keyframes chat { 0% { opacity: 0; transform: translateY(6px) scale(0.96); } 8%, 70% { opacity: 1; transform: none; } 80%, 100% { opacity: 0; transform: translateY(-4px); } }
-.sounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-.sound {
-  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 10px; border-radius: 999px;
-  font-size: 14px; font-weight: 600; background: var(--fill); color: var(--text);
-  transition: transform 0.3s var(--ease-spring), background-color 0.2s;
-}
-.sound:hover { background: var(--accent-soft); color: var(--accent); }
-.sound:active { transform: scale(0.94); }
-.sound svg { width: 16px; height: 16px; }
-.sound span { color: var(--text-3); font-weight: 500; }
-.stage.speaker { align-items: center; }
-.eq { display: flex; gap: 6px; align-items: center; height: 70px; }
-.eq i { width: 8px; border-radius: 4px; background: var(--text); animation: wave 1.3s var(--ease-out) infinite; height: 40%; }
-.eq i:nth-child(2) { animation-delay: 0.2s; } .eq i:nth-child(3) { animation-delay: 0.4s; }
-.eq i:nth-child(4) { animation-delay: 0.1s; } .eq i:nth-child(5) { animation-delay: 0.3s; }
-@media (max-width: 760px) { .fun { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .fun { grid-template-columns: 1fr; } }
 
 /* ── Characters (orb.js / orb.css, the app's own code) ─────────────────
    A character replaces the drawing in a spot once the script has mounted
@@ -1095,33 +1095,6 @@ section { position: relative; }
 .nhero-lead > .blob { width: 100%; height: 100%; }
 .dyn-lead { position: relative; width: 26px; height: 26px; flex: none; }
 .dyn-lead > .blob { width: 100%; height: 100%; }
-
-/* "They make an entrance": the cast on a night-sky stage, born, flying in
-   and clapping, across the whole grid. */
-.fun-feature { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: center; }
-.magic-stage {
-  position: relative; height: 300px; margin: -28px 0 -28px -28px; overflow: hidden;
-  background:
-    radial-gradient(60% 70% at 50% 62%, var(--night-glow), transparent 70%),
-    var(--notch);
-}
-.magic-spot {
-  --x: 0px;
-  position: absolute; bottom: 70px;
-  left: calc(50% + var(--x) - var(--s) / 2);
-  width: var(--s); height: var(--s);
-  cursor: pointer;
-}
-.magic-spot[data-from="left"] { --x: -150px; }
-.magic-spot[data-from="right"] { --x: 150px; }
-.magic-spot > .blob { width: 100%; height: 100%; }
-.magic-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
-@media (max-width: 760px) {
-  .fun-feature { grid-template-columns: 1fr; gap: 20px; }
-  .magic-stage { margin: -28px -28px 0; height: 260px; }
-  .magic-spot[data-from="left"] { --x: -112px; }
-  .magic-spot[data-from="right"] { --x: 112px; }
-}
 
 /* Sound is opt-in on the site: a small switch where the moments are. */
 .sound-toggle {

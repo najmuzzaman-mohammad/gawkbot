@@ -21,8 +21,11 @@ pre-commit:
       # into web/ so {staged_files} arrives as paths relative to web/;
       # stage_fixed=true re-stages formatter + safe-autofix changes so the
       # commit includes them.
+      # The glob is repo-relative and must name web/: lefthook matches the
+      # root by prefix, so a bare "**" also catches website/ and hands biome
+      # a path it ignores ("site/style.css"), failing the commit.
       root: web
-      glob: "**/*.{js,ts,jsx,tsx,json,css}"
+      glob: "web/**/*.{js,ts,jsx,tsx,json,css}"
       run: bunx --bun biome check --write --max-diagnostics=500 {staged_files}
       stage_fixed: true
       exclude:
