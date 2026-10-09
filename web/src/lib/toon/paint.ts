@@ -1,33 +1,30 @@
-// paint.ts — the toon look's colour: every bot keeps its own colour, painted
-// the way a 1930s three-strip cel was. The base is pushed a little richer
-// and warmer, shadows go cool toward plum rather than toward grey, the
-// light is a warm cream, and the ink is a brown-black, never pure black.
+// paint.ts — the toon look's colour: cel paint, nothing shaded. Every bot
+// keeps its own colour, printed the way a 1930s three-strip cel came out:
+// a little muted and warm, flat, with a lighter tint for muzzles and
+// centres, a cream for whites, and one brown-black ink for every line.
 
 export interface Paint {
-  /** The body's base colour, richer than the bot's chosen swatch. */
+  /** The body's colour, flat. */
   base: string;
-  /** The hard-edged shadow side. */
+  /** A lighter tint of it: muzzles, inner ears, the flower's centre. */
+  tint: string;
+  /** A deeper tone of it: a cherry, a dimple line. */
   shade: string;
-  /** The airbrushed light on the near side. */
-  light: string;
-  /** Lids and cheeks: the base, a touch deeper. */
-  lid: string;
-  /** Ink for every outline and the pupils. */
+  /** Leaves and stems. */
+  leaf: string;
+  /** Gloves, the whites of the eyes, teeth, a ghost. */
+  cream: string;
+  /** Every outline, the pupils, the hoses. */
   ink: string;
-  /** Gloves, the whites of the eyes and the shine. */
-  white: string;
-  /** Cheeks. */
-  blush: string;
   /** Inside an open mouth. */
   mouth: string;
   tongue: string;
   shoe: string;
 }
 
-export const INK = "#21140f";
-const WHITE = "#fffaf0";
-const CREAM = "#fff3d6";
-const PLUM = "#3a1f4d";
+export const INK = "#1b1511";
+const CREAM = "#f6ead0";
+const WARM = "#f0c98a";
 
 type RGB = [number, number, number];
 
@@ -64,18 +61,17 @@ function saturate([r, g, b]: RGB, k: number): RGB {
 /** The painted palette for a bot colour (#rrggbb). */
 export function paintFor(color: string): Paint {
   const c = parse(color);
-  // Richer and a hair warmer: the swatches are tuned for flat UI chips.
-  const base = mix(saturate(c, 1.18), [255, 196, 120], 0.06);
+  // A touch less vivid and a touch warmer than the UI swatch: film stock.
+  const base = mix(saturate(c, 0.9), parse(WARM), 0.1);
   return {
     base: hex(base),
-    shade: hex(mix(mix(base, [0, 0, 0], 0.18), parse(PLUM), 0.28)),
-    light: hex(mix(base, parse(CREAM), 0.62)),
-    lid: hex(mix(base, parse(PLUM), 0.12)),
+    tint: hex(mix(base, parse(CREAM), 0.55)),
+    shade: hex(mix(base, parse(INK), 0.35)),
+    leaf: "#6f9a4c",
+    cream: CREAM,
     ink: INK,
-    white: WHITE,
-    blush: hex(mix(base, [255, 92, 110], 0.55)),
-    mouth: "#4a1218",
-    tongue: "#e8506a",
-    shoe: "#4a2a1c",
+    mouth: "#5a1a1e",
+    tongue: "#d9566a",
+    shoe: "#5a3420",
   };
 }

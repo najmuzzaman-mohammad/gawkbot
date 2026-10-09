@@ -25,9 +25,10 @@
 // and nothing loops.
 
 import type { AvatarShape } from "../../api/memberTypes";
+import { CAST } from "./cast";
 import { Fx, worldPuff } from "./fx";
 import type { GlovePose } from "./glove";
-import { MARK_VIEW, type Pose, type PoseKey, REST, ToonRig, VIEW } from "./rig";
+import { markView, type Pose, type PoseKey, REST, ToonRig, VIEW } from "./rig";
 
 export type ToonFace =
   | "calm"
@@ -150,9 +151,11 @@ export class Toon {
   private nextGlance = 0;
   private strain = 0;
   private kicking = false;
-  private boilAt = 0;
   private boilSeed = 1;
   private readonly boils: boolean;
+  private readonly floats: boolean;
+  /** Drawn on twos: 12 drawings a second, like the era's film. */
+  private drawnAt = 0;
   private readonly adopted: boolean;
   private x = 0;
   private y = 0;
@@ -174,7 +177,11 @@ export class Toon {
     this.reduced =
       prefersReduced() || typeof requestAnimationFrame !== "function";
     this.live = opts.live !== false && !this.reduced;
-    this.boils = !!opts.boil && !this.reduced;
+    // A full character boils by default: the hand-drawn wobble is the
+    // era. A list-size mark stays crisp.
+    const full = opts.arms !== false && opts.legs !== false;
+    this.boils = (opts.boil ?? full) && !this.reduced;
+    this.floats = !!CAST[opts.body]?.floats;
     this.rig = new ToonRig({
       body: opts.body,
       color: opts.color,
@@ -189,7 +196,7 @@ export class Toon {
     const k = opts.size / 200;
     const svg = this.rig.svg;
     const mark = opts.arms === false && opts.legs === false;
-    const v = mark ? MARK_VIEW : VIEW;
+    const v = mark ? markView(opts.body) : VIEW;
     this.adopted = !!opts.svg;
     if (!this.adopted) {
       svg.style.cssText = `position:absolute;left:${v.x * k}px;top:${v.y * k}px;width:${v.w * k}px;height:${v.h * k}px;overflow:visible;pointer-events:none`;
@@ -230,12 +237,16 @@ export class Toon {
     if (this.fly) this.stepFlight(t);
     this.idle(t, dt);
     this.fx.step(dt);
-    if (this.boils && t > this.boilAt) {
-      this.boilSeed = (this.boilSeed % 3) + 1;
-      this.rig.boil(this.boilSeed);
-      this.boilAt = t + 125;
+    // Animated on twos: the pose is computed every frame, but a new
+    // drawing goes up 12 times a second, each with its own line boil.
+    if (t - this.drawnAt >= 1000 / 12 - 2) {
+      this.drawnAt = t;
+      if (this.boils) {
+        this.boilSeed = (this.boilSeed % 5) + 1;
+        this.rig.boil(this.boilSeed);
+      }
+      this.render();
     }
-    this.render();
     if (
       this.live ||
       this.tracks.size > 0 ||
@@ -264,17 +275,34 @@ export class Toon {
       o.lid = this.blinkLid(t);
       return;
     }
-    // A bounce on the beat: down on every beat, arms swinging opposite.
-    const calm = this.acting > 0 ? 0.35 : 1;
-    this.beat += dt * (this.strain > 0 ? 5.5 : 2.1);
-    const b = Math.abs(Math.sin(this.beat * Math.PI * 0.5));
-    o.y = (1 - b) * 3.2 * calm;
-    o.sy = -(1 - b) * 0.035 * calm;
-    o.sx = (1 - b) * 0.03 * calm;
-    const swing = Math.sin(this.beat * Math.PI * 0.5) * 4 * calm;
+    // The Fleischer bob: everything in the picture bounces to an unheard
+    // band, about 120 to the bar. Down on the beat with a squash, up
+    // between with a stretch, arms swinging opposite, a tilt of the head,
+    // and a floater rides the swell instead of standing on it.
+    const calm = this.acting > 0 ? 0.3 : 1;
+    this.beat += dt * (this.strain > 0 ? 6 : 2);
+    const ph = this.beat * Math.PI;
+    const b = (1 - Math.cos(ph)) / 2;
+    const [, , , bh] = this.rig.box;
+    if (this.floats) {
+      o.y = Math.sin(ph * 0.5) * bh * 0.05 * calm;
+      o.sy = 0;
+      o.sx = 0;
+      o.rot = Math.sin(ph * 0.5 + 0.8) * 3 * calm;
+    } else {
+      o.y = b * bh * 0.045 * calm;
+      o.sy = -b * 0.07 * calm;
+      o.sx = b * 0.06 * calm;
+      o.rot = Math.sin(ph * 0.5) * 2.2 * calm;
+    }
+    const swing = Math.sin(ph * 0.5) * 7 * calm;
     o.armLy = swing;
     o.armRy = -swing;
-    o.rot = 0;
+    o.armLx = -Math.abs(swing) * 0.4;
+    o.armRx = Math.abs(swing) * 0.4;
+    // Feet tap on alternate beats.
+    const tap = Math.max(0, Math.sin(ph * 0.5)) * 5 * calm;
+    const tapR = Math.max(0, -Math.sin(ph * 0.5)) * 5 * calm;
     // Straining: a fast shake and a wobble in the knees.
     if (this.strain > 0) {
       o.x = Math.sin(t * 0.09) * 1.6 * this.strain;
@@ -290,8 +318,8 @@ export class Toon {
       o.legLx = Math.cos(t * 0.022) * 5;
       o.legRx = -Math.cos(t * 0.022) * 5;
     } else {
-      o.legLy = 0;
-      o.legRy = 0;
+      o.legLy = tap;
+      o.legRy = tapR;
       o.legLx = 0;
       o.legRx = 0;
     }

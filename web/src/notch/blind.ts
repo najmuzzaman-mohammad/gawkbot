@@ -21,7 +21,7 @@
 // while the notch is open, with the lead standing under it.
 
 import type { AvatarShape } from "../api/memberTypes";
-import { BODY_OUTLINES } from "../lib/toon/bodies.gen";
+import { CAST } from "../lib/toon/cast";
 import { LEG } from "../lib/toon/rig";
 import { EASE, Toon } from "../lib/toon/toon";
 import type { SoundKind } from "./sounds";
@@ -34,7 +34,7 @@ export const RING = 15;
 
 /** Pixels from the lead's gloves (on the ring) down to its soles. */
 export function handsToFeet(body: AvatarShape, size = LEAD_SIZE): number {
-  const [, by, , bh] = (BODY_OUTLINES[body] ?? BODY_OUTLINES.bear).box;
+  const [, by, , bh] = (CAST[body] ?? CAST.bear).box;
   const k = size / 200;
   return (by + bh + LEG - by) * k + REACH;
 }
@@ -118,7 +118,7 @@ export class BlindShow {
     const t = this.toon;
     if (!t) return;
     const k = LEAD_SIZE / 200;
-    const by = (BODY_OUTLINES[this.cast.body] ?? BODY_OUTLINES.bear).box[1];
+    const by = (CAST[this.cast.body] ?? CAST.bear).box[1];
     const top =
       this.falling || this.fallY ? this.fallY : this.ringY() + REACH - by * k;
     t.placeAt(this.stage.layer.clientWidth / 2 - LEAD_SIZE / 2, top);
@@ -311,8 +311,7 @@ export class BlindShow {
     // Let go just under the notch and drop onto the stage below it.
     t.kick(false);
     const k = LEAD_SIZE / 200;
-    const [, by, , bh] = (BODY_OUTLINES[this.cast.body] ?? BODY_OUTLINES.bear)
-      .box;
+    const [, by, , bh] = (CAST[this.cast.body] ?? CAST.bear).box;
     const fromY = this.ringY() + REACH - by * k;
     const toY = this.stage.reliefFloor - (by + bh + LEG) * k;
     this.fallY = fromY;

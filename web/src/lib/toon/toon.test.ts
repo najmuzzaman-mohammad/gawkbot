@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { AVATAR_SHAPES } from "../blobAvatar";
-import { BODY_OUTLINES } from "./bodies.gen";
+import { CAST } from "./cast";
 import { type GlovePose, gloveMarkup } from "./glove";
 import { paintFor } from "./paint";
 import { REST, ToonRig } from "./rig";
@@ -31,25 +31,32 @@ function attrs(svg: SVGSVGElement): string[] {
 }
 
 describe("toon bodies", () => {
-  it("has an inked outline for every avatar body", () => {
-    // Coverage: the generated file must keep up with the body list.
-    expect(Object.keys(BODY_OUTLINES).sort()).toEqual(
-      [...AVATAR_SHAPES].sort(),
-    );
+  it("has a hand-drawn body for every avatar shape", () => {
+    // Coverage: the cast must keep up with the shape list.
+    expect(Object.keys(CAST).sort()).toEqual([...AVATAR_SHAPES].sort());
     for (const shape of AVATAR_SHAPES) {
-      const { d, box } = BODY_OUTLINES[shape];
-      expect(d.startsWith("M")).toBe(true);
-      // Inside the core's 200-unit box, and most of it.
-      expect(box[2]).toBeGreaterThan(140);
-      expect(box[3]).toBeGreaterThan(140);
-      expect(box[0] + box[2]).toBeLessThanOrEqual(200);
+      const body = CAST[shape];
+      const main = body.parts.find(
+        (p) => p.tone === "base" || p.tone === "cream",
+      );
+      expect(main?.d.startsWith("M")).toBe(true);
+      // Inside the 200-unit box, and most of it.
+      expect(body.box[2]).toBeGreaterThan(120);
+      expect(body.box[3]).toBeGreaterThan(120);
+      expect(body.box[0] + body.box[2]).toBeLessThanOrEqual(200);
+      // Shoulders sit on the body, hips at its foot.
+      for (const [x, y] of body.arms) {
+        expect(x).toBeGreaterThanOrEqual(body.box[0] - 2);
+        expect(x).toBeLessThanOrEqual(body.box[0] + body.box[2] + 2);
+        expect(y).toBeGreaterThan(body.box[1]);
+      }
     }
   });
 
-  it("paints every swatch richer, with a cool shadow and warm ink", () => {
+  it("paints every swatch flat and a little filmic, with brown-black ink", () => {
     const p = paintFor("#5aa9ff");
     expect(p.base).not.toBe("#5aa9ff");
-    for (const c of [p.base, p.shade, p.light, p.lid, p.blush]) {
+    for (const c of [p.base, p.tint, p.shade, p.cream, p.leaf]) {
       expect(c).toMatch(/^#[0-9a-f]{6}$/);
     }
     expect(p.ink).not.toBe("#000000");
@@ -89,8 +96,13 @@ describe("ToonRig", () => {
         );
         expect(bad, `${body}`).toEqual([]);
       }
-      // Pie-cut pupils, inked whites, a mouth, two gloves and two shoes.
-      expect(rig.svg.querySelectorAll("path[fill]").length).toBeGreaterThan(6);
+      // Flat paint only: no gradients anywhere in the drawing.
+      expect(
+        rig.svg.querySelector("linearGradient, radialGradient"),
+      ).toBeNull();
+      // Pie-cut pupils, inked whites, a mouth, two gloves.
+      expect(rig.svg.querySelectorAll(".toon-glove").length).toBe(2);
+      expect(rig.svg.querySelectorAll(".toon-eye").length).toBe(2);
     }
   });
 
@@ -109,9 +121,7 @@ describe("ToonRig", () => {
         'path[stroke-width="6.5"], path[stroke-width="8"]',
       ),
     ).toHaveLength(0);
-    expect(rig.ground()).toBe(
-      BODY_OUTLINES.lemon.box[1] + BODY_OUTLINES.lemon.box[3],
-    );
+    expect(rig.ground()).toBe(CAST.lemon.box[1] + CAST.lemon.box[3]);
   });
 });
 

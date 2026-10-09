@@ -53,12 +53,16 @@ describe("sounds", () => {
     );
   });
 
-  it("is cartoon foley, not beeps: slides, springs, a wah and a shimmer", () => {
+  it("is 1930s foley, not beeps: a whistle, a jaw harp, a plunger mute, a cymbal", () => {
     // The slide whistle swoops over at least an octave before the boing.
-    const [whistle, boing] = recipe("question");
-    expect(whistle.freqs.at(-1)! / whistle.freqs[0]).toBeGreaterThan(2);
+    const q = recipe("question");
+    const whistle = q[0];
+    const boing = q[q.length - 1];
+    expect(
+      whistle.freqs[whistle.freqs.length - 1] / whistle.freqs[0],
+    ).toBeGreaterThan(2);
     expect(boing.wobble).toBeGreaterThan(50);
-    // The trombone is a filtered sawtooth that only ever goes down.
+    // The muted trumpet is a filtered sawtooth that only ever goes down.
     for (const t of recipe("error")) {
       expect(t.type).toBe("sawtooth");
       expect(t.filter?.type).toBe("lowpass");
@@ -68,17 +72,21 @@ describe("sounds", () => {
     expect(recipe("done").some((t) => t.type === "noise" && t.filter)).toBe(
       true,
     );
-    // A pop drops an octave and more in a tenth of a second.
+    // A cork pop drops an octave and more in a tenth of a second.
     const pop = recipe("sent").find((t) => t.type === "sine");
     expect(pop && pop.freqs[0] / pop.freqs[1]).toBeGreaterThan(2);
     expect(pop?.dur).toBeLessThanOrEqual(0.1);
+    // The bicycle bell is one bright note struck fast, many times.
+    const bell = recipe("approval").filter((t) => t.dur >= 0.26);
+    expect(bell.length).toBeGreaterThan(5);
+    expect(new Set(bell.map((t) => Math.round(t.freqs[0]))).size).toBe(1);
   });
 
   it("gives the character's moves their own foley", () => {
     // A whoosh is air, not a note: a swept bandpass on noise.
     const air = recipe("whoosh").find((t) => t.type === "noise");
     expect(air?.filter?.type).toBe("bandpass");
-    // The sparkle climbs: every bell starts higher than the one before.
+    // The twinkle climbs: every bell starts higher than the one before.
     const bells = recipe("sparkle").filter(
       (t) => t.type === "sine" && t.dur >= 0.3,
     );
@@ -87,7 +95,7 @@ describe("sounds", () => {
       expect(bells[i].freqs[0]).toBeGreaterThan(bells[i - 1].freqs[0]);
       expect(bells[i].start).toBeGreaterThan(bells[i - 1].start);
     }
-    // Two claps, each a noise burst.
+    // Two woodblocks, each a knock of noise.
     expect(recipe("clap").filter((t) => t.type === "noise").length).toBe(2);
   });
 
@@ -98,7 +106,9 @@ describe("sounds", () => {
     expect(whistle.freqs[whistle.freqs.length - 1]).toBeLessThan(
       whistle.freqs[0],
     );
-    const clicks = down.filter((t) => t.type === "noise").map((t) => t.start);
+    const clicks = down
+      .filter((t) => t.type === "noise" && t.dur < 0.05)
+      .map((t) => t.start);
     expect(clicks.length).toBeGreaterThan(6);
     const gaps = clicks.slice(1).map((s, i) => s - clicks[i]);
     expect(gaps[gaps.length - 1]).toBeLessThan(gaps[0]);

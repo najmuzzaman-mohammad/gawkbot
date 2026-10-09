@@ -60,6 +60,7 @@
   --blind-wood-hi: #c98a55;
   --blind-wood-lo: #6d3a1d;
   --blind-brass: #e0ad45;
+  --blind-vignette: rgba(60, 30, 10, 0.42);
   --blind-title:
     "Rockwell", "American Typewriter", "Roboto Slab", Georgia, serif;
 }
@@ -415,6 +416,27 @@ kbd {
   inset: 0;
   z-index: 2;
   pointer-events: none;
+}
+/* The print: grain, a vignette and a flicker over the fabric, so the
+   blind reads as a frame of 1930s film rather than a stylesheet. The
+   grain is a turbulence tile that jumps on twos. */
+.nblind-cloth::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 90% at 50% 45%,
+      transparent 55%,
+      var(--blind-vignette) 100%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size:
+    100% 100%,
+    140px 140px;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
 }
 
 .npanel {
@@ -891,6 +913,11 @@ kbd {
   .notch-chat {
     animation: n-bubble 0.35s var(--notch-spring) both;
   }
+  .nblind-cloth::after {
+    animation:
+      film-grain 0.5s steps(6) infinite,
+      film-flicker 1.3s steps(3) infinite;
+  }
   .ncompose.is-listening .nmic-wave i {
     animation: n-wave 0.7s ease-in-out infinite;
   }
@@ -905,6 +932,22 @@ kbd {
   }
 }
 
+@keyframes film-grain {
+  to {
+    background-position:
+      0 0,
+      140px 70px;
+  }
+}
+@keyframes film-flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
 @keyframes gang-land {
   0% {
     transform: translateY(-10px) scale(0.4, 1.3);
