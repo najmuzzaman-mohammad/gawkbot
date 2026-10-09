@@ -74,10 +74,14 @@ export const FACES: Record<Face, FaceSpec> = {
 };
 
 /**
- * The brand mark: gawkbot itself is an orb too, the mint bear. The same
- * look is the favicon, the app icons and the website's mark.
+ * The brand mark: gawkbot itself is an orb too, the sky-blue flower. The
+ * same look is the favicon, the app icons and the website's mark
+ * (scripts/brand-assets.mjs bakes those from this choice).
  */
-export const BRAND_AVATAR: AvatarChoice = { shape: "bear", color: "#45cfa0" };
+export const BRAND_AVATAR: AvatarChoice = {
+  shape: "flower",
+  color: "#5aa9ff",
+};
 
 export interface OrbLook {
   readonly body: AvatarShape;
