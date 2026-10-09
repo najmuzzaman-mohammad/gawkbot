@@ -35,7 +35,13 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(store.live ? Color.green : Color.secondary)
                     }
-                    if !store.isMock {
+                    if store.isMock {
+                        Button {
+                            store.unpair()
+                        } label: {
+                            Label("Leave the demo", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } else {
                         Button(role: .destructive) {
                             store.unpair()
                         } label: {

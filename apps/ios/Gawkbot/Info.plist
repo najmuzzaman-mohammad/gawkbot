@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>gawkbot</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +17,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -28,7 +30,11 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
@@ -46,11 +52,17 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan the pairing code shown in your office's Access &amp; Health page.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>gawkbot connects to your office on your Wi-Fi or Tailscale network to show what your agents need and to send your answers.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>gawkbot listens only while you hold the mic button, so you can answer your agents or message them by voice. Nothing is sent until you tap Send.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Your words are turned into text so you can answer or message your agents. When this iPhone can transcribe on its own it does; otherwise Apple's speech recognition service does it. Nothing reaches your office until you tap Send.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
 </dict>
 </plist>

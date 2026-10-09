@@ -43,6 +43,16 @@ targets:
     info:
       path: Gawkbot/Info.plist
       properties:
+        CFBundleDisplayName: gawkbot
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Only HTTPS and the system's own crypto: exempt, so App Store
+        # Connect does not ask the export question on every build.
+        ITSAppUsesNonExemptEncryption: false
+        # Shown the first time the app reaches an office on the LAN.
+        NSLocalNetworkUsageDescription: "gawkbot connects to your office on your Wi-Fi or Tailscale network to show what your agents need and to send your answers."
         CFBundleURLTypes:
           - CFBundleURLName: bot.gawk.pair
             CFBundleURLSchemes: [gawkbot]

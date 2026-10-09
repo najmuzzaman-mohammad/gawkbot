@@ -57,6 +57,14 @@ struct PairingView: View {
                         .disabled(address.isEmpty || token.isEmpty)
                     }
                     .padding(.horizontal)
+                    VStack(spacing: 6) {
+                        Button("Look around a demo office") { store.startDemo() }
+                            .font(.subheadline.weight(.semibold))
+                        Text("No office yet? The demo is made up and stays on this phone.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal)
                 }
                 .padding(.bottom, 40)
             }

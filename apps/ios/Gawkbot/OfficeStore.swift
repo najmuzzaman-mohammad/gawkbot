@@ -41,7 +41,9 @@ final class OfficeStore: ObservableObject {
     /// Sounds and haptics for inbox events.
     let feedback: FeedbackPlayer
 
-    let isMock: Bool
+    /// Talking to the canned office: launched with `-mock`, or looking
+    /// around the demo from the pairing screen.
+    @Published private(set) var isMock: Bool
     private let credentials: CredentialStore
     private var broker: BrokerAPI?
     private var eventTask: Task<Void, Never>?
@@ -66,6 +68,7 @@ final class OfficeStore: ObservableObject {
     // MARK: - Pairing
 
     func pair(_ pairing: Pairing) {
+        if isMock { clearOffice() }
         let saved = credentials.save(pairing)
         self.pairing = pairing
         // Still connect: the pairing works until the app quits. Say so
@@ -94,22 +97,41 @@ final class OfficeStore: ObservableObject {
         pair(p)
     }
 
+    /// The canned office, for someone with no office to pair with yet (and
+    /// for App Review, which has none). Nothing leaves the phone.
+    func startDemo() {
+        clearOffice()
+        isMock = true
+        pairingError = nil
+        connect(MockBroker())
+    }
+
+    /// Unpairs, or leaves the demo. The saved pairing is forgotten either way.
     func unpair() {
+        credentials.clear()
+        pairing = nil
+        clearOffice()
+        phase = .unpaired
+    }
+
+    /// Drops the connection and everything read from it, so one office's
+    /// threads never show under another.
+    private func clearOffice() {
         eventTask?.cancel()
         eventTask = nil
         pollTask?.cancel()
         pollTask = nil
         notch = nil
         hiddenAttention = []
-        credentials.clear()
-        pairing = nil
         broker = nil
         bots = []
         messages = [:]
         requests = []
         unread = [:]
         typing = []
-        phase = .unpaired
+        openThread = nil
+        tab = .inbox
+        isMock = false
     }
 
     func handle(url: URL) {
@@ -434,7 +456,7 @@ final class OfficeStore: ObservableObject {
     }
 
     var officeAddress: String {
-        if isMock { return "Canned office (-mock)" }
+        if isMock { return "Demo office" }
         return pairing?.brokerURL.absoluteString ?? "Not paired"
     }
 

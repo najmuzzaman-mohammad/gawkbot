@@ -175,10 +175,40 @@ and the app asks to pair again on every launch.
 
 Or open `Gawkbot.xcodeproj` in Xcode and run on a simulator.
 
+## Ship to TestFlight
+
+```bash
+scripts/testflight.sh --check                 # no Apple account needed
+TEAM_ID=XXXXXXXXXX scripts/testflight.sh      # archive, sign, upload
+```
+
+`--check` archives the Release build unsigned and inspects the bundle for
+what App Store Connect rejects an upload over: bundle id, version and build
+number, the export-compliance answer, every usage description, the privacy
+manifest, and an app icon with no alpha channel.
+
+The real run signs automatically (Xcode makes the certificate and the App
+Store profile for `bot.gawk.ios`) and uploads. It needs, once:
+
+1. An Apple Developer Program membership, and its team ID as `TEAM_ID`.
+2. An app record in App Store Connect with the bundle ID `bot.gawk.ios`.
+3. Either that Apple ID signed in under Xcode > Settings > Accounts, or an
+   App Store Connect API key passed as `ASC_KEY_ID`, `ASC_ISSUER_ID` and
+   `ASC_KEY_PATH`.
+
+The build number is the UTC time unless `BUILD` is set, so each upload is
+higher than the last. The version is `MARKETING_VERSION` in `project.yml`.
+
+Internal testers get a build as soon as it finishes processing. External
+testers need Beta App Review first. A reviewer has no office to pair with,
+so point them at **Look around a demo office** on the pairing screen: it
+opens the canned office below, and nothing leaves the phone.
+
 ## Run against a canned office
 
-Launch with the `-mock` argument (or `GAWKBOT_MOCK=1`) to skip pairing and
-talk to `MockBroker`. The inbox opens on three questions (a blocking
+Tap **Look around a demo office** on the pairing screen, or launch with the
+`-mock` argument (or `GAWKBOT_MOCK=1`), to skip pairing and talk to
+`MockBroker`. The inbox opens on three questions (a blocking
 approval, a choice with a write-in option, and an approval from Hermes, a
 gateway agent running elsewhere); the Agents tab has a roster across every mood. Replies
 arrive a couple of seconds after you send or answer, typing dots first, and
