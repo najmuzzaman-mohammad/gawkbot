@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 
+import { prefersReducedMotion } from "../lib/orbAvatar";
 import {
   type BanterLine,
   banterScript,
@@ -158,6 +159,49 @@ export function useBanter(
     };
   }, [chatting, gangKey, latest]);
   return line;
+}
+
+/** How long the stage stays open for an arrival: the pop, then the flight. */
+export const ARRIVAL_MS = 1_650;
+
+/**
+ * The agent that just asked something, while the notch is closed: it pops
+ * into being under the notch and flies up into the ear (NotchArrival). One
+ * at a time; a second ask during a flight joins the gang without one. Nobody
+ * flies when the notch is open (the question card arrives instead) or for
+ * people who have asked for less motion.
+ */
+export function useArrival(
+  state: NotchState | null,
+  expanded: boolean,
+): NotchAgent | null {
+  const [arrival, setArrival] = useState<NotchAgent | null>(null);
+  const seen = useRef<Set<string> | null>(null);
+  const flying = useRef(false);
+  const latestExpanded = useLatest(expanded);
+  useEffect(() => {
+    if (!state) return;
+    const fresh = newAttentionIds(seen.current, state);
+    seen.current = new Set(state.attention.map((a) => a.id));
+    if (
+      fresh.length === 0 ||
+      flying.current ||
+      latestExpanded.current ||
+      prefersReducedMotion()
+    ) {
+      return;
+    }
+    const item = state.attention.find((a) => a.id === fresh[0]);
+    const who = state.agents.find((a) => a.slug === item?.from);
+    if (!who) return;
+    flying.current = true;
+    setArrival(who);
+    window.setTimeout(() => {
+      flying.current = false;
+      setArrival(null);
+    }, ARRIVAL_MS);
+  }, [state, latestExpanded]);
+  return expanded ? null : arrival;
 }
 
 /** Now and then, an agent peeks out from under the notch. Just for fun. */

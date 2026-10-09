@@ -77,6 +77,21 @@ describe("collapsed notch", () => {
     ).toBeInTheDocument();
   });
 
+  it("flies a new asker in under the notch before it joins the gang", () => {
+    const flyer = gang(BUSY_OFFICE.attention, BUSY_OFFICE.agents)[0];
+    renderNotch({ arrival: flyer });
+    expect(
+      screen.getByRole("img", {
+        name: `${flyer.name} flies in with a question`,
+      }),
+    ).toBeInTheDocument();
+    // Still in the air: the gang waits for it to land.
+    expect(screen.getByTestId("notch-gang").children).toHaveLength(1);
+    expect(
+      screen.queryByRole("img", { name: `${flyer.name} needs you` }),
+    ).toBeNull();
+  });
+
   it("renders as a pill on Macs without a notch", () => {
     renderNotch({ geometry: NO_NOTCH, state: QUIET_OFFICE, gang: [] });
     expect(screen.getByTestId("notch-shell").style.width).toBe("128px");

@@ -16,6 +16,7 @@ import {
   readGeometry,
 } from "./bridge";
 import {
+  useArrival,
   useAttentionSignals,
   useBanter,
   useNotchKeys,
@@ -110,8 +111,12 @@ export function NotchApp({
     peekEveryMs,
   );
 
+  const arrival = useArrival(state, expanded);
+  // Each answer that lands gets a clap from the lead in the open notch.
+  const [cheer, setCheer] = useState(0);
+
   // Room below the notch for the current act.
-  const stage = stageHeight({ line, peeker, expanded });
+  const stage = stageHeight({ line, peeker, arrival, expanded });
   useEffect(() => {
     postNative({ type: "stage", height: stage });
   }, [stage]);
@@ -128,7 +133,8 @@ export function NotchApp({
       setError(null);
       setAnswering((s) => new Set(s).add(id));
     },
-    onSuccess: () => play("sent"),
+    // The lead claps for it in the open notch (NotchHero), with the sound.
+    onSuccess: () => setCheer((n) => n + 1),
     onError: (err) =>
       setError(
         err instanceof Error ? err.message : "Could not send that answer",
@@ -149,8 +155,9 @@ export function NotchApp({
         ? answerWithText(target.requestId, text)
         : sendMessage(target.channel, text),
     onMutate: () => setError(null),
-    onSuccess: () => {
-      play("sent");
+    onSuccess: (_d, { target }) => {
+      if (target.kind === "answer") setCheer((n) => n + 1);
+      else play("sent");
       setComposer(null);
       refresh();
     },
@@ -246,6 +253,8 @@ export function NotchApp({
         boredom={bored}
         line={line}
         peeker={peeker}
+        arrival={arrival}
+        cheer={cheer}
         selectedId={selected?.id ?? null}
         answering={answering}
         composer={composer}

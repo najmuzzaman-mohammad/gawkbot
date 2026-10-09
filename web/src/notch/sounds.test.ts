@@ -12,6 +12,9 @@ const KINDS: SoundKind[] = [
   "babble",
   "listen_start",
   "listen_stop",
+  "whoosh",
+  "sparkle",
+  "clap",
 ];
 
 describe("sounds", () => {
@@ -61,6 +64,23 @@ describe("sounds", () => {
     const pop = recipe("sent").find((t) => t.type === "sine");
     expect(pop && pop.freqs[0] / pop.freqs[1]).toBeGreaterThan(2);
     expect(pop?.dur).toBeLessThanOrEqual(0.1);
+  });
+
+  it("gives the character's moves their own foley", () => {
+    // A whoosh is air, not a note: a swept bandpass on noise.
+    const air = recipe("whoosh").find((t) => t.type === "noise");
+    expect(air?.filter?.type).toBe("bandpass");
+    // The sparkle climbs: every bell starts higher than the one before.
+    const bells = recipe("sparkle").filter(
+      (t) => t.type === "sine" && t.dur >= 0.3,
+    );
+    expect(bells.length).toBe(4);
+    for (let i = 1; i < bells.length; i++) {
+      expect(bells[i].freqs[0]).toBeGreaterThan(bells[i - 1].freqs[0]);
+      expect(bells[i].start).toBeGreaterThan(bells[i - 1].start);
+    }
+    // Two claps, each a noise burst.
+    expect(recipe("clap").filter((t) => t.type === "noise").length).toBe(2);
   });
 
   it("maps approvals and questions to different sounds", () => {

@@ -32,6 +32,7 @@ export function NotchView(props: NotchViewProps) {
   const stage = stageHeight({
     line: props.line,
     peeker: props.peeker,
+    arrival: props.arrival,
     expanded,
   });
   return (
@@ -48,6 +49,7 @@ export function NotchView(props: NotchViewProps) {
         boredom={props.boredom}
         line={props.line}
         peeker={props.peeker}
+        arrival={props.arrival}
         expanded={expanded}
       />
       <div
@@ -66,6 +68,7 @@ export function NotchView(props: NotchViewProps) {
           boredom={props.boredom}
           line={props.line}
           peeker={props.peeker}
+          arrival={props.arrival}
           expanded={expanded}
         />
         {expanded ? <NotchPanel {...props} state={state} /> : null}

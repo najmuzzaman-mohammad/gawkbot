@@ -20,7 +20,7 @@ import type { Mood } from "./types";
 
 export type BotAct = "peeking" | "fidget" | "talking";
 
-const MOOD_FACE: Record<Mood, Face> = {
+export const MOOD_FACE: Record<Mood, Face> = {
   working: "working",
   idle: "sleepy",
   needs_you: "asking",

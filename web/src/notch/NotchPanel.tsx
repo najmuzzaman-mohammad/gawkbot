@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useRef } from "react";
 
 import { SHORTCUTS } from "./keys";
 import { NotchBot } from "./NotchBot";
+import { NotchHero } from "./NotchHero";
 import type { NotchAgent, NotchAttention, NotchState } from "./types";
 
 // The open notch: a glass panel that drops out of the camera housing.
@@ -40,6 +41,8 @@ export interface PanelProps {
   onToggleSound: () => void;
   /** Leave the widget for the full app; closing that window comes back here. */
   onOpenFull: () => void;
+  /** Bumped each time an answer lands; the lead claps for it. */
+  cheer?: number;
 }
 
 // One short tag per fact: who made the agent, then where it runs. Mirrors
@@ -319,14 +322,13 @@ export function NotchPanel(props: PanelProps) {
   const bySlug = new Map(state.agents.map((a) => [a.slug, a]));
   return (
     <div className="npanel">
-      <div className="nhead">
-        <NotchBot
-          slug={state.lead ?? "cos"}
-          avatar={bySlug.get(state.lead ?? "cos")?.avatar}
-          mood={state.mood}
-          size={34}
-          label=""
-        />
+      <NotchHero
+        slug={state.lead ?? "cos"}
+        avatar={bySlug.get(state.lead ?? "cos")?.avatar}
+        mood={state.mood}
+        focusId={selectedId}
+        cheer={props.cheer ?? 0}
+      >
         <div className="nhead-text">
           <small>{leadName}</small>
           {state.headline}
@@ -349,7 +351,7 @@ export function NotchPanel(props: PanelProps) {
         >
           {soundOn ? "🔊" : "🔈"}
         </button>
-      </div>
+      </NotchHero>
 
       <div className="nscroll">
         {state.attention.length > 0 ? (

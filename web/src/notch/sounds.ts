@@ -17,6 +17,9 @@
 //   peek          "yoo-hoo": a squeaky two-note call when an agent peeks out
 //   babble        gibberish: squeaky syllables while bored agents chat
 //   listen        a short whistle up / down as voice capture starts and stops
+//   whoosh        air rushing past as an agent flies in to the notch
+//   sparkle       a glockenspiel twinkle up and a shimmer: a bot is born
+//   clap          two quick claps: an answer landed, the bot is pleased
 //
 // Browsers (and WKWebView) keep an AudioContext suspended until a user
 // gesture unless the host allows it; the Mac app does (see notch_darwin.m).
@@ -31,7 +34,10 @@ export type SoundKind =
   | "peek"
   | "babble"
   | "listen_start"
-  | "listen_stop";
+  | "listen_stop"
+  | "whoosh"
+  | "sparkle"
+  | "clap";
 
 const STORAGE_KEY = "gawkbot.notch.sound";
 
@@ -409,6 +415,65 @@ const RECIPES: Record<SoundKind, (seed: number) => Tone[]> = {
       wobbleHold: true,
     },
   ],
+  // Air rushing past: noise through a bandpass that sweeps up and back down,
+  // with a soft low swoop under it so it has a body.
+  whoosh: () => [
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0,
+      dur: 0.62,
+      gain: 0.32,
+      attack: 0.22,
+      filter: { type: "bandpass", freqs: [500, 2600, 900], q: 1.6 },
+    },
+    {
+      type: "sine",
+      freqs: [180, 340, 220],
+      start: 0.06,
+      dur: 0.5,
+      gain: 0.18,
+      attack: 0.15,
+    },
+  ],
+  // A glockenspiel twinkle: a quick run up a major arpeggio, high and bell
+  // bright, over a shimmer of airy noise.
+  sparkle: () => [
+    ...bell(note(19), 0, 0.32, 0.22),
+    ...bell(note(23), 0.06, 0.32, 0.22),
+    ...bell(note(26), 0.12, 0.34, 0.22),
+    ...bell(note(31), 0.18, 0.6, 0.26),
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0.05,
+      dur: 0.6,
+      gain: 0.08,
+      attack: 0.1,
+      filter: { type: "highpass", freqs: [6000, 9000], q: 0.7 },
+    },
+  ],
+  // Two claps: each a short burst of bandpassed noise with a slap of body.
+  clap: () =>
+    [0, 0.17].flatMap((start) => [
+      {
+        type: "noise" as const,
+        freqs: [1],
+        start,
+        dur: 0.09,
+        gain: 0.5,
+        attack: 0.002,
+        filter: { type: "bandpass" as const, freqs: [1400, 1000], q: 1.2 },
+      },
+      {
+        type: "triangle" as const,
+        freqs: [220, 120],
+        start,
+        dur: 0.05,
+        gain: 0.25,
+        attack: 0.002,
+      },
+    ]),
 };
 
 /** The tones a sound is made of (exported for tests). */

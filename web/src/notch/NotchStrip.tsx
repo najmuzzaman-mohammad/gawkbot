@@ -1,4 +1,5 @@
 import type { BanterLine, Boredom } from "./antics";
+import { NotchArrival } from "./NotchArrival";
 import { NotchBot } from "./NotchBot";
 import type { NotchAgent, NotchGeometry, NotchState } from "./types";
 
@@ -10,6 +11,7 @@ import type { NotchAgent, NotchGeometry, NotchState } from "./types";
 
 export const STAGE_PEEK = 46;
 export const STAGE_CHAT = 92;
+export const STAGE_ARRIVE = 64;
 
 export interface StripProps {
   state: NotchState | null;
@@ -21,14 +23,17 @@ export interface StripProps {
   line: BanterLine | null;
   /** An agent peeking out just for fun. */
   peeker: NotchAgent | null;
+  /** An agent flying in with a question (useArrival). */
+  arrival?: NotchAgent | null;
   expanded: boolean;
 }
 
 export function stageHeight(
-  p: Pick<StripProps, "line" | "peeker" | "expanded">,
+  p: Pick<StripProps, "line" | "peeker" | "expanded" | "arrival">,
 ): number {
   if (p.expanded) return 0;
   if (p.line) return STAGE_CHAT;
+  if (p.arrival) return STAGE_ARRIVE;
   if (p.peeker) return STAGE_PEEK;
   return 0;
 }
@@ -38,10 +43,15 @@ const MAX_GANG = 4;
 export function NotchStrip({
   state,
   geometry,
-  gang,
+  gang: everyone,
   boredom,
+  arrival,
   expanded,
 }: StripProps) {
+  // An agent still flying in (NotchArrival) joins the gang when it lands.
+  const gang = arrival
+    ? everyone.filter((a) => a.slug !== arrival.slug)
+    : everyone;
   const lead = state?.agents.find((a) => a.is_lead);
   const count = state?.attention.length ?? 0;
   const bot = Math.max(14, Math.min(22, geometry.notchHeight - 10));
@@ -142,12 +152,22 @@ export function NotchStage({
   gang,
   line,
   peeker,
+  arrival,
   expanded,
 }: StripProps) {
   if (expanded) return null;
   const speaker = line ? gang.find((g) => g.slug === line.speaker) : undefined;
   return (
     <>
+      {arrival ? (
+        <NotchArrival
+          key={arrival.slug}
+          agent={arrival}
+          geometry={geometry}
+          width={geometry.notchWidth + 2 * geometry.earWidth}
+        />
+      ) : null}
+
       {peeker ? (
         <div
           className="notch-stage notch-peek"

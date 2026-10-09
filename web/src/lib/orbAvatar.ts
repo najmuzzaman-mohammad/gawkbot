@@ -16,6 +16,7 @@ import "../vendor/orb-mascot/core.js";
 
 import type { AvatarShape } from "../api/memberTypes";
 import type MascotClass from "../vendor/orb-mascot/core";
+import type { MascotOptions } from "../vendor/orb-mascot/core";
 import { AVATAR_SHAPES, type AvatarChoice, resolveAvatar } from "./blobAvatar";
 
 export type Mascot = InstanceType<typeof MascotClass>;
@@ -30,6 +31,25 @@ if (!host.Mascot) {
 
 /** The mascot class (vendor/orb-mascot/core.d.ts documents it). */
 export const Orb: typeof MascotClass = host.Mascot;
+
+/**
+ * Options the core reads that its bundled core.d.ts does not list yet: the
+ * extra shades (`Mascot.SHADES` at runtime) and the eye presets
+ * (`Mascot.EYES`). Both files are vendored unmodified, so the gap is
+ * bridged here rather than by editing the declaration.
+ */
+export type OrbShade = "flat" | "gradient" | "soft" | "glossy" | "rim";
+export type OrbEye = "round" | "pill" | "square" | "wide" | "tall";
+export type OrbFullOptions = Omit<MascotOptions, "shade"> & {
+  shade?: OrbShade;
+  eye?: OrbEye;
+};
+
+/** The mascot class, constructed with the full option set. */
+export const OrbFull = Orb as unknown as new (
+  svg: SVGSVGElement,
+  opts?: OrbFullOptions,
+) => Mascot;
 
 /** The orb's drawing box: everything is drawn in these viewBox units. */
 export const ORB_VIEWBOX = "-24 -24 248 248";
