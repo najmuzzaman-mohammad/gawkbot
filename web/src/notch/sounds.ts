@@ -21,6 +21,17 @@
 //   sparkle       a glockenspiel twinkle up and a shimmer: a bot is born
 //   clap          two quick claps: an answer landed, the bot is pleased
 //
+// The blind (blind.ts) has its own foley, a cartoon short's worth:
+//
+//   poof          a puff of smoke: the lead appears
+//   ratchet       the blind's ratchet clicking under a falling slide whistle
+//   thud          shoes hitting the floor
+//   strain        "nnngh!" holding the blind down as it tugs
+//   honk          a bicycle horn: thumbs-up for an answer
+//   rollup        the blind snapping up: a flutter of clicks and a thwack
+//   phew          a long, relieved exhale
+//   zip           a quick slide up as the lead zips back into the notch
+//
 // Browsers (and WKWebView) keep an AudioContext suspended until a user
 // gesture unless the host allows it; the Mac app does (see notch_darwin.m).
 // `unlock()` resumes it on the first gesture for everyone else.
@@ -37,7 +48,15 @@ export type SoundKind =
   | "listen_stop"
   | "whoosh"
   | "sparkle"
-  | "clap";
+  | "clap"
+  | "poof"
+  | "ratchet"
+  | "thud"
+  | "strain"
+  | "honk"
+  | "rollup"
+  | "phew"
+  | "zip";
 
 const STORAGE_KEY = "gawkbot.notch.sound";
 
@@ -474,6 +493,197 @@ const RECIPES: Record<SoundKind, (seed: number) => Tone[]> = {
         attack: 0.002,
       },
     ]),
+  poof: () => [
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0,
+      dur: 0.38,
+      gain: 0.42,
+      attack: 0.01,
+      filter: { type: "lowpass", freqs: [3200, 380], q: 0.8 },
+    },
+    {
+      type: "sine",
+      freqs: [190, 70],
+      start: 0,
+      dur: 0.2,
+      gain: 0.4,
+      attack: 0.004,
+    },
+  ],
+  // Ratchet clicks speeding up under a slide whistle falling.
+  ratchet: () => [
+    {
+      type: "sine",
+      freqs: [1250, 900, 420],
+      start: 0,
+      dur: 0.68,
+      gain: 0.3,
+      attack: 0.03,
+      wobble: 12,
+      wobbleRate: 8,
+      wobbleHold: true,
+    },
+    ...[0, 0.11, 0.2, 0.28, 0.35, 0.41, 0.46, 0.51, 0.55, 0.59, 0.63].map(
+      (start): Tone => ({
+        type: "noise",
+        freqs: [1],
+        start,
+        dur: 0.018,
+        gain: 0.35,
+        attack: 0.001,
+        filter: { type: "bandpass", freqs: [3400], q: 3 },
+      }),
+    ),
+  ],
+  thud: () => [
+    {
+      type: "sine",
+      freqs: [130, 52],
+      start: 0,
+      dur: 0.17,
+      gain: 0.7,
+      attack: 0.003,
+    },
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0,
+      dur: 0.06,
+      gain: 0.25,
+      attack: 0.002,
+      filter: { type: "lowpass", freqs: [900, 300], q: 0.7 },
+    },
+  ],
+  // "Nnngh!": a buzzy, strained hum that wavers, and a creak of the spring.
+  strain: () => [
+    {
+      type: "sawtooth",
+      freqs: [150, 172, 160],
+      start: 0,
+      dur: 0.42,
+      gain: 0.2,
+      attack: 0.04,
+      wobble: 9,
+      wobbleRate: 13,
+      wobbleHold: true,
+      filter: { type: "lowpass", freqs: [700, 1100, 650], q: 3 },
+    },
+    {
+      type: "triangle",
+      freqs: [340, 290, 330],
+      start: 0.05,
+      dur: 0.3,
+      gain: 0.1,
+      attack: 0.02,
+      wobble: 40,
+      wobbleRate: 30,
+      wobbleHold: true,
+    },
+  ],
+  // A bicycle horn: two reedy tones a third apart, squeezed once.
+  honk: () => [
+    {
+      type: "square",
+      freqs: [430, 440],
+      start: 0,
+      dur: 0.2,
+      gain: 0.16,
+      attack: 0.01,
+      filter: { type: "lowpass", freqs: [1600, 1200], q: 2 },
+    },
+    {
+      type: "square",
+      freqs: [545, 554],
+      start: 0,
+      dur: 0.2,
+      gain: 0.12,
+      attack: 0.01,
+      filter: { type: "lowpass", freqs: [1800, 1300], q: 2 },
+    },
+  ],
+  // The blind snapping up: a flutter of clicks getting faster, a whistle
+  // shooting up, and a wood-block thwack as it hits the roller.
+  rollup: () => [
+    {
+      type: "sine",
+      freqs: [380, 700, 1700],
+      start: 0,
+      dur: 0.36,
+      gain: 0.26,
+      attack: 0.02,
+    },
+    ...[0, 0.07, 0.13, 0.18, 0.22, 0.26, 0.29, 0.32, 0.345].map(
+      (start): Tone => ({
+        type: "noise",
+        freqs: [1],
+        start,
+        dur: 0.016,
+        gain: 0.32,
+        attack: 0.001,
+        filter: { type: "bandpass", freqs: [2600], q: 2.5 },
+      }),
+    ),
+    {
+      type: "sine",
+      freqs: [880, 620],
+      start: 0.38,
+      dur: 0.09,
+      gain: 0.55,
+      attack: 0.002,
+    },
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0.38,
+      dur: 0.04,
+      gain: 0.3,
+      attack: 0.001,
+      filter: { type: "bandpass", freqs: [1500], q: 1.5 },
+    },
+  ],
+  // A long, relieved exhale: breath through a closing bandpass, with a
+  // faint sighing whistle under it.
+  phew: () => [
+    {
+      type: "noise",
+      freqs: [1],
+      start: 0,
+      dur: 0.75,
+      gain: 0.22,
+      attack: 0.08,
+      filter: { type: "bandpass", freqs: [1900, 1100, 600], q: 1.4 },
+    },
+    {
+      type: "sine",
+      freqs: [820, 700, 480],
+      start: 0.05,
+      dur: 0.6,
+      gain: 0.07,
+      attack: 0.1,
+    },
+  ],
+  // A quick slide up, the lead zipping away, with a tiny pop at the top.
+  zip: () => [
+    {
+      type: "triangle",
+      freqs: [300, 700, 1900],
+      start: 0,
+      dur: 0.2,
+      gain: 0.32,
+      attack: 0.01,
+      filter: { type: "lowpass", freqs: [2500, 6000], q: 1 },
+    },
+    {
+      type: "sine",
+      freqs: [1500, 700],
+      start: 0.2,
+      dur: 0.07,
+      gain: 0.35,
+      attack: 0.003,
+    },
+  ],
 };
 
 /** The tones a sound is made of (exported for tests). */

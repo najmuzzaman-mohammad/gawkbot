@@ -27,10 +27,13 @@ static const CGFloat kEarWidth = 72.0;
 // equal to EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx:
 // a smaller window clips the composer and the shortcut footer.
 static const CGFloat kExpandedWidth = 460.0;
-static const CGFloat kExpandedHeight = 560.0;
-// Matches the .notch-shell CSS transition, so the panel shrinks only after
-// the page has finished animating closed.
-static const NSTimeInterval kCollapseDelay = 0.3;
+// Taller than the panel itself: the open notch is a roller blind the lead
+// holds down, standing on the bottom of this window (web/src/notch/blind.ts).
+static const CGFloat kExpandedHeight = 660.0;
+// Long enough for the blind to snap back up (blind.ts rolls it up in 0.38s)
+// before the window shrinks; the lead then gets its breath back on the
+// stage under the collapsed notch, which the page asks for itself.
+static const NSTimeInterval kCollapseDelay = 0.42;
 static const NSTimeInterval kHoverExitGrace = 0.25;
 static const NSTimeInterval kPeekDuration = 4.0;
 // While open, the pointer is also polled: tracking-area exit events are not
@@ -101,6 +104,9 @@ static const CGFloat kMaxStageHeight = 160.0;
 @property(nonatomic, strong) NSTimer *hoverPoll;
 @property(nonatomic, strong) NSDate *peekUntil;
 @property(nonatomic) CGFloat stageHeight;
+// Between telling the page to close and shrinking the window: the page's
+// stage requests wait, so they cannot cut the closing animation short.
+@property(nonatomic) BOOL collapsePending;
 // Opened from the keyboard (the global hotkey): stays open until Esc or the
 // hotkey again, even with the pointer elsewhere.
 @property(nonatomic) BOOL pinned;
@@ -330,6 +336,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	self.expanded = expanded;
 	NSUInteger gen = ++self.generation;
 	if (expanded) {
+		self.collapsePending = NO;
 		// Grow the window first so the page has room to animate open.
 		self.content.coversAll = YES;
 		[self.panel setFrame:[self frameExpanded:YES] display:YES];
@@ -354,11 +361,13 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	self.keyboardActive = NO;
 	self.peekUntil = nil;
 	NSTimeInterval delay = animate ? kCollapseDelay : 0;
+	self.collapsePending = YES;
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 		// A newer expand/collapse superseded this one.
 		if (gen != self.generation || self.expanded) {
 			return;
 		}
+		self.collapsePending = NO;
 		[self.panel setFrame:[self frameExpanded:NO] display:YES];
 	});
 }
@@ -463,7 +472,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	} else if ([type isEqualToString:@"stage"]) {
 		CGFloat h = [body[@"height"] respondsToSelector:@selector(doubleValue)] ? [body[@"height"] doubleValue] : 0;
 		self.stageHeight = MAX(0, MIN(kMaxStageHeight, h));
-		if (!self.expanded) {
+		if (!self.expanded && !self.collapsePending) {
 			[self.panel setFrame:[self frameExpanded:NO] display:YES];
 		}
 	} else if ([type isEqualToString:@"voice"]) {

@@ -1,3 +1,4 @@
+import { type BlindPhase, NotchBlind, VALANCE } from "./NotchBlind";
 import { NotchPanel, type PanelProps } from "./NotchPanel";
 import {
   NotchStage,
@@ -7,17 +8,24 @@ import {
 } from "./NotchStrip";
 import type { NotchGeometry } from "./types";
 
-// Presentational notch: the strip (always) and the panel (when open), inside
-// one black shell that grows out of the camera housing. NotchApp owns the
-// data, timers, sounds and the native bridge.
+// Presentational notch: the strip (always), and when open a roller blind
+// that a character pulls down out of it with the panel printed on the
+// fabric (NotchBlind). The black shell grows a valance for the roller.
+// NotchApp owns the data, timers, sounds and the native bridge.
 
+/** Keep equal to kExpandedWidth / kExpandedHeight in notch_darwin.m. */
 export const EXPANDED_WIDTH = 460;
-export const EXPANDED_HEIGHT = 560;
+export const EXPANDED_HEIGHT = 660;
 
 export type NotchViewProps = Omit<StripProps, "expanded"> &
   Omit<PanelProps, "state"> & {
     geometry: NotchGeometry;
     expanded: boolean;
+    /** Bumped when an answer lands: the lead gives a thumbs-up. */
+    cheer?: number;
+    /** Where the blind's short is (NotchApp sizes the stage from it). */
+    blindPhase?: BlindPhase;
+    onBlindPhase?: (phase: BlindPhase) => void;
   };
 
 export function collapsedWidth(g: NotchGeometry): number {
@@ -33,8 +41,10 @@ export function NotchView(props: NotchViewProps) {
     line: props.line,
     peeker: props.peeker,
     arrival: props.arrival,
+    relief: props.blindPhase === "relief" || props.blindPhase === "closing",
     expanded,
   });
+  const lead = state?.agents.find((a) => a.is_lead);
   return (
     <div
       className="notch-root"
@@ -56,7 +66,7 @@ export function NotchView(props: NotchViewProps) {
         className={`notch-shell ${expanded ? "is-expanded" : "is-collapsed"}`}
         style={{
           width,
-          height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight,
+          height: geometry.notchHeight + (expanded ? VALANCE : 0),
         }}
         data-testid="notch-shell"
         data-mood={state?.mood ?? "idle"}
@@ -71,8 +81,19 @@ export function NotchView(props: NotchViewProps) {
           arrival={props.arrival}
           expanded={expanded}
         />
-        {expanded ? <NotchPanel {...props} state={state} /> : null}
       </div>
+      <NotchBlind
+        expanded={expanded}
+        width={EXPANDED_WIDTH}
+        height={EXPANDED_HEIGHT}
+        notchHeight={geometry.notchHeight}
+        leadSlug={lead?.slug ?? state?.lead ?? "cos"}
+        leadAvatar={lead?.avatar}
+        cheer={props.cheer ?? 0}
+        onPhase={props.onBlindPhase}
+      >
+        <NotchPanel {...props} state={state} />
+      </NotchBlind>
     </div>
   );
 }

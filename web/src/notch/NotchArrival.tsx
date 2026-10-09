@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { orbLook } from "../lib/orbAvatar";
-import { useOrbCharacter } from "../lib/useOrbCharacter";
+import { Toon } from "../lib/toon/toon";
 import { play } from "./sounds";
 import type { NotchAgent, NotchGeometry } from "./types";
 
@@ -27,15 +27,13 @@ export function NotchArrival({
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = orbLook(agent.slug, agent.avatar);
-  const char = useOrbCharacter(host, {
-    body: look.body,
-    color: look.color,
-    size: SIZE,
-  });
 
   useEffect(() => {
-    const c = char.current;
-    if (!c) return;
+    const el = host.current;
+    if (!el) return;
+    const c = new Toon(el, { body: look.body, color: look.color, size: SIZE });
+    c.root.style.left = "0";
+    c.root.style.top = "0";
     const startX = width / 2 - SIZE / 2;
     const startY = 22;
     c.placeAt(startX, startY);
@@ -49,8 +47,11 @@ export function NotchArrival({
         via: { x: earX + 18, y: startY + 18 },
       });
     }, POP_MS);
-    return () => window.clearTimeout(t);
-  }, [char, width, geometry.earWidth, geometry.notchHeight]);
+    return () => {
+      window.clearTimeout(t);
+      c.destroy();
+    };
+  }, [look.body, look.color, width, geometry.earWidth, geometry.notchHeight]);
 
   return (
     <div

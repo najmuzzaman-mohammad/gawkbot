@@ -15,6 +15,14 @@ const KINDS: SoundKind[] = [
   "whoosh",
   "sparkle",
   "clap",
+  "poof",
+  "ratchet",
+  "thud",
+  "strain",
+  "honk",
+  "rollup",
+  "phew",
+  "zip",
 ];
 
 describe("sounds", () => {
@@ -81,6 +89,28 @@ describe("sounds", () => {
     }
     // Two claps, each a noise burst.
     expect(recipe("clap").filter((t) => t.type === "noise").length).toBe(2);
+  });
+
+  it("gives the blind its foley: a ratchet down, a flutter up", () => {
+    // Coming down: the whistle falls while the ratchet clicks speed up.
+    const down = recipe("ratchet");
+    const [whistle] = down;
+    expect(whistle.freqs[whistle.freqs.length - 1]).toBeLessThan(
+      whistle.freqs[0],
+    );
+    const clicks = down.filter((t) => t.type === "noise").map((t) => t.start);
+    expect(clicks.length).toBeGreaterThan(6);
+    const gaps = clicks.slice(1).map((s, i) => s - clicks[i]);
+    expect(gaps[gaps.length - 1]).toBeLessThan(gaps[0]);
+    // Going up: the whistle rises and it ends on the roller's thwack.
+    const up = recipe("rollup");
+    expect(up[0].freqs[up[0].freqs.length - 1]).toBeGreaterThan(
+      up[0].freqs[0] * 3,
+    );
+    const last = Math.max(...up.map((t) => t.start));
+    expect(up.some((t) => t.start === last && t.type === "sine")).toBe(true);
+    // Phew is breath: noise first.
+    expect(recipe("phew")[0].type).toBe("noise");
   });
 
   it("maps approvals and questions to different sounds", () => {
