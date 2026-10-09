@@ -88,5 +88,6 @@ export function readGeometry(search: string): NotchGeometry {
     notchWidth: num(params, "nw", 0),
     notchHeight: num(params, "nh", 32),
     earWidth: num(params, "ew", 64),
+    nativeGlass: params.get("glass") === "1",
   };
 }

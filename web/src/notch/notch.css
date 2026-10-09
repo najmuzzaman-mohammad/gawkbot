@@ -39,22 +39,17 @@
     sans-serif;
   --notch-mono: "SF Mono", ui-monospace, Menlo, monospace;
 
-  /* Glass buttons (see .nbtn). Only scalars here: a var() inside a custom
-     property resolves where it is declared, so the composite paint stacks
-     live in the rule and each variant just swaps these. */
-  --nb-t: 255 255 255; /* body tint */
-  --nb-l: 255 255 255; /* caustic light */
-  --nb-a1: 0.16; /* body opacity, top */
-  --nb-a2: 0.05; /* body opacity, bottom */
-  --nb-edge: 0 0 0; /* lower edge shade */
-  --nb-ink: var(--notch-text);
-  /* The recommended answer: white glass with near-black ink. At its
-     faintest stop (0.70) over the sheet bottom #0a0a0c the ink is 9.3:1. */
-  --nb-mono: 255 255 255;
-  --nb-mono-l: 255 255 255;
-  --nb-mono-edge: 0 0 0;
-  --nb-red-ink: #ff9a90;
-  --nb-red-l: 255 120 110;
+  /* Controls on the sheet: plain fills, the way the system draws them on
+     its own glass. One step up on hover, one more when pressed. */
+  --notch-control: rgba(255, 255, 255, 0.1);
+  --notch-control-hover: rgba(255, 255, 255, 0.16);
+  --notch-control-press: rgba(255, 255, 255, 0.22);
+  --notch-danger-ink: #ff9a90;
+  /* The tint the page lays over native glass (?glass=1), top to bottom:
+     enough to hold the light text over a bright desktop, not enough to
+     hide the material. */
+  --notch-tint-top: rgba(16, 16, 20, 0.34);
+  --notch-tint-bottom: rgba(8, 8, 10, 0.5);
 }
 
 html,
@@ -128,6 +123,20 @@ kbd {
     0 0 0 0.5px var(--notch-hairline),
     0 24px 60px rgba(0, 0, 0, 0.55),
     0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* On the Mac the sheet's material is the system's own glass, drawn behind
+   this page by the app (notch_darwin.m). The page then paints only the
+   black strip and a tint, and leaves the shadow to the window. */
+.has-native-glass .notch-shell.is-expanded {
+  background: linear-gradient(
+    180deg,
+    var(--notch-bg) 0,
+    var(--notch-bg) var(--notch-strip-h, 32px),
+    var(--notch-tint-top) calc(var(--notch-strip-h, 32px) + 26px),
+    var(--notch-tint-bottom) 100%
+  );
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
 }
 
 /* ── Strip ────────────────────────────────────────────────────────────── */
@@ -538,119 +547,60 @@ kbd {
   margin-top: 10px;
 }
 
-/* Answer buttons are lenses, not paint chips: a body of the tint at low
-   opacity so the panel shows through it, a gloss where light enters at
-   the top left, a caustic where it gathers at the bottom, a rim that is
-   bright where light enters and leaves (::before), and a soft bloom in
-   the tint. Neutral glass is clear, the recommended answer is tinted
-   glass, a refusal is clear glass with red ink. */
+/* Answer buttons are plain: a quiet fill for an option, a solid light
+   one for the answer we recommend, red ink for a refusal. No gloss, no
+   bloom; the glass is the sheet, not each control. */
 .nbtn {
   display: inline-flex;
   align-items: center;
   height: 28px;
   padding: 0 12px;
   border-radius: 999px;
-  border: none;
   font: 600 12.5px / 1 var(--notch-font);
 }
 .nbtn,
 .nicon {
-  position: relative;
-  isolation: isolate;
-  color: var(--nb-ink);
-  background:
-    radial-gradient(
-      90% 70% at 30% 0%,
-      rgba(255, 255, 255, 0.38),
-      rgba(255, 255, 255, 0) 70%
-    ),
-    radial-gradient(
-      80% 60% at 50% 115%,
-      rgb(var(--nb-l) / 0.55),
-      rgb(var(--nb-l) / 0) 70%
-    ),
-    linear-gradient(
-      180deg,
-      rgb(var(--nb-t) / var(--nb-a1)),
-      rgb(var(--nb-t) / var(--nb-a2))
-    );
-  -webkit-backdrop-filter: blur(10px) saturate(200%) brightness(1.1);
-  backdrop-filter: blur(10px) saturate(200%) brightness(1.1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22),
-    inset 0 -1.5px 2px rgb(var(--nb-edge) / 0.22),
-    0 8px 20px -8px rgb(var(--nb-t) / 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.2);
-  text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
+  border: none;
+  color: var(--notch-text);
+  background: var(--notch-control);
   cursor: pointer;
-}
-.nbtn::before,
-.nicon::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  padding: 1px;
-  pointer-events: none;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.9),
-    rgba(255, 255, 255, 0.12) 30%,
-    rgba(255, 255, 255, 0) 55%,
-    rgba(255, 255, 255, 0.55)
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
 }
 .nbtn:hover:not(:disabled),
 .nicon:hover {
-  --nb-a1: 0.24;
-  --nb-a2: 0.1;
+  background: var(--notch-control-hover);
 }
-.nbtn:active:not(:disabled) {
-  transform: scale(0.96);
+.nbtn:active:not(:disabled),
+.nicon:active {
+  background: var(--notch-control-press);
+  transform: scale(0.97);
 }
 .nbtn:disabled {
   opacity: 0.45;
   cursor: default;
 }
 .nbtn.is-primary {
-  --nb-t: var(--nb-mono);
-  --nb-l: var(--nb-mono-l);
-  --nb-edge: var(--nb-mono-edge);
-  --nb-a1: 0.86;
-  --nb-a2: 0.7;
-  --nb-ink: var(--notch-accent-ink);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: var(--notch-accent-ink);
+  background: var(--notch-accent);
 }
-.nbtn.is-primary:hover:not(:disabled) {
-  --nb-a1: 0.94;
-  --nb-a2: 0.8;
+.nbtn.is-primary:hover:not(:disabled),
+.nbtn.is-primary:active:not(:disabled) {
+  background: var(--notch-text);
 }
 .nbtn.is-danger {
-  --nb-ink: var(--nb-red-ink);
-  --nb-l: var(--nb-red-l);
+  color: var(--notch-danger-ink);
 }
 .nbtn.is-primary kbd {
   color: inherit;
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(0, 0, 0, 0.14);
   box-shadow: none;
 }
 .nbtn.is-quiet {
   background: transparent;
   color: var(--notch-text-secondary);
-  box-shadow: none;
-  text-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
-.nbtn.is-quiet::before {
-  content: none;
+.nbtn.is-quiet:hover:not(:disabled) {
+  background: var(--notch-control);
+  color: var(--notch-text);
 }
 
 .ntag {

@@ -91,6 +91,10 @@ static const CGFloat kMaxStageHeight = 160.0;
 @property(nonatomic, strong) GawkNotchPanel *panel;
 @property(nonatomic, strong) GawkNotchContentView *content;
 @property(nonatomic, strong) WKWebView *webView;
+// The open panel's material: real system glass behind the (transparent)
+// web view. A page cannot blur the desktop behind its own window, so the
+// sheet's glass has to be native. Hidden while collapsed.
+@property(nonatomic, strong) NSView *glass;
 @property(nonatomic, copy) NSString *officeURL;
 @property(nonatomic) CGFloat notchWidth;
 @property(nonatomic) CGFloat notchHeight;
@@ -181,7 +185,9 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	NSString *base = [self.officeURL hasSuffix:@"/"]
 		? [self.officeURL substringToIndex:self.officeURL.length - 1]
 		: self.officeURL;
-	NSString *s = [NSString stringWithFormat:@"%@/notch.html?nw=%.0f&nh=%.0f&ew=%.0f",
+	// glass=1 tells the page the sheet's material is drawn natively, so it
+	// paints a light tint instead of an opaque sheet.
+	NSString *s = [NSString stringWithFormat:@"%@/notch.html?nw=%.0f&nh=%.0f&ew=%.0f&glass=1",
 		base, self.notchWidth, self.notchHeight, kEarWidth];
 	return [NSURL URLWithString:s];
 }
@@ -232,6 +238,9 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	// Transparent: only the page's black .notch-shell paints; the rest of
 	// the panel shows the desktop through it.
 	[self.webView setValue:@NO forKey:@"drawsBackground"];
+	self.glass = [self makeGlass];
+	self.glass.hidden = YES;
+	[self.content addSubview:self.glass];
 	[self.content addSubview:self.webView];
 	self.content.hoverOwner = self;
 	self.content.stripHeight = self.notchHeight;
@@ -326,6 +335,96 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	[self.webView loadRequest:[NSURLRequest requestWithURL:[self pageURL]]];
 }
 
+#pragma mark Glass
+
+// Matches --notch-radius in web/src/notch/notch.css.
+static const CGFloat kGlassRadius = 22.0;
+// Matches the .notch-shell height transition, so the glass grows with the
+// sheet the page draws on it.
+static const NSTimeInterval kGlassGrow = 0.36;
+
+// A mask for the fallback material: square at the top (it sits under the
+// black strip), rounded at the bottom.
+static NSImage *GawkBottomRoundedMask(CGFloat radius) {
+	CGFloat edge = radius * 2 + 1;
+	NSImage *image = [NSImage imageWithSize:NSMakeSize(edge, edge)
+	                                flipped:NO
+	                         drawingHandler:^BOOL(NSRect rect) {
+		NSBezierPath *path = [NSBezierPath bezierPath];
+		[path moveToPoint:NSMakePoint(NSMinX(rect), NSMaxY(rect))];
+		[path lineToPoint:NSMakePoint(NSMaxX(rect), NSMaxY(rect))];
+		[path lineToPoint:NSMakePoint(NSMaxX(rect), NSMinY(rect) + radius)];
+		[path appendBezierPathWithArcWithCenter:NSMakePoint(NSMaxX(rect) - radius, NSMinY(rect) + radius)
+		                                 radius:radius startAngle:0 endAngle:270 clockwise:YES];
+		[path lineToPoint:NSMakePoint(NSMinX(rect) + radius, NSMinY(rect))];
+		[path appendBezierPathWithArcWithCenter:NSMakePoint(NSMinX(rect) + radius, NSMinY(rect) + radius)
+		                                 radius:radius startAngle:270 endAngle:180 clockwise:YES];
+		[path closePath];
+		[[NSColor blackColor] setFill];
+		[path fill];
+		return YES;
+	}];
+	image.capInsets = NSEdgeInsetsMake(radius, radius, radius, radius);
+	image.resizingMode = NSImageResizingModeStretch;
+	return image;
+}
+
+// The system's own glass where it exists (macOS 26), the dark behind-window
+// blur everywhere else.
+- (NSView *)makeGlass {
+	if (@available(macOS 26.0, *)) {
+		NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:NSZeroRect];
+		glass.cornerRadius = kGlassRadius;
+		// A dark tint keeps the panel's light text readable over a bright
+		// desktop; the glass still bends and blurs what is behind it.
+		glass.tintColor = [NSColor colorWithWhite:0.06 alpha:0.55];
+		return glass;
+	}
+	NSVisualEffectView *blur = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+	if (@available(macOS 10.14, *)) {
+		blur.material = NSVisualEffectMaterialHUDWindow;
+	} else {
+		blur.material = NSVisualEffectMaterialDark;
+	}
+	blur.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+	blur.state = NSVisualEffectStateActive;
+	blur.appearance = [NSAppearance appearanceNamed:NSAppearanceNameVibrantDark];
+	blur.maskImage = GawkBottomRoundedMask(kGlassRadius);
+	return blur;
+}
+
+// The glass at rest: the strip's size, under the notch.
+- (NSRect)glassFrameCollapsed {
+	NSRect bounds = self.content.bounds;
+	CGFloat w = self.notchWidth + 2 * kEarWidth;
+	return NSMakeRect(round(NSMidX(bounds) - w / 2), NSMaxY(bounds) - self.notchHeight, w, self.notchHeight);
+}
+
+- (void)showGlass:(BOOL)show {
+	NSUInteger gen = self.generation;
+	if (show) {
+		// The window has just grown: start at the strip and grow with the page.
+		self.glass.frame = [self glassFrameCollapsed];
+		self.glass.hidden = NO;
+		[NSAnimationContext runAnimationGroup:^(NSAnimationContext *ctx) {
+			ctx.duration = kGlassGrow;
+			ctx.timingFunction = [CAMediaTimingFunction functionWithControlPoints:0.32 :1.0 :0.42 :1.0];
+			self.glass.animator.frame = self.content.bounds;
+		}];
+		return;
+	}
+	[NSAnimationContext runAnimationGroup:^(NSAnimationContext *ctx) {
+		ctx.duration = kCollapseDelay;
+		ctx.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseIn];
+		self.glass.animator.frame = [self glassFrameCollapsed];
+	} completionHandler:^{
+		// A newer expand superseded this collapse.
+		if (gen == self.generation && !self.expanded) {
+			self.glass.hidden = YES;
+		}
+	}];
+}
+
 #pragma mark Expand / collapse
 
 - (void)tellPageExpanded:(BOOL)expanded {
@@ -341,6 +440,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 		// Grow the window first so the page has room to animate open.
 		self.content.coversAll = YES;
 		[self.panel setFrame:[self frameExpanded:YES] display:YES];
+		[self showGlass:YES];
 		[self tellPageExpanded:YES];
 		// Key, so one keystroke answers an agent. The panel is
 		// non-activating: the app you were in stays the active app.
@@ -354,6 +454,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	[self stopVoice];
 	self.pinned = NO;
 	self.content.coversAll = NO;
+	[self showGlass:NO];
 	[self tellPageExpanded:NO];
 	if (self.panel.isKeyWindow) {
 		// Hand the keyboard back to whatever app the human was in. Ordering a

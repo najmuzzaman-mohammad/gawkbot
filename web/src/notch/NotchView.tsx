@@ -37,8 +37,9 @@ export function NotchView(props: NotchViewProps) {
   });
   return (
     <div
-      className="notch-root"
+      className={`notch-root${geometry.nativeGlass ? " has-native-glass" : ""}`}
       style={{
+        ["--notch-strip-h" as string]: `${geometry.notchHeight}px`,
         height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight + stage,
       }}
     >

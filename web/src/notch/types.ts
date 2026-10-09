@@ -78,4 +78,9 @@ export interface NotchGeometry {
   notchHeight: number;
   /** Width of each "ear" that grows out beside the notch. */
   earWidth: number;
+  /**
+   * The host draws the open sheet's material (real system glass behind
+   * the page), so the page paints a tint instead of an opaque sheet.
+   */
+  nativeGlass?: boolean;
 }

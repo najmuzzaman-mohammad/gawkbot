@@ -4,7 +4,7 @@ package main
 
 /*
 #cgo CFLAGS: -x objective-c -fobjc-arc
-#cgo LDFLAGS: -framework Cocoa -framework WebKit -framework Carbon -framework Speech -framework AVFoundation
+#cgo LDFLAGS: -framework Cocoa -framework WebKit -framework Carbon -framework Speech -framework AVFoundation -framework QuartzCore
 #include <stdlib.h>
 
 void GawkNotchStart(const char *officeURL);

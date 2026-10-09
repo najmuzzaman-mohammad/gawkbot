@@ -90,8 +90,8 @@ export function useAttentionSignals(
     trackFirstSeen(firstSeen.current, state.attention, Date.now());
     // A new question nudges (a sound, and the notch peeks open) at most
     // once in five minutes (nudge.ts); in between, the count on the notch
-    // goes up and that is all.
-    if (fresh.length > 0 && claimNudge()) {
+    // goes up and that is all. Play never spends this turn.
+    if (fresh.length > 0 && claimNudge("ask")) {
       const item = state.attention.find((a) => a.id === fresh[0]);
       play(soundForAttention(item?.kind ?? ""));
       postNative({
@@ -136,8 +136,8 @@ export function useBanter(
     let timer = 0;
     let round = 0;
     const runScript = () => {
-      // Chatter is a nudge like any other: one every five minutes.
-      if (!claimNudge()) {
+      // Chatter is play: it waits five minutes after anything else.
+      if (!claimNudge("play")) {
         setLine(null);
         timer = window.setTimeout(runScript, nudgeWaitMs() + 1_000);
         return;
@@ -203,7 +203,7 @@ export function useArrival(
     }
     const item = state.attention.find((a) => a.id === fresh[0]);
     const who = state.agents.find((a) => a.slug === item?.from);
-    if (!(who && claimNudge())) return;
+    if (!(who && claimNudge("ask"))) return;
     flying.current = true;
     setArrival(who);
     window.setTimeout(() => {
@@ -231,7 +231,7 @@ export function usePeeks(
         const { agents: a, attention: att, blocked: b } = latest.current;
         const busy = new Set(gangOf(att, a).map((g) => g.slug));
         const who = b ? null : pickPeeker(a, busy, Math.random);
-        if (who && claimNudge()) {
+        if (who && claimNudge("play")) {
           setPeeker(who);
           play("peek");
           hide = window.setTimeout(() => setPeeker(null), PEEK_DURATION_MS);

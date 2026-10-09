@@ -3,9 +3,10 @@
 // Agents nudging is the point of the notch, and too much of it is the
 // fastest way to get it switched off. So every way an agent can come out
 // on its own (the peek that opens the notch for a new question, the flight
-// into the ear, a random peek, bored chatter under the notch) draws on one
-// budget: one nudge every five minutes. Anything that arrives in between
-// still updates the count on the notch, silently.
+// into the ear, a random peek, bored chatter under the notch) is rationed
+// to one every five minutes. Anything that arrives in between still
+// updates the count on the notch, silently. Playing never spends a real
+// question's turn; a real question does quiet the playing.
 
 /** At most one nudge in this long. */
 export const NUDGE_EVERY_MS = 5 * 60_000;
@@ -17,26 +18,41 @@ export const NUDGE_EVERY_MS = 5 * 60_000;
  */
 export const SAME_NUDGE_MS = 2_000;
 
-let last = Number.NEGATIVE_INFINITY;
+/** What is asking to come out: a real question, or an agent just playing. */
+export type NudgeKind = "ask" | "play";
+
+let lastAsk = Number.NEGATIVE_INFINITY;
+let lastAny = Number.NEGATIVE_INFINITY;
 
 /**
- * Asks to nudge the human now. True at most once per NUDGE_EVERY_MS, plus
- * anything else claimed within SAME_NUDGE_MS of that one.
+ * Asks to nudge the human now.
+ *
+ * A real question ("ask": its sound, the peek, the flight) gets through at
+ * most once per NUDGE_EVERY_MS, counted against other questions only, so
+ * play can never use up a question's turn. Play (a random peek, bored
+ * chatter) waits NUDGE_EVERY_MS after anything at all. Claims within
+ * SAME_NUDGE_MS of a granted one of the same kind are the same nudge.
  */
-export function claimNudge(now: number = Date.now()): boolean {
+export function claimNudge(
+  kind: NudgeKind = "ask",
+  now: number = Date.now(),
+): boolean {
+  const last = kind === "ask" ? lastAsk : lastAny;
   const since = now - last;
-  if (since >= 0 && since < SAME_NUDGE_MS) return true;
+  if (kind === "ask" && since >= 0 && since < SAME_NUDGE_MS) return true;
   if (since < NUDGE_EVERY_MS) return false;
-  last = now;
+  if (kind === "ask") lastAsk = now;
+  lastAny = now;
   return true;
 }
 
-/** How long until the next nudge is allowed; 0 when one is allowed now. */
+/** How long until play may come out again; 0 when it may now. */
 export function nudgeWaitMs(now: number = Date.now()): number {
-  return Math.max(0, NUDGE_EVERY_MS - (now - last));
+  return Math.max(0, NUDGE_EVERY_MS - (now - lastAny));
 }
 
-/** Forget the last nudge (tests). */
+/** Forget every nudge (tests). */
 export function resetNudges(): void {
-  last = Number.NEGATIVE_INFINITY;
+  lastAsk = Number.NEGATIVE_INFINITY;
+  lastAny = Number.NEGATIVE_INFINITY;
 }
