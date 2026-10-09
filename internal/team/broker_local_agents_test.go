@@ -196,3 +196,51 @@ func TestAdoptLocalAgentsRejectsEmptyRequest(t *testing.T) {
 		t.Fatalf("status = %d, want 400", rec.Code)
 	}
 }
+
+// The notch lists each running session by what it is about, and asks on a
+// timer, so the scan behind it is cached for a few seconds.
+func TestLocalSessionsAreListedAndCached(t *testing.T) {
+	calls := 0
+	prev := localSessionsFn
+	localSessionsFn = func(context.Context) []agentdetect.Session {
+		calls++
+		return []agentdetect.Session{{ID: "claude-code:a", Tool: "claude-code", ToolName: "Claude Code", Title: "Fix the flaky checkout test", Project: "shop", Active: true}}
+	}
+	localSessions.mu.Lock()
+	localSessions.list = nil
+	localSessions.mu.Unlock()
+	t.Cleanup(func() {
+		localSessionsFn = prev
+		localSessions.mu.Lock()
+		localSessions.list = nil
+		localSessions.mu.Unlock()
+	})
+
+	b := newTestBroker(t)
+	fetch := func() localSessionsResponse {
+		rec := httptest.NewRecorder()
+		b.handleLocalSessions(rec, httptest.NewRequest(http.MethodGet, "/agents/local/sessions", nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		var resp localSessionsResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		return resp
+	}
+	first := fetch()
+	if len(first.Sessions) != 1 || first.Sessions[0].Title != "Fix the flaky checkout test" {
+		t.Fatalf("sessions = %+v", first.Sessions)
+	}
+	fetch()
+	if calls != 1 {
+		t.Fatalf("scan ran %d times for two polls, want 1", calls)
+	}
+
+	rec := httptest.NewRecorder()
+	b.handleLocalSessions(rec, httptest.NewRequest(http.MethodPost, "/agents/local/sessions", nil))
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST status = %d, want 405", rec.Code)
+	}
+}

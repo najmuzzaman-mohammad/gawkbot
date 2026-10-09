@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/nex-crm/wuphf/internal/agentdetect"
 	"github.com/nex-crm/wuphf/internal/provider"
@@ -17,6 +19,7 @@ import (
 //
 //	GET  /agents/local        — scan; one entry per agent found on the machine
 //	POST /agents/local/adopt  — {"ids":[...]} or {"all":true}
+//	GET  /agents/local/sessions — what each running session is about
 //
 // Owner-only: neither route is on the joined-human allowlist, because the
 // scan describes the host machine and adoption grows the roster.
@@ -24,6 +27,52 @@ import (
 // localAgentScanFn is swapped by tests; production scans the real machine.
 var localAgentScanFn = func(ctx context.Context) []agentdetect.Detection {
 	return agentdetect.NewScanner().Scan(ctx)
+}
+
+// localSessionsFn is swapped by tests; production reads the real machine.
+// Each session is named by what it is doing (agentdetect.Sessions), so the
+// notch can tell four open Claude Code windows apart.
+var localSessionsFn = func(ctx context.Context) []agentdetect.Session {
+	scanner := agentdetect.NewScanner()
+	return scanner.Sessions(scanner.Scan(ctx), time.Now())
+}
+
+// The notch asks on a timer; the scan lists processes and reads log tails,
+// so its answer is kept this long.
+const localSessionsTTL = 8 * time.Second
+
+type localSessionsCache struct {
+	mu   sync.Mutex
+	at   time.Time
+	list []agentdetect.Session
+}
+
+var localSessions localSessionsCache
+
+type localSessionsResponse struct {
+	Sessions []agentdetect.Session `json:"sessions"`
+}
+
+// handleLocalSessions lists the agent sessions running on this machine,
+// each named by what it is about. Owner-only like the rest of this file:
+// it describes the host machine and what the human is working on.
+func (b *Broker) handleLocalSessions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	localSessions.mu.Lock()
+	if localSessions.list == nil || time.Since(localSessions.at) > localSessionsTTL {
+		list := localSessionsFn(r.Context())
+		if list == nil {
+			list = []agentdetect.Session{}
+		}
+		localSessions.list = list
+		localSessions.at = time.Now()
+	}
+	list := localSessions.list
+	localSessions.mu.Unlock()
+	writeJSON(w, http.StatusOK, localSessionsResponse{Sessions: list})
 }
 
 type localAgentEntry struct {

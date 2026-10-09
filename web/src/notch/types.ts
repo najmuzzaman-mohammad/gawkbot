@@ -84,3 +84,21 @@ export interface NotchGeometry {
    */
   nativeGlass?: boolean;
 }
+
+/**
+ * One agent session running on this Mac, named by what it is about.
+ * Mirrors agentdetect.Session (internal/agentdetect/sessions.go).
+ */
+export interface NotchSession {
+  id: string;
+  /** Which tool runs it: "claude-code", "codex". The row shows its logo. */
+  tool: string;
+  tool_name: string;
+  /** What the session is about. */
+  title: string;
+  /** The folder it is working in. */
+  project?: string;
+  updated_at: string;
+  /** It wrote something in the last couple of minutes. */
+  active: boolean;
+}

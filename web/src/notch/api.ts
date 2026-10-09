@@ -1,5 +1,5 @@
 import { get, post } from "../api/client";
-import type { NotchState } from "./types";
+import type { NotchSession, NotchState } from "./types";
 
 export const NOTCH_QUERY_KEY = ["notch-state"] as const;
 
@@ -20,4 +20,22 @@ export function answerWithText(id: string, customText: string) {
 /** Posts the human's message into a DM, exactly as the app's composer does. */
 export function sendMessage(channel: string, content: string) {
   return post("/messages", { from: "you", channel, content });
+}
+
+export const NOTCH_SESSIONS_KEY = ["notch-sessions"] as const;
+
+/**
+ * The agent sessions running on this Mac, each named by what it is doing.
+ * Owner-only on the broker; an office that cannot answer (an older one, or
+ * a joined human) simply has none to show.
+ */
+export async function getLocalSessions(): Promise<NotchSession[]> {
+  try {
+    const res = await get<{ sessions?: NotchSession[] }>(
+      "/agents/local/sessions",
+    );
+    return res.sessions ?? [];
+  } catch {
+    return [];
+  }
 }

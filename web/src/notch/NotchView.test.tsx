@@ -119,6 +119,51 @@ describe("open notch", () => {
     });
   });
 
+  it("lists each session on this Mac by what it is doing, with its tool's logo", () => {
+    renderNotch({
+      expanded: true,
+      sessions: [
+        {
+          id: "claude-code:a",
+          tool: "claude-code",
+          tool_name: "Claude Code",
+          title: "Fix the flaky checkout test",
+          project: "shop",
+          updated_at: new Date().toISOString(),
+          active: true,
+        },
+        {
+          id: "codex:b",
+          tool: "codex",
+          tool_name: "Codex CLI",
+          title: "Add rate limits to the login route",
+          project: "api",
+          updated_at: new Date(Date.now() - 12 * 60_000).toISOString(),
+          active: false,
+        },
+      ],
+    });
+    const first = screen.getByTestId("notch-session-claude-code:a");
+    // The words are what the session is about; the tool is the logo.
+    expect(first).toHaveTextContent("Fix the flaky checkout test");
+    expect(first).toHaveTextContent("shop");
+    expect(first).toHaveTextContent("working");
+    expect(first).not.toHaveTextContent("Claude Code");
+    expect(
+      first.querySelector('[role="img"][aria-label="Claude Code"] svg'),
+    ).not.toBeNull();
+    const second = screen.getByTestId("notch-session-codex:b");
+    expect(second).toHaveTextContent("12m");
+    expect(
+      second.querySelector('[role="img"][aria-label="Codex CLI"] svg'),
+    ).not.toBeNull();
+  });
+
+  it("shows no session list when nothing is running", () => {
+    renderNotch({ expanded: true, sessions: [] });
+    expect(screen.queryByLabelText("Running on this Mac")).toBeNull();
+  });
+
   it("keeps the agent list folded away until asked for", async () => {
     const props = renderNotch({ expanded: true });
     expect(screen.queryByTestId("notch-agent-gemini")).toBeNull();

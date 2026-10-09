@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useLayoutEffect, useRef } from "react";
 
+import { RuntimeLogo } from "../components/onboarding/RuntimeLogos";
 import { SHORTCUTS } from "./keys";
 import { NotchBot } from "./NotchBot";
 import { NotchHero } from "./NotchHero";
@@ -7,6 +8,7 @@ import type {
   NotchAgent,
   NotchAttention,
   NotchBrief,
+  NotchSession,
   NotchState,
 } from "./types";
 
@@ -46,6 +48,8 @@ export interface PanelProps {
   onToggleSound: () => void;
   /** Leave the widget for the full app; closing that window comes back here. */
   onOpenFull: () => void;
+  /** Agent sessions running on this Mac, each named by what it is doing. */
+  sessions?: NotchSession[];
   /** The agent list is folded away until asked for. */
   agentsOpen: boolean;
   onAgentsOpen: (open: boolean) => void;
@@ -299,6 +303,55 @@ function Brief({ brief }: { brief: NotchBrief }) {
   );
 }
 
+// The logo says which tool a session runs in, so the words can say what
+// the session is about.
+const TOOL_LOGO: Record<string, string> = {
+  "claude-code": "Claude Code",
+  codex: "Codex",
+};
+
+/** "now", "4m", "2h": how long since a session last did something. */
+export function sinceShort(iso: string, now: number): string {
+  const ms = now - Date.parse(iso);
+  if (!Number.isFinite(ms) || ms < 60_000) return "now";
+  const min = Math.floor(ms / 60_000);
+  return min < 60 ? `${min}m` : `${Math.floor(min / 60)}h`;
+}
+
+function Sessions({ sessions }: { sessions: NotchSession[] }) {
+  const now = Date.now();
+  return (
+    <section aria-label="Running on this Mac">
+      <h3 className="nsection">Running on this Mac · {sessions.length}</h3>
+      <ul className="nsessions">
+        {sessions.map((s) => (
+          <li
+            key={s.id}
+            className={`nsession${s.active ? " is-active" : ""}`}
+            data-testid={`notch-session-${s.id}`}
+          >
+            <span
+              className="nsession-tool"
+              role="img"
+              aria-label={s.tool_name}
+              title={s.tool_name}
+            >
+              <RuntimeLogo label={TOOL_LOGO[s.tool] ?? s.tool_name} />
+            </span>
+            <span className="nsession-title">{s.title}</span>
+            {s.project ? (
+              <span className="nsession-project">{s.project}</span>
+            ) : null}
+            <span className="nsession-when">
+              {s.active ? "working" : sinceShort(s.updated_at, now)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Composer({
   composer,
   sending,
@@ -468,6 +521,10 @@ export function NotchPanel(props: PanelProps) {
               />
             ))}
           </section>
+        ) : null}
+
+        {props.sessions && props.sessions.length > 0 ? (
+          <Sessions sessions={props.sessions} />
         ) : null}
 
         <section aria-label="Agents">

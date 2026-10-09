@@ -5,8 +5,10 @@ import { boredom as boredomOf, gang as gangOf } from "./antics";
 import {
   answerRequest,
   answerWithText,
+  getLocalSessions,
   getNotchState,
   NOTCH_QUERY_KEY,
+  NOTCH_SESSIONS_KEY,
   sendMessage,
 } from "./api";
 import {
@@ -85,6 +87,14 @@ export function NotchApp({
     refetchIntervalInBackground: true,
   });
   const state = query.data ?? null;
+  // What is running on this Mac, by what each session is about. Only
+  // while the notch is open: it is a list to read, not a signal.
+  const sessions = useQuery({
+    queryKey: NOTCH_SESSIONS_KEY,
+    queryFn: getLocalSessions,
+    enabled: expanded,
+    refetchInterval: expanded ? 10_000 : false,
+  });
   const attention = useMemo(() => state?.attention ?? [], [state]);
   const agents = useMemo(() => state?.agents ?? [], [state]);
   const selected = attention.find((a) => a.id === selectedId) ?? attention[0];
@@ -277,6 +287,7 @@ export function NotchApp({
         onKeyboard={(active) => postNative({ type: "keyboard", active })}
         onToggleSound={toggleSound}
         onOpenFull={openFull}
+        sessions={sessions.data}
         agentsOpen={agentsOpen}
         onAgentsOpen={setAgentsOpen}
       />
