@@ -39,7 +39,7 @@ jobs:
       - name: Refuse auto-release from a non-app tree
         run: |
           missing=0
-          for path in go.mod cmd/wuphf/main.go npm/package.json; do
+          for path in go.mod cmd/wuphf/main.go; do
             if [ ! -e "$path" ]; then
               echo "::error::missing ${path}; refusing to tag this tree"
               missing=1

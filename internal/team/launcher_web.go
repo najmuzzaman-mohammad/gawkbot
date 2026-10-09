@@ -172,7 +172,7 @@ func (l *Launcher) LaunchWeb(webPort int) error {
 	if !l.noOpen {
 		// Wait for the web server to actually accept connections before
 		// triggering the browser. Otherwise users on cold starts (and PH
-		// visitors clicking through `npx wuphf` for the first time) hit
+		// visitors opening the app for the first time) hit
 		// ERR_CONNECTION_REFUSED before the listener is ready. 5s is a
 		// generous ceiling: in practice the listener is up in milliseconds.
 		// Skip the open if the listener never came up — opening a dead URL

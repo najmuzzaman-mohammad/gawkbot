@@ -6,19 +6,19 @@ gawkbot is an independent, source-available project under the Sustainable Use Li
 
 ## Key facts
 
-- Install: `npx gawkbot@latest` (needs Claude Code, Codex CLI, or Opencode signed in)
+- Install: download the Mac app from https://gawk.bot/download.html (a signed .dmg from GitHub Releases) and build the iPhone app from `apps/ios`; needs Claude Code, Codex CLI, or Opencode signed in
 - Price: free, no account, no gawkbot cloud service, no seats, no usage fees
 - Runs on: your machine, with your keys; local models keep everything offline
 - Models: Claude Code (default), Codex CLI, Opencode, local models, Hermes Bot, OpenClaw
 - Bot computers: each bot gets a sandbox on your machine or a cloud computer, with its own directory and tool allowlist
 - Approvals: per action on every external write, never a blanket grant
-- Platforms: macOS and Windows desktop apps, Linux via the CLI
+- Platforms: Mac app with an iPhone companion; the open-source web app can be built from source on other systems
 - Licence: Sustainable Use License (read, modify, self-host; do not resell as a hosted product)
 
 ## Pages
 
-- [Home](https://gawk.bot/): what gawkbot does, install command, permissions posture, price
+- [Home](https://gawk.bot/): what gawkbot does, how to get it, permissions posture, price
 - [Open source Grok Bot: gawkbot vs Grok Bot](https://gawk.bot/open-source-grok-bot.html): row-by-row comparison, where each is better, other open source alternatives, FAQ
-- [Download](https://gawk.bot/download.html): macOS and Windows desktop installers
+- [Download](https://gawk.bot/download.html): the Mac app (.dmg) and how to get the iPhone app
 - [Source on GitHub](https://github.com/najmuzzaman-mohammad/gawkbot): code, README with claim-status table, issues
-- [npm package](https://www.npmjs.com/package/gawkbot)
+- [Releases](https://github.com/najmuzzaman-mohammad/gawkbot/releases): every Mac app build and CLI binary

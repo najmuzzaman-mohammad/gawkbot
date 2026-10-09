@@ -135,10 +135,10 @@ func printSubcommandHelp(sub string) {
 		printTaskHelp()
 		return
 	case "upgrade":
-		fmt.Fprintln(os.Stderr, "gawkbot upgrade — check npm for a newer gawkbot and show the changelog")
+		fmt.Fprintln(os.Stderr, "gawkbot upgrade — check for a newer gawkbot and show the changelog")
 		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Compares the running build against the latest published `gawkbot` on npm.")
-		fmt.Fprintln(os.Stderr, "When behind, prints the upgrade command and a conventional-commit-grouped")
+		fmt.Fprintln(os.Stderr, "Compares the running build against the latest published gawkbot release.")
+		fmt.Fprintln(os.Stderr, "When behind, points at the latest Mac app and prints a conventional-commit-grouped")
 		fmt.Fprintln(os.Stderr, "changelog from the GitHub compare API.")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Usage:")
@@ -272,7 +272,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  %s              Launch multi-bot team (web UI on :%d)\n", appName, *webPort)
 		fmt.Fprintf(os.Stderr, "  %s --legacy-tui  Launch with legacy tmux TUI instead\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s init         Install the latest CLI and save setup defaults\n", appName)
-		fmt.Fprintf(os.Stderr, "  %s upgrade      Check npm for a newer version and show the changelog\n", appName)
+		fmt.Fprintf(os.Stderr, "  %s upgrade      Check for a newer version and show the changelog\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s shred        Burn the workspace down and reopen onboarding\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s import --from legacy  Import from a running external orchestrator (auto-detect)\n", appName)
 		fmt.Fprintf(os.Stderr, "  %s log          Show what your bots actually did (task receipts)\n", appName)
@@ -494,12 +494,10 @@ func main() {
 		// through, the binary would exit silently on first launch.
 	}
 
-	// No startup upgrade notice here: the npm shim (npm/bin/wuphf.js, PR
-	// #273) already prints a one-line stderr hint pointing at
-	// `npm install -g gawkbot@latest` before exec'ing the binary, and
-	// transparently downloads & runs a newer release when one exists. The
-	// in-app web banner is the additive surface for that flow; the shim
-	// owns the CLI surface.
+	// No startup upgrade notice here: people get gawkbot as the Mac app,
+	// and the in-app web banner plus `gawkbot upgrade` are the surfaces that
+	// point at the latest release. A stderr nag on every launch would only
+	// reach contributors running the bare binary.
 
 	// TUI mode: tmux-based interface
 	if tuiMode {
@@ -556,7 +554,7 @@ func runUpgradeCheck(args []string) {
 
 	// Always do a fresh fetch — the user typed `gawkbot upgrade` because they
 	// want ground truth. Each upstream call gets its own deadline so a slow
-	// npm response doesn't eat the GitHub-compare budget and trigger a
+	// release lookup does not eat the GitHub-compare budget and trigger a
 	// misleading "could not fetch changelog" warning.
 	checkCtx, cancelCheck := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelCheck()
@@ -565,14 +563,14 @@ func runUpgradeCheck(args []string) {
 	// JSON output: emit the full Result (including IsDevBuild and an
 	// `error` field for scripted callers) and exit non-zero on failure
 	// so `gawkbot upgrade --json | jq …` distinguishes "no upgrade" from
-	// "couldn't reach npm". Dev builds are exempt — they don't depend on
-	// npm reachability, so a network blip shouldn't trip exit-code-aware
+	// "could not reach GitHub". Dev builds are exempt — they do not depend on
+	// GitHub reachability, so a network blip shouldn't trip exit-code-aware
 	// pipelines on contributor machines.
 	if *jsonOut {
 		_ = json.NewEncoder(os.Stdout).Encode(upgradeJSONOutput(res, err))
 		// Exit non-zero when we couldn't actually compare — distinguishes
-		// "no upgrade" from "couldn't reach npm" for `gawkbot upgrade --json | jq …`
-		// pipelines. Dev builds are exempt: they don't depend on npm
+		// "no upgrade" from "could not reach GitHub" for `gawkbot upgrade --json | jq …`
+		// pipelines. Dev builds are exempt: they do not depend on GitHub
 		// reachability so a network blip on a contributor box shouldn't
 		// trip exit-code-aware scripts.
 		if !res.IsDevBuild && (err != nil || res.Latest == "") {
@@ -584,13 +582,13 @@ func runUpgradeCheck(args []string) {
 	if res.IsDevBuild {
 		fmt.Printf("You are running a dev build of %s (built from source, version=%q).\n",
 			appName, res.Current)
-		fmt.Println("Skipping npm comparison — this binary did not come from npm.")
+		fmt.Println("Skipping the release comparison — this binary did not come from a release.")
 		return
 	}
 
 	if err != nil || res.Latest == "" {
 		fmt.Printf("You are running %s v%s.\n", appName, strings.TrimPrefix(res.Current, "v"))
-		fmt.Fprintf(os.Stderr, "warning: could not reach npm registry to check for updates (%v)\n", err)
+		fmt.Fprintf(os.Stderr, "warning: could not reach GitHub to check for updates (%v)\n", err)
 		os.Exit(1)
 	}
 
@@ -601,10 +599,10 @@ func runUpgradeCheck(args []string) {
 	}
 
 	fmt.Printf("Update available: v%s → v%s\n", strings.TrimPrefix(res.Current, "v"), strings.TrimPrefix(res.Latest, "v"))
-	fmt.Printf("Run: %s\n", res.UpgradeCommand)
+	fmt.Println(res.UpgradeCommand)
 	fmt.Printf("Diff: %s\n\n", res.CompareURL)
 
-	// Fresh deadline for the GitHub call so a slow npm earlier doesn't
+	// Fresh deadline for the GitHub call so a slow release lookup earlier doesn't
 	// shrink the budget here.
 	clCtx, cancelCL := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancelCL()
