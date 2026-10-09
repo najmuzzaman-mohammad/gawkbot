@@ -333,6 +333,14 @@ code, kbd { font-family: var(--font-mono); }
   color: var(--text);
 }
 .btn svg { width: 18px; height: 18px; }
+/* A platform that is not out yet: reads as a button, does nothing. */
+.btn-soon { cursor: default; color: var(--text-2); }
+.btn-soon:hover, .btn-soon:active { transform: none; }
+.soon-pill {
+  font-size: 0.72em; font-weight: 600; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 999px;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
 
 /* The copyable install command */
 .cmd {
