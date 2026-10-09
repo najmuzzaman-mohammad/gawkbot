@@ -12,8 +12,6 @@ import type { NotchAgent, NotchGeometry, NotchState } from "./types";
 export const STAGE_PEEK = 46;
 export const STAGE_CHAT = 92;
 export const STAGE_ARRIVE = 64;
-/** The lead gets its breath back under the notch after the blind snaps up. */
-export const STAGE_RELIEF = 104;
 
 export interface StripProps {
   state: NotchState | null;
@@ -31,12 +29,9 @@ export interface StripProps {
 }
 
 export function stageHeight(
-  p: Pick<StripProps, "line" | "peeker" | "expanded" | "arrival"> & {
-    relief?: boolean;
-  },
+  p: Pick<StripProps, "line" | "peeker" | "expanded" | "arrival">,
 ): number {
   if (p.expanded) return 0;
-  if (p.relief) return STAGE_RELIEF;
   if (p.line) return STAGE_CHAT;
   if (p.arrival) return STAGE_ARRIVE;
   if (p.peeker) return STAGE_PEEK;

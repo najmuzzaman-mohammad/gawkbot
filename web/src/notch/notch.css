@@ -39,30 +39,22 @@
     sans-serif;
   --notch-mono: "SF Mono", ui-monospace, Menlo, monospace;
 
-  /* The blind: canvas and ink, a 1930s title card. */
-  --blind-cloth: #f6e6c3;
-  --blind-card: #fcf3df;
-  --blind-card-hi: #fff9ea;
-  --blind-weave: rgba(120, 84, 40, 0.06);
-  --blind-fold: rgba(110, 70, 30, 0.14);
-  --blind-roll-shade: rgba(33, 20, 15, 0.28);
-  --blind-cast: rgba(0, 0, 0, 0.45);
-  --blind-ink: #21140f;
-  --blind-ink-2: #6a4e39;
-  --blind-ink-3: #b29676;
-  --blind-red: #c9402c;
-  --blind-red-hi: #dc4f39;
-  --blind-red-lo: #a3301f;
-  --blind-red-ink: #fff4dd;
-  --blind-blue: #2f6fb4;
-  --blind-amber: #f4c64a;
-  --blind-wood: #9a5a31;
-  --blind-wood-hi: #c98a55;
-  --blind-wood-lo: #6d3a1d;
-  --blind-brass: #e0ad45;
-  --blind-vignette: rgba(60, 30, 10, 0.42);
-  --blind-title:
-    "Rockwell", "American Typewriter", "Roboto Slab", Georgia, serif;
+  /* Glass buttons (see .nbtn). Only scalars here: a var() inside a custom
+     property resolves where it is declared, so the composite paint stacks
+     live in the rule and each variant just swaps these. */
+  --nb-t: 255 255 255; /* body tint */
+  --nb-l: 255 255 255; /* caustic light */
+  --nb-a1: 0.16; /* body opacity, top */
+  --nb-a2: 0.05; /* body opacity, bottom */
+  --nb-edge: 0 0 0; /* lower edge shade */
+  --nb-ink: var(--notch-text);
+  /* The recommended answer: white glass with near-black ink. At its
+     faintest stop (0.70) over the sheet bottom #0a0a0c the ink is 9.3:1. */
+  --nb-mono: 255 255 255;
+  --nb-mono-l: 255 255 255;
+  --nb-mono-edge: 0 0 0;
+  --nb-red-ink: #ff9a90;
+  --nb-red-l: 255 120 110;
 }
 
 html,
@@ -310,167 +302,85 @@ kbd {
   background: var(--mood-done);
 }
 
-/* ── The blind (NotchBlind.tsx) ──────────────────────────────────────────
-
-   The open notch is a roller blind pulled down out of the camera housing,
-   and the panel is printed on it: warm canvas, brown-black ink, a slab
-   title like a 1930s title card. Cards and buttons are inked and cast a
-   hard offset shadow the way a cel does; pressing one pushes it into its
-   shadow. Colour is for meaning: poster red for the answer we recommend,
-   blue for an agent somewhere else, amber for "holding up work". */
-
-.nblind-layer {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-.nblind {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  filter: drop-shadow(0 10px 18px var(--blind-cast));
-}
-.nblind-layer[data-phase="open"] .nblind {
-  pointer-events: auto;
-}
-/* Rolled up into the valance: nothing of the blind is left to see. */
-.nblind-layer[data-phase="closed"] .nblind,
-.nblind-layer[data-phase="relief"] .nblind {
-  visibility: hidden;
-}
-.nblind-cloth {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  clip-path: inset(0 0 calc(100% - var(--drop, 0px)) 0);
-  color: var(--blind-ink);
-  background:
-    linear-gradient(180deg, var(--blind-roll-shade), transparent 22px),
-    linear-gradient(
-      90deg,
-      var(--blind-fold) 0,
-      transparent 7%,
-      transparent 93%,
-      var(--blind-fold) 100%
-    ),
-    repeating-linear-gradient(
-      90deg,
-      var(--blind-weave) 0 1px,
-      transparent 1px 4px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      var(--blind-weave) 0 1px,
-      transparent 1px 5px
-    ),
-    var(--blind-cloth);
-  box-shadow:
-    inset 2.5px 0 0 var(--blind-ink),
-    inset -2.5px 0 0 var(--blind-ink);
-}
-/* The weighted slat at the bottom, and the pull ring the lead hangs on. */
-.nblind-bar {
-  position: absolute;
-  left: -7px;
-  right: -7px;
-  top: calc(var(--drop, 0px) - 7px);
-  height: 13px;
-  border-radius: 7px;
-  background: linear-gradient(
-    180deg,
-    var(--blind-wood-hi),
-    var(--blind-wood) 60%,
-    var(--blind-wood-lo)
-  );
-  box-shadow:
-    0 0 0 2.5px var(--blind-ink),
-    0 4px 0 -1px var(--blind-cast);
-}
-.nblind-cord {
-  position: absolute;
-  left: 50%;
-  top: 13px;
-  width: 3px;
-  height: 6px;
-  margin-left: -1.5px;
-  background: var(--blind-ink);
-}
-.nblind-ring {
-  position: absolute;
-  left: 50%;
-  top: 17px;
-  width: 15px;
-  height: 15px;
-  margin-left: -7.5px;
-  border-radius: 50%;
-  border: 3.5px solid var(--blind-brass);
-  box-shadow:
-    0 0 0 1.5px var(--blind-ink),
-    inset 0 0 0 1.5px var(--blind-ink);
-}
-.nblind-cast {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-/* The print: grain, a vignette and a flicker over the fabric, so the
-   blind reads as a frame of 1930s film rather than a stylesheet. The
-   grain is a turbulence tile that jumps on twos. */
-.nblind-cloth::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      120% 90% at 50% 45%,
-      transparent 55%,
-      var(--blind-vignette) 100%
-    ),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  background-size:
-    100% 100%,
-    140px 140px;
-  mix-blend-mode: multiply;
-  opacity: 0.55;
-}
+/* ── Panel ────────────────────────────────────────────────────────────── */
 
 .npanel {
-  height: 100%;
-  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 14px 18px 22px;
+  padding: 2px 16px 12px;
   gap: 10px;
 }
 .nhead {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 2px 0 8px;
-  border-bottom: 2px solid var(--blind-ink);
-  box-shadow:
-    0 3px 0 -1px var(--blind-cloth),
-    0 4px 0 0 var(--blind-ink);
-  margin-bottom: 4px;
+  gap: 12px;
+  padding: 6px 2px 2px;
 }
+/* The lead's stage: a strip of night sky behind the header, the lead as a
+   character standing in it (NotchHero.tsx). The sky fades out at the edges
+   so it reads as depth in the sheet, not a box. */
+.nhero {
+  position: relative;
+  z-index: 0;
+  min-height: 84px;
+  margin: 0 -16px;
+  padding: 4px 16px 0 104px;
+}
+.nhero-sky {
+  position: absolute;
+  z-index: -1;
+  inset: -8px 0 -6px;
+  pointer-events: none;
+  background: radial-gradient(
+    120px 70px at 58px 50%,
+    var(--notch-glass-strong),
+    transparent 70%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent,
+    var(--notch-bg) 22%,
+    var(--notch-bg) 70%,
+    transparent
+  );
+}
+.nhero-stage {
+  position: absolute;
+  left: 30px;
+  top: 10px;
+  width: 56px;
+  height: 56px;
+}
+
 .nhead-text {
   flex: 1;
   min-width: 0;
-  font: 700 19px / 1.15 var(--blind-title);
-  letter-spacing: -0.01em;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 .nhead-text small {
   display: block;
-  margin-bottom: 2px;
-  font: 700 10.5px / 1 var(--notch-font);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--blind-red);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--notch-text-tertiary);
+}
+.nicon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+.nicon-wide {
+  width: auto;
+  padding: 0 12px;
+  font: 600 12px var(--notch-font);
 }
 
 .nscroll {
@@ -481,52 +391,37 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 0 -6px;
-  padding: 2px 6px 4px;
+  margin: 0 -4px;
+  padding: 0 4px;
 }
 .nscroll::-webkit-scrollbar {
   display: none;
 }
 .nsection {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 0 6px;
-  font: 700 10.5px / 1 var(--notch-font);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--blind-ink-2);
-}
-.nsection::after {
-  content: "";
-  flex: 1;
-  height: 2px;
-  background: var(--blind-ink-3);
-  border-radius: 1px;
+  margin: 4px 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--notch-text-tertiary);
 }
 
-/* A card: inked, on a hard shadow. */
-.nq,
-.nagents,
-.ncompose {
-  border-radius: 14px;
-  background: var(--blind-card);
-  box-shadow:
-    0 0 0 2px var(--blind-ink),
-    3px 3px 0 2px var(--blind-ink);
-}
 .nq {
   display: flex;
   gap: 12px;
   align-items: flex-start;
   padding: 12px;
-  margin: 0 4px 12px 0;
+  margin-bottom: 8px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow:
+    inset 0 0 0 0.5px var(--notch-hairline),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .nq.is-selected {
-  background: var(--blind-card-hi);
+  background: var(--notch-glass-hover);
   box-shadow:
-    0 0 0 2px var(--blind-ink),
-    4px 4px 0 2px var(--blind-red);
+    inset 0 0 0 1px rgba(255, 214, 10, 0.45),
+    inset 0 1px 0 var(--notch-specular),
+    0 6px 20px rgba(0, 0, 0, 0.3);
 }
 .nq-body {
   flex: 1;
@@ -538,142 +433,174 @@ kbd {
   flex-wrap: wrap;
   gap: 6px;
   font-size: 12px;
-  color: var(--blind-ink-2);
+  color: var(--notch-text-secondary);
 }
 .nq-from b {
-  color: var(--blind-ink);
-  font-weight: 700;
+  color: var(--notch-text);
+  font-weight: 600;
 }
 .nq-text {
-  margin-top: 4px;
+  margin-top: 3px;
   font-size: 13.5px;
-  line-height: 1.4;
+  line-height: 1.38;
   overflow-wrap: anywhere;
 }
 /* The decision brief: what the asker knew, in a quieter voice. */
 .nq-context {
   margin: 6px 0 0;
   padding-left: 10px;
-  border-left: 2.5px solid var(--blind-ink-3);
+  border-left: 2px solid var(--notch-hairline);
   font-size: 12.5px;
   line-height: 1.4;
-  color: var(--blind-ink-2);
+  color: var(--notch-text-secondary);
   overflow-wrap: anywhere;
 }
 .nq-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 11px;
+  gap: 6px;
+  margin-top: 10px;
 }
 
-/* Buttons: inked lozenges on their shadow; they sink into it when pressed. */
+/* Answer buttons are lenses, not paint chips: a body of the tint at low
+   opacity so the panel shows through it, a gloss where light enters at
+   the top left, a caustic where it gathers at the bottom, a rim that is
+   bright where light enters and leaves (::before), and a soft bloom in
+   the tint. Neutral glass is clear, the recommended answer is tinted
+   glass, a refusal is clear glass with red ink. */
+.nbtn {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: none;
+  font: 600 12.5px / 1 var(--notch-font);
+}
 .nbtn,
 .nicon {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  font: 700 12.5px / 1 var(--notch-font);
-  color: var(--blind-ink);
-  background: var(--blind-card);
+  isolation: isolate;
+  color: var(--nb-ink);
+  background:
+    radial-gradient(
+      90% 70% at 30% 0%,
+      rgba(255, 255, 255, 0.38),
+      rgba(255, 255, 255, 0) 70%
+    ),
+    radial-gradient(
+      80% 60% at 50% 115%,
+      rgb(var(--nb-l) / 0.55),
+      rgb(var(--nb-l) / 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--nb-t) / var(--nb-a1)),
+      rgb(var(--nb-t) / var(--nb-a2))
+    );
+  -webkit-backdrop-filter: blur(10px) saturate(200%) brightness(1.1);
+  backdrop-filter: blur(10px) saturate(200%) brightness(1.1);
   box-shadow:
-    0 0 0 2px var(--blind-ink),
-    2px 2px 0 2px var(--blind-ink);
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22),
+    inset 0 -1.5px 2px rgb(var(--nb-edge) / 0.22),
+    0 8px 20px -8px rgb(var(--nb-t) / 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
   cursor: pointer;
+}
+.nbtn::before,
+.nicon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.12) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.55)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
 }
 .nbtn:hover:not(:disabled),
 .nicon:hover {
-  background: var(--blind-card-hi);
-  transform: translate(-1px, -1px);
-  box-shadow:
-    0 0 0 2px var(--blind-ink),
-    3px 3px 0 2px var(--blind-ink);
+  --nb-a1: 0.24;
+  --nb-a2: 0.1;
 }
-.nbtn:active:not(:disabled),
-.nicon:active {
-  transform: translate(2px, 2px);
-  box-shadow: 0 0 0 2px var(--blind-ink);
+.nbtn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 .nbtn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 .nbtn.is-primary {
-  color: var(--blind-red-ink);
-  background: var(--blind-red);
+  --nb-t: var(--nb-mono);
+  --nb-l: var(--nb-mono-l);
+  --nb-edge: var(--nb-mono-edge);
+  --nb-a1: 0.86;
+  --nb-a2: 0.7;
+  --nb-ink: var(--notch-accent-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 .nbtn.is-primary:hover:not(:disabled) {
-  background: var(--blind-red-hi);
+  --nb-a1: 0.94;
+  --nb-a2: 0.8;
 }
 .nbtn.is-danger {
-  color: var(--blind-red);
+  --nb-ink: var(--nb-red-ink);
+  --nb-l: var(--nb-red-l);
+}
+.nbtn.is-primary kbd {
+  color: inherit;
+  background: rgba(0, 0, 0, 0.16);
+  box-shadow: none;
 }
 .nbtn.is-quiet {
   background: transparent;
+  color: var(--notch-text-secondary);
   box-shadow: none;
-  color: var(--blind-ink-2);
-  text-decoration: underline 2px transparent;
-  text-underline-offset: 3px;
+  text-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
-.nbtn.is-quiet:hover:not(:disabled) {
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-  text-decoration-color: var(--blind-ink-2);
-}
-.nicon {
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  font-size: 13px;
-}
-.nicon-wide {
-  width: auto;
-  padding: 0 12px;
-  font: 700 12px var(--notch-font);
-}
-
-.npanel kbd {
-  color: var(--blind-ink);
-  background: var(--blind-cloth);
-  box-shadow:
-    0 0 0 1.5px var(--blind-ink),
-    1px 1.5px 0 1.5px var(--blind-ink);
-}
-.nbtn.is-primary kbd {
-  color: var(--blind-red-ink);
-  background: var(--blind-red-lo);
-  box-shadow: 0 0 0 1.5px var(--blind-ink);
+.nbtn.is-quiet::before {
+  content: none;
 }
 
 .ntag {
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 2px 7px;
   border-radius: 999px;
   white-space: nowrap;
-  color: var(--blind-ink-2);
-  box-shadow: inset 0 0 0 1.5px var(--blind-ink-3);
+  color: var(--notch-text-secondary);
+  background: var(--notch-glass);
 }
 .ntag.is-elsewhere {
-  color: var(--blind-blue);
-  box-shadow: inset 0 0 0 1.5px var(--blind-blue);
+  color: var(--mood-working);
+  background: rgba(100, 210, 255, 0.12);
 }
 .ntag.is-blocking {
-  color: var(--blind-ink);
-  background: var(--blind-amber);
-  box-shadow: inset 0 0 0 1.5px var(--blind-ink);
+  color: var(--mood-needs-you);
+  background: rgba(255, 214, 10, 0.12);
 }
 
 .nagents {
   display: flex;
   flex-direction: column;
-  margin: 0 4px 6px 0;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
   overflow: hidden;
 }
 .nagent {
@@ -689,19 +616,19 @@ kbd {
   cursor: pointer;
 }
 .nagent + .nagent {
-  box-shadow: inset 0 1.5px 0 var(--blind-ink-3);
+  box-shadow: inset 0 0.5px 0 var(--notch-hairline);
 }
 .nagent:hover {
-  background: var(--blind-card-hi);
+  background: var(--notch-glass);
 }
 .nagent-name {
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 .nagent-detail {
   flex: 1;
   min-width: 0;
-  color: var(--blind-ink-2);
+  color: var(--notch-text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -712,20 +639,17 @@ kbd {
   align-items: center;
   justify-content: space-between;
   height: 40px;
-  margin-right: 4px;
   padding: 0 14px;
   border-radius: 999px;
   border: none;
-  font: 600 13px / 1 var(--notch-font);
-  color: var(--blind-ink-2);
-  background: var(--blind-card);
-  box-shadow:
-    0 0 0 2px var(--blind-ink),
-    3px 3px 0 2px var(--blind-ink);
+  font: 500 13px / 1 var(--notch-font);
+  color: var(--notch-text-tertiary);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
   cursor: text;
 }
 .nask:hover {
-  background: var(--blind-card-hi);
+  background: var(--notch-glass-hover);
 }
 .nask-keys kbd {
   margin: 0 0 0 4px;
@@ -735,38 +659,42 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-right: 4px;
   padding: 10px;
+  border-radius: 20px;
+  background: var(--notch-glass-hover);
+  box-shadow:
+    inset 0 0 0 0.5px var(--notch-hairline),
+    inset 0 1px 0 var(--notch-specular);
 }
 .ncompose.is-listening {
   box-shadow:
-    0 0 0 2px var(--blind-ink),
-    3px 3px 0 2px var(--blind-blue);
+    inset 0 0 0 1px rgba(10, 132, 255, 0.6),
+    0 0 24px rgba(10, 132, 255, 0.25);
 }
 .ncompose-to {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 11.5px;
-  color: var(--blind-ink-2);
+  color: var(--notch-text-tertiary);
   padding: 0 4px;
 }
 .ncompose-to b {
-  color: var(--blind-ink);
-  font-weight: 700;
+  color: var(--notch-text-secondary);
+  font-weight: 600;
 }
 .ncompose-x {
   margin-left: auto;
   border: none;
   background: transparent;
-  font: 700 11px var(--notch-font);
-  color: var(--blind-ink-2);
+  font: 500 11px var(--notch-font);
+  color: var(--notch-text-tertiary);
   cursor: pointer;
 }
 .ncompose-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .ncompose input {
   flex: 1;
@@ -776,35 +704,28 @@ kbd {
   border: none;
   outline: none;
   border-radius: 10px;
-  background: var(--blind-cloth);
-  box-shadow: inset 0 0 0 1.5px var(--blind-ink-3);
+  background: transparent;
   font: 14px var(--notch-font);
-  color: var(--blind-ink);
+  color: var(--notch-text);
   user-select: text;
   -webkit-user-select: text;
 }
-.ncompose input:focus {
-  box-shadow: inset 0 0 0 2px var(--blind-ink);
-}
 .ncompose input::placeholder {
-  color: var(--blind-ink-3);
+  color: var(--notch-text-tertiary);
 }
 .nmic {
   width: 32px;
   height: 32px;
   border-radius: 999px;
   border: none;
-  background: var(--blind-card);
-  box-shadow:
-    0 0 0 2px var(--blind-ink),
-    2px 2px 0 2px var(--blind-ink);
+  background: var(--notch-glass-strong);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 .nmic.is-on {
-  background: var(--blind-blue);
+  background: var(--notch-blue);
 }
 .nmic-wave {
   display: inline-flex;
@@ -816,10 +737,7 @@ kbd {
   width: 2.5px;
   height: 6px;
   border-radius: 2px;
-  background: var(--blind-ink);
-}
-.nmic.is-on .nmic-wave i {
-  background: var(--blind-red-ink);
+  background: var(--notch-text);
 }
 .nmic-wave i:nth-child(2),
 .nmic-wave i:nth-child(3) {
@@ -828,8 +746,7 @@ kbd {
 
 .nerror {
   font-size: 12px;
-  font-weight: 700;
-  color: var(--blind-red);
+  color: var(--mood-error);
   padding: 0 4px;
 }
 
@@ -839,7 +756,7 @@ kbd {
   justify-content: center;
   gap: 4px 12px;
   font-size: 10.5px;
-  color: var(--blind-ink-2);
+  color: var(--notch-text-tertiary);
 }
 .nkeys kbd {
   margin-right: 3px;
@@ -854,6 +771,9 @@ kbd {
       height 0.42s var(--notch-spring),
       border-radius 0.3s var(--notch-ease),
       box-shadow 0.3s var(--notch-ease);
+  }
+  .npanel {
+    animation: n-fade-up 0.32s var(--notch-ease) both;
   }
   .nq,
   .nbtn,
@@ -923,11 +843,6 @@ kbd {
   .notch-chat {
     animation: n-bubble 0.35s var(--notch-spring) both;
   }
-  .nblind-cloth::after {
-    animation:
-      film-grain 0.5s steps(6) infinite,
-      film-flicker 1.3s steps(3) infinite;
-  }
   .ncompose.is-listening .nmic-wave i {
     animation: n-wave 0.7s ease-in-out infinite;
   }
@@ -942,22 +857,6 @@ kbd {
   }
 }
 
-@keyframes film-grain {
-  to {
-    background-position:
-      0 0,
-      140px 70px;
-  }
-}
-@keyframes film-flicker {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 0.62;
-  }
-}
 @keyframes gang-land {
   0% {
     transform: translateY(-10px) scale(0.4, 1.3);
@@ -968,6 +867,16 @@ kbd {
     opacity: 1;
   }
   100% {
+    transform: none;
+  }
+}
+@keyframes n-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
     transform: none;
   }
 }

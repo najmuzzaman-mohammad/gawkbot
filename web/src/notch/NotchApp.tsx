@@ -23,7 +23,6 @@ import {
   usePeeks,
   useVoice,
 } from "./hooks";
-import type { BlindPhase } from "./NotchBlind";
 import type { ComposerState, ReplyTarget } from "./NotchPanel";
 import { stageHeight } from "./NotchStrip";
 import { NotchView } from "./NotchView";
@@ -117,14 +116,7 @@ export function NotchApp({
   const [cheer, setCheer] = useState(0);
 
   // Room below the notch for the current act.
-  const [blindPhase, setBlindPhase] = useState<BlindPhase>("closed");
-  const stage = stageHeight({
-    line,
-    peeker,
-    arrival,
-    expanded,
-    relief: blindPhase === "relief" || blindPhase === "closing",
-  });
+  const stage = stageHeight({ line, peeker, arrival, expanded });
   useEffect(() => {
     postNative({ type: "stage", height: stage });
   }, [stage]);
@@ -141,7 +133,7 @@ export function NotchApp({
       setError(null);
       setAnswering((s) => new Set(s).add(id));
     },
-    // The lead takes a glove off the blind for a thumbs-up (NotchBlind).
+    // The lead claps for it in the open notch (NotchHero), with the sound.
     onSuccess: () => setCheer((n) => n + 1),
     onError: (err) =>
       setError(
@@ -263,8 +255,6 @@ export function NotchApp({
         peeker={peeker}
         arrival={arrival}
         cheer={cheer}
-        blindPhase={blindPhase}
-        onBlindPhase={setBlindPhase}
         selectedId={selected?.id ?? null}
         answering={answering}
         composer={composer}

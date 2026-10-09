@@ -1,10 +1,11 @@
 import type { MemberAvatar } from "../api/memberTypes";
-import { ToonAvatar } from "../components/ui/ToonAvatar";
-import type { ToonFace as Face } from "../lib/toon/toon";
+import { OrbAvatar } from "../components/ui/OrbAvatar";
+import type { Face } from "../lib/orbAvatar";
 import type { Mood } from "./types";
 
-// An agent in the notch: its own body as a 1930s cartoon toon (lib/toon),
-// live, plus body language for its mood. The toon does the face (eyes spinning while working, talking while it needs you, a frown
+// An agent in the notch: its own orb (the same one it has everywhere in
+// the office), live, plus body language for its mood. The orb does the
+// face (eyes spinning while working, talking while it needs you, a frown
 // and a head shake on an error, star eyes then a smile when done); the
 // body motion is CSS in notch.css and only plays under
 // prefers-reduced-motion: no-preference.
@@ -100,7 +101,7 @@ export function NotchBot({
       data-slug={slug}
     >
       <span className="nb-body" style={{ animationDelay: `${-phase * 0.37}s` }}>
-        <ToonAvatar
+        <OrbAvatar
           slug={slug}
           size={size}
           face={act === "talking" ? "asking" : MOOD_FACE[mood]}

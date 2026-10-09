@@ -59,10 +59,7 @@
   /* The notch is hardware-black in both modes, like the real thing. */
   --notch: #000;
   /* The brand's sky blue as light in the dark, behind the cast on stage. */
-  /* The toons' stage: poster paper under a spotlight. */
-  --stage-paper: #ecd9b0;
-  --stage-paper-2: #d9bf8c;
-  --stage-light: rgba(255, 246, 220, 0.75);
+  --night-glow: rgba(90, 169, 255, 0.22);
   --notch-glass: rgba(14, 14, 18, 0.56);
   --notch-card: rgba(255, 255, 255, 0.07);
   --notch-line: rgba(255, 255, 255, 0.09);
@@ -1063,7 +1060,7 @@ section { position: relative; }
 .eq i:nth-child(4) { animation-delay: 0.1s; } .eq i:nth-child(5) { animation-delay: 0.3s; }
 @media (max-width: 760px) { .fun { grid-template-columns: 1fr; } }
 
-/* ── Characters (toon.js / toon.css, the app's own code) ───────────────
+/* ── Characters (orb.js / orb.css, the app's own code) ─────────────────
    A character replaces the drawing in a spot once the script has mounted
    it (.has-char); without it, the drawing stays. */
 .has-char > .blob { display: none; }
@@ -1087,10 +1084,10 @@ section { position: relative; }
   100% { scale: 1; }
 }
 
-/* The inbox's lead stands in a spotlight, as in the app. */
+/* The inbox's lead stands on a strip of night sky, as in the app. */
 .drop .nhead { position: relative; z-index: 0; }
 .nhero-sky {
-  position: absolute; z-index: -1; inset: -8px -12px -4px; pointer-events: none; overflow: hidden;
+  position: absolute; z-index: -1; inset: -8px -12px -4px; pointer-events: none;
   background: radial-gradient(90px 60px at 30px 45%, var(--notch-card), transparent 70%);
   mask-image: linear-gradient(180deg, transparent, var(--notch) 25%, var(--notch) 70%, transparent);
 }
@@ -1099,19 +1096,14 @@ section { position: relative; }
 .dyn-lead { position: relative; width: 26px; height: 26px; flex: none; }
 .dyn-lead > .blob { width: 100%; height: 100%; }
 
-/* "They make an entrance": the cast on a paper stage under a spotlight,
-   poofing in, flying in and clapping, across the whole grid. */
+/* "They make an entrance": the cast on a night-sky stage, born, flying in
+   and clapping, across the whole grid. */
 .fun-feature { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: center; }
 .magic-stage {
   position: relative; height: 300px; margin: -28px 0 -28px -28px; overflow: hidden;
   background:
-    radial-gradient(55% 75% at 50% 70%, var(--stage-light), transparent 70%),
-    linear-gradient(180deg, var(--stage-paper), var(--stage-paper-2));
-}
-/* A floor line for the cast to stand on. */
-.magic-stage::before {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 56px; height: 4px;
-  background: var(--notch-ink, #1b1511); opacity: 0.6;
+    radial-gradient(60% 70% at 50% 62%, var(--night-glow), transparent 70%),
+    var(--notch);
 }
 .magic-spot {
   --x: 0px;
