@@ -200,6 +200,10 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	self.panel.level = NSStatusWindowLevel;
 	self.panel.floatingPanel = YES;
 	self.panel.hidesOnDeactivate = NO;
+	// Closing the full view hides the whole application (Wails calls
+	// [NSApp hide:] for HideWindowOnClose), and a hidden app hides every
+	// window it owns. The notch is the part that stays: opt it out.
+	self.panel.canHide = NO;
 	self.panel.movable = NO;
 	self.panel.becomesKeyOnlyIfNeeded = YES;
 	self.panel.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces |
