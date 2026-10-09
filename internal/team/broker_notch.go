@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nex-crm/wuphf/internal/agentdetect"
 	"github.com/nex-crm/wuphf/internal/channel"
 )
 
@@ -43,7 +44,25 @@ type notchAgent struct {
 	IsLead       bool   `json:"is_lead,omitempty"`
 	// Avatar is the bot's chosen look, when it has one.
 	Avatar *MemberAvatar `json:"avatar,omitempty"`
+
+	// Kind is notchAgentSession for an agent session found running on this
+	// machine (a Claude Code or Codex window the human opened themselves);
+	// empty for an office bot. The fields below are set for sessions only.
+	Kind string `json:"kind,omitempty"`
+	// Tool is the catalog id of what runs the session; the row shows its logo.
+	Tool     string `json:"tool,omitempty"`
+	ToolName string `json:"tool_name,omitempty"`
+	// Project is the folder it works in; Cwd its full path.
+	Project string `json:"project,omitempty"`
+	Cwd     string `json:"cwd,omitempty"`
+	// State is agentdetect's working / your_turn / quiet.
+	State     string `json:"state,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	// LastSaid is the end of its latest reply.
+	LastSaid string `json:"last_said,omitempty"`
 }
+
+const notchAgentSession = "session"
 
 type notchOption struct {
 	ID    string `json:"id"`
@@ -141,10 +160,85 @@ func (b *Broker) handleNotchState(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	// Sessions describe the host machine and what its owner is working on,
+	// so only the owner's own surfaces (broker token) get them; a joined
+	// human sees the office bots alone. Scanned before taking the lock.
+	var sessions []agentdetect.Session
+	if b.requestHasBrokerAuth(r) {
+		sessions = cachedLocalSessions(r.Context())
+	}
+	now := time.Now()
 	b.mu.Lock()
-	state := b.notchStateLocked(time.Now())
+	state := b.notchStateLocked(now)
 	b.mu.Unlock()
-	writeJSON(w, http.StatusOK, state)
+	writeJSON(w, http.StatusOK, withNotchSessions(state, sessions, now))
+}
+
+// withNotchSessions adds the machine's running sessions to the agents, after
+// the office bots: one list, because to the human they are all agents. A
+// session that needs nothing does not change the headline; one that is
+// working does, when the office itself is idle.
+func withNotchSessions(state notchState, sessions []agentdetect.Session, now time.Time) notchState {
+	if len(sessions) == 0 {
+		return state
+	}
+	working := 0
+	for _, sess := range sessions {
+		agent := notchAgent{
+			Slug:      notchSessionSlug(sess.ID),
+			Name:      sess.Title,
+			Kind:      notchAgentSession,
+			RunsOn:    RunsOnThisMachine,
+			Tool:      sess.Tool,
+			ToolName:  sess.ToolName,
+			Project:   sess.Project,
+			Cwd:       sess.Cwd,
+			State:     sess.State,
+			UpdatedAt: sess.UpdatedAt,
+			LastSaid:  sess.LastSaid,
+		}
+		agent.Mood, agent.Detail = notchSessionMood(sess, now)
+		if agent.Mood == MoodWorking {
+			working++
+		}
+		state.Agents = append(state.Agents, agent)
+	}
+	if state.Mood == MoodIdle && working > 0 {
+		state.Mood = MoodWorking
+		state.Headline = fmt.Sprintf("%d working on this Mac", working)
+	}
+	return state
+}
+
+// notchSessionSlug is a session's place in the agents list. The prefix
+// keeps it apart from every office bot slug, which cannot contain a dot.
+func notchSessionSlug(id string) string {
+	return "session." + strings.NewReplacer(":", ".", "/", ".").Replace(id)
+}
+
+// notchSessionMood maps a session's state onto the notch moods. A session
+// that just finished its turn celebrates for the same window a bot does,
+// then rests: the detail still says it is the human's turn.
+func notchSessionMood(sess agentdetect.Session, now time.Time) (mood, detail string) {
+	where := sess.Project
+	switch sess.State {
+	case agentdetect.SessionWorking:
+		return MoodWorking, strings.TrimSpace("Working in " + where)
+	case agentdetect.SessionYourTurn:
+		mood = MoodIdle
+		if t, err := time.Parse(time.RFC3339, sess.UpdatedAt); err == nil && now.Sub(t) <= notchDoneWindow {
+			mood = MoodDone
+		}
+		if where == "" {
+			return mood, "Your turn"
+		}
+		return mood, "Your turn · " + where
+	default:
+		if where == "" {
+			return MoodIdle, "Quiet"
+		}
+		return MoodIdle, "Quiet · " + where
+	}
 }
 
 func (b *Broker) notchStateLocked(now time.Time) notchState {

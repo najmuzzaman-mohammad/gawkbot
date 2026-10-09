@@ -1,4 +1,10 @@
-import { type FormEvent, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { RuntimeLogo } from "../components/onboarding/RuntimeLogos";
 import { SHORTCUTS } from "./keys";
@@ -8,7 +14,6 @@ import type {
   NotchAgent,
   NotchAttention,
   NotchBrief,
-  NotchSession,
   NotchState,
 } from "./types";
 
@@ -48,8 +53,6 @@ export interface PanelProps {
   onToggleSound: () => void;
   /** Leave the widget for the full app; closing that window comes back here. */
   onOpenFull: () => void;
-  /** Agent sessions running on this Mac, each named by what it is doing. */
-  sessions?: NotchSession[];
   /** The agent list is folded away until asked for. */
   agentsOpen: boolean;
   onAgentsOpen: (open: boolean) => void;
@@ -318,37 +321,59 @@ export function sinceShort(iso: string, now: number): string {
   return min < 60 ? `${min}m` : `${Math.floor(min / 60)}h`;
 }
 
-function Sessions({ sessions }: { sessions: NotchSession[] }) {
-  const now = Date.now();
+/** A session's row in the agent list: its own face, what it is about, and
+ * its tool's logo. It has no DM, so pressing it opens what it last said. */
+function SessionRow({ agent, phase }: { agent: NotchAgent; phase: number }) {
+  const [open, setOpen] = useState(false);
+  const toolName = agent.tool_name ?? "";
+  const when =
+    agent.state === "working" || !agent.updated_at
+      ? ""
+      : sinceShort(agent.updated_at, Date.now());
   return (
-    <section aria-label="Running on this Mac">
-      <h3 className="nsection">Running on this Mac · {sessions.length}</h3>
-      <ul className="nsessions">
-        {sessions.map((s) => (
-          <li
-            key={s.id}
-            className={`nsession${s.active ? " is-active" : ""}`}
-            data-testid={`notch-session-${s.id}`}
-          >
-            <span
-              className="nsession-tool"
-              role="img"
-              aria-label={s.tool_name}
-              title={s.tool_name}
-            >
-              <RuntimeLogo label={TOOL_LOGO[s.tool] ?? s.tool_name} />
-            </span>
-            <span className="nsession-title">{s.title}</span>
-            {s.project ? (
-              <span className="nsession-project">{s.project}</span>
-            ) : null}
-            <span className="nsession-when">
-              {s.active ? "working" : sinceShort(s.updated_at, now)}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <div
+      className={`nagent-row is-session${open ? " is-open" : ""}`}
+      data-testid={`notch-agent-${agent.slug}`}
+    >
+      <button
+        type="button"
+        className="nagent"
+        aria-expanded={open}
+        aria-label={`${agent.name}, ${toolName} session`}
+        onClick={() => setOpen(!open)}
+      >
+        <NotchBot
+          slug={agent.slug}
+          avatar={agent.avatar}
+          mood={agent.mood}
+          size={24}
+          phase={phase}
+          label=""
+        />
+        <span className="nagent-name">{agent.name}</span>
+        <span className="nagent-detail">
+          {agent.detail}
+          {when ? ` · ${when}` : ""}
+        </span>
+        <span
+          className="nagent-tool"
+          role="img"
+          aria-label={toolName}
+          title={toolName}
+        >
+          <RuntimeLogo label={TOOL_LOGO[agent.tool ?? ""] ?? toolName} />
+        </span>
+      </button>
+      {open ? (
+        <div className="nagent-said">
+          {agent.last_said ? <p>{agent.last_said}</p> : null}
+          {agent.cwd ? <p className="nagent-cwd">{agent.cwd}</p> : null}
+          <p className="nagent-hint">
+            Answer it in its {toolName || "own"} window.
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -523,10 +548,6 @@ export function NotchPanel(props: PanelProps) {
           </section>
         ) : null}
 
-        {props.sessions && props.sessions.length > 0 ? (
-          <Sessions sessions={props.sessions} />
-        ) : null}
-
         <section aria-label="Agents">
           <h3 className="nsection">
             <button
@@ -542,6 +563,9 @@ export function NotchPanel(props: PanelProps) {
           {agentsOpen ? (
             <div className="nagents">
               {state.agents.map((a, i) => {
+                if (a.kind === "session") {
+                  return <SessionRow key={a.slug} agent={a} phase={i} />;
+                }
                 const tags = agentTags(a);
                 return (
                   <div

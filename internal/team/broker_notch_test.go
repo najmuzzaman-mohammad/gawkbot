@@ -1,6 +1,7 @@
 package team
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nex-crm/wuphf/internal/agentdetect"
 	"github.com/nex-crm/wuphf/internal/channel"
 )
 
@@ -257,5 +259,85 @@ func TestNotchLeadLooksLikeTheLogoByDefault(t *testing.T) {
 	b.mu.Unlock()
 	if got := notchAgentBySlug(t, fetchNotchState(t, b), lead).Avatar; got == nil || got.Shape != "bear" {
 		t.Fatalf("chosen look lost: %+v", got)
+	}
+}
+
+// stubLocalSessions swaps the machine scan for a fixed list and clears the
+// cache around the test.
+func stubLocalSessions(t *testing.T, list []agentdetect.Session) {
+	t.Helper()
+	prev := localSessionsFn
+	localSessionsFn = func(context.Context) []agentdetect.Session { return list }
+	reset := func() {
+		localSessions.mu.Lock()
+		localSessions.list = nil
+		localSessions.mu.Unlock()
+	}
+	reset()
+	t.Cleanup(func() {
+		localSessionsFn = prev
+		reset()
+	})
+}
+
+// The sessions running on this Mac are agents like any other: they join the
+// one list after the office bots, each with what it is doing. Only the
+// owner's own surfaces see them.
+func TestNotchListsRunningSessionsAsAgentsForTheOwnerOnly(t *testing.T) {
+	now := time.Now().UTC()
+	stubLocalSessions(t, []agentdetect.Session{
+		{ID: "claude-code:aaa", Tool: "claude-code", ToolName: "Claude Code", Title: "Fix the flaky checkout test", Project: "shop", Cwd: "/Users/me/shop", State: agentdetect.SessionWorking, UpdatedAt: now.Format(time.RFC3339)},
+		{ID: "codex:bbb", Tool: "codex", ToolName: "Codex CLI", Title: "Tidy the migration scripts", Project: "api", State: agentdetect.SessionYourTurn, UpdatedAt: now.Add(-2 * time.Hour).Format(time.RFC3339), LastSaid: "Run them on staging?"},
+	})
+	b := newTestBroker(t)
+	b.token = "owner-token"
+	fetch := func(token string) notchState {
+		req := httptest.NewRequest(http.MethodGet, "/notch/state", nil)
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		rec := httptest.NewRecorder()
+		b.handleNotchState(rec, req)
+		var s notchState
+		if err := json.Unmarshal(rec.Body.Bytes(), &s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+
+	owner := fetch("owner-token")
+	busy := notchAgentBySlug(t, owner, "session.claude-code.aaa")
+	if busy.Kind != notchAgentSession || busy.Name != "Fix the flaky checkout test" || busy.Mood != MoodWorking || busy.Tool != "claude-code" || busy.Detail != "Working in shop" {
+		t.Fatalf("working session = %+v", busy)
+	}
+	waiting := notchAgentBySlug(t, owner, "session.codex.bbb")
+	if waiting.Mood != MoodIdle || waiting.Detail != "Your turn · api" || waiting.LastSaid != "Run them on staging?" {
+		t.Fatalf("waiting session = %+v", waiting)
+	}
+	if !owner.Agents[0].IsLead {
+		t.Fatalf("the Chief of Staff still leads: %+v", owner.Agents[0])
+	}
+	// The office is idle, a session is busy: the notch says so.
+	if owner.Mood != MoodWorking || owner.Headline != "1 working on this Mac" {
+		t.Fatalf("mood=%q headline=%q", owner.Mood, owner.Headline)
+	}
+
+	for _, a := range fetch("").Agents {
+		if a.Kind == notchAgentSession {
+			t.Fatalf("a caller without the owner token saw session %+v", a)
+		}
+	}
+}
+
+// A session that just finished its turn celebrates like a bot does, then
+// rests while it waits.
+func TestNotchSessionMood(t *testing.T) {
+	now := time.Now().UTC()
+	fresh := agentdetect.Session{State: agentdetect.SessionYourTurn, Project: "shop", UpdatedAt: now.Add(-10 * time.Second).Format(time.RFC3339)}
+	if mood, detail := notchSessionMood(fresh, now); mood != MoodDone || detail != "Your turn · shop" {
+		t.Fatalf("just finished: %q %q", mood, detail)
+	}
+	if mood, detail := notchSessionMood(agentdetect.Session{State: agentdetect.SessionQuiet}, now); mood != MoodIdle || detail != "Quiet" {
+		t.Fatalf("quiet: %q %q", mood, detail)
 	}
 }

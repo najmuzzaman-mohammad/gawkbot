@@ -13,6 +13,7 @@ import type { Mood } from "./types";
 //   working    gentle bob, spinning eyes
 //   idle       slow breathing, half-closed eyes, a "z" drifting up
 //   tucked     the same, under a blanket: the office is quiet, it is asleep
+//   awake      woken by the human opening the notch: eyes open, a stretch
 //   needs_you  bouncy hop, a talking face, an "!" badge
 //   error      a shake, a frown, a sweat drop
 //   done       a happy hop, a big smile, sparkles
@@ -55,6 +56,8 @@ interface NotchBotProps {
    * the lead in the notch when the office is quiet.
    */
   tucked?: boolean;
+  /** Woken up: an open, happy face whatever the mood says. */
+  awake?: boolean;
 }
 
 function Prop({ mood }: { mood: Mood }) {
@@ -88,6 +91,7 @@ export function NotchBot({
   bare = false,
   avatar,
   tucked = false,
+  awake = false,
 }: NotchBotProps) {
   const name = label ?? `${slug}: ${MOOD_WORDS[mood]}`;
   // A named bot is an image with a name; an unnamed one is decoration.
@@ -96,7 +100,7 @@ export function NotchBot({
     : ({ "aria-hidden": true } as const);
   return (
     <span
-      className={`notch-bot nb-${mood}${act ? ` nb-act-${act}` : ""}${tucked ? " nb-tucked" : ""}`}
+      className={`notch-bot nb-${mood}${act ? ` nb-act-${act}` : ""}${tucked ? " nb-tucked" : ""}${awake ? " nb-awake" : ""}`}
       style={{
         width: size,
         height: size,
@@ -111,7 +115,9 @@ export function NotchBot({
         <OrbAvatar
           slug={slug}
           size={size}
-          face={act === "talking" ? "asking" : MOOD_FACE[mood]}
+          face={
+            act === "talking" ? "asking" : awake ? "happy" : MOOD_FACE[mood]
+          }
           live={true}
           avatar={avatar}
         />

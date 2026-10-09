@@ -54,12 +54,15 @@ export function NotchStrip({
     : everyone;
   const lead = state?.agents.find((a) => a.is_lead);
   const count = state?.attention.length ?? 0;
-  // Nothing needs the human and nobody is doing anything: the lead turns in.
-  const asleep =
+  // Nothing needs the human and nobody is doing anything: the lead turns in,
+  // and wakes when the human opens the notch (hovering in opens it).
+  const quiet =
     !!state &&
     count === 0 &&
     state.mood === "idle" &&
     state.agents.every((a) => a.mood === "idle");
+  const asleep = quiet && !expanded;
+  const awake = quiet && expanded;
   const bot = Math.max(14, Math.min(22, geometry.notchHeight - 10));
   // Quiet agents that are busy still show, one at a time, when nobody needs
   // the human: a working bot on the strip says "things are happening".
@@ -88,6 +91,7 @@ export function NotchStrip({
           size={bot}
           bare={true}
           tucked={asleep}
+          awake={awake}
           label={`${state?.lead_name ?? "Chief of Staff"}: ${asleep ? "asleep, nothing needs you" : (state?.headline ?? "connecting")}`}
         />
         {!expanded && state && count === 0 ? (

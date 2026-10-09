@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { gang } from "./antics";
 import { BUSY_OFFICE, MACBOOK_NOTCH, NO_NOTCH, QUIET_OFFICE } from "./fixtures";
 import { NotchView, type NotchViewProps } from "./NotchView";
+import type { NotchState } from "./types";
 
 function notchProps(overrides: Partial<NotchViewProps> = {}): NotchViewProps {
   return {
@@ -116,6 +117,12 @@ describe("collapsed notch", () => {
     ).toHaveClass("nb-tucked");
     expect(document.querySelector(".nb-blanket")).not.toBeNull();
     unmount();
+    // The human opens the notch (hovering in opens it): it wakes up.
+    const open = renderNotchWith({ state: quiet, gang: [], expanded: true });
+    expect(document.querySelector(".nb-blanket")).toBeNull();
+    expect(document.querySelector(".notch-strip .nb-awake")).not.toBeNull();
+    expect(document.querySelector(".notch-strip .nb-tucked")).toBeNull();
+    open.unmount();
     // Someone working, or anything waiting on the human: it is up.
     renderNotch();
     expect(document.querySelector(".nb-blanket")).toBeNull();
@@ -146,49 +153,47 @@ describe("open notch", () => {
     });
   });
 
-  it("lists each session on this Mac by what it is doing, with its tool's logo", () => {
-    renderNotch({
-      expanded: true,
-      sessions: [
+  it("lists a session running on this Mac as an agent, by what it is doing", async () => {
+    const state: NotchState = {
+      ...BUSY_OFFICE,
+      agents: [
+        ...BUSY_OFFICE.agents,
         {
-          id: "claude-code:a",
+          slug: "session.claude-code.a",
+          name: "Fix the flaky checkout test",
+          mood: "idle",
+          detail: "Your turn · shop",
+          kind: "session",
           tool: "claude-code",
           tool_name: "Claude Code",
-          title: "Fix the flaky checkout test",
           project: "shop",
-          updated_at: new Date().toISOString(),
-          active: true,
-        },
-        {
-          id: "codex:b",
-          tool: "codex",
-          tool_name: "Codex CLI",
-          title: "Add rate limits to the login route",
-          project: "api",
+          cwd: "/Users/me/shop",
+          state: "your_turn",
           updated_at: new Date(Date.now() - 12 * 60_000).toISOString(),
-          active: false,
+          last_said: "Both fixes pass. Which one should I keep?",
         },
       ],
-    });
-    const first = screen.getByTestId("notch-session-claude-code:a");
-    // The words are what the session is about; the tool is the logo.
-    expect(first).toHaveTextContent("Fix the flaky checkout test");
-    expect(first).toHaveTextContent("shop");
-    expect(first).toHaveTextContent("working");
-    expect(first).not.toHaveTextContent("Claude Code");
-    expect(
-      first.querySelector('[role="img"][aria-label="Claude Code"] svg'),
-    ).not.toBeNull();
-    const second = screen.getByTestId("notch-session-codex:b");
-    expect(second).toHaveTextContent("12m");
-    expect(
-      second.querySelector('[role="img"][aria-label="Codex CLI"] svg'),
-    ).not.toBeNull();
-  });
-
-  it("shows no session list when nothing is running", () => {
-    renderNotch({ expanded: true, sessions: [] });
+    };
+    renderNotch({ expanded: true, agentsOpen: true, state });
+    // One list: there is no separate section for what runs on this Mac.
     expect(screen.queryByLabelText("Running on this Mac")).toBeNull();
+    const row = screen.getByTestId("notch-agent-session.claude-code.a");
+    // The words are what the session is about; the tool is the logo.
+    expect(row).toHaveTextContent("Fix the flaky checkout test");
+    expect(row).toHaveTextContent("Your turn · shop · 12m");
+    expect(
+      row.querySelector('[role="img"][aria-label="Claude Code"] svg'),
+    ).not.toBeNull();
+    // It has its own face, like every other agent.
+    expect(row.querySelector("svg, canvas")).not.toBeNull();
+    // No DM and no page in the app: pressing it shows what it last said.
+    expect(row.querySelector(".nagent-open")).toBeNull();
+    expect(row).not.toHaveTextContent("Which one should I keep?");
+    await userEvent.click(
+      screen.getByRole("button", { name: /Fix the flaky checkout test/ }),
+    );
+    expect(row).toHaveTextContent("Both fixes pass. Which one should I keep?");
+    expect(row).toHaveTextContent("/Users/me/shop");
   });
 
   it("keeps the agent list folded away until asked for", async () => {

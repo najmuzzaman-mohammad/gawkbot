@@ -43,7 +43,7 @@ func TestSessionsAreNamedByWhatTheyAreDoing(t *testing.T) {
 		`{"type":"ai-title","aiTitle":"Sub-agent"}`,
 	)
 	// Finished long ago: not listed.
-	writeLog(t, filepath.Join(claude, "-Users-me-old", "old.jsonl"), now.Add(-3*time.Hour),
+	writeLog(t, filepath.Join(claude, "-Users-me-old", "old.jsonl"), now.Add(-9*time.Hour),
 		`{"type":"user","cwd":"/Users/me/old"}`,
 		`{"type":"ai-title","aiTitle":"Old work"}`,
 	)
@@ -152,5 +152,103 @@ func TestSessionTitleIsFoundBeyondTheTailAndRemembered(t *testing.T) {
 	// Remembered: the next scan does not need the middle of the file.
 	if known := claudeTitles.byPath[path]; known != "Buried in the middle" {
 		t.Fatalf("remembered %q", known)
+	}
+}
+
+// A session says what it is doing: writing now, finished and waiting for
+// the human, or stopped mid-turn.
+func TestSessionState(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	claude := filepath.Join(home, ".claude", "projects")
+	writeLog(t, filepath.Join(claude, "-Users-me-a", "busy.jsonl"), now.Add(-20*time.Second),
+		`{"type":"user","cwd":"/Users/me/a"}`,
+		`{"type":"ai-title","aiTitle":"Busy right now"}`,
+		`{"type":"assistant","message":{"stop_reason":"end_turn"}}`,
+	)
+	// Finished three hours ago and still waiting: listed, and it is the
+	// human's turn. Records after the last message do not hide it.
+	writeLog(t, filepath.Join(claude, "-Users-me-b", "done.jsonl"), now.Add(-3*time.Hour),
+		`{"type":"user","cwd":"/Users/me/b"}`,
+		`{"type":"ai-title","aiTitle":"Finished and waiting"}`,
+		`{"type":"assistant","message":{"stop_reason":"tool_use"}}`,
+		`{"type":"user","message":{"content":"tool result"}}`,
+		`{"type":"assistant","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"Both fixes pass.\nWhich one should I keep?"}]}}`,
+		`{"type":"system","subtype":"turn_duration"}`,
+	)
+	// Stopped on a tool call: the log cannot say why, so it is only quiet.
+	writeLog(t, filepath.Join(claude, "-Users-me-c", "mid.jsonl"), now.Add(-10*time.Minute),
+		`{"type":"user","cwd":"/Users/me/c"}`,
+		`{"type":"ai-title","aiTitle":"Stopped on a command"}`,
+		`{"type":"assistant","message":{"stop_reason":"tool_use"}}`,
+	)
+	codex := filepath.Join(home, ".codex", "sessions", "2026", "10", "09")
+	writeLog(t, filepath.Join(codex, "rollout-done.jsonl"), now.Add(-40*time.Minute),
+		`{"type":"session_meta","payload":{"id":"c-1","cwd":"/Users/me/d","thread_source":"user"}}`,
+		`{"type":"response_item","payload":{"role":"user","content":[{"text":"Tidy the migration scripts"}]}}`,
+		`{"type":"event_msg","payload":{"type":"task_started"}}`,
+		`{"type":"event_msg","payload":{"type":"agent_message","message":"Scripts are tidy. Run them on staging?"}}`,
+		`{"type":"event_msg","payload":{"type":"task_complete"}}`,
+	)
+	writeLog(t, filepath.Join(codex, "rollout-mid.jsonl"), now.Add(-50*time.Minute),
+		`{"type":"session_meta","payload":{"id":"c-2","cwd":"/Users/me/e","thread_source":"user"}}`,
+		`{"type":"response_item","payload":{"role":"user","content":[{"text":"Port the importer to the new API"}]}}`,
+		`{"type":"event_msg","payload":{"type":"task_complete"}}`,
+		`{"type":"event_msg","payload":{"type":"task_started"}}`,
+	)
+	s := &Scanner{Home: func() (string, error) { return home, nil }}
+	scan := []Detection{
+		{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 1}}},
+		{ID: "codex", Name: "Codex CLI", Running: []Process{{PID: 2}}},
+	}
+	want := map[string]string{
+		"Busy right now":                   SessionWorking,
+		"Finished and waiting":             SessionYourTurn,
+		"Stopped on a command":             SessionQuiet,
+		"Tidy the migration scripts":       SessionYourTurn,
+		"Port the importer to the new API": SessionQuiet,
+	}
+	got := s.Sessions(scan, now)
+	if len(got) != len(want) {
+		t.Fatalf("sessions = %+v, want %d", got, len(want))
+	}
+	said := map[string]string{
+		"Finished and waiting":       "Both fixes pass. Which one should I keep?",
+		"Tidy the migration scripts": "Scripts are tidy. Run them on staging?",
+	}
+	for _, sess := range got {
+		if want[sess.Title] != sess.State {
+			t.Errorf("%q state = %q, want %q", sess.Title, sess.State, want[sess.Title])
+		}
+		if said[sess.Title] != sess.LastSaid {
+			t.Errorf("%q last said %q, want %q", sess.Title, sess.LastSaid, said[sess.Title])
+		}
+	}
+	if long := lastWords(strings.Repeat("word ", 200)+"the end?", 40); !strings.HasPrefix(long, "…") || !strings.HasSuffix(long, "the end?") || len([]rune(long)) > 41 {
+		t.Errorf("lastWords = %q", long)
+	}
+}
+
+// Only the newest sessions are read, however many logs a day leaves.
+func TestSessionsReadOnlyTheNewest(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	claude := filepath.Join(home, ".claude", "projects", "-Users-me-many")
+	for i := 0; i < sessionLimit+6; i++ {
+		writeLog(t, filepath.Join(claude, "s"+string(rune('a'+i))+".jsonl"), now.Add(-time.Duration(i+1)*time.Minute),
+			`{"type":"user","cwd":"/Users/me/many"}`,
+			`{"type":"ai-title","aiTitle":"Session `+string(rune('a'+i))+`"}`,
+		)
+	}
+	reads := 0
+	got := recentSessions(filepath.Dir(claude), 2, now, func(path string, info os.FileInfo) (Session, bool) {
+		reads++
+		return claudeSession(path, info, "Claude Code")
+	})
+	if len(got) != sessionLimit || reads != sessionLimit {
+		t.Fatalf("listed %d after %d reads, want %d and %d", len(got), reads, sessionLimit, sessionLimit)
+	}
+	if got[0].Title != "Session a" {
+		t.Fatalf("newest first: %+v", got[0])
 	}
 }

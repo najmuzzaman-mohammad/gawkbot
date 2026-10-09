@@ -16,6 +16,22 @@ export interface NotchAgent {
   is_lead?: boolean;
   /** The bot's chosen look; absent means the slug-derived one. */
   avatar?: MemberAvatar;
+  /**
+   * "session": an agent session found running on this Mac (a Claude Code or
+   * Codex window the human opened), not an office bot. It is listed with
+   * the bots, but it has no DM: the fields below say what it is doing.
+   */
+  kind?: "session";
+  /** Which tool runs it: "claude-code", "codex". The row shows its logo. */
+  tool?: string;
+  tool_name?: string;
+  /** The folder it is working in, and its full path. */
+  project?: string;
+  cwd?: string;
+  state?: "working" | "your_turn" | "quiet";
+  updated_at?: string;
+  /** The end of its latest reply: what it is waiting on. */
+  last_said?: string;
 }
 
 export interface NotchOption {
@@ -83,22 +99,4 @@ export interface NotchGeometry {
    * the page), so the page paints a tint instead of an opaque sheet.
    */
   nativeGlass?: boolean;
-}
-
-/**
- * One agent session running on this Mac, named by what it is about.
- * Mirrors agentdetect.Session (internal/agentdetect/sessions.go).
- */
-export interface NotchSession {
-  id: string;
-  /** Which tool runs it: "claude-code", "codex". The row shows its logo. */
-  tool: string;
-  tool_name: string;
-  /** What the session is about. */
-  title: string;
-  /** The folder it is working in. */
-  project?: string;
-  updated_at: string;
-  /** It wrote something in the last couple of minutes. */
-  active: boolean;
 }

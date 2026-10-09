@@ -61,18 +61,23 @@ func (b *Broker) handleLocalSessions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	writeJSON(w, http.StatusOK, localSessionsResponse{Sessions: cachedLocalSessions(r.Context())})
+}
+
+// cachedLocalSessions is the machine's session list, scanned at most once
+// per localSessionsTTL. Never nil.
+func cachedLocalSessions(ctx context.Context) []agentdetect.Session {
 	localSessions.mu.Lock()
+	defer localSessions.mu.Unlock()
 	if localSessions.list == nil || time.Since(localSessions.at) > localSessionsTTL {
-		list := localSessionsFn(r.Context())
+		list := localSessionsFn(ctx)
 		if list == nil {
 			list = []agentdetect.Session{}
 		}
 		localSessions.list = list
 		localSessions.at = time.Now()
 	}
-	list := localSessions.list
-	localSessions.mu.Unlock()
-	writeJSON(w, http.StatusOK, localSessionsResponse{Sessions: list})
+	return localSessions.list
 }
 
 type localAgentEntry struct {

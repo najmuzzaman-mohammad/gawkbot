@@ -41,11 +41,30 @@ type Session struct {
 	UpdatedAt string `json:"updated_at"`
 	// Active means it wrote something in the last couple of minutes.
 	Active bool `json:"active"`
+	// State is what the session is doing: SessionWorking while it is
+	// writing, SessionYourTurn when its last turn finished and it is waiting
+	// for the human, SessionQuiet when it stopped mid-turn (a long command,
+	// an approval prompt, or a closed window; the log cannot tell which).
+	State string `json:"state"`
+	// LastSaid is the end of the session's latest reply, so the human can
+	// see what it is waiting on without opening its window.
+	LastSaid string `json:"last_said,omitempty"`
+
+	// turnDone: the last thing in the log is a finished turn.
+	turnDone bool
 }
 
 const (
-	// A session that has not written for this long is not listed.
-	sessionWindow = 30 * time.Minute
+	SessionWorking  = "working"
+	SessionYourTurn = "your_turn"
+	SessionQuiet    = "quiet"
+)
+
+const (
+	// A session that has not written for this long is not listed. A working
+	// day, not minutes: a session that finished its turn and is waiting for
+	// the human is exactly the one they need to see.
+	sessionWindow = 8 * time.Hour
 	// A session that wrote within this long is busy right now.
 	sessionActiveWindow = 2 * time.Minute
 	// At most this many sessions are returned, newest first.
@@ -55,6 +74,7 @@ const (
 	sessionHeadBytes = 64 << 10
 	sessionTailBytes = 256 << 10
 	sessionTitleMax  = 72
+	sessionSaidMax   = 320
 )
 
 // Sessions lists the agent sessions that wrote to their log recently,
@@ -93,14 +113,27 @@ func (s *Scanner) Sessions(scan []Detection, now time.Time) []Session {
 	for i := range out {
 		t, err := time.Parse(time.RFC3339, out[i].UpdatedAt)
 		out[i].Active = err == nil && now.Sub(t) <= sessionActiveWindow
+		switch {
+		case out[i].Active:
+			out[i].State = SessionWorking
+		case out[i].turnDone:
+			out[i].State = SessionYourTurn
+		default:
+			out[i].State = SessionQuiet
+		}
 	}
 	return out
 }
 
-// recentSessions walks root to at most depth levels and reads every .jsonl
-// log written within sessionWindow.
+// recentSessions walks root to at most depth levels and reads the logs
+// written within sessionWindow, newest first, stopping once sessionLimit of
+// them are sessions: a day of work leaves far more logs than are shown.
 func recentSessions(root string, depth int, now time.Time, read func(string, os.FileInfo) (Session, bool)) []Session {
-	var out []Session
+	type candidate struct {
+		path string
+		info os.FileInfo
+	}
+	var found []candidate
 	var walk func(dir string, left int)
 	walk = func(dir string, left int) {
 		entries, err := os.ReadDir(dir)
@@ -122,12 +155,20 @@ func recentSessions(root string, depth int, now time.Time, read func(string, os.
 			if err != nil || now.Sub(info.ModTime()) > sessionWindow {
 				continue
 			}
-			if sess, ok := read(path, info); ok {
-				out = append(out, sess)
-			}
+			found = append(found, candidate{path, info})
 		}
 	}
 	walk(root, depth)
+	sort.SliceStable(found, func(i, j int) bool { return found[i].info.ModTime().After(found[j].info.ModTime()) })
+	var out []Session
+	for _, c := range found {
+		if len(out) >= sessionLimit {
+			break
+		}
+		if sess, ok := read(c.path, c.info); ok {
+			out = append(out, sess)
+		}
+	}
 	return out
 }
 
@@ -197,7 +238,108 @@ func claudeSession(path string, info os.FileInfo, toolName string) (Session, boo
 	}
 	title, prompt := claudeTitle(tail)
 	title = claudeTitles.resolve(path, title)
+	sess.turnDone, sess.LastSaid = claudeLastTurn(tail)
 	return finishSession(sess, title, prompt)
+}
+
+// claudeLastTurn reads the last message in a Claude Code log: whether it
+// is an assistant turn that ended on its own (not one waiting on a tool),
+// and the last words the assistant wrote.
+func claudeLastTurn(lines [][]byte) (done bool, said string) {
+	decided := false
+	for i := len(lines) - 1; i >= 0; i-- {
+		var rec struct {
+			Type    string `json:"type"`
+			Message struct {
+				StopReason string          `json:"stop_reason"`
+				Content    json.RawMessage `json:"content"`
+			} `json:"message"`
+		}
+		if json.Unmarshal(lines[i], &rec) != nil {
+			continue
+		}
+		switch rec.Type {
+		case "assistant":
+			if !decided {
+				decided, done = true, rec.Message.StopReason == "end_turn"
+			}
+			var parts []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			}
+			if json.Unmarshal(rec.Message.Content, &parts) != nil {
+				continue
+			}
+			for j := len(parts) - 1; j >= 0; j-- {
+				if parts[j].Type == "text" && strings.TrimSpace(parts[j].Text) != "" {
+					return done, lastWords(parts[j].Text, sessionSaidMax)
+				}
+			}
+		case "user":
+			decided = true
+		}
+	}
+	return done, ""
+}
+
+// lastWords keeps the end of a reply: that is where it says what it did
+// and what it is asking.
+func lastWords(text string, max int) string {
+	text = strings.Join(strings.Fields(text), " ")
+	r := []rune(text)
+	if len(r) <= max {
+		return text
+	}
+	cut := string(r[len(r)-max:])
+	if i := strings.Index(cut, " "); i >= 0 && i < max/2 {
+		cut = cut[i+1:]
+	}
+	return "…" + cut
+}
+
+// codexTurnDone reports whether the last task event in a Codex log is a
+// completed task rather than one still running.
+func codexTurnDone(lines [][]byte) bool {
+	for i := len(lines) - 1; i >= 0; i-- {
+		if !bytes.Contains(lines[i], []byte(`"task_`)) {
+			continue
+		}
+		var rec struct {
+			Type    string `json:"type"`
+			Payload struct {
+				Type string `json:"type"`
+			} `json:"payload"`
+		}
+		if json.Unmarshal(lines[i], &rec) != nil || rec.Type != "event_msg" {
+			continue
+		}
+		switch rec.Payload.Type {
+		case "task_complete":
+			return true
+		case "task_started":
+			return false
+		}
+	}
+	return false
+}
+
+// codexLastSaid returns the last words of the latest agent message.
+func codexLastSaid(lines [][]byte) string {
+	for i := len(lines) - 1; i >= 0; i-- {
+		if !bytes.Contains(lines[i], []byte(`"agent_message"`)) {
+			continue
+		}
+		var rec struct {
+			Payload struct {
+				Type    string `json:"type"`
+				Message string `json:"message"`
+			} `json:"payload"`
+		}
+		if json.Unmarshal(lines[i], &rec) == nil && rec.Payload.Type == "agent_message" && strings.TrimSpace(rec.Payload.Message) != "" {
+			return lastWords(rec.Payload.Message, sessionSaidMax)
+		}
+	}
+	return ""
 }
 
 // titleMemory remembers the last title seen for each log. A long stretch of
@@ -306,8 +448,10 @@ func codexThreadNames(path string) map[string]string {
 // its opening request, else the folder. Codex's own helper sessions (its
 // approval reviewer, sub-agents it spawned) are not listed.
 func codexSession(path string, info os.FileInfo, toolName string, names map[string]string) (Session, bool) {
-	head, _ := headAndTail(path, info.Size())
+	head, tail := headAndTail(path, info.Size())
 	sess := baseSession(path, info, "codex", toolName)
+	sess.turnDone = codexTurnDone(tail)
+	sess.LastSaid = codexLastSaid(tail)
 	title, prompt := "", ""
 	for _, line := range head {
 		var rec struct {

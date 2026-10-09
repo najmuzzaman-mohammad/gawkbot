@@ -72,8 +72,16 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
     public var isLead: Bool
     /// The agent's chosen look, when it has one; nil is the derived look.
     public var avatar: BotAvatar?
+    /// "session" for an agent session found running on the Mac (a Claude
+    /// Code or Codex window), not an office bot. It has no DM.
+    public var kind: String?
+    /// The tool that runs a session ("Claude Code"), and the end of its
+    /// latest reply: what it is waiting on.
+    public var toolName: String?
+    public var lastSaid: String?
 
     public var id: String { slug }
+    public var isSession: Bool { kind == "session" }
 
     public init(slug: String, name: String, mood: Mood, detail: String? = nil, origin: String? = nil, runsOn: String? = nil, runsOnDetail: String? = nil, isLead: Bool = false, avatar: BotAvatar? = nil) {
         self.slug = slug
@@ -88,7 +96,9 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case slug, name, mood, detail, origin, avatar
+        case slug, name, mood, detail, origin, avatar, kind
+        case toolName = "tool_name"
+        case lastSaid = "last_said"
         case runsOn = "runs_on"
         case runsOnDetail = "runs_on_detail"
         case isLead = "is_lead"
@@ -105,6 +115,9 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
         runsOnDetail = try c.decodeIfPresent(String.self, forKey: .runsOnDetail)
         isLead = try c.decodeIfPresent(Bool.self, forKey: .isLead) ?? false
         avatar = try? c.decodeIfPresent(BotAvatar.self, forKey: .avatar)
+        kind = try c.decodeIfPresent(String.self, forKey: .kind)
+        toolName = try c.decodeIfPresent(String.self, forKey: .toolName)
+        lastSaid = try c.decodeIfPresent(String.self, forKey: .lastSaid)
     }
 
     /// Cloud and gateway agents (OpenClaw, Hermes, Slack). They are answered
