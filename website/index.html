@@ -350,8 +350,8 @@
 
 <!-- ═══ INBOX ══════════════════════════════════════════════════════ -->
 <section class="section" id="inbox" aria-labelledby="inbox-title">
-  <div class="wrap split">
-    <div>
+  <div class="wrap split has-scrub">
+    <div class="split-copy">
       <p class="eyebrow reveal">Inbox</p>
       <h2 class="h2 reveal" id="inbox-title">One inbox for every agent's questions.</h2>
       <p class="lead reveal" style="margin-top:20px">Agents stop and ask, and the question sits in a tab you closed an hour ago. gawkbot runs your agents as a team and collects every question they ask in one list, so nothing sits there waiting while you look somewhere else.</p>
@@ -361,8 +361,12 @@
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>Nothing through your accounts without you.</strong> Emails, posts and every other action through an account you connected wait for your yes, one at a time. Reads don't have to.</span></li>
       </ul>
     </div>
-    <div class="stack" aria-label="Three example questions from agents" role="img">
-      <div class="card glass lg reveal">
+    <!-- Scene: three agents ask, one after another, each tagged with its
+         tool and where it runs; then the first is approved in place. -->
+    <div data-scrub="a:0.02-0.16 b:0.2-0.34 c:0.38-0.52 d:0.6-0.78" style="--scrub-h:250vh">
+    <div class="scrub-pin">
+    <div class="stack inbox-scene" aria-label="Three example questions from agents" role="img">
+      <div class="card glass lg q1">
         <div class="q-head">
           <svg class="blob glow" viewBox="-24 -24 248 248" aria-hidden="true"><use href="#b-auth-refactor"/></svg>
           <div><div class="q-who">auth-refactor</div><div class="tags"><span class="tag">Claude Code</span><span class="tag">this Mac</span></div></div>
@@ -370,8 +374,9 @@
         </div>
         <p class="q-text">Run the migration on staging? It drops the old sessions table.</p>
         <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve <kbd>↵</kbd></span></div>
+        <div class="q-done" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Approved.</b> auth-refactor runs the migration.</span></div>
       </div>
-      <div class="card glass lg reveal d1">
+      <div class="card glass lg q2">
         <div class="q-head">
           <svg class="blob glow" viewBox="-24 -24 248 248" aria-hidden="true"><use href="#b-flaky-tests"/></svg>
           <div><div class="q-who">flaky-tests</div><div class="tags"><span class="tag">Codex</span><span class="tag cloud">cloud</span></div></div>
@@ -380,7 +385,7 @@
         <p class="q-text">Which fix should I keep?</p>
         <div class="q-acts"><span class="chip-btn"><kbd>1</kbd> Add a retry</span><span class="chip-btn pick"><kbd>2</kbd> Freeze the clock</span><span class="chip-btn"><kbd>3</kbd> Skip it</span></div>
       </div>
-      <div class="card glass lg reveal d2">
+      <div class="card glass lg q3">
         <div class="q-head">
           <svg class="blob glow" viewBox="-24 -24 248 248" aria-hidden="true"><use href="#b-changelog"/></svg>
           <div><div class="q-who">changelog</div><div class="tags"><span class="tag">Opencode</span><span class="tag">this Mac</span></div></div>
@@ -390,13 +395,16 @@
         <div class="reply"><span>Type a reply…</span><span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span></div>
       </div>
     </div>
+    <ol class="scrub-steps" aria-hidden="true"><li data-from="1"><b>1</b> Agents ask</li><li data-from="2"><b>2</b> Each tagged by tool and place</li><li data-from="4"><b>3</b> Answer in place</li></ol>
+    </div>
+    </div>
   </div>
 </section>
 
 <!-- ═══ VOICE ══════════════════════════════════════════════════════ -->
 <section class="section" id="voice" aria-labelledby="voice-title" style="padding-top:0">
-  <div class="wrap split flip">
-    <div>
+  <div class="wrap split flip has-scrub">
+    <div class="split-copy">
       <p class="eyebrow reveal">Voice</p>
       <h2 class="h2 reveal" id="voice-title">Talk back with your voice.</h2>
       <p class="lead reveal" style="margin-top:20px">Some answers are quicker said than typed. Hold <kbd class="k">V</kbd>, say it, let go. gawkbot shows you what it heard, and nothing goes to the agent until you press <kbd class="k">↵</kbd>.</p>
@@ -405,22 +413,32 @@
         <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span><strong>A draft, not a send.</strong> Fix a word before it goes, or press Esc and it never happened.</span></li>
       </ul>
     </div>
-    <div class="voice-card glass lg reveal" role="img" aria-label="Illustration: a glowing microphone button, a moving sound wave, and the words being transcribed, ready to send to the agent auth-refactor.">
+    <!-- Scene: hold V and the mic opens (--a), the words come in as you
+         say them (--b), let go and read it back (--c), press Return and it
+         goes to the agent (--d). -->
+    <div data-scrub="a:0.02-0.14 b:0.16-0.5 c:0.54-0.64 d:0.7-0.84" style="--scrub-h:240vh">
+    <div class="scrub-pin">
+    <div class="voice-card glass lg voice-scene" role="img" aria-label="Illustration: a glowing microphone button, a moving sound wave, and the words being transcribed, ready to send to the agent auth-refactor.">
       <div class="orb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <p class="transcript" aria-hidden="true">Approve it, but back up the sessions table first<span class="live"> and tell me when it's done</span></p>
+      <div class="voice-key" aria-hidden="true"><kbd>V</kbd><span class="vk-lab"><span class="vk-hold">Holding V, listening</span><span class="vk-let">Let go: read it back</span></span></div>
+      <p class="transcript" aria-hidden="true" style="--n:15"><span class="w" style="--i:0">Approve</span> <span class="w" style="--i:1">it,</span> <span class="w" style="--i:2">but</span> <span class="w" style="--i:3">back</span> <span class="w" style="--i:4">up</span> <span class="w" style="--i:5">the</span> <span class="w" style="--i:6">sessions</span> <span class="w" style="--i:7">table</span> <span class="w" style="--i:8">first</span> <span class="live"><span class="w" style="--i:9">and</span> <span class="w" style="--i:10">tell</span> <span class="w" style="--i:11">me</span> <span class="w" style="--i:12">when</span> <span class="w" style="--i:13">it&#x27;s</span> <span class="w" style="--i:14">done</span></span></p>
       <div class="voice-foot" aria-hidden="true">
-        <span class="hint"><kbd>↵</kbd> send to auth-refactor</span>
+        <span class="hint vf-send"><kbd>↵</kbd> send to auth-refactor</span>
         <span class="hint"><kbd>esc</kbd> throw it away</span>
       </div>
+      <div class="voice-sent" aria-hidden="true"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-auth-refactor"/></svg><span><b>Sent to auth-refactor.</b> It backs up the table, then migrates.</span></div>
+    </div>
+    <ol class="scrub-steps" aria-hidden="true"><li data-from="1"><b>1</b> Hold V</li><li data-from="2"><b>2</b> Say it</li><li data-from="3"><b>3</b> Read it, press ↵</li></ol>
+    </div>
     </div>
   </div>
 </section>
 
 <!-- ═══ IPHONE ═════════════════════════════════════════════════════ -->
 <section class="section" id="iphone" aria-labelledby="iphone-title" style="padding-top:0">
-  <div class="wrap split">
-    <div>
+  <div class="wrap split has-scrub">
+    <div class="split-copy">
       <p class="eyebrow reveal">iPhone</p>
       <h2 class="h2 reveal" id="iphone-title">Reply from your iPhone, even to agents running in the cloud.</h2>
       <p class="lead reveal" style="margin-top:20px">Walk away from the desk and the questions come with you. Pair your phone once by scanning the code in Access &amp; Health, with the phone on a network that can reach your Mac (your Wi-Fi or Tailscale), then answer with a tap, a few words or the mic.</p>
@@ -431,33 +449,42 @@
       </ul>
       <p class="fineprint reveal">The iPhone app is new and builds from source with Xcode, from <code>apps/ios</code> in the repo. It is not on the App Store, and push notifications are not in yet.</p>
     </div>
-    <div class="phone-wrap reveal">
+    <!-- Scene: the inbox fills with every agent (--a), a tap approves the
+         top question (--b) and it resolves (--c), then the mic is held to
+         talk (--d). -->
+    <div data-scrub="a:0.02-0.22 b:0.28-0.4 c:0.42-0.56 d:0.64-0.82" style="--scrub-h:240vh">
+    <div class="scrub-pin">
+    <div class="phone-wrap iphone-scene">
       <div class="phone" role="img" aria-label="Illustration: an iPhone showing the gawkbot inbox. An approval card from auth-refactor sits at the top with Reject and Approve buttons, three more agents wait below, and a large microphone button says hold to talk.">
         <div class="phone-screen" aria-hidden="true">
           <div class="island-ip"></div>
           <div class="status"><span>9:41</span><span class="glyphs"><span class="bars"><i></i><i></i><i></i><i></i></span><span class="batt"></span></span></div>
           <div class="ip-title">Inbox</div>
           <div class="ip-sub">4 agents need you</div>
-          <div class="ip-card">
+          <div class="ip-card" style="--r:0">
             <div class="q-head">
               <svg class="blob" viewBox="-24 -24 248 248"><use href="#b-auth-refactor"/></svg>
               <div><div class="q-who">auth-refactor</div><div class="tags"><span class="tag">Claude Code</span><span class="tag">Mac</span></div></div>
             </div>
             <p class="q-text">Run the migration on staging? It drops the old sessions table.</p>
-            <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve</span></div>
+            <div class="q-acts"><span class="chip-btn no">Reject</span><span class="chip-btn yes">Approve<span class="ip-tap" aria-hidden="true"></span></span></div>
+            <div class="ip-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Approved</b> from your phone</span></div>
           </div>
           <ul class="ip-list">
-            <li class="ip-row"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-flaky-tests"/></svg><div style="min-width:0"><div class="ip-name">flaky-tests <span class="tag cloud" style="font-size:10px;padding:1px 6px;border-radius:999px;color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,transparent)">cloud</span></div><div class="ip-prev">Which fix should I keep?</div></div><div class="ip-time">2m<br><span class="dot"></span></div></li>
-            <li class="ip-row"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-landing-copy"/></svg><div style="min-width:0"><div class="ip-name">landing-copy</div><div class="ip-prev">Push the branch and open a PR?</div></div><div class="ip-time">6m<br><span class="dot"></span></div></li>
-            <li class="ip-row"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-changelog"/></svg><div style="min-width:0"><div class="ip-name">changelog</div><div class="ip-prev">What should this release be called?</div></div><div class="ip-time">11m<br><span class="dot"></span></div></li>
+            <li class="ip-row" style="--r:1"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-flaky-tests"/></svg><div style="min-width:0"><div class="ip-name">flaky-tests <span class="tag cloud" style="font-size:10px;padding:1px 6px;border-radius:999px;color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,transparent)">cloud</span></div><div class="ip-prev">Which fix should I keep?</div></div><div class="ip-time">2m<br><span class="dot"></span></div></li>
+            <li class="ip-row" style="--r:2"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-landing-copy"/></svg><div style="min-width:0"><div class="ip-name">landing-copy</div><div class="ip-prev">Push the branch and open a PR?</div></div><div class="ip-time">6m<br><span class="dot"></span></div></li>
+            <li class="ip-row" style="--r:3"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-changelog"/></svg><div style="min-width:0"><div class="ip-name">changelog</div><div class="ip-prev">What should this release be called?</div></div><div class="ip-time">11m<br><span class="dot"></span></div></li>
           </ul>
           <div class="ip-bottom">
             <span class="ip-mic"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="ip-hold">Hold to talk</span>
+            <span class="ip-hold"><span class="ih-idle">Hold to talk</span><span class="ih-live">Listening…</span></span>
           </div>
           <span class="ip-home"></span>
         </div>
       </div>
+    </div>
+    <ol class="scrub-steps" aria-hidden="true"><li data-from="1"><b>1</b> Every agent, one list</li><li data-from="2"><b>2</b> One tap answers</li><li data-from="4"><b>3</b> Hold to talk</li></ol>
+    </div>
     </div>
   </div>
 </section>
@@ -470,42 +497,87 @@
       <h2 class="h2 reveal" id="keys-title">Everything is a keystroke.</h2>
       <p class="lead reveal">Your hands stay where they are. Open the notch from anywhere, walk the list, answer, and get back to work.</p>
     </div>
+    <!-- Scene: one key per beat on a small notch. Control-Option-Space opens
+         it; J moves down; 2 answers flaky-tests; Return takes landing-copy's
+         recommendation; holding V talks to the Chief of Staff; R opens a
+         reply to auth-refactor; Esc puts it away. The matching tile lights.
+         Steps, not a scrub: data-step 1-7 picks the state. -->
+    <div class="keys-scene" data-scrub="a:0.02-0.08 b:0.13-0.18 c:0.24-0.29 d:0.35-0.4 e:0.46-0.51 f:0.58-0.63 g:0.72-0.78" style="--scrub-h:320vh">
+    <div class="scrub-pin">
+    <div class="kdemo" aria-hidden="true">
+      <div class="kd-strip"><span class="kd-hw"></span></div>
+      <div class="kd-panel">
+        <div class="kd-row kr1">
+          <svg class="blob" viewBox="-24 -24 248 248"><use href="#b-auth-refactor"/></svg>
+          <div class="kd-body"><b>auth-refactor</b><p>Run the migration on staging?</p>
+            <div class="kd-acts"><span class="kd-btn rec"><kbd>1</kbd>Approve</span><span class="kd-btn"><kbd>2</kbd>Reject</span></div>
+            <div class="kd-reply">Back it up first, then go ahead<i class="kd-caret"></i></div>
+          </div>
+        </div>
+        <div class="kd-row kr2">
+          <svg class="blob" viewBox="-24 -24 248 248"><use href="#b-flaky-tests"/></svg>
+          <div class="kd-body"><b>flaky-tests</b><p>Which fix should I keep?</p>
+            <div class="kd-acts"><span class="kd-btn"><kbd>1</kbd>Add a retry</span><span class="kd-btn pick"><kbd>2</kbd>Freeze the clock</span></div>
+            <div class="kd-done"><svg class="kd-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Freeze the clock</div>
+          </div>
+        </div>
+        <div class="kd-row kr3">
+          <svg class="blob" viewBox="-24 -24 248 248"><use href="#b-landing-copy"/></svg>
+          <div class="kd-body"><b>landing-copy</b><p>Push the branch and open a PR?</p>
+            <div class="kd-acts"><span class="kd-btn rec"><kbd>1</kbd>Push it</span><span class="kd-btn"><kbd>2</kbd>Not yet</span></div>
+            <div class="kd-done"><svg class="kd-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Pushed, PR opened</div>
+          </div>
+        </div>
+        <div class="kd-ask"><span class="kd-ask-idle">Ask Chief of Staff to manage any agent…</span><span class="kd-ask-live"><span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>Listening: "pause the release until tests pass"</span></div>
+      </div>
+    </div>
     <div class="keys">
-      <div class="key-tile wide glass lg reveal">
+      <div class="key-tile wide glass lg kt1">
         <div class="caps"><kbd aria-label="Control">⌃</kbd><kbd aria-label="Option">⌥</kbd><kbd class="long">Space</kbd></div>
         <h3>Open the notch</h3>
         <p>From anywhere on your Mac, whichever app has focus.</p>
       </div>
-      <div class="key-tile glass lg reveal d1">
+      <div class="key-tile glass lg kt2">
         <div class="caps"><kbd>J</kbd><kbd>K</kbd> or <kbd aria-label="Up arrow">↑</kbd><kbd aria-label="Down arrow">↓</kbd></div>
         <h3>Move between questions</h3>
         <p>Down the list and back up again.</p>
       </div>
-      <div class="key-tile glass lg reveal d2">
+      <div class="key-tile glass lg kt3">
         <div class="caps"><kbd>1</kbd>–<kbd>9</kbd></div>
         <h3>Pick an answer</h3>
         <p>Every option is numbered. One key answers it.</p>
       </div>
-      <div class="key-tile glass lg reveal">
+      <div class="key-tile glass lg kt4">
         <div class="caps"><kbd aria-label="Return">↵</kbd></div>
         <h3>Take the recommendation</h3>
         <p>When the agent suggests an answer, Return takes it.</p>
       </div>
-      <div class="key-tile glass lg reveal d1">
+      <div class="key-tile glass lg kt5">
         <div class="caps"><kbd>V</kbd> hold</div>
         <h3>Talk</h3>
         <p>Speak while it's held. Let go to read the transcript.</p>
       </div>
-      <div class="key-tile glass lg reveal d2">
+      <div class="key-tile glass lg kt6">
         <div class="caps"><kbd>R</kbd></div>
         <h3>Reply in words</h3>
         <p>Opens a reply box for the selected question.</p>
       </div>
-      <div class="key-tile glass lg reveal d3">
+      <div class="key-tile glass lg kt7">
         <div class="caps"><kbd>esc</kbd></div>
         <h3>Close</h3>
         <p>Puts the notch away, or cancels the reply you're typing.</p>
       </div>
+    </div>
+    <ol class="key-caption" aria-hidden="true">
+      <li class="kc1"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>Space</kbd> Open the notch from anywhere</li>
+      <li class="kc2"><kbd>J</kbd><kbd>K</kbd> Move between questions</li>
+      <li class="kc3"><kbd>1</kbd>–<kbd>9</kbd> Pick an answer</li>
+      <li class="kc4"><kbd>↵</kbd> Take the recommendation</li>
+      <li class="kc5"><kbd>V</kbd> Hold to talk</li>
+      <li class="kc6"><kbd>R</kbd> Reply in words</li>
+      <li class="kc7"><kbd>esc</kbd> Close</li>
+    </ol>
+    </div>
     </div>
   </div>
 </section>
@@ -518,24 +590,36 @@
       <h2 class="h2 reveal" id="agents-title">Detects every agent on your machine.</h2>
       <p class="lead reveal">No setup per tool. gawkbot notices the agents you already have; one click adopts them, and each one is tagged with the tool that runs it and where it runs. Claude Code, Codex, Opencode and local models can ask you in the inbox; the others take work and report back.</p>
     </div>
-    <ul class="chips reveal" aria-label="Supported agents">
-      <li class="chip glass">Claude Code</li>
-      <li class="chip glass">Codex</li>
-      <li class="chip glass">Opencode</li>
-      <li class="chip glass">Gemini CLI</li>
-      <li class="chip glass">Cursor CLI</li>
-      <li class="chip glass">Aider</li>
-      <li class="chip glass">Goose</li>
-      <li class="chip glass">Amp</li>
-      <li class="chip glass">Qwen Code</li>
-      <li class="chip glass">Copilot CLI</li>
-      <li class="chip glass">Crush</li>
-      <li class="chip glass">Factory Droid</li>
-      <li class="chip glass">Ollama</li>
-      <li class="chip glass">OpenClaw</li>
-      <li class="chip glass">Hermes</li>
+    <!-- Scene: gawkbot scans this Mac (--a), finds each agent in turn (--b,
+         staggered by --k), and "Adopt all" adopts them into the team (--c). -->
+    <div class="agents-scene" data-scrub="a:0.02-0.2 b:0.22-0.56 c:0.62-0.78" style="--scrub-h:230vh">
+    <div class="scrub-pin">
+    <div class="scan-head" aria-hidden="true">
+      <span class="scan-label"><span class="scan-dot"></span><span class="sl-scan">Scanning this Mac…</span><span class="sl-found">15 agents found on this Mac</span><span class="sl-done">15 agents on the team</span></span>
+      <span class="scan-btn">Adopt all</span>
+      <span class="scan-bar"></span>
+    </div>
+    <ul class="chips" aria-label="Supported agents">
+      <li class="chip glass" style="--k:0"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Claude Code</li>
+      <li class="chip glass" style="--k:1"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Codex</li>
+      <li class="chip glass" style="--k:2"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Opencode</li>
+      <li class="chip glass" style="--k:3"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Gemini CLI</li>
+      <li class="chip glass" style="--k:4"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Cursor CLI</li>
+      <li class="chip glass" style="--k:5"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Aider</li>
+      <li class="chip glass" style="--k:6"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Goose</li>
+      <li class="chip glass" style="--k:7"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Amp</li>
+      <li class="chip glass" style="--k:8"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Qwen Code</li>
+      <li class="chip glass" style="--k:9"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Copilot CLI</li>
+      <li class="chip glass" style="--k:10"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Crush</li>
+      <li class="chip glass" style="--k:11"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Factory Droid</li>
+      <li class="chip glass" style="--k:12"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Ollama</li>
+      <li class="chip glass" style="--k:13"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>OpenClaw</li>
+      <li class="chip glass" style="--k:14"><svg class="chip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Hermes</li>
     </ul>
-    <p class="chips-note reveal">Using one that isn't here? <a href="https://github.com/najmuzzaman-mohammad/gawkbot/issues" target="_blank" rel="noopener" style="color:var(--accent)">Open an issue</a>.</p>
+    <ol class="scrub-steps" aria-hidden="true"><li data-from="1"><b>1</b> Scans this Mac</li><li data-from="2"><b>2</b> Finds each agent</li><li data-from="3"><b>3</b> Adopt them in one click</li></ol>
+    </div>
+    </div>
+    <p class="chips-note reveal">Using one that isn't here? <a href="https://github.com/najmuzzaman-mohammad/gawkbot/issues" target="_blank" rel="noopener" class="ink-link">Open an issue</a>.</p>
   </div>
 </section>
 
@@ -561,39 +645,50 @@
       <h2 class="h2 reveal" id="team-title">A team, not just an inbox.</h2>
       <p class="lead reveal">Every agent gawkbot adopts joins a team run by a Chief of Staff. The team splits up the work, runs the recurring jobs on a schedule, writes down what it learns, and builds small tools so you can use the results.</p>
     </div>
+    <!-- Scene: a spotlight walks the real app, one part per beat, while
+         its card lights: the Chief of Staff and the bots that report to
+         it, Scheduled Tasks, the Wiki, and the Apps the bots build. -->
+    <div class="team-scene" data-scrub="a:0.04-0.14 b:0.28-0.36 c:0.5-0.58 d:0.72-0.8" style="--scrub-h:300vh">
+    <div class="scrub-pin">
+    <div class="team-grid">
     <!-- The real app, not a drawing: screenshots of the current build in
          its Glass theme, light or dark to match the page. Regenerate with
          `node scripts/website-app-shots.mjs` after any visible change to
          the app, so this never shows an old UI. -->
-    <figure class="appwin reveal">
+    <figure class="appwin">
       <div class="appwin-bar" aria-hidden="true"><i></i><i></i><i></i></div>
       <picture>
         <source srcset="app-glass-light.webp" media="(prefers-color-scheme: light)">
         <img src="app-glass-dark.webp" width="1280" height="800" loading="lazy" decoding="async"
              alt="The gawkbot app. A glass sidebar lists the Chief of Staff and the four bots that report to it, each with what it is doing, above the Work, Knowledge and Apps sections. The main pane is a chat with the Chief of Staff, which has split a checkout release into tasks for three bots and says their questions are waiting in the notch.">
       </picture>
+      <span class="spot" aria-hidden="true"></span>
     </figure>
     <div class="keys">
-      <div class="key-tile glass lg reveal">
+      <div class="key-tile glass lg tt1">
         <div class="caps">Chief of Staff</div>
         <h3>They work together.</h3>
         <p>The Chief of Staff breaks a job into tasks and hands them out. Bots claim tasks, review each other's work and report back. They come to the notch when they need an answer or a yes.</p>
       </div>
-      <div class="key-tile glass lg reveal d1">
+      <div class="key-tile glass lg tt2">
         <div class="caps">Routines</div>
         <h3>Work runs on a schedule.</h3>
         <p>Give a bot a routine, like every Monday at 9:00, and it runs without you. Each run keeps a transcript, and every change to the prompt is versioned.</p>
       </div>
-      <div class="key-tile glass lg reveal d2">
+      <div class="key-tile glass lg tt3">
         <div class="caps">Wiki</div>
         <h3>They keep their own knowledge base.</h3>
         <p>What the bots learn goes into a wiki they write and maintain: pages about your company, your processes and themselves, with every claim cited back to its source.</p>
       </div>
-      <div class="key-tile glass lg reveal d3">
+      <div class="key-tile glass lg tt4">
         <div class="caps">Apps</div>
         <h3>They build small apps for you.</h3>
         <p>When a job produces something you need to use, a bot builds a small app for it: a real screen over your workspace data, running in a sandbox inside gawkbot. Something to work with, not a chat log to scroll.</p>
       </div>
+    </div>
+    </div>
+    <ol class="scrub-steps" aria-hidden="true"><li data-from="1"><b>1</b> A team with a lead</li><li data-from="2"><b>2</b> Routines</li><li data-from="3"><b>3</b> A wiki they keep</li><li data-from="4"><b>4</b> Apps they build</li></ol>
+    </div>
     </div>
     <p class="fineprint reveal" style="text-align:center">Routines fire through a small service in the repo, <code>agent/</code>. gawkbot finds and runs it from a source checkout; the Mac download does not include it.</p>
   </div>
@@ -713,7 +808,7 @@
       </details>
       <details class="glass lg">
         <summary>Does it work on Windows or Linux?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></summary>
-        <div class="answer">gawkbot is a <a href="/download.html" style="color:var(--accent)">Mac app</a> with an iPhone companion. The notch, the shortcuts and the sounds are Mac only. The source is public, so anyone can build the open-source web app from source and run it on Windows or Linux, but there is no installer for either.</div>
+        <div class="answer">gawkbot is a <a href="/download.html" class="ink-link">Mac app</a> with an iPhone companion. The notch, the shortcuts and the sounds are Mac only. The source is public, so anyone can build the open-source web app from source and run it on Windows or Linux, but there is no installer for either.</div>
       </details>
     </div>
   </div>
@@ -839,6 +934,61 @@
     frame();
     window.addEventListener('scroll', request, { passive: true });
     window.addEventListener('resize', function () { measure(); request(); });
+  }
+
+  // ── SCROLL SCENES ───────────────────────────────────────────────────
+  // The hero's way of explaining, for every other illustration. Each
+  // [data-scrub] is a tall track whose sticky child pins while you scroll
+  // through it. data-scrub names the beats, "name:start-end" over the
+  // track's 0..1 progress; each beat becomes an eased CSS variable --name
+  // (0..1) on the track, and data-step counts the beats that have begun,
+  // for scenes that change state in steps. Scrolling back plays it
+  // backwards. Without this script, or with reduced motion, every beat
+  // stays at the CSS default of 1: the finished scene, all of it visible.
+  var tracks = Array.prototype.slice.call(document.querySelectorAll('[data-scrub]'));
+  if (tracks.length && !reduceMotion) {
+    document.documentElement.classList.add('scrub-live');
+    var c01 = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+    var ease = function (t) { return 1 - Math.pow(1 - t, 3); };
+    var beats = tracks.map(function (el) {
+      return el.getAttribute('data-scrub').trim().split(/\s+/).map(function (tok) {
+        var m = /^([a-z][a-z0-9]*):([0-9.]+)-([0-9.]+)$/.exec(tok);
+        return m ? { name: m[1], a: Number(m[2]), b: Number(m[3]) } : null;
+      }).filter(Boolean);
+    });
+    var pending = 0;
+    var scrub = function () {
+      pending = 0;
+      var vh = window.innerHeight;
+      tracks.forEach(function (el, i) {
+        var r = el.getBoundingClientRect();
+        if (r.bottom < -vh || r.top > vh * 2) return;
+        // 0 when the track's top is a third of the way down the screen,
+        // 1 when its bottom reaches the bottom of the screen (the pin lets go).
+        var span = r.height - vh * 0.65;
+        var p = span > 0 ? c01((vh * 0.35 - r.top) / span) : 1;
+        var step = 0;
+        beats[i].forEach(function (bt, k) {
+          el.style.setProperty('--' + bt.name, ease(c01((p - bt.a) / (bt.b - bt.a))).toFixed(4));
+          if (p >= bt.a) step = k + 1;
+        });
+        if (el.getAttribute('data-step') !== String(step)) {
+          el.setAttribute('data-step', String(step));
+          // The caption pill for the current beat: the last one whose
+          // data-from beat has begun.
+          var pills = el.querySelectorAll('.scrub-steps li[data-from]');
+          var on = null;
+          Array.prototype.forEach.call(pills, function (li) {
+            if (Number(li.getAttribute('data-from')) <= step) on = li;
+          });
+          Array.prototype.forEach.call(pills, function (li) { li.classList.toggle('on', li === on); });
+        }
+      });
+    };
+    var ask = function () { if (!pending) pending = requestAnimationFrame(scrub); };
+    scrub();
+    window.addEventListener('scroll', ask, { passive: true });
+    window.addEventListener('resize', ask);
   }
 
   // ── LIQUID GLASS REFRACTION ─────────────────────────────────────────

@@ -18,8 +18,10 @@
   --notch-text: rgba(255, 255, 255, 0.94);
   --notch-text-secondary: rgba(235, 235, 245, 0.62);
   --notch-text-tertiary: rgba(235, 235, 245, 0.38);
-  --notch-accent: #30d158;
-  --notch-accent-ink: #00230b;
+  /* Monochrome: colour in the notch is kept for meaning (the moods, the
+     amber attention count, the blue listening state, red for refusals). */
+  --notch-accent: #f5f5f7;
+  --notch-accent-ink: #111113;
   --notch-blue: #0a84ff;
   --mood-working: #64d2ff;
   --mood-idle: #8e8e93;
@@ -46,9 +48,11 @@
   --nb-a2: 0.05; /* body opacity, bottom */
   --nb-edge: 0 0 0; /* lower edge shade */
   --nb-ink: var(--notch-text);
-  --nb-green: 40 200 85;
-  --nb-green-l: 170 255 190;
-  --nb-green-edge: 0 60 20;
+  /* The recommended answer: white glass with near-black ink. At its
+     faintest stop (0.70) over the sheet bottom #0a0a0c the ink is 9.3:1. */
+  --nb-mono: 255 255 255;
+  --nb-mono-l: 255 255 255;
+  --nb-mono-edge: 0 0 0;
   --nb-red-ink: #ff9a90;
   --nb-red-l: 255 120 110;
 }
@@ -490,16 +494,17 @@ kbd {
   cursor: default;
 }
 .nbtn.is-primary {
-  --nb-t: var(--nb-green);
-  --nb-l: var(--nb-green-l);
-  --nb-edge: var(--nb-green-edge);
-  --nb-a1: 0.62;
-  --nb-a2: 0.34;
-  --nb-ink: #fff;
+  --nb-t: var(--nb-mono);
+  --nb-l: var(--nb-mono-l);
+  --nb-edge: var(--nb-mono-edge);
+  --nb-a1: 0.86;
+  --nb-a2: 0.7;
+  --nb-ink: var(--notch-accent-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 .nbtn.is-primary:hover:not(:disabled) {
-  --nb-a1: 0.74;
-  --nb-a2: 0.46;
+  --nb-a1: 0.94;
+  --nb-a2: 0.8;
 }
 .nbtn.is-danger {
   --nb-ink: var(--nb-red-ink);

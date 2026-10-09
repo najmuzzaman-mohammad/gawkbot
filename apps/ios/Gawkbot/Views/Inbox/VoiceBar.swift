@@ -153,6 +153,7 @@ struct VoiceBar: View {
                     Label("Send", systemImage: "arrow.up.circle.fill")
                 }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(Color(uiColor: .systemBackground))
                 .keyboardShortcut(.defaultAction)
                 .disabled(voice.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || target == nil)
             }
@@ -168,7 +169,7 @@ struct VoiceBar: View {
                 .frame(width: 52, height: 52)
             Image(systemName: live ? "waveform" : "mic.fill")
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(live ? Color.white : Color(uiColor: .systemBackground))
         }
         .frame(width: 64, height: 64)
         .scaleEffect(holding ? 1.08 : 1)

@@ -18,7 +18,7 @@
   --bg-2: #111115;
   --text: #f5f5f7;
   --text-2: rgba(235, 235, 245, 0.66);
-  --text-3: rgba(235, 235, 245, 0.42);
+  --text-3: rgba(235, 235, 245, 0.62);
   --hairline: rgba(255, 255, 255, 0.09);
   --hairline-2: rgba(255, 255, 255, 0.16);
   --fill: rgba(120, 120, 128, 0.24);
@@ -29,9 +29,12 @@
   --glass-solid: rgba(26, 26, 31, 0.94);
   --glass-hi: rgba(255, 255, 255, 0.11);
 
-  --accent: #46c9b6;
-  --accent-ink: #04201c;
-  --accent-soft: rgba(70, 201, 182, 0.16);
+  /* The primary colour is the ink itself: white on dark, black on light.
+     Colour is kept for what it means (status, the bots, the Mac's own
+     wallpaper and window controls), not for chrome. */
+  --accent: #f5f5f7;
+  --accent-ink: #0b0b0e;
+  --accent-soft: rgba(255, 255, 255, 0.10);
   --green: #30d158;
   --red: #ff453a;
   --orange: #ff9f0a;
@@ -40,9 +43,9 @@
   --btn-bg: #f5f5f7;
   --btn-ink: #0b0b0e;
 
-  --aurora-1: rgba(63, 156, 143, 0.30);
-  --aurora-2: rgba(107, 127, 215, 0.22);
-  --aurora-3: rgba(168, 84, 107, 0.16);
+  --aurora-1: rgba(255, 255, 255, 0.055);
+  --aurora-2: rgba(255, 255, 255, 0.04);
+  --aurora-3: rgba(255, 255, 255, 0.03);
 
   /* Mac mockup wallpaper and menu bar */
   --wall-1: #2a6f8f;
@@ -109,7 +112,7 @@
     --bg-2: #ffffff;
     --text: #1d1d1f;
     --text-2: rgba(60, 60, 67, 0.76);
-    --text-3: rgba(60, 60, 67, 0.50);
+    --text-3: #6e6e73;
     --hairline: rgba(0, 0, 0, 0.08);
     --hairline-2: rgba(0, 0, 0, 0.14);
     --fill: rgba(120, 120, 128, 0.16);
@@ -120,20 +123,20 @@
     --glass-solid: rgba(255, 255, 255, 0.96);
     --glass-hi: rgba(255, 255, 255, 0.92);
 
-    --accent: #1b8a7b;
+    --accent: #1d1d1f;
     --accent-ink: #ffffff;
-    --accent-soft: rgba(27, 138, 123, 0.12);
+    --accent-soft: rgba(0, 0, 0, 0.06);
     --green: #28a745;
-    --red: #e5352b;
+    --red: #d70015;
     --orange: #d9800a;
-    --blue: #007aff;
+    --blue: #0062cc;
 
     --btn-bg: #1d1d1f;
     --btn-ink: #ffffff;
 
-    --aurora-1: rgba(63, 156, 143, 0.22);
-    --aurora-2: rgba(107, 127, 215, 0.18);
-    --aurora-3: rgba(192, 138, 62, 0.14);
+    --aurora-1: rgba(120, 128, 145, 0.12);
+    --aurora-2: rgba(120, 128, 145, 0.09);
+    --aurora-3: rgba(120, 128, 145, 0.07);
 
     --wall-1: #bfe3e0;
     --wall-2: #d9cdf2;
@@ -282,15 +285,7 @@ code, kbd { font-family: var(--font-mono); }
   text-wrap: pretty;
 }
 .muted { color: var(--text-2); }
-.grad {
-  background: linear-gradient(100deg, #46c9b6 0%, #6b7fd7 45%, #c27aa0 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-@media (prefers-color-scheme: light) {
-  .grad { background-image: linear-gradient(100deg, #1b8a7b 0%, #4f5fc4 50%, #a8546b 100%); }
-}
+.grad { color: var(--text-2); }
 
 /* ── Buttons ──────────────────────────────────────────────────────── */
 .btn {
@@ -669,8 +664,8 @@ section { position: relative; }
 
 /* The three beats, under the Mac. The current one lights up. */
 .scene-steps { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.scene-steps li { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 6px; border-radius: 999px; font-size: 13.5px; color: var(--text-3); background: var(--fill-2); transition: color 0.3s, background-color 0.3s; }
-.scene-steps b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--fill); }
+.scene-steps li { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 6px; border-radius: 999px; font-size: 13.5px; color: var(--text-2); background: var(--fill-2); transition: color 0.3s, background-color 0.3s; }
+.scene-steps b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--text); background: var(--fill); }
 .scene[data-step="1"] [data-s="1"], .scene[data-step="2"] [data-s="2"], .scene[data-step="3"] [data-s="3"] { color: var(--text); background: var(--accent-soft); }
 .scene[data-step="1"] [data-s="1"] b, .scene[data-step="2"] [data-s="2"] b, .scene[data-step="3"] [data-s="3"] b { background: var(--accent); color: var(--accent-ink); }
 
@@ -825,7 +820,7 @@ section { position: relative; }
 .q-who { font-size: 13.5px; font-weight: 650; letter-spacing: -0.015em; }
 .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .tag {
-  font-size: 10.5px; font-weight: 600; letter-spacing: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0;
   padding: 1px 7px; border-radius: 999px;
   color: var(--notch-ink-2); background: rgba(255, 255, 255, 0.08);
 }
@@ -833,7 +828,7 @@ section { position: relative; }
 .q-text { font-size: 14px; line-height: 1.38; color: var(--notch-ink); margin-bottom: 10px; letter-spacing: -0.012em; }
 .q-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .wave { display: flex; align-items: center; gap: 2.5px; height: 20px; flex: none; }
-.wave i { display: block; width: 3px; height: 30%; border-radius: 2px; background: #7be3d3; animation: wave 1.1s var(--ease-out) infinite; }
+.wave i { display: block; width: 3px; height: 30%; border-radius: 2px; background: currentColor; animation: wave 1.1s var(--ease-out) infinite; }
 .wave i:nth-child(2) { animation-delay: 0.1s; } .wave i:nth-child(3) { animation-delay: 0.25s; }
 .wave i:nth-child(4) { animation-delay: 0.05s; } .wave i:nth-child(5) { animation-delay: 0.32s; }
 .wave i:nth-child(6) { animation-delay: 0.18s; } .wave i:nth-child(7) { animation-delay: 0.4s; }
@@ -868,7 +863,7 @@ section { position: relative; }
 .card .reply {
   display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 6px 0 14px;
   border-radius: 999px; background: var(--fill-2); border: 1px solid var(--hairline);
-  font-size: 14.5px; color: var(--text-3);
+  font-size: 14.5px; color: var(--text-2);
 }
 .card .reply > span:first-child { flex: 1; }
 .card .reply .send { width: 30px; height: 30px; }
@@ -892,9 +887,10 @@ section { position: relative; }
 .voice-card { padding: clamp(24px, 4vw, 40px); text-align: center; }
 .orb {
   width: 132px; height: 132px; margin: 8px auto 28px; border-radius: 50%;
-  position: relative; display: grid; place-items: center; color: #fff;
-  background: radial-gradient(circle at 34% 26%, #9ff0e2, #3fb7a5 45%, #1d7b6e 80%);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), inset 0 -10px 24px rgba(0, 0, 0, 0.22), 0 18px 40px rgba(42, 157, 141, 0.45);
+  position: relative; display: grid; place-items: center; color: var(--accent-ink);
+  background: radial-gradient(circle at 34% 26%, color-mix(in srgb, var(--accent) 100%, #fff 0%), color-mix(in srgb, var(--accent) 82%, transparent) 55%, color-mix(in srgb, var(--accent) 62%, transparent) 85%);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), inset 0 -10px 24px rgba(0, 0, 0, 0.18), var(--shadow-md);
 }
 .orb svg { width: 46px; height: 46px; }
 .orb::before, .orb::after {
@@ -1057,7 +1053,7 @@ section { position: relative; }
 .sound span { color: var(--text-3); font-weight: 500; }
 .stage.speaker { align-items: center; }
 .eq { display: flex; gap: 6px; align-items: center; height: 70px; }
-.eq i { width: 8px; border-radius: 4px; background: linear-gradient(180deg, #46c9b6, #6b7fd7); animation: wave 1.3s var(--ease-out) infinite; height: 40%; }
+.eq i { width: 8px; border-radius: 4px; background: var(--text); animation: wave 1.3s var(--ease-out) infinite; height: 40%; }
 .eq i:nth-child(2) { animation-delay: 0.2s; } .eq i:nth-child(3) { animation-delay: 0.4s; }
 .eq i:nth-child(4) { animation-delay: 0.1s; } .eq i:nth-child(5) { animation-delay: 0.3s; }
 @media (max-width: 760px) { .fun { grid-template-columns: 1fr; } }
@@ -1240,11 +1236,14 @@ section { position: relative; }
   --gb-ink-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
   --gb-rim: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.55));
   --gb-filter: blur(10px) saturate(200%) brightness(1.1);
-  --gb-green: 40 200 85;
-  --gb-green-l: 170 255 190;
-  --gb-green-edge: 0 60 20;
-  --gb-teal: 70 201 182;
-  --gb-teal-l: 170 255 240;
+  /* Prominent glass is the ink colour: white glass with black ink on dark,
+     black glass with white ink on light. */
+  --gb-prom: 245 245 247;
+  --gb-prom-l: 255 255 255;
+  --gb-prom-edge: 0 0 0;
+  --gb-prom-ink: #0b0b0e;
+  --gb-prom-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  --gb-prom-kbd: rgba(0, 0, 0, 0.12);
   --gb-red-ink: #ff9a90;
   --gb-red-l: 255 120 110;
   --gb-kbd: rgba(255, 255, 255, 0.16);
@@ -1275,21 +1274,21 @@ section { position: relative; }
   mask-composite: exclude;
 }
 /* The recommended answer: tinted glass. */
-.nbtn.primary, .chip-btn.yes, .dyn-acts .yes {
-  --gb-t: var(--gb-green); --gb-l: var(--gb-green-l); --gb-edge: var(--gb-green-edge);
-  --gb-a1: 0.62; --gb-a2: 0.34; --gb-ink: #fff;
+/* The recommended answer, the picked option, send and the mic:
+   prominent glass in the ink colour. */
+.nbtn.primary, .chip-btn.yes, .dyn-acts .yes, .chip-btn.pick, .card .reply .send, .ip-mic {
+  --gb-t: var(--gb-prom); --gb-l: var(--gb-prom-l); --gb-edge: var(--gb-prom-edge);
+  --gb-a1: 0.82; --gb-a2: 0.62; --gb-bloom: 0.25;
+  --gb-ink: var(--gb-prom-ink); --gb-ink-shadow: var(--gb-prom-ink-shadow);
 }
-/* Send and the mic: round lenses of the brand teal. */
-.card .reply .send, .ip-mic { --gb-t: var(--gb-teal); --gb-l: var(--gb-teal-l); --gb-a1: 0.62; --gb-a2: 0.36; --gb-ink: #fff; }
-.chip-btn.pick { --gb-t: var(--gb-teal); --gb-l: var(--gb-teal-l); --gb-a1: 0.5; --gb-a2: 0.24; --gb-ink: #fff; }
 /* A refusal: clear glass, red ink, a faint red caustic. */
 .chip-btn.no, .dyn-acts .no { --gb-ink: var(--gb-red-ink); --gb-l: var(--gb-red-l); }
 .nbtn kbd, .chip-btn kbd { background: var(--gb-kbd); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.35); text-shadow: none; }
-.nbtn.primary kbd, .chip-btn.yes kbd, .chip-btn.pick kbd { background: rgba(0, 0, 0, 0.16); }
+.nbtn.primary kbd, .chip-btn.yes kbd, .chip-btn.pick kbd { background: var(--gb-prom-kbd); box-shadow: none; }
 
 /* Light cards (the inbox stack and the iPhone section follow the page):
-   clear glass is drawn by its edges rather than a fill, and the tinted
-   glass is a deeper green so white ink keeps its contrast. */
+   clear glass is drawn by its edges rather than a fill, and prominent
+   glass turns to black glass with white ink. */
 @media (prefers-color-scheme: light) {
   .card, .ip-card {
     --gb-a1: 0.3; --gb-a2: 0.02;
@@ -1301,14 +1300,303 @@ section { position: relative; }
     --gb-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
     --gb-rim: linear-gradient(160deg, #fff, rgba(255, 255, 255, 0.3) 30%, rgba(0, 0, 0, 0.1) 62%, rgba(255, 255, 255, 0.95));
     --gb-filter: blur(8px) saturate(220%) brightness(1.04);
-    --gb-green: 22 150 64;
-    --gb-green-l: 150 255 180;
-    --gb-teal: 18 140 124;
+    --gb-prom: 28 28 30;
+    --gb-prom-l: 140 140 150;
+    --gb-prom-ink: #ffffff;
+    --gb-prom-ink-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    --gb-prom-kbd: rgba(255, 255, 255, 0.18);
     --gb-red-ink: var(--red);
+    --gb-red-l: 255 255 255;
     --gb-kbd: rgba(0, 0, 0, 0.06);
   }
   .card .chip-btn.yes, .ip-card .chip-btn.yes, .card .chip-btn.pick, .card .reply .send, .ip-mic {
-    --gb-a1: 0.86; --gb-a2: 0.66; --gb-edge-a: 0.3; --gb-bloom: 0.7;
-    --gb-ink-shadow: 0 1px 1.5px rgba(0, 40, 10, 0.35);
+    --gb-a1: 0.9; --gb-a2: 0.74; --gb-edge-a: 0.3; --gb-bloom: 0.35;
+    --gb-ink: var(--gb-prom-ink); --gb-ink-shadow: var(--gb-prom-ink-shadow);
   }
 }
+
+/* Inline links in body copy: the ink colour with an underline, since the
+   primary colour is the text colour itself. */
+.ink-link { color: var(--text); text-decoration: underline; text-decoration-color: var(--hairline-2); text-underline-offset: 3px; }
+.ink-link:hover { text-decoration-color: currentColor; }
+
+/* ── Scroll scenes ────────────────────────────────────────────────────
+   The tracks the script scrubs (see SCROLL SCENES in index.html). A track
+   is tall only while the script runs; its .scrub-pin sticks to the top of
+   the screen while the track scrolls past. Every beat variable defaults
+   to 1, so without the script each scene simply shows its finished state.
+   In a split section the copy column sticks alongside the pinned visual. */
+[data-scrub] { --a: 1; --b: 1; --c: 1; --d: 1; --e: 1; --f: 1; --g: 1; position: relative; }
+.scrub-live [data-scrub] { height: var(--scrub-h, 230vh); }
+.scrub-live .scrub-pin {
+  position: sticky; top: 56px;
+  min-height: calc(100vh - 56px);
+  display: flex; flex-direction: column; justify-content: center; gap: 18px;
+}
+@media (min-width: 901px) {
+  .scrub-live .split.has-scrub { align-items: start; }
+  .scrub-live .split.has-scrub > .split-copy { position: sticky; top: calc(50vh - 180px); }
+}
+/* A beat that has not started yet: f(--x) is 0 → hidden, 1 → shown. */
+.scrub-steps { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.scrub-steps li {
+  display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px 0 5px;
+  border-radius: 999px; font-size: 13.5px; color: var(--text-2); background: var(--fill-2);
+  transition: color 0.3s, background-color 0.3s;
+}
+.scrub-steps b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--text); background: var(--fill); }
+.scrub-live [data-scrub] .scrub-steps li.on { color: var(--text); background: var(--accent-soft); }
+.scrub-live [data-scrub] .scrub-steps li.on b { background: var(--accent); color: var(--accent-ink); }
+
+/* Inbox: the questions land one after another (--a, --b, --c), then the
+   first one is approved in place (--d) and says what happens next. */
+.inbox-scene .card { transform-origin: 50% 0; }
+.scrub-live .inbox-scene .q1 { opacity: var(--a); transform: translateY(calc((1 - var(--a)) * 46px)) scale(calc(0.95 + var(--a) * 0.05)); }
+.scrub-live .inbox-scene .q2 { opacity: var(--b); transform: translateY(calc((1 - var(--b)) * 46px)) scale(calc(0.95 + var(--b) * 0.05)); }
+.scrub-live .inbox-scene .q3 { opacity: var(--c); transform: translateY(calc((1 - var(--c)) * 46px)) scale(calc(0.95 + var(--c) * 0.05)); }
+/* Each card's tags light up as it lands: who asked, with what, and where. */
+.scrub-live .inbox-scene .q1 .tag { box-shadow: 0 0 0 calc((1 - var(--b)) * 1.5px) var(--text-3); }
+.scrub-live .inbox-scene .q2 .tag { box-shadow: 0 0 0 calc(var(--b) * (1 - var(--c)) * 1.5px) var(--text-3); }
+.scrub-live .inbox-scene .q3 .tag { box-shadow: 0 0 0 calc(var(--c) * (1 - var(--d)) * 1.5px) var(--text-3); }
+/* Approve is pressed, then the card turns into its outcome. */
+.inbox-scene .q1 { position: relative; overflow: hidden; }
+.q-done { display: none; }
+.scrub-live .q-done {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 0 24px; font-size: 16px; color: var(--text); text-align: left;
+  background: var(--glass-2);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  opacity: calc(var(--d) * 2.2 - 1.2);
+  transform: scale(calc(0.98 + var(--d) * 0.02));
+}
+.q-done svg { width: 22px; height: 22px; flex: none; }
+/* The press: a dip to 0.94 and back over the first fifth of the beat. */
+.scrub-live .inbox-scene .q1 .chip-btn.yes { --t: min(var(--d) * 5, 1); transform: scale(calc(1 - 0.24 * var(--t) * (1 - var(--t)))); }
+
+/* Voice: hold V (--a) and the mic opens; the words arrive as they are
+   said (--b); let go (--c) and the draft is yours to read; Return (--d)
+   sends it. --held is 1 while V is down. */
+.voice-scene { position: relative; }
+.voice-key { display: none; }
+.scrub-live .voice-scene { --held: calc(var(--a) * (1 - var(--c))); }
+.scrub-live .voice-key {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: -6px 0 18px; font-size: 14px; color: var(--text-2);
+}
+.scrub-live .voice-key kbd {
+  font-family: var(--font); font-weight: 650; font-size: 14px;
+  min-width: 34px; height: 34px; border-radius: 9px; display: inline-grid; place-items: center;
+  color: var(--key-ink); background: linear-gradient(180deg, var(--key-top), var(--key-bot));
+  box-shadow: 0 calc(3px - var(--held) * 2px) 0 var(--key-edge), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(calc(var(--held) * 2px));
+}
+.scrub-live .voice-key .vk-hold { opacity: var(--held); }
+.voice-key .vk-lab { display: grid; text-align: left; }
+.voice-key .vk-lab > span { grid-area: 1 / 1; }
+.scrub-live .voice-key .vk-let { opacity: calc(var(--c) * (1 - var(--d))); }
+.scrub-live .voice-scene .orb { transform: scale(calc(0.92 + var(--held) * 0.12)); opacity: calc(0.55 + var(--a) * 0.45); }
+.scrub-live .voice-scene .orb::before, .scrub-live .voice-scene .orb::after { opacity: var(--held); }
+.scrub-live .voice-scene .wave i { transform: scaleY(calc(0.2 + var(--held) * 0.8)); }
+/* Word by word: word i shows once --b has passed i / n of the way. */
+.scrub-live .voice-scene .transcript .w { opacity: clamp(0.08, var(--b) * var(--n) - var(--i), 1); }
+.scrub-live .voice-scene .transcript .live { color: color-mix(in srgb, var(--text) calc(var(--c) * 100%), var(--text-3)); }
+.scrub-live .voice-scene .vf-send kbd { box-shadow: 0 0 0 calc(var(--c) * (1 - var(--d)) * 2px) var(--text); }
+.voice-sent { display: none; }
+.scrub-live .voice-sent {
+  position: absolute; inset: auto 18px 18px; display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: 16px; font-size: 14.5px; text-align: left; color: var(--text);
+  background: var(--glass-2); box-shadow: var(--shadow-sm), inset 0 0 0 0.5px var(--hairline-2);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  opacity: var(--d); transform: translateY(calc((1 - var(--d)) * 14px));
+}
+.voice-sent .blob { width: 26px; height: 26px; flex: none; }
+
+/* iPhone: the inbox fills, top first (--a, staggered by --r); a tap on
+   Approve (--b) resolves the card (--c); then the mic is held (--d). */
+.scrub-live .iphone-scene :is(.ip-card, .ip-row) {
+  --in: clamp(0, var(--a) * 4 - var(--r), 1);
+  opacity: var(--in); transform: translateY(calc((1 - var(--in)) * 18px));
+}
+.iphone-scene .ip-card { position: relative; overflow: hidden; }
+.ip-tap { display: none; }
+.scrub-live .ip-tap {
+  display: block; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 60%, transparent 70%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  opacity: calc(var(--b) * (1 - var(--c)) * 1.6);
+  transform: scale(calc(0.6 + var(--b) * 0.5));
+}
+.scrub-live .iphone-scene .chip-btn.yes { --t: min(var(--b) * 3, 1); transform: scale(calc(1 - 0.2 * var(--t) * (1 - var(--t)))); }
+.ip-done { display: none; }
+.scrub-live .ip-done {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 14px; color: var(--text); background: var(--glass-2);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  opacity: calc(var(--c) * 2 - 0.8);
+}
+.ip-done svg { width: 18px; height: 18px; }
+.scrub-live .iphone-scene .ip-mic { transform: scale(calc(1 + var(--d) * 0.12)); box-shadow: 0 0 0 calc(var(--d) * 10px) color-mix(in srgb, var(--text) 10%, transparent); }
+.iphone-scene .ip-hold { display: grid; }
+.iphone-scene .ip-hold > span { grid-area: 1 / 1; text-align: center; }
+.iphone-scene .ih-live { opacity: 0; }
+.scrub-live .iphone-scene .ih-idle { opacity: calc(1 - var(--d)); }
+.scrub-live .iphone-scene .ih-live { opacity: var(--d); color: var(--text); }
+
+/* Keyboard: a small notch that does what each key says, one key per beat,
+   while the key's tile lights. data-step picks the state (1 open, 2 move,
+   3 pick, 4 recommend, 5 talk, 6 reply, 7 close); the states cross-fade. */
+.kdemo { width: min(560px, 100%); margin: 0 auto clamp(18px, 3vw, 28px); color: var(--notch-ink); text-align: left; }
+.kd-strip { height: 30px; margin: 0 auto; width: 46%; border-radius: 0 0 16px 16px; background: var(--notch); display: grid; place-items: center; }
+.kd-hw { width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #2b3550, #07080b 70%); }
+.kd-panel {
+  margin-top: -6px; padding: 14px 12px 12px; border-radius: 0 0 26px 26px;
+  /* Near-opaque black, like the real notch, so it reads on a light page too. */
+  background: color-mix(in srgb, var(--notch) 90%, transparent); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: inset 0 0 0 0.5px var(--notch-line), var(--shadow-md);
+  display: grid; gap: 6px;
+  transition: clip-path 0.45s var(--ease-out), opacity 0.35s var(--ease-out), transform 0.45s var(--ease-out);
+}
+.kd-row { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 9px 10px; border-radius: 14px; transition: background-color 0.25s, box-shadow 0.25s; }
+.kd-row .blob { width: 26px; height: 26px; }
+.kd-body b { font-size: 13px; font-weight: 650; }
+.kd-body p { margin: 1px 0 0; font-size: 13px; color: var(--notch-ink-2); }
+.kd-acts { display: flex; gap: 6px; margin-top: 7px; transition: opacity 0.25s; }
+.kd-btn {
+  display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; background: var(--notch-card); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+  transition: background-color 0.2s, color 0.2s, transform 0.2s;
+}
+.kd-btn kbd { font: 700 10px var(--font); min-width: 15px; height: 15px; border-radius: 4px; display: inline-grid; place-items: center; background: rgba(255, 255, 255, 0.14); }
+.kd-btn.rec { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4); }
+.kd-done, .kd-reply { display: none; margin-top: 7px; font-size: 12.5px; align-items: center; gap: 6px; }
+.kd-ck { width: 14px; height: 14px; }
+.kd-reply { padding: 6px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
+.kd-caret { display: inline-block; width: 1.5px; height: 13px; margin-left: 2px; vertical-align: -2px; background: currentColor; animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.kd-ask { display: grid; height: 34px; padding: 0 12px; border-radius: 999px; align-items: center; font-size: 12.5px; color: var(--notch-ink-3); background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.kd-ask > span { grid-area: 1 / 1; display: flex; align-items: center; gap: 8px; transition: opacity 0.25s; }
+.kd-ask-live { opacity: 0; color: var(--notch-ink); }
+.kd-ask .wave { height: 16px; }
+.key-caption { display: none; }
+
+/* Without the script: open, the first question selected. */
+.keys-scene:not([data-step]) .kr1,
+.keys-scene[data-step="1"] .kr1, .keys-scene[data-step="2"] .kr2, .keys-scene[data-step="3"] .kr3,
+.keys-scene[data-step="4"] .kr1, .keys-scene[data-step="5"] .kr1, .keys-scene[data-step="6"] .kr1 {
+  background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+.scrub-live .keys-scene:is([data-step="0"], [data-step="7"]) .kd-panel { clip-path: inset(0 0 100% 0 round 0 0 26px 26px); opacity: 0; transform: translateY(-8px); }
+.scrub-live .keys-scene .kd-panel { clip-path: inset(0 0 0 0 round 0 0 26px 26px); }
+/* 3: "2" picks the second fix, then the row shows the answer. */
+.keys-scene[data-step="3"] .kr2 .pick { background: rgba(255, 255, 255, 0.85); color: #0b0b0e; transform: scale(0.95); }
+.keys-scene:is([data-step="3"], [data-step="4"], [data-step="5"], [data-step="6"], [data-step="7"]) .kr2 .kd-acts { display: none; }
+.keys-scene:is([data-step="3"], [data-step="4"], [data-step="5"], [data-step="6"], [data-step="7"]) .kr2 .kd-done { display: flex; animation: kd-in 0.4s var(--ease-out) both; }
+/* 4: Return takes landing-copy's recommendation. */
+.keys-scene:is([data-step="4"], [data-step="5"], [data-step="6"], [data-step="7"]) .kr3 .kd-acts { display: none; }
+.keys-scene:is([data-step="4"], [data-step="5"], [data-step="6"], [data-step="7"]) .kr3 .kd-done { display: flex; animation: kd-in 0.4s var(--ease-out) both; }
+/* 5: holding V talks to the Chief of Staff. */
+.keys-scene[data-step="5"] .kd-ask-idle { opacity: 0; }
+.keys-scene[data-step="5"] .kd-ask-live { opacity: 1; }
+.keys-scene[data-step="5"] .kd-ask { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4); }
+/* 6: R opens a reply to the selected question. */
+.keys-scene:is([data-step="6"], [data-step="7"]) .kr1 .kd-acts { display: none; }
+.keys-scene:is([data-step="6"], [data-step="7"]) .kr1 .kd-reply { display: flex; animation: kd-in 0.4s var(--ease-out) both; }
+@keyframes kd-in { from { opacity: 0; transform: translateY(4px); } }
+/* The key tiles: the current key's tile lights, the rest wait. */
+.scrub-live .keys-scene .key-tile { opacity: 0.42; transition: opacity 0.3s, box-shadow 0.3s, transform 0.3s; }
+.keys-scene[data-step="1"] .kt1, .keys-scene[data-step="2"] .kt2, .keys-scene[data-step="3"] .kt3, .keys-scene[data-step="4"] .kt4,
+.keys-scene[data-step="5"] .kt5, .keys-scene[data-step="6"] .kt6, .keys-scene[data-step="7"] .kt7 {
+  opacity: 1; transform: translateY(-3px); box-shadow: inset 0 0 0 1.5px var(--text), var(--shadow-md);
+}
+/* Phones: the tiles do not fit beside the notch, so a caption says the key. */
+@media (max-width: 760px) {
+  .scrub-live .keys-scene .keys { display: none; }
+  .scrub-live .key-caption { display: grid; list-style: none; min-height: 40px; }
+  .scrub-live .key-caption li { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; color: var(--text); opacity: 0; transition: opacity 0.25s; }
+  .scrub-live .key-caption kbd { font: 600 12px var(--font); min-width: 24px; height: 24px; padding: 0 6px; border-radius: 6px; display: inline-grid; place-items: center; background: var(--fill); }
+  .keys-scene[data-step="1"] .kc1, .keys-scene[data-step="2"] .kc2, .keys-scene[data-step="3"] .kc3, .keys-scene[data-step="4"] .kc4,
+  .keys-scene[data-step="5"] .kc5, .keys-scene[data-step="6"] .kc6, .keys-scene[data-step="7"] .kc7 { opacity: 1; }
+}
+
+/* Detection: a scan runs across this Mac (--a), each agent lights as it
+   is found (--b, staggered by its --k), then "Adopt all" (--c) takes them
+   all into the team and each chip gets its check. */
+.scan-head { display: none; }
+.chip-ck { display: none; }
+.scrub-live .agents-scene .scan-head {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: min(900px, 100%); margin: 0 auto 4px; padding: 0 4px 12px; font-size: 15px; color: var(--text-2);
+}
+.scan-label { display: grid; }
+.scan-label > span:not(.scan-dot) { grid-area: 1 / 2; }
+.scan-label { grid-template-columns: 18px auto; align-items: center; }
+.scan-dot { grid-area: 1 / 1; width: 8px; height: 8px; border-radius: 50%; background: var(--text); animation: scan-pulse 1.1s ease-in-out infinite; }
+@keyframes scan-pulse { 50% { opacity: 0.25; } }
+.scrub-live .agents-scene .sl-scan { opacity: calc(1 - min(var(--b) * 4, 1)); }
+.scrub-live .agents-scene .sl-found { opacity: calc(min(var(--b) * 4, 1) * (1 - var(--c))); }
+.scrub-live .agents-scene .sl-done { opacity: var(--c); color: var(--text); }
+.scan-btn {
+  --t: min(var(--c) * 4, 1);
+  display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border-radius: 999px;
+  font-size: 14px; font-weight: 600; color: var(--btn-ink); background: var(--btn-bg);
+  opacity: calc(0.35 + min(var(--b) * 2, 1) * 0.65);
+  transform: scale(calc(1 - 0.2 * var(--t) * (1 - var(--t))));
+}
+.scan-bar { position: absolute; left: 4px; right: 4px; bottom: 0; height: 2px; border-radius: 2px; background: var(--fill); overflow: hidden; }
+.scan-bar::after { content: ""; position: absolute; inset: 0; background: var(--text); transform-origin: 0 50%; transform: scaleX(var(--a)); opacity: calc(1 - var(--c)); }
+.scrub-live .agents-scene .chip {
+  --found: clamp(0, var(--b) * 15 - var(--k), 1);
+  opacity: calc(0.2 + var(--found) * 0.8);
+  transform: scale(calc(0.94 + var(--found) * 0.06));
+}
+.scrub-live .agents-scene .chip::before { transform: scale(calc(var(--found) * (1 - var(--c)))); }
+.scrub-live .agents-scene .chip { position: relative; }
+.scrub-live .agents-scene .chip-ck {
+  display: block; position: absolute; left: 10px; top: 50%; width: 15px; height: 15px; margin-top: -7.5px;
+  opacity: var(--c); transform: scale(calc(0.4 + var(--c) * 0.6));
+}
+.scrub-live .agents-scene .chip { box-shadow: inset 0 0 0 calc(var(--c) * 1.5px) color-mix(in srgb, var(--text) 50%, transparent); }
+
+/* Team: a spotlight walks the real app, one part per beat, while that
+   part's card lights. Regions are fractions of the screenshot, which
+   scripts/website-app-shots.mjs renders at a fixed 1280x800 layout. */
+.appwin { position: relative; }
+.appwin picture { display: block; position: relative; }
+.spot { display: none; }
+.scrub-live .team-scene .team-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: clamp(16px, 2.4vw, 28px); align-items: center; }
+.scrub-live .team-scene .appwin { margin: 0; }
+.scrub-live .team-scene .keys { grid-template-columns: 1fr; gap: 10px; }
+.scrub-live .team-scene .key-tile { min-height: 0; padding: 16px 18px; opacity: 0.4; transition: opacity 0.35s, box-shadow 0.35s, transform 0.35s; }
+.scrub-live .team-scene .key-tile p { font-size: 14px; }
+.team-scene[data-step="1"] .tt1, .team-scene[data-step="2"] .tt2, .team-scene[data-step="3"] .tt3, .team-scene[data-step="4"] .tt4 {
+  opacity: 1; transform: translateX(-4px); box-shadow: inset 0 0 0 1.5px var(--text), var(--shadow-md);
+}
+.scrub-live .team-scene .spot {
+  display: block; position: absolute; z-index: 1; pointer-events: none;
+  left: var(--sx, 0%); top: var(--sy, 0%); width: var(--sw, 100%); height: var(--sh, 100%);
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px var(--text), 0 0 0 200vmax rgba(0, 0, 0, 0.52);
+  opacity: 0;
+  transition: left 0.5s var(--ease-out), top 0.5s var(--ease-out), width 0.5s var(--ease-out), height 0.5s var(--ease-out), opacity 0.3s;
+}
+.appwin picture { overflow: hidden; }
+.team-scene:is([data-step="1"], [data-step="2"], [data-step="3"], [data-step="4"]) .spot { opacity: 1; }
+/* The roster: the Chief of Staff and the bots that report to it. */
+.team-scene[data-step="1"] .spot { --sx: 4.4%; --sy: 9.5%; --sw: 22.8%; --sh: 36%; }
+/* Scheduled Tasks, under Work. */
+.team-scene[data-step="2"] .spot { --sx: 5%; --sy: 58%; --sw: 21.8%; --sh: 5.6%; }
+/* The Wiki, under Knowledge. */
+.team-scene[data-step="3"] .spot { --sx: 5%; --sy: 71.8%; --sw: 21.8%; --sh: 5.6%; }
+/* Apps, the section the bots' small apps live in. */
+.team-scene[data-step="4"] .spot { --sx: 5%; --sy: 85.6%; --sw: 21.8%; --sh: 5.2%; }
+@media (max-width: 900px) {
+  .scrub-live .team-scene .team-grid { grid-template-columns: 1fr; }
+  .scrub-live .team-scene .key-tile { display: none; }
+  .team-scene[data-step="1"] .tt1, .team-scene[data-step="2"] .tt2, .team-scene[data-step="3"] .tt3, .team-scene[data-step="4"] .tt4 { display: block; transform: none; }
+}
+/* Only the lit card shows its paragraph, so the column fits the screen. */
+.scrub-live .team-scene .key-tile p { display: none; }
+.team-scene[data-step="1"] .tt1 p, .team-scene[data-step="2"] .tt2 p, .team-scene[data-step="3"] .tt3 p, .team-scene[data-step="4"] .tt4 p { display: block; }
+.scrub-live .team-scene .key-tile h3 { margin-bottom: 0; }

@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    WUPHF Theme: Glass Light
-   Near-white layered surfaces, graphite ink, a deep green accent,
-   hairline borders and frosted glass panes. Sibling of
+   Near-white layered surfaces, graphite ink, a monochrome (near-black)
+   accent, hairline borders and frosted glass panes. Colour is kept for
+   meaning only: green for success and presence, red for errors and
+   destructive actions, amber for attention, blue for info and links. Sibling of
    nex-glass-dark.css; where the glass goes is decided once, for both,
    in glass-base.css. Token values only.
 
@@ -9,10 +11,13 @@
      --text            #1d1d1f on --bg-subtle #f5f5f7 15.5:1
      --text-secondary  #5f5f64 on --bg-warm #f2f2f5    5.7:1
      --text-tertiary   #6a6a6f on --bg-warm #f2f2f5    4.8:1
-     --accent          #1a7f3c on --bg-card #ffffff    5.1:1
-                               on --bg-warm #f2f2f5    4.5:1
-     --accent-fg       #ffffff on --accent #1a7f3c     5.1:1
-     --mention-fg      #17652f on its own tint         6.2:1
+     --accent          #1c1c1e on --bg-card #ffffff   17.0:1
+                               on --bg-warm #f2f2f5   15.2:1
+     --accent-fg       #ffffff on --accent #1c1c1e    17.1:1
+     --glass-btn-tint-ink #ffffff on the primary glass (graphite at 0.72,
+       its faintest stop, over --bg)                   6.8:1
+     --mention-fg      #1c1c1e on its own tint        14.4:1
+     --wk-wikilink     #0a6fb8 on --bg-card #ffffff    5.3:1
    The bright system green (#34c759) is 2.2:1 on white — fine for a dot,
    not for a link — so it is kept for presence/status only.
    ═══════════════════════════════════════════════════════════════ */
@@ -55,13 +60,15 @@ html[data-theme="nex-glass-light"] {
   --border-dark: rgba(0, 0, 0, 0.12);
   --border-strong: rgba(0, 0, 0, 0.2);
 
-  /* ── Accent: the brand green, deep enough to carry text on white ── */
-  --accent: #1a7f3c;
-  --accent-warm: #146b31;
-  --accent-bg: rgba(26, 127, 60, 0.1);
-  --accent-bg-strong: rgba(26, 127, 60, 0.24);
+  /* ── Accent: monochrome. The primary is near-black graphite, so colour
+     is left to the things that mean something (status, presence,
+     destructive actions). ── */
+  --accent: #1c1c1e;
+  --accent-warm: #3a3a3c;
+  --accent-bg: rgba(0, 0, 0, 0.06);
+  --accent-bg-strong: rgba(0, 0, 0, 0.16);
   --accent-fg: #ffffff;
-  --glass-focus: rgba(26, 127, 60, 0.32);
+  --glass-focus: rgba(0, 0, 0, 0.25);
 
   /* ── Status ── */
   --success-500: #146b31;
@@ -98,8 +105,8 @@ html[data-theme="nex-glass-light"] {
   /* ── Sidebar: frosted pane + its opaque stand-in for sticky chrome ── */
   --nex-sidebar: #f2f2f5;
   --nex-sidebar-hover: rgba(0, 0, 0, 0.05);
-  --nex-sidebar-active: rgba(26, 127, 60, 0.12);
-  --nex-sidebar-active-ring: rgba(26, 127, 60, 0.1);
+  --nex-sidebar-active: rgba(0, 0, 0, 0.06);
+  --nex-sidebar-active-ring: rgba(0, 0, 0, 0.05);
   --nex-sidebar-text: #5f5f64;
   --nex-sidebar-text-active: #1d1d1f;
   --nex-presence: #34c759;
@@ -121,8 +128,8 @@ html[data-theme="nex-glass-light"] {
   /* ── Glass material: the tint every pane is mixed from, and the light
      on its edges. The washes are what the glass has to show. ── */
   /* ── Glass buttons (glass-base.css, CONTROLS). On a light ground clear
-     glass is drawn by its edges rather than a fill, and the tinted glass
-     is a deeper green so white ink keeps its contrast. ── */
+     glass is drawn by its edges rather than a fill, and the primary action
+     is graphite glass with white ink. ── */
   --glass-btn-white: 255 255 255;
   --glass-btn-shade: 0 0 0;
   --glass-btn-hair: 0 0 0;
@@ -142,19 +149,24 @@ html[data-theme="nex-glass-light"] {
   --glass-btn-ink: var(--text);
   --glass-btn-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
   --glass-btn-filter: blur(8px) saturate(220%) brightness(1.04);
-  --glass-btn-accent: 22 150 64;
-  --glass-btn-accent-light: 150 255 180;
-  --glass-btn-accent-edge: 0 50 15;
+  --glass-btn-accent: 28 28 30;
+  --glass-btn-accent-light: 120 120 130;
+  --glass-btn-accent-edge: 0 0 0;
+  --glass-btn-tint-a1: 0.88;
+  --glass-btn-tint-a2: 0.72;
+  --glass-btn-tint-a1-hover: 0.96;
+  --glass-btn-tint-a2-hover: 0.84;
+  --glass-btn-tint-bloom: 0.45;
+  --glass-btn-tint-ink: #ffffff;
+  --glass-btn-tint-ink-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.35);
   --glass-btn-danger: 196 39 29;
   --glass-btn-danger-light: 255 150 140;
   --glass-btn-danger-edge: 80 0 0;
-  --glass-btn-tint-a1: 0.88;
-  --glass-btn-tint-a2: 0.7;
-  --glass-btn-tint-a1-hover: 0.96;
-  --glass-btn-tint-a2-hover: 0.82;
-  --glass-btn-tint-bloom: 0.6;
-  --glass-btn-tint-ink: #ffffff;
-  --glass-btn-tint-ink-shadow: 0 1px 1.5px rgba(0, 40, 10, 0.35);
+  --glass-btn-danger-a1: 0.94;
+  --glass-btn-danger-a2: 0.86;
+  --glass-btn-danger-bloom: 0.6;
+  --glass-btn-danger-ink: #ffffff;
+  --glass-btn-danger-ink-shadow: 0 1px 1.5px rgba(40, 0, 0, 0.35);
 
   --glass-tint: #ffffff;
   --glass-pane-border: rgba(0, 0, 0, 0.09);
@@ -162,9 +174,10 @@ html[data-theme="nex-glass-light"] {
   --glass-sheen-soft: rgba(255, 255, 255, 0.7);
   --glass-shade: rgba(0, 0, 0, 0.06);
   --glass-glow: rgba(255, 255, 255, 0.35);
-  --glass-wash-1: rgba(52, 199, 89, 0.42);
-  --glass-wash-2: rgba(10, 132, 255, 0.3);
-  --glass-wash-3: rgba(175, 82, 222, 0.26);
+  /* Neutral washes: a faint cool grey for the glass to blur, no hue. */
+  --glass-wash-1: rgba(120, 130, 150, 0.14);
+  --glass-wash-2: rgba(120, 130, 150, 0.1);
+  --glass-wash-3: rgba(120, 130, 150, 0.12);
 
   /* ── Elevation: soft and wide, never a hard drop ── */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -180,13 +193,15 @@ html[data-theme="nex-glass-light"] {
     0 2px 6px rgba(0, 0, 0, 0.06), 0 32px 80px -16px rgba(0, 0, 0, 0.24);
 
   /* ── Inline accents ── */
-  --mention-bg: rgba(26, 127, 60, 0.1);
-  --mention-fg: #17652f;
+  --mention-bg: rgba(0, 0, 0, 0.06);
+  --mention-fg: #1c1c1e;
   --syntax-number: #0a6fb8;
   --syntax-bool: #a35a00;
 
   /* ── Wiki editor chrome (portals to body, so set at html scope) ── */
-  --wk-wikilink: var(--accent);
+  /* Links carry meaning, and with a monochrome accent an undecorated
+     link would read as body text, so they keep the info blue. */
+  --wk-wikilink: var(--blue);
 
   /* ── shadcn/Tailwind primitives (HSL triplets). --accent and --border
      are deliberately not restated; see nex-glass-dark.css. ── */
@@ -196,7 +211,7 @@ html[data-theme="nex-glass-light"] {
   --card-foreground: 240 3% 12%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 3% 12%;
-  --primary: 140 66% 30%;
+  --primary: 240 3% 11%;
   --primary-foreground: 0 0% 100%;
   --secondary: 240 14% 96%;
   --secondary-foreground: 240 3% 12%;
@@ -205,6 +220,6 @@ html[data-theme="nex-glass-light"] {
   --destructive: 4 74% 44%;
   --destructive-foreground: 0 0% 100%;
   --input: 240 6% 90%;
-  --ring: 140 66% 30%;
+  --ring: 240 3% 11%;
   --radius: 11px;
 }

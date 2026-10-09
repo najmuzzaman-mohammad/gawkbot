@@ -130,7 +130,9 @@ struct OptionButtonStyle: ButtonStyle {
     }
 
     private var foreground: Color {
-        if prominent { return .white }
+        // The accent is monochrome (black in light, white in dark), so the
+        // ink on it is the opposite end: the system background.
+        if prominent { return Color(uiColor: .systemBackground) }
         if destructive { return .red }
         return quiet ? .secondary : .primary
     }

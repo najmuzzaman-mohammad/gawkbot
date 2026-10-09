@@ -22,6 +22,7 @@ struct RootView: View {
                     Text("Could not reach the office").font(.headline)
                     Text(reason).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal)
                     Button("Pair again") { store.unpair() }.buttonStyle(.borderedProminent)
+                        .foregroundStyle(Color(uiColor: .systemBackground))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.softCanvas)
@@ -76,6 +77,7 @@ struct PairingConfirmSheet: View {
                 Spacer()
                 Button(action: connect) { Text("Connect").frame(maxWidth: .infinity) }
                     .buttonStyle(.borderedProminent).controlSize(.large)
+                    .foregroundStyle(Color(uiColor: .systemBackground))
             }
             .padding()
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: cancel) } }

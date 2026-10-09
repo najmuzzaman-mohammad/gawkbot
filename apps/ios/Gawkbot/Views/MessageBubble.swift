@@ -61,7 +61,7 @@ struct Bubble: View {
         // initializer would turn "[click](https://…)" into a tappable link.
         Text(verbatim: text)
             .font(.body)
-            .foregroundStyle(mine ? Color.white : Color.primary)
+            .foregroundStyle(mine ? Color(uiColor: .systemBackground) : Color.primary)
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .background(BubbleShape(mine: mine, tail: tail).fill(mine ? Color.accentColor : Color.softBubble))

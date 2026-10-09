@@ -110,10 +110,10 @@ html[data-theme^="nex-glass"].lg-refract {
 /* ═══ BASE ═══ */
 html[data-theme^="nex-glass"] body {
   background-color: var(--bg);
-  /* Two soft washes of the theme's own accent and its cool companion,
-     fixed to the viewport. They are what the translucent sidebar and
-     popovers have to blur — a glass pane over a flat colour is just a
-     slightly different flat colour. */
+  /* Three soft neutral washes, fixed to the viewport. They are what the
+     translucent sidebar and popovers have to blur — a glass pane over a
+     flat colour is just a slightly different flat colour. They carry no
+     hue: colour in Glass is kept for what it means. */
   background-image:
     radial-gradient(
       80rem 52rem at 12% -12%,
@@ -452,8 +452,12 @@ html[data-theme^="nex-glass"] .segmented-item.is-active {
 html[data-theme^="nex-glass"] .switch {
   background: var(--overlay-strong);
 }
-html[data-theme^="nex-glass"] .switch:checked {
-  background: var(--accent);
+/* An "on" switch is a state, not a brand moment, and with a monochrome
+   accent the white knob would vanish into a white track on the dark
+   flavour. It takes the success green, as a system switch does. */
+html[data-theme^="nex-glass"] .switch:checked,
+html[data-theme^="nex-glass"] .bot-toggle input:checked + .bot-toggle-slider {
+  background: var(--green);
 }
 html[data-theme^="nex-glass"] .channel-participants,
 html[data-theme^="nex-glass"] .status-bar {
@@ -771,17 +775,19 @@ html[data-theme^="nex-glass"]
   background: rgb(var(--glass-btn-shade) / 0.16);
   color: inherit;
 }
-/* A destructive action: tinted glass in red. */
+/* A destructive action: tinted glass in red. Its opacity and ink are its
+   own, not the primary's: the primary is monochrome glass whose ink flips
+   with the flavour, while red glass always carries white ink. */
 html[data-theme^="nex-glass"] .btn-danger,
 html[data-theme^="nex-glass"] .btn-danger:hover:not(:disabled) {
   --gb-t: var(--glass-btn-danger);
   --gb-l: var(--glass-btn-danger-light);
   --gb-edge: var(--glass-btn-danger-edge);
-  --gb-a1: var(--glass-btn-tint-a1);
-  --gb-a2: var(--glass-btn-tint-a2);
-  --gb-bloom: var(--glass-btn-tint-bloom);
-  color: var(--glass-btn-tint-ink);
-  text-shadow: var(--glass-btn-tint-ink-shadow);
+  --gb-a1: var(--glass-btn-danger-a1);
+  --gb-a2: var(--glass-btn-danger-a2);
+  --gb-bloom: var(--glass-btn-danger-bloom);
+  color: var(--glass-btn-danger-ink);
+  text-shadow: var(--glass-btn-danger-ink-shadow);
 }
 /* A refusal: clear glass, red ink, a red caustic. */
 html[data-theme^="nex-glass"] .eac-reject,
@@ -813,6 +819,31 @@ html[data-theme^="nex-glass"] .badge-neutral {
 html[data-theme^="nex-glass"] .chip--accent {
   background: var(--accent-bg);
 }
+/* The accent badge is a lime chip in the base sheet; under Glass the
+   accent is monochrome, so it is a neutral tint in the theme's ink. A bot's
+   role beside its name is a label, not a status, so it drops the green the
+   base sheet gives it and reads as the same neutral chip. */
+html[data-theme^="nex-glass"] .badge-accent,
+html[data-theme^="nex-glass"] .message-header .badge-green {
+  background: var(--accent-bg);
+  color: var(--text-secondary);
+}
+/* Fills of the accent whose ink the base sheets hardcode as white (or as
+   the shadcn --accent-foreground triplet, which is not a colour here).
+   With a monochrome accent that ink is white on white in the dark
+   flavour, so hand them the flavour's own ink for the accent. */
+html[data-theme^="nex-glass"] .routines-view-tab[aria-selected="true"],
+html[data-theme^="nex-glass"] .insight-badge-medium,
+html[data-theme^="nex-glass"] .dm-back-btn:hover,
+html[data-theme^="nex-glass"] .issue-doc-tab--active .issue-doc-tab-count,
+html[data-theme^="nex-glass"] .task-modal-primary,
+html[data-theme^="nex-glass"] .onboarding-embedding-alt-active,
+html[data-theme^="nex-glass"] .wiz-team-tile.selected .wiz-team-check,
+html[data-theme^="nex-glass"] .provider-priority.active,
+html[data-theme^="nex-glass"] .runtime-priority-badge,
+html[data-theme^="nex-glass"] .task-suggestion.selected .task-suggestion-num {
+  color: var(--accent-fg);
+}
 
 /* ═══ Reduced transparency: honour the OS setting by going opaque. Every
    material resolves to the flavour's solid stop and the blur goes. ═══ */
@@ -839,6 +870,8 @@ html[data-theme^="nex-glass"] .chip--accent {
     --glass-btn-a2: 1;
     --glass-btn-tint-a1: 1;
     --glass-btn-tint-a2: 1;
+    --glass-btn-danger-a1: 1;
+    --glass-btn-danger-a2: 1;
   }
 }
 /* More contrast: opaque surfaces and a firmer hairline. */

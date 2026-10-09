@@ -36,14 +36,14 @@ export const THEMES = [
     id: "nex-glass-light",
     name: "Glass Light",
     desc: "Native light, frosted glass.",
-    swatch: { primary: "#f2f2f5", accent: "#1a7f3c", surface: "#ffffff" },
+    swatch: { primary: "#f2f2f5", accent: "#1c1c1e", surface: "#ffffff" },
     cssPath: "/themes/nex-glass-light.css",
   },
   {
     id: "nex-glass-dark",
     name: "Glass Dark",
     desc: "Native dark, frosted glass.",
-    swatch: { primary: "#1c1c1f", accent: "#30d158", surface: "#111113" },
+    swatch: { primary: "#1c1c1f", accent: "#f5f5f7", surface: "#111113" },
     cssPath: "/themes/nex-glass-dark.css",
   },
   {

@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    WUPHF Theme: Glass Dark
-   Near-black layered surfaces, soft white ink, a green accent, hairline
-   borders and translucent glass panes. What a fresh install gets when
+   Near-black layered surfaces, soft white ink, a monochrome (white)
+   accent, hairline borders and translucent glass panes. Colour is kept
+   for meaning only: green for success and presence, red for errors and
+   destructive actions, amber for attention, blue for info and links. What a fresh install gets when
    the system appearance is dark (DEFAULT_DARK_THEME in
    web/src/lib/themes.ts); nex-glass-light.css is the light default.
 
@@ -12,8 +14,11 @@
      --text            #f5f5f7 on --bg #111113        17.3:1
      --text-secondary  #aeaeb2 on --bg-warm #26262a    6.8:1
      --text-tertiary   #98989d on --bg-warm #26262a    5.3:1
-     --accent          #30d158 on --bg-card #1c1c1f    8.4:1
-     --accent-fg       #03210e on --accent #30d158     8.5:1
+     --accent          #f5f5f7 on --bg-card #1c1c1f   15.6:1
+     --accent-fg       #111113 on --accent #f5f5f7    17.3:1
+     --glass-btn-tint-ink #111113 on the primary glass (white at 0.70,
+       its faintest stop, over --bg)                   9.5:1
+     --wk-wikilink     #4da3ff on --bg #111113         7.2:1
    ═══════════════════════════════════════════════════════════════ */
 
 @import url("./glass-base.css");
@@ -59,13 +64,15 @@ html[data-theme="nex-glass-dark"] {
   --border-dark: rgba(255, 255, 255, 0.13);
   --border-strong: rgba(255, 255, 255, 0.22);
 
-  /* ── Accent: the brand green, dark-mode stop ── */
-  --accent: #30d158;
-  --accent-warm: #28b84c;
-  --accent-bg: rgba(48, 209, 88, 0.14);
-  --accent-bg-strong: rgba(48, 209, 88, 0.3);
-  --accent-fg: #03210e;
-  --glass-focus: rgba(48, 209, 88, 0.42);
+  /* ── Accent: monochrome. The primary is the theme's own white ink, so
+     colour is left to the things that mean something (status, presence,
+     destructive actions). ── */
+  --accent: #f5f5f7;
+  --accent-warm: #d1d1d6;
+  --accent-bg: rgba(255, 255, 255, 0.1);
+  --accent-bg-strong: rgba(255, 255, 255, 0.22);
+  --accent-fg: #111113;
+  --glass-focus: rgba(255, 255, 255, 0.35);
 
   /* ── Status: system-bright on dark, tints mixed toward transparent so
      every -100/-200 chip stays dark on this ground (the light ramp's
@@ -86,7 +93,7 @@ html[data-theme="nex-glass-dark"] {
   --warning-100: rgba(255, 159, 10, 0.12);
   --warning-200: rgba(255, 159, 10, 0.24);
   --cyan-100: rgba(100, 210, 255, 0.14);
-  --tertiary-100: rgba(48, 209, 88, 0.14);
+  --tertiary-100: var(--accent-bg);
   --green: var(--success-400);
   --green-dark: var(--success-300);
   --green-bg: var(--success-100);
@@ -107,8 +114,8 @@ html[data-theme="nex-glass-dark"] {
   /* ── Sidebar: translucent pane + its opaque stand-in for sticky chrome ── */
   --nex-sidebar: #18181b;
   --nex-sidebar-hover: rgba(255, 255, 255, 0.06);
-  --nex-sidebar-active: rgba(48, 209, 88, 0.16);
-  --nex-sidebar-active-ring: rgba(48, 209, 88, 0.12);
+  --nex-sidebar-active: rgba(255, 255, 255, 0.1);
+  --nex-sidebar-active-ring: rgba(255, 255, 255, 0.08);
   --nex-sidebar-text: #aeaeb2;
   --nex-sidebar-text-active: #f5f5f7;
   --nex-presence: #30d158;
@@ -136,19 +143,28 @@ html[data-theme="nex-glass-dark"] {
   --glass-btn-ink: var(--text);
   --glass-btn-ink-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
   --glass-btn-filter: blur(10px) saturate(200%) brightness(1.1);
-  --glass-btn-accent: 40 200 85;
-  --glass-btn-accent-light: 170 255 190;
-  --glass-btn-accent-edge: 0 60 20;
+  /* The primary action is white glass with near-black ink: bright enough
+     to read as the one filled pill on the surface without a hue. */
+  --glass-btn-accent: 255 255 255;
+  --glass-btn-accent-light: 255 255 255;
+  --glass-btn-accent-edge: 0 0 0;
+  --glass-btn-tint-a1: 0.86;
+  --glass-btn-tint-a2: 0.7;
+  --glass-btn-tint-a1-hover: 0.94;
+  --glass-btn-tint-a2-hover: 0.8;
+  --glass-btn-tint-bloom: 0.3;
+  --glass-btn-tint-ink: #111113;
+  --glass-btn-tint-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  /* A destructive action stays red glass with white ink, at its own
+     (lower) opacity so the white ink keeps its contrast. */
   --glass-btn-danger: 255 69 58;
   --glass-btn-danger-light: 255 140 130;
   --glass-btn-danger-edge: 90 0 0;
-  --glass-btn-tint-a1: 0.62;
-  --glass-btn-tint-a2: 0.34;
-  --glass-btn-tint-a1-hover: 0.74;
-  --glass-btn-tint-a2-hover: 0.46;
-  --glass-btn-tint-bloom: 0.6;
-  --glass-btn-tint-ink: #ffffff;
-  --glass-btn-tint-ink-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.3);
+  --glass-btn-danger-a1: 0.62;
+  --glass-btn-danger-a2: 0.34;
+  --glass-btn-danger-bloom: 0.6;
+  --glass-btn-danger-ink: #ffffff;
+  --glass-btn-danger-ink-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.3);
 
   --glass-tint: #202024;
   --glass-pane-border: rgba(255, 255, 255, 0.12);
@@ -156,9 +172,10 @@ html[data-theme="nex-glass-dark"] {
   --glass-sheen-soft: rgba(255, 255, 255, 0.1);
   --glass-shade: rgba(0, 0, 0, 0.35);
   --glass-glow: rgba(255, 255, 255, 0.03);
-  --glass-wash-1: rgba(48, 209, 88, 0.34);
-  --glass-wash-2: rgba(100, 210, 255, 0.26);
-  --glass-wash-3: rgba(191, 90, 242, 0.24);
+  /* Neutral washes: something for the glass to blur, nothing with a hue. */
+  --glass-wash-1: rgba(255, 255, 255, 0.07);
+  --glass-wash-2: rgba(200, 210, 230, 0.05);
+  --glass-wash-3: rgba(255, 255, 255, 0.06);
 
   /* ── Elevation: a contact shadow plus a long soft fall-off ── */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
@@ -174,8 +191,8 @@ html[data-theme="nex-glass-dark"] {
     0 2px 6px rgba(0, 0, 0, 0.3), 0 32px 80px -16px rgba(0, 0, 0, 0.7);
 
   /* ── Inline accents ── */
-  --mention-bg: rgba(48, 209, 88, 0.16);
-  --mention-fg: #63e38a;
+  --mention-bg: rgba(255, 255, 255, 0.12);
+  --mention-fg: #ffffff;
   --syntax-number: #64d2ff;
   --syntax-bool: #ff9f0a;
 
@@ -190,7 +207,7 @@ html[data-theme="nex-glass-dark"] {
   --graph-other-stroke: #98989d;
 
   /* ── Wiki editor chrome (portals to body, so set at html scope) ── */
-  --wk-wikilink: #63e38a;
+  --wk-wikilink: #4da3ff;
   --wk-diff-add-bg: rgba(48, 209, 88, 0.16);
   --wk-diff-add-ink: #63e38a;
   --wk-diff-remove-bg: rgba(255, 69, 58, 0.16);
@@ -205,8 +222,8 @@ html[data-theme="nex-glass-dark"] {
   --card-foreground: 240 11% 96%;
   --popover: 240 5% 15%;
   --popover-foreground: 240 11% 96%;
-  --primary: 135 64% 50%;
-  --primary-foreground: 142 83% 7%;
+  --primary: 240 11% 96%;
+  --primary-foreground: 240 6% 7%;
   --secondary: 240 5% 16%;
   --secondary-foreground: 240 11% 96%;
   --muted: 240 5% 16%;
@@ -214,7 +231,7 @@ html[data-theme="nex-glass-dark"] {
   --destructive: 3 100% 61%;
   --destructive-foreground: 0 0% 100%;
   --input: 240 4% 20%;
-  --ring: 135 64% 50%;
+  --ring: 240 11% 96%;
   --radius: 11px;
 }
 

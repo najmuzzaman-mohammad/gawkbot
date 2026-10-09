@@ -34,6 +34,7 @@ struct PairingView: View {
                                 Label("Scan pairing code", systemImage: "qrcode.viewfinder").frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent).controlSize(.large)
+                            .foregroundStyle(Color(uiColor: .systemBackground))
                         }
                     }
                     .padding(.horizontal)
