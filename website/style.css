@@ -1491,6 +1491,11 @@ section { position: relative; }
   --in: clamp(0, var(--a) * 4 - var(--r), 1);
   opacity: var(--in); transform: translateY(calc((1 - var(--in)) * 18px));
 }
+/* On a short screen the phone shrinks whole, so it still fits pinned
+   under the menu bar. */
+@media (max-height: 780px) { .scrub-live .iphone-scene .phone { zoom: 0.88; } }
+@media (max-height: 680px) { .scrub-live .iphone-scene .phone { zoom: 0.76; } }
+@media (max-height: 600px) { .scrub-live .iphone-scene .phone { zoom: 0.64; } }
 .iphone-scene .ip-card { position: relative; overflow: hidden; }
 .ip-tap { display: none; }
 .scrub-live .ip-tap {
@@ -1583,8 +1588,24 @@ section { position: relative; }
 .keys-scene[data-step="5"] .kt5, .keys-scene[data-step="6"] .kt6, .keys-scene[data-step="7"] .kt7 {
   opacity: 1; transform: translateY(-3px); box-shadow: inset 0 0 0 1.5px var(--text), var(--shadow-md);
 }
-/* Phones: the tiles do not fit beside the notch, so a caption says the key. */
-@media (max-width: 760px) {
+/* Wide screens: the notch and its keys sit side by side, the keys as a
+   compact two-column pad, so the whole scene fits one screen while pinned.
+   Only the lit key spells out what it does. */
+@media (min-width: 901px) {
+  .scrub-live .keys-scene .scrub-pin { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; align-content: center; gap: clamp(20px, 3vw, 44px); }
+  .scrub-live .keys-scene .kdemo { margin: 0 0 0 auto; }
+  .scrub-live .keys-scene .keys { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .scrub-live .keys-scene .key-tile { min-height: 0; padding: 12px 14px; }
+  .scrub-live .keys-scene .key-tile .caps { margin-bottom: 0; padding-bottom: 10px; }
+  .scrub-live .keys-scene .keys kbd { min-width: 34px; height: 34px; font-size: 15px; border-radius: 9px; padding: 0 9px; }
+  .scrub-live .keys-scene .keys kbd.long { min-width: 72px; }
+  .scrub-live .keys-scene .key-tile h3 { font-size: 16px; margin-bottom: 0; }
+  .scrub-live .keys-scene .key-tile p { display: none; font-size: 13.5px; margin-top: 4px; }
+  .keys-scene[data-step="1"] .kt1 p, .keys-scene[data-step="2"] .kt2 p, .keys-scene[data-step="3"] .kt3 p, .keys-scene[data-step="4"] .kt4 p,
+  .keys-scene[data-step="5"] .kt5 p, .keys-scene[data-step="6"] .kt6 p, .keys-scene[data-step="7"] .kt7 p { display: block; }
+}
+/* Narrower: the tiles do not fit beside the notch, so a caption says the key. */
+@media (max-width: 900px) {
   .scrub-live .keys-scene .keys { display: none; }
   .scrub-live .key-caption { display: grid; list-style: none; min-height: 40px; }
   .scrub-live .key-caption li { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; color: var(--text); opacity: 0; transition: opacity 0.25s; }
