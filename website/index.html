@@ -35,6 +35,7 @@
 <!-- Inter is only the fallback for machines without the Apple system font. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="orb.css">
 <script>document.documentElement.classList.add('js');</script>
 <script type="application/ld+json">
 {
@@ -243,6 +244,11 @@
 
             <div class="cursor" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 2.5v17.2l4.6-4.3 3 6.9 3-1.3-3-6.8h6.3z"/></svg></div>
 
+            <!-- The stage under the notch, behind it: a new question's asker
+                 pops into being here and swoops up into the right ear, as
+                 in the app (web/src/notch/NotchArrival.tsx). -->
+            <div class="fly-stage" aria-hidden="true" data-fly data-body="lemon" data-color="#ff6b8b"></div>
+
             <!-- The notch: the camera housing, one ear each side, and the
                  inbox that pulls down out of it. -->
             <div class="island" aria-hidden="true">
@@ -264,7 +270,8 @@
               <div class="drop">
                 <div class="drop-inner">
                   <div class="nhead stg" style="--i:0">
-                    <svg class="blob" viewBox="-24 -24 248 248"><use href="#b-brand"/></svg>
+                    <span class="nhero-sky" data-sky></span>
+                    <span class="nhero-lead" data-born data-body="flower" data-color="#5aa9ff" data-size="40"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-brand"/></svg></span>
                     <div class="nhead-text"><small>Chief of Staff</small>2 things need you</div>
                     <span class="nbtn quiet">↗ Full view</span>
                   </div>
@@ -316,7 +323,7 @@
             </div>
             <div class="dyn-open">
               <div class="dyn-head">
-                <svg class="blob" viewBox="-24 -24 248 248"><use href="#b-auth-refactor"/></svg>
+                <span class="dyn-lead" data-born data-body="lemon" data-color="#ff6b8b" data-size="30"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-auth-refactor"/></svg></span>
                 <div><b>auth-refactor</b><small>Claude Code · this Mac</small></div>
                 <span class="count">2</span>
               </div>
@@ -344,6 +351,10 @@
         <li data-s="2"><b>2</b> <span class="on-mac">You glance up</span><span class="on-phone">Your phone buzzes</span></li>
         <li data-s="3"><b>3</b> <span class="on-mac">The inbox pulls down</span><span class="on-phone">Answer from the island</span></li>
       </ol>
+      <button class="sound-toggle" type="button" aria-pressed="false" data-sound-toggle hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path class="sw-on" d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/><path class="sw-off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+        <span class="sw-label">Sound off</span>
+      </button>
     </div>
   </div>
 </section>
@@ -703,6 +714,28 @@
       <p class="lead reveal">Waiting on an agent is dull. Being waited on shouldn't be. So the agents got a little personality, and the notch got a sense of humour.</p>
     </div>
     <div class="fun">
+      <!-- The cast as characters, running the app's own code (orb.js, built
+           from web/src/lib/orbCharacter.ts): the lead is born and waves, two
+           askers fly in, everyone claps. Without JavaScript or with reduced
+           motion the three simply stand there. -->
+      <article class="fun-card fun-feature glass lg reveal">
+        <div class="magic-stage" data-magic aria-hidden="true">
+          <span class="magic-spot" data-cast data-body="flower" data-color="#5aa9ff" data-size="92" style="--s:92px" data-from="center"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-brand"/></svg></span>
+          <span class="magic-spot" data-cast data-body="lemon" data-color="#ff6b8b" data-size="60" style="--s:60px" data-from="left"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-auth-refactor"/></svg></span>
+          <span class="magic-spot" data-cast data-body="ghost" data-color="#3cc3df" data-size="60" style="--s:60px" data-from="right"><svg class="blob" viewBox="-24 -24 248 248"><use href="#b-flaky-tests"/></svg></span>
+        </div>
+        <div class="fun-feature-copy">
+          <h3 class="h3">They make an entrance.</h3>
+          <p>Open the notch and the Chief of Staff pops into being in a burst of sparkles and waves hello. A new question doesn't just appear: whoever asked flies up into the notch. Answer it and they clap. Tap one to say hi.</p>
+          <div class="magic-acts">
+            <button class="btn btn-glass lg lg-lens" type="button" data-replay>Play it again</button>
+            <button class="sound-toggle" type="button" aria-pressed="false" data-sound-toggle hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path class="sw-on" d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/><path class="sw-off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+              <span class="sw-label">Sound off</span>
+            </button>
+          </div>
+        </div>
+      </article>
       <article class="fun-card glass lg reveal">
         <div class="stage" aria-hidden="true"><div class="mini-notch"><svg class="blob peeker" viewBox="-24 -24 248 248"><use href="#b-test-fixer"/></svg></div></div>
         <h3 class="h3">They peek.</h3>
@@ -725,13 +758,17 @@
       <article class="fun-card glass lg reveal d1">
         <div class="stage speaker" aria-hidden="true"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div></div>
         <h3 class="h3">Every alert sounds different.</h3>
-        <p>Each kind of moment has its own cartoon sound, so you know what happened before you look. They are synthesised live; nothing is sampled. Go on:</p>
+        <p>Each kind of moment has its own cartoon sound, so you know what happened before you look. They are synthesised live; nothing is sampled. These buttons run the notch's own sound code. Go on:</p>
         <div class="sounds">
-          <button class="sound" type="button" data-sound="question"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Question <span>boing</span></button>
-          <button class="sound" type="button" data-sound="approval"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Approval <span>doo-dee</span></button>
-          <button class="sound" type="button" data-sound="error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Error <span>wah-wah</span></button>
+          <button class="sound" type="button" data-sound="question"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Question <span>whistle, boing</span></button>
+          <button class="sound" type="button" data-sound="approval"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Approval <span>ding ding</span></button>
+          <button class="sound" type="button" data-sound="error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Error <span>wah wah</span></button>
           <button class="sound" type="button" data-sound="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Done <span>ta-da</span></button>
           <button class="sound" type="button" data-sound="sent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Sent <span>pop</span></button>
+          <button class="sound" type="button" data-sound="peek"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Peek <span>yoo-hoo</span></button>
+          <button class="sound" type="button" data-sound="whoosh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Flies in <span>whoosh</span></button>
+          <button class="sound" type="button" data-sound="sparkle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Pops in <span>twinkle</span></button>
+          <button class="sound" type="button" data-sound="clap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Answered <span>clap clap</span></button>
         </div>
       </article>
     </div>
@@ -860,10 +897,13 @@
   </div>
 </footer>
 
+<script src="orb.js"></script>
 <script>
 (function () {
   'use strict';
 
+  // Set by the MAGIC section below: the hero's beats as they change.
+  var onBeats = null;
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ── SCROLL REVEAL ───────────────────────────────────────────────────
@@ -928,6 +968,7 @@
       if (c >= 0.999 && !hovered) { scene.classList.remove('is-hover'); void scene.offsetWidth; scene.classList.add('is-hover'); }
       if (c < 0.999) scene.classList.remove('is-hover');
       hovered = c >= 0.999;
+      if (onBeats) onBeats(n, o);
     };
     var request = function () { if (!raf) raf = requestAnimationFrame(frame); };
     measure();
@@ -1055,87 +1096,156 @@
     setTimeout(blinkOnce, 1200);
   }
 
-  // ── SOUNDS ──────────────────────────────────────────────────────────
-  // The notch's cartoon sounds, the same recipes as web/src/notch/sounds.ts:
-  // a few oscillators with pitch and gain envelopes, synthesised on click.
-  var ctx = null;
-  var master = null;
-  function audio() {
-    if (ctx) return ctx;
-    var AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    try {
-      ctx = new AC();
-      master = ctx.createGain();
-      master.gain.value = 0.32;
-      master.connect(ctx.destination);
-    } catch (e) { ctx = null; }
-    return ctx;
-  }
-  function note(semi) { return 440 * Math.pow(2, semi / 12); }
-  function tone(c, out, t0, spec) {
-    var osc = c.createOscillator();
-    var g = c.createGain();
-    osc.type = spec.type || 'sine';
-    var start = t0 + spec.start;
-    var end = start + spec.dur;
-    var step = spec.dur / Math.max(1, spec.freqs.length - 1);
-    osc.frequency.setValueAtTime(spec.freqs[0], start);
-    spec.freqs.slice(1).forEach(function (f, i) {
-      osc.frequency.exponentialRampToValueAtTime(Math.max(20, f), start + step * (i + 1));
-    });
-    if (spec.wobble) {
-      var lfo = c.createOscillator();
-      var depth = c.createGain();
-      lfo.frequency.value = spec.wobbleRate || 18;
-      depth.gain.setValueAtTime(spec.wobble, start);
-      depth.gain.exponentialRampToValueAtTime(0.01, end);
-      lfo.connect(depth).connect(osc.frequency);
-      lfo.start(start);
-      lfo.stop(end);
-    }
-    var peak = spec.gain || 0.6;
-    g.gain.setValueAtTime(0.0001, start);
-    g.gain.exponentialRampToValueAtTime(peak, start + Math.min(0.012, spec.dur / 4));
-    g.gain.exponentialRampToValueAtTime(0.0001, end);
-    osc.connect(g).connect(out);
-    osc.start(start);
-    osc.stop(end + 0.02);
-  }
-  var recipes = {
-    question: [
-      { type: 'triangle', freqs: [220, 520, 330, 300], start: 0, dur: 0.42, wobble: 70, wobbleRate: 22, gain: 0.7 }
-    ],
-    approval: [
-      { type: 'sine', freqs: [note(3)], start: 0, dur: 0.14, gain: 0.55 },
-      { type: 'sine', freqs: [note(10)], start: 0.13, dur: 0.22, gain: 0.6 },
-      { type: 'triangle', freqs: [note(22)], start: 0.13, dur: 0.18, gain: 0.12 }
-    ],
-    error: [
-      { type: 'sawtooth', freqs: [note(-2), note(-3)], start: 0, dur: 0.24, gain: 0.22, wobble: 6, wobbleRate: 7 },
-      { type: 'sawtooth', freqs: [note(-4), note(-5)], start: 0.24, dur: 0.24, gain: 0.22, wobble: 6, wobbleRate: 7 },
-      { type: 'sawtooth', freqs: [note(-6), note(-11)], start: 0.48, dur: 0.55, gain: 0.24, wobble: 10, wobbleRate: 6 }
-    ],
-    done: [
-      { type: 'triangle', freqs: [note(3)], start: 0, dur: 0.12, gain: 0.5 },
-      { type: 'triangle', freqs: [note(7)], start: 0.09, dur: 0.12, gain: 0.5 },
-      { type: 'triangle', freqs: [note(10)], start: 0.18, dur: 0.12, gain: 0.5 },
-      { type: 'sine', freqs: [note(15)], start: 0.27, dur: 0.45, gain: 0.55, wobble: 8, wobbleRate: 6 }
-    ],
-    sent: [{ type: 'sine', freqs: [380, 1100], start: 0, dur: 0.08, gain: 0.6 }]
-  };
+  // ── MAGIC ───────────────────────────────────────────────────────────
+  // The bots as characters, and the notch's sounds, from orb.js: the app's
+  // own code (web/src/lib/orbCharacter.ts and web/src/notch/sounds.ts),
+  // bundled by scripts/website-orb.sh. Each scene starts with the plain
+  // drawing; a character replaces it only where the script loaded and
+  // motion is welcome. Sound is off until the visitor turns it on; the
+  // sound buttons further down always play, because a click asked for them.
+  var G = window.GawkOrb;
+  var soundOn = false;
+  var sfx = function (kind) { if (soundOn && G) G.play(kind); };
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
   document.querySelectorAll('[data-sound]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var c = audio();
-      var r = recipes[btn.getAttribute('data-sound')];
-      if (!c || !master || !r) return;
-      try {
-        if (c.state === 'suspended') c.resume();
-        var t0 = c.currentTime + 0.01;
-        r.forEach(function (t) { tone(c, master, t0, t); });
-      } catch (e) { /* a sound glitch must never break the page */ }
+      if (G) { G.unlock(); G.play(btn.getAttribute('data-sound')); }
     });
   });
+
+  var toggles = Array.prototype.slice.call(document.querySelectorAll('[data-sound-toggle]'));
+  if (G) {
+    toggles.forEach(function (t) {
+      t.hidden = false;
+      t.addEventListener('click', function () {
+        soundOn = !soundOn;
+        toggles.forEach(function (o) {
+          o.setAttribute('aria-pressed', String(soundOn));
+          o.querySelector('.sw-label').textContent = soundOn ? 'Sound on' : 'Sound off';
+        });
+        if (soundOn) { G.unlock(); G.play('sparkle'); }
+      });
+    });
+  }
+
+  if (G && !reduceMotion) {
+    // A character in place of the drawing inside `el`.
+    var cast = function (el, size) {
+      var c = new G.OrbCharacter(el, {
+        body: el.getAttribute('data-body'),
+        color: el.getAttribute('data-color'),
+        size: size || Number(el.getAttribute('data-size')) || 40
+      });
+      el.classList.add('has-char');
+      return c;
+    };
+
+    // The hero. As the inbox opens (--o), the lead in its header is born
+    // and waves, on a strip of night sky, as when you open the real notch.
+    // When the agents land (--n), one of them flies in first.
+    var leads = Array.prototype.slice.call(document.querySelectorAll('[data-born]')).map(function (el) {
+      return { el: el, c: null, born: false };
+    });
+    var sky = document.querySelector('[data-sky]');
+    var stopSky = null;
+    var fly = document.querySelector('[data-fly]');
+    var flying = false;
+    var landedOnce = false;
+    var sceneEl = document.querySelector('[data-scene]');
+    if (sceneEl && fly) sceneEl.classList.add('awaits-flier');
+    var flyIn = function () {
+      if (flying || !fly) return;
+      if (!fly.offsetWidth) { sceneEl.classList.add('is-landed'); return; }
+      flying = true;
+      var c = cast(fly, 30);
+      var w = fly.offsetWidth;
+      var startX = w / 2 - 15;
+      c.placeAt(startX, 46);
+      c.birth({ wave: false });
+      sfx('question');
+      wait(700).then(function () {
+        sfx('whoosh');
+        // Out sideways under the notch, then up into the right ear.
+        var earX = w - 72;
+        return c.flyTo(earX, -34, { duration: 900, via: { x: earX + 18, y: 64 } });
+      }).then(function () {
+        c.destroy();
+        fly.classList.remove('has-char');
+        sceneEl.classList.add('is-landed');
+        flying = false;
+      });
+    };
+    onBeats = function (n, o) {
+      if (n >= 0.999 && !landedOnce) { landedOnce = true; flyIn(); }
+      if (n < 0.5 && !flying) { landedOnce = false; sceneEl.classList.remove('is-landed'); }
+      leads.forEach(function (L) {
+        if (!L.el.offsetWidth) return;
+        if (o >= 0.7 && !L.born) {
+          L.born = true;
+          if (!L.c) L.c = cast(L.el);
+          if (sky && !stopSky && L.el.closest('.drop')) stopSky = G.mountStarfield(sky, { density: 0.5 });
+          sfx('sparkle');
+          L.c.birth();
+        }
+        if (o < 0.25) L.born = false;
+      });
+    };
+
+    // The entrance stage in "Fun on purpose": born, fly in, clap.
+    var stage = document.querySelector('[data-magic]');
+    if (stage) {
+      G.mountStarfield(stage, { density: 0.8 });
+      var spots = Array.prototype.slice.call(stage.querySelectorAll('[data-cast]'));
+      var actors = spots.map(function (el) { return { el: el, c: cast(el), from: el.getAttribute('data-from') }; });
+      actors.forEach(function (a) {
+        a.el.addEventListener('click', function () {
+          sfx('peek');
+          a.c.mascot.poke();
+          a.c.hop(0.3).then(function () { return a.c.wave(1); });
+        });
+      });
+      var playing = false;
+      var show = function () {
+        if (playing) return;
+        playing = true;
+        var lead = actors[0];
+        var w = stage.offsetWidth;
+        // Each spot is where its character ends up; the fliers start just
+        // off their side of the stage, a little higher.
+        actors.forEach(function (a) {
+          var size = a.el.offsetWidth;
+          var x = a.from === 'left' ? -(a.el.offsetLeft + size + 24) : a.from === 'right' ? w - a.el.offsetLeft + 24 : 0;
+          a.c.root.style.opacity = a.from === 'center' ? '1' : '0';
+          a.c.placeAt(x, a.from === 'center' ? 0 : -70);
+        });
+        sfx('sparkle');
+        lead.c.birth().then(function () { return wait(150); }).then(function () {
+          return Promise.all(actors.slice(1).map(function (a, i) {
+            return wait(i * 450).then(function () {
+              a.c.root.style.opacity = '1';
+              sfx('whoosh');
+              return a.c.flyTo(0, 0, { duration: 950, lift: 60 });
+            });
+          }));
+        }).then(function () { return wait(250); }).then(function () {
+          sfx('clap');
+          return Promise.all(actors.map(function (a) { return a.c.clap(); }));
+        }).then(function () { playing = false; });
+      };
+      var seen = false;
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting && !seen) { seen = true; show(); }
+            if (!e.isIntersecting && e.intersectionRatio === 0) seen = false;
+          });
+        }, { threshold: 0.55 }).observe(stage);
+      }
+      var replay = document.querySelector('[data-replay]');
+      if (replay) replay.addEventListener('click', function () { if (G) G.unlock(); show(); });
+    }
+  }
 })();
 </script>
 </body>

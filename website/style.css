@@ -58,6 +58,8 @@
 
   /* The notch is hardware-black in both modes, like the real thing. */
   --notch: #000;
+  /* The brand's sky blue as light in the dark, behind the cast on stage. */
+  --night-glow: rgba(90, 169, 255, 0.22);
   --notch-glass: rgba(14, 14, 18, 0.56);
   --notch-card: rgba(255, 255, 255, 0.07);
   --notch-line: rgba(255, 255, 255, 0.09);
@@ -1057,6 +1059,84 @@ section { position: relative; }
 .eq i:nth-child(2) { animation-delay: 0.2s; } .eq i:nth-child(3) { animation-delay: 0.4s; }
 .eq i:nth-child(4) { animation-delay: 0.1s; } .eq i:nth-child(5) { animation-delay: 0.3s; }
 @media (max-width: 760px) { .fun { grid-template-columns: 1fr; } }
+
+/* ── Characters (orb.js / orb.css, the app's own code) ─────────────────
+   A character replaces the drawing in a spot once the script has mounted
+   it (.has-char); without it, the drawing stays. */
+.has-char > .blob { display: none; }
+
+/* Under the notch, behind it: the asker pops in here and swoops up into
+   the right ear. As wide as the island, so the ear is where it aims. */
+.fly-stage {
+  position: absolute; z-index: 3; top: 0; left: 50%; height: 120px;
+  width: calc(var(--w-rest) + (var(--w-note) - var(--w-rest)) * var(--n) + (var(--w-open) - var(--w-note)) * var(--o));
+  max-width: calc(100% - 24px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  --w-rest: 820px; --w-note: 480px; --w-open: 540px;
+}
+/* The first of the gang waits for the flier, then lands with a bounce. */
+.awaits-flier:not(.is-landed) .ear-gang .g1 { opacity: 0; }
+.is-landed .ear-gang .g1 { animation: gang-land 0.5s var(--ease-spring) both; }
+@keyframes gang-land {
+  0% { scale: 0.4 1.3; opacity: 0; }
+  55% { scale: 1.25 0.8; opacity: 1; }
+  100% { scale: 1; }
+}
+
+/* The inbox's lead stands on a strip of night sky, as in the app. */
+.drop .nhead { position: relative; z-index: 0; }
+.nhero-sky {
+  position: absolute; z-index: -1; inset: -8px -12px -4px; pointer-events: none;
+  background: radial-gradient(90px 60px at 30px 45%, var(--notch-card), transparent 70%);
+  mask-image: linear-gradient(180deg, transparent, var(--notch) 25%, var(--notch) 70%, transparent);
+}
+.nhero-lead { position: relative; width: 40px; height: 40px; flex: none; }
+.nhero-lead > .blob { width: 100%; height: 100%; }
+.dyn-lead { position: relative; width: 26px; height: 26px; flex: none; }
+.dyn-lead > .blob { width: 100%; height: 100%; }
+
+/* "They make an entrance": the cast on a night-sky stage, born, flying in
+   and clapping, across the whole grid. */
+.fun-feature { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: center; }
+.magic-stage {
+  position: relative; height: 300px; margin: -28px 0 -28px -28px; overflow: hidden;
+  background:
+    radial-gradient(60% 70% at 50% 62%, var(--night-glow), transparent 70%),
+    var(--notch);
+}
+.magic-spot {
+  --x: 0px;
+  position: absolute; bottom: 70px;
+  left: calc(50% + var(--x) - var(--s) / 2);
+  width: var(--s); height: var(--s);
+  cursor: pointer;
+}
+.magic-spot[data-from="left"] { --x: -150px; }
+.magic-spot[data-from="right"] { --x: 150px; }
+.magic-spot > .blob { width: 100%; height: 100%; }
+.magic-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+@media (max-width: 760px) {
+  .fun-feature { grid-template-columns: 1fr; gap: 20px; }
+  .magic-stage { margin: -28px -28px 0; height: 260px; }
+  .magic-spot[data-from="left"] { --x: -112px; }
+  .magic-spot[data-from="right"] { --x: 112px; }
+}
+
+/* Sound is opt-in on the site: a small switch where the moments are. */
+.sound-toggle {
+  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px 0 10px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; color: var(--text-2); background: var(--fill-2);
+  transition: background-color 0.2s, color 0.2s;
+}
+.sound-toggle:hover { color: var(--text); background: var(--fill); }
+.sound-toggle[hidden] { display: none; }
+.sound-toggle svg { width: 16px; height: 16px; }
+.sound-toggle .sw-on { display: none; }
+.sound-toggle[aria-pressed="true"] { color: var(--text); background: var(--fill); }
+.sound-toggle[aria-pressed="true"] .sw-on { display: inline; }
+.sound-toggle[aria-pressed="true"] .sw-off { display: none; }
+.scene-pin > .sound-toggle:not([hidden]) { display: flex; margin: -8px auto 0; }
 
 /* Pricing */
 .plan { max-width: 560px; margin: 0 auto; padding: clamp(28px, 5vw, 44px); text-align: left; position: relative; overflow: hidden; }
