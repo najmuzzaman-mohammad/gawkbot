@@ -479,32 +479,323 @@ html[data-theme^="nex-glass"] .modal-shell {
 }
 
 /* ═══ CONTROLS ═══ */
-/* The primary action is tinted glass: the accent as a translucent
-   material with the light on it, not a solid fill. */
-html[data-theme^="nex-glass"] .btn-primary {
-  background: var(--glass-accent);
-  color: var(--accent-fg);
-  box-shadow: var(--glass-light-soft), var(--btn-primary-shadow);
-}
-html[data-theme^="nex-glass"] .btn-primary:hover {
-  background: var(--glass-accent-hover);
-}
-html[data-theme^="nex-glass"] .btn-danger {
-  background: var(--glass-danger);
-  box-shadow: var(--glass-light-soft), var(--btn-danger-shadow);
-}
-/* Secondary buttons, chips and fields are thin glass on whatever pane
-   they sit on. */
+/* Buttons are lenses, not paint chips. One recipe for every button kind,
+   the shared .btn-* classes and every bespoke button the office surfaces
+   paint for themselves (listed by name below; a button whose class names
+   its role, approve or submit or reject, is caught by that too):
+     · a body of the tint at low opacity, so whatever is behind shows
+       through it, blurred and saturated by the backdrop filter;
+     · a gloss where light enters at the top left, and a caustic where it
+       gathers at the bottom, in the tint's own light;
+     · a rim lit where light enters and leaves: a bright crescent along
+       the top left, a fainter one along the bottom right;
+     · a hairline, a darker lower edge and a soft bloom in the tint.
+   Secondary buttons are clear glass, the primary action is tinted glass
+   in the accent, a destructive one is tinted glass in red, and a refusal
+   is clear glass with red ink. Colours are the flavour's (--glass-btn-*);
+   the per-kind --gb-* scalars are set on the element, because a var()
+   inside a custom property resolves where it is declared. Each rule is
+   repeated for :hover so a surface's own hover fill cannot paint the slab
+   back. The wiki, the operator console and onboarding keep their own
+   paper and ink and are not listed. */
+html[data-theme^="nex-glass"] .btn-primary,
+html[data-theme^="nex-glass"] .task-composer-btn-primary,
+html[data-theme^="nex-glass"] .task-channel-chat-send,
+html[data-theme^="nex-glass"] .inbox-detail-action--primary,
+html[data-theme^="nex-glass"] .packet-action--approve,
+html[data-theme^="nex-glass"] .issue-action-button--primary,
+html[data-theme^="nex-glass"] .issue-comment-submit,
+html[data-theme^="nex-glass"] .issue-create-submit,
+html[data-theme^="nex-glass"] .issue-doc-sub-issues-submit,
+html[data-theme^="nex-glass"] .issues-new-btn,
+html[data-theme^="nex-glass"] .custom-app-view__banner-btn--primary,
+html[data-theme^="nex-glass"] .data-btn--default,
+html[data-theme^="nex-glass"] .version-modal-btn--primary,
+html[data-theme^="nex-glass"] .tour-composer-send,
+html[data-theme^="nex-glass"] .onboarding-handoff-send,
+html[data-theme^="nex-glass"] .btn.governor-banner-continue,
+html[data-theme^="nex-glass"] button[class*="approve"],
+html[data-theme^="nex-glass"] button[class*="submit"],
+html[data-theme^="nex-glass"] .btn-danger,
 html[data-theme^="nex-glass"] .btn-ghost,
-html[data-theme^="nex-glass"] .btn-secondary {
-  background: var(--glass-thin);
-  border-color: var(--glass-pane-border);
-  box-shadow: var(--glass-light-soft);
+html[data-theme^="nex-glass"] .btn-secondary,
+html[data-theme^="nex-glass"] .task-composer-btn,
+html[data-theme^="nex-glass"] .inbox-detail-action,
+html[data-theme^="nex-glass"] .packet-action--secondary,
+html[data-theme^="nex-glass"] .packet-action--danger,
+html[data-theme^="nex-glass"] .issue-action-button,
+html[data-theme^="nex-glass"] .issue-doc-retry-btn,
+html[data-theme^="nex-glass"] .custom-app-view__banner-btn,
+html[data-theme^="nex-glass"] .data-btn--outline,
+html[data-theme^="nex-glass"] .data-btn--destructive,
+html[data-theme^="nex-glass"] .version-modal-btn,
+html[data-theme^="nex-glass"] .bot-profile-resume-btn,
+html[data-theme^="nex-glass"] .bot-skills-card-btn,
+html[data-theme^="nex-glass"] .bot-stream-run-btn,
+html[data-theme^="nex-glass"] .dr-toolbar-button,
+html[data-theme^="nex-glass"] .system-error-card-copy-btn,
+html[data-theme^="nex-glass"] .system-error-card-retry-btn,
+html[data-theme^="nex-glass"] .message-artifact-actions button,
+html[data-theme^="nex-glass"] .rich-artifact-modal-actions button,
+html[data-theme^="nex-glass"] .nb-visual-artifact-actions button,
+html[data-theme^="nex-glass"] .eac-reject,
+html[data-theme^="nex-glass"] button[class*="reject"],
+html[data-theme^="nex-glass"] button[class*="deny"],
+html[data-theme^="nex-glass"] .btn-primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-composer-btn-primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-channel-chat-send:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .inbox-detail-action--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--approve:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .issue-action-button--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-comment-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-create-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-doc-sub-issues-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issues-new-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .custom-app-view__banner-btn--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--default:hover:not(:disabled),
+html[data-theme^="nex-glass"] .version-modal-btn--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .tour-composer-send:hover:not(:disabled),
+html[data-theme^="nex-glass"] .onboarding-handoff-send:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .btn.governor-banner-continue:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="approve"]:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="submit"]:hover:not(:disabled),
+html[data-theme^="nex-glass"] .btn-danger:hover:not(:disabled),
+html[data-theme^="nex-glass"] .btn-ghost:hover:not(:disabled),
+html[data-theme^="nex-glass"] .btn-secondary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-composer-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .inbox-detail-action:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--secondary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--danger:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-action-button:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-doc-retry-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .custom-app-view__banner-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--outline:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--destructive:hover:not(:disabled),
+html[data-theme^="nex-glass"] .version-modal-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .bot-profile-resume-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .bot-skills-card-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .bot-stream-run-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .dr-toolbar-button:hover:not(:disabled),
+html[data-theme^="nex-glass"] .system-error-card-copy-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .system-error-card-retry-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .message-artifact-actions
+  button:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .rich-artifact-modal-actions
+  button:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .nb-visual-artifact-actions
+  button:hover:not(:disabled),
+html[data-theme^="nex-glass"] .eac-reject:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="reject"]:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="deny"]:hover:not(:disabled) {
+  --gb-t: var(--glass-btn-white);
+  --gb-l: var(--glass-btn-white);
+  --gb-a1: var(--glass-btn-a1);
+  --gb-a2: var(--glass-btn-a2);
+  --gb-edge: var(--glass-btn-shade);
+  --gb-bloom: var(--glass-btn-bloom);
+  color: var(--glass-btn-ink);
+  border-color: transparent;
+  background:
+    radial-gradient(
+      90% 70% at 30% 0%,
+      rgb(var(--glass-btn-white) / var(--glass-btn-gloss)),
+      rgb(var(--glass-btn-white) / 0) 70%
+    ),
+    radial-gradient(
+      80% 60% at 50% 115%,
+      rgb(var(--gb-l) / var(--glass-btn-caustic)),
+      rgb(var(--gb-l) / 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--gb-t) / var(--gb-a1)),
+      rgb(var(--gb-t) / var(--gb-a2))
+    );
+  -webkit-backdrop-filter: var(--glass-btn-filter);
+  backdrop-filter: var(--glass-btn-filter);
+  box-shadow:
+    inset 1px 1.5px 0 -0.5px
+    rgb(var(--glass-btn-white) / var(--glass-btn-rim-in)),
+    inset -1px -1px 0 -0.5px
+    rgb(var(--glass-btn-white) / var(--glass-btn-rim-out)),
+    inset 0 0 0 0.5px rgb(var(--glass-btn-hair) / var(--glass-btn-hair-a)),
+    inset 0 -1.5px 2px rgb(var(--gb-edge) / var(--glass-btn-edge-a)),
+    inset 0 0 9px rgb(var(--glass-btn-vig) / var(--glass-btn-vig-a)),
+    0 8px 20px -8px rgb(var(--gb-t) / var(--gb-bloom)),
+    0 1px 2px rgb(var(--glass-btn-shade) / 0.18);
+  text-shadow: var(--glass-btn-ink-shadow);
+  filter: none;
 }
-html[data-theme^="nex-glass"] .btn-ghost:hover,
-html[data-theme^="nex-glass"] .btn-secondary:hover {
-  background: var(--glass-regular);
-  border-color: var(--border-strong);
+html[data-theme^="nex-glass"] .btn-ghost:hover:not(:disabled),
+html[data-theme^="nex-glass"] .btn-secondary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-composer-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .inbox-detail-action:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--secondary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--danger:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-action-button:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-doc-retry-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .custom-app-view__banner-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--outline:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--destructive:hover:not(:disabled),
+html[data-theme^="nex-glass"] .version-modal-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .bot-profile-resume-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .bot-skills-card-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .bot-stream-run-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .dr-toolbar-button:hover:not(:disabled),
+html[data-theme^="nex-glass"] .system-error-card-copy-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"] .system-error-card-retry-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .message-artifact-actions
+  button:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .rich-artifact-modal-actions
+  button:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .nb-visual-artifact-actions
+  button:hover:not(:disabled),
+html[data-theme^="nex-glass"] .eac-reject:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="reject"]:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="deny"]:hover:not(:disabled) {
+  --gb-a1: var(--glass-btn-a1-hover);
+  --gb-a2: var(--glass-btn-a2-hover);
+}
+/* The primary action: tinted glass in the accent. */
+html[data-theme^="nex-glass"] .btn-primary,
+html[data-theme^="nex-glass"] .task-composer-btn-primary,
+html[data-theme^="nex-glass"] .task-channel-chat-send,
+html[data-theme^="nex-glass"] .inbox-detail-action--primary,
+html[data-theme^="nex-glass"] .packet-action--approve,
+html[data-theme^="nex-glass"] .issue-action-button--primary,
+html[data-theme^="nex-glass"] .issue-comment-submit,
+html[data-theme^="nex-glass"] .issue-create-submit,
+html[data-theme^="nex-glass"] .issue-doc-sub-issues-submit,
+html[data-theme^="nex-glass"] .issues-new-btn,
+html[data-theme^="nex-glass"] .custom-app-view__banner-btn--primary,
+html[data-theme^="nex-glass"] .data-btn--default,
+html[data-theme^="nex-glass"] .version-modal-btn--primary,
+html[data-theme^="nex-glass"] .tour-composer-send,
+html[data-theme^="nex-glass"] .onboarding-handoff-send,
+html[data-theme^="nex-glass"] .btn.governor-banner-continue,
+html[data-theme^="nex-glass"] button[class*="approve"],
+html[data-theme^="nex-glass"] button[class*="submit"],
+html[data-theme^="nex-glass"] .btn-primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-composer-btn-primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-channel-chat-send:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .inbox-detail-action--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--approve:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .issue-action-button--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-comment-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-create-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-doc-sub-issues-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issues-new-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .custom-app-view__banner-btn--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--default:hover:not(:disabled),
+html[data-theme^="nex-glass"] .version-modal-btn--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .tour-composer-send:hover:not(:disabled),
+html[data-theme^="nex-glass"] .onboarding-handoff-send:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .btn.governor-banner-continue:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="approve"]:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="submit"]:hover:not(:disabled) {
+  --gb-t: var(--glass-btn-accent);
+  --gb-l: var(--glass-btn-accent-light);
+  --gb-edge: var(--glass-btn-accent-edge);
+  --gb-a1: var(--glass-btn-tint-a1);
+  --gb-a2: var(--glass-btn-tint-a2);
+  --gb-bloom: var(--glass-btn-tint-bloom);
+  color: var(--glass-btn-tint-ink);
+  text-shadow: var(--glass-btn-tint-ink-shadow);
+}
+html[data-theme^="nex-glass"] .btn-primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-composer-btn-primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .task-channel-chat-send:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .inbox-detail-action--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--approve:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .issue-action-button--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-comment-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-create-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issue-doc-sub-issues-submit:hover:not(:disabled),
+html[data-theme^="nex-glass"] .issues-new-btn:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .custom-app-view__banner-btn--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--default:hover:not(:disabled),
+html[data-theme^="nex-glass"] .version-modal-btn--primary:hover:not(:disabled),
+html[data-theme^="nex-glass"] .tour-composer-send:hover:not(:disabled),
+html[data-theme^="nex-glass"] .onboarding-handoff-send:hover:not(:disabled),
+html[data-theme^="nex-glass"]
+  .btn.governor-banner-continue:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="approve"]:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="submit"]:hover:not(:disabled) {
+  --gb-a1: var(--glass-btn-tint-a1-hover);
+  --gb-a2: var(--glass-btn-tint-a2-hover);
+}
+/* The question bar paints its recommended answer as an inverted chip
+   with a three-part selector; tinted glass has to out-rank it. */
+html[data-theme^="nex-glass"] .interview-bar-actions .btn.btn-primary,
+html[data-theme^="nex-glass"] .interview-bar-actions .btn.btn-primary:hover {
+  color: var(--glass-btn-tint-ink);
+  border-color: transparent;
+  background:
+    radial-gradient(
+      90% 70% at 30% 0%,
+      rgb(var(--glass-btn-white) / var(--glass-btn-gloss)),
+      rgb(var(--glass-btn-white) / 0) 70%
+    ),
+    radial-gradient(
+      80% 60% at 50% 115%,
+      rgb(var(--gb-l) / var(--glass-btn-caustic)),
+      rgb(var(--gb-l) / 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--gb-t) / var(--gb-a1)),
+      rgb(var(--gb-t) / var(--gb-a2))
+    );
+}
+html[data-theme^="nex-glass"]
+  .interview-bar-actions
+  .btn-primary
+  .interview-bar-opt-num {
+  background: rgb(var(--glass-btn-shade) / 0.16);
+  color: inherit;
+}
+/* A destructive action: tinted glass in red. */
+html[data-theme^="nex-glass"] .btn-danger,
+html[data-theme^="nex-glass"] .btn-danger:hover:not(:disabled) {
+  --gb-t: var(--glass-btn-danger);
+  --gb-l: var(--glass-btn-danger-light);
+  --gb-edge: var(--glass-btn-danger-edge);
+  --gb-a1: var(--glass-btn-tint-a1);
+  --gb-a2: var(--glass-btn-tint-a2);
+  --gb-bloom: var(--glass-btn-tint-bloom);
+  color: var(--glass-btn-tint-ink);
+  text-shadow: var(--glass-btn-tint-ink-shadow);
+}
+/* A refusal: clear glass, red ink, a red caustic. */
+html[data-theme^="nex-glass"] .eac-reject,
+html[data-theme^="nex-glass"] .packet-action--danger,
+html[data-theme^="nex-glass"] .data-btn--destructive,
+html[data-theme^="nex-glass"] button[class*="reject"],
+html[data-theme^="nex-glass"] button[class*="deny"],
+html[data-theme^="nex-glass"] .eac-reject:hover:not(:disabled),
+html[data-theme^="nex-glass"] .packet-action--danger:hover:not(:disabled),
+html[data-theme^="nex-glass"] .data-btn--destructive:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="reject"]:hover:not(:disabled),
+html[data-theme^="nex-glass"] button[class*="deny"]:hover:not(:disabled) {
+  --gb-l: var(--glass-btn-danger-light);
+  color: var(--red);
 }
 html[data-theme^="nex-glass"] .input,
 html[data-theme^="nex-glass"] .search-input,
@@ -543,6 +834,11 @@ html[data-theme^="nex-glass"] .chip--accent {
     --nex-sidebar-glass: var(--nex-sidebar);
     --glass-pane: var(--glass-solid-card);
     --glass-field: var(--glass-solid-field);
+    --glass-btn-filter: none;
+    --glass-btn-a1: 1;
+    --glass-btn-a2: 1;
+    --glass-btn-tint-a1: 1;
+    --glass-btn-tint-a2: 1;
   }
 }
 /* More contrast: opaque surfaces and a firmer hairline. */

@@ -166,7 +166,7 @@ function Question({
             <button
               key={o.id}
               type="button"
-              className={`nbtn${o.id === item.recommended_id ? " is-primary" : ""}`}
+              className={`nbtn${o.id === item.recommended_id ? " is-primary" : /^(reject|deny|decline)/i.test(o.id) ? " is-danger" : ""}`}
               disabled={busy}
               onClick={() => onAnswer(item.id, o.id)}
             >

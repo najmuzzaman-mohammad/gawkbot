@@ -163,10 +163,9 @@ struct VoiceBar: View {
         let live = voice.phase == .listening
         return ZStack {
             MicLevelRing(meter: voice.meter, active: live)
-            Circle()
-                .fill(live ? Color.red : Color.accentColor)
+            // A glass lens tinted with the accent, red while it listens.
+            GlassLens(shape: Circle(), tint: live ? Color.red : Color.accentColor)
                 .frame(width: 52, height: 52)
-                .shadow(color: (live ? Color.red : Color.accentColor).opacity(0.35), radius: 8, x: 0, y: 4)
             Image(systemName: live ? "waveform" : "mic.fill")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(.white)

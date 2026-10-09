@@ -383,7 +383,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
                   <button
                     key={opt.id}
                     type="button"
-                    className={`btn btn-sm ${opt.id === current.recommended_id ? "btn-primary" : "btn-ghost"}`}
+                    className={`btn btn-sm ${opt.id === current.recommended_id ? "btn-primary" : "btn-ghost"}${/^(reject|deny|decline)/i.test(opt.id) ? " btn-reject" : ""}`}
                     onClick={() => handleOption(opt)}
                     disabled={submitting}
                     title={opt.description}

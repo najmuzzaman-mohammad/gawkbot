@@ -36,6 +36,21 @@
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui,
     sans-serif;
   --notch-mono: "SF Mono", ui-monospace, Menlo, monospace;
+
+  /* Glass buttons (see .nbtn). Only scalars here: a var() inside a custom
+     property resolves where it is declared, so the composite paint stacks
+     live in the rule and each variant just swaps these. */
+  --nb-t: 255 255 255; /* body tint */
+  --nb-l: 255 255 255; /* caustic light */
+  --nb-a1: 0.16; /* body opacity, top */
+  --nb-a2: 0.05; /* body opacity, bottom */
+  --nb-edge: 0 0 0; /* lower edge shade */
+  --nb-ink: var(--notch-text);
+  --nb-green: 40 200 85;
+  --nb-green-l: 170 255 190;
+  --nb-green-edge: 0 60 20;
+  --nb-red-ink: #ff9a90;
+  --nb-red-l: 255 120 110;
 }
 
 html,
@@ -315,8 +330,6 @@ kbd {
   height: 30px;
   border-radius: 999px;
   border: none;
-  background: var(--notch-glass);
-  color: var(--notch-text-secondary);
   font-size: 13px;
   cursor: pointer;
 }
@@ -324,10 +337,6 @@ kbd {
   width: auto;
   padding: 0 12px;
   font: 600 12px var(--notch-font);
-  color: var(--notch-text-secondary);
-}
-.nicon:hover {
-  background: var(--notch-glass-hover);
 }
 
 .nscroll {
@@ -399,6 +408,12 @@ kbd {
   margin-top: 10px;
 }
 
+/* Answer buttons are lenses, not paint chips: a body of the tint at low
+   opacity so the panel shows through it, a gloss where light enters at
+   the top left, a caustic where it gathers at the bottom, a rim that is
+   bright where light enters and leaves (::before), and a soft bloom in
+   the tint. Neutral glass is clear, the recommended answer is tinted
+   glass, a refusal is clear glass with red ink. */
 .nbtn {
   display: inline-flex;
   align-items: center;
@@ -407,12 +422,65 @@ kbd {
   border-radius: 999px;
   border: none;
   font: 600 12.5px / 1 var(--notch-font);
-  color: var(--notch-text);
-  background: var(--notch-glass-strong);
+}
+.nbtn,
+.nicon {
+  position: relative;
+  isolation: isolate;
+  color: var(--nb-ink);
+  background:
+    radial-gradient(
+      90% 70% at 30% 0%,
+      rgba(255, 255, 255, 0.38),
+      rgba(255, 255, 255, 0) 70%
+    ),
+    radial-gradient(
+      80% 60% at 50% 115%,
+      rgb(var(--nb-l) / 0.55),
+      rgb(var(--nb-l) / 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--nb-t) / var(--nb-a1)),
+      rgb(var(--nb-t) / var(--nb-a2))
+    );
+  -webkit-backdrop-filter: blur(10px) saturate(200%) brightness(1.1);
+  backdrop-filter: blur(10px) saturate(200%) brightness(1.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22),
+    inset 0 -1.5px 2px rgb(var(--nb-edge) / 0.22),
+    0 8px 20px -8px rgb(var(--nb-t) / 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
   cursor: pointer;
 }
-.nbtn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+.nbtn::before,
+.nicon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.12) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.55)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.nbtn:hover:not(:disabled),
+.nicon:hover {
+  --nb-a1: 0.24;
+  --nb-a2: 0.1;
 }
 .nbtn:active:not(:disabled) {
   transform: scale(0.96);
@@ -422,18 +490,36 @@ kbd {
   cursor: default;
 }
 .nbtn.is-primary {
-  color: var(--notch-accent-ink);
-  background: var(--notch-accent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --nb-t: var(--nb-green);
+  --nb-l: var(--nb-green-l);
+  --nb-edge: var(--nb-green-edge);
+  --nb-a1: 0.62;
+  --nb-a2: 0.34;
+  --nb-ink: #fff;
+}
+.nbtn.is-primary:hover:not(:disabled) {
+  --nb-a1: 0.74;
+  --nb-a2: 0.46;
+}
+.nbtn.is-danger {
+  --nb-ink: var(--nb-red-ink);
+  --nb-l: var(--nb-red-l);
 }
 .nbtn.is-primary kbd {
-  color: var(--notch-accent-ink);
-  background: rgba(0, 0, 0, 0.14);
+  color: inherit;
+  background: rgba(0, 0, 0, 0.16);
   box-shadow: none;
 }
 .nbtn.is-quiet {
   background: transparent;
   color: var(--notch-text-secondary);
+  box-shadow: none;
+  text-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.nbtn.is-quiet::before {
+  content: none;
 }
 
 .ntag {

@@ -103,9 +103,10 @@ struct AttentionCard: View {
     }
 }
 
-/// Generous rounded buttons. The recommended one is filled with the accent;
-/// the rest sit on a quiet neutral fill. An explicit style (not .automatic) also keeps a
-/// List row from turning a tap anywhere into a tap on every button.
+/// Generous rounded buttons made of glass: the recommended one is glass
+/// tinted with the accent, the rest are clear glass (a refusal in red ink).
+/// An explicit style (not .automatic) also keeps a List row from turning a
+/// tap anywhere into a tap on every button.
 struct OptionButtonStyle: ButtonStyle {
     let prominent: Bool
     let destructive: Bool
@@ -119,8 +120,7 @@ struct OptionButtonStyle: ButtonStyle {
             .padding(.vertical, quiet ? 8 : 11)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(prominent ? Color.accentColor : (quiet ? Color.clear : Color.softFill))
+                GlassButtonBackground(prominent: prominent, quiet: quiet, cornerRadius: 14)
             }
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             // A soft press: squash a little, spring back with some bounce.
@@ -133,6 +133,75 @@ struct OptionButtonStyle: ButtonStyle {
         if prominent { return .white }
         if destructive { return .red }
         return quiet ? .secondary : .primary
+    }
+}
+
+/// The answer buttons' material: clear glass, or glass tinted with the
+/// accent for the recommended answer.
+struct GlassButtonBackground: View {
+    let prominent: Bool
+    var quiet = false
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        if quiet {
+            Color.clear
+        } else {
+            GlassLens(
+                shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                tint: prominent ? Color.accentColor : nil
+            )
+        }
+    }
+}
+
+/// A lens of glass in any shape. On iOS 26 it is the system's Liquid Glass
+/// (tinted when asked, and interactive, so it flexes under the finger).
+/// Before that it is the same lens drawn by hand: a thin material so what
+/// is behind shows through, the tint at partial opacity, a gloss at the
+/// top, and a rim that is bright where light enters (top leading) and
+/// leaves (bottom trailing).
+struct GlassLens<S: InsettableShape>: View {
+    let shape: S
+    var tint: Color? = nil
+
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            shape
+                .fill(Color.clear)
+                .glassEffect(
+                    tint.map { Glass.regular.tint($0).interactive() } ?? Glass.regular.interactive(),
+                    in: shape
+                )
+        } else {
+            ZStack {
+                shape.fill(.ultraThinMaterial)
+                if let tint {
+                    shape.fill(tint.opacity(0.6))
+                }
+                shape.fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.32), Color.white.opacity(0)],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+                shape.strokeBorder(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.white.opacity(0.85), location: 0),
+                            .init(color: Color.white.opacity(0.1), location: 0.32),
+                            .init(color: Color.white.opacity(0), location: 0.6),
+                            .init(color: Color.white.opacity(0.45), location: 1),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            }
+            .shadow(color: (tint ?? Color.black).opacity(0.22), radius: 8, x: 0, y: 4)
+        }
     }
 }
 

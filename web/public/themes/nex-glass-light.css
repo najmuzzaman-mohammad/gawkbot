@@ -120,6 +120,42 @@ html[data-theme="nex-glass-light"] {
 
   /* ── Glass material: the tint every pane is mixed from, and the light
      on its edges. The washes are what the glass has to show. ── */
+  /* ── Glass buttons (glass-base.css, CONTROLS). On a light ground clear
+     glass is drawn by its edges rather than a fill, and the tinted glass
+     is a deeper green so white ink keeps its contrast. ── */
+  --glass-btn-white: 255 255 255;
+  --glass-btn-shade: 0 0 0;
+  --glass-btn-hair: 0 0 0;
+  --glass-btn-hair-a: 0.16;
+  --glass-btn-a1: 0.22;
+  --glass-btn-a2: 0;
+  --glass-btn-a1-hover: 0.5;
+  --glass-btn-a2-hover: 0.12;
+  --glass-btn-vig: 60 72 96;
+  --glass-btn-vig-a: 0.14;
+  --glass-btn-gloss: 0.5;
+  --glass-btn-rim-in: 1;
+  --glass-btn-rim-out: 0.9;
+  --glass-btn-caustic: 0.55;
+  --glass-btn-edge-a: 0.16;
+  --glass-btn-bloom: 0.3;
+  --glass-btn-ink: var(--text);
+  --glass-btn-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+  --glass-btn-filter: blur(8px) saturate(220%) brightness(1.04);
+  --glass-btn-accent: 22 150 64;
+  --glass-btn-accent-light: 150 255 180;
+  --glass-btn-accent-edge: 0 50 15;
+  --glass-btn-danger: 196 39 29;
+  --glass-btn-danger-light: 255 150 140;
+  --glass-btn-danger-edge: 80 0 0;
+  --glass-btn-tint-a1: 0.88;
+  --glass-btn-tint-a2: 0.7;
+  --glass-btn-tint-a1-hover: 0.96;
+  --glass-btn-tint-a2-hover: 0.82;
+  --glass-btn-tint-bloom: 0.6;
+  --glass-btn-tint-ink: #ffffff;
+  --glass-btn-tint-ink-shadow: 0 1px 1.5px rgba(0, 40, 10, 0.35);
+
   --glass-tint: #ffffff;
   --glass-pane-border: rgba(0, 0, 0, 0.09);
   --glass-sheen: rgba(255, 255, 255, 0.95);
