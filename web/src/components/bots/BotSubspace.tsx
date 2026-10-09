@@ -24,12 +24,9 @@ import { useCallback, useState } from "react";
 import { Eye } from "lucide-react";
 
 import type { OfficeMember } from "../../api/client";
-import { useDefaultHarness } from "../../hooks/useConfig";
-import { resolveHarness } from "../../lib/harness";
 import { humanizeActivity } from "../../lib/humanizeActivity";
 import { router } from "../../lib/router";
 import { BotKnowledgePanel } from "../knowledge/BotKnowledgePanel";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { EditableName } from "./BotProfilePanel";
 import { TeachWorkflowModal } from "./TeachWorkflowModal";
@@ -119,21 +116,14 @@ interface ShellHeaderProps {
 }
 
 function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
-  const defaultHarness = useDefaultHarness();
-  const harness = resolveHarness(agent.provider, defaultHarness);
   const statusClass = agent.status === "active" ? "active pulse" : "lurking";
 
   return (
     <div className="bot-subspace-header">
       <div className="bot-subspace-header-identity">
-        {/* Large pixel avatar with harness badge */}
+        {/* Large avatar; BotAvatar adds the model badge */}
         <div className="bot-subspace-header-avatar avatar-with-harness">
           <PixelAvatar slug={agent.slug} size={48} avatar={agent.avatar} />
-          <HarnessBadge
-            kind={harness}
-            size={16}
-            className="harness-badge-on-avatar"
-          />
         </div>
 
         {/* Name + role + status */}

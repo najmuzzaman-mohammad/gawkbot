@@ -6,9 +6,7 @@ import type { OfficeMember } from "../../api/client";
 import { post } from "../../api/client";
 import { listBotLogTasks, type TaskLogSummary } from "../../api/tasks";
 import { useBotStream } from "../../hooks/useBotStream";
-import { useDefaultHarness } from "../../hooks/useConfig";
 import { useChannelMembers, useOfficeMembers } from "../../hooks/useMembers";
-import { resolveHarness } from "../../lib/harness";
 import { humanizeActivity } from "../../lib/humanizeActivity";
 import { router } from "../../lib/router";
 import {
@@ -19,7 +17,6 @@ import {
 import { useAppStore } from "../../stores/app";
 import { StreamLineView } from "../messages/StreamLineView";
 import { confirm } from "../ui/ConfirmDialog";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
 import { BotProfilePanel } from "./BotProfilePanel";
@@ -211,7 +208,6 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
   const [toggling, setToggling] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const defaultHarness = useDefaultHarness();
 
   // Derive the per-channel enabled state. A bot is "enabled" in the
   // current channel when it appears in /members and is not flagged
@@ -331,11 +327,6 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
               size={36}
               className="pixel-avatar-panel"
               avatar={agent.avatar}
-            />
-            <HarnessBadge
-              kind={resolveHarness(agent.provider, defaultHarness)}
-              size={18}
-              className="harness-badge-on-avatar"
             />
           </div>
           <div

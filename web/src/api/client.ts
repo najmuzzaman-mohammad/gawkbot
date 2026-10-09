@@ -5,6 +5,7 @@
 
 import type { InjectedAnalyticsConfig } from "../lib/analytics";
 import { trackOn } from "../lib/analytics";
+import type { BotRuntime } from "../lib/botRuntime";
 
 const apiBase = "/api";
 let brokerDirect = "http://localhost:7890";
@@ -832,6 +833,8 @@ export interface OfficeMember {
   managed_by?: string;
   /** Chosen look (memberTypes.ts); absent means the slug-derived one. */
   avatar?: MemberAvatar;
+  /** What the bot runs on, resolved by the broker (lib/botRuntime.ts). */
+  runtime?: BotRuntime;
 }
 
 /**

@@ -1825,6 +1825,66 @@ body {
   flex-shrink: 0;
 }
 
+/* ─── Model badge (what a bot runs on, on every bot avatar) ─── */
+.bot-avatar {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+  vertical-align: middle;
+}
+.model-badge {
+  position: absolute;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  pointer-events: auto;
+  user-select: none;
+}
+/* Small avatars: a two-character code tucked into the bottom-right corner. */
+.model-badge--dot {
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  background: var(--text-secondary);
+}
+.model-badge--code {
+  right: -5px;
+  bottom: -4px;
+  min-width: 14px;
+  height: 11px;
+  padding: 0 2px;
+  font-size: 8px;
+}
+/* Larger avatars: the word, then the whole label, centred under the face. */
+.model-badge--word,
+.model-badge--full {
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  height: 14px;
+  padding: 0 5px;
+  font-size: 9px;
+}
+.model-badge--full {
+  bottom: -7px;
+  height: 16px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
 /* ─── Harness badge (overlaid on agent avatars) ─── */
 .avatar-with-harness {
   position: relative;

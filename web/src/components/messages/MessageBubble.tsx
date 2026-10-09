@@ -3,11 +3,9 @@ import ReactMarkdown from "react-markdown";
 
 import type { Message } from "../../api/client";
 import { toggleReaction } from "../../api/client";
-import { useDefaultHarness } from "../../hooks/useConfig";
 import { useOfficeMembers } from "../../hooks/useMembers";
 import { useMessages } from "../../hooks/useMessages";
 import { formatTime } from "../../lib/format";
-import { resolveHarness } from "../../lib/harness";
 import { renderMentions } from "../../lib/mentions";
 import {
   messageMarkdownComponents,
@@ -19,7 +17,6 @@ import {
 } from "../../lib/richArtifactReferences";
 import { useChannelSlug, useCurrentTaskId } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
 import {
@@ -140,10 +137,6 @@ export function MessageBubble({
   // unknown slug.
   const isSyntheticSender = !(isHuman || agent);
   const isRosterBot = !isHuman && Boolean(agent);
-  const defaultHarness = useDefaultHarness();
-  const harness = isRosterBot
-    ? resolveHarness(agent?.provider, defaultHarness)
-    : null;
 
   const reactions = message.reactions
     ? Array.isArray(message.reactions)
@@ -326,13 +319,6 @@ export function MessageBubble({
           onClick={() => setActiveBotSlug(message.from)}
         >
           <PixelAvatar slug={message.from} size={24} avatar={agent?.avatar} />
-          {harness ? (
-            <HarnessBadge
-              kind={harness}
-              size={14}
-              className="harness-badge-on-avatar"
-            />
-          ) : null}
         </button>
       ) : (
         <div

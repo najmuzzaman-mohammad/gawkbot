@@ -15,11 +15,8 @@
 import { useMemo } from "react";
 
 import type { OfficeMember } from "../../api/client";
-import { useDefaultHarness } from "../../hooks/useConfig";
 import { useOfficeMembers } from "../../hooks/useMembers";
-import { type HarnessKind, resolveHarness } from "../../lib/harness";
 import { router } from "../../lib/router";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { BotSubspace } from "./BotSubspace";
 import { BotWizard, useBotWizard } from "./BotWizard";
@@ -43,11 +40,9 @@ function roleHint(agent: OfficeMember): string {
 
 interface BotCardProps {
   agent: OfficeMember;
-  defaultHarness: HarnessKind;
 }
 
-function BotCard({ agent, defaultHarness }: BotCardProps) {
-  const harness = resolveHarness(agent.provider, defaultHarness);
+function BotCard({ agent }: BotCardProps) {
   const displayName = agent.name || agent.slug;
   const isActive = (agent.status || "").toLowerCase() === "active";
 
@@ -61,11 +56,6 @@ function BotCard({ agent, defaultHarness }: BotCardProps) {
     >
       <span className="bots-tool-card-avatar avatar-with-harness">
         <PixelAvatar slug={agent.slug} size={40} avatar={agent.avatar} />
-        <HarnessBadge
-          kind={harness}
-          size={12}
-          className="harness-badge-on-avatar"
-        />
         {agent.online ? (
           <span className="online-badge" aria-hidden="true" />
         ) : null}
@@ -83,7 +73,6 @@ function BotCard({ agent, defaultHarness }: BotCardProps) {
 
 export function BotsTool() {
   const { data: members = [] } = useOfficeMembers();
-  const defaultHarness = useDefaultHarness();
   const wizard = useBotWizard();
 
   // CEO first (orchestrator), then the rest in broker order. Keeps the
@@ -116,11 +105,7 @@ export function BotsTool() {
       ) : (
         <div className="agents-tool-grid" data-testid="agents-tool-grid">
           {ordered.map((agent) => (
-            <BotCard
-              key={agent.slug}
-              agent={agent}
-              defaultHarness={defaultHarness}
-            />
+            <BotCard key={agent.slug} agent={agent} />
           ))}
         </div>
       )}

@@ -1,5 +1,6 @@
 import type { AvatarChoice } from "../../lib/blobAvatar";
-import { OrbAvatar } from "./OrbAvatar";
+import type { BotRuntime } from "../../lib/botRuntime";
+import { BotAvatar } from "./BotAvatar";
 
 interface PixelAvatarProps {
   slug: string;
@@ -17,12 +18,17 @@ interface PixelAvatarProps {
    * the slug-derived body and colour.
    */
   avatar?: AvatarChoice | null;
+  /** Off only where the mark is not a running bot. See BotAvatar. */
+  badge?: boolean;
+  /** The bot's runtime, when the caller already holds it. See BotAvatar. */
+  runtime?: BotRuntime;
 }
 
 /**
  * A bot's portrait, everywhere in the app. The name is historical: it was a
  * pixel sprite once, then a flat blob; it is now the orb in
- * components/ui/OrbAvatar.tsx. Call sites style it through the
+ * components/ui/OrbAvatar.tsx, drawn through BotAvatar so it carries the
+ * model badge. Call sites style it through the
  * `pixel-avatar` class and size variants (`pixel-avatar-sidebar`,
  * `pixel-avatar-panel`), so the name stays.
  *
@@ -34,9 +40,13 @@ export function PixelAvatar({
   className,
   working = false,
   avatar,
+  badge,
+  runtime,
 }: PixelAvatarProps) {
   return (
-    <OrbAvatar
+    <BotAvatar
+      badge={badge}
+      runtime={runtime}
       slug={slug}
       size={size}
       avatar={avatar}

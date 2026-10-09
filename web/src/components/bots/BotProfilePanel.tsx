@@ -38,7 +38,6 @@ import {
 } from "../../lib/modelCatalog";
 import { router } from "../../lib/router";
 import { useAppStore } from "../../stores/app";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
 import { AvatarPicker } from "./AvatarPicker";
@@ -1046,11 +1045,6 @@ export function BotProfilePanel({
                 size={36}
                 className="pixel-avatar-panel"
                 avatar={agent.avatar}
-              />
-              <HarnessBadge
-                kind={resolveHarness(agent.provider, defaultHarness)}
-                size={18}
-                className="harness-badge-on-avatar"
               />
             </div>
             <div

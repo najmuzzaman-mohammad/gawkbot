@@ -8,6 +8,7 @@ import { RouterProvider } from "@tanstack/react-router";
 
 import { ApiError } from "./api/client";
 import { JoinPage } from "./components/join/JoinPage";
+import { OfficeBotRuntimeProvider } from "./components/ui/OfficeBotRuntimeProvider";
 import { track } from "./lib/analytics";
 import { rootRoute, router } from "./lib/router";
 import RootRoute from "./routes/RootRoute";
@@ -105,7 +106,9 @@ try {
   createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       {inviteToken === null ? (
-        <RouterProvider router={router} />
+        <OfficeBotRuntimeProvider>
+          <RouterProvider router={router} />
+        </OfficeBotRuntimeProvider>
       ) : (
         <JoinPage token={inviteToken} />
       )}
