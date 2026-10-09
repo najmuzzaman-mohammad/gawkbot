@@ -273,7 +273,7 @@
                     <div class="nq-body">
                       <div class="nq-from"><b>auth-refactor</b><span class="ntag">Claude Code · this Mac</span></div>
                       <p class="nq-text">Run the migration on staging? It drops the old sessions table.</p>
-                      <div class="nq-acts"><span class="nbtn primary"><kbd>↵</kbd>Approve</span><span class="nbtn"><kbd>2</kbd>Reject</span><span class="nbtn quiet"><kbd>R</kbd>Reply</span></div>
+                      <div class="nq-acts"><span class="nbtn primary"><kbd>1</kbd>Approve</span><span class="nbtn"><kbd>2</kbd>Reject</span><span class="nbtn quiet"><kbd>R</kbd>Reply</span></div>
                     </div>
                   </div>
                   <div class="nq stg" style="--i:2">
@@ -515,6 +515,18 @@
       <h2 class="h2 reveal" id="team-title">A team, not just an inbox.</h2>
       <p class="lead reveal">Every agent gawkbot adopts joins a team run by a Chief of Staff. The team splits up the work, runs the recurring jobs on a schedule, writes down what it learns, and builds small tools so you can use the results.</p>
     </div>
+    <!-- The real app, not a drawing: screenshots of the current build in
+         its Glass theme, light or dark to match the page. Regenerate with
+         `node scripts/website-app-shots.mjs` after any visible change to
+         the app, so this never shows an old UI. -->
+    <figure class="appwin reveal">
+      <div class="appwin-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+      <picture>
+        <source srcset="app-glass-light.webp" media="(prefers-color-scheme: light)">
+        <img src="app-glass-dark.webp" width="1280" height="800" loading="lazy" decoding="async"
+             alt="The gawkbot app. A glass sidebar lists the Chief of Staff and the four bots that report to it, each with what it is doing, above the Work, Knowledge and Apps sections. The main pane is a chat with the Chief of Staff, which has split a checkout release into tasks for three bots and says their questions are waiting in the notch.">
+      </picture>
+    </figure>
     <div class="keys">
       <div class="key-tile glass lg reveal">
         <div class="caps">Chief of Staff</div>
