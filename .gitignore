@@ -28,6 +28,8 @@
 !/docs/adr/**
 !/docs/agents/
 !/docs/agents/**
+!/docs/design/
+!/docs/design/**
 !/docs/architecture/
 !/docs/architecture/**
 !/docs/dogfood/
