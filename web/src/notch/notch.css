@@ -550,6 +550,16 @@ kbd {
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
+/* The decision brief: what the asker knew, in a quieter voice. */
+.nq-context {
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 2.5px solid var(--blind-ink-3);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--blind-ink-2);
+  overflow-wrap: anywhere;
+}
 .nq-actions {
   display: flex;
   flex-wrap: wrap;

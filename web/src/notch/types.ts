@@ -32,6 +32,8 @@ export interface NotchAttention {
   channel?: string;
   title?: string;
   question: string;
+  /** The asker's decision brief: what it was doing, what it found, why it asks. */
+  context?: string;
   options?: NotchOption[];
   recommended_id?: string;
   blocking?: boolean;

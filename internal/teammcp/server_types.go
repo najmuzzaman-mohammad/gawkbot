@@ -190,7 +190,7 @@ type HumanInterviewOption struct {
 type HumanInterviewArgs struct {
 	Channel             string                 `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	Question            string                 `json:"question" jsonschema:"The specific decision or clarification needed from the human"`
-	Context             string                 `json:"context,omitempty" jsonschema:"Short context explaining why the team is asking now"`
+	Context             string                 `json:"context,omitempty" jsonschema:"A decision brief for the human, who has none of your context: in 2-4 sentences, what you were doing, what you found, why you cannot decide alone, and what each option would mean. This is shown with the question in the notch and the app; a question without it is a question the human cannot answer well."`
 	MySlug              string                 `json:"my_slug,omitempty" jsonschema:"Bot slug asking the question. Defaults to WUPHF_AGENT_SLUG."`
 	Options             []HumanInterviewOption `json:"options,omitempty" jsonschema:"Suggested answer options to show the human"`
 	RecommendedOptionID string                 `json:"recommended_option_id,omitempty" jsonschema:"Which option you recommend, if any"`
@@ -217,7 +217,7 @@ type TeamRequestArgs struct {
 	Channel             string                 `json:"channel,omitempty" jsonschema:"Channel slug. Defaults to the bot's current channel or general."`
 	Title               string                 `json:"title,omitempty" jsonschema:"Short request title"`
 	Question            string                 `json:"question" jsonschema:"The actual question or approval the human needs to respond to"`
-	Context             string                 `json:"context,omitempty" jsonschema:"Short context for why the request exists"`
+	Context             string                 `json:"context,omitempty" jsonschema:"A decision brief for the human, who has none of your context: in 2-4 sentences, what you were doing, what you found, why you cannot decide alone, and what each option would mean. This is shown with the question in the notch and the app; a question without it is a question the human cannot answer well."`
 	MySlug              string                 `json:"my_slug,omitempty" jsonschema:"Bot slug asking the question. Defaults to WUPHF_AGENT_SLUG."`
 	Options             []HumanInterviewOption `json:"options,omitempty" jsonschema:"Suggested answer options for choice-style requests"`
 	RecommendedOptionID string                 `json:"recommended_option_id,omitempty" jsonschema:"Which option you recommend, if any"`

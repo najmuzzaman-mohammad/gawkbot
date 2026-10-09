@@ -68,6 +68,8 @@ export const BUSY_OFFICE: NotchState = {
       channel: "cos__human",
       title: "Send the launch email?",
       question: "It goes to 1,204 people.",
+      context:
+        "The migration drops the old sessions table. A dry run on staging kept 0 rows; the rollback script is tested. I cannot tell whether anything outside this repo still reads that table.",
       options: [
         { id: "approve", label: "Approve" },
         { id: "reject", label: "Reject" },

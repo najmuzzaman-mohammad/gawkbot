@@ -53,14 +53,20 @@ type notchOption struct {
 	RequiresText bool `json:"requires_text,omitempty"`
 }
 
+// How much of a decision brief the notch card shows.
+const notchContextMax = 320
+
 type notchAttention struct {
-	ID            string        `json:"id"`
-	Kind          string        `json:"kind"`
-	From          string        `json:"from"`
-	FromName      string        `json:"from_name,omitempty"`
-	Channel       string        `json:"channel,omitempty"`
-	Title         string        `json:"title,omitempty"`
-	Question      string        `json:"question"`
+	ID       string `json:"id"`
+	Kind     string `json:"kind"`
+	From     string `json:"from"`
+	FromName string `json:"from_name,omitempty"`
+	Channel  string `json:"channel,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Question string `json:"question"`
+	// The decision brief the asker gave: what it was doing, what it found,
+	// why it cannot decide alone. Trimmed to what a card can show.
+	Context       string        `json:"context,omitempty"`
 	Options       []notchOption `json:"options,omitempty"`
 	RecommendedID string        `json:"recommended_id,omitempty"`
 	Blocking      bool          `json:"blocking,omitempty"`
@@ -120,6 +126,7 @@ func (b *Broker) notchStateLocked(now time.Time) notchState {
 			Channel:       req.Channel,
 			Title:         req.Title,
 			Question:      req.Question,
+			Context:       truncate(strings.TrimSpace(req.Context), notchContextMax),
 			RecommendedID: req.RecommendedID,
 			Blocking:      req.Blocking,
 			CreatedAt:     req.CreatedAt,
@@ -128,6 +135,7 @@ func (b *Broker) notchStateLocked(now time.Time) notchState {
 			// Never surface a secret prompt's options for a one-tap answer;
 			// the full app handles masked input.
 			item.Question = firstNonEmpty(req.Title, "A teammate needs a private answer")
+			item.Context = ""
 		} else {
 			for _, o := range req.Options {
 				item.Options = append(item.Options, notchOption{ID: o.ID, Label: firstNonEmpty(o.Label, o.ID), RequiresText: o.RequiresText})

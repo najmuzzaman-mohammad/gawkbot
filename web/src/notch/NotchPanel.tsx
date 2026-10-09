@@ -161,6 +161,7 @@ function Question({
           {item.title ? <strong>{item.title} </strong> : null}
           {item.question && item.question !== item.title ? item.question : null}
         </div>
+        {item.context ? <p className="nq-context">{item.context}</p> : null}
         <div className="nq-actions">
           {oneTap.map((o, i) => (
             <button
