@@ -14,9 +14,10 @@ final class KeychainCredentialStore: CredentialStore, @unchecked Sendable {
         return Pairing(brokerURL: url, token: token)
     }
 
-    func save(_ pairing: Pairing) {
+    @discardableResult
+    func save(_ pairing: Pairing) -> Bool {
         UserDefaults.standard.set(pairing.brokerURL.absoluteString, forKey: urlKey)
-        writeToken(pairing.token)
+        return writeToken(pairing.token)
     }
 
     func clear() {
@@ -37,12 +38,12 @@ final class KeychainCredentialStore: CredentialStore, @unchecked Sendable {
         return String(data: data, encoding: .utf8)
     }
 
-    private func writeToken(_ token: String) {
+    private func writeToken(_ token: String) -> Bool {
         let data = Data(token.utf8)
         var q = baseQuery()
         SecItemDelete(q as CFDictionary)
         q[kSecValueData as String] = data
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(q as CFDictionary, nil)
+        return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
     }
 }

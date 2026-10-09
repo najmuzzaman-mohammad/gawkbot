@@ -314,7 +314,7 @@ final class OrbAvatarTests: XCTestCase {
         XCTAssertEqual(asking.eyes[0].ry, 11 * 1.15, accuracy: 1e-12)
         XCTAssertEqual(asking.mouth.halfWidth, 14 * 1.15 * 0.6, accuracy: 1e-12)
         XCTAssertEqual(asking.mouth.strokeWidth, 7.8 * 1.15, accuracy: 1e-12)
-        XCTAssertEqual(asking.mouth.bulge, 0.1 * 14 * 1.15 * 0.6, accuracy: 1e-12)
+        XCTAssertEqual(asking.mouth.bulge, 0.1 * (14 * 1.15 * 0.6) * 1.15, accuracy: 1e-12)
 
         XCTAssertLessThan(mark(.oops).mouth.bulge, 0, "a frown bulges up")
         XCTAssertGreaterThan(mark(.happy).mouth.bulge, calm.mouth.bulge, "a grin bulges further down")

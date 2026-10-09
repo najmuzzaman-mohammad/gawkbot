@@ -85,7 +85,10 @@ public struct Pairing: Equatable, Sendable {
 /// store; tests use the in-memory one.
 public protocol CredentialStore: AnyObject, Sendable {
     func load() -> Pairing?
-    func save(_ pairing: Pairing)
+    /// False when the pairing could not be stored; it then lasts only
+    /// until the app quits.
+    @discardableResult
+    func save(_ pairing: Pairing) -> Bool
     func clear()
 }
 
@@ -94,6 +97,10 @@ public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
     private let lock = NSLock()
     public init(_ initial: Pairing? = nil) { pairing = initial }
     public func load() -> Pairing? { lock.withLock { pairing } }
-    public func save(_ p: Pairing) { lock.withLock { pairing = p } }
+    @discardableResult
+    public func save(_ p: Pairing) -> Bool {
+        lock.withLock { pairing = p }
+        return true
+    }
     public func clear() { lock.withLock { pairing = nil } }
 }

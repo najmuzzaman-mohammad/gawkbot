@@ -28,25 +28,26 @@ xcrun simctl bootstatus "$udid" -b >/dev/null
 
 xcodebuild -project Gawkbot.xcodeproj -scheme Gawkbot -sdk iphonesimulator \
   -destination "id=$udid" -configuration Debug -derivedDataPath build \
-  build CODE_SIGNING_ALLOWED=NO -quiet
+  build -quiet
 app=$(find build/Build/Products -name "Gawkbot.app" -maxdepth 3 | head -1)
 xcrun simctl install "$udid" "$app"
-xcrun simctl terminate "$udid" bot.gawk.ios 2>/dev/null || true
-xcrun simctl launch "$udid" bot.gawk.ios -mock >/dev/null
-sleep 4
-xcrun simctl io "$udid" screenshot "$OUT/00-inbox.png" >/dev/null
+# Each shot is its own launch with debug arguments. `simctl openurl` is not
+# used: iOS answers it with an "Open in gawkbot?" prompt nothing can tap.
+shot() {
+  local name="$1"; shift
+  xcrun simctl terminate "$udid" bot.gawk.ios 2>/dev/null || true
+  xcrun simctl launch "$udid" bot.gawk.ios -mock "$@" >/dev/null
+  sleep 4
+  xcrun simctl io "$udid" screenshot "$OUT/$name.png" >/dev/null
+}
+shot 00-inbox
 xcrun simctl ui "$udid" appearance dark
 sleep 1
 xcrun simctl io "$udid" screenshot "$OUT/00-inbox-dark.png" >/dev/null
 xcrun simctl ui "$udid" appearance light
-xcrun simctl openurl "$udid" "gawkbot://chats"
-sleep 2
-xcrun simctl io "$udid" screenshot "$OUT/01-conversations.png" >/dev/null
-xcrun simctl openurl "$udid" "gawkbot://thread/cos"
-sleep 2
-xcrun simctl io "$udid" screenshot "$OUT/02-thread-cos.png" >/dev/null
-xcrun simctl openurl "$udid" "gawkbot://thread/designer"
-sleep 2
-xcrun simctl io "$udid" screenshot "$OUT/03-thread-designer-ask.png" >/dev/null
+shot 01-agents -tab agents
+shot 02-thread-cos -open cos
+shot 03-thread-designer-ask -open designer
+shot 04-settings -tab settings
 echo "screenshots in $OUT"
 ls -1 "$OUT"

@@ -2,22 +2,19 @@ import SwiftUI
 import GawkbotKit
 
 /// The mobile agent inbox: every pending question from every agent
-/// (blocking first), one tap to answer, swipe to approve or reply, then the
-/// roster with each agent's mood. A talk bar sits underneath. Polls
-/// `/notch/state` every 3 s while in front (the store does it) and on
-/// pull-to-refresh.
+/// (blocking first), one tap to answer, swipe to approve or reply. Only
+/// what is waiting on you lives here; the agents themselves, and talking
+/// to them, are in the Agents tab. Polls `/notch/state` every 3 s while in
+/// front (the store does it) and on pull-to-refresh.
 ///
 /// The app only answers questions and sends messages. Whatever an answer
 /// leads to still runs through the office's own approval gate.
 struct InboxView: View {
     @EnvironmentObject private var store: OfficeStore
-    @StateObject private var voice = VoiceRecorder()
     @Namespace private var selectionSpace
 
     @State private var selectedID: String?
-    @State private var selectedAgent: String?
     @State private var replyTarget: ReplyTarget?
-    @State private var pickedTarget: VoiceTarget?
 
     private var items: [NotchAttention] { store.inbox }
     private var selectedItem: NotchAttention? {
@@ -25,14 +22,8 @@ struct InboxView: View {
         return items.first { $0.id == selectedID }
     }
 
-    private var voiceTargets: [VoiceTarget] {
-        VoiceTarget.choices(selected: selectedItem, agent: selectedAgent.flatMap { store.agent($0) }, state: store.notch)
-    }
-
-    /// Bare-key shortcuts step aside while the keyboard is typing elsewhere.
-    private var shortcutsEnabled: Bool {
-        replyTarget == nil && voice.phase != .confirming
-    }
+    /// Bare-key shortcuts step aside while the reply sheet is typing.
+    private var shortcutsEnabled: Bool { replyTarget == nil }
 
     var body: some View {
         NavigationStack {
@@ -40,7 +31,6 @@ struct InboxView: View {
                 List {
                     headerSection
                     questionsSection
-                    agentsSection
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
@@ -61,11 +51,6 @@ struct InboxView: View {
                         .accessibilityLabel(store.live ? "Live" : "Reconnecting")
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                VoiceBar(voice: voice, targets: voiceTargets, picked: $pickedTarget) { text, target in
-                    Task { await store.sendVoice(text, to: target) }
-                }
-            }
             .background {
                 InboxShortcuts(enabled: shortcutsEnabled, perform: perform)
             }
@@ -76,10 +61,6 @@ struct InboxView: View {
             }
             .onChange(of: items.map(\.id)) { old, new in
                 selectedID = InboxCursor.reconcile(selected: selectedID, previous: old, current: new)
-            }
-            .onAppear {
-                let office = store
-                voice.onCue = { [weak office] cue in office?.feedback.play(cue) }
             }
         }
     }
@@ -134,50 +115,6 @@ struct InboxView: View {
         }
     }
 
-    @ViewBuilder
-    private var agentsSection: some View {
-        if !store.agents.isEmpty {
-            Section {
-                ForEach(store.agents) { agent in
-                    AgentRow(agent: agent, selected: selectedAgent == agent.slug)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedAgent = selectedAgent == agent.slug ? nil : agent.slug
-                            }
-                            if let slug = selectedAgent {
-                                pickedTarget = .message(channel: DMChannel.slug(for: slug), agentName: agent.name)
-                            }
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button {
-                                store.openChat(with: agent.slug)
-                            } label: {
-                                Label("Chat", systemImage: "bubble.left.fill")
-                            }
-                            .tint(.blue)
-                        }
-                        .contextMenu {
-                            Button {
-                                store.openChat(with: agent.slug)
-                            } label: {
-                                Label("Open chat", systemImage: "bubble.left.fill")
-                            }
-                            Button {
-                                selectedAgent = agent.slug
-                                pickedTarget = .message(channel: DMChannel.slug(for: agent.slug), agentName: agent.name)
-                            } label: {
-                                Label("Talk to \(agent.name)", systemImage: "mic.fill")
-                            }
-                        }
-                        .cardRow()
-                }
-            } header: {
-                sectionHeader("Agents")
-            }
-        }
-    }
-
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
             .font(.footnote.weight(.semibold))
@@ -225,9 +162,6 @@ struct InboxView: View {
 
     private func select(_ id: String?) {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { selectedID = id }
-        if let item = selectedItem {
-            pickedTarget = .answer(requestID: item.id, agentName: item.displayName)
-        }
     }
 
     private func choose(_ option: InterviewOption, for item: NotchAttention) {
@@ -256,14 +190,8 @@ struct InboxView: View {
         case .reply:
             guard let item = selectedItem else { return select(ids.first) }
             replyTarget = ReplyTarget(attention: item, option: nil)
-        case .voice:
-            Task { await voice.toggle() }
         case .cancel:
-            if voice.isActive {
-                voice.cancel()
-            } else {
-                select(nil)
-            }
+            select(nil)
         }
     }
 }

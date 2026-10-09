@@ -6,12 +6,16 @@ import GawkbotKit
 /// the bot's soft neutral bubbles on the left with its avatar at the start
 /// of each run, yours on the right in the accent, office notices centred,
 /// asks as cards with buttons, a typing bubble while the bot works, and a
-/// composer pinned above the keyboard.
+/// composer pinned above the keyboard. Hold the composer's mic to talk: the
+/// words land in the message box, and nothing goes until you tap Send.
 struct ThreadView: View {
     @EnvironmentObject private var store: OfficeStore
     let channel: String
     @State private var draft = ""
     @State private var pickingLook = false
+    @StateObject private var voice = VoiceRecorder()
+    /// Shown briefly after a tap on the mic that was too short to talk.
+    @State private var holdHint = false
     @FocusState private var composing: Bool
 
     private var bot: Bot? { store.bot(for: channel) }
@@ -83,7 +87,10 @@ struct ThreadView: View {
                 store.markRead(channel)
                 scrollToBottom(proxy, animated: false)
             }
-            .onDisappear { if store.openThread == channel { store.openThread = nil } }
+            .onDisappear {
+                if store.openThread == channel { store.openThread = nil }
+                voice.cancel()
+            }
         }
         .safeAreaInset(edge: .bottom) { composer }
         .navigationTitle("")
@@ -97,6 +104,14 @@ struct ThreadView: View {
                 .accessibilityElement(children: .combine)
             }
         }
+        .onAppear {
+            let office = store
+            voice.onCue = { [weak office] cue in office?.feedback.play(cue) }
+        }
+        .onChange(of: voice.phase) { _, phase in
+            if phase == .confirming { takeTranscript() }
+        }
+        .voiceProblemAlert(voice)
         .sheet(isPresented: $pickingLook) {
             AvatarPickerSheet(slug: slug, name: name, current: avatar) { picked in
                 await store.updateAvatar(slug: slug, to: picked)
@@ -112,26 +127,61 @@ struct ThreadView: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField("Message \(name)", text: $draft, axis: .vertical)
-                .lineLimit(1...6)
-                .focused($composing)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(Color.softCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.softHairline, lineWidth: 1))
-                .onSubmit(send)
-            Button(action: send) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(canSend ? Color.accentColor : Color(.tertiaryLabel))
+        VStack(alignment: .leading, spacing: 8) {
+            if voice.isActive {
+                VoiceTranscriptStrip(voice: voice)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if holdHint {
+                Label("Hold the mic to talk, let go to finish.", systemImage: "mic.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
+                    .transition(.opacity)
             }
-            .disabled(!canSend)
-            .accessibilityLabel("Send")
+            // One row in every voice phase, so the mic's press gesture
+            // survives the state changes it causes.
+            HStack(alignment: .bottom, spacing: 8) {
+                TextField("Message \(name)", text: $draft, axis: .vertical)
+                    .lineLimit(1...6)
+                    .focused($composing)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(Color.softCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.softHairline, lineWidth: 1))
+                    .onSubmit(send)
+                HoldToTalkButton(voice: voice) { showHoldHint() }
+                Button(action: send) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(canSend ? Color.accentColor : Color(.tertiaryLabel))
+                }
+                .disabled(!canSend)
+                .accessibilityLabel("Send")
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.bar)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: voice.phase)
+        .animation(.easeInOut(duration: 0.2), value: holdHint)
+    }
+
+    /// The recorder finished: put what it heard in the message box, after
+    /// anything already typed. Sending stays a tap on Send.
+    private func takeTranscript() {
+        let heard = voice.transcript
+        voice.reset()
+        guard !heard.isEmpty else { return }
+        let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        draft = typed.isEmpty ? heard : typed + " " + heard
+    }
+
+    private func showHoldHint() {
+        holdHint = true
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            holdHint = false
+        }
     }
 
     private var canSend: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }

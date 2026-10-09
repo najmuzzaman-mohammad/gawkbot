@@ -10,8 +10,6 @@ public enum InboxCommand: Hashable, Sendable {
     case pick(Int)
     case takeRecommended
     case reply
-    /// Starts talking; pressed again, stops (a key has no "release" here).
-    case voice
     case cancel
 }
 
@@ -76,7 +74,6 @@ public enum InboxKeymap {
             case "j": return .next
             case "k": return .previous
             case "r": return .reply
-            case "v": return .voice
             default:
                 if let n = Int(s), (1...9).contains(n) { return .pick(n) }
                 return nil
@@ -97,7 +94,6 @@ public enum InboxKeymap {
         }
         out.append(InboxBinding(key: .returnKey, command: .takeRecommended, title: "Take recommended"))
         out.append(InboxBinding(key: .character("r"), command: .reply, title: "Reply"))
-        out.append(InboxBinding(key: .character("v"), command: .voice, title: "Talk"))
         out.append(InboxBinding(key: .escape, command: .cancel, title: "Cancel"))
         return out
     }()
@@ -108,8 +104,7 @@ public enum InboxKeymap {
         ShortcutHelp(keys: "1 – 9", action: "Pick that option"),
         ShortcutHelp(keys: "Return", action: "Take the recommended option"),
         ShortcutHelp(keys: "R", action: "Reply in your own words"),
-        ShortcutHelp(keys: "V", action: "Start talking; V again to stop"),
-        ShortcutHelp(keys: "Esc", action: "Cancel"),
+        ShortcutHelp(keys: "Esc", action: "Clear the selection"),
     ]
 }
 
@@ -137,53 +132,6 @@ public enum InboxCursor {
         guard !current.isEmpty else { return nil }
         let i = previous.firstIndex(of: selected) ?? 0
         return current[min(i, current.count - 1)]
-    }
-}
-
-// MARK: - Voice
-
-/// Where a spoken line goes once the person taps Send.
-public enum VoiceTarget: Hashable, Sendable, Identifiable {
-    /// Answer this question with the transcript as `custom_text`.
-    case answer(requestID: String, agentName: String)
-    /// Post the transcript into this DM.
-    case message(channel: String, agentName: String)
-
-    public var id: String {
-        switch self {
-        case let .answer(requestID, _): return "answer:\(requestID)"
-        case let .message(channel, _): return "message:\(channel)"
-        }
-    }
-
-    public var label: String {
-        switch self {
-        case let .answer(_, name): return "Answer \(name)"
-        case let .message(_, name): return "Message \(name)"
-        }
-    }
-
-    public var channel: String? {
-        if case let .message(channel, _) = self { return channel }
-        return nil
-    }
-
-    /// The choices, best first: the selected question, then the selected
-    /// agent, then the Chief of Staff (always offered, never twice).
-    public static func choices(selected: NotchAttention?, agent: NotchAgent?, state: NotchState?) -> [VoiceTarget] {
-        var out: [VoiceTarget] = []
-        if let selected {
-            out.append(.answer(requestID: selected.id, agentName: selected.displayName))
-        }
-        if let agent {
-            out.append(.message(channel: agent.dmChannel, agentName: agent.name))
-        }
-        let leadChannel = state?.leadChannel ?? DMChannel.slug(for: "cos")
-        let leadName = (state?.leadName ?? "").isEmpty ? "Chief of Staff" : (state?.leadName ?? "Chief of Staff")
-        if !out.contains(where: { $0.channel == leadChannel }) {
-            out.append(.message(channel: leadChannel, agentName: leadName))
-        }
-        return out
     }
 }
 

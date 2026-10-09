@@ -1,8 +1,8 @@
 # gawkbot for iOS
 
 The office's agent inbox in your pocket. Every question from every agent in
-one list, answered with a tap, a swipe, a few typed words, or your voice;
-then text your bots like people, one thread per bot. The app is a thin
+one list, answered with a tap, a swipe, or a few typed words; then text or
+talk to your agents like people, one thread per agent. The app is a thin
 native client over the office broker: `/notch/state`, `/office-members`,
 `/messages`, `/requests`, and the live `/events` stream.
 
@@ -12,7 +12,7 @@ approval gate.
 
 ## What's in it
 
-Three tabs: **Inbox** (first), **Chats**, **Settings**.
+Three tabs: **Inbox** (first), **Agents**, **Settings**.
 
 ### Inbox
 
@@ -24,29 +24,32 @@ Three tabs: **Inbox** (first), **Chats**, **Settings**.
   option is the filled one. Options that need words (`requires_text`) open
   a reply sheet. **Swipe right** to take the recommended (or approve)
   option, **swipe left** to reply in your own words.
-- **Agents.** The roster under the questions: mood (needs you, working,
-  idle, hit a snag, done), what each is doing, and its tags. Agents that run
-  elsewhere (OpenClaw or Hermes gateways, Slack, a cloud computer) are
-  answered and messaged exactly like local ones. Tap an agent to talk to
-  it; swipe or long-press to open its chat.
 - **Live.** Polls `GET /notch/state` every 3 seconds while the app is in
   front, and on pull-to-refresh. Offices too old to serve `/notch/state`
   (404) get an inbox built from `/requests` and the roster instead.
 
+The inbox holds only what is waiting on you. The agents themselves are in
+the **Agents** tab.
+
+### Agents
+
+One row per agent, Chief of Staff first, with its last line and unread
+count. Tap one to open its thread. Agents that run elsewhere (OpenClaw or
+Hermes gateways, Slack, a cloud computer) are messaged exactly like local
+ones.
+
 ### Talk with your voice
 
-Hold the mic in the bar under the inbox and speak; the transcript shows as
-you talk. Let go and you get **Send** or **Cancel** (and can fix the text):
-nothing is ever sent on its own. The **To** menu picks where it goes:
-
-- **Answer** the selected question (`POST /requests/answer {id, custom_text}`),
-- **Message** the selected agent, or
-- **Message** the Chief of Staff (`POST /messages` into `lead_dm`).
+In an agent's thread, hold the mic beside the message box and speak; the
+transcript shows as you talk. Let go and the words land in the message box,
+after anything you already typed, where you can fix them. Nothing is sent
+until you tap **Send** (`POST /messages` into that agent's DM). A short tap
+on the mic shows a reminder to hold it.
 
 Recognition is `SFSpeechRecognizer` fed by `AVAudioEngine`, on the phone
 when the device supports on-device recognition, otherwise Apple's speech
 service (the permission prompt says so). If microphone or speech permission
-is refused the bar explains it and offers Settings; typing still works.
+is refused an alert explains it and offers Settings; typing still works.
 
 ### Sounds and haptics
 
@@ -65,7 +68,7 @@ bundled:
 
 The audio session is `.ambient`, so the sounds mix with music and the
 silent switch mutes them. Sounds and haptics each have a toggle in
-Settings, which also plays every sound for you to hear.
+Settings.
 
 ### Hardware keyboard (iPad, or iPhone with a keyboard)
 
@@ -78,15 +81,14 @@ In the Inbox:
 | `1`–`9` | pick that option on the selected question |
 | `Return` | take the recommended option |
 | `R` | reply in your own words |
-| `V` | start talking; `V` again stops (a key has no "hold") |
-| `Esc` | cancel talking, or clear the selection |
+| `Esc` | clear the selection |
 
-Only bare keys are bound, so `⌘V` (paste) and every other ⌘ shortcut is
+The list is in **Settings → Keyboard shortcuts**. Only bare keys are bound, so `⌘V` (paste) and every other ⌘ shortcut is
 left to the system. With nothing selected, `1`–`9`, `Return` and `R` first
 select the top question rather than answering blind. The map is pure logic
 in `GawkbotKit` (`InboxKeymap`) and unit-tested; the app turns each binding
-into a `.keyboardShortcut`. Shortcuts pause while the reply sheet or the
-voice confirmation has the keyboard.
+into a `.keyboardShortcut`. Shortcuts pause while the reply sheet has the
+keyboard.
 
 ### Look and feel
 
@@ -94,10 +96,10 @@ voice confirmation has the keyboard.
 soft charcoal (dark) canvases, solid rounded cards with a hairline and a
 gentle shadow, quiet neutral fills for buttons, large titles, SF Symbols.
 System materials are kept for the few things that float over content (the
-voice bar, the chat composer, sheets). Colours live in `Views/Theme.swift`
+chat composer, sheets). Colours live in `Views/Theme.swift`
 as light/dark pairs.
 
-- **Chats** are iMessage-style: your bubbles on the right in the accent,
+- **Threads** are iMessage-style: your bubbles on the right in the accent,
   the bot's on the left in a soft neutral bubble with its avatar beside the
   first bubble of each run, tails on the last.
 - **Thread header**: a big avatar hero (in the bot's mood) with its name,
@@ -146,7 +148,7 @@ pill, loaf, shield, blob) still resolve to the orb each maps to.
   canned office for previews, screenshots, and tests), `Pairing`, the
   avatar ports (`BlobAvatar` for the look, `OrbAvatar` for the geometry), the
   chosen look (`BotAvatar`, `BlobAvatar.resolve`), and the inbox's pure
-  logic: `InboxKeymap`, `InboxCursor`, `VoiceTarget`, `InboxEvents` (which
+  logic: `InboxKeymap`, `InboxCursor`, `InboxEvents` (which
   sound a poll deserves), `CartoonSynth`, `MoodMotion` (mood loops, tap
   squash, blink).
   Tests run on the Mac: `cd GawkbotKit && swift test`.
@@ -164,8 +166,12 @@ brew install xcodegen          # once
 cd apps/ios && xcodegen generate
 xcodebuild -project Gawkbot.xcodeproj -scheme Gawkbot \
   -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-  build CODE_SIGNING_ALLOWED=NO
+  build
 ```
+
+Simulator builds are signed ad hoc. Do not pass `CODE_SIGNING_ALLOWED=NO`:
+an unsigned app cannot use the Keychain, so the pairing token is not saved
+and the app asks to pair again on every launch.
 
 Or open `Gawkbot.xcodeproj` in Xcode and run on a simulator.
 
@@ -174,14 +180,14 @@ Or open `Gawkbot.xcodeproj` in Xcode and run on a simulator.
 Launch with the `-mock` argument (or `GAWKBOT_MOCK=1`) to skip pairing and
 talk to `MockBroker`. The inbox opens on three questions (a blocking
 approval, a choice with a write-in option, and an approval from Hermes, a
-gateway agent running elsewhere) and a roster across every mood. Replies
+gateway agent running elsewhere); the Agents tab has a roster across every mood. Replies
 arrive a couple of seconds after you send or answer, typing dots first, and
 the bot goes working → done (with its sound) → idle. Hermes starts with a
 picked shape (blob) and its automatic colour; **Change look** works against
 the mock too, with the office's validation. `scripts/screenshots.sh`
 boots a simulator in this mode and captures the inbox (light and dark), the
 list, and a couple of threads. Deep links: `gawkbot://inbox`,
-`gawkbot://chats`, `gawkbot://thread/<slug>`.
+`gawkbot://agents`, `gawkbot://settings`, `gawkbot://thread/<slug>`.
 
 ## Pair with a real office
 

@@ -16,6 +16,10 @@ final class OfficeStore: ObservableObject {
     }
 
     @Published private(set) var phase: Phase = .unpaired
+    /// The office this phone is talking to. Held here, not re-read from the
+    /// credential store, so what Settings shows is what is connected even
+    /// when the Keychain cannot be read back.
+    @Published private(set) var pairing: Pairing? = nil
     @Published private(set) var bots: [Bot] = []
     @Published private(set) var messages: [String: [ChatMessage]] = [:]
     @Published private(set) var typing: Set<String> = []
@@ -54,6 +58,7 @@ final class OfficeStore: ObservableObject {
         if forceMock {
             connect(MockBroker())
         } else if let pairing = credentials.load() {
+            self.pairing = pairing
             connect(BrokerClient(baseURL: pairing.brokerURL, token: pairing.token))
         }
     }
@@ -61,8 +66,11 @@ final class OfficeStore: ObservableObject {
     // MARK: - Pairing
 
     func pair(_ pairing: Pairing) {
-        credentials.save(pairing)
-        pairingError = nil
+        let saved = credentials.save(pairing)
+        self.pairing = pairing
+        // Still connect: the pairing works until the app quits. Say so
+        // rather than ask to pair again, unexplained, on the next launch.
+        pairingError = saved ? nil : "Connected, but this phone could not save the pairing, so it will ask again the next time the app opens."
         connect(BrokerClient(baseURL: pairing.brokerURL, token: pairing.token))
     }
 
@@ -78,7 +86,7 @@ final class OfficeStore: ObservableObject {
         return true
     }
 
-    var isPaired: Bool { credentials.load() != nil }
+    var isPaired: Bool { pairing != nil }
 
     func confirmProposedPairing() {
         guard let p = proposedPairing else { return }
@@ -94,6 +102,7 @@ final class OfficeStore: ObservableObject {
         notch = nil
         hiddenAttention = []
         credentials.clear()
+        pairing = nil
         broker = nil
         bots = []
         messages = [:]
@@ -107,17 +116,21 @@ final class OfficeStore: ObservableObject {
         if url.scheme == Pairing.scheme, url.host == "pair" {
             propose(text: url.absoluteString)
         } else if url.scheme == Pairing.scheme, url.host == "thread", let slug = url.pathComponents.dropFirst().first {
-            tab = .chats
+            tab = .agents
             openThread = DMChannel.slug(for: slug)
         } else if url.scheme == Pairing.scheme, url.host == "inbox" {
             tab = .inbox
-        } else if url.scheme == Pairing.scheme, url.host == "chats" {
-            tab = .chats
+        } else if url.scheme == Pairing.scheme, url.host == "agents" || url.host == "chats" {
+            // "chats" is the tab's old name; links that used it keep working.
+            tab = .agents
+        } else if url.scheme == Pairing.scheme, url.host == "settings" {
+            tab = .settings
         }
     }
 
     #if DEBUG
     /// `-pair-url <broker> -pair-token <token>` pairs immediately;
+    /// `-tab inbox|agents|settings` starts on that tab;
     /// `-open <slug>` opens that bot's thread once the office is ready;
     /// `-send <text>` sends that text into the opened thread after it loads.
     func applyDebugLaunchArguments(_ args: [String]) {
@@ -128,10 +141,16 @@ final class OfficeStore: ObservableObject {
         if let url = value(after: "-pair-url"), let tok = value(after: "-pair-token"), let p = Pairing.make(urlString: url, token: tok) {
             pair(p)
         }
+        switch value(after: "-tab") {
+        case "inbox": tab = .inbox
+        case "agents": tab = .agents
+        case "settings": tab = .settings
+        default: break
+        }
         debugOpenSlug = value(after: "-open")
         debugSendText = value(after: "-send")
         if let slug = debugOpenSlug {
-            tab = .chats
+            tab = .agents
             openThread = DMChannel.slug(for: slug)
         }
     }
@@ -383,23 +402,6 @@ final class OfficeStore: ObservableObject {
         }
     }
 
-    /// Sends a confirmed voice transcript where the person pointed it.
-    func sendVoice(_ text: String, to target: VoiceTarget) async {
-        let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty else { return }
-        switch target {
-        case let .answer(requestID, _):
-            if let item = notch?.attention.first(where: { $0.id == requestID }) {
-                await answer(item, option: nil, text: content)
-            } else {
-                pairingError = "That question was already answered, so nothing was sent."
-            }
-        case let .message(channel, _):
-            await send(content, to: channel)
-            feedback.playHaptic(.sent)
-        }
-    }
-
     // MARK: - Avatars
 
     /// A bot's chosen look. `/notch/state` (polled every 3 s) is the fresher
@@ -431,15 +433,9 @@ final class OfficeStore: ObservableObject {
         return nil
     }
 
-    /// Opens an agent's DM in the Chats tab.
-    func openChat(with slug: String) {
-        tab = .chats
-        openThread = DMChannel.slug(for: slug)
-    }
-
     var officeAddress: String {
         if isMock { return "Canned office (-mock)" }
-        return credentials.load()?.brokerURL.absoluteString ?? "Not paired"
+        return pairing?.brokerURL.absoluteString ?? "Not paired"
     }
 
     // MARK: - Derived

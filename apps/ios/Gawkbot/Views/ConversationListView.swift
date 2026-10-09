@@ -1,7 +1,7 @@
 import SwiftUI
 import GawkbotKit
 
-/// The Messages-style list: one row per bot, Chief of Staff pinned first,
+/// The Agents tab, a Messages-style list: one row per bot, Chief of Staff pinned first,
 /// last line as preview, unread badge on the left like iMessage.
 struct ConversationListView: View {
     @EnvironmentObject private var store: OfficeStore
@@ -11,7 +11,7 @@ struct ConversationListView: View {
         NavigationStack(path: $path) {
             List {
                 if store.bots.isEmpty {
-                    EmptyStateView(slug: "cos", mood: .idle, line: "No bots yet. Hire one in the office and it shows up here.")
+                    EmptyStateView(slug: "cos", mood: .idle, line: "No agents yet. Hire one in the office and it shows up here.")
                         .cardRow()
                 }
                 ForEach(store.bots) { bot in
@@ -26,7 +26,7 @@ struct ConversationListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color.softCanvas)
-            .navigationTitle("Chats")
+            .navigationTitle("Agents")
             .navigationDestination(for: String.self) { channel in
                 ThreadView(channel: channel)
             }

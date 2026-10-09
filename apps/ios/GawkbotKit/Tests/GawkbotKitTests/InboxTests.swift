@@ -150,7 +150,7 @@ final class InboxOrderingTests: XCTestCase {
     }
 }
 
-// MARK: - Options, keyboard, selection, voice targets
+// MARK: - Options, keyboard, selection
 
 final class InboxKeyboardTests: XCTestCase {
     func testEveryBindingMapsToItsCommand() {
@@ -168,7 +168,7 @@ final class InboxKeyboardTests: XCTestCase {
         XCTAssertEqual(InboxKeymap.command(for: .character("9")), .pick(9))
         XCTAssertEqual(InboxKeymap.command(for: .returnKey), .takeRecommended)
         XCTAssertEqual(InboxKeymap.command(for: .character("r")), .reply)
-        XCTAssertEqual(InboxKeymap.command(for: .character("v")), .voice)
+        XCTAssertNil(InboxKeymap.command(for: .character("v")), "talking lives in an agent's thread, not the inbox")
         XCTAssertEqual(InboxKeymap.command(for: .escape), .cancel)
         XCTAssertEqual(InboxKeymap.command(for: .character("J")), .next, "caps lock still navigates")
     }
@@ -229,24 +229,6 @@ final class InboxKeyboardTests: XCTestCase {
         XCTAssertEqual(InboxCursor.reconcile(selected: "c", previous: ids, current: ["a", "b"]), "b")
         XCTAssertNil(InboxCursor.reconcile(selected: "a", previous: ids, current: []))
         XCTAssertNil(InboxCursor.reconcile(selected: nil, previous: ids, current: ids))
-    }
-
-    func testVoiceTargets() {
-        let state = NotchState(lead: "cos", leadName: "Chief of Staff", leadDM: "cos__human")
-        let q = NotchAttention(id: "req-1", kind: "question", from: "hermes", fromName: "Hermes", question: "Post?")
-        let hermes = NotchAgent(slug: "hermes", name: "Hermes", mood: .idle, runsOn: "elsewhere")
-        let cos = NotchAgent(slug: "cos", name: "Chief of Staff", mood: .idle, isLead: true)
-
-        XCTAssertEqual(VoiceTarget.choices(selected: nil, agent: nil, state: state), [.message(channel: "cos__human", agentName: "Chief of Staff")])
-        XCTAssertEqual(VoiceTarget.choices(selected: q, agent: hermes, state: state), [
-            .answer(requestID: "req-1", agentName: "Hermes"),
-            .message(channel: "hermes__human", agentName: "Hermes"),
-            .message(channel: "cos__human", agentName: "Chief of Staff"),
-        ])
-        XCTAssertEqual(VoiceTarget.choices(selected: nil, agent: cos, state: state).count, 1, "the lead is not offered twice")
-        XCTAssertEqual(VoiceTarget.choices(selected: nil, agent: nil, state: nil).first?.channel, "cos__human")
-        XCTAssertEqual(VoiceTarget.answer(requestID: "r", agentName: "Hermes").label, "Answer Hermes")
-        XCTAssertNil(VoiceTarget.answer(requestID: "r", agentName: "Hermes").channel)
     }
 }
 

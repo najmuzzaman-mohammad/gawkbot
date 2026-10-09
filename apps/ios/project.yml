@@ -18,6 +18,11 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     CODE_SIGNING_ALLOWED: "NO"
+    # Simulator builds are signed ad hoc ("Sign to Run Locally"). An unsigned
+    # app has no keychain access group, so the Keychain refuses the broker
+    # token and the pairing is lost on the next launch.
+    "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": "YES"
+    "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
     GENERATE_INFOPLIST_FILE: "YES"
     INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
@@ -42,7 +47,7 @@ targets:
           - CFBundleURLName: bot.gawk.pair
             CFBundleURLSchemes: [gawkbot]
         NSCameraUsageDescription: "Scan the pairing code shown in your office's Access & Health page."
-        # Hold-to-talk in the inbox (Speech + AVAudioEngine, system
+        # Hold-to-talk in an agent thread (Speech + AVAudioEngine, system
         # frameworks that auto-link from their imports).
         NSMicrophoneUsageDescription: "gawkbot listens only while you hold the mic button, so you can answer your agents or message them by voice. Nothing is sent until you tap Send."
         NSSpeechRecognitionUsageDescription: "Your words are turned into text so you can answer or message your agents. When this iPhone can transcribe on its own it does; otherwise Apple's speech recognition service does it. Nothing reaches your office until you tap Send."

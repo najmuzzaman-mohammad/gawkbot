@@ -29,18 +29,6 @@ public enum SoundCue: String, CaseIterable, Hashable, Sendable {
         case .voiceStop: return 6
         }
     }
-
-    public var title: String {
-        switch self {
-        case .newQuestion: return "New question"
-        case .approvalNeeded: return "Approval needed"
-        case .error: return "Something went wrong"
-        case .done: return "Done"
-        case .sent: return "Sent"
-        case .voiceStart: return "Start talking"
-        case .voiceStop: return "Stop talking"
-        }
-    }
 }
 
 /// A tiny additive synth: each cue is a handful of tones, each with an

@@ -42,12 +42,6 @@ final class FeedbackPlayer {
         engine.play(cue)
     }
 
-    /// Settings' "try it" rows: plays even with sounds switched off.
-    func preview(_ cue: SoundCue) {
-        engine.play(cue)
-        playHaptic(cue)
-    }
-
     func playHaptic(_ cue: SoundCue) {
         guard FeedbackKeys.isOn(FeedbackKeys.haptics) else { return }
         switch cue {

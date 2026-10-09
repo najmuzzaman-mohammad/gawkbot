@@ -73,17 +73,3 @@ struct MoodPill: View {
             .background(mood.tint.opacity(0.14), in: Capsule())
     }
 }
-
-extension SoundCue {
-    var symbol: String {
-        switch self {
-        case .newQuestion: return "questionmark.bubble.fill"
-        case .approvalNeeded: return "hand.raised.fill"
-        case .error: return "exclamationmark.triangle.fill"
-        case .done: return "party.popper.fill"
-        case .sent: return "paperplane.fill"
-        case .voiceStart: return "mic.fill"
-        case .voiceStop: return "mic.slash.fill"
-        }
-    }
-}

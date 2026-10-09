@@ -3,12 +3,12 @@ import GawkbotKit
 
 enum AppTab: Hashable {
     case inbox
-    case chats
+    case agents
     case settings
 }
 
-/// The paired app: the inbox first (everything waiting on you, and the
-/// roster), then the per-bot chats, then settings. Drives the inbox poll
+/// The paired app: the inbox first (everything waiting on you), then the
+/// agents (one thread each, where you type or talk), then settings. Drives the inbox poll
 /// from the scene phase so it only runs while the app is in front.
 struct MainTabView: View {
     @EnvironmentObject private var store: OfficeStore
@@ -21,23 +21,23 @@ struct MainTabView: View {
                 .badge(store.inbox.count)
                 .tag(AppTab.inbox)
             ConversationListView()
-                .tabItem { Label("Chats", systemImage: "bubble.left.and.bubble.right.fill") }
+                .tabItem { Label("Agents", systemImage: "person.2.fill") }
                 .badge(store.totalUnread)
-                .tag(AppTab.chats)
+                .tag(AppTab.agents)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
                 .tag(AppTab.settings)
         }
         .onAppear {
             store.setForeground(scenePhase == .active)
-            if store.openThread != nil { store.tab = .chats }
+            if store.openThread != nil { store.tab = .agents }
         }
         .onDisappear { store.setForeground(false) }
         .onChange(of: scenePhase) { _, phase in
             store.setForeground(phase == .active)
         }
         .onChange(of: store.openThread) { _, channel in
-            if channel != nil { store.tab = .chats }
+            if channel != nil { store.tab = .agents }
         }
     }
 }

@@ -16,8 +16,8 @@ extension InboxKey {
 /// The inbox's hardware-keyboard shortcuts: one invisible button per
 /// binding in `InboxKeymap` (the mapping lives in GawkbotKit and is unit
 /// tested). Bare keys only, so ⌘V and every other system shortcut pass
-/// through. Disabled while a text field or the voice confirmation owns the
-/// keyboard, so typing "j" in a reply never moves the selection.
+/// through. Disabled while the reply sheet owns the keyboard, so typing
+/// "j" in a reply never moves the selection.
 struct InboxShortcuts: View {
     let enabled: Bool
     let perform: (InboxCommand) -> Void

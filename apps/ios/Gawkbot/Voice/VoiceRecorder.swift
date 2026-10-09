@@ -5,8 +5,8 @@ import GawkbotKit
 
 /// Hold-to-talk dictation. Listens only between `start()` and `stop()`,
 /// shows the transcript live, and on release waits briefly for the final
-/// result, then hands over to a Send / Cancel confirmation. It never sends
-/// anything itself.
+/// result, then hands the transcript to its owner (`.confirming`; the
+/// thread puts it in the message box). It never sends anything itself.
 ///
 /// Recognition runs on the phone when `supportsOnDeviceRecognition` is true;
 /// otherwise Speech uses Apple's service (the Info.plist string says so).
@@ -19,7 +19,7 @@ final class VoiceRecorder: ObservableObject {
         case listening
         /// Released; waiting a moment for the final transcript.
         case finishing
-        /// Waiting for the person to tap Send or Cancel.
+        /// The transcript is ready for the owner to take, then `reset()`.
         case confirming
     }
 
@@ -31,11 +31,11 @@ final class VoiceRecorder: ObservableObject {
     }
 
     @Published private(set) var phase: Phase = .idle
-    /// Live while listening; editable during confirmation.
+    /// Live while listening; final (trimmed) once confirming.
     @Published var transcript = ""
     @Published var problem: Problem? = nil
     /// Mic level for the pulsing ring, kept on its own object so a 40 Hz
-    /// meter does not re-render the whole inbox.
+    /// meter does not re-render the whole thread.
     let meter: VoiceMeter
     /// Start/stop blips; set by the owner.
     var onCue: (@MainActor (SoundCue) -> Void)?
@@ -58,7 +58,7 @@ final class VoiceRecorder: ObservableObject {
 
     // MARK: - Control
 
-    /// Hardware-keyboard and VoiceOver path: press once to start, again to stop.
+    /// VoiceOver path: activate once to start, again to stop.
     func toggle() async {
         switch phase {
         case .idle: await start()
@@ -100,7 +100,7 @@ final class VoiceRecorder: ObservableObject {
         }
     }
 
-    /// The finger lifted (or V pressed again).
+    /// The finger lifted.
     func stop() {
         switch phase {
         case .starting:
@@ -119,7 +119,7 @@ final class VoiceRecorder: ObservableObject {
         }
     }
 
-    /// Esc, or Cancel on the confirmation. Nothing is sent.
+    /// Leaving the thread mid-recording. Nothing is kept.
     func cancel() {
         let wasRecording = phase == .listening || phase == .finishing
         finishTimeout?.cancel()
@@ -134,7 +134,7 @@ final class VoiceRecorder: ObservableObject {
         if wasRecording { onCue?(.voiceStop) }
     }
 
-    /// The confirmation was answered (sent); back to the resting state.
+    /// The owner took the transcript; back to the resting state.
     func reset() {
         transcript = ""
         phase = .idle
@@ -177,7 +177,7 @@ final class VoiceRecorder: ObservableObject {
             finish()
         case .listening where failed || isFinal:
             // Recognition ended on its own (time limit, lost model): keep
-            // what was heard and go straight to the confirmation.
+            // what was heard and hand it over.
             stopAudio()
             phase = .finishing
             finish()
