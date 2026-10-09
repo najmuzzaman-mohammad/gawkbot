@@ -95,25 +95,31 @@ public struct ChatMessage: Codable, Identifiable, Hashable, Sendable {
 public struct InterviewOption: Codable, Identifiable, Hashable, Sendable {
     public var id: String
     public var label: String
+    /// What choosing this would mean, in the asker's words.
+    public var description: String?
     public var requiresText: Bool?
 
-    public init(id: String, label: String, requiresText: Bool? = nil) {
+    public init(id: String, label: String, description: String? = nil, requiresText: Bool? = nil) {
         self.id = id
         self.label = label
+        self.description = description
         self.requiresText = requiresText
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, label
+        case id, label, description
         case requiresText = "requires_text"
     }
 }
+
 
 /// A bot's ask to the human (`/requests`): an approval or an interview.
 public struct BotRequest: Codable, Identifiable, Hashable, Sendable {
     public var id: String
     public var from: String
     public var question: String
+    /// The asker's decision brief: what it was doing and why it asks.
+    public var context: String?
     public var title: String?
     public var kind: String?
     public var status: String?
@@ -125,10 +131,11 @@ public struct BotRequest: Codable, Identifiable, Hashable, Sendable {
     /// True when the asking bot's work is held up until this is answered.
     public var blocking: Bool?
 
-    public init(id: String, from: String, question: String, title: String? = nil, kind: String? = nil, status: String? = nil, channel: String? = nil, options: [InterviewOption]? = nil, recommendedID: String? = nil, createdAt: String? = nil, blocking: Bool? = nil) {
+    public init(id: String, from: String, question: String, context: String? = nil, title: String? = nil, kind: String? = nil, status: String? = nil, channel: String? = nil, options: [InterviewOption]? = nil, recommendedID: String? = nil, createdAt: String? = nil, blocking: Bool? = nil) {
         self.id = id
         self.from = from
         self.question = question
+        self.context = context
         self.title = title
         self.kind = kind
         self.status = status
@@ -141,7 +148,7 @@ public struct BotRequest: Codable, Identifiable, Hashable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, from, question, title, kind, status, channel, options, choices, blocking
+        case id, from, question, context, title, kind, status, channel, options, choices, blocking
         case recommendedID = "recommended_id"
         case createdAt = "created_at"
     }

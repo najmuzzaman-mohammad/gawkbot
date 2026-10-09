@@ -25,6 +25,7 @@ struct AttentionCard: View {
                     .foregroundStyle(item.title?.isEmpty == false ? Color.secondary : Color.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            background
             options
         }
         .softCard()
@@ -38,6 +39,70 @@ struct AttentionCard: View {
         .scaleEffect(selected ? 1.01 : 1)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(item.displayName) asks: \(item.title ?? item.question)")
+    }
+
+    /// The background to the question. Closed, two lines of the asker's
+    /// brief; tapping the card selects it, and the selected card shows all
+    /// of it: the project, the task, the asker's full account, the last
+    /// few lines of the conversation, and what each option would mean.
+    @ViewBuilder private var background: some View {
+        if selected, let brief = item.brief {
+            VStack(alignment: .leading, spacing: 10) {
+                if let project = brief.project, !project.isEmpty {
+                    briefSection("Project") {
+                        // Verbatim throughout: agent text must not become links.
+                        Text(verbatim: "#\(project)").fontWeight(.semibold)
+                        if let about = brief.projectAbout, !about.isEmpty { Text(verbatim: about) }
+                    }
+                }
+                if let task = brief.task {
+                    briefSection("Working on") {
+                        Text(verbatim: task.title).fontWeight(.semibold)
+                        if let details = task.details, !details.isEmpty { Text(verbatim: details) }
+                    }
+                }
+                if let context = brief.context, !context.isEmpty {
+                    briefSection("Why it is asking") { Text(verbatim: context) }
+                }
+                if let recent = brief.recent, !recent.isEmpty {
+                    briefSection("Just before") {
+                        ForEach(Array(recent.enumerated()), id: \.offset) { _, line in
+                            (Text(verbatim: line.speaker).fontWeight(.semibold) + Text(verbatim: " " + line.text))
+                        }
+                    }
+                }
+                let described = item.options.filter { !($0.description ?? "").isEmpty }
+                if !described.isEmpty {
+                    briefSection("What each answer means") {
+                        ForEach(described) { option in
+                            (Text(verbatim: option.label).fontWeight(.semibold) + Text(verbatim: " " + (option.description ?? "")))
+                        }
+                    }
+                }
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .padding(.leading, 10)
+            .overlay(alignment: .leading) {
+                Capsule().fill(Color.secondary.opacity(0.3)).frame(width: 2)
+            }
+            .transition(.opacity)
+            .accessibilityElement(children: .combine)
+        } else if let context = item.context, !context.isEmpty {
+            Text(verbatim: context)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+    }
+
+    private func briefSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+            content().fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var header: some View {

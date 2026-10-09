@@ -477,7 +477,7 @@ final class BrokerClientAvatarTests: XCTestCase {
             XCTAssertEqual(body["action"] as? String, "update")
             XCTAssertEqual(body["slug"] as? String, "cos")
             XCTAssertEqual(body["avatar"] as? [String: String], ["shape": "drop", "color": "#3f9c8f"])
-            return (200, Data(#"{"member":{"slug":"cos","name":"Chief of Staff","avatar":{"shape":"drop","color":"#3f9c8f"}}}"#.utf8))
+            return (200, Data(##"{"member":{"slug":"cos","name":"Chief of Staff","avatar":{"shape":"drop","color":"#3f9c8f"}}}"##.utf8))
         }
         try await makeClient().updateAvatar(slug: "cos", avatar: BotAvatar(shape: "drop", color: "#3F9C8F"))
     }

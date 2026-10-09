@@ -153,6 +153,67 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
 }
 
 /// One thing waiting on the person: an approval or a question.
+/// The full background for a question, shown when its card is opened.
+/// Mirrors `notchBrief` in internal/team/broker_notch.go.
+public struct NotchBrief: Codable, Hashable, Sendable {
+    public struct Task: Codable, Hashable, Sendable {
+        public var title: String
+        public var details: String?
+        public var status: String?
+
+        public init(title: String, details: String? = nil, status: String? = nil) {
+            self.title = title
+            self.details = details
+            self.status = status
+        }
+    }
+
+    public struct Line: Codable, Hashable, Sendable {
+        public var from: String
+        public var name: String?
+        public var text: String
+        public var at: String?
+
+        public init(from: String, name: String? = nil, text: String, at: String? = nil) {
+            self.from = from
+            self.name = name
+            self.text = text
+            self.at = at
+        }
+
+        public var speaker: String {
+            let n = (name ?? "").trimmingCharacters(in: .whitespaces)
+            return n.isEmpty ? from : n
+        }
+    }
+
+    /// The asker's decision brief, in full.
+    public var context: String?
+    /// The room the work lives in (never a DM), and what it is for.
+    public var project: String?
+    public var projectAbout: String?
+    /// The piece of work the question came out of.
+    public var task: Task?
+    public var askerRole: String?
+    /// The last few lines of that room, oldest first.
+    public var recent: [Line]?
+
+    public init(context: String? = nil, project: String? = nil, projectAbout: String? = nil, task: Task? = nil, askerRole: String? = nil, recent: [Line]? = nil) {
+        self.context = context
+        self.project = project
+        self.projectAbout = projectAbout
+        self.task = task
+        self.askerRole = askerRole
+        self.recent = recent
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case context, project, task, recent
+        case projectAbout = "project_about"
+        case askerRole = "asker_role"
+    }
+}
+
 public struct NotchAttention: Codable, Identifiable, Hashable, Sendable {
     public var id: String
     public var kind: String
@@ -161,12 +222,16 @@ public struct NotchAttention: Codable, Identifiable, Hashable, Sendable {
     public var channel: String?
     public var title: String?
     public var question: String
+    /// A short lead-in to the asker's decision brief.
+    public var context: String?
+    /// The full background, shown when the card is opened.
+    public var brief: NotchBrief?
     public var options: [InterviewOption]
     public var recommendedID: String?
     public var blocking: Bool
     public var createdAt: String?
 
-    public init(id: String, kind: String, from: String, fromName: String? = nil, channel: String? = nil, title: String? = nil, question: String, options: [InterviewOption] = [], recommendedID: String? = nil, blocking: Bool = false, createdAt: String? = nil) {
+    public init(id: String, kind: String, from: String, fromName: String? = nil, channel: String? = nil, title: String? = nil, question: String, context: String? = nil, brief: NotchBrief? = nil, options: [InterviewOption] = [], recommendedID: String? = nil, blocking: Bool = false, createdAt: String? = nil) {
         self.id = id
         self.kind = kind
         self.from = from
@@ -174,6 +239,8 @@ public struct NotchAttention: Codable, Identifiable, Hashable, Sendable {
         self.channel = channel
         self.title = title
         self.question = question
+        self.context = context
+        self.brief = brief
         self.options = options
         self.recommendedID = recommendedID
         self.blocking = blocking
@@ -191,6 +258,8 @@ public struct NotchAttention: Codable, Identifiable, Hashable, Sendable {
             channel: request.channel,
             title: request.title,
             question: request.question,
+            context: request.context,
+            brief: (request.context ?? "").isEmpty ? nil : NotchBrief(context: request.context),
             options: request.options ?? request.choices ?? [],
             recommendedID: request.recommendedID,
             blocking: request.blocking ?? false,
@@ -199,7 +268,7 @@ public struct NotchAttention: Codable, Identifiable, Hashable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, kind, from, channel, title, question, options, blocking
+        case id, kind, from, channel, title, question, context, brief, options, blocking
         case fromName = "from_name"
         case recommendedID = "recommended_id"
         case createdAt = "created_at"
@@ -214,6 +283,8 @@ public struct NotchAttention: Codable, Identifiable, Hashable, Sendable {
         channel = try c.decodeIfPresent(String.self, forKey: .channel)
         title = try c.decodeIfPresent(String.self, forKey: .title)
         question = try c.decodeIfPresent(String.self, forKey: .question) ?? ""
+        context = try c.decodeIfPresent(String.self, forKey: .context)
+        brief = try c.decodeIfPresent(NotchBrief.self, forKey: .brief)
         options = try c.decodeIfPresent([InterviewOption].self, forKey: .options) ?? []
         recommendedID = try c.decodeIfPresent(String.self, forKey: .recommendedID)
         blocking = try c.decodeIfPresent(Bool.self, forKey: .blocking) ?? false

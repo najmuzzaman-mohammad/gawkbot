@@ -457,4 +457,30 @@ private func bodyStreamData(_ req: URLRequest) -> Data {
         data.append(buffer, count: n)
     }
     return data
+
+    /// The office sends the full background with each question; the card
+    /// shows the lead-in closed and all of it when tapped open.
+    func testAttentionDecodesTheFullBrief() throws {
+        let json = """
+        {"id":"r-1","kind":"approval","from":"eng","question":"Run the migration?",
+         "context":"Short lead-in.",
+         "brief":{"context":"The whole account.","project":"checkout","project_about":"Ship the new checkout.",
+                  "task":{"title":"Migrate sessions","status":"in_progress"},"asker_role":"Backend engineer",
+                  "recent":[{"from":"eng","name":"Engineer","text":"Dry run is clean."},{"from":"human","text":"ok"}]},
+         "options":[{"id":"approve","label":"Approve","description":"Runs it now."}]}
+        """
+        let item = try JSONDecoder().decode(NotchAttention.self, from: Data(json.utf8))
+        XCTAssertEqual(item.context, "Short lead-in.")
+        XCTAssertEqual(item.brief?.context, "The whole account.")
+        XCTAssertEqual(item.brief?.project, "checkout")
+        XCTAssertEqual(item.brief?.projectAbout, "Ship the new checkout.")
+        XCTAssertEqual(item.brief?.task?.title, "Migrate sessions")
+        XCTAssertEqual(item.brief?.askerRole, "Backend engineer")
+        XCTAssertEqual(item.brief?.recent?.map(\.speaker), ["Engineer", "human"])
+        XCTAssertEqual(item.options.first?.description, "Runs it now.")
+        // An older office sends none of it.
+        let bare = try JSONDecoder().decode(NotchAttention.self, from: Data(#"{"id":"r-2","from":"eng","question":"q"}"#.utf8))
+        XCTAssertNil(bare.brief)
+        XCTAssertNil(bare.context)
+    }
 }
