@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FastArrowDown, KeyframeSolid, User } from "iconoir-react";
+import { ChevronsDown, Diamond, User } from "lucide-react";
 
 import { getConfig } from "../../api/client";
 import { useCreateTask } from "../../hooks/useCreateTask";
@@ -162,7 +162,7 @@ export function TaskCreateDialog({
 
         <div className="issue-create-eyebrow">
           <span className="issue-create-eyebrow-icon">
-            <KeyframeSolid width={14} height={14} aria-hidden="true" />
+            <Diamond fill="currentColor" size={14} aria-hidden="true" />
           </span>
           <span className="issue-create-eyebrow-label">New task</span>
           {defaultAssignee ? (
@@ -208,7 +208,7 @@ export function TaskCreateDialog({
 
         <div className="issue-create-chips">
           <PropertyChip
-            icon={<User width={14} height={14} aria-hidden="true" />}
+            icon={<User size={14} aria-hidden="true" />}
             label={assigneeLabel}
             htmlFor={assigneeId}
             disabled={membersQuery.isPending}
@@ -311,10 +311,9 @@ function PropertyChip({
     >
       <span className="issue-create-chip-icon">{icon}</span>
       <span>{label}</span>
-      <FastArrowDown
+      <ChevronsDown
         className="issue-create-chip-chevron"
-        width={12}
-        height={12}
+        size={12}
         aria-hidden="true"
       />
       {children}

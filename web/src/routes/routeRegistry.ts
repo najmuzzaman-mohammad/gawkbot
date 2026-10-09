@@ -71,7 +71,7 @@ export const APP_LABELS: Record<AppPanelId | FirstClassAppId, string> = {
 };
 
 /**
- * Emoji fallback icons rendered when a `SidebarTool` has no iconoir-react
+ * Emoji fallback icons rendered when a `SidebarTool` has no lucide-react
  * mapping in the rendering component. Lookups for unknown ids fall back
  * to a generic glyph at the call site.
  */

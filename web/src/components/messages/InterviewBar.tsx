@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { NavArrowLeft, NavArrowRight, Xmark } from "iconoir-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import {
   answerRequest,
@@ -277,7 +277,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
               aria-label="Previous request"
               title="Previous"
             >
-              <NavArrowLeft width={16} height={16} />
+              <ChevronLeft size={16} />
             </button>
             <button
               type="button"
@@ -287,7 +287,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
               aria-label="Next request"
               title="Next"
             >
-              <NavArrowRight width={16} height={16} />
+              <ChevronRight size={16} />
             </button>
           </div>
           <button
@@ -298,7 +298,7 @@ export function InterviewBar({ channelSlug }: InterviewBarProps) {
             aria-label="Dismiss request"
             title="Dismiss"
           >
-            <Xmark width={20} height={20} />
+            <X size={20} />
           </button>
         </div>
 

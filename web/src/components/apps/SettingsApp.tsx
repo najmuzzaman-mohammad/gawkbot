@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Refresh, WarningTriangle } from "iconoir-react";
+import { RefreshCw, TriangleAlert } from "lucide-react";
 
 import {
   type ConfigSnapshot,
@@ -30,13 +30,21 @@ import { showNotice } from "../ui/Toast";
 import { WipeModal } from "../ui/WipeModal";
 import { ImageGenSection } from "./SettingsApp.imageGen";
 import { BoxAccountSection } from "./settings/BoxAccountSection";
-import { Field, KeyField, SaveButton } from "./settings/components";
+import {
+  Field,
+  KeyField,
+  PageHeader,
+  SaveButton,
+  Select,
+  SettingsGroup,
+} from "./settings/components";
 import { SECTION_GROUPS } from "./settings/constants";
 import { LocalAgentsSection } from "./settings/LocalAgentsSection";
 import { PrivacySection } from "./settings/PrivacySection";
 import { RuntimeProviderChecklist } from "./settings/RuntimeProviderChecklist";
-import { styles } from "./settings/styles";
 import type { SectionId, SectionProps } from "./settings/types";
+
+import "../../styles/settings.css";
 
 // ─── Section components ─────────────────────────────────────────────────
 
@@ -89,7 +97,7 @@ function TeamLeadPicker({
   if (isLoading || members.length === 0) {
     return (
       <input
-        style={styles.input}
+        className="settings-input"
         placeholder="e.g. cos"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -98,11 +106,7 @@ function TeamLeadPicker({
   }
   const knownSlug = members.some((m) => m.slug === value);
   return (
-    <select
-      style={styles.input}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
+    <Select value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">— pick a bot —</option>
       {members.map((m) => (
         <option key={m.slug} value={m.slug}>
@@ -112,7 +116,7 @@ function TeamLeadPicker({
       {value && !knownSlug && (
         <option value={value}>@{value} (not in roster)</option>
       )}
-    </select>
+    </Select>
   );
 }
 
@@ -167,11 +171,10 @@ function GeneralSection({ cfg, save }: SectionProps) {
   };
 
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>General</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="General">
         Core runtime settings. These map to CLI flags and config file entries.
-      </p>
+      </PageHeader>
 
       <RuntimeProviderChecklist
         configuredKinds={cfg.llm_provider_kinds}
@@ -179,71 +182,68 @@ function GeneralSection({ cfg, save }: SectionProps) {
         onSelectedProvidersChange={setProviders}
         onConnectedProvidersChange={updateConnectedProviders}
       />
-      <div style={{ ...styles.groupTitle, marginTop: 24 }}>Bots</div>
-      <Field label="Team Lead" hint="Bot that leads operations">
-        <TeamLeadPicker value={teamLead} onChange={setTeamLead} />
-      </Field>
-      <Field label="Max Concurrent" hint="Parallel bot limit">
-        <input
-          style={styles.input}
-          type="number"
-          min={1}
-          placeholder="Unlimited"
-          value={maxConcurrent}
-          onChange={(e) => setMaxConcurrent(e.target.value)}
-        />
-      </Field>
 
-      <div style={{ ...styles.groupTitle, marginTop: 24 }}>Defaults</div>
-      <Field label="Output Format" hint="--format">
-        <select
-          style={styles.input}
-          value={format}
-          onChange={(e) => setFormat(e.target.value)}
-        >
-          <option value="text">Text</option>
-          <option value="json">JSON</option>
-        </select>
-      </Field>
-      <Field label="Timeout (ms)" hint="Default command timeout">
-        <input
-          style={styles.input}
-          type="number"
-          min={1000}
-          placeholder="120000"
-          value={timeout}
-          onChange={(e) => setTimeoutMs(e.target.value)}
-        />
-      </Field>
+      <SettingsGroup title="Bots">
+        <Field label="Team Lead" hint="Bot that leads operations">
+          <TeamLeadPicker value={teamLead} onChange={setTeamLead} />
+        </Field>
+        <Field label="Max Concurrent" hint="Parallel bot limit">
+          <input
+            className="settings-input"
+            type="number"
+            min={1}
+            placeholder="Unlimited"
+            value={maxConcurrent}
+            onChange={(e) => setMaxConcurrent(e.target.value)}
+          />
+        </Field>
+      </SettingsGroup>
 
-      <div style={{ ...styles.groupTitle, marginTop: 24 }}>Identity</div>
-      <Field label="Blueprint" hint="--blueprint">
-        <input
-          style={styles.input}
-          placeholder="Operation blueprint ID"
-          value={blueprint}
-          onChange={(e) => setBlueprint(e.target.value)}
-        />
-      </Field>
-      <Field label="Email" hint="Identity scope for integrations">
-        <input
-          style={styles.input}
-          type="email"
-          placeholder="you@company.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </Field>
+      <SettingsGroup title="Defaults">
+        <Field label="Output Format" hint="--format">
+          <Select value={format} onChange={(e) => setFormat(e.target.value)}>
+            <option value="text">Text</option>
+            <option value="json">JSON</option>
+          </Select>
+        </Field>
+        <Field label="Timeout (ms)" hint="Default command timeout">
+          <input
+            className="settings-input"
+            type="number"
+            min={1000}
+            placeholder="120000"
+            value={timeout}
+            onChange={(e) => setTimeoutMs(e.target.value)}
+          />
+        </Field>
+      </SettingsGroup>
 
-      <div style={{ marginTop: 24 }}>
-        <SaveButton label="Save general settings" onSave={onSave} />
-      </div>
+      <SettingsGroup title="Identity">
+        <Field label="Blueprint" hint="--blueprint">
+          <input
+            className="settings-input"
+            placeholder="Operation blueprint ID"
+            value={blueprint}
+            onChange={(e) => setBlueprint(e.target.value)}
+          />
+        </Field>
+        <Field label="Email" hint="Identity scope for integrations">
+          <input
+            className="settings-input"
+            type="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </Field>
+      </SettingsGroup>
+
+      <SaveButton label="Save general settings" onSave={onSave} />
 
       {cfg.config_path ? (
-        <div style={{ marginTop: 24 }}>
-          <div style={styles.groupTitle}>Config file</div>
-          <div style={styles.filePath}>{cfg.config_path}</div>
-        </div>
+        <SettingsGroup title="Config file">
+          <div className="settings-file-path">{cfg.config_path}</div>
+        </SettingsGroup>
       ) : null}
     </div>
   );
@@ -294,32 +294,24 @@ function detectHostPlatform(): "macos" | "linux" | "windows" | "other" {
 }
 
 function StatusDot({ status }: { status: LocalProviderStatus | undefined }) {
-  let color = "var(--text-tertiary)";
+  let tone = "";
   let title = "Status unknown";
   if (!status) {
     /* default */
   } else if (status.binary_installed && status.reachable) {
-    color = "#16a34a"; // green
+    tone = "settings-status-dot--ok";
     title = `Running${status.loaded_model ? ` · ${status.loaded_model}` : ""}`;
   } else if (status.binary_installed) {
-    color = "#d97706"; // yellow/amber
+    tone = "settings-status-dot--warn";
     title = "Installed but server not reachable — start it from a terminal";
   } else {
-    color = "#dc2626"; // red
+    tone = "settings-status-dot--err";
     title = "Not installed";
   }
   return (
     <span
       title={title}
-      style={{
-        display: "inline-block",
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        background: color,
-        marginRight: 8,
-        flexShrink: 0,
-      }}
+      className={tone ? `settings-status-dot ${tone}` : "settings-status-dot"}
     />
   );
 }
@@ -388,91 +380,51 @@ function LocalProviderCard({
         : undefined;
   const installCmd = cmdPlatform ? status?.install?.[cmdPlatform] : undefined;
   const startCmd = cmdPlatform ? status?.start?.[cmdPlatform] : undefined;
+  const notes = status?.notes ?? [];
 
   return (
-    <div
-      data-testid={`local-llm-card-${meta.kind}`}
-      style={{
-        border: "1px solid var(--border-light)",
-        borderRadius: 6,
-        padding: 14,
-        marginBottom: 14,
-        background: "var(--bg-card)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 6,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <StatusDot status={status} />
-          <strong style={{ fontSize: 14 }}>{meta.label}</strong>
-          {isDefault && (
-            <span
-              style={{
-                marginLeft: 10,
-                fontSize: 11,
-                padding: "1px 6px",
-                background: "var(--accent-bg)",
-                color: "var(--accent)",
-                borderRadius: 3,
-              }}
-            >
-              Default
-            </span>
-          )}
-          {status?.binary_version ? (
-            <span
-              style={{
-                marginLeft: 8,
-                fontSize: 11,
-                color: "var(--text-tertiary)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {status.binary_version}
-            </span>
+    <SettingsGroup data-testid={`local-llm-card-${meta.kind}`}>
+      <div className="settings-row settings-row--tall">
+        <div className="settings-row-main">
+          <div className="settings-row-title">
+            <StatusDot status={status} />
+            <span>{meta.label}</span>
+            {isDefault && (
+              <span className="settings-chip settings-chip--accent">
+                Default
+              </span>
+            )}
+            {status?.binary_version ? (
+              <span className="settings-row-title-muted settings-row-meta--mono">
+                {status.binary_version}
+              </span>
+            ) : null}
+          </div>
+          <div className="settings-row-meta">{meta.blurb}</div>
+          {status?.windows_note ? (
+            <div className="settings-row-meta">{status.windows_note}</div>
           ) : null}
         </div>
         {!isDefault && (
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={onSetDefault}
-            data-testid={`local-llm-set-default-${meta.kind}`}
-          >
-            Set as default
-          </button>
+          <div className="settings-row-control">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onSetDefault}
+              data-testid={`local-llm-set-default-${meta.kind}`}
+            >
+              Set as default
+            </button>
+          </div>
         )}
       </div>
-      <p
-        style={{
-          fontSize: 12,
-          color: "var(--text-tertiary)",
-          margin: "4px 0 10px",
-        }}
-      >
-        {meta.blurb}
-      </p>
-
-      {status?.windows_note ? (
-        <div style={{ ...styles.banner, fontSize: 12 }}>
-          <span style={{ fontSize: 14, flexShrink: 0 }}>{"⚠"}</span>
-          <div>{status.windows_note}</div>
-        </div>
-      ) : null}
 
       <Field
         label="Base URL"
         hint={`WUPHF_${meta.kind.toUpperCase().replace(/-/g, "_")}_BASE_URL`}
       >
         <input
-          style={styles.input}
+          className="settings-input"
           placeholder={status?.endpoint ?? "http://127.0.0.1:8080/v1"}
           value={baseURL}
           onChange={(e) => setBaseURL(e.target.value)}
@@ -484,7 +436,7 @@ function LocalProviderCard({
         hint={`WUPHF_${meta.kind.toUpperCase().replace(/-/g, "_")}_MODEL`}
       >
         <input
-          style={styles.input}
+          className="settings-input"
           placeholder={status?.model ?? ""}
           value={model}
           onChange={(e) => setModel(e.target.value)}
@@ -494,80 +446,36 @@ function LocalProviderCard({
       <SaveButton label="Save endpoint" onSave={onSaveEndpoint} />
 
       {!status?.binary_installed && installCmd ? (
-        <div
-          style={{
-            marginTop: 12,
-            paddingTop: 10,
-            borderTop: "1px dashed var(--border-light)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              marginBottom: 4,
-              color: "var(--text-secondary)",
-            }}
-          >
-            Install
-          </div>
+        <div className="settings-row-sub">
+          <div className="settings-row-sub-label">Install</div>
           <CommandRow command={installCmd} />
           {startCmd ? (
             <>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  marginTop: 10,
-                  marginBottom: 4,
-                  color: "var(--text-secondary)",
-                }}
-              >
-                Start
-              </div>
+              <div className="settings-row-sub-label">Start</div>
               <CommandRow command={startCmd} />
             </>
           ) : null}
         </div>
       ) : null}
       {status?.binary_installed && !status.reachable && startCmd ? (
-        <div
-          style={{
-            marginTop: 12,
-            paddingTop: 10,
-            borderTop: "1px dashed var(--border-light)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              color: "var(--text-secondary)",
-              marginBottom: 4,
-            }}
-          >
+        <div className="settings-row-sub">
+          <div>
             Installed but the server isn't responding on{" "}
-            <code style={{ fontFamily: "var(--font-mono)" }}>
-              {status.endpoint}
-            </code>
-            . Start it from a terminal:
+            <code>{status.endpoint}</code>. Start it from a terminal:
           </div>
           <CommandRow command={startCmd} />
         </div>
       ) : null}
-      {(status?.notes ?? []).map((note) => (
-        <p
-          key={note}
-          style={{
-            fontSize: 11,
-            color: "var(--text-tertiary)",
-            marginTop: 8,
-            marginBottom: 0,
-          }}
-        >
-          {note}
-        </p>
-      ))}
-    </div>
+      {notes.length > 0 ? (
+        <div className="settings-row-sub">
+          {notes.map((note) => (
+            <p key={note} className="settings-note">
+              {note}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </SettingsGroup>
   );
 }
 
@@ -587,18 +495,17 @@ function LocalLLMsSection({ cfg, save }: SectionProps) {
   for (const s of data ?? []) byKind.set(s.kind, s);
 
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>Local LLMs</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="Local LLMs">
         Run gawkbot agents through a model on your own machine — no cloud key
         required. Status indicators detect what's installed and what's
         responding; install commands are copy-paste only (we never run shell
         commands for you).
-      </p>
+      </PageHeader>
 
       {hostPlatform === "windows" && (
-        <div style={styles.banner}>
-          <span style={{ fontSize: 14, flexShrink: 0 }}>{"⚠"}</span>
+        <div className="settings-banner">
+          <span className="settings-banner-glyph">{"⚠"}</span>
           <div>
             Local LLMs run best on macOS or Linux. Native Windows isn't
             supported; install your runtime inside WSL2 (Ubuntu) and the broker
@@ -607,15 +514,8 @@ function LocalLLMsSection({ cfg, save }: SectionProps) {
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 8,
-        }}
-      >
-        <div style={styles.groupTitle}>Available runtimes</div>
+      <div className="settings-group-head">
+        <div className="settings-group-title">Available runtimes</div>
         <button
           type="button"
           className="btn btn-secondary btn-sm"
@@ -623,7 +523,7 @@ function LocalLLMsSection({ cfg, save }: SectionProps) {
           disabled={isFetching}
           data-testid="local-llms-refresh"
         >
-          <Refresh style={{ width: 14, height: 14, marginRight: 4 }} />
+          <RefreshCw size={14} />
           {isFetching ? "Checking…" : "Recheck"}
         </button>
       </div>
@@ -632,10 +532,10 @@ function LocalLLMsSection({ cfg, save }: SectionProps) {
         <div className="app-panel-loading">Detecting installed runtimes…</div>
       ) : null}
       {error ? (
-        <div style={{ color: "var(--red)", fontSize: 13 }}>
+        <p className="settings-error">
           Failed to load status:{" "}
           {error instanceof Error ? error.message : String(error)}
-        </div>
+        </p>
       ) : null}
 
       {!(isLoading || error) &&
@@ -670,57 +570,70 @@ function CompanySection({ cfg, save }: SectionProps) {
     });
 
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>Company</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="Company">
         Organizational context injected into agent system prompts. The more you
         fill in, the better agents understand your business.
-      </p>
+      </PageHeader>
 
-      <Field label="Name" hint="Your company or project name">
-        <input
-          style={styles.input}
-          placeholder="Acme Corp"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </Field>
+      <SettingsGroup>
+        <Field label="Name" hint="Your company or project name">
+          <input
+            className="settings-input"
+            placeholder="Acme Corp"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
 
-      <Field label="Description" hint="One-liner about the business">
-        <textarea
-          style={styles.textarea}
-          placeholder="What does your company do?"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </Field>
+        <Field
+          label="Description"
+          hint="One-liner about the business"
+          stacked={true}
+        >
+          <textarea
+            className="settings-input"
+            placeholder="What does your company do?"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </Field>
 
-      <Field label="Goals" hint="What the team is working toward">
-        <textarea
-          style={styles.textarea}
-          placeholder="Current organizational goals"
-          value={goals}
-          onChange={(e) => setGoals(e.target.value)}
-        />
-      </Field>
+        <Field
+          label="Goals"
+          hint="What the team is working toward"
+          stacked={true}
+        >
+          <textarea
+            className="settings-input"
+            placeholder="Current organizational goals"
+            value={goals}
+            onChange={(e) => setGoals(e.target.value)}
+          />
+        </Field>
 
-      <Field label="Size" hint="Team or company size">
-        <input
-          style={styles.input}
-          placeholder="e.g. 5, 50, 500"
-          value={size}
-          onChange={(e) => setSize(e.target.value)}
-        />
-      </Field>
+        <Field label="Size" hint="Team or company size">
+          <input
+            className="settings-input"
+            placeholder="e.g. 5, 50, 500"
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+          />
+        </Field>
 
-      <Field label="Priority" hint="What matters most right now">
-        <textarea
-          style={styles.textarea}
-          placeholder="Immediate priority focus"
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-        />
-      </Field>
+        <Field
+          label="Priority"
+          hint="What matters most right now"
+          stacked={true}
+        >
+          <textarea
+            className="settings-input"
+            placeholder="Immediate priority focus"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+          />
+        </Field>
+      </SettingsGroup>
 
       <SaveButton label="Save company info" onSave={onSave} />
     </div>
@@ -798,26 +711,29 @@ function KeysSection({ cfg, save }: SectionProps) {
   };
 
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>API Keys</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="API Keys">
         Authentication credentials for external services. Keys are stored in
         your local config file and never transmitted to gawkbot servers. Enter a
         new value to update, or leave blank to keep the current key.
-      </p>
+      </PageHeader>
 
       <BoxAccountSection />
 
-      {KEY_DEFS.map((def) => (
-        <Field key={def.field} label={def.label} hint={`Env: ${def.env}`}>
-          <KeyField
-            hasValue={Boolean(cfg[def.flag])}
-            placeholder={def.placeholder}
-            value={values[def.field] ?? ""}
-            onChange={(v) => setValues((prev) => ({ ...prev, [def.field]: v }))}
-          />
-        </Field>
-      ))}
+      <SettingsGroup title="Keys">
+        {KEY_DEFS.map((def) => (
+          <Field key={def.field} label={def.label} hint={`Env: ${def.env}`}>
+            <KeyField
+              hasValue={Boolean(cfg[def.flag])}
+              placeholder={def.placeholder}
+              value={values[def.field] ?? ""}
+              onChange={(v) =>
+                setValues((prev) => ({ ...prev, [def.field]: v }))
+              }
+            />
+          </Field>
+        ))}
+      </SettingsGroup>
 
       <SaveButton label="Save API keys" onSave={onSave} />
     </div>
@@ -842,9 +758,8 @@ function IntegrationsSection({ cfg, save }: SectionProps) {
   // because they're install-wide config knobs, not gateways — they configure
   // routing for an existing action surface rather than importing bots.
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>Integrations</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="Integrations">
         Install-wide integration knobs. Connect OpenClaw, Hermes, or Telegram
         from the{" "}
         <button
@@ -861,26 +776,26 @@ function IntegrationsSection({ cfg, save }: SectionProps) {
           Integrations app
         </button>
         .
-      </p>
+      </PageHeader>
 
-      <Field label="Action Provider" hint="External action routing">
-        <select
-          style={styles.input}
-          value={actionProvider}
-          onChange={(e) => {
-            setActionProvider(e.target.value);
-            setActionProviderDirty(true);
-          }}
-        >
-          <option value="composio">Composio</option>
-        </select>
-      </Field>
+      <SettingsGroup title="Actions">
+        <Field label="Action Provider" hint="External action routing">
+          <Select
+            value={actionProvider}
+            onChange={(e) => {
+              setActionProvider(e.target.value);
+              setActionProviderDirty(true);
+            }}
+          >
+            <option value="composio">Composio</option>
+          </Select>
+        </Field>
+      </SettingsGroup>
 
-      <div style={{ marginTop: 20 }}>
-        <div style={styles.groupTitle}>Workspace</div>
+      <SettingsGroup title="Workspace">
         <Field label="Workspace ID" hint="Read-only">
           <input
-            style={{ ...styles.input, opacity: 0.6, cursor: "default" }}
+            className="settings-input"
             readOnly={true}
             placeholder="(not set)"
             value={cfg.workspace_id ?? ""}
@@ -888,18 +803,17 @@ function IntegrationsSection({ cfg, save }: SectionProps) {
         </Field>
         <Field label="Workspace Slug" hint="Read-only">
           <input
-            style={{ ...styles.input, opacity: 0.6, cursor: "default" }}
+            className="settings-input"
             readOnly={true}
             placeholder="(not set)"
             value={cfg.workspace_slug ?? ""}
           />
         </Field>
-      </div>
+      </SettingsGroup>
 
-      <div style={{ marginTop: 20 }}>
-        <div style={styles.groupTitle}>Approval cosign</div>
+      <SettingsGroup title="Approval cosign" padded={true}>
         <CredentialRegistrationPanel />
-      </div>
+      </SettingsGroup>
 
       <SaveButton label="Save integration settings" onSave={onSave} />
     </div>
@@ -929,53 +843,54 @@ function IntervalsSection({ cfg, save }: SectionProps) {
     });
 
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>Polling Intervals</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="Polling Intervals">
         How often background processes check for updates. All values in minutes.
         Minimum 2 minutes.
-      </p>
+      </PageHeader>
 
-      <Field label="Insights" hint="Context graph polling">
-        <input
-          style={styles.input}
-          type="number"
-          min={2}
-          placeholder="15"
-          value={insights}
-          onChange={(e) => setInsights(e.target.value)}
-        />
-      </Field>
-      <Field label="Task Follow-up" hint="Post-completion check-in">
-        <input
-          style={styles.input}
-          type="number"
-          min={2}
-          placeholder="60"
-          value={followUp}
-          onChange={(e) => setFollowUp(e.target.value)}
-        />
-      </Field>
-      <Field label="Task Reminder" hint="Stalled task nudge">
-        <input
-          style={styles.input}
-          type="number"
-          min={2}
-          placeholder="30"
-          value={reminder}
-          onChange={(e) => setReminder(e.target.value)}
-        />
-      </Field>
-      <Field label="Task Recheck" hint="Progress re-evaluation">
-        <input
-          style={styles.input}
-          type="number"
-          min={2}
-          placeholder="15"
-          value={recheck}
-          onChange={(e) => setRecheck(e.target.value)}
-        />
-      </Field>
+      <SettingsGroup>
+        <Field label="Insights" hint="Context graph polling">
+          <input
+            className="settings-input"
+            type="number"
+            min={2}
+            placeholder="15"
+            value={insights}
+            onChange={(e) => setInsights(e.target.value)}
+          />
+        </Field>
+        <Field label="Task Follow-up" hint="Post-completion check-in">
+          <input
+            className="settings-input"
+            type="number"
+            min={2}
+            placeholder="60"
+            value={followUp}
+            onChange={(e) => setFollowUp(e.target.value)}
+          />
+        </Field>
+        <Field label="Task Reminder" hint="Stalled task nudge">
+          <input
+            className="settings-input"
+            type="number"
+            min={2}
+            placeholder="30"
+            value={reminder}
+            onChange={(e) => setReminder(e.target.value)}
+          />
+        </Field>
+        <Field label="Task Recheck" hint="Progress re-evaluation">
+          <input
+            className="settings-input"
+            type="number"
+            min={2}
+            placeholder="15"
+            value={recheck}
+            onChange={(e) => setRecheck(e.target.value)}
+          />
+        </Field>
+      </SettingsGroup>
 
       <SaveButton label="Save intervals" onSave={onSave} />
     </div>
@@ -1017,123 +932,59 @@ const ENV_VARS: [string, string][] = [
 
 function FlagsSection() {
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>CLI Flags</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="CLI Flags">
         All flags available when launching gawkbot from the terminal. These are
         runtime-only and not persisted in the config file.
-      </p>
+      </PageHeader>
 
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Flag</th>
-            <th style={styles.th}>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          {CLI_FLAGS.map(([flag, desc]) => (
-            <tr key={flag}>
-              <td style={styles.tdFlag}>{flag}</td>
-              <td style={styles.tdDesc}>{desc}</td>
+      <SettingsGroup title="Flags">
+        <table className="settings-table">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Description</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {CLI_FLAGS.map(([flag, desc]) => (
+              <tr key={flag}>
+                <td className="settings-table-code">{flag}</td>
+                <td>{desc}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </SettingsGroup>
 
-      <div style={{ marginTop: 24 }}>
-        <div style={styles.groupTitle}>Environment Variables</div>
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--text-secondary)",
-            lineHeight: 1.6,
-            marginBottom: 12,
-          }}
-        >
+      <SettingsGroup title="Environment Variables">
+        <div className="settings-row-sub">
           Settings resolve in order: CLI flag → environment variable → config
           file → default. Set these in your shell profile to override config
           file values.
-        </p>
-        <table style={styles.table}>
+        </div>
+        <table className="settings-table">
           <thead>
             <tr>
-              <th style={styles.th}>Variable</th>
-              <th style={styles.th}>Purpose</th>
+              <th>Variable</th>
+              <th>Purpose</th>
             </tr>
           </thead>
           <tbody>
             {ENV_VARS.map(([v, p]) => (
               <tr key={v}>
-                <td style={styles.tdFlag}>{v}</td>
-                <td style={styles.tdDesc}>{p}</td>
+                <td className="settings-table-code">{v}</td>
+                <td>{p}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </SettingsGroup>
     </div>
   );
 }
 
 // ─── Danger Zone ────────────────────────────────────────────────────────
-
-// dangerStyles lives next to the section because it's the only caller and the
-// warning palette shouldn't bleed into the rest of the app's styling surface.
-const dangerStyles = {
-  card: (severity: "warn" | "critical") => ({
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: "var(--radius-md)",
-    background: severity === "critical" ? "var(--red-bg)" : "var(--yellow-bg)",
-  }),
-  cardTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 15,
-    fontWeight: 700,
-    color: "var(--text)",
-    marginBottom: 6,
-  } as const,
-  cardSubtitle: {
-    fontSize: 13,
-    color: "var(--text-secondary)",
-    marginBottom: 14,
-    lineHeight: 1.5,
-  } as const,
-  listLabel: {
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.06em",
-    color: "var(--text-tertiary)",
-    marginTop: 8,
-    marginBottom: 4,
-  } as const,
-  list: {
-    margin: 0,
-    paddingLeft: 20,
-    fontSize: 12,
-    lineHeight: 1.7,
-    color: "var(--text-secondary)",
-  } as const,
-  button: (severity: "warn" | "critical") => ({
-    marginTop: 16,
-    padding: "9px 16px",
-    fontSize: 13,
-    fontWeight: 600,
-    border: "none",
-    borderRadius: "var(--radius-sm)",
-    cursor: "pointer" as const,
-    color: "#fff",
-    background:
-      severity === "critical"
-        ? "var(--red, #e5484d)"
-        : "var(--yellow, #e5a00d)",
-    fontFamily: "var(--font-sans)",
-  }),
-};
 
 type DangerAction = "reset" | "shred";
 
@@ -1173,74 +1024,84 @@ function DangerZoneSection() {
   };
 
   return (
-    <div>
-      <div style={styles.sectionTitle}>Danger Zone</div>
-      <div style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="Danger Zone">
         Irreversible operations on this workspace. Reset reloads the current
         broker. Shred wipes local workspace history and reopens onboarding in
         the running web UI.
-      </div>
+      </PageHeader>
 
-      {/* RESET — narrow: broker runtime state only */}
-      <div style={dangerStyles.card("warn")}>
-        <div style={dangerStyles.cardTitle}>
-          <Refresh width={16} height={16} />
-          <span>Reset broker state</span>
+      <SettingsGroup title="Irreversible">
+        {/* RESET — narrow: broker runtime state only */}
+        <div className="settings-row settings-row--tall">
+          <div className="settings-row-main">
+            <div className="settings-row-title">
+              <RefreshCw size={16} />
+              <span>Reset broker state</span>
+            </div>
+            <div className="settings-row-meta">
+              Use this when something is stuck — an agent wedged, the queue
+              won't drain, messages stop flowing — and you want a clean restart
+              without losing your team or work.
+            </div>
+            <div className="settings-list-label">Clears</div>
+            <ul className="settings-list">
+              <li>
+                Broker runtime state (
+                <code>~/.wuphf/team/broker-state.json</code>)
+              </li>
+              <li>Last-good in-memory snapshot</li>
+            </ul>
+            <div className="settings-list-label">Preserved</div>
+            <ul className="settings-list">
+              <li>Your team roster, company identity, tasks, workflows</li>
+              <li>All on-disk history (logs, sessions, artifacts)</li>
+              <li>API keys and config</li>
+            </ul>
+          </div>
+          <div className="settings-row-control">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setOpen("reset")}
+              disabled={busy}
+            >
+              Reset broker state…
+            </button>
+          </div>
         </div>
-        <div style={dangerStyles.cardSubtitle}>
-          Use this when something is stuck — an agent wedged, the queue won't
-          drain, messages stop flowing — and you want a clean restart without
-          losing your team or work.
-        </div>
-        <div style={dangerStyles.listLabel}>Clears</div>
-        <ul style={dangerStyles.list}>
-          <li>
-            Broker runtime state (<code>~/.wuphf/team/broker-state.json</code>)
-          </li>
-          <li>Last-good in-memory snapshot</li>
-        </ul>
-        <div style={dangerStyles.listLabel}>Preserved</div>
-        <ul style={dangerStyles.list}>
-          <li>Your team roster, company identity, tasks, workflows</li>
-          <li>All on-disk history (logs, sessions, artifacts)</li>
-          <li>API keys and config</li>
-        </ul>
-        <button
-          type="button"
-          style={dangerStyles.button("warn")}
-          onClick={() => setOpen("reset")}
-          disabled={busy}
-        >
-          Reset broker state…
-        </button>
-      </div>
 
-      {/* SHRED — full wipe */}
-      <div style={dangerStyles.card("critical")}>
-        <div style={dangerStyles.cardTitle}>
-          <WarningTriangle width={16} height={16} />
-          <span>Shred workspace</span>
+        {/* SHRED — full wipe */}
+        <div className="settings-row settings-row--tall settings-row--danger">
+          <div className="settings-row-main">
+            <div className="settings-row-title">
+              <TriangleAlert size={16} />
+              <span>Shred workspace</span>
+            </div>
+            <div className="settings-row-meta">
+              <ShredCardSubtitle />
+            </div>
+            <div className="settings-list-label">Deletes</div>
+            <ul className="settings-list">
+              <ShredDeletionsList />
+            </ul>
+            <div className="settings-list-label">Preserved</div>
+            <ul className="settings-list">
+              <ShredPreservationList />
+            </ul>
+          </div>
+          <div className="settings-row-control">
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={() => setOpen("shred")}
+              disabled={busy}
+            >
+              Shred workspace…
+            </button>
+          </div>
         </div>
-        <div style={dangerStyles.cardSubtitle}>
-          <ShredCardSubtitle />
-        </div>
-        <div style={dangerStyles.listLabel}>Deletes</div>
-        <ul style={dangerStyles.list}>
-          <ShredDeletionsList />
-        </ul>
-        <div style={dangerStyles.listLabel}>Preserved</div>
-        <ul style={dangerStyles.list}>
-          <ShredPreservationList />
-        </ul>
-        <button
-          type="button"
-          style={dangerStyles.button("critical")}
-          onClick={() => setOpen("shred")}
-          disabled={busy}
-        >
-          Shred workspace…
-        </button>
-      </div>
+      </SettingsGroup>
 
       {open === "reset" && (
         <WipeModal
@@ -1278,6 +1139,40 @@ function DangerZoneSection() {
 
 // ─── Main component ─────────────────────────────────────────────────────
 
+// One section is mounted at a time; the nav picks which. A switch rather
+// than a chain of `section === x &&` so adding a section stays a one-line
+// change here and the shell component stays simple.
+function SectionBody({
+  section,
+  cfg,
+  save,
+}: { section: SectionId } & SectionProps) {
+  switch (section) {
+    case "general":
+      return <GeneralSection cfg={cfg} save={save} />;
+    case "agents":
+      return <LocalAgentsSection />;
+    case "local-llms":
+      return <LocalLLMsSection cfg={cfg} save={save} />;
+    case "image-gen":
+      return <ImageGenSection />;
+    case "company":
+      return <CompanySection cfg={cfg} save={save} />;
+    case "keys":
+      return <KeysSection cfg={cfg} save={save} />;
+    case "integrations":
+      return <IntegrationsSection cfg={cfg} save={save} />;
+    case "intervals":
+      return <IntervalsSection cfg={cfg} save={save} />;
+    case "flags":
+      return <FlagsSection />;
+    case "privacy":
+      return <PrivacySection cfg={cfg} save={save} />;
+    case "danger":
+      return <DangerZoneSection />;
+  }
+}
+
 export function SettingsApp() {
   const [section, setSection] = useState<SectionId>("general");
   const queryClient = useQueryClient();
@@ -1312,30 +1207,12 @@ export function SettingsApp() {
   };
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          padding: 40,
-          textAlign: "center",
-          color: "var(--text-tertiary)",
-          fontSize: 14,
-        }}
-      >
-        Loading settings...
-      </div>
-    );
+    return <div className="app-panel-loading">Loading settings...</div>;
   }
 
   if (error || !data) {
     return (
-      <div
-        style={{
-          padding: 40,
-          textAlign: "center",
-          color: "var(--text-tertiary)",
-          fontSize: 14,
-        }}
-      >
+      <div className="app-panel-loading">
         Failed to load settings:{" "}
         {error instanceof Error ? error.message : String(error)}
       </div>
@@ -1343,18 +1220,23 @@ export function SettingsApp() {
   }
 
   return (
-    <div style={styles.shell}>
-      <nav style={styles.nav}>
+    <div className="settings-app">
+      <nav className="settings-nav" aria-label="Settings sections">
         {SECTION_GROUPS.map((group) => (
-          <div key={group.label}>
-            <p style={styles.navGroupLabel}>{group.label}</p>
+          <div key={group.label} className="settings-nav-group">
+            <p className="settings-nav-group-label">{group.label}</p>
             {group.items.map((sec) => {
               const { Icon } = sec;
               return (
                 <button
                   type="button"
                   key={sec.id}
-                  style={styles.navItem(sec.id === section)}
+                  className={
+                    sec.id === section
+                      ? "settings-nav-item is-active"
+                      : "settings-nav-item"
+                  }
+                  aria-current={sec.id === section ? "page" : undefined}
                   onClick={() => setSection(sec.id)}
                   // testid so e2e can disambiguate the Settings section
                   // buttons from buttons with the same name that live in
@@ -1363,7 +1245,7 @@ export function SettingsApp() {
                   // the Settings → Integrations section button).
                   data-testid={`settings-nav-${sec.id}`}
                 >
-                  <Icon style={styles.navIcon} />
+                  <Icon className="settings-nav-icon" />
                   <span>{sec.name}</span>
                 </button>
               );
@@ -1371,22 +1253,8 @@ export function SettingsApp() {
           </div>
         ))}
       </nav>
-      <div style={styles.body} key={dataKey}>
-        {section === "general" && <GeneralSection cfg={data} save={save} />}
-        {section === "agents" && <LocalAgentsSection />}
-        {section === "local-llms" && (
-          <LocalLLMsSection cfg={data} save={save} />
-        )}
-        {section === "image-gen" && <ImageGenSection />}
-        {section === "company" && <CompanySection cfg={data} save={save} />}
-        {section === "keys" && <KeysSection cfg={data} save={save} />}
-        {section === "integrations" && (
-          <IntegrationsSection cfg={data} save={save} />
-        )}
-        {section === "intervals" && <IntervalsSection cfg={data} save={save} />}
-        {section === "flags" && <FlagsSection />}
-        {section === "privacy" && <PrivacySection cfg={data} save={save} />}
-        {section === "danger" && <DangerZoneSection />}
+      <div className="settings-body" key={dataKey}>
+        <SectionBody section={section} cfg={data} save={save} />
       </div>
     </div>
   );

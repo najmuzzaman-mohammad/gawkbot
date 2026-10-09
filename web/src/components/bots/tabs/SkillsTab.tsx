@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search } from "iconoir-react";
+import { Search } from "lucide-react";
 
 import type { Skill } from "../../../api/client";
 import {
@@ -226,8 +226,7 @@ export function SkillsTab({ agentSlug }: SkillsTabProps) {
       <div className="bot-skills-filter">
         <Search
           className="bot-skills-filter-icon"
-          width={14}
-          height={14}
+          size={14}
           aria-hidden="true"
         />
         <input

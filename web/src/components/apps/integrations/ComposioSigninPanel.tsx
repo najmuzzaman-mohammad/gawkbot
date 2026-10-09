@@ -1,4 +1,4 @@
-import { OpenNewWindow } from "iconoir-react";
+import { ExternalLink } from "lucide-react";
 
 import { CommandRow } from "../../ui/CommandRow";
 import type { SigninPhase } from "./useComposioSignin";
@@ -151,7 +151,7 @@ export function ComposioSigninPanel({
                 rel="noopener noreferrer"
               >
                 open the sign-in page
-                <OpenNewWindow width={13} height={13} aria-hidden="true" />
+                <ExternalLink size={13} aria-hidden="true" />
               </a>{" "}
               or copy the link and open it on any device.
             </p>

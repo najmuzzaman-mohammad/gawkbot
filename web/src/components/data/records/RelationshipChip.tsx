@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Xmark } from "iconoir-react";
+import { X } from "lucide-react";
 
 import type { RecordRef } from "../../../api/dataspaces";
 
@@ -45,7 +45,7 @@ export function RelationshipChip({
           disabled={disabled}
           onClick={onUnlink}
         >
-          <Xmark aria-hidden="true" focusable="false" />
+          <X aria-hidden="true" focusable="false" />
         </button>
       ) : null}
     </span>

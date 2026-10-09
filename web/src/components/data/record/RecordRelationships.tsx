@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Plus } from "iconoir-react";
+import { Plus } from "lucide-react";
 
 import type {
   AttributeDefinition,

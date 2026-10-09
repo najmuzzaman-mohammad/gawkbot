@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  OpenNewWindow,
-  Refresh,
+  ExternalLink,
+  RefreshCw,
   Search,
-  Trash,
-  WarningTriangle,
-} from "iconoir-react";
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 
 import { getConfig, getLocalProvidersStatus } from "../../api/client";
 import {
@@ -278,7 +278,7 @@ function CatalogPanel({
       </header>
       <div className="op-panel-toolbar">
         <label className="op-search">
-          <Search width={14} height={14} aria-hidden="true" />
+          <Search size={14} aria-hidden="true" />
           <input
             type="search"
             placeholder="Search integrations"
@@ -449,7 +449,7 @@ function IntegrationErrorState({
         onClick={onRetry}
         disabled={isFetching}
       >
-        <Refresh width={14} height={14} aria-hidden="true" />
+        <RefreshCw size={14} aria-hidden="true" />
         Retry
       </button>
     </div>
@@ -724,7 +724,7 @@ function ToolkitDetail({
               disabled={!item.can_connect || connectMutation.isPending}
               onClick={() => connectMutation.mutate()}
             >
-              <OpenNewWindow width={14} height={14} aria-hidden="true" />
+              <ExternalLink size={14} aria-hidden="true" />
               {connectionKey ? "Connect another account" : "Connect"}
             </button>
             <button
@@ -733,7 +733,7 @@ function ToolkitDetail({
               disabled={statusQuery.isFetching}
               onClick={() => void statusQuery.refetch()}
             >
-              <Refresh width={14} height={14} aria-hidden="true" />
+              <RefreshCw size={14} aria-hidden="true" />
               Check status
             </button>
             <button
@@ -742,7 +742,7 @@ function ToolkitDetail({
               disabled={!canDisconnect || disconnectMutation.isPending}
               onClick={() => setConfirmDisconnect(true)}
             >
-              <Trash width={14} height={14} aria-hidden="true" />
+              <Trash2 size={14} aria-hidden="true" />
               Disconnect
             </button>
           </div>
@@ -800,7 +800,7 @@ function ToolkitDetail({
               onClick={() => void auditQuery.refetch()}
               disabled={auditQuery.isFetching}
             >
-              <Refresh width={14} height={14} aria-hidden="true" />
+              <RefreshCw size={14} aria-hidden="true" />
               Refresh
             </button>
           </div>
@@ -894,7 +894,7 @@ function EmptyIntegrationsWarning({
   if (available.length > 0 || toolkitItems.length > 0) return null;
   return (
     <p className="op-empty-warning">
-      <WarningTriangle width={12} height={12} />
+      <TriangleAlert size={12} />
       No integrations are registered in this build.
     </p>
   );

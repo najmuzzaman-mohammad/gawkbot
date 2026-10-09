@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, Xmark } from "iconoir-react";
+import { Lock, X } from "lucide-react";
 
 import type {
   LLMRuntimeKind,
@@ -611,7 +611,7 @@ function RuntimeSection({
           <span className="op-runtime-label">managed by</span>
           <span className="op-runtime-value">
             <span className="op-runtime-managed">
-              <Lock width={11} height={11} />
+              <Lock size={11} />
               {gatewayLabel} gateway
             </span>
           </span>
@@ -647,7 +647,7 @@ function RuntimeSection({
           <span className="op-runtime-label">runs on</span>
           <span className="op-runtime-value">
             <span className="op-runtime-managed">
-              <Lock width={11} height={11} />
+              <Lock size={11} />
               {agentID} CLI on this machine
             </span>
           </span>
@@ -1082,7 +1082,7 @@ export function BotProfilePanel({
             onClick={onClose}
             aria-label="Close bot profile"
           >
-            <Xmark width={20} height={20} />
+            <X size={20} />
           </button>
         </div>
       ) : null}

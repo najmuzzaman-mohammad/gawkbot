@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Code, FloppyDisk, OpenBook } from "iconoir-react";
+import { ArrowLeft, BookOpen, Code, Save } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import {
@@ -151,7 +151,7 @@ export function SkillDetailRoute({ skillName }: SkillDetailRouteProps) {
           onClick={handleBack}
           aria-label="Back to skills"
         >
-          <ArrowLeft width={14} height={14} aria-hidden="true" />
+          <ArrowLeft size={14} aria-hidden="true" />
           <span>Skills</span>
         </button>
         <div className="skill-detail-title-block">
@@ -176,7 +176,7 @@ export function SkillDetailRoute({ skillName }: SkillDetailRouteProps) {
             onClick={handleSave}
             disabled={!isDirty || saveMutation.isPending}
           >
-            <FloppyDisk width={14} height={14} aria-hidden="true" />
+            <Save size={14} aria-hidden="true" />
             <span>
               {saveMutation.isPending ? "Saving…" : isDirty ? "Save" : "Saved"}
             </span>
@@ -235,7 +235,7 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
         className={`skill-detail-mode-btn${mode === "edit" ? " skill-detail-mode-btn--active" : ""}`}
         onClick={() => onChange("edit")}
       >
-        <Code width={12} height={12} aria-hidden="true" />
+        <Code size={12} aria-hidden="true" />
         <span>Edit</span>
       </button>
       <button
@@ -245,7 +245,7 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
         className={`skill-detail-mode-btn${mode === "preview" ? " skill-detail-mode-btn--active" : ""}`}
         onClick={() => onChange("preview")}
       >
-        <OpenBook width={12} height={12} aria-hidden="true" />
+        <BookOpen size={12} aria-hidden="true" />
         <span>Preview</span>
       </button>
     </div>

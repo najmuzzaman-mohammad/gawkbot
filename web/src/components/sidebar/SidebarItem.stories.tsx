@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { BookStack, HomeSimple, Terminal } from "iconoir-react";
+import { House, Library, Terminal } from "lucide-react";
 
 import { Kbd, MOD_KEY } from "../ui/Kbd";
 import { SidebarItem } from "./SidebarItem";
@@ -67,11 +67,11 @@ export const Variants: Story = {
         shortcut={shortcut(2)}
       />
       <SidebarItem
-        icon={<HomeSimple className="sidebar-item-icon" />}
+        icon={<House className="sidebar-item-icon" />}
         label="SVG icon"
       />
       <SidebarItem
-        icon={<BookStack className="sidebar-item-icon" />}
+        icon={<Library className="sidebar-item-icon" />}
         label="SVG + badge"
         badge={badge(2)}
       />

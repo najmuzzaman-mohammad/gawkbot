@@ -1,4 +1,4 @@
-import { OpenNewWindow } from "iconoir-react";
+import { ExternalLink } from "lucide-react";
 
 import type { LocalProviderStatus } from "../../../api/client";
 import type { IntegrationStatus } from "./types";
@@ -50,7 +50,7 @@ export function HermesDetail({
               gap: 4,
             }}
           >
-            hermesbot.com <OpenNewWindow width={11} height={11} />
+            hermesbot.com <ExternalLink size={11} />
           </a>
           ) and start its API server. This card auto-detects when the endpoint
           becomes reachable.

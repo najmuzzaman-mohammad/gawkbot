@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_THEME, getTheme, isTheme, THEMES } from "./themes";
+import {
+  DEFAULT_DARK_THEME,
+  DEFAULT_THEME,
+  getTheme,
+  isTheme,
+  systemDefaultTheme,
+  THEMES,
+} from "./themes";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,9 +25,36 @@ function themeCss(file: string): string {
 }
 
 describe("theme registry", () => {
-  it("defaults new installs to Soft Light, which leads the list", () => {
-    expect(DEFAULT_THEME).toBe("nex-soft-light");
+  it("defaults new installs to Glass, light then dark, leading the list", () => {
+    expect(DEFAULT_THEME).toBe("nex-glass-light");
+    expect(DEFAULT_DARK_THEME).toBe("nex-glass-dark");
     expect(THEMES[0].id).toBe(DEFAULT_THEME);
+    expect(THEMES[1].id).toBe(DEFAULT_DARK_THEME);
+  });
+
+  it("follows the system appearance for a fresh install", () => {
+    const original = window.matchMedia;
+    const stub = (matches: boolean) =>
+      Object.defineProperty(window, "matchMedia", {
+        configurable: true,
+        value: (q: string) => ({
+          matches: q.includes("dark") && matches,
+          media: q,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        }),
+      });
+    try {
+      stub(true);
+      expect(systemDefaultTheme()).toBe("nex-glass-dark");
+      stub(false);
+      expect(systemDefaultTheme()).toBe("nex-glass-light");
+    } finally {
+      Object.defineProperty(window, "matchMedia", {
+        configurable: true,
+        value: original,
+      });
+    }
   });
 
   it("ships both Soft flavours", () => {
@@ -84,8 +118,8 @@ describe("Glass themes", () => {
     // Both ids start with "nex-glass"; no other theme does.
     const glassIds = THEMES.filter((t) => t.id.startsWith("nex-glass"));
     expect(glassIds.map((t) => t.id)).toEqual([
-      "nex-glass-dark",
       "nex-glass-light",
+      "nex-glass-dark",
     ]);
     const selectors = base
       .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -110,8 +144,22 @@ describe("Glass themes", () => {
         (m) => m[1],
       ),
     );
-    // Defined by the base itself.
-    read.delete("--glass-blur");
+    // The base defines the material itself (the thicknesses, the light,
+    // the tinted accents) from a few flavour tokens; only what it reads
+    // and does not define must come from both flavours.
+    for (const m of base.matchAll(/(--(?:glass|nex-sidebar)[\w-]*)\s*:/g)) {
+      read.delete(m[1]);
+    }
+    // Coverage: the tint and the light on the glass are the flavour's job.
+    for (const flavourOwned of [
+      "--glass-tint",
+      "--glass-sheen",
+      "--glass-shade",
+      "--glass-solid-card",
+      "--glass-wash-3",
+    ]) {
+      expect(read.has(flavourOwned), `base reads ${flavourOwned}`).toBe(true);
+    }
     expect(read.size).toBeGreaterThan(0);
     for (const file of ["nex-glass-dark.css", "nex-glass-light.css"]) {
       const css = themeCss(file);

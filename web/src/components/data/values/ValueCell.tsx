@@ -1,5 +1,5 @@
 import type { ComponentType, MouseEvent, ReactNode } from "react";
-import { Check } from "iconoir-react";
+import { Check } from "lucide-react";
 
 import type {
   AttributeDefinition,

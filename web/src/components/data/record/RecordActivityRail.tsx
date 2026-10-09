@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { Link } from "@tanstack/react-router";
-import { Copy } from "iconoir-react";
+import { Copy } from "lucide-react";
 
 import type {
   DataRecord,

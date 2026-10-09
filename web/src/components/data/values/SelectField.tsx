@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Check } from "iconoir-react";
+import { Check } from "lucide-react";
 
 import type { SelectOption } from "../../../api/dataspaces";
 import { OptionPill } from "./OptionPill";

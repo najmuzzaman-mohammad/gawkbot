@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Search } from "lucide-react";
 
 import { listApps } from "../../api/apps";
 import { useChannels } from "../../hooks/useChannels";
@@ -93,15 +94,7 @@ export function ChannelHeader() {
 
   return (
     <div className="channel-header">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          minWidth: 0,
-          flex: 1,
-        }}
-      >
+      <div className="channel-header-title">
         {breadcrumbItems.length > 0 ? (
           <Breadcrumb items={breadcrumbItems} />
         ) : (
@@ -111,7 +104,7 @@ export function ChannelHeader() {
           </>
         )}
       </div>
-      <div className="channel-actions">
+      <div className="channel-actions toolbar-group">
         <ThemeSwitcher />
         <button
           type="button"
@@ -120,21 +113,7 @@ export function ChannelHeader() {
           aria-label="Search"
           onClick={() => setSearchOpen(true)}
         >
-          <svg
-            aria-hidden="true"
-            focusable="false"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
+          <Search size={16} aria-hidden="true" focusable="false" />
         </button>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { EditPencil, NavArrowDown, NavArrowRight, Sparks } from "iconoir-react";
+import { ChevronDown, ChevronRight, Pencil, Sparkles } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import {
@@ -169,11 +169,7 @@ function BotFileCard({
         aria-expanded={expanded}
       >
         <span className="bot-file-card-chevron">
-          {expanded ? (
-            <NavArrowDown width={14} height={14} />
-          ) : (
-            <NavArrowRight width={14} height={14} />
-          )}
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
         <span className="bot-file-card-titles">
           <span className="bot-file-card-name">{label}</span>
@@ -322,7 +318,7 @@ function BotFileCard({
                     disabled={generating}
                     title="Draft a richer version with AI for your review"
                   >
-                    <Sparks width={13} height={13} />
+                    <Sparkles size={13} />
                     {generating ? "Generating…" : "Generate with AI"}
                   </button>
                 ) : null}
@@ -336,7 +332,7 @@ function BotFileCard({
                   }}
                   disabled={generating}
                 >
-                  <EditPencil width={13} height={13} />
+                  <Pencil size={13} />
                   Edit
                 </button>
               </div>

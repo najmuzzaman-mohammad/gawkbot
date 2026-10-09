@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import {
   type UseQueryResult,
   useMutation,
@@ -17,91 +16,13 @@ import {
   type LocalAgentsResponse,
 } from "../../../api/localAgents";
 import { showNotice } from "../../ui/Toast";
-import { styles } from "./styles";
+import { PageHeader, SettingsGroup } from "./components";
 
 // ─── Agents on this machine ─────────────────────────────────────────────
 //
 // Lists every agent CLI the broker found installed or running here (Claude
 // Code, Codex, Opencode, Gemini CLI, Aider, Goose, ...) and turns the ones
 // gawkbot can drive into office bots that the Chief of Staff manages.
-
-const listStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-
-const rowStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: 12,
-  padding: "10px 12px",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius-sm)",
-  background: "var(--bg-card)",
-};
-
-const nameStyle: CSSProperties = {
-  fontSize: 13,
-  fontWeight: 600,
-  color: "var(--text)",
-};
-
-const vendorStyle: CSSProperties = {
-  fontWeight: 400,
-  color: "var(--text-tertiary)",
-};
-
-const metaStyle: CSSProperties = {
-  fontSize: 11,
-  color: "var(--text-tertiary)",
-  lineHeight: 1.5,
-  marginTop: 2,
-  wordBreak: "break-all",
-};
-
-const chipRowStyle: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 6,
-  marginTop: 6,
-};
-
-function chipStyle(tone: "green" | "accent" | "muted"): CSSProperties {
-  const palette = {
-    green: { background: "var(--green-bg)", color: "var(--green)" },
-    accent: { background: "var(--accent-bg)", color: "var(--accent)" },
-    muted: { background: "var(--bg-warm)", color: "var(--text-tertiary)" },
-  }[tone];
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    fontSize: 11,
-    fontWeight: 500,
-    padding: "2px 8px",
-    borderRadius: "var(--radius-full)",
-    whiteSpace: "nowrap",
-    ...palette,
-  };
-}
-
-function buttonStyle(primary: boolean, disabled: boolean): CSSProperties {
-  return {
-    flexShrink: 0,
-    height: 30,
-    padding: "0 12px",
-    fontSize: 12,
-    fontWeight: 600,
-    fontFamily: "var(--font-sans)",
-    borderRadius: "var(--radius-sm)",
-    border: primary ? "1px solid var(--accent)" : "1px solid var(--border)",
-    background: primary ? "var(--accent)" : "var(--bg-card)",
-    color: primary ? "var(--accent-fg)" : "var(--text)",
-    cursor: disabled ? "default" : "pointer",
-    opacity: disabled ? 0.5 : 1,
-  };
-}
 
 function runningLabel(agent: LocalAgent): string | null {
   const n = agent.running?.length ?? 0;
@@ -144,13 +65,17 @@ interface AgentRowProps {
 function AgentChips({ agent }: { agent: LocalAgent }) {
   const running = runningLabel(agent);
   return (
-    <div style={chipRowStyle}>
-      {running ? <span style={chipStyle("green")}>{running}</span> : null}
+    <div className="settings-chip-row">
+      {running ? (
+        <span className="settings-chip settings-chip--green">{running}</span>
+      ) : null}
       {agent.installed ? (
-        <span style={chipStyle("muted")}>Installed</span>
+        <span className="settings-chip">Installed</span>
       ) : null}
       {agent.adopted_as ? (
-        <span style={chipStyle("accent")}>Teammate @{agent.adopted_as}</span>
+        <span className="settings-chip settings-chip--accent">
+          Teammate @{agent.adopted_as}
+        </span>
       ) : null}
     </div>
   );
@@ -160,28 +85,41 @@ function AgentRow({ agent, busy, onAdopt }: AgentRowProps) {
   const blocker = adoptBlocker(agent);
   const detail = detailLine(agent);
   return (
-    <div style={rowStyle} data-testid={`local-agent-${agent.id}`}>
-      <div style={{ minWidth: 0 }}>
-        <div style={nameStyle}>
-          {agent.name}
+    <div
+      className="settings-row settings-row--tall"
+      data-testid={`local-agent-${agent.id}`}
+    >
+      <div className="settings-row-main">
+        <div className="settings-row-title">
+          <span>{agent.name}</span>
           {agent.vendor ? (
-            <span style={vendorStyle}> · {agent.vendor}</span>
+            <span className="settings-row-title-muted">· {agent.vendor}</span>
           ) : null}
         </div>
-        {detail ? <div style={metaStyle}>{detail}</div> : null}
-        {blocker ? <div style={metaStyle}>{blocker}</div> : null}
+        {detail ? (
+          <div className="settings-row-meta settings-row-meta--quiet">
+            {detail}
+          </div>
+        ) : null}
+        {blocker ? (
+          <div className="settings-row-meta settings-row-meta--quiet">
+            {blocker}
+          </div>
+        ) : null}
         <AgentChips agent={agent} />
       </div>
       {canAdoptNow(agent) ? (
-        <button
-          type="button"
-          style={buttonStyle(false, busy)}
-          disabled={busy}
-          onClick={() => onAdopt(agent.id)}
-          aria-label={`Adopt ${agent.name}`}
-        >
-          Adopt
-        </button>
+        <div className="settings-row-control">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={busy}
+            onClick={() => onAdopt(agent.id)}
+            aria-label={`Adopt ${agent.name}`}
+          >
+            Adopt
+          </button>
+        </div>
       ) : null}
     </div>
   );
@@ -195,13 +133,13 @@ interface AgentListProps {
 
 function AgentList({ query, busy, onAdopt }: AgentListProps) {
   if (query.isLoading) {
-    return <p style={styles.sectionDesc}>Scanning this machine…</p>;
+    return <p className="settings-page-desc">Scanning this machine…</p>;
   }
   if (query.isError) {
     const message =
       query.error instanceof Error ? query.error.message : String(query.error);
     return (
-      <p style={styles.sectionDesc} role="alert">
+      <p className="settings-page-desc" role="alert">
         Could not scan this machine: {message}
       </p>
     );
@@ -209,18 +147,21 @@ function AgentList({ query, busy, onAdopt }: AgentListProps) {
   const agents = query.data?.agents ?? [];
   if (agents.length === 0) {
     return (
-      <p style={styles.sectionDesc}>
+      <p className="settings-page-desc">
         No agent CLIs found. Install Claude Code, Codex, Opencode, Gemini CLI,
         or another supported agent, then rescan.
       </p>
     );
   }
   return (
-    <div style={listStyle} data-testid="local-agents-list">
+    <SettingsGroup
+      title="Found on this machine"
+      data-testid="local-agents-list"
+    >
       {agents.map((agent) => (
         <AgentRow key={agent.id} agent={agent} busy={busy} onAdopt={onAdopt} />
       ))}
-    </div>
+    </SettingsGroup>
   );
 }
 
@@ -256,18 +197,17 @@ export function LocalAgentsSection() {
   const nothingToAdopt = adoptable.length === 0;
 
   return (
-    <div>
-      <h2 style={styles.sectionTitle}>Agents on this machine</h2>
-      <p style={styles.sectionDesc}>
+    <div className="settings-page">
+      <PageHeader title="Agents on this machine">
         Every coding and agent CLI found installed or running here. Adopt one
         and it becomes a gawkbot on its own sign-in, managed by {manager}, who
         delegates work to it and reports back. Nothing is launched by the scan.
-      </p>
+      </PageHeader>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div className="settings-actions">
         <button
           type="button"
-          style={buttonStyle(true, busy || nothingToAdopt)}
+          className="btn btn-primary btn-sm"
           disabled={busy || nothingToAdopt}
           onClick={() => adopt.mutate(adoptable.map((a) => a.id))}
           data-testid="local-agents-adopt-all"
@@ -278,7 +218,7 @@ export function LocalAgentsSection() {
         </button>
         <button
           type="button"
-          style={buttonStyle(false, query.isFetching)}
+          className="btn btn-secondary btn-sm"
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
           data-testid="local-agents-rescan"

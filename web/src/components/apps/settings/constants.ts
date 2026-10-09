@@ -1,15 +1,15 @@
 import {
   Building,
   Cpu,
+  Image,
   Key,
   Lock,
-  MediaImage,
   Puzzle,
   Settings as SettingsIcon,
   Terminal,
   Timer,
-  WarningTriangle,
-} from "iconoir-react";
+  TriangleAlert,
+} from "lucide-react";
 
 import type { SectionGroup } from "./types";
 
@@ -24,7 +24,7 @@ export const SECTION_GROUPS: SectionGroup[] = [
       { id: "general", Icon: SettingsIcon, name: "General" },
       { id: "agents", Icon: Cpu, name: "Agents on this machine" },
       { id: "local-llms", Icon: Terminal, name: "Local LLMs" },
-      { id: "image-gen", Icon: MediaImage, name: "Image generation" },
+      { id: "image-gen", Icon: Image, name: "Image generation" },
       { id: "company", Icon: Building, name: "Company" },
     ],
   },
@@ -45,6 +45,6 @@ export const SECTION_GROUPS: SectionGroup[] = [
   },
   {
     label: "Advanced",
-    items: [{ id: "danger", Icon: WarningTriangle, name: "Danger Zone" }],
+    items: [{ id: "danger", Icon: TriangleAlert, name: "Danger Zone" }],
   },
 ];

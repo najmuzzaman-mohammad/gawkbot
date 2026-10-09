@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { EditPencil } from "iconoir-react";
+import { Pencil } from "lucide-react";
 
 import type {
   AttributeDefinition,
@@ -160,7 +160,7 @@ export function InPlaceValue({
           aria-disabled={isPending}
           onClick={startIfIdle}
         >
-          <EditPencil aria-hidden="true" focusable="false" />
+          <Pencil aria-hidden="true" focusable="false" />
         </button>
       </div>
     );

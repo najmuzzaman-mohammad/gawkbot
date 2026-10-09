@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Xmark } from "iconoir-react";
+import { X } from "lucide-react";
 
 const meta: Meta = {
   title: "Patterns/Modal shell",
@@ -70,7 +70,7 @@ export const Default: StoryObj = {
                     aria-label="Close"
                     onClick={() => setOpen(false)}
                   >
-                    <Xmark width={18} height={18} />
+                    <X size={18} />
                   </button>
                 </header>
                 <footer

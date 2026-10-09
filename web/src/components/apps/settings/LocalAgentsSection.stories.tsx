@@ -7,6 +7,8 @@ import {
 } from "../../../api/localAgents";
 import { LocalAgentsSection } from "./LocalAgentsSection";
 
+import "../../../styles/settings.css";
+
 const SCAN: LocalAgentsResponse = {
   lead: "cos",
   agents: [

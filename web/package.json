@@ -95,7 +95,6 @@
     "github-slugger": "^2.0.0",
     "hast-util-to-html": "^9.0.5",
     "highlight.js": "^11.11.1",
-    "iconoir-react": "^7.11.0",
     "katex": "^0.17.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.16.0",
