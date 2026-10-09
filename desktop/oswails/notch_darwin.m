@@ -99,6 +99,10 @@ static const CGFloat kMaxStageHeight = 160.0;
 @property(nonatomic) BOOL keyboardActive;
 @property(nonatomic) NSUInteger generation;
 @property(nonatomic, strong) NSTimer *hoverPoll;
+// While open: a click anywhere outside the panel closes it, whatever it
+// was doing (typing a reply, pinned open from the keyboard).
+@property(nonatomic, strong) id outsideClickGlobal;
+@property(nonatomic, strong) id outsideClickLocal;
 @property(nonatomic, strong) NSDate *peekUntil;
 @property(nonatomic) CGFloat stageHeight;
 // Opened from the keyboard (the global hotkey): stays open until Esc or the
@@ -342,9 +346,11 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 		// non-activating: the app you were in stays the active app.
 		[self.panel makeKeyWindow];
 		[self startHoverPoll];
+		[self startOutsideClickWatch];
 		return;
 	}
 	[self stopHoverPoll];
+	[self stopOutsideClickWatch];
 	[self stopVoice];
 	self.pinned = NO;
 	self.content.coversAll = NO;
@@ -396,6 +402,51 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 			[strongSelf collapseUnlessBusy];
 		}
 	}];
+}
+
+// A click outside the open panel closes it. The global monitor sees clicks
+// in other apps (mouse events need no Accessibility permission); the local
+// one sees clicks in this app's own windows, such as the full view.
+- (void)startOutsideClickWatch {
+	if (self.outsideClickGlobal != nil) {
+		return;
+	}
+	__weak GawkNotchController *weakSelf = self;
+	NSEventMask mask = NSEventMaskLeftMouseDown | NSEventMaskRightMouseDown | NSEventMaskOtherMouseDown;
+	void (^closeIfOutside)(void) = ^{
+		GawkNotchController *strongSelf = weakSelf;
+		if (strongSelf == nil || !strongSelf.expanded) {
+			return;
+		}
+		if (NSPointInRect([NSEvent mouseLocation], strongSelf.panel.frame)) {
+			return;
+		}
+		strongSelf.pinned = NO;
+		strongSelf.hovering = NO;
+		strongSelf.keyboardActive = NO;
+		[strongSelf applyExpanded:NO animatePage:YES];
+	};
+	self.outsideClickGlobal = [NSEvent addGlobalMonitorForEventsMatchingMask:mask
+	                                                                 handler:^(NSEvent *event) {
+		(void)event;
+		closeIfOutside();
+	}];
+	self.outsideClickLocal = [NSEvent addLocalMonitorForEventsMatchingMask:mask
+	                                                               handler:^NSEvent *(NSEvent *event) {
+		closeIfOutside();
+		return event;
+	}];
+}
+
+- (void)stopOutsideClickWatch {
+	if (self.outsideClickGlobal != nil) {
+		[NSEvent removeMonitor:self.outsideClickGlobal];
+		self.outsideClickGlobal = nil;
+	}
+	if (self.outsideClickLocal != nil) {
+		[NSEvent removeMonitor:self.outsideClickLocal];
+		self.outsideClickLocal = nil;
+	}
 }
 
 - (void)stopHoverPoll {

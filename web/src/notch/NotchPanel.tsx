@@ -1,9 +1,14 @@
-import { type FormEvent, useEffect, useRef } from "react";
+import { type FormEvent, useEffect, useLayoutEffect, useRef } from "react";
 
 import { SHORTCUTS } from "./keys";
 import { NotchBot } from "./NotchBot";
 import { NotchHero } from "./NotchHero";
-import type { NotchAgent, NotchAttention, NotchState } from "./types";
+import type {
+  NotchAgent,
+  NotchAttention,
+  NotchBrief,
+  NotchState,
+} from "./types";
 
 // The open notch: a glass panel that drops out of the camera housing.
 // Questions first (selectable, every answer numbered so it is one keystroke),
@@ -41,6 +46,9 @@ export interface PanelProps {
   onToggleSound: () => void;
   /** Leave the widget for the full app; closing that window comes back here. */
   onOpenFull: () => void;
+  /** The agent list is folded away until asked for. */
+  agentsOpen: boolean;
+  onAgentsOpen: (open: boolean) => void;
   /** Bumped each time an answer lands; the lead claps for it. */
   cheer?: number;
 }
@@ -132,17 +140,38 @@ function Question({
   const oneTap = (item.options ?? []).filter((o) => !o.requires_text);
   const tag = agent ? primaryTag(agent) : null;
   const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (selected)
-      ref.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  // Where this card's top was when the pointer entered it. Opening it (and
+  // closing the one before it) reflows the list; the scroll is nudged so
+  // the card stays under the pointer instead of sliding away from it.
+  const hoverTop = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!(selected && el)) return;
+    const anchor = hoverTop.current;
+    hoverTop.current = null;
+    if (anchor === null) {
+      // Selected from the keyboard: bring it into view.
+      el.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+      return;
+    }
+    const scroller = el.closest(".nscroll");
+    if (scroller) scroller.scrollTop += el.getBoundingClientRect().top - anchor;
   }, [selected]);
+  const brief = selected ? item.brief : undefined;
+  const described = oneTap.filter((o) => o.description);
   return (
     <article
       ref={ref}
       aria-label={`Question from ${agent?.name ?? item.from_name ?? item.from}`}
       className={`nq${selected ? " is-selected" : ""}`}
       data-testid={`notch-attention-${item.id}`}
-      onMouseEnter={() => onSelect(item.id)}
+      data-open={selected ? "true" : undefined}
+      onMouseEnter={() => {
+        if (!selected) {
+          hoverTop.current = ref.current?.getBoundingClientRect().top ?? null;
+        }
+        onSelect(item.id);
+      }}
     >
       <NotchBot
         slug={item.from || "someone"}
@@ -164,7 +193,21 @@ function Question({
           {item.title ? <strong>{item.title} </strong> : null}
           {item.question && item.question !== item.title ? item.question : null}
         </div>
-        {item.context ? <p className="nq-context">{item.context}</p> : null}
+        {brief ? (
+          <Brief brief={brief} />
+        ) : item.context ? (
+          <p className="nq-context">{item.context}</p>
+        ) : null}
+        {selected && described.length > 0 ? (
+          <dl className="nq-means">
+            {described.map((o) => (
+              <div key={o.id}>
+                <dt>{o.label}</dt>
+                <dd>{o.description}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
         <div className="nq-actions">
           {oneTap.map((o, i) => (
             <button
@@ -201,6 +244,58 @@ function Question({
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * The opened card's background: which project this is, what the asker was
+ * working on, its own account of the decision in full, and the last few
+ * lines of the conversation that led here.
+ */
+function Brief({ brief }: { brief: NotchBrief }) {
+  const { task, recent } = brief;
+  return (
+    <div className="nq-brief" data-testid="notch-brief">
+      {brief.project ? (
+        <section>
+          <h4>Project</h4>
+          <p>
+            <b>#{brief.project}</b>
+            {brief.project_about ? ` ${brief.project_about}` : null}
+          </p>
+        </section>
+      ) : null}
+      {task ? (
+        <section>
+          <h4>Working on</h4>
+          <p>
+            <b>{task.title}</b>
+            {task.status ? (
+              <span className="ntag">{task.status.replace(/_/g, " ")}</span>
+            ) : null}
+          </p>
+          {task.details ? <p>{task.details}</p> : null}
+        </section>
+      ) : null}
+      {brief.context ? (
+        <section>
+          <h4>Why it is asking</h4>
+          <p>{brief.context}</p>
+        </section>
+      ) : null}
+      {recent && recent.length > 0 ? (
+        <section>
+          <h4>Just before</h4>
+          <ul>
+            {recent.map((line) => (
+              <li key={`${line.at ?? ""}:${line.from}:${line.text}`}>
+                <b>{line.name || line.from}</b> {line.text}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -321,6 +416,7 @@ export function NotchPanel(props: PanelProps) {
   }
   const leadName = state.lead_name || "Chief of Staff";
   const bySlug = new Map(state.agents.map((a) => [a.slug, a]));
+  const agentsOpen = props.agentsOpen;
   return (
     <div className="npanel">
       <NotchHero
@@ -375,49 +471,75 @@ export function NotchPanel(props: PanelProps) {
         ) : null}
 
         <section aria-label="Agents">
-          <h3 className="nsection">Agents · {state.agents.length}</h3>
-          <div className="nagents">
-            {state.agents.map((a, i) => {
-              const tags = agentTags(a);
-              return (
-                <button
-                  type="button"
-                  key={a.slug}
-                  className="nagent"
-                  data-testid={`notch-agent-${a.slug}`}
-                  onClick={() =>
-                    props.onReply({
-                      kind: "message",
-                      slug: a.slug,
-                      name: a.name,
-                      channel:
-                        a.is_lead && state.lead_dm
-                          ? state.lead_dm
-                          : dmChannel("human", a.slug),
-                    })
-                  }
-                >
-                  <NotchBot
-                    slug={a.slug}
-                    avatar={a.avatar}
-                    mood={a.mood}
-                    size={24}
-                    phase={i}
-                    label=""
-                  />
-                  <span className="nagent-name">
-                    {a.is_lead ? `${a.name}` : a.name}
-                  </span>
-                  <span className="nagent-detail">
-                    {a.detail || a.mood.replace("_", " ")}
-                  </span>
-                  {tags.map((tag) => (
-                    <Tag key={tag.text} tag={tag} />
-                  ))}
-                </button>
-              );
-            })}
-          </div>
+          <h3 className="nsection">
+            <button
+              type="button"
+              className="nsection-toggle"
+              aria-expanded={agentsOpen}
+              onClick={() => props.onAgentsOpen(!agentsOpen)}
+            >
+              <span aria-hidden="true">{agentsOpen ? "▾" : "▸"}</span> Agents ·{" "}
+              {state.agents.length}
+            </button>
+          </h3>
+          {agentsOpen ? (
+            <div className="nagents">
+              {state.agents.map((a, i) => {
+                const tags = agentTags(a);
+                return (
+                  <div
+                    className="nagent-row"
+                    key={a.slug}
+                    data-testid={`notch-agent-${a.slug}`}
+                  >
+                    <button
+                      type="button"
+                      className="nagent"
+                      aria-label={`Message ${a.name}`}
+                      onClick={() =>
+                        props.onReply({
+                          kind: "message",
+                          slug: a.slug,
+                          name: a.name,
+                          channel:
+                            a.is_lead && state.lead_dm
+                              ? state.lead_dm
+                              : dmChannel("human", a.slug),
+                        })
+                      }
+                    >
+                      <NotchBot
+                        slug={a.slug}
+                        avatar={a.avatar}
+                        mood={a.mood}
+                        size={24}
+                        phase={i}
+                        label=""
+                      />
+                      <span className="nagent-name">{a.name}</span>
+                      <span className="nagent-detail">
+                        {a.detail || a.mood.replace("_", " ")}
+                      </span>
+                      {tags.map((tag) => (
+                        <Tag key={tag.text} tag={tag} />
+                      ))}
+                    </button>
+                    <button
+                      type="button"
+                      className="nagent-open"
+                      aria-label={`Open ${a.name} in full view`}
+                      title="Open in the full app"
+                      onClick={() =>
+                        props.onOpen(`/agents/${encodeURIComponent(a.slug)}`)
+                      }
+                    >
+                      <span aria-hidden="true">↗</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
         </section>
       </div>
 

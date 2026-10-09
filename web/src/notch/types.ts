@@ -21,7 +21,26 @@ export interface NotchAgent {
 export interface NotchOption {
   id: string;
   label: string;
+  /** What choosing this would mean, in the asker's words. */
+  description?: string;
   requires_text?: boolean;
+}
+
+/**
+ * The full background for a question, shown when its card is opened (hover
+ * or selection). Mirrors notchBrief in internal/team/broker_notch.go.
+ */
+export interface NotchBrief {
+  /** The asker's decision brief, in full. */
+  context?: string;
+  /** The room the work lives in (never a DM), and what it is for. */
+  project?: string;
+  project_about?: string;
+  /** The piece of work the question came out of. */
+  task?: { title: string; details?: string; status?: string };
+  asker_role?: string;
+  /** The last few lines of that room, oldest first. */
+  recent?: { from: string; name?: string; text: string; at?: string }[];
 }
 
 export interface NotchAttention {
@@ -34,6 +53,7 @@ export interface NotchAttention {
   question: string;
   /** The asker's decision brief: what it was doing, what it found, why it asks. */
   context?: string;
+  brief?: NotchBrief;
   options?: NotchOption[];
   recommended_id?: string;
   blocking?: boolean;

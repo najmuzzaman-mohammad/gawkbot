@@ -33,6 +33,8 @@ function renderNotch(overrides: Partial<NotchViewProps> = {}) {
     onKeyboard: vi.fn(),
     onToggleSound: vi.fn(),
     onOpenFull: vi.fn(),
+    agentsOpen: false,
+    onAgentsOpen: vi.fn(),
     ...overrides,
   };
   render(<NotchView {...props} />);
@@ -117,8 +119,17 @@ describe("open notch", () => {
     });
   });
 
+  it("keeps the agent list folded away until asked for", async () => {
+    const props = renderNotch({ expanded: true });
+    expect(screen.queryByTestId("notch-agent-gemini")).toBeNull();
+    const toggle = screen.getByRole("button", { name: /Agents/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(toggle);
+    expect(props.onAgentsOpen).toHaveBeenCalledWith(true);
+  });
+
   it("tags a local agent with the tool that runs it, after who made it", () => {
-    renderNotch({ expanded: true });
+    renderNotch({ expanded: true, agentsOpen: true });
     const gemini = screen.getByTestId("notch-agent-gemini");
     expect(
       Array.from(gemini.querySelectorAll(".ntag")).map((t) => t.textContent),
@@ -137,18 +148,90 @@ describe("open notch", () => {
     ).toEqual(["adopted", "holding up work"]);
   });
 
-  it("messages any agent from the roster, including ones running elsewhere", async () => {
-    const props = renderNotch({ expanded: true });
+  it("messages an agent from the roster, with a button for its full view", async () => {
+    const props = renderNotch({ expanded: true, agentsOpen: true });
     expect(screen.getByTestId("notch-agent-hermes")).toHaveTextContent(
       "Hermes gateway",
     );
-    await userEvent.click(screen.getByTestId("notch-agent-hermes"));
+    // The row is the quick chat, including for agents running elsewhere.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Message Hermes" }),
+    );
     expect(props.onReply).toHaveBeenCalledWith({
       kind: "message",
       slug: "hermes",
       name: "Hermes",
       channel: "hermes__human",
     });
+    expect(props.onOpen).not.toHaveBeenCalled();
+    // The arrow leaves for the agent's page in the full app.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open Hermes in full view" }),
+    );
+    expect(props.onOpen).toHaveBeenCalledWith("/agents/hermes");
+  });
+
+  it("opens the selected question with its full background, and only that one", () => {
+    const state = {
+      ...BUSY_OFFICE,
+      attention: BUSY_OFFICE.attention.map((a, i) =>
+        i === 0
+          ? {
+              ...a,
+              context: "Short lead-in.",
+              brief: {
+                context: "The whole account of the decision.",
+                project: "checkout",
+                project_about: "Ship the new checkout this week.",
+                task: { title: "Migrate sessions", status: "in_progress" },
+                recent: [
+                  {
+                    from: "gemini",
+                    name: "Gemini CLI",
+                    text: "Dry run is clean.",
+                  },
+                ],
+              },
+              options: (a.options ?? []).map((o) =>
+                o.id === "approve" ? { ...o, description: "Sends it now." } : o,
+              ),
+            }
+          : a,
+      ),
+    };
+    const first = state.attention[0].id;
+    renderNotch({ expanded: true, state, selectedId: first });
+    const card = screen.getByTestId(`notch-attention-${first}`);
+    const brief = screen.getByTestId("notch-brief");
+    expect(card).toContainElement(brief);
+    expect(brief).toHaveTextContent(
+      "#checkout Ship the new checkout this week.",
+    );
+    expect(brief).toHaveTextContent("Migrate sessions");
+    expect(brief).toHaveTextContent("in progress");
+    expect(brief).toHaveTextContent("The whole account of the decision.");
+    expect(brief).toHaveTextContent("Gemini CLI Dry run is clean.");
+    expect(card).toHaveTextContent("Sends it now.");
+    // One brief on screen: the cards that are not selected stay short.
+    expect(screen.getAllByTestId("notch-brief")).toHaveLength(1);
+  });
+
+  it("shows only the lead-in on a question that is not selected", () => {
+    const state = {
+      ...BUSY_OFFICE,
+      attention: BUSY_OFFICE.attention.map((a, i) =>
+        i === 0
+          ? {
+              ...a,
+              context: "Short lead-in.",
+              brief: { context: "The whole account." },
+            }
+          : a,
+      ),
+    };
+    renderNotch({ expanded: true, state, selectedId: "none" });
+    expect(screen.queryByTestId("notch-brief")).toBeNull();
+    expect(screen.getByText("Short lead-in.")).toBeInTheDocument();
   });
 
   it("composes, listens and sends", async () => {

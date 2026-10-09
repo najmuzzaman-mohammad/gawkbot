@@ -21,6 +21,7 @@ import {
 import { postNative } from "./bridge";
 import { keyAction, type NotchAction } from "./keys";
 import type { ComposerState, ReplyTarget } from "./NotchPanel";
+import { claimNudge, nudgeWaitMs } from "./nudge";
 import { play, soundForAttention } from "./sounds";
 import type { Mood, NotchAgent, NotchAttention, NotchState } from "./types";
 import { startVoice, type VoiceSession } from "./voice";
@@ -87,7 +88,10 @@ export function useAttentionSignals(
     const fresh = newAttentionIds(seen.current, state);
     seen.current = new Set(state.attention.map((a) => a.id));
     trackFirstSeen(firstSeen.current, state.attention, Date.now());
-    if (fresh.length > 0) {
+    // A new question nudges (a sound, and the notch peeks open) at most
+    // once in five minutes (nudge.ts); in between, the count on the notch
+    // goes up and that is all.
+    if (fresh.length > 0 && claimNudge()) {
       const item = state.attention.find((a) => a.id === fresh[0]);
       play(soundForAttention(item?.kind ?? ""));
       postNative({
@@ -132,6 +136,12 @@ export function useBanter(
     let timer = 0;
     let round = 0;
     const runScript = () => {
+      // Chatter is a nudge like any other: one every five minutes.
+      if (!claimNudge()) {
+        setLine(null);
+        timer = window.setTimeout(runScript, nudgeWaitMs() + 1_000);
+        return;
+      }
       const script = banterScript(
         latest.current.attention,
         latest.current.agents,
@@ -193,7 +203,7 @@ export function useArrival(
     }
     const item = state.attention.find((a) => a.id === fresh[0]);
     const who = state.agents.find((a) => a.slug === item?.from);
-    if (!who) return;
+    if (!(who && claimNudge())) return;
     flying.current = true;
     setArrival(who);
     window.setTimeout(() => {
@@ -221,7 +231,7 @@ export function usePeeks(
         const { agents: a, attention: att, blocked: b } = latest.current;
         const busy = new Set(gangOf(att, a).map((g) => g.slug));
         const who = b ? null : pickPeeker(a, busy, Math.random);
-        if (who) {
+        if (who && claimNudge()) {
           setPeeker(who);
           play("peek");
           hide = window.setTimeout(() => setPeeker(null), PEEK_DURATION_MS);

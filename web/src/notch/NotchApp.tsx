@@ -76,6 +76,7 @@ export function NotchApp({
   const [answering, setAnswering] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [soundOn, setSoundOn] = useState(soundEnabled);
+  const [agentsOpen, setAgentsOpen] = useState(false);
 
   const query = useQuery({
     queryKey: NOTCH_QUERY_KEY,
@@ -276,6 +277,8 @@ export function NotchApp({
         onKeyboard={(active) => postNative({ type: "keyboard", active })}
         onToggleSound={toggleSound}
         onOpenFull={openFull}
+        agentsOpen={agentsOpen}
+        onAgentsOpen={setAgentsOpen}
       />
     </div>
   );

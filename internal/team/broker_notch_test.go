@@ -2,11 +2,14 @@ package team
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nex-crm/wuphf/internal/channel"
 )
 
 func fetchNotchState(t *testing.T, b *Broker) notchState {
@@ -126,5 +129,105 @@ func TestNotchHeadlineSingleAsk(t *testing.T) {
 	}
 	if mood, line := notchHeadline(0, map[string]int{MoodWorking: 2}, nil, nil); mood != MoodWorking || line != "2 bots working" {
 		t.Fatalf("mood=%q line=%q", mood, line)
+	}
+}
+
+// The human answering has none of the asker's context, so the ask brings
+// it: which project, what the asker was doing, what was said just before,
+// the asker's own brief in full, and what each option would mean.
+func TestNotchAttentionCarriesTheFullBrief(t *testing.T) {
+	b := newTestBroker(t)
+	now := time.Now().UTC()
+	longBrief := strings.Repeat("The dry run kept 0 rows. ", 40)
+	b.mu.Lock()
+	const eng = "eng"
+	b.members = append(b.members, officeMember{Slug: eng, Name: "Engineer", Role: "Backend engineer"})
+	b.memberIndex[eng] = len(b.members) - 1
+	b.channels = append(b.channels, teamChannel{Slug: "checkout", Name: "checkout", Description: "Ship the new checkout this week."})
+	b.tasks = append(b.tasks, teamTask{ID: "task-7", Channel: "checkout", Title: "Migrate sessions to the new store", Details: "Move sessions off the old table, then drop it.", Owner: eng})
+	for i, text := range []string{"oldest line", "Starting the migration on staging.", "Dry run is clean.", "One thing I cannot verify from here.", "Asking you now."} {
+		b.messages = append(b.messages, channelMessage{ID: fmt.Sprintf("m%d", i), From: eng, Channel: "checkout", Content: text, Timestamp: now.Add(time.Duration(i) * time.Minute).Format(time.RFC3339)})
+	}
+	b.messages = append(b.messages,
+		channelMessage{ID: "elsewhere", From: eng, Channel: "other", Content: "not this room", Timestamp: now.Format(time.RFC3339)},
+		// The system's echo of the request is left out of "just before".
+		channelMessage{ID: "echo", From: "system", Channel: "checkout", Content: "@eng asks you: Run the migration?", Timestamp: now.Add(time.Hour).Format(time.RFC3339)},
+	)
+	b.requests = append(b.requests,
+		humanInterview{ID: "r-1", Kind: "approval", From: eng, Channel: "checkout", IssueID: "task-7", Title: "Run the migration?", Question: "It drops the old sessions table.", Context: longBrief,
+			Options:   []interviewOption{{ID: "approve", Label: "Approve", Description: "Runs it on staging now."}, {ID: "reject", Label: "Reject", Description: "Leaves the old table in place."}},
+			CreatedAt: now.Format(time.RFC3339)},
+		humanInterview{ID: "r-secret", Kind: "secret", From: eng, Channel: "checkout", Title: "API key", Question: "paste it", Context: "sk-live-123", Secret: true, CreatedAt: now.Format(time.RFC3339)},
+	)
+	b.mu.Unlock()
+
+	s := fetchNotchState(t, b)
+	var got *notchAttention
+	for i := range s.Attention {
+		switch s.Attention[i].ID {
+		case "r-1":
+			got = &s.Attention[i]
+		case "r-secret":
+			if s.Attention[i].Brief != nil || s.Attention[i].Context != "" {
+				t.Fatalf("secret request carried a brief: %+v", s.Attention[i])
+			}
+		}
+	}
+	if got == nil || got.Brief == nil {
+		t.Fatalf("no brief on the approval: %+v", s.Attention)
+	}
+	br := got.Brief
+	// The card shows a short lead-in; the brief holds the asker's words in full.
+	if len(got.Context) > notchContextMax+3 || len(br.Context) <= len(got.Context) {
+		t.Fatalf("card context %d chars, brief context %d chars", len(got.Context), len(br.Context))
+	}
+	if br.Project != "checkout" || br.ProjectAbout != "Ship the new checkout this week." {
+		t.Fatalf("project = %q / %q", br.Project, br.ProjectAbout)
+	}
+	if br.Task == nil || br.Task.Title != "Migrate sessions to the new store" || !strings.Contains(br.Task.Details, "drop it") {
+		t.Fatalf("task = %+v", br.Task)
+	}
+	if br.AskerRole != "Backend engineer" {
+		t.Fatalf("asker role = %q", br.AskerRole)
+	}
+	// The last few lines of that room, oldest first, and none from elsewhere.
+	if len(br.Recent) != notchBriefRecentMax {
+		t.Fatalf("recent = %d lines, want %d", len(br.Recent), notchBriefRecentMax)
+	}
+	if br.Recent[0].Text != "Starting the migration on staging." || br.Recent[len(br.Recent)-1].Text != "Asking you now." {
+		t.Fatalf("recent = %+v", br.Recent)
+	}
+	if got.Options[0].Description != "Runs it on staging now." {
+		t.Fatalf("option description missing: %+v", got.Options)
+	}
+}
+
+// With no linked task, the brief falls back to what the asker is working
+// on right now; a DM is not a project.
+func TestNotchBriefFallsBackToTheAskersOpenTask(t *testing.T) {
+	b := newTestBroker(t)
+	b.mu.Lock()
+	const eng = "eng"
+	b.members = append(b.members, officeMember{Slug: eng, Name: "Engineer"})
+	b.memberIndex[eng] = len(b.members) - 1
+	dm := channel.DirectSlug("human", eng)
+	b.channels = append(b.channels, teamChannel{Slug: dm, Name: dm, Type: "dm"})
+	b.tasks = append(b.tasks, teamTask{ID: "task-9", Title: "Fix the flaky checkout test", Owner: eng})
+	b.requests = append(b.requests, humanInterview{ID: "r-2", Kind: "interview", From: eng, Channel: dm, Title: "Request", Question: "Retry or freeze the clock?"})
+	b.mu.Unlock()
+
+	s := fetchNotchState(t, b)
+	if len(s.Attention) != 1 || s.Attention[0].Brief == nil {
+		t.Fatalf("attention = %+v", s.Attention)
+	}
+	if s.Attention[0].Title != "" {
+		t.Fatalf("placeholder title kept: %q", s.Attention[0].Title)
+	}
+	br := s.Attention[0].Brief
+	if br.Project != "" {
+		t.Fatalf("a DM was named as a project: %q", br.Project)
+	}
+	if br.Task == nil || br.Task.Title != "Fix the flaky checkout test" {
+		t.Fatalf("task = %+v", br.Task)
 	}
 }

@@ -38,6 +38,8 @@ const meta: Meta<typeof NotchView> = {
     onKeyboard: noop,
     onToggleSound: noop,
     onOpenFull: noop,
+    agentsOpen: true,
+    onAgentsOpen: noop,
   },
   decorators: [
     (Story) => (

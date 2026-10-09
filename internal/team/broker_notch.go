@@ -48,13 +48,56 @@ type notchAgent struct {
 type notchOption struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
+	// Description says what choosing this would mean, in the asker's words.
+	Description string `json:"description,omitempty"`
 	// RequiresText options need a typed answer; the notch sends the human
 	// to the full app for those rather than answering blind.
 	RequiresText bool `json:"requires_text,omitempty"`
 }
 
-// How much of a decision brief the notch card shows.
+// How much of a decision brief the notch card shows before it is opened.
 const notchContextMax = 320
+
+// What the opened card holds: the asker's brief in full, and a few lines
+// of the conversation around it.
+const (
+	notchBriefContextMax = 4000
+	notchBriefDetailsMax = 600
+	notchBriefLineMax    = 280
+	notchBriefRecentMax  = 4
+)
+
+// notchBrief is everything the human needs to answer without leaving the
+// notch: which project this is, what the asker was doing there, what was
+// said just before, and the asker's own account of the decision. The card
+// shows it when the question is hovered or selected.
+type notchBrief struct {
+	// Context is the asker's decision brief, in full.
+	Context string `json:"context,omitempty"`
+	// Project is the room the work lives in (never a DM), with what the
+	// room is for.
+	Project      string `json:"project,omitempty"`
+	ProjectAbout string `json:"project_about,omitempty"`
+	// Task is the piece of work the question came out of.
+	Task *notchBriefTask `json:"task,omitempty"`
+	// AskerRole is what the asking bot does in the office.
+	AskerRole string `json:"asker_role,omitempty"`
+	// Recent is the last few lines of that room, oldest first.
+	Recent []notchBriefLine `json:"recent,omitempty"`
+}
+
+type notchBriefTask struct {
+	Title   string `json:"title"`
+	Details string `json:"details,omitempty"`
+	Status  string `json:"status,omitempty"`
+}
+
+type notchBriefLine struct {
+	From string `json:"from"`
+	Name string `json:"name,omitempty"`
+	Text string `json:"text"`
+	At   string `json:"at,omitempty"`
+}
 
 type notchAttention struct {
 	ID       string `json:"id"`
@@ -66,7 +109,10 @@ type notchAttention struct {
 	Question string `json:"question"`
 	// The decision brief the asker gave: what it was doing, what it found,
 	// why it cannot decide alone. Trimmed to what a card can show.
-	Context       string        `json:"context,omitempty"`
+	Context string `json:"context,omitempty"`
+	// Brief is the full background, shown when the card is opened. Never
+	// set for a secret prompt.
+	Brief         *notchBrief   `json:"brief,omitempty"`
 	Options       []notchOption `json:"options,omitempty"`
 	RecommendedID string        `json:"recommended_id,omitempty"`
 	Blocking      bool          `json:"blocking,omitempty"`
@@ -124,7 +170,7 @@ func (b *Broker) notchStateLocked(now time.Time) notchState {
 			From:          from,
 			FromName:      names[from],
 			Channel:       req.Channel,
-			Title:         req.Title,
+			Title:         notchTitle(req.Title),
 			Question:      req.Question,
 			Context:       truncate(strings.TrimSpace(req.Context), notchContextMax),
 			RecommendedID: req.RecommendedID,
@@ -138,8 +184,9 @@ func (b *Broker) notchStateLocked(now time.Time) notchState {
 			item.Context = ""
 		} else {
 			for _, o := range req.Options {
-				item.Options = append(item.Options, notchOption{ID: o.ID, Label: firstNonEmpty(o.Label, o.ID), RequiresText: o.RequiresText})
+				item.Options = append(item.Options, notchOption{ID: o.ID, Label: firstNonEmpty(o.Label, o.ID), Description: strings.TrimSpace(o.Description), RequiresText: o.RequiresText})
 			}
+			item.Brief = b.notchBriefLocked(req, names)
 		}
 		state.Attention = append(state.Attention, item)
 	}
@@ -234,4 +281,96 @@ func notchCount(n int, one, many string) string {
 		return "1 " + one
 	}
 	return fmt.Sprintf("%d %s", n, many)
+}
+
+// notchBriefLocked gathers the background for one open request. Caller
+// holds b.mu. Returns nil when there is nothing to add to the question.
+func (b *Broker) notchBriefLocked(req humanInterview, names map[string]string) *notchBrief {
+	from := strings.TrimSpace(req.From)
+	brief := notchBrief{Context: truncate(strings.TrimSpace(req.Context), notchBriefContextMax)}
+	if m := b.findMemberLocked(from); m != nil {
+		brief.AskerRole = strings.TrimSpace(m.Role)
+	}
+
+	ch := b.findChannelLocked(req.Channel)
+	if ch != nil && ch.Type != "dm" {
+		brief.Project = firstNonEmpty(strings.TrimSpace(ch.Name), ch.Slug)
+		brief.ProjectAbout = truncate(strings.TrimSpace(ch.Description), notchBriefDetailsMax)
+	}
+
+	if task := b.notchBriefTaskLocked(req, ch); task != nil {
+		brief.Task = &notchBriefTask{
+			Title:   strings.TrimSpace(task.Title),
+			Details: truncate(strings.TrimSpace(task.Details), notchBriefDetailsMax),
+			Status:  task.Status(),
+		}
+	}
+
+	// The last few lines of the room the question was asked in, so the
+	// human can see what led up to it.
+	if req.Channel != "" {
+		for i := len(b.messages) - 1; i >= 0 && len(brief.Recent) < notchBriefRecentMax; i-- {
+			msg := b.messages[i]
+			text := strings.TrimSpace(msg.Content)
+			// The system's own announcement of the request says nothing the
+			// card does not already say.
+			if msg.Channel != req.Channel || text == "" || msg.From == "system" {
+				continue
+			}
+			brief.Recent = append(brief.Recent, notchBriefLine{
+				From: msg.From,
+				Name: names[msg.From],
+				Text: truncate(text, notchBriefLineMax),
+				At:   msg.Timestamp,
+			})
+		}
+		// Collected newest first; the card reads oldest first.
+		for i, j := 0, len(brief.Recent)-1; i < j; i, j = i+1, j-1 {
+			brief.Recent[i], brief.Recent[j] = brief.Recent[j], brief.Recent[i]
+		}
+	}
+
+	if brief.Context == "" && brief.Project == "" && brief.Task == nil && brief.AskerRole == "" && len(brief.Recent) == 0 {
+		return nil
+	}
+	return &brief
+}
+
+// notchBriefTaskLocked finds the work a request came out of: the task it
+// names, else the task its room belongs to, else what the asker has open
+// right now (the most recently created one).
+func (b *Broker) notchBriefTaskLocked(req humanInterview, ch *teamChannel) *teamTask {
+	if id := strings.TrimSpace(req.IssueID); id != "" {
+		if t := b.findTaskByIDLocked(id); t != nil {
+			return t
+		}
+	}
+	if ch != nil && strings.TrimSpace(ch.TaskID) != "" {
+		if t := b.findTaskByIDLocked(ch.TaskID); t != nil {
+			return t
+		}
+	}
+	from := strings.TrimSpace(req.From)
+	for i := len(b.tasks) - 1; i >= 0; i-- {
+		t := &b.tasks[i]
+		if t.Owner != from {
+			continue
+		}
+		switch strings.ToLower(t.Status()) {
+		case "done", "completed", "canceled", "cancelled", "archived":
+			continue
+		}
+		return t
+	}
+	return nil
+}
+
+// notchTitle drops the broker's placeholder title: "Request" in front of a
+// question tells the human nothing.
+func notchTitle(title string) string {
+	t := strings.TrimSpace(title)
+	if strings.EqualFold(t, "Request") {
+		return ""
+	}
+	return t
 }
