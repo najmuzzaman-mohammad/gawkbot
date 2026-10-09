@@ -7,6 +7,7 @@ import {
   blobColor,
   blobShapeIndex,
   hasAvatarChoice,
+  LEGACY_AVATAR_SHAPES,
   resolveAvatar,
 } from "./blobAvatar";
 
@@ -63,21 +64,33 @@ describe("per-bot identity", () => {
 });
 
 describe("chosen avatars", () => {
-  it("names every species, in the broker's wire order", () => {
+  it("names every orb body, in the broker's wire order", () => {
     // WIRE CONTRACT with AvatarShapes in internal/team/broker_member_avatar.go.
-    // The index IS the species, so a reorder here silently swaps bodies.
+    // The index IS the body, so a reorder here silently swaps bodies.
     expect(AVATAR_SHAPES).toEqual([
-      "block",
-      "dome",
+      "bear",
+      "lemon",
+      "ghost",
+      "cloud",
       "drop",
-      "bean",
-      "pill",
-      "loaf",
-      "shield",
-      "blob",
+      "stack",
+      "seacow",
+      "flower",
     ]);
     expect(AVATAR_COLOR_NAMES).toHaveLength(AVATAR_COLORS.length);
     for (const c of AVATAR_COLORS) expect(c).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it("maps the previous character set's ids onto orbs", () => {
+    // Bots that picked a look before the orbs keep a look, not a fallback.
+    for (const [old, now] of Object.entries(LEGACY_AVATAR_SHAPES)) {
+      expect(AVATAR_SHAPES).toContain(now);
+      expect(resolveAvatar("cos", { shape: old }).shapeIndex).toBe(
+        AVATAR_SHAPES.indexOf(now),
+      );
+      expect(hasAvatarChoice({ shape: old })).toBe(true);
+    }
+    expect(Object.keys(LEGACY_AVATAR_SHAPES)).toHaveLength(8);
   });
 
   it("falls back to the derived look when nothing is chosen", () => {
@@ -91,8 +104,8 @@ describe("chosen avatars", () => {
   });
 
   it("lets each field win on its own", () => {
-    expect(resolveAvatar("cos", { shape: "pill" })).toEqual({
-      shapeIndex: AVATAR_SHAPES.indexOf("pill"),
+    expect(resolveAvatar("cos", { shape: "lemon" })).toEqual({
+      shapeIndex: AVATAR_SHAPES.indexOf("lemon"),
       color: blobColor("cos"),
     });
     expect(resolveAvatar("cos", { color: "#112233" })).toEqual({
@@ -103,7 +116,7 @@ describe("chosen avatars", () => {
 
   it("normalises case and degrades bad wire data to the derived field", () => {
     expect(resolveAvatar("cos", { shape: " LOAF ", color: "#AABBCC" })).toEqual(
-      { shapeIndex: AVATAR_SHAPES.indexOf("loaf"), color: "#aabbcc" },
+      { shapeIndex: AVATAR_SHAPES.indexOf("cloud"), color: "#aabbcc" },
     );
     // Unknown shape, short hex, a CSS injection attempt: all ignored.
     for (const bad of [

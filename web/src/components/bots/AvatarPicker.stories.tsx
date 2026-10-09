@@ -50,12 +50,12 @@ export const Automatic: Story = {};
 
 /** A chosen shape and palette colour. */
 export const Chosen: Story = {
-  args: { initial: { shape: "bean", color: "#3f9c8f" } },
+  args: { initial: { shape: "seacow", color: "#3f9c8f" } },
 };
 
 /** Shape only: the colour still comes from the slug. */
 export const ShapeOnly: Story = {
-  args: { initial: { shape: "shield" } },
+  args: { initial: { shape: "ghost" } },
 };
 
 /** A colour off the palette: the Custom chip is the checked one. */
@@ -69,5 +69,5 @@ export const NoSlugYet: Story = {
 };
 
 export const Disabled: Story = {
-  args: { initial: { shape: "loaf" }, disabled: true },
+  args: { initial: { shape: "cloud" }, disabled: true },
 };

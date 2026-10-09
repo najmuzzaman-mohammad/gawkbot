@@ -1,19 +1,17 @@
 /* ─── Avatar motion: soft, squishy, alive ───
-   Shared by every blob mark (components/ui/PixelAvatar.tsx in blob mode,
-   components/ui/BlobAvatar.tsx). Three behaviours, all CSS, all under
-   prefers-reduced-motion: no-preference:
+   Shared by every orb mark (components/ui/OrbAvatar.tsx). Two behaviours,
+   all CSS, all under prefers-reduced-motion: no-preference:
 
      press   an avatar inside something pressable squashes onto its base
              while held and springs back with an overshoot on release.
      hover   an avatar inside a hovered row or card gives one gentle wobble.
-     blink   the eyes narrow briefly. lib/avatarBlink.ts decides WHEN (random
-             gaps, large avatars only, one avatar at a time); this file
-             decides how it looks.
 
-   Structure the components render:
+   Blinking is the orb's own (lib/avatarBlink.ts decides WHEN for still
+   marks: random gaps, large avatars only, one avatar at a time).
+
+   Structure the component renders:
      svg.avatar-motion            the wobble target (whole mark)
-       g.avatar-motion-body       the squash target (body + its eye mask)
-       .avatar-motion-eye         the blink target (mask shapes)
+       g.avatar-motion-body       the squash target (the orb's root group)
 
    Two different elements carry the two transforms so a press during a
    hover wobble composes instead of one cancelling the other. */
@@ -26,13 +24,9 @@
   --avatar-press-duration: 90ms;
   --avatar-release-duration: 520ms;
   --avatar-wobble-duration: 640ms;
-  --avatar-blink-duration: 220ms;
   /* How flat a press makes the body: wider and shorter, volume roughly kept. */
   --avatar-squash-x: 1.14;
   --avatar-squash-y: 0.84;
-  /* How narrow the eyes get mid-blink. Never shut: a closed blob reads as
-     broken, not blinking (see eyeSpec in lib/blobAvatar.ts). */
-  --avatar-blink-min: 0.22;
 }
 
 /* The squash widens the body past its box; let it, rather than shear it
@@ -43,13 +37,9 @@
 }
 .avatar-motion-body {
   /* Scale about the middle of the baseline, in viewBox units, so every
-     silhouette squashes onto the floor it stands on. */
+     body squashes onto the floor it stands on. */
   transform-box: view-box;
   transform-origin: 50% 100%;
-}
-.avatar-motion-eye {
-  transform-box: fill-box;
-  transform-origin: center;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -92,11 +82,6 @@
       animation: avatar-wobble var(--avatar-wobble-duration) ease-out 1;
     }
   }
-
-  .avatar-motion[data-blinking="true"]:not([data-working="true"])
-    .avatar-motion-eye {
-    animation: avatar-blink var(--avatar-blink-duration) ease-in-out 1;
-  }
 }
 
 /* A jelly wobble: a lean, a smaller lean back, settling. Each swing also
@@ -119,20 +104,5 @@
   }
   100% {
     transform: none;
-  }
-}
-
-/* Narrow, hold for a beat, reopen slightly past round, settle. */
-@keyframes avatar-blink {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  38%,
-  52% {
-    transform: scaleY(var(--avatar-blink-min));
-  }
-  78% {
-    transform: scaleY(1.08);
   }
 }

@@ -48,7 +48,7 @@ non-activating `NSPanel` at status-bar level on every Space, hosting a
 - **Collapsed**: exactly the notch's height, one "ear" wider on each side.
   The left ear is the Chief of Staff acting out the office's mood; the right
   ear shows the agents that most need looking at plus a count of things
-  waiting on you. The gawkbots are the brand mark's hollow eyes, animated
+  waiting on you. The gawkbots are their orbs (Nex's mascots), animated
   per mood: working, idle, needs you, error, done.
 - **Hover**: a Force Touch trackpad tap (`NSHapticFeedbackManager`) and the
   strip drops into a panel: what needs you (one-tap answers through
@@ -63,9 +63,12 @@ non-activating `NSPanel` at status-bar level on every Space, hosting a
   (`HideWindowOnClose`, macOS only) instead of quitting, so you are back to
   just the notch. The Dock icon follows: shown while the full view is open
   or minimised, gone when only the notch is left.
-- **Sounds**: a different cartoon sound per moment (a question, an approval,
-  an error, a finish, a sent reply, a peek, bored chatter), synthesized live
-  with Web Audio (`web/src/notch/sounds.ts`), with a mute toggle in the panel.
+- **Sounds**: Saturday-morning foley, one cue per moment: a slide whistle
+  and a spring for a question, a counter bell for an approval, the muted sad
+  trombone for an error, a xylophone run and a cymbal for a finish, a bubble
+  pop for a sent reply, a squeaky "yoo-hoo" for a peek, gibberish for bored
+  chatter. All synthesized live with Web Audio (`web/src/notch/sounds.ts`),
+  with a mute toggle in the panel.
 - **Antics**: now and then an agent peeks out from under the notch for no
   reason. When several need you they pile onto the notch, and if you leave
   them waiting they start talking to each other below it

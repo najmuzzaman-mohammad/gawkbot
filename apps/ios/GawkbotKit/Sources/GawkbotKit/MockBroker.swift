@@ -31,7 +31,7 @@ public actor MockBroker: BrokerAPI {
     /// derived colour, so a partial override is on show in -mock mode.
     private var avatars: [String: BotAvatar] = MockBroker.seedAvatars
 
-    public static let seedAvatars: [String: BotAvatar] = ["hermes": BotAvatar(shape: "blob")]
+    public static let seedAvatars: [String: BotAvatar] = ["hermes": BotAvatar(shape: "flower")]
 
     public init(config: Config = Config()) {
         self.config = config

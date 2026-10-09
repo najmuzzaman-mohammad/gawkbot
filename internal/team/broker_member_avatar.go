@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// MemberAvatar is a bot's chosen look: one of the office's blob silhouettes
-// and a body colour. Both are optional; an unset field falls back to the
+// MemberAvatar is a bot's chosen look: one of the orb bodies and a body
+// colour. Both are optional; an unset field falls back to the
 // value derived from the slug (web/src/lib/blobAvatar.ts), so bots created
 // before avatars were pickable look exactly as they always did.
 type MemberAvatar struct {
@@ -15,10 +15,24 @@ type MemberAvatar struct {
 	Color string `json:"color,omitempty"`
 }
 
-// AvatarShapes are the silhouette ids, in the order of SILHOUETTES in
+// AvatarShapes are the orb body ids, in the order of AVATAR_SHAPES in
 // web/src/lib/blobAvatar.ts. WIRE CONTRACT: the web and iOS renderers map
-// these names to their outlines.
-var AvatarShapes = []string{"block", "dome", "drop", "bean", "pill", "loaf", "shield", "blob"}
+// these names to their bodies.
+var AvatarShapes = []string{"bear", "lemon", "ghost", "cloud", "drop", "stack", "seacow", "flower"}
+
+// legacyAvatarShapes are the ids of the character set before the orbs. A
+// bot that chose one keeps a look: each maps onto the orb that stands in
+// for it (the same table as LEGACY_AVATAR_SHAPES on the web and on iOS).
+var legacyAvatarShapes = map[string]string{
+	"block":  "stack",
+	"dome":   "bear",
+	"drop":   "drop",
+	"bean":   "seacow",
+	"pill":   "lemon",
+	"loaf":   "cloud",
+	"shield": "ghost",
+	"blob":   "flower",
+}
 
 var avatarColorRE = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
@@ -36,6 +50,9 @@ func normalizeMemberAvatar(a *MemberAvatar) (*MemberAvatar, error) {
 		return nil, nil
 	}
 	if out.Shape != "" {
+		if now, ok := legacyAvatarShapes[out.Shape]; ok {
+			out.Shape = now
+		}
 		known := false
 		for _, s := range AvatarShapes {
 			if s == out.Shape {

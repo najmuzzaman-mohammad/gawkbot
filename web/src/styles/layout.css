@@ -411,6 +411,9 @@ html[data-theme="nex"]
   appearance: none;
 }
 .sidebar-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-family: var(--font-logo);
   font-style: italic;
   font-size: 22px;
@@ -424,6 +427,9 @@ html[data-theme="nex"]
   margin: 0;
   color: inherit;
   text-align: left;
+}
+.sidebar-logo-mark {
+  flex-shrink: 0;
 }
 .sidebar-logo:hover {
   opacity: 0.85;

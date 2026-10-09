@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import GawkbotKit
 
-/// Pick a bot's look: one of the office's eight species (each previewed
+/// Pick a bot's look: one of the office's eight orb bodies (each previewed
 /// in the colour being picked) and a body colour from the 12-colour palette
 /// or any custom colour. A big live preview at the top squishes when tapped.
 /// "Reset to automatic" goes back to the look derived from the bot's slug.
@@ -35,6 +35,21 @@ struct AvatarPickerSheet: View {
 
     private let shapeColumns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
     private let colorColumns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 6)
+
+    /// The label for a shape id, in the order of `BotAvatar.shapeIDs`.
+    static func shapeLabel(_ id: String) -> String {
+        switch id {
+        case "bear": return "Bear"
+        case "lemon": return "Lemon"
+        case "ghost": return "Ghost"
+        case "cloud": return "Cloud"
+        case "drop": return "Drop"
+        case "stack": return "Stack"
+        case "seacow": return "Sea cow"
+        case "flower": return "Flower"
+        default: return id.capitalized
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -116,6 +131,7 @@ struct AvatarPickerSheet: View {
 
     private func shapeTile(_ index: Int) -> some View {
         let id = BotAvatar.shapeIDs[index]
+        let label = AvatarPickerSheet.shapeLabel(id)
         let selected = look.shapeIndex == index
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { draft.shape = id }
@@ -124,7 +140,7 @@ struct AvatarPickerSheet: View {
             VStack(spacing: 6) {
                 BlobAvatarView(slug: slug, avatar: BotAvatar(shape: id, color: look.color), size: 44)
                     .scaleEffect(selected ? 1.08 : 1)
-                Text(id.capitalized)
+                Text(label)
                     .font(.caption2.weight(selected ? .semibold : .regular))
                     .foregroundStyle(selected ? Color.primary : Color.secondary)
             }
@@ -137,7 +153,7 @@ struct AvatarPickerSheet: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(id.capitalized) shape")
+        .accessibilityLabel("\(label) shape")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 

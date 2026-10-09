@@ -2,10 +2,10 @@ import Foundation
 
 /// Port of web/src/lib/blobAvatar.ts: which look a bot has. Same palette,
 /// same FNV-1a hashing, so a bot has the same species and colour on the
-/// phone as in the office. Drawing is `GawkAvatar` (the geometry) and the
+/// phone as in the office. Drawing is `OrbAvatar` (the geometry) and the
 /// app's `BlobAvatarView` (the pixels).
 public enum BlobAvatar {
-    /// How many species there are: the count of `BotAvatar.shapeIDs`.
+    /// How many bodies there are: the count of `BotAvatar.shapeIDs`.
     public static var shapeCount: Int { BotAvatar.shapeIDs.count }
 
     /// Hex body colours, same order as the web palette (AVATAR_COLORS).

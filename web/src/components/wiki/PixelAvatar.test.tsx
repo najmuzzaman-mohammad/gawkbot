@@ -19,10 +19,12 @@ beforeEach(() => {
   roster.avatars.clear();
 });
 
-/** The mid tone of the body gradient: the colour the bot was given. */
+/** The body's fill: the colour the bot was given. */
 function bodyFill(container: HTMLElement): string | null {
-  const stops = container.querySelectorAll(".pixel-avatar linearGradient stop");
-  return stops[1]?.getAttribute("stop-color") ?? null;
+  const piece = container.querySelector(
+    ".pixel-avatar circle[fill], .pixel-avatar ellipse[fill]",
+  );
+  return piece?.getAttribute("fill") ?? null;
 }
 
 // The wrapper renders whatever the shared avatar renders. The assertions
@@ -41,7 +43,7 @@ describe("<PixelAvatar> (wiki wrapper)", () => {
     // Arrange
     const { container: automatic } = render(<PixelAvatar slug="pm" />);
     const derived = bodyFill(automatic);
-    roster.avatars.set("pm", { shape: "dome", color: "#123456" });
+    roster.avatars.set("pm", { shape: "bear", color: "#123456" });
 
     // Act
     const { container } = render(<PixelAvatar slug="pm" />);

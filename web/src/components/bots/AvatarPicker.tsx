@@ -9,12 +9,11 @@ import {
   normalizeAvatarColor,
   resolveAvatar,
 } from "../../lib/blobAvatar";
-import { BlobAvatar } from "../ui/BlobAvatar";
+import { OrbAvatar } from "../ui/OrbAvatar";
 
 import "../../styles/avatar-picker.css";
 
-// Pick a bot's look: one of the office's eight species and a body
-// colour. `value` undefined means AUTOMATIC: the look derived from the slug,
+// Pick a bot's look: one of the eight orb bodies and a body colour. `value` undefined means AUTOMATIC: the look derived from the slug,
 // which is what every bot had before avatars were pickable. Each field is
 // independent, so picking only a shape keeps the derived colour (and vice
 // versa), matching how the broker resolves a partial avatar.
@@ -27,14 +26,14 @@ import "../../styles/avatar-picker.css";
 // its own tab stop after the palette.
 
 const SHAPE_LABELS: Record<AvatarShape, string> = {
-  block: "Block",
-  dome: "Dome",
+  bear: "Bear",
+  lemon: "Lemon",
+  ghost: "Ghost",
+  cloud: "Cloud",
   drop: "Drop",
-  bean: "Bean",
-  pill: "Pill",
-  loaf: "Loaf",
-  shield: "Shield",
-  blob: "Blob",
+  stack: "Stack",
+  seacow: "Sea cow",
+  flower: "Flower",
 };
 
 export interface AvatarPickerProps {
@@ -117,7 +116,7 @@ export function AvatarPicker({
     <div className="avatar-picker" data-automatic={automatic || undefined}>
       <div className="avatar-picker-head">
         <span className="avatar-picker-preview">
-          <BlobAvatar
+          <OrbAvatar
             slug={previewSlug}
             size={56}
             avatar={value}
@@ -169,7 +168,7 @@ export function AvatarPicker({
                   onChange={() => pickShape(shape)}
                   onKeyDown={(e) => onShapeKey(e, i)}
                 />
-                <BlobAvatar
+                <OrbAvatar
                   slug={previewSlug}
                   size={30}
                   avatar={{ shape, color: look.color }}

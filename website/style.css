@@ -535,7 +535,7 @@ section { position: relative; }
 .term-body .warn { color: #f4a261; }
 .term-body .prompt-box { margin-top: 10px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.5); }
 
-/* The dock, with the office on it. */
+/* The dock: Terminal and the gawkbot app. The agents live in the notch, not here. */
 .dock {
   position: absolute; z-index: 1; left: 50%; bottom: 10px; transform: translateX(-50%);
   display: flex; gap: 8px; padding: 7px;
@@ -545,8 +545,11 @@ section { position: relative; }
   backdrop-filter: blur(30px) saturate(180%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 10px 30px rgba(0, 0, 0, 0.25);
 }
-.dock-app { position: relative; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(235, 235, 245, 0.9)); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.2); }
-.dock-app .blob { width: 36px; height: 36px; }
+.dock-app { position: relative; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.25); }
+/* The gawkbot app: its icon is the brand orb on the dusk tile (build/appicon.png). */
+.dock-app.dk-gawk { background: linear-gradient(180deg, #1d2340, #0b0e1c); overflow: hidden; }
+.dock-app.dk-gawk::after { content: ""; position: absolute; inset: 40% -20% -30%; background: radial-gradient(circle at 50% 100%, rgba(69, 207, 160, 0.4), rgba(69, 207, 160, 0) 60%); }
+.dock-app.dk-gawk .blob { position: relative; z-index: 1; width: 34px; height: 34px; margin-top: 1px; }
 .dock-app.dk-term { background: linear-gradient(180deg, #2a2a30, #0f0f12); }
 .dock-app.dk-term::before { content: ">_"; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #fff; }
 .dock-app .dot { position: absolute; bottom: -6px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }

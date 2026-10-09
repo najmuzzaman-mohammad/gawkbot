@@ -314,9 +314,9 @@ final class CartoonSynthTests: XCTestCase {
     }
 }
 
-// MARK: - Smooth avatar parity with web/src/lib/blobAvatarSmooth.ts
+// MARK: - Avatar parity with web/src/lib/blobAvatar.ts
 
-final class GawkAvatarParityTests: XCTestCase {
+final class OrbAvatarParityTests: XCTestCase {
     // Computed with: cd web && bun -e 'import { blobShapeIndex, blobColor } from "./src/lib/blobAvatar"; …'
     func testShapeAndColourMatchTheWeb() {
         let expected: [(String, Int, String)] = [
@@ -334,57 +334,10 @@ final class GawkAvatarParityTests: XCTestCase {
         for (slug, shape, color) in expected {
             XCTAssertEqual(BlobAvatar.shapeIndex(slug), shape, slug)
             XCTAssertEqual(BlobAvatar.colorHex(slug), color, slug)
-            XCTAssertEqual(GawkAvatar.mark(slug).color, color, slug)
-        }
-    }
-
-    /// bodyPath(4) from the TS (the pill), which rounds to 2 decimals:
-    /// M x y, then C c1x c1y c2x c2y x y per segment.
-    static let webPill: [Double] = [32,6, 35.67,6,40.17,6,43,8, 45.83,10,48,13.67,49,18, 50,22.33,49.17,29,49,34, 48.83,39,49,44.33,48,48, 47,51.67,45.67,54.33,43,56, 40.33,57.67,35.67,58,32,58, 28.33,58,23.67,57.67,21,56, 18.33,54.33,17,51.67,16,48, 15,44.33,15.17,39,15,34, 14.83,29,14,22.33,15,18, 16,13.67,18.17,10,21,8, 23.83,6,28.33,6,32,6]
-
-    func testBodySplineMatchesTheWeb() {
-        let body = GawkAvatar.body(shapeIndex: 4)
-        var mine = [body.start.x, body.start.y]
-        for s in body.segments {
-            mine += [s.control1.x, s.control1.y, s.control2.x, s.control2.y, s.end.x, s.end.y]
-        }
-        XCTAssertEqual(mine.count, Self.webPill.count)
-        for (a, b) in zip(mine, Self.webPill) {
-            XCTAssertEqual(a, b, accuracy: 0.006)
-        }
-        XCTAssertEqual(GawkAvatar.body(shapeIndex: 12), GawkAvatar.body(shapeIndex: 4), "wraps like the web's modulo")
-    }
-
-    func testTonesMatchTheWeb() {
-        // tones("#5aa9ff") and tones("#f2c94c") from the TS.
-        let sky = GawkAvatar.tones("#5aa9ff")
-        XCTAssertEqual(sky.light, "#92d5ff")
-        XCTAssertEqual(sky.dark, "#004ef8")
-        XCTAssertEqual(sky.deep, "#002aad")
-        let butter = GawkAvatar.tones("#f2c94c")
-        XCTAssertEqual(butter.light, "#f9cd86")
-        XCTAssertEqual(butter.dark, "#ddcc08")
-    }
-
-    func testEveryExpressionHasAFace() {
-        for e in GawkAvatar.Expression.allCases {
-            let m = GawkAvatar.mark("cos", expression: e)
-            XCTAssertEqual(m.eyes.count, 2, "\(e)")
-            XCTAssertFalse(m.front.isEmpty, "\(e)")
-        }
-        // A happy face closes its eyes into arcs.
-        for eye in GawkAvatar.mark("cos", expression: .happy).eyes {
-            if case .quads = eye.geometry {} else { XCTFail("happy eyes are arcs") }
-        }
-        let faces = Set(GawkAvatar.Expression.allCases.map { GawkAvatar.mark("cos", expression: $0).front })
-        XCTAssertEqual(faces.count, GawkAvatar.Expression.allCases.count, "the expressions differ")
-    }
-
-    func testEverySpeciesHasAnAccessory() {
-        for i in 0..<BlobAvatar.shapeCount {
-            let m = GawkAvatar.mark(shapeIndex: i, colorHex: "#5aa9ff")
-            // Beyond the shadow, the body and the face (two catchlights, a mouth).
-            XCTAssertGreaterThan(m.behind.count - 1 + (m.front.count - 3), 0, m.shape)
+            let mark = OrbAvatar.mark(slug: slug)
+            XCTAssertEqual(mark.color, color, slug)
+            XCTAssertEqual(mark.shapeIndex, shape, slug)
+            XCTAssertEqual(mark.shape, BotAvatar.shapeIDs[shape], slug)
         }
     }
 }

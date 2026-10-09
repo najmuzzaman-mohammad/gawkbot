@@ -363,7 +363,7 @@ describe("<BotProfilePanel> avatar", () => {
 
     const save = screen.getByRole("button", { name: "Save avatar" });
     expect(save).toBeDisabled();
-    await user.click(screen.getByRole("radio", { name: "Pill" }));
+    await user.click(screen.getByRole("radio", { name: "Lemon" }));
     await user.click(screen.getByRole("radio", { name: "Coral" }));
     await user.click(save);
 
@@ -371,7 +371,7 @@ describe("<BotProfilePanel> avatar", () => {
       expect(postMock).toHaveBeenCalledWith("/office-members", {
         action: "update",
         slug: "planner",
-        avatar: { shape: "pill", color: "#ff7a59" },
+        avatar: { shape: "lemon", color: "#ff7a59" },
       }),
     );
     await waitFor(() =>
@@ -385,7 +385,7 @@ describe("<BotProfilePanel> avatar", () => {
     render(
       wrap(
         <BotProfilePanel
-          agent={{ ...baseBot, avatar: { shape: "loaf", color: "#a35a45" } }}
+          agent={{ ...baseBot, avatar: { shape: "cloud", color: "#a35a45" } }}
           onClose={vi.fn()}
         />,
       ),

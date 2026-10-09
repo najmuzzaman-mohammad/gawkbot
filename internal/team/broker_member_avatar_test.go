@@ -50,17 +50,40 @@ func TestMemberAvatarIsChosenValidatedAndClearable(t *testing.T) {
 
 func TestNotchStateCarriesChosenAvatars(t *testing.T) {
 	b := newTestBroker(t)
-	postMember(t, b, `{"action":"create","slug":"scout","avatar":{"shape":"bean","color":"#a8546b"}}`)
+	postMember(t, b, `{"action":"create","slug":"scout","avatar":{"shape":"seacow","color":"#a8546b"}}`)
 	s := fetchNotchState(t, b)
 	a := notchAgentBySlug(t, s, "scout")
-	if a.Avatar == nil || a.Avatar.Shape != "bean" || a.Avatar.Color != "#a8546b" {
+	if a.Avatar == nil || a.Avatar.Shape != "seacow" || a.Avatar.Color != "#a8546b" {
 		t.Fatalf("notch avatar = %+v", a.Avatar)
 	}
 }
 
-func TestAvatarShapesMatchTheWebSilhouetteCount(t *testing.T) {
-	// web/src/lib/blobAvatar.ts SILHOUETTES has eight entries in this order.
-	if len(AvatarShapes) != 8 || AvatarShapes[0] != "block" || AvatarShapes[7] != "blob" {
+func TestAvatarShapesMatchTheWebBodies(t *testing.T) {
+	// web/src/lib/blobAvatar.ts AVATAR_SHAPES has eight entries in this order.
+	if len(AvatarShapes) != 8 || AvatarShapes[0] != "bear" || AvatarShapes[7] != "flower" {
 		t.Fatalf("AvatarShapes = %v", AvatarShapes)
+	}
+}
+
+func TestLegacyAvatarShapesBecomeOrbs(t *testing.T) {
+	// A bot that chose a look before the orbs keeps a look.
+	b := newTestBroker(t)
+	if rec := postMember(t, b, `{"action":"create","slug":"scout","avatar":{"shape":"Shield"}}`); rec.Code != http.StatusOK {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	if got := b.findMemberLocked("scout").Avatar.Shape; got != "ghost" {
+		t.Fatalf("shield -> %q, want ghost", got)
+	}
+	if len(legacyAvatarShapes) != 8 {
+		t.Fatalf("legacyAvatarShapes has %d entries, want the eight old ids", len(legacyAvatarShapes))
+	}
+	for old, now := range legacyAvatarShapes {
+		known := false
+		for _, s := range AvatarShapes {
+			known = known || s == now
+		}
+		if !known {
+			t.Errorf("%s maps to %q, which is not an orb body", old, now)
+		}
 	}
 }

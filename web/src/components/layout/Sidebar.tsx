@@ -3,6 +3,7 @@ import { Settings as SettingsIcon, SidebarCollapse } from "iconoir-react";
 
 import { useResizablePane } from "../../hooks/useResizablePane";
 import { NAMED_CHANNELS_ENABLED } from "../../lib/constants";
+import { BRAND_AVATAR } from "../../lib/orbAvatar";
 import { router } from "../../lib/router";
 import { useCurrentApp } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
@@ -13,6 +14,7 @@ import { BotList } from "../sidebar/BotList";
 import { ChannelList } from "../sidebar/ChannelList";
 import { SidebarSection } from "../sidebar/SidebarSection";
 import { UsagePanel } from "../sidebar/UsagePanel";
+import { OrbAvatar } from "../ui/OrbAvatar";
 import { CollapsedSidebar } from "./CollapsedSidebar";
 import { PaneResizeHandle } from "./PaneResizeHandle";
 
@@ -98,6 +100,12 @@ export function Sidebar() {
               title="Home"
               aria-label="gawkbot — go to home"
             >
+              <OrbAvatar
+                slug="gawkbot"
+                avatar={BRAND_AVATAR}
+                size={22}
+                className="sidebar-logo-mark"
+              />
               gawkbot
             </button>
             <TeamMemberBadge />

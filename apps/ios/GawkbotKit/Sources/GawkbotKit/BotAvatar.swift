@@ -7,9 +7,10 @@ import Foundation
 /// has dressed looks exactly as it always did.
 ///
 /// WIRE CONTRACT: `MemberAvatar` in internal/team/broker_member_avatar.go.
-/// `shape` is one of `shapeIDs` (the species, in the order of
-/// `GawkAvatar.bodyPoints`); `color` is `#rrggbb`. Update with
+/// `shape` is one of `shapeIDs` (the orb bodies, in the order of
+/// `OrbAvatar.Body.allCases`); `color` is `#rrggbb`. Update with
 /// `POST /office-members {action:"update", slug, avatar}`; `avatar: {}` resets.
+/// A shape id stored by an older office (`legacyShapeIDs`) still resolves.
 public struct BotAvatar: Codable, Hashable, Sendable {
     public var shape: String?
     public var color: String?
@@ -19,8 +20,18 @@ public struct BotAvatar: Codable, Hashable, Sendable {
         self.color = color
     }
 
-    /// The species ids, in wire order (AVATAR_SHAPES on the web).
-    public static let shapeIDs: [String] = ["block", "dome", "drop", "bean", "pill", "loaf", "shield", "blob"]
+    /// The shape ids, in wire order (AVATAR_SHAPES on the web), index-aligned
+    /// with `OrbAvatar.Body.allCases`.
+    public static let shapeIDs: [String] = ["bear", "lemon", "ghost", "cloud", "drop", "stack", "seacow", "flower"]
+
+    /// The ids older offices stored, each mapped to the orb it reads as now
+    /// (LEGACY_AVATAR_SHAPES on the web). Applied wherever an id is parsed,
+    /// so a roster saved before the orbs still resolves; `wireBody` writes
+    /// the current id back.
+    public static let legacyShapeIDs: [String: String] = [
+        "block": "stack", "dome": "bear", "drop": "drop", "bean": "seacow",
+        "pill": "lemon", "loaf": "cloud", "shield": "ghost", "blob": "flower",
+    ]
 
     enum CodingKeys: String, CodingKey {
         case shape, color
@@ -52,12 +63,13 @@ public struct BotAvatar: Codable, Hashable, Sendable {
         return out
     }
 
-    /// The index of a shape id (trimmed, case-insensitive), or nil.
+    /// The index of a shape id (trimmed, case-insensitive; a legacy id counts
+    /// as the orb it maps to), or nil.
     public static func shapeIndex(named raw: String?) -> Int? {
         guard let raw else { return nil }
         let id = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !id.isEmpty else { return nil }
-        return shapeIDs.firstIndex(of: id)
+        return shapeIDs.firstIndex(of: legacyShapeIDs[id] ?? id)
     }
 
     /// The shape id for an index, wrapping like the web's modulo.

@@ -1,26 +1,29 @@
 import type { MemberAvatar } from "../api/memberTypes";
-import { BlobAvatar } from "../components/ui/BlobAvatar";
-import type { Expression } from "../lib/gawkAvatar";
+import { OrbAvatar } from "../components/ui/OrbAvatar";
+import type { Face } from "../lib/orbAvatar";
 import type { Mood } from "./types";
 
-// An agent in the notch: its own smooth blob mark (the same one it has
-// everywhere in the office) plus body language for its mood. Motion is CSS
-// in notch.css and only plays under prefers-reduced-motion: no-preference.
+// An agent in the notch: its own orb (the same one it has everywhere in
+// the office), live, plus body language for its mood. The orb does the
+// face (eyes spinning while working, talking while it needs you, a frown
+// and a head shake on an error, star eyes then a smile when done); the
+// body motion is CSS in notch.css and only plays under
+// prefers-reduced-motion: no-preference.
 //
-//   working    gentle bob, a concentrating face with the eyes gawking
-//   idle       slow breathing, sleepy face, a "z" drifting up
-//   needs_you  bouncy hop, an asking face, an "!" badge
-//   error      a shake, a worried face, a sweat drop
-//   done       a happy hop, eyes-closed smile, sparkles
+//   working    gentle bob, spinning eyes
+//   idle       slow breathing, half-closed eyes, a "z" drifting up
+//   needs_you  bouncy hop, a talking face, an "!" badge
+//   error      a shake, a frown, a sweat drop
+//   done       a happy hop, a big smile, sparkles
 //   peeking    slides out from under the notch, looks around, ducks back
 //   fidget     restless sway while waiting too long
 
 export type BotAct = "peeking" | "fidget" | "talking";
 
-const MOOD_FACE: Record<Mood, Expression> = {
-  working: "focus",
+const MOOD_FACE: Record<Mood, Face> = {
+  working: "working",
   idle: "sleepy",
-  needs_you: "ask",
+  needs_you: "asking",
   error: "oops",
   done: "happy",
 };
@@ -98,12 +101,11 @@ export function NotchBot({
       data-slug={slug}
     >
       <span className="nb-body" style={{ animationDelay: `${-phase * 0.37}s` }}>
-        <BlobAvatar
+        <OrbAvatar
           slug={slug}
           size={size}
-          expression={act === "talking" ? "ask" : MOOD_FACE[mood]}
-          working={mood === "working"}
-          blink={false}
+          face={act === "talking" ? "asking" : MOOD_FACE[mood]}
+          live={true}
           avatar={avatar}
         />
       </span>

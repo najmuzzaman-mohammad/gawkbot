@@ -1,165 +1,178 @@
 import SwiftUI
 import GawkbotKit
 
-/// The bot's character, painted from `GawkAvatar` (the port of
-/// web/src/lib/gawkAvatar.ts): a lit, glossy body with a face and the
-/// species' accessory. The species and colour are the bot's chosen `avatar`
-/// where one is set, otherwise the slug-derived look (`BlobAvatar.resolve`).
-/// `expression` is the face; `openness` narrows the eyes (a blink).
+/// The bot's character, painted from `OrbAvatar` (ported from orb-mascot
+/// core.js, MIT): a goo body of circles, a light and a shadow tint, and two
+/// eyes and a mouth on the sphere inside. The body and colour are the bot's
+/// chosen `avatar` where one is set, otherwise the slug-derived look
+/// (`BlobAvatar.resolve`). `face` is the still pose; `openness` closes the
+/// eyes (a blink: `blink = 1 - openness`).
 struct BlobAvatarView: View {
     let slug: String
     var avatar: BotAvatar? = nil
     var size: CGFloat = 40
     var openness: Double = 1
-    var expression: GawkAvatar.Expression = .calm
+    var face: OrbAvatar.Face = .calm
+
+    /// The face with the motion's blink folded in (whichever is more shut).
+    private var pose: OrbAvatar.Face {
+        var f = face
+        f.blink = max(f.blink, 1 - min(1, max(0, openness)))
+        return f
+    }
 
     var body: some View {
-        let mark = GawkAvatar.mark(slug, avatar: avatar, expression: expression, openness: openness)
-        GawkCanvas(mark: mark)
+        OrbCanvas(mark: OrbAvatar.mark(slug: slug, avatar: avatar, face: pose))
             .frame(width: size, height: size)
             .accessibilityHidden(true)
     }
 }
 
-/// Paints a `GawkAvatar.Mark` into a square, in the web's drawing order:
-/// shadow and the accessory parts behind, the body with its gradient, the
-/// shading clipped to the body, the eyes, then the accessory parts in front
-/// and the face.
-struct GawkCanvas: View {
-    let mark: GawkAvatar.Mark
+/// Paints an `OrbAvatar.Mark` into a square in the mascot's drawing order:
+/// the goo body, then, clipped to that same goo, the shadow tint, the light
+/// tint, the eyes and the mouth.
+struct OrbCanvas: View {
+    let mark: OrbAvatar.Mark
 
     var body: some View {
         Canvas(rendersAsynchronously: false) { context, size in
-            let scale = min(size.width, size.height) / GawkAvatar.view
+            let scale = min(size.width, size.height) / CGFloat(OrbAvatar.view)
+            // The viewBox starts at (-24, -24): the origin is where (0, 0) lands.
             let origin = CGPoint(
-                x: (size.width - scale * GawkAvatar.view) / 2,
-                y: (size.height - scale * GawkAvatar.view) / 2
+                x: (size.width - scale * CGFloat(OrbAvatar.view)) / 2 - CGFloat(OrbAvatar.viewOrigin) * scale,
+                y: (size.height - scale * CGFloat(OrbAvatar.view)) / 2 - CGFloat(OrbAvatar.viewOrigin) * scale
             )
-            let painter = GawkPainter(scale: scale, origin: origin, mark: mark)
-            let bodyPath = painter.path(.curve(mark.body, closed: true))
-            for p in mark.behind { painter.draw(p, in: context, bodyPath: bodyPath) }
-            context.fill(bodyPath, with: painter.shading(.body, bounds: bodyPath.boundingRect))
-            for p in mark.shading { painter.draw(p, in: context, bodyPath: bodyPath) }
-            for p in mark.eyes { painter.draw(p, in: context, bodyPath: bodyPath) }
-            for p in mark.front { painter.draw(p, in: context, bodyPath: bodyPath) }
+            let painter = OrbPainter(scale: scale, origin: origin, mark: mark)
+            painter.paint(in: &context, size: size)
         }
     }
 }
 
-/// Geometry → Path and Fill → Shading, scaled from the 64-unit box.
-struct GawkPainter {
+/// Mark → Canvas drawing, scaled from the 248-unit viewBox.
+struct OrbPainter {
     let scale: CGFloat
     let origin: CGPoint
-    let mark: GawkAvatar.Mark
+    let mark: OrbAvatar.Mark
 
-    func point(_ p: GawkAvatar.Point) -> CGPoint {
+    /// ViewBox units → canvas points.
+    var canvasTransform: CGAffineTransform {
+        CGAffineTransform(a: scale, b: 0, c: 0, d: scale, tx: origin.x, ty: origin.y)
+    }
+
+    func point(_ p: OrbAvatar.Point) -> CGPoint {
         CGPoint(x: origin.x + CGFloat(p.x) * scale, y: origin.y + CGFloat(p.y) * scale)
     }
 
-    func path(_ g: GawkAvatar.Geometry) -> Path {
-        var path = Path()
-        switch g {
-        case let .curve(curve, closed):
-            path.move(to: point(curve.start))
-            for s in curve.segments {
-                path.addCurve(to: point(s.end), control1: point(s.control1), control2: point(s.control2))
-            }
-            if closed { path.closeSubpath() }
-        case let .line(a, b):
-            path.move(to: point(a))
-            path.addLine(to: point(b))
-        case let .quads(start, legs):
-            path.move(to: point(start))
-            for leg in legs {
-                path.addQuadCurve(to: point(leg.end), control: point(leg.control))
-            }
-        case let .ellipse(center, rx, ry, rotation):
-            let c = point(center)
-            let rect = CGRect(x: c.x - CGFloat(rx) * scale, y: c.y - CGFloat(ry) * scale, width: CGFloat(rx) * 2 * scale, height: CGFloat(ry) * 2 * scale)
-            var ellipse = Path(ellipseIn: rect)
-            if rotation != 0 {
-                let t = CGAffineTransform(translationX: c.x, y: c.y)
-                    .rotated(by: CGFloat(rotation) * .pi / 180)
-                    .translatedBy(x: -c.x, y: -c.y)
-                ellipse = ellipse.applying(t)
-            }
-            path.addPath(ellipse)
-        case let .circle(center, r):
-            let c = point(center)
-            path.addEllipse(in: CGRect(x: c.x - CGFloat(r) * scale, y: c.y - CGFloat(r) * scale, width: CGFloat(r) * 2 * scale, height: CGFloat(r) * 2 * scale))
-        }
-        return path
+    /// A mark transform (viewBox units in and out) followed by the canvas scale.
+    func transform(_ t: OrbAvatar.Transform) -> CGAffineTransform {
+        CGAffineTransform(a: CGFloat(t.a), b: CGFloat(t.b), c: CGFloat(t.c), d: CGFloat(t.d), tx: CGFloat(t.tx), ty: CGFloat(t.ty))
+            .concatenating(canvasTransform)
     }
 
-    /// The shading for a fill, with gradients laid out over `bounds` the way
-    /// SVG lays them over an element's bounding box.
-    func shading(_ fill: GawkAvatar.Fill, bounds: CGRect) -> GraphicsContext.Shading {
-        let t = mark.tones
-        func at(_ fx: Double, _ fy: Double) -> CGPoint {
-            CGPoint(x: bounds.minX + bounds.width * CGFloat(fx), y: bounds.minY + bounds.height * CGFloat(fy))
+    /// One body piece: a circle, or an ellipse rotated about its centre.
+    func path(_ p: OrbAvatar.Piece) -> Path {
+        let c = point(OrbAvatar.Point(p.x, p.y))
+        let rect = CGRect(
+            x: c.x - CGFloat(p.rx) * scale, y: c.y - CGFloat(p.ry) * scale,
+            width: CGFloat(p.rx) * 2 * scale, height: CGFloat(p.ry) * 2 * scale
+        )
+        var ellipse = Path(ellipseIn: rect)
+        if p.angle != 0 {
+            let t = CGAffineTransform(translationX: c.x, y: c.y)
+                .rotated(by: CGFloat(p.angle) * .pi / 180)
+                .translatedBy(x: -c.x, y: -c.y)
+            ellipse = ellipse.applying(t)
         }
-        let radius = max(bounds.width, bounds.height)
-        switch fill {
-        case let .color(hex):
-            return .color(Color(hex: hex))
-        case .body:
-            return .linearGradient(
-                Gradient(stops: [
-                    .init(color: Color(hex: t.light), location: 0),
-                    .init(color: Color(hex: t.base), location: 0.5),
-                    .init(color: Color(hex: t.dark), location: 1),
-                ]),
-                startPoint: at(0.2, 0), endPoint: at(0.8, 1)
-            )
-        case .sheen:
-            return .radialGradient(
-                Gradient(stops: [.init(color: .white.opacity(0.5), location: 0), .init(color: .white.opacity(0), location: 1)]),
-                center: at(0.32, 0.22), startRadius: 0, endRadius: radius * 0.55
-            )
-        case .bounce:
-            let light = Color(hex: t.light)
-            return .radialGradient(
-                Gradient(stops: [.init(color: light.opacity(0.45), location: 0), .init(color: light.opacity(0), location: 1)]),
-                center: at(0.5, 1.05), startRadius: 0, endRadius: radius * 0.6
-            )
-        case .shadow:
-            return .radialGradient(
-                Gradient(stops: [.init(color: .black.opacity(0.28), location: 0), .init(color: .black.opacity(0), location: 1)]),
-                center: at(0.5, 0.5), startRadius: 0, endRadius: bounds.width * 0.5
-            )
-        case .ball:
-            return .radialGradient(
-                Gradient(stops: [.init(color: Color(hex: t.light), location: 0), .init(color: Color(hex: t.dark), location: 1)]),
-                center: at(0.35, 0.3), startRadius: 0, endRadius: radius * 0.75
-            )
+        return ellipse
+    }
+
+    /// The goo: the pieces drawn into one layer that is blurred and then
+    /// alpha-thresholded, so the union reads as one filleted blob in `color`
+    /// (core.js: feGaussianBlur stdDeviation 7.5, then alpha' = 24·alpha − 11).
+    /// This is Apple's metaball recipe for Canvas: add the threshold, then
+    /// the blur, then draw the shapes in a layer; the blur runs on the
+    /// drawing and the threshold on its result.
+    func goo(in context: inout GraphicsContext, color: Color) {
+        context.addFilter(.alphaThreshold(min: OrbAvatar.alphaThreshold, color: color))
+        context.addFilter(.blur(radius: CGFloat(OrbAvatar.blurStdDeviation) * scale))
+        context.drawLayer { layer in
+            for p in mark.pieces {
+                layer.fill(path(p), with: .color(color))
+            }
         }
     }
 
-    func draw(_ p: GawkAvatar.Primitive, in context: GraphicsContext, bodyPath: Path) {
-        var ctx = context
-        if p.paint.clipToBody { ctx.clip(to: bodyPath) }
-        ctx.opacity = p.paint.opacity
-        let shape = path(p.geometry)
-        if let fill = p.paint.fill {
-            ctx.fill(shape, with: shading(fill, bounds: shape.boundingRect))
+    func paint(in context: inout GraphicsContext, size: CGSize) {
+        let bodyColor = Color(hex: mark.color)
+        let faceColor = Color(hex: mark.faceColor)
+
+        // 1. The body.
+        var body = context
+        goo(in: &body, color: bodyColor)
+
+        // 2. Everything else is clipped to the same goo (the mascot's face mask).
+        var face = context
+        face.clipToLayer { layer in
+            goo(in: &layer, color: .black)
         }
-        if let stroke = p.paint.stroke {
-            ctx.stroke(
-                shape,
-                with: .color(Color(hex: stroke)),
-                style: StrokeStyle(lineWidth: CGFloat(p.paint.strokeWidth) * scale, lineCap: .round, lineJoin: .round)
-            )
+
+        // 3. Shade: shadow first, light on top, each the tint faded by a radial
+        //    alpha mask about the same centre.
+        let canvas = Path(CGRect(origin: .zero, size: size))
+        let center = point(mark.shade.center)
+        let radius = CGFloat(mark.shade.radius) * scale
+        let fade = OrbAvatar.Shade.fade
+        let shadow = Color(hex: mark.shade.shadow)
+        let light = Color(hex: mark.shade.light)
+        face.fill(canvas, with: .radialGradient(
+            Gradient(stops: [
+                .init(color: shadow.opacity(0), location: 0),
+                .init(color: shadow.opacity(0), location: fade),
+                .init(color: shadow, location: 1),
+            ]),
+            center: center, startRadius: 0, endRadius: radius
+        ))
+        face.fill(canvas, with: .radialGradient(
+            Gradient(stops: [
+                .init(color: light, location: 0),
+                .init(color: light.opacity(0), location: fade),
+                .init(color: light.opacity(0), location: 1),
+            ]),
+            center: center, startRadius: 0, endRadius: radius
+        ))
+
+        // 4. Eyes: a disc in the eye's own plane, mapped by its frame.
+        for eye in mark.eyes {
+            let disc = Path(ellipseIn: CGRect(
+                x: -CGFloat(eye.rx), y: -CGFloat(eye.ry),
+                width: CGFloat(eye.rx) * 2, height: CGFloat(eye.ry) * 2
+            ))
+            face.fill(disc.applying(transform(eye.transform)), with: .color(faceColor))
         }
+
+        // 5. Mouth: stroked in its own plane, with the frame on the context,
+        //    so the frame's scale shapes the stroke too (as SVG does).
+        var mouth = face
+        mouth.transform = transform(mark.mouth.transform).concatenating(face.transform)
+        let hw = CGFloat(mark.mouth.halfWidth)
+        var curve = Path()
+        curve.move(to: CGPoint(x: -hw, y: 0))
+        curve.addQuadCurve(to: CGPoint(x: hw, y: 0), control: CGPoint(x: 0, y: CGFloat(mark.mouth.bulge)))
+        mouth.stroke(
+            curve,
+            with: .color(faceColor),
+            style: StrokeStyle(lineWidth: CGFloat(mark.mouth.strokeWidth), lineCap: .round, lineJoin: .round)
+        )
     }
 }
 
 extension Mood {
-    /// The face a bot pulls in each mood.
-    var expression: GawkAvatar.Expression {
+    /// The still face a bot pulls in each mood.
+    var face: OrbAvatar.Face {
         switch self {
-        case .working: return .focus
+        case .working: return .working
         case .idle: return .sleepy
-        case .needsYou: return .ask
+        case .needsYou: return .asking
         case .error: return .oops
         case .done: return .happy
         }
@@ -197,7 +210,7 @@ struct MoodAvatarView: View {
         let look = BlobAvatar.resolve(slug: slug, avatar: avatar)
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: paused)) { context in
             let p = currentPose(at: context.date)
-            BlobAvatarView(slug: slug, avatar: avatar, size: size, openness: p.openness, expression: mood?.expression ?? .calm)
+            BlobAvatarView(slug: slug, avatar: avatar, size: size, openness: p.openness, face: mood?.face ?? .calm)
                 .scaleEffect(x: CGFloat(p.scaleX), y: CGFloat(p.scaleY), anchor: .bottom)
                 .rotationEffect(.degrees(p.rotation), anchor: .bottom)
                 .offset(x: CGFloat(p.dx) * size, y: CGFloat(p.dy) * size)
