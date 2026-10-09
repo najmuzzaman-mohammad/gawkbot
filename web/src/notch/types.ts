@@ -32,6 +32,11 @@ export interface NotchAgent {
   updated_at?: string;
   /** The end of its latest reply: what it is waiting on. */
   last_said?: string;
+  /**
+   * The session is a member of the office and has a DM, so its row works
+   * exactly like a bot's. Absent: it can only be read, not messaged.
+   */
+  can_message?: boolean;
 }
 
 export interface NotchOption {

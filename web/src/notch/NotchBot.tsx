@@ -121,6 +121,7 @@ export function NotchBot({
           live={true}
           avatar={avatar}
         />
+        {tucked ? <span className="nb-mask" aria-hidden="true" /> : null}
         {tucked ? <span className="nb-blanket" aria-hidden="true" /> : null}
       </span>
       {tucked ? <span className="nb-prop nb-z">z</span> : null}

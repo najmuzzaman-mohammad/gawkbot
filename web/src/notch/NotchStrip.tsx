@@ -1,7 +1,7 @@
 import type { BanterLine, Boredom } from "./antics";
 import { NotchArrival } from "./NotchArrival";
 import { NotchBot } from "./NotchBot";
-import type { NotchAgent, NotchGeometry, NotchState } from "./types";
+import type { Mood, NotchAgent, NotchGeometry, NotchState } from "./types";
 
 // The collapsed notch: a black strip as tall as the camera housing and one
 // "ear" wider on each side, plus a transparent STAGE hanging below it where
@@ -39,6 +39,16 @@ export function stageHeight(
 }
 
 const MAX_GANG = 4;
+/** The most agents the strip shows at once, askers and workers together. */
+export const STRIP_CAP = 5;
+/** Among the ones not asking: a snag first, then a finish, then work. */
+const CREW_RANK: Record<Mood, number> = {
+  needs_you: 0,
+  error: 1,
+  done: 2,
+  working: 3,
+  idle: 4,
+};
 
 export function NotchStrip({
   state,
@@ -64,18 +74,22 @@ export function NotchStrip({
   const asleep = quiet && !expanded;
   const awake = quiet && expanded;
   const bot = Math.max(14, Math.min(22, geometry.notchHeight - 10));
-  // Quiet agents that are busy still show, one at a time, when nobody needs
-  // the human: a working bot on the strip says "things are happening".
-  const busy =
-    gang.length === 0
-      ? (state?.agents ?? [])
-          .filter(
-            (a) =>
-              !a.is_lead &&
-              (a.mood === "working" || a.mood === "error" || a.mood === "done"),
-          )
-          .slice(0, 2)
-      : [];
+  // Everyone who is doing something shows on the strip, each moving the
+  // way its own state moves: askers hop, workers bob, a finished one
+  // celebrates, a stuck one shakes. Askers first (they are the gang), then
+  // the rest by how much they want a look. STRIP_CAP is all the strip
+  // holds; anyone past it is the "+N".
+  const askers = gang.slice(0, Math.min(MAX_GANG, STRIP_CAP));
+  const asking = new Set(gang.map((a) => a.slug));
+  const active = (state?.agents ?? [])
+    .filter(
+      (a) =>
+        !(a.is_lead || asking.has(a.slug)) &&
+        (a.mood === "working" || a.mood === "error" || a.mood === "done"),
+    )
+    .sort((a, c) => CREW_RANK[a.mood] - CREW_RANK[c.mood]);
+  const crew = active.slice(0, STRIP_CAP - askers.length);
+  const hidden = gang.length + active.length - askers.length - crew.length;
 
   return (
     <div
@@ -100,13 +114,13 @@ export function NotchStrip({
       </div>
       <div style={{ width: geometry.notchWidth, flexShrink: 0 }} />
       <div className="notch-ear notch-ear-right">
-        {gang.length > 0 ? (
+        {askers.length > 0 ? (
           <span
             className={`notch-gang gang-bored-${boredom}`}
             data-testid="notch-gang"
-            style={{ ["--gang-n" as string]: Math.min(gang.length, MAX_GANG) }}
+            style={{ ["--gang-n" as string]: askers.length }}
           >
-            {gang.slice(0, MAX_GANG).map((a, i) => (
+            {askers.map((a, i) => (
               <span
                 className="notch-gang-member"
                 key={a.slug}
@@ -125,20 +139,37 @@ export function NotchStrip({
               </span>
             ))}
           </span>
-        ) : (
-          busy.map((a, i) => (
-            <NotchBot
-              key={a.slug}
-              slug={a.slug}
-              avatar={a.avatar}
-              mood={a.mood}
-              size={bot - 2}
-              phase={i + 1}
-              bare={true}
-              label={`${a.name}: ${a.mood.replace("_", " ")}`}
-            />
-          ))
-        )}
+        ) : null}
+        {crew.length > 0 ? (
+          <span className="notch-gang notch-crew" data-testid="notch-crew">
+            {crew.map((a, i) => (
+              <span
+                className="notch-gang-member"
+                key={a.slug}
+                style={{ ["--gang-i" as string]: i }}
+              >
+                <NotchBot
+                  slug={a.slug}
+                  avatar={a.avatar}
+                  mood={a.mood}
+                  size={bot - 2}
+                  phase={i + 1}
+                  bare={true}
+                  label={`${a.name}: ${a.mood.replace("_", " ")}`}
+                />
+              </span>
+            ))}
+          </span>
+        ) : null}
+        {hidden > 0 ? (
+          <span
+            className="notch-more"
+            role="img"
+            aria-label={`${hidden} more active`}
+          >
+            +{hidden}
+          </span>
+        ) : null}
         {count > 0 ? (
           <span
             className="notch-badge"

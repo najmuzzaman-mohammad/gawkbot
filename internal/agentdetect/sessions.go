@@ -516,6 +516,9 @@ func humanWords(text string) bool {
 const sessionPromptMin = 16
 
 func finishSession(sess Session, title, prompt string) (Session, bool) {
+	if officeOwnDir(sess.Cwd) {
+		return Session{}, false
+	}
 	if sess.Cwd != "" {
 		sess.Project = filepath.Base(sess.Cwd)
 	}
@@ -541,4 +544,13 @@ func oneLine(s string, max int) string {
 		cut = cut[:i]
 	}
 	return strings.TrimRight(cut, " ,.;:") + "…"
+}
+
+// officeOwnDir reports whether cwd is one of an office's own working
+// folders (a bot's scratch folder or task worktree under a runtime home).
+// A session there is a bot turn some office started, already on the roster
+// as that bot, not a session the human opened.
+func officeOwnDir(cwd string) bool {
+	slashed := filepath.ToSlash(cwd) + "/"
+	return strings.Contains(slashed, "/.wuphf/") || strings.Contains(slashed, "/wuphf-agent-scratch/")
 }

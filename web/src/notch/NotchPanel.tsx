@@ -117,6 +117,22 @@ function Tag({ tag }: { tag: AgentTag }) {
   );
 }
 
+/** How many faces the folded agent list shows. */
+const TEAM_FACES = 5;
+
+/** The two kinds of agent, listed apart but treated alike. */
+const AGENT_GROUPS = [
+  { label: "gawkbot team", sessions: false },
+  { label: "Sessions on this Mac", sessions: true },
+] as const;
+
+/** The DM a row writes into; null for a session that has no DM yet. */
+function agentChannel(agent: NotchAgent, state: NotchState): string | null {
+  if (agent.kind === "session" && !agent.can_message) return null;
+  if (agent.is_lead && state.lead_dm) return state.lead_dm;
+  return dmChannel("human", agent.slug);
+}
+
 export function dmChannel(a: string, b: string): string {
   return a < b ? `${a}__${b}` : `${b}__${a}`;
 }
@@ -321,26 +337,69 @@ export function sinceShort(iso: string, now: number): string {
   return min < 60 ? `${min}m` : `${Math.floor(min / 60)}h`;
 }
 
-/** A session's row in the agent list: its own face, what it is about, and
- * its tool's logo. It has no DM, so pressing it opens what it last said. */
-function SessionRow({ agent, phase }: { agent: NotchAgent; phase: number }) {
+/** "3 working · 2 your turn": what the folded agent list holds. */
+export function agentsSummary(agents: readonly NotchAgent[]): string {
+  const count = (test: (a: NotchAgent) => boolean) =>
+    agents.filter(test).length;
+  const parts = [
+    [count((a) => a.mood === "needs_you"), "need you"],
+    [count((a) => a.mood === "error"), "stuck"],
+    [count((a) => a.mood === "working"), "working"],
+    [count((a) => a.state === "your_turn"), "your turn"],
+  ] as const;
+  const said = parts.filter(([n]) => n > 0).map(([n, what]) => `${n} ${what}`);
+  return said.length > 0 ? said.join(" · ") : "all quiet";
+}
+
+interface AgentRowProps {
+  agent: NotchAgent;
+  phase: number;
+  /** The DM this row writes into, when the agent can be messaged. */
+  channel: string | null;
+  onReply: (target: ReplyTarget) => void;
+  onOpen: (path: string) => void;
+}
+
+/**
+ * One agent in the list, an office bot or a session found on this Mac:
+ * the same row. Pressing it opens the quick chat with it, and the arrow
+ * opens it in the full app. A session that cannot be messaged yet opens
+ * what it last said instead, so the human still sees what it is waiting on.
+ */
+function AgentRow({ agent, phase, channel, onReply, onOpen }: AgentRowProps) {
   const [open, setOpen] = useState(false);
+  const session = agent.kind === "session";
   const toolName = agent.tool_name ?? "";
+  const tags = session ? [] : agentTags(agent);
   const when =
-    agent.state === "working" || !agent.updated_at
-      ? ""
-      : sinceShort(agent.updated_at, Date.now());
+    session && agent.state !== "working" && agent.updated_at
+      ? sinceShort(agent.updated_at, Date.now())
+      : "";
+  const detail = agent.detail || agent.mood.replace("_", " ");
   return (
     <div
-      className={`nagent-row is-session${open ? " is-open" : ""}`}
+      className={`nagent-row${session ? " is-session" : ""}${open ? " is-open" : ""}`}
       data-testid={`notch-agent-${agent.slug}`}
     >
       <button
         type="button"
         className="nagent"
-        aria-expanded={open}
-        aria-label={`${agent.name}, ${toolName} session`}
-        onClick={() => setOpen(!open)}
+        aria-expanded={channel ? undefined : open}
+        aria-label={
+          channel
+            ? `Message ${agent.name}`
+            : `${agent.name}, ${toolName} session`
+        }
+        onClick={() =>
+          channel
+            ? onReply({
+                kind: "message",
+                slug: agent.slug,
+                name: agent.name,
+                channel,
+              })
+            : setOpen(!open)
+        }
       >
         <NotchBot
           slug={agent.slug}
@@ -352,19 +411,35 @@ function SessionRow({ agent, phase }: { agent: NotchAgent; phase: number }) {
         />
         <span className="nagent-name">{agent.name}</span>
         <span className="nagent-detail">
-          {agent.detail}
+          {detail}
           {when ? ` · ${when}` : ""}
         </span>
-        <span
-          className="nagent-tool"
-          role="img"
-          aria-label={toolName}
-          title={toolName}
-        >
-          <RuntimeLogo label={TOOL_LOGO[agent.tool ?? ""] ?? toolName} />
-        </span>
+        {tags.map((tag) => (
+          <Tag key={tag.text} tag={tag} />
+        ))}
+        {session ? (
+          <span
+            className="nagent-tool"
+            role="img"
+            aria-label={toolName}
+            title={toolName}
+          >
+            <RuntimeLogo label={TOOL_LOGO[agent.tool ?? ""] ?? toolName} />
+          </span>
+        ) : null}
       </button>
-      {open ? (
+      {channel ? (
+        <button
+          type="button"
+          className="nagent-open"
+          aria-label={`Open ${agent.name} in full view`}
+          title="Open in the full app"
+          onClick={() => onOpen(`/agents/${encodeURIComponent(agent.slug)}`)}
+        >
+          <span aria-hidden="true">↗</span>
+        </button>
+      ) : null}
+      {open && !channel ? (
         <div className="nagent-said">
           {agent.last_said ? <p>{agent.last_said}</p> : null}
           {agent.cwd ? <p className="nagent-cwd">{agent.cwd}</p> : null}
@@ -548,79 +623,65 @@ export function NotchPanel(props: PanelProps) {
           </section>
         ) : null}
 
-        <section aria-label="Agents">
-          <h3 className="nsection">
-            <button
-              type="button"
-              className="nsection-toggle"
-              aria-expanded={agentsOpen}
-              onClick={() => props.onAgentsOpen(!agentsOpen)}
-            >
-              <span aria-hidden="true">{agentsOpen ? "▾" : "▸"}</span> Agents ·{" "}
-              {state.agents.length}
-            </button>
-          </h3>
-          {agentsOpen ? (
-            <div className="nagents">
-              {state.agents.map((a, i) => {
-                if (a.kind === "session") {
-                  return <SessionRow key={a.slug} agent={a} phase={i} />;
-                }
-                const tags = agentTags(a);
+        <section aria-label="Agents" className="nteam">
+          <button
+            type="button"
+            className={`nteam-toggle${agentsOpen ? " is-open" : ""}`}
+            aria-expanded={agentsOpen}
+            onClick={() => props.onAgentsOpen(!agentsOpen)}
+          >
+            <span className="nteam-faces" aria-hidden="true">
+              {state.agents.slice(0, TEAM_FACES).map((a, i) => (
+                <NotchBot
+                  key={a.slug}
+                  slug={a.slug}
+                  avatar={a.avatar}
+                  mood={a.mood}
+                  size={20}
+                  phase={i}
+                  bare={true}
+                  label=""
+                />
+              ))}
+            </span>
+            <span className="nteam-title">
+              Agents <span className="nteam-count">{state.agents.length}</span>
+            </span>
+            <span className="nteam-sum">{agentsSummary(state.agents)}</span>
+            <span className="nteam-cta">
+              {agentsOpen ? "Hide" : "Show all"}
+            </span>
+            <span className="nteam-chev" aria-hidden="true">
+              ›
+            </span>
+          </button>
+          {agentsOpen
+            ? AGENT_GROUPS.map((group) => {
+                const members = state.agents.filter(
+                  (a) => (a.kind === "session") === group.sessions,
+                );
+                if (members.length === 0) return null;
                 return (
-                  <div
-                    className="nagent-row"
-                    key={a.slug}
-                    data-testid={`notch-agent-${a.slug}`}
-                  >
-                    <button
-                      type="button"
-                      className="nagent"
-                      aria-label={`Message ${a.name}`}
-                      onClick={() =>
-                        props.onReply({
-                          kind: "message",
-                          slug: a.slug,
-                          name: a.name,
-                          channel:
-                            a.is_lead && state.lead_dm
-                              ? state.lead_dm
-                              : dmChannel("human", a.slug),
-                        })
-                      }
-                    >
-                      <NotchBot
-                        slug={a.slug}
-                        avatar={a.avatar}
-                        mood={a.mood}
-                        size={24}
-                        phase={i}
-                        label=""
-                      />
-                      <span className="nagent-name">{a.name}</span>
-                      <span className="nagent-detail">
-                        {a.detail || a.mood.replace("_", " ")}
-                      </span>
-                      {tags.map((tag) => (
-                        <Tag key={tag.text} tag={tag} />
+                  <div key={group.label} className="ngroup">
+                    <h3 className="nsection">
+                      {group.label} · {members.length}
+                    </h3>
+                    <div className="nagents">
+                      {members.map((a, i) => (
+                        <AgentRow
+                          key={a.slug}
+                          agent={a}
+                          phase={i}
+                          channel={agentChannel(a, state)}
+                          onReply={props.onReply}
+                          onOpen={props.onOpen}
+                        />
                       ))}
-                    </button>
-                    <button
-                      type="button"
-                      className="nagent-open"
-                      aria-label={`Open ${a.name} in full view`}
-                      title="Open in the full app"
-                      onClick={() =>
-                        props.onOpen(`/agents/${encodeURIComponent(a.slug)}`)
-                      }
-                    >
-                      <span aria-hidden="true">↗</span>
-                    </button>
+                    </div>
                   </div>
                 );
-              })}
-            </div>
-          ) : null}
+              })
+            : null}
         </section>
       </div>
 

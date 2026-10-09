@@ -69,6 +69,12 @@ func TestSessionsAreNamedByWhatTheyAreDoing(t *testing.T) {
 		`{"type":"session_meta","payload":{"id":"t-3","cwd":"/Users/me/api","thread_source":"guardian_review"}}`,
 		`{"type":"response_item","payload":{"role":"user","content":[{"text":"The following is the Codex agent history"}]}}`,
 	)
+	// An office's own bot turn, in its scratch folder: already on the roster
+	// as that bot, so not a session to list.
+	writeLog(t, filepath.Join(claude, "-Users-me--wuphf-agent-scratch-cos", "bot.jsonl"), now.Add(-time.Minute),
+		`{"type":"user","cwd":"/Users/me/.wuphf/agent-scratch/cos"}`,
+		`{"type":"ai-title","aiTitle":"A bot turn"}`,
+	)
 	// A one-word prompt names nothing: the folder does.
 	writeLog(t, filepath.Join(claude, "-Users-me-docs", "ccc.jsonl"), now.Add(-25*time.Minute),
 		`{"type":"user","cwd":"/Users/me/docs"}`,

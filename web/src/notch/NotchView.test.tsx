@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { gang } from "./antics";
 import { BUSY_OFFICE, MACBOOK_NOTCH, NO_NOTCH, QUIET_OFFICE } from "./fixtures";
+import { agentsSummary } from "./NotchPanel";
 import { NotchView, type NotchViewProps } from "./NotchView";
 import type { NotchState } from "./types";
 
@@ -186,7 +187,10 @@ describe("open notch", () => {
     ).not.toBeNull();
     // It has its own face, like every other agent.
     expect(row.querySelector("svg, canvas")).not.toBeNull();
-    // No DM and no page in the app: pressing it shows what it last said.
+    // The two kinds of agent are listed apart, under the one Agents card.
+    expect(screen.getByText(/^gawkbot team · \d+$/)).toBeInTheDocument();
+    expect(screen.getByText("Sessions on this Mac · 1")).toBeInTheDocument();
+    // Not a member of the office yet: pressing it shows what it last said.
     expect(row.querySelector(".nagent-open")).toBeNull();
     expect(row).not.toHaveTextContent("Which one should I keep?");
     await userEvent.click(
@@ -194,6 +198,90 @@ describe("open notch", () => {
     );
     expect(row).toHaveTextContent("Both fixes pass. Which one should I keep?");
     expect(row).toHaveTextContent("/Users/me/shop");
+  });
+
+  it("shows every active agent on the strip in its own state, up to the cap", () => {
+    const moods = [
+      "working",
+      "done",
+      "error",
+      "working",
+      "working",
+      "working",
+      "working",
+    ] as const;
+    const agents = [
+      {
+        slug: "cos",
+        name: "Chief of Staff",
+        mood: "idle" as const,
+        is_lead: true,
+      },
+      ...moods.map((mood, i) => ({ slug: `bot-${i}`, name: `Bot ${i}`, mood })),
+      { slug: "napper", name: "Napper", mood: "idle" as const },
+    ];
+    const state: NotchState = {
+      ...QUIET_OFFICE,
+      mood: "working",
+      attention: [],
+      agents,
+    };
+    renderNotchWith({ state, gang: [] });
+    const crew = screen.getByTestId("notch-crew");
+    expect(crew.children).toHaveLength(5);
+    // The one that hit a snag leads, then the one that finished, then work.
+    const shown = Array.from(crew.querySelectorAll("[data-mood]")).map((el) =>
+      el.getAttribute("data-mood"),
+    );
+    expect(shown).toEqual(["error", "done", "working", "working", "working"]);
+    // Two more are working than the strip holds; the idle ones do not count.
+    expect(
+      screen.getByRole("img", { name: "2 more active" }),
+    ).toHaveTextContent("+2");
+  });
+
+  it("treats a session that has joined the office exactly like a bot", async () => {
+    const state: NotchState = {
+      ...BUSY_OFFICE,
+      agents: [
+        ...BUSY_OFFICE.agents,
+        {
+          slug: "cc-1a2b3c4d",
+          name: "Fix the flaky checkout test",
+          mood: "idle",
+          detail: "Your turn · shop",
+          kind: "session",
+          tool: "claude-code",
+          tool_name: "Claude Code",
+          can_message: true,
+        },
+      ],
+    };
+    const props = renderNotch({ expanded: true, agentsOpen: true, state });
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Message Fix the flaky checkout test",
+      }),
+    );
+    expect(props.onReply).toHaveBeenCalledWith({
+      kind: "message",
+      slug: "cc-1a2b3c4d",
+      name: "Fix the flaky checkout test",
+      channel: "cc-1a2b3c4d__human",
+    });
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open Fix the flaky checkout test in full view",
+      }),
+    );
+    expect(props.onOpen).toHaveBeenCalledWith("/agents/cc-1a2b3c4d");
+  });
+
+  it("says what the folded agent list holds, and that it opens", () => {
+    renderNotch({ expanded: true });
+    const toggle = screen.getByRole("button", { name: /Agents/ });
+    expect(toggle).toHaveTextContent("Show all");
+    expect(toggle).toHaveTextContent(agentsSummary(BUSY_OFFICE.agents));
   });
 
   it("keeps the agent list folded away until asked for", async () => {

@@ -44,6 +44,8 @@
   /* The lead's blanket when the office is quiet. */
   --notch-blanket: #6f7fb3;
   --notch-blanket-fold: #b9c4ea;
+  --notch-mask: #1d2238;
+  --notch-mask-sheen: rgba(255, 255, 255, 0.28);
   --notch-control: rgba(255, 255, 255, 0.1);
   --notch-control-hover: rgba(255, 255, 255, 0.16);
   --notch-control-press: rgba(255, 255, 255, 0.22);
@@ -194,6 +196,12 @@ kbd {
 .notch-gang-member:first-child {
   margin-left: 0;
 }
+/* The crew: the agents that are busy but not asking, each in its own mood.
+   No one past the cap is drawn; the count says how many more. */
+.notch-more {
+  font: 700 10.5px / 1 var(--notch-font);
+  color: var(--notch-text-secondary);
+}
 
 /* ── Stage (below the strip, collapsed only) ──────────────────────────── */
 
@@ -287,6 +295,28 @@ kbd {
   box-shadow:
     inset 0 2.5px 0 var(--notch-blanket-fold),
     0 1px 1.5px rgba(0, 0, 0, 0.45);
+}
+/* A sleep mask over the eyes, strap and all: at this size closed eyes do
+   not read, a mask does. */
+.nb-mask {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: 25%;
+  height: 27%;
+  border-radius: 45% 45% 50% 50% / 40% 40% 60% 60%;
+  background: var(--notch-mask);
+  box-shadow: inset 0 1px 0 var(--notch-mask-sheen);
+}
+.nb-mask::before {
+  content: "";
+  position: absolute;
+  left: -18%;
+  right: -18%;
+  top: 38%;
+  height: 1.5px;
+  background: var(--notch-mask);
+  z-index: -1;
 }
 .nb-tucked .nb-z {
   top: -9px;
@@ -550,16 +580,73 @@ kbd {
 .nq-means dd {
   margin: 0;
 }
-.nsection-toggle {
-  padding: 0;
+/* The folded agent list is a card you can plainly press: the agents'
+   faces, how many there are and what they are up to, and a labelled
+   chevron that turns when it opens. */
+.nteam-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
   border: none;
-  background: transparent;
-  font: inherit;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
   color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.nsection-toggle:hover {
+.nteam-toggle:hover {
+  background: var(--notch-glass-hover);
+}
+.nteam-toggle.is-open {
+  margin-bottom: 8px;
+}
+.nteam-faces {
+  display: inline-flex;
+  flex: none;
+}
+.nteam-faces .notch-bot + .notch-bot {
+  margin-left: -7px;
+}
+.nteam-title {
+  flex: none;
+  font-weight: 600;
+}
+.nteam-count {
+  margin-left: 2px;
+  color: var(--notch-text-tertiary);
+  font-weight: 500;
+}
+.nteam-sum {
+  flex: 1;
+  min-width: 0;
+  color: var(--notch-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nteam-cta {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--notch-text-secondary);
+}
+.nteam-chev {
+  flex: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--notch-text-secondary);
+  transition: transform 0.2s var(--notch-ease);
+}
+.nteam-toggle.is-open .nteam-chev {
+  transform: rotate(90deg);
+}
+.ngroup + .ngroup {
+  margin-top: 10px;
 }
 .nq-actions {
   display: flex;
