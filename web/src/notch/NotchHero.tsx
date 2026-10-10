@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useRef } from "react";
 
 import type { MemberAvatar } from "../api/memberTypes";
+import { ModelBadge } from "../components/ui/ModelBadge";
+import { useBotRuntime } from "../lib/botRuntime";
 import { orbLook, poseLive } from "../lib/orbAvatar";
 import { mountStarfield } from "../lib/orbCharacter";
 import { useOrbCharacter } from "../lib/useOrbCharacter";
@@ -45,6 +47,7 @@ export function NotchHero({
   cheer,
   children,
 }: NotchHeroProps) {
+  const runtime = useBotRuntime(slug);
   const sky = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const look = orbLook(slug, avatar);
@@ -103,6 +106,13 @@ export function NotchHero({
     <div className="nhead nhero">
       <div className="nhero-sky" ref={sky} aria-hidden="true" />
       <div className="nhero-stage" ref={stage} aria-hidden="true" />
+      {/* The character owns the stage's children, so the badge sits in a
+          box of its own laid exactly over it. */}
+      {runtime ? (
+        <div className="nhero-badge">
+          <ModelBadge runtime={runtime} avatarSize={HERO_SIZE} />
+        </div>
+      ) : null}
       {children}
     </div>
   );

@@ -99,6 +99,7 @@ export function NotchStrip({
     >
       <div className="notch-ear">
         <NotchBot
+          badge={false}
           slug={lead?.slug ?? state?.lead ?? "cos"}
           avatar={lead?.avatar}
           mood={state?.mood ?? "idle"}
@@ -127,6 +128,7 @@ export function NotchStrip({
                 style={{ ["--gang-i" as string]: i }}
               >
                 <NotchBot
+                  badge={false}
                   slug={a.slug}
                   avatar={a.avatar}
                   mood="needs_you"
@@ -149,6 +151,7 @@ export function NotchStrip({
                 style={{ ["--gang-i" as string]: i }}
               >
                 <NotchBot
+                  badge={false}
                   slug={a.slug}
                   avatar={a.avatar}
                   mood={a.mood}
@@ -218,6 +221,7 @@ export function NotchStage({
           aria-live="polite"
         >
           <NotchBot
+            badge={false}
             slug={peeker.slug}
             avatar={peeker.avatar}
             mood={peeker.mood === "error" ? "error" : "idle"}
@@ -239,6 +243,7 @@ export function NotchStage({
           <div className="notch-chat-row">
             {speaker ? (
               <NotchBot
+                badge={false}
                 slug={speaker.slug}
                 avatar={speaker.avatar}
                 mood="needs_you"

@@ -258,3 +258,56 @@ func TestSessionsReadOnlyTheNewest(t *testing.T) {
 		t.Fatalf("newest first: %+v", got[0])
 	}
 }
+
+// The badge on a session's avatar says what it is running on right now, so
+// the model is the last one its log names, not the first.
+func TestSessionModelIsTheLastOneTheLogNames(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	claude := filepath.Join(home, ".claude", "projects")
+	// Switched model mid-session, then hit an API error: Claude Code writes
+	// the error as a "<synthetic>" assistant message, which names no model.
+	writeLog(t, filepath.Join(claude, "-Users-me-a", "switched.jsonl"), now.Add(-time.Minute),
+		`{"type":"user","cwd":"/Users/me/a"}`,
+		`{"type":"ai-title","aiTitle":"Switched model"}`,
+		`{"type":"assistant","message":{"model":"claude-sonnet-5-5","stop_reason":"end_turn"}}`,
+		`{"type":"assistant","message":{"model":"claude-opus-5-5","stop_reason":"end_turn"}}`,
+		`{"type":"assistant","message":{"model":"<synthetic>","stop_reason":"stop_sequence"}}`,
+	)
+	// Opened but has not taken a turn: no model yet.
+	writeLog(t, filepath.Join(claude, "-Users-me-b", "fresh.jsonl"), now.Add(-2*time.Minute),
+		`{"type":"user","cwd":"/Users/me/b"}`,
+		`{"type":"ai-title","aiTitle":"Just opened"}`,
+	)
+	// Codex names the model on each turn's context, not on the session meta.
+	codex := filepath.Join(home, ".codex", "sessions", "2026", "10", "09")
+	writeLog(t, filepath.Join(codex, "rollout-m.jsonl"), now.Add(-3*time.Minute),
+		`{"type":"session_meta","payload":{"id":"c-9","cwd":"/Users/me/c","thread_source":"user","model_provider":"openai"}}`,
+		`{"type":"response_item","payload":{"role":"user","content":[{"text":"Add rate limits to the login route"}]}}`,
+		`{"type":"turn_context","payload":{"cwd":"/Users/me/c","model":"gpt-5.5"}}`,
+		`{"type":"turn_context","payload":{"cwd":"/Users/me/c","model":"gpt-6-astra"}}`,
+	)
+
+	s := &Scanner{Home: func() (string, error) { return home, nil }}
+	scan := []Detection{
+		{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 1}}},
+		{ID: "codex", Name: "Codex CLI", Running: []Process{{PID: 2}}},
+	}
+	models := map[string]string{}
+	for _, sess := range s.Sessions(scan, now) {
+		models[sess.Title] = sess.Model
+	}
+	want := map[string]string{
+		"Switched model":                     "claude-opus-5-5",
+		"Just opened":                        "",
+		"Add rate limits to the login route": "gpt-6-astra",
+	}
+	if len(models) != len(want) {
+		t.Fatalf("sessions = %v, want %d of them", models, len(want))
+	}
+	for title, model := range want {
+		if got, ok := models[title]; !ok || got != model {
+			t.Errorf("model of %q = %q (listed: %v), want %q", title, got, ok, model)
+		}
+	}
+}

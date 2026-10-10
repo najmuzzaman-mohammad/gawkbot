@@ -49,6 +49,9 @@ type Session struct {
 	// LastSaid is the end of the session's latest reply, so the human can
 	// see what it is waiting on without opening its window.
 	LastSaid string `json:"last_said,omitempty"`
+	// Model is the model the session last ran on, as its log names it
+	// ("claude-opus-5-5"). Empty until the session has taken a turn.
+	Model string `json:"model,omitempty"`
 
 	// turnDone: the last thing in the log is a finished turn.
 	turnDone bool
@@ -239,7 +242,56 @@ func claudeSession(path string, info os.FileInfo, toolName string) (Session, boo
 	title, prompt := claudeTitle(tail)
 	title = claudeTitles.resolve(path, title)
 	sess.turnDone, sess.LastSaid = claudeLastTurn(tail)
+	sess.Model = claudeModel(tail)
 	return finishSession(sess, title, prompt)
+}
+
+// claudeModel is the model of the last assistant message in a Claude Code
+// log. The model can change mid-session (/model), so the latest one wins.
+// Claude Code writes "<synthetic>" on messages it made up itself (an API
+// error, an interruption notice); those say nothing about the model.
+func claudeModel(lines [][]byte) string {
+	for i := len(lines) - 1; i >= 0; i-- {
+		if !bytes.Contains(lines[i], []byte(`"model"`)) {
+			continue
+		}
+		var rec struct {
+			Type    string `json:"type"`
+			Message struct {
+				Model string `json:"model"`
+			} `json:"message"`
+		}
+		if json.Unmarshal(lines[i], &rec) != nil || rec.Type != "assistant" {
+			continue
+		}
+		if m := strings.TrimSpace(rec.Message.Model); m != "" && !strings.HasPrefix(m, "<") {
+			return m
+		}
+	}
+	return ""
+}
+
+// codexModel is the model of the last turn in a Codex log. Codex records it
+// on each turn's turn_context, not on the session's meta record.
+func codexModel(lines [][]byte) string {
+	for i := len(lines) - 1; i >= 0; i-- {
+		if !bytes.Contains(lines[i], []byte(`"turn_context"`)) {
+			continue
+		}
+		var rec struct {
+			Type    string `json:"type"`
+			Payload struct {
+				Model string `json:"model"`
+			} `json:"payload"`
+		}
+		if json.Unmarshal(lines[i], &rec) != nil || rec.Type != "turn_context" {
+			continue
+		}
+		if m := strings.TrimSpace(rec.Payload.Model); m != "" {
+			return m
+		}
+	}
+	return ""
 }
 
 // claudeLastTurn reads the last message in a Claude Code log: whether it
@@ -452,6 +504,7 @@ func codexSession(path string, info os.FileInfo, toolName string, names map[stri
 	sess := baseSession(path, info, "codex", toolName)
 	sess.turnDone = codexTurnDone(tail)
 	sess.LastSaid = codexLastSaid(tail)
+	sess.Model = codexModel(tail)
 	title, prompt := "", ""
 	for _, line := range head {
 		var rec struct {

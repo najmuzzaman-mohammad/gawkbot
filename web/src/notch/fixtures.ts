@@ -16,6 +16,14 @@ export const BUSY_OFFICE: NotchState = {
       origin: "built_in",
       runs_on: "this_machine",
       is_lead: true,
+      runtime: {
+        harness: "claude-code",
+        harness_name: "Claude Code",
+        model: "claude-opus-5-5",
+        model_label: "Opus 5.5",
+        family: "claude",
+        source: "observed",
+      },
     },
     {
       slug: "gemini",
@@ -25,6 +33,7 @@ export const BUSY_OFFICE: NotchState = {
       origin: "adopted",
       runs_on: "this_machine",
       runs_on_detail: "Gemini CLI on this machine",
+      runtime: { harness: "cli-agent", harness_name: "Gemini CLI" },
     },
     {
       slug: "codex",
@@ -33,6 +42,14 @@ export const BUSY_OFFICE: NotchState = {
       detail: "auth failed",
       origin: "adopted",
       runs_on: "this_machine",
+      runtime: {
+        harness: "codex",
+        harness_name: "Codex CLI",
+        model: "gpt-6-astra",
+        model_label: "GPT-6 Astra",
+        family: "gpt",
+        source: "default",
+      },
     },
     {
       slug: "designer",
@@ -41,6 +58,14 @@ export const BUSY_OFFICE: NotchState = {
       detail: "drafting response",
       origin: "user",
       runs_on: "this_machine",
+      runtime: {
+        harness: "claude-code",
+        harness_name: "Claude Code",
+        model: "claude-sonnet-5-5",
+        model_label: "Sonnet 5.5",
+        family: "claude",
+        source: "binding",
+      },
     },
     {
       slug: "scout",

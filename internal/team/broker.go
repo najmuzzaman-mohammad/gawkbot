@@ -141,9 +141,12 @@ type Broker struct {
 	sharedMemory        map[string]map[string]string // namespace → key → value
 	lastTaggedAt        map[string]time.Time         // when each bot was last @mentioned
 	observedModels      map[string]string            // bot slug → model its last turn ran on; in-memory; guarded by mu
-	botDMWakes          map[string][]time.Time       // bot-pair DM slug → recent partner wakes (loop cap); guarded by mu
-	lastPaneSnapshot    map[string]string            // last captured pane content per bot (for change detection)
-	seenTelegramGroups  map[int64]string             // chat_id -> title, populated by transport
+	runtimeDefaultsMu   sync.Mutex                   // guards the three fields below; never held with mu
+	runtimeDefaultsVal  runtimeDefaults
+	runtimeDefaultsAt   time.Time
+	botDMWakes          map[string][]time.Time // bot-pair DM slug → recent partner wakes (loop cap); guarded by mu
+	lastPaneSnapshot    map[string]string      // last captured pane content per bot (for change detection)
+	seenTelegramGroups  map[int64]string       // chat_id -> title, populated by transport
 	counter             int
 	// idPrefix is the Linear-style prefix used for new Issue IDs (e.g.
 	// "NEX" → NEX-1, NEX-2). Derived from the workspace's company_name

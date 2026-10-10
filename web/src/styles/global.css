@@ -140,6 +140,11 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-full: 9999px;
+  /* Model badge (styles/model-badge.css). The notch sets its own. */
+  --model-badge-bg: var(--bg-card);
+  --model-badge-border: var(--border);
+  --model-badge-ink: var(--text-secondary);
+  --model-badge-font: var(--font-mono);
 
   /* ─── Control heights ─── macOS sizes: regular 32px for buttons, fields
      and pop-ups; small 24px for rows and toolbars; large 44px only for the
@@ -1823,76 +1828,6 @@ body {
 .pixel-avatar--smooth {
   image-rendering: auto;
   flex-shrink: 0;
-}
-
-/* ─── Model badge (what a bot runs on, on every bot avatar) ─── */
-.bot-avatar {
-  position: relative;
-  display: inline-flex;
-  flex-shrink: 0;
-  line-height: 0;
-  vertical-align: middle;
-}
-.model-badge {
-  position: absolute;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0;
-  white-space: nowrap;
-  pointer-events: auto;
-  user-select: none;
-}
-/* Small avatars: a two-character code tucked into the bottom-right corner. */
-.model-badge--dot {
-  right: -2px;
-  bottom: -2px;
-  width: 6px;
-  height: 6px;
-  background: var(--text-secondary);
-}
-.model-badge--code {
-  right: -5px;
-  bottom: -4px;
-  min-width: 14px;
-  height: 11px;
-  padding: 0 2px;
-  font-size: 8px;
-}
-/* Larger avatars: the word, then the whole label, centred under the face. */
-.model-badge--word,
-.model-badge--full {
-  left: 50%;
-  bottom: -6px;
-  transform: translateX(-50%);
-  /* A block, not a flex box, so a long raw model id ends in an ellipsis
-     and never grows wider than the row the avatar sits in. */
-  display: block;
-  max-width: calc(9ch + 12px);
-  height: 14px;
-  padding: 0 5px;
-  overflow: hidden;
-  font-size: 9px;
-  line-height: 12px;
-  text-align: center;
-  text-overflow: ellipsis;
-}
-.model-badge--full {
-  bottom: -7px;
-  max-width: calc(14ch + 14px);
-  height: 16px;
-  padding: 0 6px;
-  font-size: 10px;
-  line-height: 14px;
 }
 
 /* ─── Harness badge (overlaid on agent avatars) ─── */

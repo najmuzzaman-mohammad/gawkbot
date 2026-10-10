@@ -641,6 +641,7 @@ export function NotchPanel(props: PanelProps) {
                   phase={i}
                   bare={true}
                   label=""
+                  badge={false}
                 />
               ))}
             </span>

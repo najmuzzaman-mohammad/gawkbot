@@ -1,3 +1,6 @@
+import { useCallback, useMemo } from "react";
+
+import { type BotRuntime, BotRuntimeContext } from "../lib/botRuntime";
 import { NotchPanel, type PanelProps } from "./NotchPanel";
 import {
   NotchStage,
@@ -26,6 +29,19 @@ export function collapsedWidth(g: NotchGeometry): number {
 
 export function NotchView(props: NotchViewProps) {
   const { geometry, expanded, state } = props;
+  // Every notch avatar looks its runtime up by slug, so the strip, the
+  // panel rows and the question cards all carry the same badge.
+  const runtimes = useMemo(() => {
+    const map = new Map<string, BotRuntime>();
+    for (const agent of state?.agents ?? []) {
+      if (agent.runtime?.harness) map.set(agent.slug, agent.runtime);
+    }
+    return map;
+  }, [state?.agents]);
+  const runtimeOf = useCallback(
+    (slug: string) => runtimes.get(slug),
+    [runtimes],
+  );
   const width = expanded
     ? Math.max(EXPANDED_WIDTH, collapsedWidth(geometry))
     : collapsedWidth(geometry);
@@ -36,33 +52,15 @@ export function NotchView(props: NotchViewProps) {
     expanded,
   });
   return (
-    <div
-      className={`notch-root${geometry.nativeGlass ? " has-native-glass" : ""}`}
-      style={{
-        ["--notch-strip-h" as string]: `${geometry.notchHeight}px`,
-        height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight + stage,
-      }}
-    >
-      <NotchStage
-        state={state}
-        geometry={geometry}
-        gang={props.gang}
-        boredom={props.boredom}
-        line={props.line}
-        peeker={props.peeker}
-        arrival={props.arrival}
-        expanded={expanded}
-      />
+    <BotRuntimeContext.Provider value={runtimeOf}>
       <div
-        className={`notch-shell ${expanded ? "is-expanded" : "is-collapsed"}`}
+        className={`notch-root${geometry.nativeGlass ? " has-native-glass" : ""}`}
         style={{
-          width,
-          height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight,
+          ["--notch-strip-h" as string]: `${geometry.notchHeight}px`,
+          height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight + stage,
         }}
-        data-testid="notch-shell"
-        data-mood={state?.mood ?? "idle"}
       >
-        <NotchStrip
+        <NotchStage
           state={state}
           geometry={geometry}
           gang={props.gang}
@@ -72,8 +70,28 @@ export function NotchView(props: NotchViewProps) {
           arrival={props.arrival}
           expanded={expanded}
         />
-        {expanded ? <NotchPanel {...props} state={state} /> : null}
+        <div
+          className={`notch-shell ${expanded ? "is-expanded" : "is-collapsed"}`}
+          style={{
+            width,
+            height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight,
+          }}
+          data-testid="notch-shell"
+          data-mood={state?.mood ?? "idle"}
+        >
+          <NotchStrip
+            state={state}
+            geometry={geometry}
+            gang={props.gang}
+            boredom={props.boredom}
+            line={props.line}
+            peeker={props.peeker}
+            arrival={props.arrival}
+            expanded={expanded}
+          />
+          {expanded ? <NotchPanel {...props} state={state} /> : null}
+        </div>
       </div>
-    </div>
+    </BotRuntimeContext.Provider>
   );
 }

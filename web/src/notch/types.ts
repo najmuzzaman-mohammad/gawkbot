@@ -2,6 +2,7 @@
 // keep the Mood strings in lockstep with the Mood* constants there.
 
 import type { MemberAvatar } from "../api/memberTypes";
+import type { BotRuntime } from "../lib/botRuntime";
 
 export type Mood = "working" | "idle" | "needs_you" | "error" | "done";
 
@@ -16,6 +17,8 @@ export interface NotchAgent {
   is_lead?: boolean;
   /** The bot's chosen look; absent means the slug-derived one. */
   avatar?: MemberAvatar;
+  /** What it runs on (tool and model), for the badge on its avatar. */
+  runtime?: BotRuntime;
   /**
    * "session": an agent session found running on this Mac (a Claude Code or
    * Codex window the human opened), not an office bot. It is listed with

@@ -38,6 +38,11 @@
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui,
     sans-serif;
   --notch-mono: "SF Mono", ui-monospace, Menlo, monospace;
+  /* Model badge (styles/model-badge.css) on the notch's black glass. */
+  --model-badge-bg: var(--notch-sheet-top);
+  --model-badge-border: var(--notch-glass-strong);
+  --model-badge-ink: var(--notch-text);
+  --model-badge-font: var(--notch-mono);
 
   /* Controls on the sheet: plain fills, the way the system draws them on
      its own glass. One step up on hover, one more when pressed. */
@@ -412,6 +417,16 @@ kbd {
   top: 10px;
   width: 56px;
   height: 56px;
+}
+/* Laid over the stage; holds only the model badge. */
+.nhero-badge {
+  position: absolute;
+  left: 30px;
+  top: 10px;
+  z-index: 1;
+  width: 56px;
+  height: 56px;
+  pointer-events: none;
 }
 
 .nhead-text {

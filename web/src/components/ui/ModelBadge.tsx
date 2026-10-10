@@ -4,6 +4,7 @@ import {
   badgeText,
   runtimeTitle,
 } from "../../lib/botRuntime";
+import "../../styles/model-badge.css";
 
 interface ModelBadgeProps {
   runtime: BotRuntime;

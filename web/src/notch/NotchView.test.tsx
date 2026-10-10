@@ -2,8 +2,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { BotRuntimeContext } from "../lib/botRuntime";
 import { gang } from "./antics";
 import { BUSY_OFFICE, MACBOOK_NOTCH, NO_NOTCH, QUIET_OFFICE } from "./fixtures";
+import { NotchBot } from "./NotchBot";
 import { agentsSummary } from "./NotchPanel";
 import { NotchView, type NotchViewProps } from "./NotchView";
 import type { NotchState } from "./types";
@@ -152,6 +154,86 @@ describe("open notch", () => {
       requestId: "req-2",
       to: "Chief of Staff",
     });
+  });
+
+  it("badges every agent with what it runs on, sessions and bots alike", () => {
+    const [lead, ...rest] = BUSY_OFFICE.agents;
+    const state: NotchState = {
+      ...BUSY_OFFICE,
+      agents: [
+        {
+          ...lead,
+          runtime: {
+            harness: "claude-code",
+            harness_name: "Claude Code",
+            model_label: "Sonnet 4.6",
+            family: "claude",
+            source: "default",
+          },
+        },
+        ...rest,
+        {
+          slug: "session.codex.b",
+          name: "Add rate limits to the login route",
+          mood: "working",
+          kind: "session",
+          tool: "codex",
+          tool_name: "Codex CLI",
+          runtime: {
+            harness: "codex",
+            harness_name: "Codex CLI",
+            model: "gpt-6-astra",
+            model_label: "GPT-6 Astra",
+            family: "gpt",
+            source: "observed",
+          },
+        },
+      ],
+    };
+    renderNotch({ expanded: true, agentsOpen: true, state });
+    const session = screen.getByTestId("notch-agent-session.codex.b");
+    expect(
+      session.querySelector(
+        '[role="img"][aria-label="Runs on GPT-6 Astra in Codex CLI"]',
+      ),
+    ).not.toBeNull();
+    // A bot that is asking carries its badge on the question card too.
+    expect(
+      document.querySelector(
+        '.model-badge[aria-label="Runs on Sonnet 4.6 in Claude Code"]',
+      ),
+    ).not.toBeNull();
+    // The collapsed strip is too small for a legible badge: its bots are
+    // drawn, and none of them carries one.
+    const gang = screen.getByTestId("notch-gang");
+    expect(gang.querySelector(".notch-bot")).not.toBeNull();
+    expect(gang.querySelector(".model-badge")).toBeNull();
+    // The badge sits on the bot, beside its mood: it does not replace the
+    // notch's own mood class.
+    const bot = session.querySelector(".notch-bot");
+    expect(bot).toHaveClass("nb-working");
+    expect(bot?.querySelector(".model-badge")).not.toBeNull();
+  });
+
+  it("says what a named bot runs on in its accessible name", () => {
+    // The bot is one image to a screen reader, so the badge inside it is
+    // not read on its own.
+    render(
+      <BotRuntimeContext.Provider
+        value={() => ({
+          harness: "codex",
+          harness_name: "Codex CLI",
+          model_label: "GPT-6 Astra",
+        })}
+      >
+        <NotchBot slug="cx-1" mood="working" label="Rate limits: working" />
+      </BotRuntimeContext.Provider>,
+    );
+    expect(
+      screen.getByRole("img", {
+        name: "Rate limits: working, runs on GPT-6 Astra in Codex CLI",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("lists a session running on this Mac as an agent, by what it is doing", async () => {

@@ -3,6 +3,7 @@ package team
 import (
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/nex-crm/wuphf/internal/agentdetect"
 	"github.com/nex-crm/wuphf/internal/config"
@@ -89,6 +90,35 @@ func memberRuntime(m officeMember, observed string, defaults runtimeDefaults) me
 	}
 	info.ModelLabel, info.Family = modelLabel(info.Model)
 	return info
+}
+
+// runtimeDefaultsTTL is how long cachedRuntimeDefaults reuses one read of the
+// config files. The notch polls every couple of seconds; the install default
+// changes when a person changes a setting.
+const runtimeDefaultsTTL = 15 * time.Second
+
+// cachedRuntimeDefaults is resolveRuntimeDefaults for a hot path. It takes
+// its own lock, never b.mu, so call it before locking the broker.
+func (b *Broker) cachedRuntimeDefaults(now time.Time) runtimeDefaults {
+	b.runtimeDefaultsMu.Lock()
+	defer b.runtimeDefaultsMu.Unlock()
+	if b.runtimeDefaultsAt.IsZero() || now.Sub(b.runtimeDefaultsAt) > runtimeDefaultsTTL || now.Before(b.runtimeDefaultsAt) {
+		b.runtimeDefaultsVal = resolveRuntimeDefaults("")
+		b.runtimeDefaultsAt = now
+	}
+	return b.runtimeDefaultsVal
+}
+
+// sessionRuntime is the runtime of an agent session found on this machine.
+// Its tool is known from which log it is; its model is whatever its own log
+// last named, so it is always observed, never a guess.
+func sessionRuntime(sess agentdetect.Session) *memberRuntimeInfo {
+	info := memberRuntimeInfo{Harness: sess.Tool, HarnessName: sess.ToolName}
+	if model := strings.TrimSpace(sess.Model); model != "" {
+		info.Model, info.Source = model, runtimeSourceObserved
+		info.ModelLabel, info.Family = modelLabel(model)
+	}
+	return &info
 }
 
 // harnessDisplayName is the name a person would call the tool: the detected

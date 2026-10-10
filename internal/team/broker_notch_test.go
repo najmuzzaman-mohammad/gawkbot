@@ -286,7 +286,7 @@ func stubLocalSessions(t *testing.T, list []agentdetect.Session) {
 func TestNotchListsRunningSessionsAsAgentsForTheOwnerOnly(t *testing.T) {
 	now := time.Now().UTC()
 	stubLocalSessions(t, []agentdetect.Session{
-		{ID: "claude-code:aaa", Tool: "claude-code", ToolName: "Claude Code", Title: "Fix the flaky checkout test", Project: "shop", Cwd: "/Users/me/shop", State: agentdetect.SessionWorking, UpdatedAt: now.Format(time.RFC3339)},
+		{ID: "claude-code:aaa", Tool: "claude-code", ToolName: "Claude Code", Title: "Fix the flaky checkout test", Project: "shop", Cwd: "/Users/me/shop", State: agentdetect.SessionWorking, UpdatedAt: now.Format(time.RFC3339), Model: "claude-opus-5-5[1m]"},
 		{ID: "codex:bbb", Tool: "codex", ToolName: "Codex CLI", Title: "Tidy the migration scripts", Project: "api", State: agentdetect.SessionYourTurn, UpdatedAt: now.Add(-2 * time.Hour).Format(time.RFC3339), LastSaid: "Run them on staging?"},
 	})
 	b := newTestBroker(t)
@@ -316,6 +316,17 @@ func TestNotchListsRunningSessionsAsAgentsForTheOwnerOnly(t *testing.T) {
 	}
 	if !owner.Agents[0].IsLead {
 		t.Fatalf("the Chief of Staff still leads: %+v", owner.Agents[0])
+	}
+	// Every agent says what it runs on, for the badge on its avatar: a
+	// session from its own log, a bot from its binding or the default.
+	if r := busy.Runtime; r == nil || r.Harness != "claude-code" || r.HarnessName != "Claude Code" || r.ModelLabel != "Opus 5.5" || r.Source != runtimeSourceObserved {
+		t.Fatalf("working session runtime = %+v", r)
+	}
+	if r := waiting.Runtime; r == nil || r.HarnessName != "Codex CLI" || r.Model != "" {
+		t.Fatalf("a session whose log names no model shows its tool alone, got %+v", r)
+	}
+	if r := owner.Agents[0].Runtime; r == nil || r.Harness == "" || r.HarnessName == "" {
+		t.Fatalf("an office bot has a runtime too, got %+v", r)
 	}
 	// The office is idle, a session is busy: the notch says so.
 	if owner.Mood != MoodWorking || owner.Headline != "1 working on this Mac" {

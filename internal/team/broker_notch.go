@@ -44,6 +44,9 @@ type notchAgent struct {
 	IsLead       bool   `json:"is_lead,omitempty"`
 	// Avatar is the bot's chosen look, when it has one.
 	Avatar *MemberAvatar `json:"avatar,omitempty"`
+	// Runtime is what the agent runs on (tool and model), for the badge on
+	// its avatar. A session's comes from its own log.
+	Runtime *memberRuntimeInfo `json:"runtime,omitempty"`
 
 	// Kind is notchAgentSession for an agent session found running on this
 	// machine (a Claude Code or Codex window the human opened themselves);
@@ -168,8 +171,9 @@ func (b *Broker) handleNotchState(w http.ResponseWriter, r *http.Request) {
 		sessions = cachedLocalSessions(r.Context())
 	}
 	now := time.Now()
+	defaults := b.cachedRuntimeDefaults(now)
 	b.mu.Lock()
-	state := b.notchStateLocked(now)
+	state := b.notchStateLocked(now, defaults)
 	b.mu.Unlock()
 	writeJSON(w, http.StatusOK, withNotchSessions(state, sessions, now))
 }
@@ -196,6 +200,7 @@ func withNotchSessions(state notchState, sessions []agentdetect.Session, now tim
 			State:     sess.State,
 			UpdatedAt: sess.UpdatedAt,
 			LastSaid:  sess.LastSaid,
+			Runtime:   sessionRuntime(sess),
 		}
 		agent.Mood, agent.Detail = notchSessionMood(sess, now)
 		if agent.Mood == MoodWorking {
@@ -241,7 +246,7 @@ func notchSessionMood(sess agentdetect.Session, now time.Time) (mood, detail str
 	}
 }
 
-func (b *Broker) notchStateLocked(now time.Time) notchState {
+func (b *Broker) notchStateLocked(now time.Time, defaults runtimeDefaults) notchState {
 	lead := officeLeadSlugFrom(b.members)
 	names := make(map[string]string, len(b.members))
 	for _, m := range b.members {
@@ -317,6 +322,8 @@ func (b *Broker) notchStateLocked(now time.Time) notchState {
 			agent.Avatar = &MemberAvatar{Shape: brandAvatarShape, Color: brandAvatarColor}
 		}
 		agent.RunsOn, agent.RunsOnDetail = memberRunsOn(m)
+		runtime := memberRuntime(m, b.observedModels[m.Slug], defaults)
+		agent.Runtime = &runtime
 		snap := b.activity[m.Slug]
 		agent.Mood, agent.Detail = notchMood(snap, needsYou[m.Slug], now)
 		counts[agent.Mood]++

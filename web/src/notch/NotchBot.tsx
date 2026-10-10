@@ -1,5 +1,7 @@
 import type { MemberAvatar } from "../api/memberTypes";
+import { ModelBadge } from "../components/ui/ModelBadge";
 import { OrbAvatar } from "../components/ui/OrbAvatar";
+import { runtimeTitle, useBotRuntime } from "../lib/botRuntime";
 import type { Face } from "../lib/orbAvatar";
 import type { Mood } from "./types";
 
@@ -58,6 +60,13 @@ interface NotchBotProps {
   tucked?: boolean;
   /** Woken up: an open, happy face whatever the mood says. */
   awake?: boolean;
+  /**
+   * The model badge is on wherever the bot's runtime is known. Off on the
+   * collapsed strip, where bots are 14 to 22px and overlap inside a bar the
+   * height of the camera housing: there is no room for a legible badge, and
+   * the open notch shows it on every one of the same bots.
+   */
+  badge?: boolean;
 }
 
 function Prop({ mood }: { mood: Mood }) {
@@ -92,8 +101,14 @@ export function NotchBot({
   avatar,
   tucked = false,
   awake = false,
+  badge = true,
 }: NotchBotProps) {
-  const name = label ?? `${slug}: ${MOOD_WORDS[mood]}`;
+  const runtime = useBotRuntime(slug);
+  const shown = badge ? runtime : undefined;
+  const base = label ?? `${slug}: ${MOOD_WORDS[mood]}`;
+  // The bot is one image to a screen reader, so the badge inside it is not
+  // read on its own: the bot's name says what it runs on.
+  const name = base && shown ? `${base}, runs on ${runtimeTitle(shown)}` : base;
   // A named bot is an image with a name; an unnamed one is decoration.
   const a11y = name
     ? ({ role: "img", "aria-label": name } as const)
@@ -124,6 +139,7 @@ export function NotchBot({
         {tucked ? <span className="nb-mask" aria-hidden="true" /> : null}
         {tucked ? <span className="nb-blanket" aria-hidden="true" /> : null}
       </span>
+      {shown ? <ModelBadge runtime={shown} avatarSize={size} /> : null}
       {tucked ? <span className="nb-prop nb-z">z</span> : null}
       {bare || tucked ? null : <Prop mood={mood} />}
     </span>
