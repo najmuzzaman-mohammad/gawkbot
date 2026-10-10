@@ -64,7 +64,7 @@ const (
 
 	// sessionNotMessageableReply is what a session member answers when it is
 	// sent a message: nothing can reach the terminal from here yet.
-	sessionNotMessageableReply = "This session is open in your terminal on this Mac. It cannot be messaged from here yet, so type into its terminal window to talk to it."
+	sessionNotMessageableReply = "This session cannot be messaged from here yet. Talk to it in its own terminal window."
 )
 
 // sessionSlugPrefixes maps the tool that runs a session to its slug prefix.
