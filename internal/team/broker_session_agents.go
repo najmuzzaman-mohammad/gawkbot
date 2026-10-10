@@ -528,9 +528,11 @@ func (b *Broker) reconcileSessionMembersWith(ctx context.Context, sessions []age
 
 	// Whether each member's folder is still there: read off the lock.
 	folders := b.lookAtSessionFolders()
+	quiet := b.lookAtSessionLogs(now)
 
 	b.mu.Lock()
 	b.sessionAgents.messaging.folders = folders
+	b.sessionAgents.messaging.quiet = quiet
 	b.applySessionActivityLocked(plan.Live, plan.StillOpen, open, now)
 	b.mu.Unlock()
 }

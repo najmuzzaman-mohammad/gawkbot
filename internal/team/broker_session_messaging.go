@@ -87,6 +87,14 @@ type sessionMessagingState struct {
 	// folders is, for each session member, whether its folder was there at
 	// the registry's last look. A member not in the map: unknown.
 	folders map[string]bool
+	// ownTurnEnded is when gawkbot's own last background turn in a member's
+	// session finished, so that turn's writes to the log are not taken for
+	// someone working in the session.
+	ownTurnEnded map[string]time.Time
+	// quiet is, for each Claude Code session member, whether its log had
+	// been still for sessionQuietMargin at the registry's last look. A
+	// member not in the map: unknown, which is not quiet.
+	quiet map[string]bool
 	// running are the members with a background resume in flight, each with
 	// what it showed before the resume began.
 	running map[string]sessionResumeMark
@@ -306,6 +314,12 @@ func (b *Broker) sessionMessageabilityLocked(m officeMember) (can bool, block st
 		if open {
 			return false, sessionBlockOpen
 		}
+		// Not listed as open is not enough: its log must also be still. A
+		// session being written right now is live, listed or not, and is
+		// reported as open because that is what it is to the person.
+		if !b.sessionAgents.messaging.quiet[m.Slug] {
+			return false, sessionBlockOpen
+		}
 		return true, ""
 	case sessionToolCodex:
 		// Codex guards its own session: resume refuses a second writer, and
@@ -343,6 +357,45 @@ func (b *Broker) lookAtSessionFolders() map[string]bool {
 	return out
 }
 
+// sessionMemberNativeIDs is each Claude Code session member's own session
+// id. Takes b.mu.
+func (b *Broker) sessionMemberNativeIDs() map[string]string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	out := map[string]string{}
+	for _, m := range b.members {
+		if isSessionMember(m) && m.Provider.Session != nil && m.Provider.Session.Tool == sessionToolClaude {
+			if id := sessionBindingNativeID(m); id != "" {
+				out[m.Slug] = id
+			}
+		}
+	}
+	return out
+}
+
+// lookAtSessionLogs checks, off the lock, whether each Claude Code session
+// member's log has been still long enough to resume. With messaging off
+// nothing asks, so nothing is looked at: nil.
+func (b *Broker) lookAtSessionLogs(now time.Time) map[string]bool {
+	if !sessionMessagingEnabled() {
+		return nil
+	}
+	ids := b.sessionMemberNativeIDs()
+	out := make(map[string]bool, len(ids))
+	for slug, id := range ids {
+		out[slug] = sessionLogIsQuiet(id, b.sessionOwnTurnEnded(slug), now)
+	}
+	return out
+}
+
+// sessionOwnTurnEnded is when gawkbot's own last background turn in slug's
+// session finished; zero if it has run none. Takes b.mu.
+func (b *Broker) sessionOwnTurnEnded(slug string) time.Time {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.sessionAgents.messaging.ownTurnEnded[slug]
+}
+
 // beginSessionBackgroundTurn marks slug as running a background resume, so
 // the registry shows it working and never as closed while the turn runs. It
 // keeps what the member showed before, for endSessionBackgroundTurn.
@@ -371,6 +424,10 @@ func (b *Broker) endSessionBackgroundTurn(slug string) {
 	if !was {
 		return
 	}
+	if b.sessionAgents.messaging.ownTurnEnded == nil {
+		b.sessionAgents.messaging.ownTurnEnded = map[string]time.Time{}
+	}
+	b.sessionAgents.messaging.ownTurnEnded[slug] = time.Now()
 	delete(b.sessionAgents.messaging.running, slug)
 	if m := b.findMemberLocked(slug); m == nil || !isSessionMember(*m) {
 		return

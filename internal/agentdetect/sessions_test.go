@@ -387,24 +387,92 @@ func writeRegistry(t *testing.T, dir, name, body string) {
 func TestOpenSessionsReadsClaudeCodesRegistry(t *testing.T) {
 	home := t.TempDir()
 	reg := filepath.Join(home, ".claude", "sessions")
-	writeRegistry(t, reg, "101.json", `{"pid":101,"sessionId":"aaa","cwd":"/Users/me/shop","kind":"interactive","entrypoint":"cli","status":"busy","name":"x","somethingNew":{"nested":true}}`)
+	writeRegistry(t, reg, "101.json", `{"pid":101,"sessionId":"aaa","cwd":"/Users/me/shop","kind":"interactive","entrypoint":"cli","status":"busy","name":"x"}`)
 	writeRegistry(t, reg, "102.json", `{"pid":102,"sessionId":"bbb","kind":"interactive","status":"idle"}`)
 	// Its process crashed and left the file behind.
 	writeRegistry(t, reg, "103.json", `{"pid":103,"sessionId":"ccc","kind":"interactive","status":"idle"}`)
-	// Running, but not a session a person has open.
+	// Running, but not a window a person sits at. It still holds the
+	// session: a resume against it would write a second conversation.
 	writeRegistry(t, reg, "104.json", `{"pid":104,"sessionId":"ddd","kind":"background","status":"busy"}`)
-	writeRegistry(t, reg, "105.json", `{not json`)
-	writeRegistry(t, reg, "106.json", `{"pid":"106","sessionId":7}`)
-	writeRegistry(t, reg, "107.json", `{"kind":"interactive"}`)
+	// Claude Code has been seen to leave bytes after the entry. The entry
+	// is still read: a whole-file parse threw a live session away.
+	writeRegistry(t, reg, "105.json", `{"pid":105,"sessionId":"eee","kind":"interactive","status":"idle"}}{"stale":true`)
+	// Not a registry file at all.
 	writeRegistry(t, reg, "notes.txt", `{"pid":101,"sessionId":"zzz","kind":"interactive"}`)
 
-	s := &Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: map[int]bool{101: true, 102: true, 104: true}}
+	s := &Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: map[int]bool{101: true, 102: true, 104: true, 105: true}}
 	open, known := s.OpenSessions()
 	if !known {
-		t.Fatal("a registry with entries that parse must be known")
+		t.Fatal("a registry whose every entry can be read must be known")
 	}
-	if len(open) != 2 || open["claude-code:aaa"] != (OpenSession{PID: 101, Busy: true}) || open["claude-code:bbb"] != (OpenSession{PID: 102}) {
-		t.Fatalf("open = %+v, want aaa (busy, pid 101) and bbb (pid 102) only", open)
+	want := map[string]OpenSession{
+		"claude-code:aaa": {PID: 101, Busy: true, Interactive: true},
+		"claude-code:bbb": {PID: 102, Interactive: true},
+		"claude-code:ddd": {PID: 104, Busy: true},
+		"claude-code:eee": {PID: 105, Interactive: true},
+	}
+	if len(open) != len(want) {
+		t.Fatalf("open = %+v, want %+v", open, want)
+	}
+	for id, w := range want {
+		if open[id] != w {
+			t.Errorf("open[%s] = %+v, want %+v", id, open[id], w)
+		}
+	}
+}
+
+// One entry that cannot be understood is one session nobody can vouch for,
+// and it would be the one missing from the answer. A missing session reads
+// as closed, and a closed session may be resumed, which forks a live one.
+// So nothing is known then, even with other entries that read fine.
+func TestOneUnreadableRegistryEntryMakesOpennessUnknown(t *testing.T) {
+	good := `{"pid":101,"sessionId":"aaa","kind":"interactive","status":"idle"}`
+	for name, bad := range map[string]string{
+		"not json":          `{not json`,
+		"wrong types":       `{"pid":"106","sessionId":7}`,
+		"no pid or session": `{"kind":"interactive"}`,
+		"an array":          `[]`,
+		"empty":             ``,
+		"a pid, no session": `{"pid":106}`,
+		"a session, no pid": `{"sessionId":"zzz"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			home := t.TempDir()
+			reg := filepath.Join(home, ".claude", "sessions")
+			writeRegistry(t, reg, "101.json", good)
+			writeRegistry(t, reg, "106.json", bad)
+			s := &Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: map[int]bool{101: true}}
+			if open, known := s.OpenSessions(); known {
+				t.Fatalf("known with an unreadable entry beside a good one; open = %+v", open)
+			}
+		})
+	}
+}
+
+// The log's own last write is the check that does not go through the
+// registry.
+func TestClaudeLogLastWrite(t *testing.T) {
+	home := t.TempDir()
+	const id = "1a2b3c4d-0000-4000-8000-000000000001"
+	older := time.Date(2026, 10, 9, 11, 0, 0, 0, time.UTC)
+	newer := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	// The same session in two project folders: the later write is the one.
+	writeLog(t, filepath.Join(home, ".claude", "projects", "-Users-me-a", id+".jsonl"), older, `{"type":"user"}`)
+	writeLog(t, filepath.Join(home, ".claude", "projects", "-Users-me-b", id+".jsonl"), newer, `{"type":"user"}`)
+	s := &Scanner{Home: func() (string, error) { return home, nil }}
+	if got, ok := s.ClaudeLogLastWrite(id); !ok || !got.Equal(newer) {
+		t.Fatalf("last write = %v (%v), want %v", got, ok, newer)
+	}
+	if got, ok := s.ClaudeLogLastWrite(strings.ToUpper(id)); !ok || !got.Equal(newer) {
+		t.Fatalf("an upper-case id = %v (%v), want %v", got, ok, newer)
+	}
+	for _, bad := range []string{"", "nope", "../" + id, id + "/../x", "claude-code:" + id, "1a2b3c4d-0000-4000-8000-00000000000Z"} {
+		if _, ok := s.ClaudeLogLastWrite(bad); ok {
+			t.Errorf("found a log for %q, which is not a session id", bad)
+		}
+	}
+	if _, ok := s.ClaudeLogLastWrite("1a2b3c4d-0000-4000-8000-000000000002"); ok {
+		t.Error("found a log for a session that has none")
 	}
 }
 
@@ -643,7 +711,9 @@ func TestOpenSessionsIsKnownOnlyFromALiveEntryOrNoClaudeCodeAtAll(t *testing.T) 
 		{"no Claude Code process, a stale entry left behind", map[string]string{"101.json": live}, procs(other), true, nil},
 		{"Claude Code running, no registry", nil, procs(claude), false, nil},
 		{"Claude Code running, empty registry", map[string]string{}, procs(claude), false, nil},
-		{"Claude Code running, only a background entry", map[string]string{"101.json": `{"pid":101,"sessionId":"aaa","kind":"background"}`}, procs(claude), false, nil},
+		// A background entry with a live process holds its session: it is
+		// open, and a registry that answers for a live process is known.
+		{"Claude Code running, only a background entry", map[string]string{"101.json": `{"pid":101,"sessionId":"aaa","kind":"background"}`}, procs(claude), true, []string{"claude-code:aaa"}},
 		{"Claude Code running, only another process's stale entry", map[string]string{"55.json": `{"pid":55,"sessionId":"old","kind":"interactive"}`}, procs(claude), false, nil},
 		{"the process list failed", map[string]string{"101.json": live}, func(context.Context) ([]rawProcess, error) { return nil, os.ErrPermission }, false, nil},
 	}

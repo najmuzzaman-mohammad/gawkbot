@@ -38,6 +38,46 @@ var sessionOpenNowFn = func(ctx context.Context) (map[string]agentdetect.OpenSes
 	return scanner.OpenSessions()
 }
 
+// sessionLogLastWriteFn reads, right now, when a Claude Code session's log
+// was last written. Swapped by tests.
+var sessionLogLastWriteFn = func(nativeID string) (time.Time, bool) {
+	return agentdetect.NewScanner().ClaudeLogLastWrite(nativeID)
+}
+
+// sessionQuietMargin is how long a Claude Code session's log must have been
+// still before it may be resumed in the background. Claude Code's list of
+// open sessions is the first check and this is the second, and it does not
+// depend on the first: a session whose log is being written is live, whatever
+// the list says. In a real run a live session was missing from the list (its
+// entry could not be read) and read as closed; its log had been written the
+// same second. A resume then would have forked its conversation.
+const sessionQuietMargin = 3 * time.Minute
+
+// sessionOwnWriteSlack is how much later than the end of gawkbot's own
+// background turn a log write may be and still count as that turn's: the
+// tool flushes its last records as it exits.
+const sessionOwnWriteSlack = 5 * time.Second
+
+// sessionLogIsQuiet reports whether a Claude Code session's log has been
+// still for sessionQuietMargin. A log that cannot be found is not quiet:
+// nothing is known about it.
+//
+// ownTurnEnded is when gawkbot's own last background turn in this session
+// finished (zero if none). A resume writes to the log, so without this a
+// session could be answered once and then not again for the whole margin.
+// A write no later than that turn's end is gawkbot's own and does not make
+// the session live; any write after it is someone else's and does.
+func sessionLogIsQuiet(nativeID string, ownTurnEnded, now time.Time) bool {
+	last, found := sessionLogLastWriteFn(nativeID)
+	if !found {
+		return false
+	}
+	if !ownTurnEnded.IsZero() && !last.After(ownTurnEnded.Add(sessionOwnWriteSlack)) {
+		return true
+	}
+	return now.Sub(last) >= sessionQuietMargin
+}
+
 const (
 	// sessionQueueMax is how many messages may wait behind a session's
 	// running turn. One more is answered at once and not kept.
@@ -320,6 +360,12 @@ func (l *Launcher) runClaudeSessionTurn(ctx context.Context, req sessionTurnRequ
 	// The last look before the resume. Open, or not known: nothing runs.
 	open, known := sessionOpenNowFn(ctx)
 	if !known || sessionRequestIsOpen(req, open) {
+		l.refuseSessionTurn(req)
+		return
+	}
+	// And the log itself, read last of all: written a moment ago means
+	// something is running in this session, listed or not.
+	if !sessionLogIsQuiet(req.NativeID, l.broker.sessionOwnTurnEnded(req.Slug), time.Now()) {
 		l.refuseSessionTurn(req)
 		return
 	}

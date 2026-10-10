@@ -99,7 +99,19 @@ func newSessionMsgFixture(t *testing.T, tool string) *sessionMsgFixture {
 	})
 	f.fakeTools(fakeTool{stdout: claudeFinalLine}, fakeTool{stdout: codexFinalLine})
 	stubLocalSessions(t, []agentdetect.Session{})
+	// The session's log was last written long ago, unless a test says
+	// otherwise: quiet, so the log check does not decide the other tests.
+	f.logWritten(func() (time.Time, bool) { return time.Unix(0, 0), true })
 	return f
+}
+
+// logWritten sets what reading the session's log's last write returns, for
+// the registry's look and for the runner's last look before a resume.
+func (f *sessionMsgFixture) logWritten(when func() (time.Time, bool)) {
+	f.t.Helper()
+	prev := sessionLogLastWriteFn
+	sessionLogLastWriteFn = func(string) (time.Time, bool) { return when() }
+	f.t.Cleanup(func() { sessionLogLastWriteFn = prev })
 }
 
 // openNow is the openness the tools report when the session is (or is not)
@@ -604,6 +616,110 @@ func TestClaudeSessionIsResumedOnlyWhenKnownClosed(t *testing.T) {
 				t.Fatalf("started %q, want %d run(s)", runs, wantRuns)
 			}
 		})
+	}
+}
+
+// The registry said this session was closed. Its log was being written the
+// same second: it was live, and missing from the registry because its entry
+// could not be read. Closed in the registry is not enough to resume.
+func TestClaudeSessionBeingWrittenIsNotResumedWhateverTheRegistrySays(t *testing.T) {
+	cases := []struct {
+		name string
+		// when is the log's last write relative to the moment it is read.
+		when    func(f *sessionMsgFixture) (time.Time, bool)
+		wantCan bool
+	}{
+		{"written this second", func(f *sessionMsgFixture) (time.Time, bool) { return f.now, true }, false},
+		{"written a minute ago", func(f *sessionMsgFixture) (time.Time, bool) { return f.now.Add(-time.Minute), true }, false},
+		{"written just inside the margin", func(f *sessionMsgFixture) (time.Time, bool) {
+			return f.now.Add(-sessionQuietMargin + time.Second), true
+		}, false},
+		{"still for the whole margin", func(f *sessionMsgFixture) (time.Time, bool) { return f.now.Add(-sessionQuietMargin), true }, true},
+		{"no log to be found", func(f *sessionMsgFixture) (time.Time, bool) { return time.Time{}, false }, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newSessionMsgFixture(t, sessionToolClaude)
+			f.logWritten(func() (time.Time, bool) { return tc.when(f) })
+			f.closeSession() // the registry: closed
+			wire := f.sessionWire()
+			if wire["can_message"] != tc.wantCan {
+				t.Fatalf("can_message = %v, want %v (block %v)", wire["can_message"], tc.wantCan, wire["message_block"])
+			}
+			if !tc.wantCan && wire["message_block"] != sessionBlockOpen {
+				t.Errorf("message_block = %v, want %q: to the person it is open", wire["message_block"], sessionBlockOpen)
+			}
+			if took := f.deliver(f.ownerPost("Can you also bump the version?")); took != tc.wantCan {
+				t.Errorf("delivered = %v, want %v", took, tc.wantCan)
+			}
+			f.l.waitSessionTurns()
+			// The runner reads the wall clock, where f.now is an hour old, so
+			// only the "nothing may start" half is asserted here; the runner's
+			// own last look has its own test below.
+			if !tc.wantCan {
+				if runs := f.started(); len(runs) != 0 {
+					t.Fatalf("a resume was started against a session being written: %q", runs)
+				}
+			}
+		})
+	}
+}
+
+// The gate works from the registry's last look, a few seconds old. The
+// runner reads the log again immediately before it starts anything: a
+// session someone began typing into in between must not be resumed.
+func TestClaudeResumeReadsTheLogAgainRightBeforeItStarts(t *testing.T) {
+	f := newSessionMsgFixture(t, sessionToolClaude)
+	f.closeSession()
+	if f.sessionWire()["can_message"] != true {
+		t.Fatal("not messageable at the registry's look; the rest would prove nothing")
+	}
+	// Now someone writes in it.
+	f.logWritten(func() (time.Time, bool) { return time.Now(), true })
+	if !f.deliver(f.ownerPost("Can you also bump the version?")) {
+		t.Fatal("the gate refused; this test needs the runner's own look")
+	}
+	f.l.waitSessionTurns()
+	if runs := f.started(); len(runs) != 0 {
+		t.Fatalf("a resume was started although the log had just been written: %q", runs)
+	}
+	if f.saidByMember(sessionNotMessageableReply) != 1 {
+		t.Fatalf("the person was not told: %v", f.dmMessages(nil))
+	}
+}
+
+// gawkbot's own resume writes to the log. That must not make the session
+// look live to gawkbot, or it could be answered once and then not again for
+// the whole margin. A write after its own turn ended is someone else's.
+func TestASessionCanBeMessagedAgainRightAfterItsOwnResume(t *testing.T) {
+	f := newSessionMsgFixture(t, sessionToolClaude)
+	f.closeSession()
+	if !f.deliver(f.ownerPost("First.")) {
+		t.Fatal("first message not delivered")
+	}
+	f.l.waitSessionTurns()
+	ended := f.b.sessionOwnTurnEnded(f.slug)
+	if ended.IsZero() {
+		t.Fatal("the end of the session's own turn was not recorded")
+	}
+	// The log now carries that turn, written as it ended.
+	f.logWritten(func() (time.Time, bool) { return ended, true })
+	f.closeSession()
+	if f.sessionWire()["can_message"] != true {
+		t.Fatalf("not messageable right after its own resume: block %v", f.sessionWire()["message_block"])
+	}
+	if !f.deliver(f.ownerPost("Second.")) {
+		t.Fatal("second message not delivered right after the first was answered")
+	}
+	f.l.waitSessionTurns()
+	if runs := f.started(); len(runs) != 2 {
+		t.Fatalf("started %d turn(s), want 2: %q", len(runs), runs)
+	}
+	// Someone else writes after gawkbot's turn ended: live again.
+	later := f.b.sessionOwnTurnEnded(f.slug).Add(sessionOwnWriteSlack + time.Second)
+	f.logWritten(func() (time.Time, bool) { return later, true })
+	if sessionLogIsQuiet("x", f.b.sessionOwnTurnEnded(f.slug), later.Add(time.Second)) {
+		t.Fatal("a write after its own turn ended was taken for its own")
 	}
 }
 

@@ -722,7 +722,55 @@ type OpenSession struct {
 	PID int
 	// Busy is true while the tool says it is mid-turn.
 	Busy bool
+	// Interactive is true for a window a person sits at, false for any
+	// other process that holds the session (a background or SDK run).
+	Interactive bool
 }
+
+// ClaudeLogLastWrite is when the log of the Claude Code session with this
+// id (a bare uuid) was last written, and whether a log was found at all.
+//
+// It is the one signal about a session that does not go through Claude
+// Code's list of open sessions: a session being written right now is live,
+// whatever that list says. A caller about to resume a session reads this
+// last, because a resume against a live session forks its conversation.
+func (s *Scanner) ClaudeLogLastWrite(sessionID string) (time.Time, bool) {
+	id := strings.ToLower(strings.TrimSpace(sessionID))
+	if !bareUUIDRe.MatchString(id) {
+		return time.Time{}, false
+	}
+	home := ""
+	if s.Home != nil {
+		home, _ = s.Home()
+	}
+	if home == "" {
+		return time.Time{}, false
+	}
+	root := filepath.Join(s.claudeConfigDir(home), "projects")
+	dirs, err := os.ReadDir(root)
+	if err != nil {
+		return time.Time{}, false
+	}
+	var last time.Time
+	found := false
+	for _, d := range dirs {
+		if !d.IsDir() {
+			continue
+		}
+		info, err := os.Lstat(filepath.Join(root, d.Name(), id+".jsonl"))
+		if err != nil || !info.Mode().IsRegular() {
+			continue
+		}
+		if !found || info.ModTime().After(last) {
+			last, found = info.ModTime(), true
+		}
+	}
+	return last, found
+}
+
+// bareUUIDRe is a whole uuid and nothing else, so an id can be used as a
+// file name without being able to name anything outside a project folder.
+var bareUUIDRe = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // OpenSessions lists the Claude Code sessions that are open right now, keyed
 // by Session.ID, from Claude Code's own registry: one small JSON file per
@@ -759,16 +807,23 @@ func (s *Scanner) OpenSessions() (open map[string]OpenSession, known bool) {
 	open = map[string]OpenSession{}
 	dir := filepath.Join(s.claudeConfigDir(home), "sessions")
 	entries, _ := os.ReadDir(dir)
+	// unread: an entry was there and could not be understood. Then nothing
+	// can be called closed: the session it stands for is exactly the one
+	// that would be missing from the answer, and a missing session reads as
+	// closed. One such file made a live session read closed in a real run.
+	unread := false
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
 			continue
 		}
 		info, err := e.Info()
 		if err != nil || !info.Mode().IsRegular() || info.Size() > claudeRegistryFileMax {
+			unread = true
 			continue
 		}
 		raw, err := os.ReadFile(filepath.Join(dir, e.Name()))
 		if err != nil {
+			unread = true
 			continue
 		}
 		var rec struct {
@@ -777,14 +832,23 @@ func (s *Scanner) OpenSessions() (open map[string]OpenSession, known bool) {
 			Kind      string `json:"kind"`
 			Status    string `json:"status"`
 		}
-		if json.Unmarshal(raw, &rec) != nil || rec.PID <= 0 || strings.TrimSpace(rec.SessionID) == "" {
-			// Malformed, or not the shape this build knows: skipped.
+		// The first JSON value in the file is the entry. Claude Code has
+		// been seen to leave bytes after it; those are ignored, where a
+		// whole-file parse would have thrown the entry away.
+		if json.NewDecoder(bytes.NewReader(raw)).Decode(&rec) != nil || rec.PID <= 0 || strings.TrimSpace(rec.SessionID) == "" {
+			unread = true
 			continue
 		}
-		if rec.Kind != claudeInteractiveKind || !s.alivePIDs[rec.PID] {
+		// Any kind of entry with a live process holds the session: only an
+		// interactive one is a window a person sits at, but a resume against
+		// any of them would write a second conversation into one log.
+		if !s.alivePIDs[rec.PID] {
 			continue
 		}
-		open[claudeCodeID+":"+strings.TrimSpace(rec.SessionID)] = OpenSession{PID: rec.PID, Busy: rec.Status == "busy"}
+		open[claudeCodeID+":"+strings.TrimSpace(rec.SessionID)] = OpenSession{PID: rec.PID, Busy: rec.Status == "busy", Interactive: rec.Kind == claudeInteractiveKind}
+	}
+	if unread {
+		return nil, false
 	}
 	if len(open) > 0 {
 		return open, true
