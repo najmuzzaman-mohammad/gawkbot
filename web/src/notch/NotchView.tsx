@@ -27,6 +27,11 @@ export function collapsedWidth(g: NotchGeometry): number {
   return g.notchWidth + 2 * g.earWidth;
 }
 
+/** How tall the strip is: the notch, plus the chin it hangs below it. */
+export function stripHeight(g: NotchGeometry): number {
+  return g.notchHeight + g.chinHeight;
+}
+
 export function NotchView(props: NotchViewProps) {
   const { geometry, expanded, state } = props;
   // Every notch avatar looks its runtime up by slug, so the strip, the
@@ -56,8 +61,8 @@ export function NotchView(props: NotchViewProps) {
       <div
         className={`notch-root${geometry.nativeGlass ? " has-native-glass" : ""}`}
         style={{
-          ["--notch-strip-h" as string]: `${geometry.notchHeight}px`,
-          height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight + stage,
+          ["--notch-strip-h" as string]: `${stripHeight(geometry)}px`,
+          height: expanded ? EXPANDED_HEIGHT : stripHeight(geometry) + stage,
         }}
       >
         <NotchStage
@@ -74,7 +79,7 @@ export function NotchView(props: NotchViewProps) {
           className={`notch-shell ${expanded ? "is-expanded" : "is-collapsed"}`}
           style={{
             width,
-            height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight,
+            height: expanded ? EXPANDED_HEIGHT : stripHeight(geometry),
           }}
           data-testid="notch-shell"
           data-mood={state?.mood ?? "idle"}

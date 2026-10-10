@@ -156,6 +156,22 @@ kbd {
   padding: 0 12px;
   box-sizing: border-box;
 }
+/* On a Mac with a notch: the notch, then the chin below it with the lead
+   on the left and the gang on the right, inside the notch's own width. */
+.notch-strip.has-chin {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+}
+.notch-chin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
 .notch-ear {
   display: flex;
   align-items: center;

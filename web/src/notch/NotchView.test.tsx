@@ -55,11 +55,24 @@ function renderNotchWith(overrides: Partial<NotchViewProps>) {
 }
 
 describe("collapsed notch", () => {
-  it("is exactly the notch plus two ears", () => {
+  it("keeps to the notch's own width, with a chin below it", () => {
     renderNotch();
     const shell = screen.getByTestId("notch-shell");
-    expect(shell.style.width).toBe(`${186 + 2 * 72}px`);
-    expect(shell.style.height).toBe("32px");
+    // Nothing beside the notch: the menu bar's items stay uncovered.
+    expect(shell.style.width).toBe("186px");
+    expect(shell.style.height).toBe(`${32 + 22}px`);
+    // The agents are in the chin, not over the menu bar.
+    const chin = document.querySelector(".notch-chin");
+    expect(chin).not.toBeNull();
+    expect(chin?.contains(screen.getByTestId("notch-gang"))).toBe(true);
+  });
+
+  it("is a pill with two ears on a Mac without a notch", () => {
+    renderNotchWith({ geometry: NO_NOTCH });
+    const shell = screen.getByTestId("notch-shell");
+    expect(shell.style.width).toBe(`${2 * 64}px`);
+    expect(shell.style.height).toBe("24px");
+    expect(document.querySelector(".notch-chin")).toBeNull();
   });
 
   it("piles everyone who needs you onto the notch, with a count", () => {

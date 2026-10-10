@@ -43,7 +43,8 @@ export function NotchArrival({
     const t = window.setTimeout(() => {
       play("whoosh");
       // Out sideways under the notch first, then a swoop up into the ear.
-      const earX = width - geometry.earWidth / 2 - SIZE / 2;
+      // It lands where the gang sits: the right ear, or the chin's right end.
+      const earX = width - Math.max(geometry.earWidth / 2, 20) - SIZE / 2;
       void c.flyTo(earX, -geometry.notchHeight - SIZE, {
         duration: 900,
         via: { x: earX + 18, y: startY + 18 },
@@ -57,7 +58,7 @@ export function NotchArrival({
       ref={host}
       className="notch-stage notch-arrive"
       data-testid="notch-arrive"
-      style={{ top: geometry.notchHeight - 4, width }}
+      style={{ top: geometry.notchHeight + geometry.chinHeight - 4, width }}
       role="img"
       aria-label={`${agent.name} flies in with a question`}
     />
