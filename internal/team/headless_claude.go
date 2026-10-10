@@ -369,9 +369,9 @@ func (l *Launcher) headlessClaudeModel(ctx context.Context, slug string) string 
 	// is still available but no longer the recommended pick — see
 	// https://platform.claude.com/docs/en/docs/about-claude/models.
 	if l.opusCEO && slug == l.targeter().LeadSlug() {
-		return "claude-opus-4-8"
+		return defaultClaudeLeadModel
 	}
-	return "claude-sonnet-4-6"
+	return defaultClaudeModel
 }
 
 // headlessClaudeMaxTurns returns the turn budget for a bot. The CEO routes

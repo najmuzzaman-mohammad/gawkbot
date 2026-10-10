@@ -140,6 +140,7 @@ type Broker struct {
 	skillDescEmbeddings map[string][]float32         // slug → description embedding vector; guarded by mu
 	sharedMemory        map[string]map[string]string // namespace → key → value
 	lastTaggedAt        map[string]time.Time         // when each bot was last @mentioned
+	observedModels      map[string]string            // bot slug → model its last turn ran on; in-memory; guarded by mu
 	botDMWakes          map[string][]time.Time       // bot-pair DM slug → recent partner wakes (loop cap); guarded by mu
 	lastPaneSnapshot    map[string]string            // last captured pane content per bot (for change detection)
 	seenTelegramGroups  map[int64]string             // chat_id -> title, populated by transport

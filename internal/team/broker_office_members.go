@@ -34,6 +34,9 @@ type officeMemberListEntry struct {
 	RunsOn       string `json:"runs_on,omitempty"`
 	RunsOnDetail string `json:"runs_on_detail,omitempty"`
 	ManagedBy    string `json:"managed_by,omitempty"`
+	// Runtime is what the bot runs on (tool and model), resolved here so
+	// every client draws the same badge on the avatar.
+	Runtime memberRuntimeInfo `json:"runtime"`
 	// Online + LastSeenAt are presence fields populated from b.memberPresence
 	// (broker_presence.go), distinct from Status/Activity above which describe
 	// "is the bot processing right now". Online tracks "does the adapter
@@ -109,6 +112,7 @@ func (b *Broker) handleOfficeMembers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Broker) serveOfficeMemberList(w http.ResponseWriter) {
+	defaults := resolveRuntimeDefaults("")
 	b.mu.Lock()
 	now := time.Now()
 	members := make([]officeMemberListEntry, 0, len(b.members))
@@ -117,6 +121,7 @@ func (b *Broker) serveOfficeMemberList(w http.ResponseWriter) {
 		entry := officeMemberListEntry{officeMember: cloneOfficeMemberForRead(member)}
 		entry.Origin = memberOrigin(member, lead)
 		entry.RunsOn, entry.RunsOnDetail = memberRunsOn(member)
+		entry.Runtime = memberRuntime(member, b.observedModels[member.Slug], defaults)
 		if member.Slug != lead {
 			entry.ManagedBy = lead
 		}
