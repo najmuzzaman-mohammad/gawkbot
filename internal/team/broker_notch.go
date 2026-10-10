@@ -9,6 +9,7 @@ import (
 
 	"github.com/nex-crm/wuphf/internal/agentdetect"
 	"github.com/nex-crm/wuphf/internal/channel"
+	"github.com/nex-crm/wuphf/internal/config"
 )
 
 // GET /notch/state — everything the Mac notch needs in one poll: every
@@ -167,6 +168,10 @@ type notchState struct {
 	Headline   string           `json:"headline"`
 	Agents     []notchAgent     `json:"agents"`
 	Attention  []notchAttention `json:"attention"`
+	// JumpOut is the person's one switch for bots leaving the notch to get
+	// attention (it opening by itself, a peek, a fly-in, chatter). The
+	// notch reads it on every poll, so a change in Settings needs no restart.
+	JumpOut bool `json:"jump_out"`
 }
 
 func (b *Broker) handleNotchState(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +193,12 @@ func (b *Broker) handleNotchState(w http.ResponseWriter, r *http.Request) {
 	state := b.notchStateLocked(now, defaults, owner)
 	b.mu.Unlock()
 	state, sessions = b.claimNotchSessionRows(state, sessions, now)
-	writeJSON(w, http.StatusOK, withNotchSessions(state, sessions, now))
+	state = withNotchSessions(state, sessions, now)
+	// Read fresh, not from the runtime-defaults cache: someone who turned
+	// this off because it was in their way should not wait for a cache.
+	cfg, _ := config.Load()
+	state.JumpOut = cfg.IsNotchJumpOutEnabled()
+	writeJSON(w, http.StatusOK, state)
 }
 
 // withNotchSessions adds the machine's running sessions to the agents, after

@@ -40,6 +40,7 @@ import {
 } from "./settings/components";
 import { SECTION_GROUPS } from "./settings/constants";
 import { LocalAgentsSection } from "./settings/LocalAgentsSection";
+import { NotchSection } from "./settings/NotchSection";
 import { PrivacySection } from "./settings/PrivacySection";
 import { RuntimeProviderChecklist } from "./settings/RuntimeProviderChecklist";
 import type { SectionId, SectionProps } from "./settings/types";
@@ -1152,6 +1153,8 @@ function SectionBody({
       return <GeneralSection cfg={cfg} save={save} />;
     case "agents":
       return <LocalAgentsSection />;
+    case "notch":
+      return <NotchSection cfg={cfg} save={save} />;
     case "local-llms":
       return <LocalLLMsSection cfg={cfg} save={save} />;
     case "image-gen":

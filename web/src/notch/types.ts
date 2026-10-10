@@ -107,6 +107,12 @@ export interface NotchState {
   headline: string;
   agents: NotchAgent[];
   attention: NotchAttention[];
+  /**
+   * The person's one switch (Settings, Notch) for bots leaving the notch to
+   * get attention. Only an explicit false turns it off; a broker too old to
+   * send it means on.
+   */
+  jump_out?: boolean;
 }
 
 /** Physical notch geometry, in CSS px, handed over by the native shell. */

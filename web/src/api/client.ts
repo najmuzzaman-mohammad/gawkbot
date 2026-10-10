@@ -1285,12 +1285,11 @@ export interface ConfigSnapshot {
   openclaw_gateway_url?: string;
   // ascii.dev Box key for cloud bot computers.
   box_key_set?: boolean;
-  // Product-analytics consent (PostHog). Both default true. `analytics_configured`
-  // reports whether the broker injects a key; the frontend ORs it with its own
-  // build-time key to decide whether the toggles are meaningful to show.
+  // Analytics consent, both default true; `analytics_configured` = a key exists.
   analytics_telemetry_enabled?: boolean;
   analytics_session_recording_enabled?: boolean;
   analytics_configured?: boolean;
+  notch_jump_out?: boolean; // bots leave the notch to get attention; default true
   config_path?: string;
 }
 
@@ -1332,6 +1331,7 @@ export type ConfigUpdate = Partial<{
   // Product-analytics consent toggles.
   analytics_telemetry_enabled: boolean;
   analytics_session_recording_enabled: boolean;
+  notch_jump_out: boolean;
 }>;
 
 // The narrow slice of GET /config the operator surfaces read to decide whether

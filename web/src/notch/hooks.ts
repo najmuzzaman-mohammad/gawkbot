@@ -94,16 +94,28 @@ export function useAttentionSignals(
     if (fresh.length > 0 && claimNudge("ask")) {
       const item = state.attention.find((a) => a.id === fresh[0]);
       play(soundForAttention(item?.kind ?? ""));
-      postNative({
-        type: "attention",
-        count: state.attention.length,
-        headline: state.headline,
-      });
+      // Staying in means the notch does not open by itself. The sound (it
+      // has its own mute) and the count on the notch still say someone asked.
+      if (!staysInNotch(state)) {
+        postNative({
+          type: "attention",
+          count: state.attention.length,
+          headline: state.headline,
+        });
+      }
     }
     for (const s of moodTransitions(moods.current, state.agents)) play(s);
     moods.current = new Map(state.agents.map((a) => [a.slug, a.mood]));
   }, [state]);
   return firstSeen;
+}
+
+/**
+ * True when the person turned off bots jumping out of the notch to get
+ * attention: no opening by itself, no peek, no fly-in, no chatter.
+ */
+export function staysInNotch(state: NotchState | null): boolean {
+  return state?.jump_out === false;
 }
 
 /** A value that is always current inside timers, without restarting them. */
@@ -197,6 +209,7 @@ export function useArrival(
       fresh.length === 0 ||
       flying.current ||
       latestExpanded.current ||
+      staysInNotch(state) ||
       prefersReducedMotion()
     ) {
       return;

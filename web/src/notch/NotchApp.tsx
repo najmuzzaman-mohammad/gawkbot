@@ -16,6 +16,7 @@ import {
   readGeometry,
 } from "./bridge";
 import {
+  staysInNotch,
   useArrival,
   useAttentionSignals,
   useBanter,
@@ -104,11 +105,14 @@ export function NotchApp({
   const now = useWaitClock(attention.length > 0);
   const gang = useMemo(() => gangOf(attention, agents), [attention, agents]);
   const bored = boredomOf(attention, now, firstSeen.current);
-  const line = useBanter(bored >= 2 && !expanded, attention, agents);
+  // One switch in Settings keeps everybody inside the notch: no chatter and
+  // no peeking here, no opening by itself and no fly-in inside the hooks.
+  const quiet = staysInNotch(state);
+  const line = useBanter(bored >= 2 && !expanded && !quiet, attention, agents);
   const peeker = usePeeks(
     agents,
     attention,
-    expanded || line !== null,
+    expanded || line !== null || quiet,
     peekEveryMs,
   );
 

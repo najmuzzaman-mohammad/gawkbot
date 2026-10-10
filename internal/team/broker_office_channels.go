@@ -202,6 +202,8 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			"analytics_telemetry_enabled":         cfg.IsAnalyticsTelemetryEnabled(),
 			"analytics_session_recording_enabled": cfg.IsAnalyticsSessionRecordingEnabled(),
 			"analytics_configured":                config.ResolvePostHogKey() != "",
+			// Whether agents may leave the notch to get attention.
+			"notch_jump_out": cfg.IsNotchJumpOutEnabled(),
 			// Config file path (informational)
 			"config_path": config.ConfigPath(),
 		})
@@ -251,6 +253,7 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			// sent, leave alone"; an explicit true/false round-trips.
 			AnalyticsTelemetry        *bool `json:"analytics_telemetry_enabled,omitempty"`
 			AnalyticsSessionRecording *bool `json:"analytics_session_recording_enabled,omitempty"`
+			NotchJumpOut              *bool `json:"notch_jump_out,omitempty"`
 			// ProviderEndpoints is a partial-update map: keys present in
 			// the payload replace the corresponding entry; absent keys are
 			// preserved. Pass an empty value (`{"base_url":"","model":""}`)
@@ -510,6 +513,11 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 		if body.AnalyticsSessionRecording != nil {
 			v := *body.AnalyticsSessionRecording
 			cfg.AnalyticsSessionRecordingEnabled = &v
+			changed = true
+		}
+		if body.NotchJumpOut != nil {
+			v := *body.NotchJumpOut
+			cfg.NotchJumpOutEnabled = &v
 			changed = true
 		}
 		if body.ProviderEndpoints != nil {

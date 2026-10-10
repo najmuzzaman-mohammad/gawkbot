@@ -333,3 +333,65 @@ func TestConfigEndpointAcceptsActionProviders(t *testing.T) {
 		})
 	}
 }
+
+// The one switch for agents leaving the notch to get attention: on unless
+// the person turns it off, kept on disk, and independent of everything else.
+func TestConfigNotchJumpOutDefaultsOnAndRoundTrips(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("WUPHF_RUNTIME_HOME", tmp)
+	if err := os.MkdirAll(filepath.Join(tmp, ".wuphf"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	b := newTestBroker(t)
+	b.runtimeProvider = "claude-code"
+	b.token = "test-token"
+	if err := b.StartOnPort(0); err != nil {
+		t.Fatalf("start broker: %v", err)
+	}
+	defer func() {
+		if b.server != nil {
+			_ = b.server.Shutdown(context.Background())
+		}
+	}()
+	call := func(method, payload string) map[string]any {
+		t.Helper()
+		req, _ := http.NewRequest(method, "http://"+b.addr+"/config", bytes.NewBufferString(payload))
+		req.Header.Set("Authorization", "Bearer test-token")
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("%s /config: %v", method, err)
+		}
+		raw, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("%s /config %s: status=%d body=%s", method, payload, resp.StatusCode, raw)
+		}
+		var out map[string]any
+		_ = json.Unmarshal(raw, &out)
+		return out
+	}
+	get := func() any { return call(http.MethodGet, "")["notch_jump_out"] }
+
+	if got := get(); got != true {
+		t.Fatalf("never chosen: notch_jump_out = %v, want true", got)
+	}
+	call(http.MethodPost, `{"notch_jump_out":false}`)
+	if got := get(); got != false {
+		t.Fatalf("after turning it off: notch_jump_out = %v, want false", got)
+	}
+	disk, _ := os.ReadFile(filepath.Join(tmp, ".wuphf", "config.json"))
+	if !strings.Contains(string(disk), `"notch_jump_out": false`) {
+		t.Fatalf("the choice is not on disk: %s", disk)
+	}
+	// Another setting saved afterwards must not turn it back on.
+	call(http.MethodPost, `{"analytics_telemetry_enabled":false}`)
+	if got := get(); got != false {
+		t.Fatalf("saving another setting changed it: notch_jump_out = %v, want false", got)
+	}
+	call(http.MethodPost, `{"notch_jump_out":true}`)
+	if got := get(); got != true {
+		t.Fatalf("after turning it back on: notch_jump_out = %v, want true", got)
+	}
+}

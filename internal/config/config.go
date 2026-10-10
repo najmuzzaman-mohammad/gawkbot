@@ -110,6 +110,12 @@ type Config struct {
 	AnalyticsTelemetryEnabled        *bool `json:"analytics_telemetry_enabled,omitempty"`
 	AnalyticsSessionRecordingEnabled *bool `json:"analytics_session_recording_enabled,omitempty"`
 
+	// NotchJumpOutEnabled is the one switch for agents leaving the notch to
+	// get attention: the inbox dropping open by itself when someone asks,
+	// an agent peeking out, the banter, the fly-in. Default ON (nil). Off
+	// keeps the notch still; it still shows who needs you and how many.
+	NotchJumpOutEnabled *bool `json:"notch_jump_out,omitempty"`
+
 	OpenclawBridges    []OpenclawBridgeBinding `json:"openclaw_bridges,omitempty"`
 	OpenclawGatewayURL string                  `json:"openclaw_gateway_url,omitempty"`
 	OpenclawToken      string                  `json:"openclaw_token,omitempty"`
@@ -705,6 +711,12 @@ func IsComposioConfigured() bool {
 // configured, so this only takes effect once analytics is wired up.
 func (c Config) IsAnalyticsTelemetryEnabled() bool {
 	return c.AnalyticsTelemetryEnabled == nil || *c.AnalyticsTelemetryEnabled
+}
+
+// IsNotchJumpOutEnabled reports whether agents may leave the notch to get
+// attention. Default ON when never chosen (nil).
+func (c Config) IsNotchJumpOutEnabled() bool {
+	return c.NotchJumpOutEnabled == nil || *c.NotchJumpOutEnabled
 }
 
 // IsAnalyticsSessionRecordingEnabled reports whether session recordings

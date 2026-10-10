@@ -1,4 +1,5 @@
 import {
+  BellRing,
   Building,
   Cpu,
   Image,
@@ -23,6 +24,7 @@ export const SECTION_GROUPS: SectionGroup[] = [
     items: [
       { id: "general", Icon: SettingsIcon, name: "General" },
       { id: "agents", Icon: Cpu, name: "Agents on this machine" },
+      { id: "notch", Icon: BellRing, name: "Notch" },
       { id: "local-llms", Icon: Terminal, name: "Local LLMs" },
       { id: "image-gen", Icon: Image, name: "Image generation" },
       { id: "company", Icon: Building, name: "Company" },

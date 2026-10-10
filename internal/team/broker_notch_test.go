@@ -12,6 +12,7 @@ import (
 
 	"github.com/nex-crm/wuphf/internal/agentdetect"
 	"github.com/nex-crm/wuphf/internal/channel"
+	"github.com/nex-crm/wuphf/internal/config"
 )
 
 func fetchNotchState(t *testing.T, b *Broker) notchState {
@@ -403,5 +404,43 @@ func TestNotchCarriesTheEndOfTheLeadConversationForTheOwnerOnly(t *testing.T) {
 	}
 	if other := fetch("").LeadRecent; len(other) != 0 {
 		t.Fatalf("a caller without the owner token got the owner's conversation: %+v", other)
+	}
+}
+
+// The notch learns the person's one "stay in the notch" switch from the same
+// poll it already makes, so turning it off in Settings needs no restart.
+func TestNotchStateCarriesTheJumpOutSetting(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("WUPHF_RUNTIME_HOME", tmp)
+	b := newTestBroker(t)
+	read := func() any {
+		t.Helper()
+		rec := httptest.NewRecorder()
+		b.handleNotchState(rec, httptest.NewRequest(http.MethodGet, "/notch/state", nil))
+		var out map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		return out["jump_out"]
+	}
+	set := func(on bool) {
+		t.Helper()
+		cfg, _ := config.Load()
+		cfg.NotchJumpOutEnabled = &on
+		if err := config.Save(cfg); err != nil {
+			t.Fatalf("save config: %v", err)
+		}
+	}
+	if got := read(); got != true {
+		t.Fatalf("never chosen: jump_out = %v, want true", got)
+	}
+	set(false)
+	if got := read(); got != false {
+		t.Fatalf("turned off: jump_out = %v, want false on the very next poll", got)
+	}
+	set(true)
+	if got := read(); got != true {
+		t.Fatalf("turned back on: jump_out = %v, want true", got)
 	}
 }
