@@ -444,7 +444,9 @@ function AgentRow({ agent, phase, channel, onReply, onOpen }: AgentRowProps) {
           {agent.last_said ? <p>{agent.last_said}</p> : null}
           {agent.cwd ? <p className="nagent-cwd">{agent.cwd}</p> : null}
           <p className="nagent-hint">
-            Answer it in its {toolName || "own"} window.
+            {agent.open === false
+              ? `Its ${toolName || "own"} window is closed.`
+              : `Answer it in its ${toolName || "own"} window.`}
           </p>
         </div>
       ) : null}

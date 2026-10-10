@@ -280,6 +280,34 @@ describe("open notch", () => {
     );
     expect(row).toHaveTextContent("Both fixes pass. Which one should I keep?");
     expect(row).toHaveTextContent("/Users/me/shop");
+    expect(row).toHaveTextContent("Answer it in its Claude Code window.");
+  });
+
+  it("does not send the human to a window that is closed", async () => {
+    const state: NotchState = {
+      ...BUSY_OFFICE,
+      agents: [
+        ...BUSY_OFFICE.agents,
+        {
+          slug: "session.claude-code.b",
+          name: "Tidy the migration scripts",
+          mood: "idle",
+          detail: "Closed · api",
+          kind: "session",
+          tool: "claude-code",
+          tool_name: "Claude Code",
+          open: false,
+          last_said: "Run them on staging?",
+        },
+      ],
+    };
+    renderNotch({ expanded: true, agentsOpen: true, state });
+    await userEvent.click(
+      screen.getByRole("button", { name: /Tidy the migration scripts/ }),
+    );
+    const row = screen.getByTestId("notch-agent-session.claude-code.b");
+    expect(row).toHaveTextContent("Its Claude Code window is closed.");
+    expect(row).not.toHaveTextContent("Answer it in its");
   });
 
   it("shows every active agent on the strip in its own state, up to the cap", () => {

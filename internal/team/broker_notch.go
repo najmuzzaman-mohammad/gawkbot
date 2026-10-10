@@ -233,6 +233,14 @@ func notchSessionSlug(id string) string {
 // then rests: the detail still says it is the human's turn.
 func notchSessionMood(sess agentdetect.Session, now time.Time) (mood, detail string) {
 	where := sess.Project
+	if sess.OpenKnown && !sess.Open {
+		// The tool no longer has it open. "Quiet" would suggest it might
+		// still pick up; it will not until someone resumes it.
+		if where == "" {
+			return MoodIdle, "Closed"
+		}
+		return MoodIdle, "Closed · " + where
+	}
 	switch sess.State {
 	case agentdetect.SessionWorking:
 		return MoodWorking, strings.TrimSpace("Working in " + where)

@@ -351,4 +351,14 @@ func TestNotchSessionMood(t *testing.T) {
 	if mood, detail := notchSessionMood(agentdetect.Session{State: agentdetect.SessionQuiet}, now); mood != MoodIdle || detail != "Quiet" {
 		t.Fatalf("quiet: %q %q", mood, detail)
 	}
+	// Known to be closed: it says so, whatever its last turn was. Not known
+	// (Codex, or a registry that cannot be read) keeps the state's wording.
+	closed := agentdetect.Session{State: agentdetect.SessionYourTurn, Project: "shop", OpenKnown: true, Open: false, UpdatedAt: now.Add(-10 * time.Second).Format(time.RFC3339)}
+	if mood, detail := notchSessionMood(closed, now); mood != MoodIdle || detail != "Closed · shop" {
+		t.Fatalf("closed: %q %q", mood, detail)
+	}
+	open := agentdetect.Session{State: agentdetect.SessionQuiet, Project: "shop", OpenKnown: true, Open: true}
+	if _, detail := notchSessionMood(open, now); detail != "Quiet · shop" {
+		t.Fatalf("open and quiet: %q", detail)
+	}
 }
