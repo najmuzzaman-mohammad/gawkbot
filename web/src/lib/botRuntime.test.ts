@@ -52,6 +52,7 @@ describe("badgeText", () => {
 
   it("falls back to the tool when the model is unknown", () => {
     expect(badgeText(gemini, "full")).toBe("Gemini CLI");
+    expect(badgeText(gemini, "word")).toBe("Gemini");
     expect(badgeText(gemini, "code")).toBe("GC");
     expect(badgeText({ harness: "exo" }, "code")).toBe("ex");
   });

@@ -1874,15 +1874,25 @@ body {
   left: 50%;
   bottom: -6px;
   transform: translateX(-50%);
+  /* A block, not a flex box, so a long raw model id ends in an ellipsis
+     and never grows wider than the row the avatar sits in. */
+  display: block;
+  max-width: calc(9ch + 12px);
   height: 14px;
   padding: 0 5px;
+  overflow: hidden;
   font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
 }
 .model-badge--full {
   bottom: -7px;
+  max-width: calc(14ch + 14px);
   height: 16px;
   padding: 0 6px;
   font-size: 10px;
+  line-height: 14px;
 }
 
 /* ─── Harness badge (overlaid on agent avatars) ─── */

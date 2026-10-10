@@ -45,6 +45,11 @@ export function badgeDensity(avatarSize: number): BadgeDensity {
   return "full";
 }
 
+function firstWord(text: string): string {
+  const [word = ""] = text.trim().split(/\s+/);
+  return word;
+}
+
 function initials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return "";
@@ -64,11 +69,11 @@ export function badgeText(runtime: BotRuntime, density: BadgeDensity): string {
   const label = runtime.model_label?.trim();
   if (!label) {
     const name = runtime.harness_name?.trim() || runtime.harness;
-    return density === "code" ? initials(name) : name;
+    if (density === "code") return initials(name);
+    return density === "word" ? firstWord(name) : name;
   }
   if (density === "full") return label;
-  const firstWord = label.split(/\s+/)[0];
-  if (density === "word") return firstWord;
+  if (density === "word") return firstWord(label);
   const digit = label.match(/\d/)?.[0] ?? "";
   return digit ? `${label[0].toUpperCase()}${digit}` : label.slice(0, 2);
 }
