@@ -11,7 +11,8 @@ import (
 //
 //   - WHO made this bot? (origin) — the human, the Chief of Staff, another
 //     bot, the office itself (built-ins), an agent adopted from this
-//     machine, or a bot imported from an external gateway/transport.
+//     machine, a bot imported from an external gateway/transport, or a
+//     terminal session the human opened themselves (broker_session_agents.go).
 //   - WHERE does it run? (runs_on) — on this machine, or somewhere else
 //     (an OpenClaw/Hermes gateway, Slack, a cloud computer).
 //
@@ -27,6 +28,7 @@ const (
 	OriginBuiltIn       = "built_in"
 	OriginAdopted       = "adopted"
 	OriginImported      = "imported"
+	OriginSession       = "session"
 	RunsOnThisMachine   = "this_machine"
 	RunsOnElsewhere     = "elsewhere"
 	createdByHumanValue = "human"
@@ -66,6 +68,9 @@ func memberOrigin(m officeMember, lead string) string {
 	if m.BuiltIn {
 		return OriginBuiltIn
 	}
+	if m.Provider.Kind == provider.KindLocalSession {
+		return OriginSession
+	}
 	if provider.IsGatewayKind(m.Provider.Kind) {
 		return OriginImported
 	}
@@ -93,6 +98,14 @@ func memberRunsOn(m officeMember) (where, detail string) {
 			if spec, ok := agentdetect.Lookup(m.Provider.CLIAgent.Agent); ok {
 				name = spec.Name
 			}
+		}
+		return RunsOnThisMachine, name + " on this machine"
+	case provider.KindLocalSession:
+		// The tool the person opened, never "local-session": that is how the
+		// office files it, not what it runs on.
+		name := sessionToolName(m.Provider.Session)
+		if name == "" {
+			return RunsOnThisMachine, "this machine"
 		}
 		return RunsOnThisMachine, name + " on this machine"
 	}

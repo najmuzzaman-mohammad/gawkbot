@@ -114,7 +114,7 @@ boot_wuphf() {
     exit 1
   fi
   log "booting wuphf on broker=$BROKER_PORT web=$WEB_PORT runtime=$RUNTIME_HOME"
-  WUPHF_RUNTIME_HOME="$RUNTIME_HOME" "$WUPHF_BINARY" \
+  WUPHF_RUNTIME_HOME="$RUNTIME_HOME" WUPHF_SESSION_MEMBERS_DISABLED=1 "$WUPHF_BINARY" \
     --broker-port "$BROKER_PORT" --web-port "$WEB_PORT" --no-open \
     > "$WUPHF_LOG" 2>&1 &
   WUPHF_PID=$!

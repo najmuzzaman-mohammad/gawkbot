@@ -36,6 +36,22 @@ describe("MemberProvenance", () => {
     ).toBeInTheDocument();
   });
 
+  it("tags a terminal session as yours, running on this machine", () => {
+    render(
+      <MemberProvenance
+        member={{
+          origin: "session",
+          runs_on: "this_machine",
+          runs_on_detail: "Claude Code on this machine",
+          managed_by: "cos",
+        }}
+      />,
+    );
+    const tag = screen.getByText("Your session");
+    expect(tag).toHaveAttribute("data-origin", "session");
+    expect(screen.getByText("Runs here · Claude Code")).toBeInTheDocument();
+  });
+
   it("renders nothing for a member without provenance", () => {
     const { container } = render(<MemberProvenance member={{}} />);
     expect(container).toBeEmptyDOMElement();

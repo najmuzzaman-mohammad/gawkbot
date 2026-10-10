@@ -58,6 +58,14 @@ type Scanner struct {
 	// SelfPID anchors the "spawned by gawkbot" filter: processes descended
 	// from it are the office's own bot turns, not agents to adopt.
 	SelfPID int
+	// Getenv reads the environment (CLAUDE_CONFIG_DIR). Nil means "nothing
+	// is set", so a Scanner built by hand in a test never reads the real one.
+	Getenv func(key string) string
+
+	// alivePIDs is every process the last Scan saw, before any filtering.
+	// Nil until a Scan has listed processes successfully; the session
+	// registry reader then cannot tell a live entry from a stale one.
+	alivePIDs map[int]bool
 }
 
 // NewScanner returns a Scanner wired to the real OS.
@@ -68,6 +76,7 @@ func NewScanner() *Scanner {
 		Home:      os.UserHomeDir,
 		Processes: listProcesses,
 		SelfPID:   os.Getpid(),
+		Getenv:    os.Getenv,
 	}
 }
 
@@ -85,6 +94,11 @@ func (s *Scanner) Scan(ctx context.Context) []Detection {
 	var procs []rawProcess
 	if s.Processes != nil {
 		if list, err := s.Processes(ctx); err == nil {
+			alive := make(map[int]bool, len(list))
+			for _, p := range list {
+				alive[p.PID] = true
+			}
+			s.alivePIDs = alive
 			procs = excludeDescendants(list, s.SelfPID)
 		}
 	}

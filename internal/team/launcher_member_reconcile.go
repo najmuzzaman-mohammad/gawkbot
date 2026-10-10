@@ -48,6 +48,11 @@ func (l *Launcher) reconcileMemberRuntime(slug string) {
 		// resolver on the next dispatch, no further work needed.
 		return
 	}
+	if kind == provider.KindLocalSession {
+		// A terminal session: its updates are a new title or model read from
+		// its log, never a runtime switch. Nothing to announce or reset.
+		return
+	}
 	// Post a system message in #general so the human sees the switch
 	// landed. We don't try to detect "the user is staring at a different
 	// channel" — getting the signal in one canonical place is better than

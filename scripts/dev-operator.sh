@@ -51,6 +51,7 @@ echo "==> starting broker on broker:$BROKER_PORT web:$WEB_PORT (home: $HOME_DIR)
 # given broker build reads.
 env -u WUPHF_COMPOSIO_API_KEY -u OPENAI_API_KEY -u WUPHF_OPENAI_API_KEY \
   WUPHF_RUNTIME_HOME="$HOME_DIR" \
+  WUPHF_SESSION_MEMBERS_DISABLED="${WUPHF_SESSION_MEMBERS_DISABLED:-1}" \
   WUPHF_COMPOSIO_USER_ID="$COMPOSIO_USER_ID" \
   COMPOSIO_USER_ID="$COMPOSIO_USER_ID" \
   ./wuphf-mvp --no-open --broker-port "$BROKER_PORT" --web-port "$WEB_PORT" \

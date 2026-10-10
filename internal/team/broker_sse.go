@@ -109,7 +109,15 @@ func (b *Broker) handleEvents(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case snapshot, ok := <-activity:
-			if !ok || writeEvent("activity", map[string]any{"activity": snapshot}) != nil {
+			if !ok {
+				return
+			}
+			// A session member's status names the folder the owner is working
+			// in. Like the roster entry itself, it goes to the owner only.
+			if actor.Kind == requestActorKindHuman && b.isSessionMemberSlug(snapshot.Slug) {
+				continue
+			}
+			if writeEvent("activity", map[string]any{"activity": snapshot}) != nil {
 				return
 			}
 		case evt, ok := <-officeChanges:

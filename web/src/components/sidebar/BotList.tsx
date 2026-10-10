@@ -6,6 +6,11 @@ import { useFirstRunNudge } from "../../hooks/useFirstRunNudge";
 import { useOfficeMembers } from "../../hooks/useMembers";
 import { useOverflow } from "../../hooks/useOverflow";
 import { router } from "../../lib/router";
+import {
+  isSessionMember,
+  sessionProject,
+  sessionStatusLabel,
+} from "../../lib/sessionMember";
 import { useCurrentRoute } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
 import { BotWizard, useBotWizard } from "../bots/BotWizard";
@@ -78,6 +83,14 @@ function SidebarBotRow({
   );
   const onComputer = working && computerReady;
   const displayName = agent.name || agent.slug;
+  // A session row also says which folder it is working in: four sessions of
+  // the same tool are otherwise told apart by their titles alone.
+  const isSession = isSessionMember(agent);
+  const project = isSession ? sessionProject(agent) : "";
+  // Its status comes from the session alone. The event pill falls back to
+  // the office's idle copy ("clearing something small"), which would invent
+  // an activity for a session that is waiting or closed.
+  const sessionStatus = isSession ? sessionStatusLabel(agent) : "";
 
   return (
     <div
@@ -139,11 +152,29 @@ function SidebarBotRow({
         </span>
         <div className="sidebar-bot-wrap">
           <span className="sidebar-bot-name">{displayName}</span>
-          <BotEventPill
-            slug={agent.slug}
-            agentRole={agent.role}
-            fallbackTask={agent.task}
-          />
+          {project ? (
+            <span
+              className="sidebar-bot-task"
+              data-testid={`session-project-${agent.slug}`}
+            >
+              {project}
+            </span>
+          ) : null}
+          {isSession ? (
+            <span
+              className="sidebar-bot-pill"
+              data-state={sessionStatus === "Working" ? "holding" : "dim"}
+              data-testid={`session-status-${agent.slug}`}
+            >
+              {sessionStatus}
+            </span>
+          ) : (
+            <BotEventPill
+              slug={agent.slug}
+              agentRole={agent.role}
+              fallbackTask={agent.task}
+            />
+          )}
         </div>
         <span className={`status-dot ${ac.dotClass}`} />
       </button>
@@ -230,7 +261,14 @@ export function BotList() {
   const { showNudge } = useFirstRunNudge();
   const isReconnecting = useAppStore((s) => s.isReconnecting);
 
-  const agents = members.filter((m) => m.slug && m.slug !== "human");
+  const roster = members.filter((m) => m.slug && m.slug !== "human");
+  // Terminal sessions are members too, but they are not the office's bots:
+  // they get their own group below and are never mixed into the org chart.
+  const agents = useMemo(
+    () => roster.filter((m) => !isSessionMember(m)),
+    [roster],
+  );
+  const sessions = useMemo(() => roster.filter(isSessionMember), [roster]);
   // v3 MVP — split CEO out of the flat bot list so the sidebar can
   // render it as the orchestrator with specialists listed beneath. The
   // CEO is always rendered first (even if missing — we render a slot so
@@ -261,7 +299,7 @@ export function BotList() {
     <BotEventTickProvider>
       <div className="sidebar-scroll-wrap is-bots">
         <div className="sidebar-agents" ref={overflowRef}>
-          {orderedBots.length === 0 ? (
+          {orderedBots.length === 0 && sessions.length === 0 ? (
             <div
               style={{
                 fontSize: 11,
@@ -310,6 +348,26 @@ export function BotList() {
                       </div>
                     ))}
                   </div>
+                </div>
+              ) : null}
+              {sessions.length > 0 ? (
+                <div
+                  className="sidebar-bot-group sidebar-bot-group--sessions"
+                  data-testid="sidebar-sessions-group"
+                >
+                  <div className="sidebar-bot-rank-label">
+                    Sessions on this Mac
+                  </div>
+                  {sessions.map((agent) => (
+                    <SidebarBotRow
+                      key={agent.slug}
+                      agent={agent}
+                      isDMActive={activeBotSlug === agent.slug}
+                      isFirst={false}
+                      showNudge={false}
+                      onSelect={handleSelect}
+                    />
+                  ))}
                 </div>
               ) : null}
             </>

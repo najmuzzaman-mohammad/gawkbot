@@ -188,3 +188,15 @@ export function pickIdleCopy(input: PickIdleCopyInput): string {
 
   return GENERALIST_COPY[rotateIndex(idleMs, GENERALIST_COPY.length)];
 }
+
+/**
+ * Every line the dictionary can return. For callers that must prove a
+ * surface never shows idle copy (a terminal session's row, for one).
+ */
+export function idleCopyLines(): readonly string[] {
+  return [
+    ...Object.values(SLUG_OVERRIDES).flat(),
+    ...Object.values(ROLE_TABLES).flat(),
+    ...GENERALIST_COPY,
+  ];
+}

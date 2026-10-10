@@ -75,6 +75,9 @@ func resolveRuntimeDefaults(cwd string) runtimeDefaults {
 // memberRuntime resolves what m runs on. observed is the model its last turn
 // used ("" when it has not run since the broker started).
 func memberRuntime(m officeMember, observed string, defaults runtimeDefaults) memberRuntimeInfo {
+	if m.Provider.Kind == provider.KindLocalSession {
+		return sessionMemberRuntime(m)
+	}
 	kind := strings.TrimSpace(m.Provider.Kind)
 	if kind == "" {
 		kind = defaults.Kind
@@ -119,6 +122,37 @@ func sessionRuntime(sess agentdetect.Session) *memberRuntimeInfo {
 		info.ModelLabel, info.Family = modelLabel(model)
 	}
 	return &info
+}
+
+// sessionMemberRuntime is the runtime of a member that stands for a terminal
+// session. The harness is the tool the person opened ("claude-code"), never
+// the "local-session" kind, so the badge and every client treat it like any
+// other bot on that tool. The model is the one its log last named, kept on
+// the binding by the session registry.
+func sessionMemberRuntime(m officeMember) memberRuntimeInfo {
+	info := memberRuntimeInfo{HarnessName: sessionToolName(m.Provider.Session)}
+	if m.Provider.Session != nil {
+		info.Harness = strings.TrimSpace(m.Provider.Session.Tool)
+	}
+	if model := strings.TrimSpace(m.Provider.Model); model != "" {
+		info.Model, info.Source = model, runtimeSourceObserved
+		info.ModelLabel, info.Family = modelLabel(model)
+	}
+	return info
+}
+
+// sessionToolName is the catalog name of the tool behind a session binding
+// ("Claude Code"), the tool id when the catalog does not know it, and ""
+// for a binding with no tool.
+func sessionToolName(s *provider.LocalSessionBinding) string {
+	if s == nil {
+		return ""
+	}
+	tool := strings.TrimSpace(s.Tool)
+	if spec, ok := agentdetect.Lookup(tool); ok {
+		return spec.Name
+	}
+	return tool
 }
 
 // harnessDisplayName is the name a person would call the tool: the detected

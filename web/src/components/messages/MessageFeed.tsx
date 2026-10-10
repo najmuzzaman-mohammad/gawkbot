@@ -5,6 +5,7 @@ import { useOfficeMembers } from "../../hooks/useMembers";
 import { useMessages } from "../../hooks/useMessages";
 import { formatDateLabel } from "../../lib/format";
 import { OFFICE_LOADING_PHRASES } from "../../lib/officeLoadingPhrases";
+import { emptyConversationLine } from "../../lib/sessionMember";
 import { useChannelSlug } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
 import { dmBotForChannel, EmptyHero } from "../layout/EmptyHero";
@@ -170,10 +171,7 @@ function ChannelMessageFeed({
       <div className="messages">
         <div className="channel-empty-state">
           {dmBot ? (
-            <EmptyHero
-              slug={dmBot.slug}
-              line={`Say hi to ${dmBot.name || dmBot.slug}.`}
-            />
+            <EmptyHero slug={dmBot.slug} line={emptyConversationLine(dmBot)} />
           ) : null}
           <span className="eyebrow">quiet before the standup</span>
           <span className="title">#{currentChannel} is empty. For now.</span>

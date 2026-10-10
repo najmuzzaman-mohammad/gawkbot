@@ -37,12 +37,14 @@ import {
   modelOptionsForKind,
 } from "../../lib/modelCatalog";
 import { router } from "../../lib/router";
+import { isSessionMember } from "../../lib/sessionMember";
 import { useAppStore } from "../../stores/app";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
 import { AvatarPicker } from "./AvatarPicker";
 import { BotInstructionsSection } from "./BotInstructionsSection";
 import { MemberProvenance } from "./MemberProvenance";
+import { SessionRuntimeSection } from "./SessionRuntimeSection";
 
 const PROVIDER_LABELS: Record<LLMRuntimeKind, string> = {
   "claude-code": "Claude Code",
@@ -1115,8 +1117,13 @@ export function BotProfilePanel({
         {/* Instruction files (SOUL / IDENTITY / OPERATIONS / TOOLS + office USER) */}
         <BotInstructionsSection agent={agent} />
 
-        {/* Per-bot runtime picker */}
-        <RuntimeSection agent={agent} defaultHarness={defaultHarness} />
+        {/* Per-bot runtime picker. A terminal session has nothing to pick:
+            what it runs on is read from its own log. */}
+        {isSessionMember(agent) ? (
+          <SessionRuntimeSection agent={agent} />
+        ) : (
+          <RuntimeSection agent={agent} defaultHarness={defaultHarness} />
+        )}
 
         {/* Skills */}
         <SkillsSection agentSlug={agent.slug} skills={skills} />

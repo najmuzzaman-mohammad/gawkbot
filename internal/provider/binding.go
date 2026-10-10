@@ -29,6 +29,11 @@ const (
 	// non-interactive mode. Which agent is named by
 	// ProviderBinding.CLIAgent.Agent, an internal/agentdetect catalog id.
 	KindCLIAgent = "cli-agent"
+	// KindLocalSession tags an agent session the person opened themselves in
+	// a terminal on this machine (a Claude Code or Codex window). The office
+	// lists it as a member and reads its log; it never starts a process for
+	// it. Which session is named by ProviderBinding.Session.
+	KindLocalSession = "local-session"
 )
 
 // ProviderBinding is the per-bot runtime selection persisted on an office
@@ -44,6 +49,29 @@ type ProviderBinding struct {
 	Openclaw *OpenclawProviderBinding `json:"openclaw,omitempty"`
 	Slack    *SlackProviderBinding    `json:"slack,omitempty"`
 	CLIAgent *CLIAgentProviderBinding `json:"cli_agent,omitempty"`
+	Session  *LocalSessionBinding     `json:"session,omitempty"`
+}
+
+// LocalSessionBinding names the terminal session a KindLocalSession member
+// stands for. Tool is an internal/agentdetect catalog id ("claude-code",
+// "codex"); SessionID is the scanner's id for the session's log.
+type LocalSessionBinding struct {
+	Tool      string `json:"tool,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
+	// NativeID is the id the tool itself knows the session by: the bare uuid
+	// that `claude --resume` and `codex queue --thread` take. SessionID is
+	// the scanner's name for the log and, for Codex, carries more than that.
+	NativeID string `json:"native_id,omitempty"`
+	Cwd      string `json:"cwd,omitempty"`
+	// Title is the session title the registry last gave the member as its
+	// name. The name follows the title only while the two still match, so a
+	// name the person typed is never overwritten.
+	Title string `json:"title,omitempty"`
+	// TranscriptPath is the session's log file, when it is known.
+	TranscriptPath string `json:"transcript_path,omitempty"`
+	// PriorSessionIDs are earlier ids of the same conversation (a resumed or
+	// compacted session gets a new id), oldest first.
+	PriorSessionIDs []string `json:"prior_session_ids,omitempty"`
 }
 
 // CLIAgentProviderBinding names the detected agent a KindCLIAgent bot runs
@@ -86,11 +114,11 @@ func ValidateKind(s string) error {
 	switch s {
 	case "",
 		KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot,
-		KindSlack, KindMLXLM, KindOllama, KindExo, KindCLIAgent:
+		KindSlack, KindMLXLM, KindOllama, KindExo, KindCLIAgent, KindLocalSession:
 		return nil
 	default:
-		return fmt.Errorf("unknown provider kind %q (valid: %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, or empty)",
-			s, KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot, KindSlack, KindMLXLM, KindOllama, KindExo, KindCLIAgent)
+		return fmt.Errorf("unknown provider kind %q (valid: %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, or empty)",
+			s, KindClaudeCode, KindCodex, KindOpencode, KindOpenclaw, KindOpenclawHTTP, KindHermesBot, KindSlack, KindMLXLM, KindOllama, KindExo, KindCLIAgent, KindLocalSession)
 	}
 }
 

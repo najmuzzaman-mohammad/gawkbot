@@ -32,10 +32,21 @@ var localAgentScanFn = func(ctx context.Context) []agentdetect.Detection {
 // localSessionsFn is swapped by tests; production reads the real machine.
 // Each session is named by what it is doing (agentdetect.Sessions), so the
 // notch can tell four open Claude Code windows apart.
+//
+// The production scan also notes which sessions the tools themselves say are
+// open (agentdetect.OpenSessions), from the same process listing. It runs
+// only from cachedLocalSessions, which holds localSessions.mu, so it writes
+// the cache's open fields directly; a test's stub leaves them "unknown".
 var localSessionsFn = func(ctx context.Context) []agentdetect.Session {
 	scanner := agentdetect.NewScanner()
-	return scanner.Sessions(scanner.Scan(ctx), time.Now())
+	scan := scanner.Scan(ctx)
+	localSessions.open, localSessions.openKnown = scanner.OpenSessions()
+	return scanner.Sessions(scan, time.Now())
 }
+
+// localOpenSessionsFn is nil in production; tests set it to say which
+// sessions are open (see cachedLocalOpenSessions).
+var localOpenSessionsFn func(ctx context.Context) (map[string]agentdetect.OpenSession, bool)
 
 // The notch asks on a timer; the scan lists processes and reads log tails,
 // so its answer is kept this long.
@@ -45,6 +56,10 @@ type localSessionsCache struct {
 	mu   sync.Mutex
 	at   time.Time
 	list []agentdetect.Session
+	// open are the sessions a tool reports as open right now, by session id;
+	// openKnown is false when no tool could be asked.
+	open      map[string]agentdetect.OpenSession
+	openKnown bool
 }
 
 var localSessions localSessionsCache
@@ -70,7 +85,11 @@ func cachedLocalSessions(ctx context.Context) []agentdetect.Session {
 	localSessions.mu.Lock()
 	defer localSessions.mu.Unlock()
 	if localSessions.list == nil || time.Since(localSessions.at) > localSessionsTTL {
+		localSessions.open, localSessions.openKnown = nil, false
 		list := localSessionsFn(ctx)
+		if localOpenSessionsFn != nil {
+			localSessions.open, localSessions.openKnown = localOpenSessionsFn(ctx)
+		}
 		if list == nil {
 			list = []agentdetect.Session{}
 		}
@@ -78,6 +97,14 @@ func cachedLocalSessions(ctx context.Context) []agentdetect.Session {
 		localSessions.at = time.Now()
 	}
 	return localSessions.list
+}
+
+// cachedLocalOpenSessions is which sessions the tools say are open, as of
+// the scan cachedLocalSessions last ran. Call that first.
+func cachedLocalOpenSessions() sessionOpenness {
+	localSessions.mu.Lock()
+	defer localSessions.mu.Unlock()
+	return sessionOpenness{known: localSessions.openKnown, open: localSessions.open}
 }
 
 type localAgentEntry struct {

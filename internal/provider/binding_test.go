@@ -2,6 +2,7 @@ package provider
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -36,6 +37,43 @@ func TestBindingJSONRoundTrip_CLIAgent(t *testing.T) {
 	}
 }
 
+func TestBindingJSONRoundTrip_LocalSession(t *testing.T) {
+	t.Parallel()
+	in := ProviderBinding{Kind: KindLocalSession, Model: "claude-opus-5-5", Session: &LocalSessionBinding{
+		Tool: "claude-code", SessionID: "claude-code:1a2b3c4d-0000-4000-8000-000000000001", Cwd: "/Users/me/shop",
+	}}
+	data, err := json.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `"session":{"tool":"claude-code","session_id":"claude-code:1a2b3c4d-0000-4000-8000-000000000001","cwd":"/Users/me/shop"}`
+	if !strings.Contains(string(data), want) {
+		t.Fatalf("marshal = %s, want it to contain %s", data, want)
+	}
+	var out ProviderBinding
+	if err := json.Unmarshal(data, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Kind != KindLocalSession || out.Session == nil || !reflect.DeepEqual(*out.Session, *in.Session) {
+		t.Fatalf("round trip = %+v", out)
+	}
+	// A binding without a session writes no empty object.
+	plain, _ := json.Marshal(ProviderBinding{Kind: KindCodex})
+	if strings.Contains(string(plain), "session") {
+		t.Fatalf("a codex binding wrote a session: %s", plain)
+	}
+	// The registry must not know this kind: an unregistered kind is neither
+	// pane eligible nor listed as a runtime a bot can be put on.
+	if Lookup(KindLocalSession) != nil {
+		t.Fatal("local-session must stay out of the runtime registry")
+	}
+	for _, k := range LLMProviderKinds() {
+		if k == KindLocalSession {
+			t.Fatal("local-session must not be offered as a runtime")
+		}
+	}
+}
+
 func TestValidateKind(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -52,6 +90,7 @@ func TestValidateKind(t *testing.T) {
 		{"hermes_agent", "hermes-agent", false},
 		{"slack", "slack", false},
 		{"cli_agent", "cli-agent", false},
+		{"local_session", "local-session", false},
 		{"unknown", "gemini", true},
 		{"typo", "claud-code", true},
 		{"uppercase_rejected", "Codex", true},
@@ -180,7 +219,9 @@ func TestIsGatewayKind(t *testing.T) {
 			t.Errorf("IsGatewayKind(%q) = false, want true", k)
 		}
 	}
-	llms := []string{"", KindClaudeCode, KindCodex, KindOpencode, KindMLXLM, KindOllama, KindExo}
+	// A local session is neither a gateway nor a runtime the office drives:
+	// it must not pick up the "managed by a gateway" treatment.
+	llms := []string{"", KindClaudeCode, KindCodex, KindOpencode, KindMLXLM, KindOllama, KindExo, KindLocalSession}
 	for _, k := range llms {
 		if IsGatewayKind(k) {
 			t.Errorf("IsGatewayKind(%q) = true, want false", k)

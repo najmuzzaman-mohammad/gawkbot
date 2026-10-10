@@ -141,6 +141,7 @@ type Broker struct {
 	sharedMemory        map[string]map[string]string // namespace → key → value
 	lastTaggedAt        map[string]time.Time         // when each bot was last @mentioned
 	observedModels      map[string]string            // bot slug → model its last turn ran on; in-memory; guarded by mu
+	sessionAgents       sessionAgentState            // terminal sessions kept as members (broker_session_agents.go); guarded by mu
 	runtimeDefaultsMu   sync.Mutex                   // guards the three fields below; never held with mu
 	runtimeDefaultsVal  runtimeDefaults
 	runtimeDefaultsAt   time.Time
@@ -631,6 +632,10 @@ func (b *Broker) Start() error {
 	// Same ctx/stopCh lifecycle as runActivityWatchdog; disabled when the
 	// interval env resolves to 0.
 	b.startChatDigestLoop(ctx)
+	// Terminal sessions on this machine become office members. Started here
+	// and not in NewBrokerAt so a broker built by a test never scans the
+	// real machine.
+	b.startSessionMemberLoop(ctx)
 	// The operator bot service (routine fires, tool authoring) is the
 	// broker's child now — spawn/supervise it unless externally managed.
 	// See agent_service_supervisor.go and the 2026-08-14 QA findings.

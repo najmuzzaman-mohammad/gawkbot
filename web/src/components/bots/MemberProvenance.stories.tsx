@@ -52,3 +52,14 @@ export const ChiefOfStaff: Story = {
     },
   },
 };
+
+export const YourSession: Story = {
+  args: {
+    member: {
+      origin: "session",
+      runs_on: "this_machine",
+      runs_on_detail: "Claude Code on this machine",
+      managed_by: "cos",
+    },
+  },
+};

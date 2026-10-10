@@ -2,6 +2,7 @@ package team
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -42,10 +43,20 @@ func defaultHeadlessCodexRunTurn(l *Launcher, ctx context.Context, slug, notific
 		// "broker is not running" — preserves the prior fall-through behavior.
 		return l.runHeadlessCodexTurn(ctx, slug, notification, channel...)
 	}
+	// A member that stands for a terminal session has no runner. Checked on
+	// the member's own binding, before the per-task provider is consulted, so
+	// no task setting can turn a message to it into a spawned process.
+	if l.broker != nil && l.broker.isSessionMemberSlug(slug) {
+		return l.replyLocalSessionNotMessageable(slug, notification, channel...)
+	}
 	// Per-task provider wins over the bot binding (then global default).
 	kind := l.effectiveProviderKindForBot(ctx, slug)
 	var err error
 	switch {
+	case kind == provider.KindLocalSession:
+		// Only a task override can name this kind for an ordinary bot. It is
+		// not a runtime; falling through would start the Claude runner.
+		return fmt.Errorf("%s is not a runtime a turn can run on", provider.KindLocalSession)
 	case kind == provider.KindSlack:
 		// Foreign Slack bots have no local runtime: their "turn" is the
 		// outbound Slack relay (a real <@U…> mention), which the transport

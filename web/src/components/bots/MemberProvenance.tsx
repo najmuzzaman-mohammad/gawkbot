@@ -13,6 +13,7 @@ const ORIGIN_LABELS: Record<MemberOrigin, string> = {
   built_in: "Built in",
   adopted: "Adopted from this machine",
   imported: "Imported",
+  session: "Your session",
 };
 
 const rowStyle: CSSProperties = {

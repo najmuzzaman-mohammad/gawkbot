@@ -11,6 +11,10 @@
  */
 
 import type { OfficeMember } from "../../../api/client";
+import {
+  isSessionMember,
+  SESSION_NOT_MESSAGEABLE,
+} from "../../../lib/sessionMember";
 import { directChannelSlug } from "../../../stores/app";
 import { Composer } from "../../messages/Composer";
 import { MessageFeed } from "../../messages/MessageFeed";
@@ -28,7 +32,19 @@ export function ChatTab({ agent }: ChatTabProps) {
       data-testid="bot-chat-tab"
     >
       <MessageFeed channel={channelSlug} />
-      <Composer channel={channelSlug} />
+      {isSessionMember(agent) ? (
+        // No composer at all, in the same slot and shape the composer uses
+        // when there is nowhere to post: a box you can type into that cannot
+        // deliver would be a lie.
+        <div
+          className="composer composer--no-channel"
+          data-testid="composer-session-unavailable"
+        >
+          <p className="composer-no-channel-note">{SESSION_NOT_MESSAGEABLE}</p>
+        </div>
+      ) : (
+        <Composer channel={channelSlug} />
+      )}
     </section>
   );
 }

@@ -752,7 +752,7 @@ export interface ProviderBinding {
   // "inherit from global default". Use IsGatewayKind on a Kind to decide
   // whether to render the runtime picker (LLM kinds) or a "Managed by
   // <Gateway>" badge (gateway kinds) in the bot profile.
-  kind?: LLMProvider | "cli-agent" | "";
+  kind?: LLMProvider | "cli-agent" | "local-session" | "";
   // model is the runtime-specific model identifier. Free-form on the wire —
   // validated by each provider implementation, not at the schema layer.
   // Common shapes: "claude-3-5-sonnet-latest", "gpt-4o", "llama3.1:8b".
@@ -835,6 +835,7 @@ export interface OfficeMember {
   avatar?: MemberAvatar;
   /** What the bot runs on, resolved by the broker (lib/botRuntime.ts). */
   runtime?: BotRuntime;
+  session?: import("./memberTypes").MemberSession; // origin "session" only
 }
 
 /**

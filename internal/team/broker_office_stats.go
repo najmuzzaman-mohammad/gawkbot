@@ -181,7 +181,10 @@ func inboxItemNeedsAttention(item InboxItem) bool {
 // computeOfficeTaskAndRequestStats fills the task buckets, request
 // split, and active-bot count in a single b.mu pass over the same
 // slices /tasks, /requests, and /office-members serve.
-func (b *Broker) computeOfficeTaskAndRequestStats(viewerSlug string) (OfficeStatsTasks, OfficeStatsRequests, int) {
+//
+// owner says whether the caller holds the owner token: terminal sessions
+// kept as members are the owner's alone, so they count for nobody else.
+func (b *Broker) computeOfficeTaskAndRequestStats(viewerSlug string, owner bool) (OfficeStatsTasks, OfficeStatsRequests, int) {
 	var tasks OfficeStatsTasks
 	var requests OfficeStatsRequests
 	botsActive := 0
@@ -253,6 +256,9 @@ func (b *Broker) computeOfficeTaskAndRequestStats(viewerSlug string) (OfficeStat
 		case "", "human", "you", "system":
 			continue
 		}
+		if isSessionMember(member) && !owner {
+			continue
+		}
 		status := strings.ToLower(b.memberLiveStatusLocked(member.Slug, now))
 		if status != "" && status != "idle" && status != "offline" {
 			botsActive++
@@ -279,7 +285,7 @@ func (b *Broker) handleOfficeStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var stats OfficeStats
-	stats.Tasks, stats.Requests, stats.BotsActive = b.computeOfficeTaskAndRequestStats(viewerSlug)
+	stats.Tasks, stats.Requests, stats.BotsActive = b.computeOfficeTaskAndRequestStats(viewerSlug, b.requestHasBrokerAuth(r))
 
 	// Inbox attention rides the same fan-out /inbox/items serves (the
 	// helpers take their own short b.mu passes). Errors degrade to zero

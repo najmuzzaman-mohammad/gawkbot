@@ -63,6 +63,10 @@ type notchAgent struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 	// LastSaid is the end of its latest reply.
 	LastSaid string `json:"last_said,omitempty"`
+	// Open says whether the tool has the session open right now: true, false,
+	// or absent when the tool keeps no list to ask (see agentdetect.Session).
+	// It is what tells a closed session from a quiet one.
+	Open *bool `json:"open,omitempty"`
 }
 
 const notchAgentSession = "session"
@@ -167,14 +171,16 @@ func (b *Broker) handleNotchState(w http.ResponseWriter, r *http.Request) {
 	// so only the owner's own surfaces (broker token) get them; a joined
 	// human sees the office bots alone. Scanned before taking the lock.
 	var sessions []agentdetect.Session
-	if b.requestHasBrokerAuth(r) {
+	owner := b.requestHasBrokerAuth(r)
+	if owner {
 		sessions = cachedLocalSessions(r.Context())
 	}
 	now := time.Now()
 	defaults := b.cachedRuntimeDefaults(now)
 	b.mu.Lock()
-	state := b.notchStateLocked(now, defaults)
+	state := b.notchStateLocked(now, defaults, owner)
 	b.mu.Unlock()
+	state, sessions = b.claimNotchSessionRows(state, sessions, now)
 	writeJSON(w, http.StatusOK, withNotchSessions(state, sessions, now))
 }
 
@@ -201,6 +207,7 @@ func withNotchSessions(state notchState, sessions []agentdetect.Session, now tim
 			UpdatedAt: sess.UpdatedAt,
 			LastSaid:  sess.LastSaid,
 			Runtime:   sessionRuntime(sess),
+			Open:      sessionOpenFlag(sess),
 		}
 		agent.Mood, agent.Detail = notchSessionMood(sess, now)
 		if agent.Mood == MoodWorking {
@@ -246,7 +253,10 @@ func notchSessionMood(sess agentdetect.Session, now time.Time) (mood, detail str
 	}
 }
 
-func (b *Broker) notchStateLocked(now time.Time, defaults runtimeDefaults) notchState {
+// owner says whether the caller holds the owner token. A member that stands
+// for a terminal session is listed for the owner only, whether or not its
+// session is running right now.
+func (b *Broker) notchStateLocked(now time.Time, defaults runtimeDefaults, owner bool) notchState {
 	lead := officeLeadSlugFrom(b.members)
 	names := make(map[string]string, len(b.members))
 	for _, m := range b.members {
@@ -307,11 +317,23 @@ func (b *Broker) notchStateLocked(now time.Time, defaults runtimeDefaults) notch
 
 	counts := map[string]int{}
 	for _, m := range b.members {
+		if isSessionMember(m) && !owner {
+			continue
+		}
 		agent := notchAgent{
 			Slug:   m.Slug,
 			Name:   names[m.Slug],
 			Origin: memberOrigin(m, lead),
 			IsLead: m.Slug == lead,
+		}
+		if isSessionMember(m) {
+			// A session row keeps kind "session" whichever slug it has: the
+			// panel groups on it and draws the tool logo from tool. What is
+			// set here is all an ended session has; a running one is given
+			// its live fields by claimNotchSessionRows.
+			agent.Kind = notchAgentSession
+			agent.Tool, agent.ToolName, agent.Project, agent.Cwd = sessionBindingFields(m)
+			agent.Open = b.sessionMemberOpenLocked(m.Slug)
 		}
 		if m.Avatar != nil {
 			avatar := *m.Avatar

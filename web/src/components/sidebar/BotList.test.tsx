@@ -3,6 +3,7 @@ import { fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OfficeMember } from "../../api/client";
+import { idleCopyLines } from "../../lib/officeIdleDictionary";
 import { useAppStore } from "../../stores/app";
 
 // Mock the data hooks BEFORE importing BotList so the module under test
@@ -580,5 +581,182 @@ describe("<BotList> on-its-computer glyph", () => {
     ]);
     const { queryByTestId } = renderList();
     expect(queryByTestId("computer-glyph-growth")).toBeNull();
+  });
+});
+
+describe("<BotList> sessions on this Mac", () => {
+  const officeBots: OfficeMember[] = [
+    { slug: "cos", name: "Chief of Staff", role: "lead", origin: "built_in" },
+    { slug: "tess", name: "Tess", role: "engineer", origin: "user" },
+  ];
+  const sessions: OfficeMember[] = [
+    {
+      slug: "cc-1a2b3c4d",
+      name: "Fix the flaky checkout test",
+      role: "Claude Code session in shop",
+      origin: "session",
+      status: "active",
+      task: "Working",
+      session: { tool: "claude-code", project: "shop", live: true },
+    },
+    {
+      slug: "cx-0199f3aa",
+      name: "Tidy the migration scripts",
+      role: "Codex CLI session in api",
+      origin: "session",
+      status: "idle",
+      session: { tool: "codex", project: "api", live: false },
+    },
+  ];
+
+  function slugsIn(root: Element | null): string[] {
+    if (!root) return [];
+    return Array.from(root.querySelectorAll("button[data-bot-slug]")).map(
+      (el) => el.getAttribute("data-bot-slug") ?? "",
+    );
+  }
+
+  it("lists sessions in their own titled group below the office's bots", () => {
+    // Sessions first in the payload: the grouping must not depend on order.
+    setMembers([...sessions, ...officeBots]);
+    const { container, getByTestId } = renderList();
+
+    const group = getByTestId("sidebar-sessions-group");
+    expect(group.textContent).toContain("Sessions on this Mac");
+    expect(slugsIn(group)).toEqual(["cc-1a2b3c4d", "cx-0199f3aa"]);
+
+    const groups = Array.from(container.querySelectorAll(".sidebar-bot-group"));
+    expect(groups.length).toBe(3);
+    expect(groups[groups.length - 1]).toBe(group);
+  });
+
+  it("never mixes a session into the office's own groups, or a bot into the sessions", () => {
+    setMembers([sessions[0], officeBots[0], sessions[1], officeBots[1]]);
+    const { container, getByTestId } = renderList();
+
+    expect(slugsIn(container.querySelector(".sidebar-bot-group--ceo"))).toEqual(
+      ["cos"],
+    );
+    expect(
+      slugsIn(container.querySelector(".sidebar-bot-group--specialists")),
+    ).toEqual(["tess"]);
+    expect(slugsIn(getByTestId("sidebar-sessions-group"))).toEqual([
+      "cc-1a2b3c4d",
+      "cx-0199f3aa",
+    ]);
+    // Every member is drawn exactly once across the whole list.
+    expect(slugsIn(container)).toEqual([
+      "cos",
+      "tess",
+      "cc-1a2b3c4d",
+      "cx-0199f3aa",
+    ]);
+  });
+
+  it("renders no sessions group, and no heading, when there are no sessions", () => {
+    setMembers(officeBots);
+    const { container, queryByTestId } = renderList();
+
+    expect(slugsIn(container)).toEqual(["cos", "tess"]);
+    expect(queryByTestId("sidebar-sessions-group")).toBeNull();
+    expect(container.textContent).not.toContain("Sessions on this Mac");
+  });
+
+  it("shows what a bot row shows, plus the folder the session works in", () => {
+    setMembers([...officeBots, ...sessions]);
+    const { getByTestId, queryByTestId } = renderList();
+
+    expect(getByTestId("session-project-cc-1a2b3c4d").textContent).toBe("shop");
+    expect(getByTestId("session-project-cx-0199f3aa").textContent).toBe("api");
+    expect(getByTestId("avatar-cc-1a2b3c4d")).toHaveAttribute(
+      "data-working",
+      "true",
+    );
+    expect(getByTestId("working-badge-cc-1a2b3c4d")).toBeInTheDocument();
+    expect(queryByTestId("working-badge-cx-0199f3aa")).toBeNull();
+    // An office bot has no folder line.
+    expect(queryByTestId("session-project-tess")).toBeNull();
+  });
+
+  it("takes a session row's status from the session alone, never the idle dictionary", () => {
+    const row = (
+      slug: string,
+      session: OfficeMember["session"],
+    ): OfficeMember => ({
+      slug,
+      name: slug,
+      // Roles and a slug the idle dictionary has lines for.
+      role: "engineer",
+      origin: "session",
+      status: session?.state === "working" ? "active" : "idle",
+      session,
+    });
+    setMembers([
+      ...officeBots,
+      row("cc-working", { tool: "claude-code", state: "working", live: true }),
+      row("cc-turn", { tool: "claude-code", state: "your_turn", live: true }),
+      row("cc-quiet", { tool: "claude-code", state: "quiet", live: true }),
+      row("cc-closed", { tool: "claude-code", live: false }),
+      // Closed wins over a stale state left on the entry.
+      row("cc-stale", { tool: "claude-code", state: "working", live: false }),
+    ]);
+    const { getByTestId, container } = renderList();
+
+    const shown = {
+      working: getByTestId("session-status-cc-working").textContent,
+      turn: getByTestId("session-status-cc-turn").textContent,
+      quiet: getByTestId("session-status-cc-quiet").textContent,
+      closed: getByTestId("session-status-cc-closed").textContent,
+      stale: getByTestId("session-status-cc-stale").textContent,
+    };
+    expect(shown).toEqual({
+      working: "Working",
+      turn: "Your turn",
+      quiet: "Quiet",
+      closed: "Closed",
+      stale: "Closed",
+    });
+
+    // The dictionary is real and not empty, an office bot does show one of
+    // its lines, and no session row shows any of them.
+    const idle = idleCopyLines();
+    expect(idle.length).toBeGreaterThan(10);
+    const pillOf = (slug: string) =>
+      container
+        .querySelector(`button[data-bot-slug="${slug}"]`)
+        ?.querySelector(".sidebar-bot-pill")?.textContent ?? "";
+    expect(idle).toContain(pillOf("tess"));
+    for (const slug of [
+      "cc-working",
+      "cc-turn",
+      "cc-quiet",
+      "cc-closed",
+      "cc-stale",
+    ]) {
+      expect(pillOf(slug)).not.toBe("");
+      expect(idle).not.toContain(pillOf(slug));
+    }
+  });
+
+  it("shows the sessions group even when the office has no bots of its own", () => {
+    setMembers(sessions);
+    const { container, getByTestId } = renderList();
+
+    expect(slugsIn(getByTestId("sidebar-sessions-group")).length).toBe(2);
+    expect(container.textContent).not.toContain("No bots online");
+  });
+
+  it("opens a session's page like any bot's", () => {
+    setMembers([...officeBots, ...sessions]);
+    const { container } = renderList();
+    const row = container.querySelector<HTMLButtonElement>(
+      'button[data-bot-slug="cc-1a2b3c4d"]',
+    );
+    if (!row) throw new Error("no row for the session member");
+    fireEvent.click(row);
+    expect(vi.mocked(router.navigate)).toHaveBeenCalledWith({
+      to: "/agents/$agentSlug",
+      params: { agentSlug: "cc-1a2b3c4d" },
+    });
   });
 });

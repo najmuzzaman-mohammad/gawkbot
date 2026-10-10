@@ -117,6 +117,7 @@ log "starting broker on web :$PORT_WEB / broker :$PORT_BROKER with WUPHF_RUNTIME
 # and reuses yesterday's binary, so without this the office would show the
 # bundle compiled into that binary and your FE changes would be invisible.
 WUPHF_WEB_DIST="$PWD/web/dist" \
+WUPHF_SESSION_MEMBERS_DISABLED="${WUPHF_SESSION_MEMBERS_DISABLED:-1}" \
 WUPHF_RUNTIME_HOME="$WUPHF_HOME" "$BROKER_BIN" --no-open \
   --web-port "$PORT_WEB" --broker-port "$PORT_BROKER" >"$LOG" 2>&1 &
 PID=$!

@@ -5,7 +5,7 @@
  * Who made this bot. Mirrors internal/team/broker_member_origin.go:
  * "user" (you), "chief_of_staff", "bot" (another teammate), "built_in",
  * "adopted" (an agent CLI found on this machine), "imported" (a gateway
- * or Slack bot).
+ * or Slack bot), "session" (a terminal session you opened on this Mac).
  */
 export type MemberOrigin =
   | "user"
@@ -13,7 +13,28 @@ export type MemberOrigin =
   | "bot"
   | "built_in"
   | "adopted"
-  | "imported";
+  | "imported"
+  | "session";
+
+/**
+ * What a session member is doing. WIRE CONTRACT: mirrors memberSessionInfo
+ * in internal/team/broker_session_agents.go. Present only on members whose
+ * origin is "session", and only for the owner of this Mac.
+ */
+export interface MemberSession {
+  /** Which tool runs it: "claude-code", "codex". */
+  tool: string;
+  /** The folder it works in, and its full path. */
+  project?: string;
+  cwd?: string;
+  /** Absent once the session is no longer running. */
+  state?: "working" | "your_turn" | "quiet";
+  updated_at?: string;
+  /** The end of its latest reply. */
+  last_said?: string;
+  /** True while its terminal window is open. */
+  live: boolean;
+}
 
 /** Where a bot's turns execute: here, or a gateway / Slack / cloud computer. */
 export type MemberRunsOn = "this_machine" | "elsewhere";

@@ -115,7 +115,10 @@ start_wuphf() {
   local label="$1"
   local logfile="${runtime_home}/wuphf-${label}.log"
   echo "[run-local] starting wuphf (${label}); log: ${logfile}"
-  WUPHF_RUNTIME_HOME="$runtime_home" \
+  # WUPHF_SESSION_MEMBERS_DISABLED: without it the broker would take the
+  # Claude Code and Codex sessions open on this developer's Mac as members,
+  # and the specs would see a different roster here than in CI.
+  WUPHF_RUNTIME_HOME="$runtime_home" WUPHF_SESSION_MEMBERS_DISABLED=1 \
     ./wuphf --no-open --broker-port "$broker_port" --web-port "$web_port" --no-nex \
     </dev/null > "$logfile" 2>&1 &
   pid=$!

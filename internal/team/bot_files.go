@@ -403,7 +403,7 @@ func renderBotIdentity(member officeMember) string {
 	if len(expertise) > 0 {
 		fmt.Fprintf(&b, "- Expertise: %s\n", strings.Join(expertise, ", "))
 	}
-	runtime := strings.TrimSpace(member.Provider.Kind)
+	runtime := memberRuntimeText(member)
 	if m := strings.TrimSpace(member.Provider.Model); m != "" {
 		runtime = strings.TrimSpace(runtime + " / " + m)
 	}

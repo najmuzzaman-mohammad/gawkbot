@@ -26,6 +26,7 @@ import { Eye } from "lucide-react";
 import type { OfficeMember } from "../../api/client";
 import { humanizeActivity } from "../../lib/humanizeActivity";
 import { router } from "../../lib/router";
+import { isSessionMember, sessionStatusLabel } from "../../lib/sessionMember";
 import { BotKnowledgePanel } from "../knowledge/BotKnowledgePanel";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { EditableName } from "./BotProfilePanel";
@@ -75,6 +76,19 @@ interface BotSubspaceProps {
   tab: string;
 }
 
+type BotTabDef = (typeof AGENT_TABS)[number];
+
+/**
+ * The tabs this member has. A terminal session runs in your own terminal on
+ * this Mac, so it has no computer for the office to show: the tab is left
+ * out of the list, not hidden.
+ */
+function tabsForMember(agent: OfficeMember): BotTabDef[] {
+  return isSessionMember(agent)
+    ? AGENT_TABS.filter((t) => t.id !== "computer")
+    : AGENT_TABS;
+}
+
 function isBotTab(value: string): value is BotTab {
   return AGENT_TABS.some((t) => t.id === value);
 }
@@ -103,9 +117,10 @@ const TAB_ALIASES: Record<string, BotTab> = {
   db: "data",
 };
 
-function resolveTab(raw: string): BotTab {
-  if (isBotTab(raw)) return raw;
-  return TAB_ALIASES[raw.toLowerCase()] ?? "chat";
+function resolveTab(raw: string, tabs: BotTabDef[]): BotTab {
+  const wanted = isBotTab(raw) ? raw : TAB_ALIASES[raw.toLowerCase()];
+  // A tab this member does not have (a typed or stale URL) lands on Chat.
+  return wanted && tabs.some((t) => t.id === wanted) ? wanted : "chat";
 }
 
 // ── Shell header ─────────────────────────────────────────────────
@@ -146,7 +161,8 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
               </span>
             ) : (
               <span className="bot-subspace-status-badge bot-subspace-status-badge--idle">
-                Idle
+                {/* A session says what its log says: your turn, quiet, closed. */}
+                {isSessionMember(agent) ? sessionStatusLabel(agent) : "Idle"}
               </span>
             )}
             {agent.task && agent.status === "active" ? (
@@ -160,17 +176,20 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
           </div>
         </div>
 
-        {/* Show it once. It will do it from now on. */}
-        <button
-          type="button"
-          className="btn bot-subspace-teach-btn"
-          onClick={onTeachWorkflow}
-          data-testid="teach-workflow-btn"
-          title={`Show ${agent.name || agent.slug} a workflow on a screenshare`}
-        >
-          <Eye size={14} aria-hidden="true" />
-          Teach a workflow
-        </button>
+        {/* Show it once. It will do it from now on. Not for a terminal
+            session: teaching ends in a message, and it cannot take one. */}
+        {isSessionMember(agent) ? null : (
+          <button
+            type="button"
+            className="btn bot-subspace-teach-btn"
+            onClick={onTeachWorkflow}
+            data-testid="teach-workflow-btn"
+            title={`Show ${agent.name || agent.slug} a workflow on a screenshare`}
+          >
+            <Eye size={14} aria-hidden="true" />
+            Teach a workflow
+          </button>
+        )}
       </div>
     </div>
   );
@@ -181,9 +200,10 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
 interface TabBarProps {
   agentSlug: string;
   activeTab: BotTab;
+  tabs: BotTabDef[];
 }
 
-function TabBar({ agentSlug, activeTab }: TabBarProps) {
+function TabBar({ agentSlug, activeTab, tabs }: TabBarProps) {
   const navigate = useCallback(
     (tab: BotTab) => {
       void router.navigate({
@@ -200,7 +220,7 @@ function TabBar({ agentSlug, activeTab }: TabBarProps) {
       role="tablist"
       aria-label="Bot sections"
     >
-      {AGENT_TABS.map((t) => {
+      {tabs.map((t) => {
         const isActive = t.id === activeTab;
         return (
           <button
@@ -343,7 +363,8 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
 // ── Main export ──────────────────────────────────────────────────
 
 export function BotSubspace({ agent, tab }: BotSubspaceProps) {
-  const activeTab = resolveTab(tab);
+  const tabs = tabsForMember(agent);
+  const activeTab = resolveTab(tab, tabs);
   const [teaching, setTeaching] = useState(false);
 
   return (
@@ -353,7 +374,7 @@ export function BotSubspace({ agent, tab }: BotSubspaceProps) {
       data-bot-slug={agent.slug}
     >
       <ShellHeader agent={agent} onTeachWorkflow={() => setTeaching(true)} />
-      <TabBar agentSlug={agent.slug} activeTab={activeTab} />
+      <TabBar agentSlug={agent.slug} activeTab={activeTab} tabs={tabs} />
       <TabContent agent={agent} tab={activeTab} />
       <TeachWorkflowModal
         agentSlug={agent.slug}

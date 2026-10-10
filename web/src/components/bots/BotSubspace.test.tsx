@@ -386,3 +386,146 @@ describe("<AgentSubspace>", () => {
     expect(screen.getByText("Teach Planner a workflow")).toBeInTheDocument();
   });
 });
+
+describe("<BotSubspace> for a terminal session", () => {
+  const sessionBot: OfficeMember = {
+    slug: "cc-1a2b3c4d",
+    name: "Fix the flaky checkout test",
+    role: "Claude Code session in shop",
+    status: "idle",
+    origin: "session",
+    runs_on: "this_machine",
+    runs_on_detail: "Claude Code on this machine",
+    provider: { kind: "local-session", model: "claude-opus-5-5" },
+    runtime: {
+      harness: "claude-code",
+      harness_name: "Claude Code",
+      model: "claude-opus-5-5",
+      model_label: "Opus 5.5",
+      source: "observed",
+    },
+    session: {
+      tool: "claude-code",
+      project: "shop",
+      cwd: "/Users/me/shop",
+      state: "your_turn",
+      live: true,
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useOfficeMembersMock.mockReturnValue({ data: [sessionBot] });
+    getSkillsListMock.mockResolvedValue({ skills: [] });
+    getChannelsMock.mockResolvedValue({ channels: [] });
+    getOfficeTasksMock.mockResolvedValue({ tasks: [] });
+    listBotLogTasksMock.mockResolvedValue({ tasks: [] });
+    getPoliciesMock.mockResolvedValue([]);
+    getConfigMock.mockResolvedValue({
+      llm_provider: "claude-code",
+      llm_provider_kinds: ["claude-code", "codex"],
+    });
+    getLocalProvidersStatusMock.mockResolvedValue([]);
+  });
+
+  it("has every tab a bot has except Computer", () => {
+    render(wrap(<BotSubspace agent={sessionBot} tab="chat" />));
+
+    const labels = screen.getAllByRole("tab").map((t) => t.textContent?.trim());
+    expect(labels).toEqual([
+      "Chat",
+      "Tasks",
+      "Skills",
+      "Knowledge",
+      "Data",
+      "Policies",
+      "Live Stream",
+      "Config",
+    ]);
+    // Left out of the list, not present and hidden.
+    expect(document.getElementById("bot-tab-computer")).toBeNull();
+  });
+
+  it.each([
+    "computer",
+    "screen",
+    "desktop",
+    "vm",
+  ])("lands on Chat, not the Computer tab, for /%s", (raw) => {
+    render(wrap(<BotSubspace agent={sessionBot} tab={raw} />));
+
+    expect(screen.queryByTestId("computer-tab")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Chat" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("replaces the composer with one sentence saying why it cannot be messaged", () => {
+    render(wrap(<BotSubspace agent={sessionBot} tab="chat" />));
+
+    // Its conversation is still shown.
+    expect(screen.getByTestId("message-feed")).toHaveAttribute(
+      "data-channel",
+      "human__cc-1a2b3c4d",
+    );
+    expect(screen.queryByTestId("composer")).not.toBeInTheDocument();
+    expect(screen.getByTestId("composer-session-unavailable").textContent).toBe(
+      "This session is open in your terminal on this Mac, so it cannot be messaged from here yet.",
+    );
+  });
+
+  it("keeps the composer for an ordinary bot", () => {
+    render(wrap(<BotSubspace agent={baseBot} tab="chat" />));
+
+    expect(screen.getByTestId("composer")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("composer-session-unavailable"),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [{ tool: "claude-code", state: "your_turn", live: true }, "Your turn"],
+    [{ tool: "claude-code", state: "quiet", live: true }, "Quiet"],
+    [{ tool: "claude-code", live: false }, "Closed"],
+  ] as const)("says what the session says in the header, not Idle: %o", (session, label) => {
+    const { container } = render(
+      wrap(<BotSubspace agent={{ ...sessionBot, session }} tab="chat" />),
+    );
+    expect(
+      container.querySelector(".bot-subspace-status-badge")?.textContent,
+    ).toBe(label);
+  });
+
+  it("still says Idle in the header for an ordinary idle bot", () => {
+    const { container } = render(
+      wrap(<BotSubspace agent={baseBot} tab="chat" />),
+    );
+    expect(
+      container.querySelector(".bot-subspace-status-badge")?.textContent,
+    ).toBe("Idle");
+  });
+
+  it("does not offer Teach a workflow, which ends in a message it cannot take", () => {
+    render(wrap(<BotSubspace agent={sessionBot} tab="chat" />));
+    expect(screen.queryByTestId("teach-workflow-btn")).not.toBeInTheDocument();
+  });
+
+  it("shows the runtime read-only on Config: tool, model, and folder, with nothing to pick", () => {
+    render(wrap(<BotSubspace agent={sessionBot} tab="config" />));
+
+    expect(screen.getByTestId("session-runtime-tool").textContent).toBe(
+      "Claude Code",
+    );
+    expect(screen.getByTestId("session-runtime-model").textContent).toBe(
+      "Opus 5.5",
+    );
+    expect(screen.getByTestId("session-runtime-folder").textContent).toBe(
+      "/Users/me/shop",
+    );
+    const section = screen.getByTestId("session-runtime-section");
+    expect(section.querySelectorAll("select, input, button").length).toBe(0);
+    // The provenance tag sits on the same tab.
+    expect(screen.getByText("Your session")).toBeInTheDocument();
+  });
+});

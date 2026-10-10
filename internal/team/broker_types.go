@@ -919,6 +919,9 @@ type brokerState struct {
 	PendingInterview   *humanInterview                    `json:"pending_interview,omitempty"`
 	Usage              teamUsageState                     `json:"usage,omitempty"`
 	Policies           []officePolicy                     `json:"policies,omitempty"`
+	// DismissedSessions are terminal sessions whose member the human removed;
+	// the session registry never makes a member for them again.
+	DismissedSessions []string `json:"dismissed_sessions,omitempty"`
 }
 
 type usageTotals struct {

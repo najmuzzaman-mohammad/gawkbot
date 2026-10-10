@@ -33,6 +33,8 @@ broker_port="$((web_port - 1))"
 sandbox="$(mktemp -d -t wuphf-smoke-XXXXXX)"
 export WUPHF_RUNTIME_HOME="$sandbox/runtime"
 export WUPHF_BROKER_TOKEN_FILE="$sandbox/broker-token"
+# Keep this machine's own terminal sessions out of the sandboxed roster.
+export WUPHF_SESSION_MEMBERS_DISABLED=1
 mkdir -p "$WUPHF_RUNTIME_HOME/.wuphf"
 
 echo "[smoke] sandbox=$sandbox"

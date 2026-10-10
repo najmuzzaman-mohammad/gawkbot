@@ -2,6 +2,7 @@ package team
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -115,7 +116,7 @@ func TestOfficeMemberListCarriesTheRuntime(t *testing.T) {
 	b.RecordBotUsage("eng", "claude-fable-5-1", provider.ClaudeUsage{})
 
 	rec := httptest.NewRecorder()
-	b.serveOfficeMemberList(rec)
+	b.serveOfficeMemberList(rec, httptest.NewRequest(http.MethodGet, "/office-members", nil))
 	var body struct {
 		Members []struct {
 			Slug    string            `json:"slug"`

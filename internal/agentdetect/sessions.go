@@ -52,6 +52,15 @@ type Session struct {
 	// Model is the model the session last ran on, as its log names it
 	// ("claude-opus-5-5"). Empty until the session has taken a turn.
 	Model string `json:"model,omitempty"`
+	// Open says whether the tool has this session open right now, read from
+	// the tool's own list of running sessions and not from how recently the
+	// log was written. It means something only when OpenKnown is true: with
+	// no such list to read (Codex, or a Claude Code that keeps it somewhere
+	// this build does not know), Open is false and says nothing.
+	Open      bool `json:"open,omitempty"`
+	OpenKnown bool `json:"open_known,omitempty"`
+	// PID is the process that has the session open, when Open is true.
+	PID int `json:"pid,omitempty"`
 
 	// turnDone: the last thing in the log is a finished turn.
 	turnDone bool
@@ -99,9 +108,19 @@ func (s *Scanner) Sessions(scan []Detection, now time.Time) []Session {
 	}
 	var out []Session
 	if name, ok := running["claude-code"]; ok {
-		out = append(out, recentSessions(filepath.Join(home, ".claude", "projects"), 2, now, func(path string, info os.FileInfo) (Session, bool) {
+		claude := recentSessions(filepath.Join(s.claudeConfigDir(home), "projects"), 2, now, func(path string, info os.FileInfo) (Session, bool) {
 			return claudeSession(path, info, name)
-		})...)
+		})
+		if open, known := s.OpenSessions(); known {
+			for i := range claude {
+				entry, isOpen := open[claude[i].ID]
+				claude[i].OpenKnown, claude[i].Open = true, isOpen
+				if isOpen {
+					claude[i].PID = entry.PID
+				}
+			}
+		}
+		out = append(out, claude...)
 	}
 	if name, ok := running["codex"]; ok {
 		names := codexThreadNames(filepath.Join(home, ".codex", "session_index.jsonl"))
@@ -222,22 +241,57 @@ func baseSession(path string, info os.FileInfo, tool, toolName string) Session {
 func claudeSession(path string, info os.FileInfo, toolName string) (Session, bool) {
 	head, tail := headAndTail(path, info.Size())
 	sess := baseSession(path, info, "claude-code", toolName)
-	for _, line := range head {
-		if !bytes.Contains(line, []byte(`"cwd"`)) {
-			continue
-		}
-		var rec struct {
-			Cwd         string `json:"cwd"`
-			IsSidechain bool   `json:"isSidechain"`
-		}
-		if json.Unmarshal(line, &rec) == nil && rec.Cwd != "" {
-			if rec.IsSidechain {
-				// A sub-agent's log, not a session the human started.
-				return Session{}, false
+	entrypoint := ""
+	// read takes the folder and the entrypoint from the first records in
+	// lines that carry them. With judgeSidechain it also reports whether the
+	// record that gives the folder marks the log as a sub-agent's.
+	read := func(lines [][]byte, judgeSidechain bool) (sidechain bool) {
+		for _, line := range lines {
+			hasCwd := sess.Cwd == "" && bytes.Contains(line, []byte(`"cwd"`))
+			hasEntrypoint := entrypoint == "" && bytes.Contains(line, []byte(`"entrypoint"`))
+			if !hasCwd && !hasEntrypoint {
+				continue
 			}
-			sess.Cwd = rec.Cwd
-			break
+			var rec struct {
+				Cwd         string `json:"cwd"`
+				IsSidechain bool   `json:"isSidechain"`
+				Entrypoint  string `json:"entrypoint"`
+			}
+			if json.Unmarshal(line, &rec) != nil {
+				continue
+			}
+			if entrypoint == "" {
+				entrypoint = rec.Entrypoint
+			}
+			if sess.Cwd == "" && rec.Cwd != "" {
+				if rec.IsSidechain && judgeSidechain {
+					return true
+				}
+				sess.Cwd = rec.Cwd
+			}
+			if sess.Cwd != "" && entrypoint != "" {
+				break
+			}
 		}
+		return false
+	}
+	if read(head, true) {
+		// A sub-agent's log, not a session the human started.
+		return Session{}, false
+	}
+	if sess.Cwd == "" || entrypoint == "" {
+		// The head can hold no whole record at all: a run started with a very
+		// long prompt opens with a single record bigger than the head. Every
+		// record in a log agrees on the folder and the entrypoint, so the
+		// tail answers for it. The sub-agent mark is judged from the head
+		// alone: a session's own tail can end on a sub-agent's records.
+		read(tail, false)
+	}
+	// Claude Code stamps how it was started on its records. Anything but the
+	// terminal ("sdk-py", "sdk-cli", ...) is a run some program started, not
+	// a session a person opened. Older logs carry no stamp and are kept.
+	if entrypoint != "" && entrypoint != claudeTerminalEntrypoint {
+		return Session{}, false
 	}
 	title, prompt := claudeTitle(tail)
 	title = claudeTitles.resolve(path, title)
@@ -606,4 +660,97 @@ func oneLine(s string, max int) string {
 func officeOwnDir(cwd string) bool {
 	slashed := filepath.ToSlash(cwd) + "/"
 	return strings.Contains(slashed, "/.wuphf/") || strings.Contains(slashed, "/wuphf-agent-scratch/")
+}
+
+const (
+	claudeConfigDirEnv = "CLAUDE_CONFIG_DIR"
+	// claudeTerminalEntrypoint is the "entrypoint" Claude Code writes for a
+	// session started by a person at a terminal.
+	claudeTerminalEntrypoint = "cli"
+	// claudeInteractiveKind is the registry "kind" of such a session.
+	claudeInteractiveKind = "interactive"
+	// A registry file is a few hundred bytes; anything far past that is not
+	// one, and is not read.
+	claudeRegistryFileMax = 64 << 10
+)
+
+// claudeConfigDir is where Claude Code keeps its logs and its list of
+// running sessions: CLAUDE_CONFIG_DIR when set, else ~/.claude.
+func (s *Scanner) claudeConfigDir(home string) string {
+	if s.Getenv != nil {
+		if dir := strings.TrimSpace(s.Getenv(claudeConfigDirEnv)); dir != "" {
+			return dir
+		}
+	}
+	return filepath.Join(home, ".claude")
+}
+
+// OpenSession is one session a tool has open right now.
+type OpenSession struct {
+	// PID is the process that has it open.
+	PID int
+	// Busy is true while the tool says it is mid-turn.
+	Busy bool
+}
+
+// OpenSessions lists the Claude Code sessions that are open right now, keyed
+// by Session.ID, from Claude Code's own registry: one small JSON file per
+// running process under <config dir>/sessions, removed when it exits.
+//
+// The file is undocumented and may move or change shape with any release,
+// so the answer comes with whether it can be trusted. known is false, and
+// callers must fall back to judging by the logs, when the directory is
+// missing, holds no entry that parses, or the last Scan could not list
+// processes (a crashed process leaves its file behind, and without the
+// process list a stale entry cannot be told from a live one). Only then is
+// "not in the map" not the same as "closed".
+//
+// Call it after Scan: it checks each entry's pid against the processes that
+// scan saw, and never lists processes itself.
+func (s *Scanner) OpenSessions() (open map[string]OpenSession, known bool) {
+	home := ""
+	if s.Home != nil {
+		home, _ = s.Home()
+	}
+	if home == "" || s.alivePIDs == nil {
+		return nil, false
+	}
+	dir := filepath.Join(s.claudeConfigDir(home), "sessions")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, false
+	}
+	open = map[string]OpenSession{}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil || info.Size() > claudeRegistryFileMax {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil {
+			continue
+		}
+		var rec struct {
+			PID       int    `json:"pid"`
+			SessionID string `json:"sessionId"`
+			Kind      string `json:"kind"`
+			Status    string `json:"status"`
+		}
+		if json.Unmarshal(raw, &rec) != nil || rec.PID <= 0 || strings.TrimSpace(rec.SessionID) == "" {
+			// Malformed, or not the shape this build knows: skipped.
+			continue
+		}
+		known = true
+		if rec.Kind != claudeInteractiveKind || !s.alivePIDs[rec.PID] {
+			continue
+		}
+		open["claude-code:"+strings.TrimSpace(rec.SessionID)] = OpenSession{PID: rec.PID, Busy: rec.Status == "busy"}
+	}
+	if !known {
+		return nil, false
+	}
+	return open, true
 }

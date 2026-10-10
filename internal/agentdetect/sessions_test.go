@@ -1,6 +1,7 @@
 package agentdetect
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -246,16 +247,34 @@ func TestSessionsReadOnlyTheNewest(t *testing.T) {
 			`{"type":"ai-title","aiTitle":"Session `+string(rune('a'+i))+`"}`,
 		)
 	}
+	// A run some program started, newer than all but two of the sessions. It
+	// is skipped, and being skipped must not use up a place in the list.
+	writeLog(t, filepath.Join(claude, "automated.jsonl"), now.Add(-150*time.Second),
+		`{"type":"user","cwd":"/Users/me/many","entrypoint":"sdk-py"}`,
+		`{"type":"ai-title","aiTitle":"Automated review"}`,
+	)
 	reads := 0
 	got := recentSessions(filepath.Dir(claude), 2, now, func(path string, info os.FileInfo) (Session, bool) {
 		reads++
 		return claudeSession(path, info, "Claude Code")
 	})
-	if len(got) != sessionLimit || reads != sessionLimit {
-		t.Fatalf("listed %d after %d reads, want %d and %d", len(got), reads, sessionLimit, sessionLimit)
+	// One read more than the limit, exactly: the automated run sits among the
+	// newest logs, and a log has to be read before it can be skipped. The
+	// limit counts sessions that are kept, so the full number still comes back.
+	if len(got) != sessionLimit || reads != sessionLimit+1 {
+		t.Fatalf("listed %d after %d reads, want %d and %d", len(got), reads, sessionLimit, sessionLimit+1)
 	}
 	if got[0].Title != "Session a" {
 		t.Fatalf("newest first: %+v", got[0])
+	}
+	for _, sess := range got {
+		if sess.Title == "Automated review" {
+			t.Fatalf("the automated run was listed: %+v", sess)
+		}
+	}
+	// The twelfth kept session is the twelfth real one, not the eleventh.
+	if last := got[sessionLimit-1].Title; last != "Session "+string(rune('a'+sessionLimit-1)) {
+		t.Fatalf("last listed = %q; the skipped log took a place in the list", last)
 	}
 }
 
@@ -309,5 +328,293 @@ func TestSessionModelIsTheLastOneTheLogNames(t *testing.T) {
 		if got, ok := models[title]; !ok || got != model {
 			t.Errorf("model of %q = %q (listed: %v), want %q", title, got, ok, model)
 		}
+	}
+}
+
+// Claude Code stamps how each run was started. Only a run started at a
+// terminal is a session the person opened; SDK runs (a commit-time review,
+// a script) are not, and a log too old to carry the stamp is kept.
+func TestClaudeSessionsStartedByAProgramAreNotListed(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	claude := filepath.Join(home, ".claude", "projects", "-Users-me-shop")
+	log := func(name, first string) {
+		writeLog(t, filepath.Join(claude, name+".jsonl"), now.Add(-time.Minute),
+			first,
+			`{"type":"ai-title","aiTitle":"`+name+`"}`,
+		)
+	}
+	log("terminal", `{"type":"user","cwd":"/Users/me/shop","entrypoint":"cli"}`)
+	log("sdk python", `{"type":"user","cwd":"/Users/me/shop","entrypoint":"sdk-py"}`)
+	log("sdk cli", `{"type":"user","cwd":"/Users/me/shop","entrypoint":"sdk-cli"}`)
+	log("no stamp", `{"type":"user","cwd":"/Users/me/shop"}`)
+	// The stamp is not on the first record, nor on the one with the folder.
+	writeLog(t, filepath.Join(claude, "late stamp.jsonl"), now.Add(-time.Minute),
+		`{"type":"summary"}`,
+		`{"type":"user","cwd":"/Users/me/shop"}`,
+		`{"type":"assistant","entrypoint":"sdk-py"}`,
+		`{"type":"ai-title","aiTitle":"late stamp"}`,
+	)
+
+	s := &Scanner{Home: func() (string, error) { return home, nil }}
+	got := map[string]bool{}
+	for _, sess := range s.Sessions([]Detection{{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 1}}}}, now) {
+		got[sess.Title] = true
+	}
+	want := map[string]bool{"terminal": true, "no stamp": true}
+	if len(got) != len(want) {
+		t.Fatalf("listed = %v, want exactly %v", got, want)
+	}
+	for title := range want {
+		if !got[title] {
+			t.Fatalf("listed = %v, want %q kept", got, title)
+		}
+	}
+}
+
+func writeRegistry(t *testing.T, dir, name, body string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Whether a session is open comes from Claude Code's own list of running
+// sessions, checked against the processes that are really there.
+func TestOpenSessionsReadsClaudeCodesRegistry(t *testing.T) {
+	home := t.TempDir()
+	reg := filepath.Join(home, ".claude", "sessions")
+	writeRegistry(t, reg, "101.json", `{"pid":101,"sessionId":"aaa","cwd":"/Users/me/shop","kind":"interactive","entrypoint":"cli","status":"busy","name":"x","somethingNew":{"nested":true}}`)
+	writeRegistry(t, reg, "102.json", `{"pid":102,"sessionId":"bbb","kind":"interactive","status":"idle"}`)
+	// Its process crashed and left the file behind.
+	writeRegistry(t, reg, "103.json", `{"pid":103,"sessionId":"ccc","kind":"interactive","status":"idle"}`)
+	// Running, but not a session a person has open.
+	writeRegistry(t, reg, "104.json", `{"pid":104,"sessionId":"ddd","kind":"background","status":"busy"}`)
+	writeRegistry(t, reg, "105.json", `{not json`)
+	writeRegistry(t, reg, "106.json", `{"pid":"106","sessionId":7}`)
+	writeRegistry(t, reg, "107.json", `{"kind":"interactive"}`)
+	writeRegistry(t, reg, "notes.txt", `{"pid":101,"sessionId":"zzz","kind":"interactive"}`)
+
+	s := &Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: map[int]bool{101: true, 102: true, 104: true}}
+	open, known := s.OpenSessions()
+	if !known {
+		t.Fatal("a registry with entries that parse must be known")
+	}
+	if len(open) != 2 || open["claude-code:aaa"] != (OpenSession{PID: 101, Busy: true}) || open["claude-code:bbb"] != (OpenSession{PID: 102}) {
+		t.Fatalf("open = %+v, want aaa (busy, pid 101) and bbb (pid 102) only", open)
+	}
+}
+
+// The registry is undocumented. When it cannot be read, the answer is
+// "unknown", never "everything is closed".
+func TestOpenSessionsIsUnknownWithoutAUsableRegistry(t *testing.T) {
+	alive := map[int]bool{101: true}
+	cases := map[string]func(t *testing.T, home string) *Scanner{
+		"no registry directory": func(t *testing.T, home string) *Scanner {
+			return &Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: alive}
+		},
+		"an empty registry directory": func(t *testing.T, home string) *Scanner {
+			if err := os.MkdirAll(filepath.Join(home, ".claude", "sessions"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			return &Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: alive}
+		},
+		"nothing in it parses": func(t *testing.T, home string) *Scanner {
+			writeRegistry(t, filepath.Join(home, ".claude", "sessions"), "101.json", `{not json`)
+			writeRegistry(t, filepath.Join(home, ".claude", "sessions"), "102.json", `[]`)
+			return &Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: alive}
+		},
+		"the process list is not available": func(t *testing.T, home string) *Scanner {
+			writeRegistry(t, filepath.Join(home, ".claude", "sessions"), "101.json", `{"pid":101,"sessionId":"aaa","kind":"interactive"}`)
+			return &Scanner{Home: func() (string, error) { return home, nil }}
+		},
+	}
+	for name, build := range cases {
+		t.Run(name, func(t *testing.T) {
+			open, known := build(t, t.TempDir()).OpenSessions()
+			if known || open != nil {
+				t.Fatalf("open=%v known=%v, want unknown", open, known)
+			}
+		})
+	}
+}
+
+// Sessions carries what the registry says onto each Claude Code session, and
+// says nothing (not "closed") when there is no registry to ask.
+func TestSessionsSayWhetherTheyAreOpen(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	claude := filepath.Join(home, ".claude", "projects", "-Users-me-shop")
+	for _, id := range []string{"aaa", "bbb"} {
+		writeLog(t, filepath.Join(claude, id+".jsonl"), now.Add(-time.Minute),
+			`{"type":"user","cwd":"/Users/me/shop","entrypoint":"cli"}`,
+			`{"type":"ai-title","aiTitle":"Session `+id+`"}`,
+		)
+	}
+	codex := filepath.Join(home, ".codex", "sessions", "2026", "10", "09")
+	writeLog(t, filepath.Join(codex, "rollout-1.jsonl"), now.Add(-time.Minute),
+		`{"type":"session_meta","payload":{"id":"t-1","cwd":"/Users/me/api","thread_source":"user"}}`,
+		`{"type":"response_item","payload":{"role":"user","content":[{"text":"Add rate limits to the login route"}]}}`,
+	)
+	scan := []Detection{
+		{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 101}}},
+		{ID: "codex", Name: "Codex CLI", Running: []Process{{PID: 2}}},
+	}
+	byID := func(s *Scanner) map[string]Session {
+		out := map[string]Session{}
+		for _, sess := range s.Sessions(scan, now) {
+			out[sess.ID] = sess
+		}
+		if len(out) != 3 {
+			t.Fatalf("sessions = %+v, want the two Claude Code sessions and the Codex one", out)
+		}
+		return out
+	}
+
+	// No registry: nothing is said about any of them.
+	for id, sess := range byID(&Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: map[int]bool{101: true}}) {
+		if sess.OpenKnown || sess.Open || sess.PID != 0 {
+			t.Fatalf("%s without a registry = %+v, want openness unknown", id, sess)
+		}
+	}
+
+	writeRegistry(t, filepath.Join(home, ".claude", "sessions"), "101.json", `{"pid":101,"sessionId":"aaa","kind":"interactive","status":"idle"}`)
+	got := byID(&Scanner{Home: func() (string, error) { return home, nil }, alivePIDs: map[int]bool{101: true}})
+	if a := got["claude-code:aaa"]; !a.OpenKnown || !a.Open || a.PID != 101 {
+		t.Fatalf("aaa = %+v, want open with pid 101", a)
+	}
+	if b := got["claude-code:bbb"]; !b.OpenKnown || b.Open || b.PID != 0 {
+		t.Fatalf("bbb = %+v, want known to be closed", b)
+	}
+	// Codex has no such list: always unknown.
+	if c := got["codex:rollout-1"]; c.OpenKnown || c.Open {
+		t.Fatalf("codex = %+v, want openness unknown", c)
+	}
+}
+
+// CLAUDE_CONFIG_DIR moves both the logs and the registry.
+func TestClaudeConfigDirIsHonoured(t *testing.T) {
+	home, elsewhere := t.TempDir(), t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	writeLog(t, filepath.Join(home, ".claude", "projects", "-Users-me-shop", "default.jsonl"), now.Add(-time.Minute),
+		`{"type":"user","cwd":"/Users/me/shop"}`, `{"type":"ai-title","aiTitle":"In the default folder"}`)
+	writeLog(t, filepath.Join(elsewhere, "projects", "-Users-me-shop", "moved.jsonl"), now.Add(-time.Minute),
+		`{"type":"user","cwd":"/Users/me/shop"}`, `{"type":"ai-title","aiTitle":"In the configured folder"}`)
+	writeRegistry(t, filepath.Join(elsewhere, "sessions"), "101.json", `{"pid":101,"sessionId":"moved","kind":"interactive"}`)
+	scan := []Detection{{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 101}}}}
+	titles := func(env string) []string {
+		s := &Scanner{
+			Home:      func() (string, error) { return home, nil },
+			Getenv:    func(key string) string { return map[string]string{claudeConfigDirEnv: env}[key] },
+			alivePIDs: map[int]bool{101: true},
+		}
+		var out []string
+		for _, sess := range s.Sessions(scan, now) {
+			out = append(out, sess.Title)
+			if env != "" && (!sess.OpenKnown || !sess.Open) {
+				t.Fatalf("with the config dir set, %+v should be open: the registry moved too", sess)
+			}
+		}
+		return out
+	}
+	if got := titles(""); len(got) != 1 || got[0] != "In the default folder" {
+		t.Fatalf("unset: %v", got)
+	}
+	if got := titles(elsewhere); len(got) != 1 || got[0] != "In the configured folder" {
+		t.Fatalf("set: %v", got)
+	}
+}
+
+// A real Scan is what tells the registry reader which pids are alive.
+func TestScanFeedsTheRegistryItsProcessList(t *testing.T) {
+	home := t.TempDir()
+	writeRegistry(t, filepath.Join(home, ".claude", "sessions"), "101.json", `{"pid":101,"sessionId":"aaa","kind":"interactive"}`)
+	writeRegistry(t, filepath.Join(home, ".claude", "sessions"), "999.json", `{"pid":999,"sessionId":"gone","kind":"interactive"}`)
+	s := &Scanner{
+		Home: func() (string, error) { return home, nil },
+		Processes: func(context.Context) ([]rawProcess, error) {
+			return []rawProcess{{PID: 101, Args: []string{"claude"}}}, nil
+		},
+	}
+	if _, known := s.OpenSessions(); known {
+		t.Fatal("before any Scan the process list is not known, so openness must not be either")
+	}
+	s.Scan(t.Context())
+	open, known := s.OpenSessions()
+	if !known || len(open) != 1 || open["claude-code:aaa"].PID != 101 {
+		t.Fatalf("open=%+v known=%v, want only aaa: pid 999 is not running", open, known)
+	}
+}
+
+// A run started with a very long prompt opens its log with one record
+// bigger than the head that is read, so the head holds no whole record. The
+// entrypoint and the folder are then taken from the tail.
+func TestClaudeLogWithAHugeFirstRecordIsStillJudged(t *testing.T) {
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	huge := `{"type":"queue-operation","content":"` + strings.Repeat("x", sessionHeadBytes+4096) + `"}`
+	// Enough after it that the tail read starts past the first record too.
+	filler := `{"type":"progress","note":"` + strings.Repeat("y", 2000) + `"}`
+	build := func(t *testing.T, entrypoint string) []Session {
+		t.Helper()
+		home := t.TempDir()
+		lines := []string{huge, `{"type":"queue-operation","content":"second"}`}
+		lines = append(lines, `{"type":"user","cwd":"/Users/me/shop","entrypoint":"`+entrypoint+`"}`)
+		for i := 0; i < (sessionTailBytes/len(filler))+20; i++ {
+			lines = append(lines, filler)
+		}
+		lines = append(lines,
+			`{"type":"assistant","cwd":"/Users/me/shop","entrypoint":"`+entrypoint+`","message":{"model":"claude-opus-5-5","stop_reason":"end_turn"}}`,
+			`{"type":"ai-title","aiTitle":"Review of the avatar change"}`,
+		)
+		path := filepath.Join(home, ".claude", "projects", "-Users-me-shop", "big.jsonl")
+		writeLog(t, path, now.Add(-time.Minute), lines...)
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The shape under test: no whole record in the head, and the first
+		// stamped record (line 3) outside the tail as well.
+		head, tail := headAndTail(path, info.Size())
+		if len(head) != 0 {
+			t.Fatalf("setup: the head holds %d whole record(s), want none", len(head))
+		}
+		if info.Size() <= int64(len(huge))+sessionTailBytes+4096 || len(tail) == 0 {
+			t.Fatalf("setup: log is %d bytes; the tail must start well past the first records", info.Size())
+		}
+		s := &Scanner{Home: func() (string, error) { return home, nil }}
+		return s.Sessions([]Detection{{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 1}}}}, now)
+	}
+
+	if got := build(t, "sdk-py"); len(got) != 0 {
+		t.Fatalf("an automated run with a huge first record was listed: %+v", got)
+	}
+	got := build(t, "cli")
+	if len(got) != 1 {
+		t.Fatalf("a terminal session with a huge first record: listed %+v, want it", got)
+	}
+	if got[0].Cwd != "/Users/me/shop" || got[0].Project != "shop" || got[0].Title != "Review of the avatar change" {
+		t.Fatalf("session = %+v, want its folder and title", got[0])
+	}
+}
+
+// The sub-agent mark is read from the head only. A session whose log ends on
+// a sub-agent's records, with its own first record too big for the head, is
+// still the person's session.
+func TestSidechainRecordsInTheTailDoNotHideASession(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	huge := `{"type":"queue-operation","content":"` + strings.Repeat("x", sessionHeadBytes+4096) + `"}`
+	writeLog(t, filepath.Join(home, ".claude", "projects", "-Users-me-shop", "main.jsonl"), now.Add(-time.Minute),
+		huge,
+		`{"type":"ai-title","aiTitle":"Main session"}`,
+		`{"type":"assistant","cwd":"/Users/me/shop","entrypoint":"cli","isSidechain":true}`,
+	)
+	s := &Scanner{Home: func() (string, error) { return home, nil }}
+	got := s.Sessions([]Detection{{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 1}}}}, now)
+	if len(got) != 1 || got[0].Title != "Main session" || got[0].Project != "shop" {
+		t.Fatalf("sessions = %+v, want the main session with its folder", got)
 	}
 }
