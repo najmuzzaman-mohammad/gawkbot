@@ -3,6 +3,9 @@ package termsend
 import (
 	"context"
 	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -23,12 +26,23 @@ type fake struct {
 	noTmux  bool
 	running map[string]bool
 	scripts map[string]string
+	// env answers `ps eww` (the process's argv and environment).
+	env string
+	// superset is the path the Superset tool is faked at; supersetErr is
+	// what it fails with.
+	superset    string
+	supersetErr error
 }
 
 func (f *fake) run(_ context.Context, name string, args ...string) ([]byte, error) {
 	f.calls = append(f.calls, name+" "+strings.Join(args, " "))
 	switch name {
+	case f.superset:
+		return nil, f.supersetErr
 	case "ps":
+		if args[0] == "eww" {
+			return []byte(f.env), nil
+		}
 		if args[len(args)-2] == "-t" {
 			return []byte(f.peers), nil
 		}
@@ -67,7 +81,7 @@ func (f *fake) run(_ context.Context, name string, args ...string) ([]byte, erro
 func (f *fake) typed() []string {
 	var out []string
 	for _, c := range f.calls {
-		if strings.HasPrefix(c, "tmux send-keys") || strings.HasPrefix(c, "osascript") {
+		if strings.HasPrefix(c, "tmux send-keys") || strings.HasPrefix(c, "osascript") || (f.superset != "" && strings.HasPrefix(c, f.superset+" ")) {
 			out = append(out, c)
 		}
 	}
@@ -82,7 +96,7 @@ var claude = Target{PID: 4100, Tool: ToolClaudeCode}
 // beside it in the same job.
 const (
 	claudeFront = "501 ttys003 4100 4100 /Users/me/.local/bin/claude --resume abc\n"
-	helpers     = "4100 4100 /Users/me/.local/bin/claude\n4180 4100 /opt/homebrew/bin/node\n3999 3999 -zsh\n"
+	helpers     = "4100 4100 /Users/me/.local/bin/claude\n4180 4100 /opt/homebrew/bin/node\n4181 4100 /Users/me/.cache/uv/archive-v0/x/bin/python\n4182 4100 /opt/homebrew/bin/uv\n3999 3999 -zsh\n"
 )
 
 func TestSendTypesIntoTheTmuxPaneOnTheSessionsTTY(t *testing.T) {
@@ -315,5 +329,53 @@ func TestFlattenMakesOneSafeLine(t *testing.T) {
 	}
 	if _, err := sender(&fake{}).Send(context.Background(), claude, "\x1b\n"); !errors.Is(err, ErrEmpty) {
 		t.Errorf("nothing left to type: %v", err)
+	}
+}
+
+func TestSendUsesSupersetsOwnToolForASessionInASupersetTerminal(t *testing.T) {
+	tool := filepath.Join(t.TempDir(), "superset")
+	if err := os.WriteFile(tool, nil, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	env := "/Users/me/.local/bin/claude TERM=xterm SUPERSET_WORKSPACE_ID=ws_1a2b SUPERSET_TERMINAL_ID=93c3781f-aa SUPERSET_HOME_DIR=/x\n"
+	f := &fake{proc: []string{claudeFront}, peers: helpers, noTmux: true, env: env, superset: tool}
+	s := sender(f)
+	s.Superset = tool
+	route, err := s.Send(context.Background(), claude, `keep the clock freeze; "quoted" $HOME`)
+	if err != nil || route != RouteSuperset {
+		t.Fatalf("route %q err %v", route, err)
+	}
+	want := tool + ` terminals send --local --workspace ws_1a2b --terminal 93c3781f-aa --text keep the clock freeze; "quoted" $HOME`
+	if typed := f.typed(); len(typed) != 1 || typed[0] != want {
+		t.Fatalf("typed %q, want %q", typed, want)
+	}
+
+	// Its tool not logged in yet: say so, rather than fall through.
+	out := &fake{proc: []string{claudeFront}, peers: helpers, noTmux: true, env: env, superset: tool,
+		supersetErr: &exec.ExitError{Stderr: []byte("Error: Not logged in\nHint: Run: superset auth login")}}
+	s = sender(out)
+	s.Superset = tool
+	if _, err := s.Send(context.Background(), claude, "hello"); !errors.Is(err, ErrNeedsLogin) {
+		t.Fatalf("err %v, want ErrNeedsLogin", err)
+	}
+
+	// The same identity and foreground checks apply: a shell is refused.
+	shell := &fake{proc: []string{"501 ttys003 4100 4100 -zsh\n"}, peers: "4100 4100 -zsh\n", noTmux: true, env: env, superset: tool}
+	s = sender(shell)
+	s.Superset = tool
+	if _, err := s.Send(context.Background(), claude, "hello"); !errors.Is(err, ErrNotAgent) {
+		t.Fatalf("err %v, want ErrNotAgent", err)
+	}
+	if typed := shell.typed(); len(typed) != 0 {
+		t.Fatalf("typed into a shell: %q", typed)
+	}
+
+	// Ids that are not plain ids are not used.
+	odd := &fake{proc: []string{claudeFront}, peers: helpers, noTmux: true, superset: tool,
+		env: "claude SUPERSET_WORKSPACE_ID=ws;rm SUPERSET_TERMINAL_ID=t1\n"}
+	s = sender(odd)
+	s.Superset = tool
+	if _, err := s.Send(context.Background(), claude, "hello"); !errors.Is(err, ErrNoRoute) {
+		t.Fatalf("err %v, want ErrNoRoute", err)
 	}
 }

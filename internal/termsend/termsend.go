@@ -11,6 +11,8 @@
 //   - tmux: send-keys to the pane whose tty is the session's
 //   - Terminal.app: AppleScript "do script" in the tab whose tty is the session's
 //   - iTerm2: AppleScript "write text" to the session whose tty is the session's
+//   - Superset: its own command-line tool's "terminals send", to the terminal
+//     the session's process says it runs in (SUPERSET_TERMINAL_ID)
 //
 // Typing into someone's terminal is only safe when the agent is the program
 // reading it: typed at a shell, the message runs as a command. So Send
@@ -69,6 +71,9 @@ var (
 	// ErrNotPermitted: macOS has not allowed this app to control the
 	// terminal app (Privacy & Security, Automation).
 	ErrNotPermitted = errors.New("termsend: not allowed to control the terminal app")
+	// ErrNeedsLogin: the terminal app's own command-line tool has to be
+	// logged in once before it will send anything.
+	ErrNeedsLogin = errors.New("termsend: the terminal app's command-line tool is not logged in")
 )
 
 // Tools Send knows how to recognise.
@@ -90,7 +95,11 @@ const (
 	RouteTmux     = "tmux"
 	RouteTerminal = "terminal"
 	RouteITerm    = "iterm"
+	RouteSuperset = "superset"
 )
+
+// SupersetCLI is where the Superset app keeps its command-line tool.
+const SupersetCLI = "/Applications/Superset.app/Contents/Resources/resources/bin/superset"
 
 const (
 	// MaxText is the most runes typed in one message.
@@ -110,6 +119,9 @@ type Sender struct {
 	AppleScript bool
 	// UID is the user whose processes may be typed into.
 	UID int
+	// Superset is the path of Superset's command-line tool; "" turns the
+	// route off.
+	Superset string
 }
 
 // New returns a Sender wired to the real machine.
@@ -120,6 +132,7 @@ func New() *Sender {
 		},
 		AppleScript: runtime.GOOS == "darwin",
 		UID:         os.Getuid(),
+		Superset:    SupersetCLI,
 	}
 }
 
@@ -158,6 +171,10 @@ func (s *Sender) Send(ctx context.Context, target Target, text string) (string, 
 			return "", fmt.Errorf("termsend: tmux: %w", err)
 		}
 		return RouteTmux, nil
+	}
+
+	if route, done, err := s.sendSuperset(ctx, target, tty, line); done {
+		return route, err
 	}
 
 	if s.AppleScript {
@@ -328,7 +345,9 @@ var scriptRuntimes = map[string]bool{"node": true, "bun": true, "deno": true}
 // readsTerminal are programs that take over the terminal's input when they
 // run. One of them in the agent's foreground job means a message typed now
 // would go to it: a password prompt, a remote shell, a pager, an editor, or
-// a shell the agent started to run a command.
+// a shell the agent started to run a command. Script runtimes (python,
+// node, uv) are not here: the agent's own MCP servers run as those, in its
+// job, talking over pipes, and listing them would refuse every session.
 var readsTerminal = map[string]bool{
 	"sh": true, "bash": true, "zsh": true, "fish": true, "dash": true, "ksh": true, "tcsh": true, "csh": true,
 	"sudo": true, "su": true, "doas": true, "login": true, "passwd": true,
@@ -336,7 +355,6 @@ var readsTerminal = map[string]bool{
 	"less": true, "more": true, "most": true, "man": true,
 	"vi": true, "vim": true, "nvim": true, "nano": true, "emacs": true, "pico": true, "ed": true,
 	"gpg": true, "gpg2": true, "pinentry": true, "pinentry-curses": true, "pinentry-tty": true, "ssh-askpass": true,
-	"python": true, "python3": true, "irb": true, "pry": true, "psql": true, "mysql": true, "sqlite3": true, "redis-cli": true,
 	"tmux": true, "screen": true, "top": true, "htop": true, "fzf": true,
 }
 
@@ -447,4 +465,75 @@ end run`,
 	return "none"
 end run`,
 	},
+}
+
+// sendSuperset types into a session running in a Superset terminal, through
+// Superset's own command-line tool. done is false when the session is not in
+// one (or the tool is not installed), so the next route is tried.
+func (s *Sender) sendSuperset(ctx context.Context, target Target, tty, line string) (route string, done bool, err error) {
+	if s.Superset == "" {
+		return "", false, nil
+	}
+	if !installed(s.Superset) {
+		return "", false, nil
+	}
+	workspace, terminal := s.supersetIDs(ctx, target.PID)
+	if workspace == "" || terminal == "" {
+		return "", false, nil
+	}
+	if err := s.recheck(ctx, target, tty); err != nil {
+		return "", true, err
+	}
+	// The text is one argument; the tool writes it and presses Enter.
+	_, runErr := s.run(ctx, s.Superset, "terminals", "send", "--local",
+		"--workspace", workspace, "--terminal", terminal, "--text", line)
+	if runErr != nil {
+		var exit *exec.ExitError
+		if errors.As(runErr, &exit) && strings.Contains(strings.ToLower(string(exit.Stderr)), "not logged in") {
+			return "", true, ErrNeedsLogin
+		}
+		return "", true, fmt.Errorf("termsend: superset: %w", runErr)
+	}
+	return RouteSuperset, true, nil
+}
+
+// supersetIDs reads the Superset workspace and terminal a process runs in
+// from its environment. Only plain ids are accepted.
+func (s *Sender) supersetIDs(ctx context.Context, pid int) (workspace, terminal string) {
+	out, err := s.run(ctx, "ps", "eww", "-o", "command=", "-p", strconv.Itoa(pid))
+	if err != nil {
+		return "", ""
+	}
+	for _, field := range strings.Fields(string(out)) {
+		key, value, ok := strings.Cut(field, "=")
+		if !ok || !plainID(value) {
+			continue
+		}
+		switch key {
+		case "SUPERSET_WORKSPACE_ID":
+			workspace = value
+		case "SUPERSET_TERMINAL_ID":
+			terminal = value
+		}
+	}
+	return workspace, terminal
+}
+
+// plainID is a UUID-like id: letters, digits, dashes and underscores.
+func plainID(v string) bool {
+	if v == "" || len(v) > 80 {
+		return false
+	}
+	for _, r := range v {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+// installed reports whether path is a file that exists.
+func installed(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
