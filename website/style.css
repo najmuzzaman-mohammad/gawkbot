@@ -770,22 +770,11 @@ section { position: relative; }
    it, and --o opens the island with the question while the notification
    settles into the lock screen's list. Without the script all three are
    1: the island open, the notification in the list. */
+/* Not shown. A phone gets the same hero as a desktop: the MacBook and the
+   notch interaction, sized down by the rules above. This iPhone used to
+   replace it at phone widths. */
 .iph { display: none; }
 .on-phone { display: none; }
-@media (max-width: 760px) {
-  .scene .mac { display: none; }
-  .on-mac { display: none; }
-  .on-phone { display: inline; }
-  .iph {
-    display: block; position: relative; margin: 0;
-    width: 272px; height: 560px; padding: 10px;
-    border-radius: 50px;
-    background: linear-gradient(145deg, #4a4a50, #1a1a1d 30%, #2a2a2f 70%, #5a5a60);
-    box-shadow: var(--shadow-lg), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  }
-  /* Short screens: shrink the whole phone rather than crop it. */
-  @media (max-height: 760px) { .iph { zoom: 0.84; } }
-}
 .iph-screen {
   position: relative; height: 100%; overflow: hidden;
   border-radius: 40px; color: var(--notch-ink);
@@ -1742,3 +1731,52 @@ section { position: relative; }
 .team-scene:is([data-step="3"], [data-step="4"]) .tt2,
 .team-scene:is([data-step="5"], [data-step="6"]) .tt3,
 .team-scene[data-step="7"] .tt4 { opacity: 1; transform: none; pointer-events: auto; }
+
+
+/* Team, on a phone. A 1280px screenshot squeezed into a phone's width is
+   unreadable, and the desktop zoom (up to 1.36) does not change that. So
+   the window is square, each screen still opens whole for bearings, and
+   scrolling zooms much further, onto the one part of that screen that
+   carries the point: about a third of its width, which brings the app's
+   own text close to its real size.
+
+   Each screen sets --s (how far it zooms) and --fx, --fy (the point of
+   the screenshot that ends up in the middle of the window, as fractions
+   of its width and height). The transform origin is worked out from
+   those: the frame is the square window, and the screenshot sits in its
+   middle band, 62.5% of its height (800 / 1280). */
+@media (max-width: 760px) {
+  .scrub-live .team-scene { --team-rest: 250px; }
+  .scrub-live .team-scene .appwin { width: min(100%, calc(100vh - 56px - var(--team-rest))); }
+  .scrub-live .team-scene .frames { aspect-ratio: 1 / 1; }
+  .scrub-live .team-scene .frame,
+  .scrub-live .team-scene .frame + .frame {
+    position: absolute; inset: 0; display: block;
+    /* No defaults for --s, --fx or --fy are set here: this selector
+       outranks the per-screen ones below, so a default set here would win
+       over them and every screen would zoom on its middle. */
+    --cy: calc(0.1875 + var(--fy, 0.5) * 0.625);
+    transform-origin:
+      calc((var(--fx, 0.5) - 0.5 / var(--s, 3)) / (1 - 1 / var(--s, 3)) * 100%)
+      calc((var(--cy) - 0.5 / var(--s, 3)) / (1 - 1 / var(--s, 3)) * 100%);
+    transform: scale(calc(1 + var(--z) * (var(--s, 3) - 1)));
+  }
+  /* The screenshot is placed, not centred by a layout rule, so it sits
+     exactly where the sums above assume: (1 - 0.625) / 2 from the top. */
+  .scrub-live .team-scene .frame img { position: absolute; left: 0; top: 18.75%; width: 100%; height: auto; }
+  /* The roster: the Chief of Staff and the bots that report to it, each
+     with what it is doing. */
+  .scrub-live .team-scene .f1 { --s: 3.3; --fx: 0.165; --fy: 0.27; }
+  /* The board: the task that is running and the one that needs you. */
+  .scrub-live .team-scene .f2 { --s: 2.5; --fx: 0.745; --fy: 0.27; }
+  /* The routines: what runs, when, and whose it is. */
+  .scrub-live .team-scene .f3 { --s: 2.6; --fx: 0.475; --fy: 0.33; }
+  /* One routine: its last run and what it did. */
+  .scrub-live .team-scene .f4 { --s: 2.9; --fx: 0.475; --fy: 0.60; }
+  /* The wiki: what the bots wrote down most recently. */
+  .scrub-live .team-scene .f5 { --s: 2.9; --fx: 0.705; --fy: 0.50; }
+  /* A wiki page: its title, its summary, and the table of who owns what. */
+  .scrub-live .team-scene .f6 { --s: 2.4; --fx: 0.545; --fy: 0.52; }
+  /* A bot-built app: its headline numbers and the first rows. */
+  .scrub-live .team-scene .f7 { --s: 2.3; --fx: 0.52; --fy: 0.62; }
+}
