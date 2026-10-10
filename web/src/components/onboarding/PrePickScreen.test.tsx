@@ -707,9 +707,13 @@ describe("CodeRabbit click-handler guard (PR #889)", () => {
       );
       fireEvent.click(toggle);
 
-      // Steps render from the backend payload.
+      // Steps render from the backend payload. The guide's container is
+      // drawn before the steps arrive, so wait for the steps themselves:
+      // asserting on the container at once raced the fetch under load.
       const guide = await screen.findByTestId("pre-pick-guide-claude");
-      expect(guide).toHaveTextContent("Install Claude Code");
+      await waitFor(() =>
+        expect(guide).toHaveTextContent("Install Claude Code"),
+      );
       expect(guide).toHaveTextContent("Sign in to Claude");
       // The copyable command row is present.
       expect(
