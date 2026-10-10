@@ -973,13 +973,12 @@ func (b *Broker) claimNotchSessionRows(state notchState, sessions []agentdetect.
 		row.State, row.UpdatedAt, row.LastSaid = sess.State, sess.UpdatedAt, sess.LastSaid
 		row.Runtime = sessionRuntime(sess)
 		// This scan is at least as fresh as the registry's last look.
+		// can_message stays the gate's (sessionMessageabilityLocked): a
+		// session open in a window is messaged by typing into it, so being
+		// open is no reason to refuse, and a session found open since the
+		// registry's look is still checked again right before anything runs.
 		if flag := sessionOpenFlag(sess); flag != nil {
 			row.Open = flag
-			if *flag && sess.Tool == sessionToolClaude {
-				// Open by the newer look: a Claude Code session takes no
-				// message while it is open, whatever the registry last saw.
-				row.CanMessage = false
-			}
 		}
 		row.Mood, row.Detail = notchSessionMood(sess, now)
 		agents[i] = row

@@ -2,6 +2,9 @@ package team
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -267,4 +270,44 @@ func TestSessionOpenInABackgroundProcessIsNotMessageable(t *testing.T) {
 	if wire["can_message"] == true || wire["message_block"] != sessionBlockOpen {
 		t.Fatalf("a session held by a background process must not be messageable: %v", wire)
 	}
+}
+
+// The founder's notch: every open Claude Code window read can_message false,
+// because the notch's live pass marked any open Claude Code session as
+// unmessageable after the gate had said yes. Open in a window is exactly
+// the case that is now messaged, so the notch must offer it.
+func TestNotchOffersToMessageAnOpenClaudeWindow(t *testing.T) {
+	f := newSessionMsgFixture(t, sessionToolClaude)
+	newTypingWindow(t, f, "busy")
+	live := f.sess
+	live.OpenKnown, live.Open = true, true
+	stubLocalSessions(t, []agentdetect.Session{live})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/notch/state", nil)
+	req.Header.Set("Authorization", "Bearer "+f.b.token)
+	f.b.handleNotchState(rec, req)
+	var state struct {
+		Agents []struct {
+			Slug       string `json:"slug"`
+			Open       *bool  `json:"open"`
+			CanMessage bool   `json:"can_message"`
+		} `json:"agents"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &state); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	for _, a := range state.Agents {
+		if a.Slug != f.slug {
+			continue
+		}
+		if a.Open == nil || !*a.Open {
+			t.Fatalf("the session should read open: %+v", a)
+		}
+		if !a.CanMessage {
+			t.Fatal("an open Claude Code window reads can_message false in the notch; a busy one is held and typed when free, so it must be offered")
+		}
+		return
+	}
+	t.Fatalf("no notch row for %s: %s", f.slug, rec.Body.String())
 }
