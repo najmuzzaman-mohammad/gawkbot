@@ -15,7 +15,7 @@ interface ModelBadgeProps {
 
 /**
  * What a bot runs on, as a small tag on its avatar: "Opus 5.5" where there is
- * room, "Opus" or "O5" where there is less, a dot where there is none. The
+ * room, "Opus" or "Op" where there is less, a dot where there is none. The
  * full answer ("Opus 5.5 in Claude Code") is always the tooltip and the
  * accessible name.
  */

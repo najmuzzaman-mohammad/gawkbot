@@ -37,7 +37,7 @@ describe("BotAvatar", () => {
     withRuntimes(<PixelAvatar slug="eng" size={24} />);
     expect(
       screen.getByRole("img", { name: "Runs on Opus 5.5 in Claude Code" }),
-    ).toHaveTextContent("O5");
+    ).toHaveTextContent("Op");
   });
 
   it("never passes an unknown tool off as Claude Code", () => {

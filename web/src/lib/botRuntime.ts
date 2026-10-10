@@ -58,11 +58,30 @@ function initials(name: string): string {
 }
 
 /**
+ * Two characters that tell one model from another at a glance.
+ *
+ * A name-first label ("Opus 5.5", "Sonnet 4.6", "Gemini 2.5 Pro") becomes
+ * the first two letters of the name: "Op", "So", "Ge". The version digit is
+ * deliberately left out. "O5" read as "05" on a 24px avatar, and the digit
+ * was the same for Opus and Sonnet, so the code said nothing.
+ *
+ * A label whose first word already carries its number ("GPT-6 Astra", "o3")
+ * keeps a letter and that digit: "G6", "o3".
+ */
+function modelCode(label: string): string {
+  const word = firstWord(label);
+  const letters = word.match(/^[A-Za-z]+/)?.[0] ?? "";
+  const digit = word.match(/\d/)?.[0] ?? "";
+  if (!digit && letters.length >= 2) {
+    return letters[0].toUpperCase() + letters[1].toLowerCase();
+  }
+  if (letters && digit) return `${letters[0]}${digit}`;
+  return word.slice(0, 2);
+}
+
+/**
  * The badge text at a density. The model when it is known, else the tool:
- *   full  "Opus 5.5"   word  "Opus"   code  "O5"
- * A model label is "<Name> <version>" for Claude ("Opus 5.5") and
- * "<Family>-<version> …" for the rest ("GPT-6 Astra"), so the code is the
- * first letter plus the first digit either way.
+ *   full  "Opus 5.5"   word  "Opus"   code  "Op"
  */
 export function badgeText(runtime: BotRuntime, density: BadgeDensity): string {
   if (density === "dot") return "";
@@ -74,8 +93,7 @@ export function badgeText(runtime: BotRuntime, density: BadgeDensity): string {
   }
   if (density === "full") return label;
   if (density === "word") return firstWord(label);
-  const digit = label.match(/\d/)?.[0] ?? "";
-  return digit ? `${label[0].toUpperCase()}${digit}` : label.slice(0, 2);
+  return modelCode(label);
 }
 
 /** "Opus 5.5 in Claude Code", "Claude Code" when the model is unknown. */

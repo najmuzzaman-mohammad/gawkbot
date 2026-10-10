@@ -44,10 +44,30 @@ describe("badgeText", () => {
   it("spells the model out where there is room", () => {
     expect(badgeText(opus, "full")).toBe("Opus 5.5");
     expect(badgeText(opus, "word")).toBe("Opus");
-    expect(badgeText(opus, "code")).toBe("O5");
+    expect(badgeText(opus, "code")).toBe("Op");
     expect(badgeText(astra, "word")).toBe("GPT-6");
     expect(badgeText(astra, "code")).toBe("G6");
-    expect(badgeText(local, "code")).toBe("Q2");
+    expect(badgeText(local, "code")).toBe("q2");
+  });
+
+  it("tells one model from another in two characters", () => {
+    // "O5" read as "05" on a 24px avatar, and Opus 5.5 and Sonnet 5.5 got
+    // the same digit. The code is the name, not the version.
+    const code = (model_label: string) =>
+      badgeText({ harness: "x", model_label }, "code");
+    expect(code("Opus 5.5")).toBe("Op");
+    expect(code("Sonnet 5.5")).toBe("So");
+    expect(code("Sonnet 4.6")).toBe("So");
+    expect(code("Haiku 5.5")).toBe("Ha");
+    expect(code("Fable 5.1")).toBe("Fa");
+    expect(code("Gemini 2.5 Pro")).toBe("Ge");
+    expect(code("GPT-6 Astra")).toBe("G6");
+    expect(code("GPT-5.5")).toBe("G5");
+    expect(code("o3")).toBe("o3");
+    // No code is a bare number or starts with a zero-like "O" plus a digit.
+    for (const label of ["Opus 5.5", "Sonnet 4.6", "Haiku 5.5", "Fable 5.1"]) {
+      expect(code(label)).not.toMatch(/\d/);
+    }
   });
 
   it("falls back to the tool when the model is unknown", () => {
