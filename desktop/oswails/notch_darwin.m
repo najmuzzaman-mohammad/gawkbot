@@ -404,14 +404,23 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 
 // The system's own glass where it exists (macOS 26), the dark behind-window
 // blur everywhere else.
+//
+// NSGlassEffectView is looked up by name, not named in the code: the release
+// builds on an older SDK that does not declare it, and naming it there fails
+// the build (it did, for v0.240.0). At run time on macOS 26 the class is
+// there and this is the same view, set up through the same properties.
 - (NSView *)makeGlass {
-	if (@available(macOS 26.0, *)) {
-		NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:NSZeroRect];
-		glass.cornerRadius = kGlassRadius;
-		// A dark tint keeps the panel's light text readable over a bright
-		// desktop; the glass still bends and blurs what is behind it.
-		glass.tintColor = [NSColor colorWithWhite:0.06 alpha:0.55];
-		return glass;
+	Class glassClass = NSClassFromString(@"NSGlassEffectView");
+	if (glassClass != Nil && [glassClass isSubclassOfClass:[NSView class]]) {
+		NSView *glass = [[glassClass alloc] initWithFrame:NSZeroRect];
+		if ([glass respondsToSelector:NSSelectorFromString(@"setCornerRadius:")] &&
+		    [glass respondsToSelector:NSSelectorFromString(@"setTintColor:")]) {
+			[glass setValue:@(kGlassRadius) forKey:@"cornerRadius"];
+			// A dark tint keeps the panel's light text readable over a bright
+			// desktop; the glass still bends and blurs what is behind it.
+			[glass setValue:[NSColor colorWithWhite:0.06 alpha:0.55] forKey:@"tintColor"];
+			return glass;
+		}
 	}
 	NSVisualEffectView *blur = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
 	if (@available(macOS 10.14, *)) {
