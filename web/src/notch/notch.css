@@ -156,21 +156,24 @@ kbd {
   padding: 0 12px;
   box-sizing: border-box;
 }
-/* On a Mac with a notch: the notch, then the chin below it with the lead
-   on the left and the gang on the right, inside the notch's own width. */
-.notch-strip.has-chin {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  padding: 0;
+/* Compact ears hug the notch, one or a few faces wide, so the menu bar's
+   items further out stay uncovered. The faces overlap more and the count
+   sits on them instead of beside them. */
+.notch-strip.is-compact {
+  padding: 0 4px;
+  --nb-overlap: -11px;
 }
-.notch-chin {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 0 10px;
-  box-sizing: border-box;
+.notch-strip.is-compact .notch-ear-right {
+  position: relative;
+}
+.notch-strip.is-compact .notch-badge {
+  position: absolute;
+  top: 2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  font-size: 9.5px;
 }
 .notch-ear {
   display: flex;

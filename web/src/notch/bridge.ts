@@ -22,7 +22,7 @@ import type { NotchGeometry } from "./types";
 //   window.gawkNotch.focusKeyboard()           the global hotkey opened it
 //   window.gawkNotch.voice({kind, text, message})  kind: partial|final|error|end
 //
-// Geometry arrives as query params: ?nw=<notch width>&nh=<notch height>&ew=<ear width>&ch=<chin height>.
+// Geometry arrives as query params: ?nw=<notch width>&nh=<notch height>&ew=<ear width>.
 // Outside the Mac app (a browser, Storybook, tests) every call is a no-op.
 
 export type NativeMessage =
@@ -88,7 +88,6 @@ export function readGeometry(search: string): NotchGeometry {
     notchWidth: num(params, "nw", 0),
     notchHeight: num(params, "nh", 32),
     earWidth: num(params, "ew", 64),
-    chinHeight: num(params, "ch", 0),
     nativeGlass: params.get("glass") === "1",
   };
 }

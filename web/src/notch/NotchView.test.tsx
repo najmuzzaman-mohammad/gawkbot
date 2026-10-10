@@ -55,24 +55,12 @@ function renderNotchWith(overrides: Partial<NotchViewProps>) {
 }
 
 describe("collapsed notch", () => {
-  it("keeps to the notch's own width, with a chin below it", () => {
+  it("is exactly the notch plus two compact ears", () => {
     renderNotch();
     const shell = screen.getByTestId("notch-shell");
-    // Nothing beside the notch: the menu bar's items stay uncovered.
-    expect(shell.style.width).toBe("186px");
-    expect(shell.style.height).toBe(`${32 + 22}px`);
-    // The agents are in the chin, not over the menu bar.
-    const chin = document.querySelector(".notch-chin");
-    expect(chin).not.toBeNull();
-    expect(chin?.contains(screen.getByTestId("notch-gang"))).toBe(true);
-  });
-
-  it("is a pill with two ears on a Mac without a notch", () => {
-    renderNotchWith({ geometry: NO_NOTCH });
-    const shell = screen.getByTestId("notch-shell");
-    expect(shell.style.width).toBe(`${2 * 64}px`);
-    expect(shell.style.height).toBe("24px");
-    expect(document.querySelector(".notch-chin")).toBeNull();
+    // Compact ears that hug the notch, not 72 points over the menu bar.
+    expect(shell.style.width).toBe(`${186 + 2 * 40}px`);
+    expect(shell.style.height).toBe("32px");
   });
 
   it("piles everyone who needs you onto the notch, with a count", () => {
@@ -351,7 +339,8 @@ describe("open notch", () => {
       attention: [],
       agents,
     };
-    renderNotchWith({ state, gang: [] });
+    // The roomier pill of a Mac without a notch holds five, with a "+N".
+    const pill = renderNotchWith({ state, gang: [], geometry: NO_NOTCH });
     const crew = screen.getByTestId("notch-crew");
     expect(crew.children).toHaveLength(5);
     // The one that hit a snag leads, then the one that finished, then work.
@@ -363,6 +352,17 @@ describe("open notch", () => {
     expect(
       screen.getByRole("img", { name: "2 more active" }),
     ).toHaveTextContent("+2");
+    pill.unmount();
+
+    // Compact ears hugging a notch hold three, and no "+N" text.
+    renderNotchWith({ state, gang: [] });
+    const compact = screen.getByTestId("notch-crew");
+    expect(
+      Array.from(compact.querySelectorAll("[data-mood]")).map((el) =>
+        el.getAttribute("data-mood"),
+      ),
+    ).toEqual(["error", "done", "working"]);
+    expect(screen.queryByRole("img", { name: /more active/ })).toBeNull();
   });
 
   it("treats a session that has joined the office exactly like a bot", async () => {

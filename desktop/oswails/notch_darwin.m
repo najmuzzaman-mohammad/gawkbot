@@ -22,12 +22,12 @@
 
 #include "_cgo_export.h"
 
-// Without a notch the strip is a pill with an ear either side of its middle.
+// The strip's ears, either side of the notch, in the menu bar. With a notch
+// they are compact, one face wide, hugging the notch's edges so they stay
+// clear of the menus and status items further out. Without one the strip is
+// a pill and its ears can be roomier.
 static const CGFloat kEarWidth = 72.0;
-// With one, the strip keeps to the notch's own width, so it never covers the
-// menu bar's items beside it, and hangs this far below it for the agents
-// (the notch itself has no pixels to draw them in).
-static const CGFloat kChinHeight = 22.0;
+static const CGFloat kCompactEarWidth = 40.0;
 // The open panel. The page draws itself at exactly this size, so keep these
 // equal to EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx:
 // a smaller window clips the composer and the shortcut footer.
@@ -186,22 +186,14 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 }
 
 - (CGFloat)earWidth {
-	return self.notchWidth > 0 ? 0 : kEarWidth;
-}
-
-- (CGFloat)chinHeight {
-	return self.notchWidth > 0 ? kChinHeight : 0;
-}
-
-- (CGFloat)collapsedWidth {
-	return self.notchWidth + 2 * [self earWidth];
+	return self.notchWidth > 0 ? kCompactEarWidth : kEarWidth;
 }
 
 - (NSRect)frameExpanded:(BOOL)expanded {
 	NSScreen *screen = [self notchScreen];
-	CGFloat collapsedWidth = [self collapsedWidth];
+	CGFloat collapsedWidth = self.notchWidth + 2 * [self earWidth];
 	CGFloat w = expanded ? MAX(kExpandedWidth, collapsedWidth) : collapsedWidth;
-	CGFloat h = expanded ? kExpandedHeight : self.notchHeight + [self chinHeight] + self.stageHeight;
+	CGFloat h = expanded ? kExpandedHeight : self.notchHeight + self.stageHeight;
 	NSRect sf = screen.frame;
 	return NSMakeRect(round(NSMidX(sf) - w / 2), NSMaxY(sf) - h, w, h);
 }
@@ -212,8 +204,8 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 		: self.officeURL;
 	// glass=1 tells the page the sheet's material is drawn natively, so it
 	// paints a light tint instead of an opaque sheet.
-	NSString *s = [NSString stringWithFormat:@"%@/notch.html?nw=%.0f&nh=%.0f&ew=%.0f&ch=%.0f&glass=1",
-		base, self.notchWidth, self.notchHeight, [self earWidth], [self chinHeight]];
+	NSString *s = [NSString stringWithFormat:@"%@/notch.html?nw=%.0f&nh=%.0f&ew=%.0f&glass=1",
+		base, self.notchWidth, self.notchHeight, [self earWidth]];
 	return [NSURL URLWithString:s];
 }
 
@@ -270,7 +262,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	[self.content addSubview:self.glass];
 	[self.content addSubview:self.webView];
 	self.content.hoverOwner = self;
-	self.content.stripHeight = self.notchHeight + [self chinHeight];
+	self.content.stripHeight = self.notchHeight;
 	self.panel.contentView = self.content;
 
 	[[NSNotificationCenter defaultCenter] addObserver:self
@@ -357,7 +349,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 - (void)screensChanged:(NSNotification *)note {
 	(void)note;
 	[self measure];
-	self.content.stripHeight = self.notchHeight + [self chinHeight];
+	self.content.stripHeight = self.notchHeight;
 	[self applyExpanded:NO animatePage:NO];
 	[self.webView loadRequest:[NSURLRequest requestWithURL:[self pageURL]]];
 }
@@ -423,9 +415,8 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 // The glass at rest: the strip's size, under the notch.
 - (NSRect)glassFrameCollapsed {
 	NSRect bounds = self.content.bounds;
-	CGFloat w = [self collapsedWidth];
-	CGFloat h = self.notchHeight + [self chinHeight];
-	return NSMakeRect(round(NSMidX(bounds) - w / 2), NSMaxY(bounds) - h, w, h);
+	CGFloat w = self.notchWidth + 2 * [self earWidth];
+	return NSMakeRect(round(NSMidX(bounds) - w / 2), NSMaxY(bounds) - self.notchHeight, w, self.notchHeight);
 }
 
 - (void)showGlass:(BOOL)show {

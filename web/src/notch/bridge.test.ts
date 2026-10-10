@@ -44,11 +44,10 @@ describe("notch bridge", () => {
   });
 
   it("reads geometry with safe defaults", () => {
-    expect(readGeometry("?nw=186&nh=32&ew=0&ch=22")).toEqual({
+    expect(readGeometry("?nw=186&nh=32&ew=72")).toEqual({
       notchWidth: 186,
       notchHeight: 32,
-      earWidth: 0,
-      chinHeight: 22,
+      earWidth: 72,
       nativeGlass: false,
     });
     // The Mac app draws the sheet's glass itself and says so.
@@ -57,7 +56,6 @@ describe("notch bridge", () => {
       notchWidth: 0,
       notchHeight: 32,
       earWidth: 64,
-      chinHeight: 0,
       nativeGlass: false,
     });
   });

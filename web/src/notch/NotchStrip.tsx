@@ -41,6 +41,10 @@ export function stageHeight(
 const MAX_GANG = 4;
 /** The most agents the strip shows at once, askers and workers together. */
 export const STRIP_CAP = 5;
+/** The same, in compact ears that hug a notch. */
+export const COMPACT_STRIP_CAP = 3;
+/** Ears narrower than this are compact. */
+const COMPACT_EAR = 60;
 /** Among the ones not asking: a snag first, then a finish, then work. */
 const CREW_RANK: Record<Mood, number> = {
   needs_you: 0,
@@ -73,16 +77,18 @@ export function NotchStrip({
     state.agents.every((a) => a.mood === "idle");
   const asleep = quiet && !expanded;
   const awake = quiet && expanded;
-  const bot =
-    geometry.chinHeight > 0
-      ? Math.max(12, Math.min(20, geometry.chinHeight - 4))
-      : Math.max(14, Math.min(22, geometry.notchHeight - 10));
+  // Compact ears hug a notch: smaller faces, fewer of them, no "+N" text.
+  const compact = geometry.notchWidth > 0 && geometry.earWidth < COMPACT_EAR;
+  const cap = compact ? COMPACT_STRIP_CAP : STRIP_CAP;
+  const bot = compact
+    ? Math.max(12, Math.min(20, geometry.notchHeight - 12))
+    : Math.max(14, Math.min(22, geometry.notchHeight - 10));
   // Everyone who is doing something shows on the strip, each moving the
   // way its own state moves: askers hop, workers bob, a finished one
   // celebrates, a stuck one shakes. Askers first (they are the gang), then
   // the rest by how much they want a look. STRIP_CAP is all the strip
   // holds; anyone past it is the "+N".
-  const askers = gang.slice(0, Math.min(MAX_GANG, STRIP_CAP));
+  const askers = gang.slice(0, Math.min(MAX_GANG, cap));
   const asking = new Set(gang.map((a) => a.slug));
   const active = (state?.agents ?? [])
     .filter(
@@ -91,126 +97,101 @@ export function NotchStrip({
         (a.mood === "working" || a.mood === "error" || a.mood === "done"),
     )
     .sort((a, c) => CREW_RANK[a.mood] - CREW_RANK[c.mood]);
-  const crew = active.slice(0, STRIP_CAP - askers.length);
+  const crew = active.slice(0, cap - askers.length);
   const hidden = gang.length + active.length - askers.length - crew.length;
 
-  const left = (
-    <div className="notch-ear">
-      <NotchBot
-        badge={false}
-        slug={lead?.slug ?? state?.lead ?? "cos"}
-        avatar={lead?.avatar}
-        mood={state?.mood ?? "idle"}
-        size={bot}
-        bare={true}
-        tucked={asleep}
-        awake={awake}
-        label={`${state?.lead_name ?? "Chief of Staff"}: ${asleep ? "asleep, nothing needs you" : (state?.headline ?? "connecting")}`}
-      />
-      {!expanded && state && count === 0 ? (
-        <span className="notch-ear-text">{state.headline}</span>
-      ) : null}
-    </div>
-  );
-  const right = (
-    <div className="notch-ear notch-ear-right">
-      {askers.length > 0 ? (
-        <span
-          className={`notch-gang gang-bored-${boredom}`}
-          data-testid="notch-gang"
-          style={{ ["--gang-n" as string]: askers.length }}
-        >
-          {askers.map((a, i) => (
-            <span
-              className="notch-gang-member"
-              key={a.slug}
-              style={{ ["--gang-i" as string]: i }}
-            >
-              <NotchBot
-                badge={false}
-                slug={a.slug}
-                avatar={a.avatar}
-                mood="needs_you"
-                size={bot}
-                phase={i + 1}
-                bare={true}
-                act={boredom >= 1 ? "fidget" : undefined}
-                label={`${a.name} needs you`}
-              />
-            </span>
-          ))}
-        </span>
-      ) : null}
-      {crew.length > 0 ? (
-        <span className="notch-gang notch-crew" data-testid="notch-crew">
-          {crew.map((a, i) => (
-            <span
-              className="notch-gang-member"
-              key={a.slug}
-              style={{ ["--gang-i" as string]: i }}
-            >
-              <NotchBot
-                badge={false}
-                slug={a.slug}
-                avatar={a.avatar}
-                mood={a.mood}
-                size={bot - 2}
-                phase={i + 1}
-                bare={true}
-                label={`${a.name}: ${a.mood.replace("_", " ")}`}
-              />
-            </span>
-          ))}
-        </span>
-      ) : null}
-      {hidden > 0 ? (
-        <span
-          className="notch-more"
-          role="img"
-          aria-label={`${hidden} more active`}
-        >
-          +{hidden}
-        </span>
-      ) : null}
-      {count > 0 ? (
-        <span
-          className="notch-badge"
-          role="img"
-          aria-label={`${count} need you`}
-        >
-          {count}
-        </span>
-      ) : null}
-    </div>
-  );
-
-  // With a notch, the strip keeps to the notch's own width and hangs a chin
-  // below it for the agents, so nothing covers the menu bar beside it.
-  // Without one, it is a pill at the top centre with an ear either side.
-  if (geometry.chinHeight > 0) {
-    return (
-      <div
-        className="notch-strip has-chin"
-        style={{ height: geometry.notchHeight + geometry.chinHeight }}
-        title={state?.headline}
-      >
-        <div style={{ height: geometry.notchHeight, flexShrink: 0 }} />
-        <div className="notch-chin" style={{ height: geometry.chinHeight }}>
-          {left}
-          {right}
-        </div>
-      </div>
-    );
-  }
   return (
     <div
-      className="notch-strip"
+      className={`notch-strip${compact ? " is-compact" : ""}`}
       style={{ height: geometry.notchHeight }}
       title={state?.headline}
     >
-      {left}
+      <div className="notch-ear">
+        <NotchBot
+          badge={false}
+          slug={lead?.slug ?? state?.lead ?? "cos"}
+          avatar={lead?.avatar}
+          mood={state?.mood ?? "idle"}
+          size={bot}
+          bare={true}
+          tucked={asleep}
+          awake={awake}
+          label={`${state?.lead_name ?? "Chief of Staff"}: ${asleep ? "asleep, nothing needs you" : (state?.headline ?? "connecting")}`}
+        />
+        {!expanded && state && count === 0 ? (
+          <span className="notch-ear-text">{state.headline}</span>
+        ) : null}
+      </div>
       <div style={{ width: geometry.notchWidth, flexShrink: 0 }} />
-      {right}
+      <div className="notch-ear notch-ear-right">
+        {askers.length > 0 ? (
+          <span
+            className={`notch-gang gang-bored-${boredom}`}
+            data-testid="notch-gang"
+            style={{ ["--gang-n" as string]: askers.length }}
+          >
+            {askers.map((a, i) => (
+              <span
+                className="notch-gang-member"
+                key={a.slug}
+                style={{ ["--gang-i" as string]: i }}
+              >
+                <NotchBot
+                  badge={false}
+                  slug={a.slug}
+                  avatar={a.avatar}
+                  mood="needs_you"
+                  size={bot}
+                  phase={i + 1}
+                  bare={true}
+                  act={boredom >= 1 ? "fidget" : undefined}
+                  label={`${a.name} needs you`}
+                />
+              </span>
+            ))}
+          </span>
+        ) : null}
+        {crew.length > 0 ? (
+          <span className="notch-gang notch-crew" data-testid="notch-crew">
+            {crew.map((a, i) => (
+              <span
+                className="notch-gang-member"
+                key={a.slug}
+                style={{ ["--gang-i" as string]: i }}
+              >
+                <NotchBot
+                  badge={false}
+                  slug={a.slug}
+                  avatar={a.avatar}
+                  mood={a.mood}
+                  size={bot - 2}
+                  phase={i + 1}
+                  bare={true}
+                  label={`${a.name}: ${a.mood.replace("_", " ")}`}
+                />
+              </span>
+            ))}
+          </span>
+        ) : null}
+        {hidden > 0 && !compact ? (
+          <span
+            className="notch-more"
+            role="img"
+            aria-label={`${hidden} more active`}
+          >
+            +{hidden}
+          </span>
+        ) : null}
+        {count > 0 ? (
+          <span
+            className="notch-badge"
+            role="img"
+            aria-label={`${count} need you`}
+          >
+            {count}
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -245,7 +226,7 @@ export function NotchStage({
         <div
           className="notch-stage notch-peek"
           data-testid="notch-peek"
-          style={{ top: geometry.notchHeight + geometry.chinHeight - 16 }}
+          style={{ top: geometry.notchHeight - 16 }}
           aria-live="polite"
         >
           <NotchBot
@@ -265,7 +246,7 @@ export function NotchStage({
         <div
           className="notch-stage notch-chat"
           data-testid="notch-chat"
-          style={{ top: geometry.notchHeight + geometry.chinHeight + 8 }}
+          style={{ top: geometry.notchHeight + 8 }}
           aria-live="polite"
         >
           <div className="notch-chat-row">

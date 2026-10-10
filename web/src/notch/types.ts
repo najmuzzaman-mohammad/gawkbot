@@ -122,16 +122,10 @@ export interface NotchGeometry {
   /** Height of the notch (or the menu bar on notch-less Macs). */
   notchHeight: number;
   /**
-   * Width of each "ear" that grows out beside the strip. 0 on Macs with a
-   * notch: the strip stays inside the notch's own width, so it never covers
-   * the menu bar's items on either side.
+   * Width of each "ear" that grows out beside the notch. Compact (under 60)
+   * on Macs with a notch, so the ears hug it and the menu bar stays clear.
    */
   earWidth: number;
-  /**
-   * Room the strip hangs below the notch, where its agents are drawn (the
-   * notch itself has no pixels). 0 on Macs without a notch.
-   */
-  chinHeight: number;
   /**
    * The host draws the open sheet's material (real system glass behind
    * the page), so the page paints a tint instead of an opaque sheet.
