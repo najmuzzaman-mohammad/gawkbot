@@ -163,10 +163,7 @@ fi
 
 if [ "$RELAUNCH" -eq 1 ]; then
   [ -x "$BIN" ] || { echo "no binary at $BIN — build first: go build -o $BIN ./cmd/wuphf" >&2; exit 1; }
-  # A fresh demo office starts with no terminal sessions of this machine in
-  # its roster; set WUPHF_SESSION_MEMBERS_DISABLED=0 to let them in.
   WUPHF_RUNTIME_HOME="$HOME_DIR" WUPHF_BROKER_PORT="$BROKER_PORT" \
-    WUPHF_SESSION_MEMBERS_DISABLED="${WUPHF_SESSION_MEMBERS_DISABLED:-1}" \
     nohup "$BIN" --web-port "$WEB_PORT" --no-open \
     > "$HOME_DIR/dev-stack.log" 2>&1 &
   echo "relaunched on http://localhost:$WEB_PORT (log: $HOME_DIR/dev-stack.log)"
