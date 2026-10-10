@@ -120,6 +120,13 @@ func (l *Launcher) enqueueHeadlessCodexTurnRecord(slug string, turn headlessCode
 	if slug == "" || turn.Prompt == "" {
 		return
 	}
+	// A terminal session is never a lane of this queue. A lane that finishes
+	// wakes the lead with the lane's last message as a hand-off, so a
+	// session's fixed "cannot be messaged" reply used to start a Chief of
+	// Staff turn for every message nobody could deliver.
+	if l.answerSessionMemberWithoutATurn(slug, turn.Prompt, turn.Channel) {
+		return
+	}
 	if turn.TaskID == "" {
 		turn.TaskID = headlessCodexTaskID(turn.Prompt)
 	}
@@ -431,6 +438,9 @@ func (l *Launcher) stopHeadlessWorkers() {
 // headlessDispatchController (wired via Broker.SetHeadlessDispatchController).
 func (l *Launcher) CancelHeadlessTurns(slug string) {
 	slug = strings.TrimSpace(slug)
+	// A background resume of a terminal session is a turn too, and Stop
+	// stops it. Before the lock below: it posts to the broker.
+	l.cancelSessionTurns(slug)
 	l.headless.mu.Lock()
 	defer l.headless.mu.Unlock()
 	// active is keyed by lane (slug + worktree); a bot can hold several

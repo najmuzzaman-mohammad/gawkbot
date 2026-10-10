@@ -66,6 +66,12 @@ type Scanner struct {
 	// Nil until a Scan has listed processes successfully; the session
 	// registry reader then cannot tell a live entry from a stale one.
 	alivePIDs map[int]bool
+	// claudeProcs is how many Claude Code processes the last Scan found,
+	// not counting this process's own children; claudeProcsKnown is false
+	// until a Scan has listed processes. With the list in hand and no Claude
+	// Code process in it, no Claude Code session can be open.
+	claudeProcs      int
+	claudeProcsKnown bool
 }
 
 // NewScanner returns a Scanner wired to the real OS.
@@ -100,6 +106,7 @@ func (s *Scanner) Scan(ctx context.Context) []Detection {
 			}
 			s.alivePIDs = alive
 			procs = excludeDescendants(list, s.SelfPID)
+			s.claudeProcs, s.claudeProcsKnown = 0, true
 		}
 	}
 
@@ -143,6 +150,9 @@ func (s *Scanner) Scan(ctx context.Context) []Detection {
 			if matchesProcess(spec, p.Args) {
 				d.Running = append(d.Running, Process{PID: p.PID, Cwd: p.Cwd})
 			}
+		}
+		if spec.ID == claudeCodeID {
+			s.claudeProcs = len(d.Running)
 		}
 		// A binary that only shows up as a running process is still
 		// usable: the user launched it from somewhere off our PATH.

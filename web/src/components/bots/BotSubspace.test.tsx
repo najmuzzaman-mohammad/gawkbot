@@ -475,6 +475,79 @@ describe("<BotSubspace> for a terminal session", () => {
     );
   });
 
+  it.each([
+    [
+      "open in the terminal",
+      { message_block: "open" },
+      "This session is open in your terminal. Message it there; you can message it from here once it is closed.",
+    ],
+    [
+      "its folder is gone",
+      { message_block: "folder_gone" },
+      "The folder this session worked in is gone, so it cannot be resumed.",
+    ],
+    [
+      "openness is unknown",
+      { message_block: "unknown" },
+      "This session is open in your terminal on this Mac, so it cannot be messaged from here yet.",
+    ],
+    [
+      "the broker says nothing about messaging",
+      {},
+      "This session is open in your terminal on this Mac, so it cannot be messaged from here yet.",
+    ],
+  ] as const)("says why and what to do when %s", (_case, block, sentence) => {
+    const agent: OfficeMember = {
+      ...sessionBot,
+      session: {
+        tool: "claude-code",
+        live: false,
+        can_message: false,
+        ...block,
+      },
+    };
+    render(wrap(<BotSubspace agent={agent} tab="chat" />));
+
+    expect(screen.queryByTestId("composer")).not.toBeInTheDocument();
+    expect(screen.getByTestId("composer-session-unavailable").textContent).toBe(
+      sentence,
+    );
+    expect(screen.queryByTestId("session-can-message")).not.toBeInTheDocument();
+  });
+
+  it("shows the normal composer, and says so in the header, when a message would be delivered", () => {
+    const agent: OfficeMember = {
+      ...sessionBot,
+      session: { tool: "claude-code", live: false, can_message: true },
+    };
+    render(wrap(<BotSubspace agent={agent} tab="chat" />));
+
+    expect(screen.getByTestId("composer")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("composer-session-unavailable"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("session-can-message").textContent).toBe(
+      "Takes messages from here",
+    );
+    // Still a session: what Teach a workflow sends is not for it.
+    expect(screen.queryByTestId("teach-workflow-btn")).not.toBeInTheDocument();
+  });
+
+  it("does not let a stale reason hide the composer once a message would be delivered", () => {
+    const agent: OfficeMember = {
+      ...sessionBot,
+      session: {
+        tool: "codex",
+        live: true,
+        can_message: true,
+        message_block: "open",
+      },
+    };
+    render(wrap(<BotSubspace agent={agent} tab="chat" />));
+
+    expect(screen.getByTestId("composer")).toBeInTheDocument();
+  });
+
   it("keeps the composer for an ordinary bot", () => {
     render(wrap(<BotSubspace agent={baseBot} tab="chat" />));
 

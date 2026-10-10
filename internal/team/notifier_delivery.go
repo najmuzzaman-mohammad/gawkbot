@@ -50,6 +50,13 @@ func (l *Launcher) deliverMessageNotification(msg channelMessage) {
 		return
 	}
 	immediate, delayed := l.notificationTargetsForMessage(msg)
+	// A terminal session is never handed the office's work packet. The one
+	// thing it may be given is the owner's own message from its own DM, as
+	// written, and it is given it here: before the cooldown below, which
+	// would drop the second of two quick messages without a word. Whatever
+	// the gate does not take stays in immediate for the ordinary path, which
+	// starts nothing for a session and says so.
+	immediate = l.deliverOwnerMessagesToSessions(immediate, msg)
 
 	// Debounce: use shorter cooldown for human/CEO messages, longer for bot-originated
 	// to prevent bot-to-bot feedback loops (devil's advocate finding #3).
@@ -202,6 +209,9 @@ func (l *Launcher) sendTaskUpdate(target notificationTarget, action officeAction
 		})
 		return
 	}
+	if l.answerSessionMemberWithoutATurn(target.Slug, notification, channel) {
+		return
+	}
 	l.paneDispatch().Enqueue(target.Slug, target.PaneTarget, notification)
 }
 
@@ -321,6 +331,9 @@ func (l *Launcher) sendChannelUpdate(target notificationTarget, msg channelMessa
 			ContextUsed: contextUsed,
 			EnqueuedAt:  time.Now(),
 		})
+		return
+	}
+	if l.answerSessionMemberWithoutATurn(target.Slug, notification, channel) {
 		return
 	}
 	l.paneDispatch().Enqueue(target.Slug, target.PaneTarget, notification)

@@ -618,3 +618,135 @@ func TestSidechainRecordsInTheTailDoNotHideASession(t *testing.T) {
 		t.Fatalf("sessions = %+v, want the main session with its folder", got)
 	}
 }
+
+// Whether anything can be open is known in two cases only: the registry
+// names a live interactive session, or the scan found no Claude Code process
+// at all. Claude Code running with a registry that names none of it is what
+// a release that moved the registry would look like, and stays unknown.
+func TestOpenSessionsIsKnownOnlyFromALiveEntryOrNoClaudeCodeAtAll(t *testing.T) {
+	procs := func(list ...rawProcess) func(context.Context) ([]rawProcess, error) {
+		return func(context.Context) ([]rawProcess, error) { return list, nil }
+	}
+	claude := rawProcess{PID: 101, Args: []string{"claude"}}
+	other := rawProcess{PID: 7, Args: []string{"vim"}}
+	live := `{"pid":101,"sessionId":"aaa","kind":"interactive"}`
+	cases := []struct {
+		name      string
+		registry  map[string]string // nil: no registry folder at all
+		processes func(context.Context) ([]rawProcess, error)
+		wantKnown bool
+		wantOpen  []string
+	}{
+		{"a live interactive entry", map[string]string{"101.json": live}, procs(claude, other), true, []string{"claude-code:aaa"}},
+		{"no Claude Code process, no registry", nil, procs(other), true, nil},
+		{"no Claude Code process, empty registry", map[string]string{}, procs(other), true, nil},
+		{"no Claude Code process, a stale entry left behind", map[string]string{"101.json": live}, procs(other), true, nil},
+		{"Claude Code running, no registry", nil, procs(claude), false, nil},
+		{"Claude Code running, empty registry", map[string]string{}, procs(claude), false, nil},
+		{"Claude Code running, only a background entry", map[string]string{"101.json": `{"pid":101,"sessionId":"aaa","kind":"background"}`}, procs(claude), false, nil},
+		{"Claude Code running, only another process's stale entry", map[string]string{"55.json": `{"pid":55,"sessionId":"old","kind":"interactive"}`}, procs(claude), false, nil},
+		{"the process list failed", map[string]string{"101.json": live}, func(context.Context) ([]rawProcess, error) { return nil, os.ErrPermission }, false, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			home := t.TempDir()
+			if tc.registry != nil {
+				dir := filepath.Join(home, ".claude", "sessions")
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				for name, body := range tc.registry {
+					writeRegistry(t, dir, name, body)
+				}
+			}
+			s := &Scanner{Home: func() (string, error) { return home, nil }, Processes: tc.processes}
+			s.Scan(t.Context())
+			open, known := s.OpenSessions()
+			if known != tc.wantKnown || len(open) != len(tc.wantOpen) {
+				t.Fatalf("open=%v known=%v, want known=%v open=%v", open, known, tc.wantKnown, tc.wantOpen)
+			}
+			for _, id := range tc.wantOpen {
+				if _, ok := open[id]; !ok {
+					t.Fatalf("open=%v, want %s in it", open, id)
+				}
+			}
+		})
+	}
+}
+
+// A log is read only when it is a plain file, and a Claude Code log's folder
+// is believed only when the log sits in that folder's own project folder.
+func TestSessionLogsMustBePlainFilesInTheirOwnProjectFolder(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	projects := filepath.Join(home, ".claude", "projects")
+	log := func(dir, id, cwd, title string) string {
+		path := filepath.Join(projects, dir, id+".jsonl")
+		writeLog(t, path, now.Add(-time.Minute),
+			`{"type":"user","cwd":"`+cwd+`","entrypoint":"cli"}`,
+			`{"type":"ai-title","aiTitle":"`+title+`"}`)
+		return path
+	}
+	log("-Users-me-shop", "honest", "/Users/me/shop", "In its own folder")
+	log("-Users-me-my-app-v1-2", "dotted", "/Users/me/my.app_v1 2", "Dots, underscores, and spaces become dashes")
+	// Filed under one project, claiming another's folder.
+	log("-Users-me-shop", "liar", "/Users/me/secrets", "Claims another folder")
+	// A plain log somewhere else on the machine, linked in.
+	outside := filepath.Join(t.TempDir(), "elsewhere.jsonl")
+	writeLog(t, outside, now.Add(-time.Minute),
+		`{"type":"user","cwd":"/Users/me/shop","entrypoint":"cli"}`,
+		`{"type":"ai-title","aiTitle":"Linked in"}`)
+	if err := os.Symlink(outside, filepath.Join(projects, "-Users-me-shop", "linked.jsonl")); err != nil {
+		t.Fatal(err)
+	}
+	// A whole project folder that is a link.
+	real := filepath.Join(t.TempDir(), "-Users-me-other")
+	writeLog(t, filepath.Join(real, "indir.jsonl"), now.Add(-time.Minute),
+		`{"type":"user","cwd":"/Users/me/other","entrypoint":"cli"}`,
+		`{"type":"ai-title","aiTitle":"In a linked folder"}`)
+	if err := os.Symlink(real, filepath.Join(projects, "-Users-me-other")); err != nil {
+		t.Fatal(err)
+	}
+
+	s := &Scanner{Home: func() (string, error) { return home, nil }}
+	got := map[string]string{}
+	for _, sess := range s.Sessions([]Detection{{ID: "claude-code", Name: "Claude Code", Running: []Process{{PID: 1}}}}, now) {
+		got[sess.Title] = sess.Cwd
+	}
+	want := map[string]string{
+		"In its own folder":                           "/Users/me/shop",
+		"Dots, underscores, and spaces become dashes": "/Users/me/my.app_v1 2",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("sessions = %v, want exactly %v", got, want)
+	}
+	for title, cwd := range want {
+		if got[title] != cwd {
+			t.Fatalf("session %q has folder %q, want %q (all: %v)", title, got[title], cwd, got)
+		}
+	}
+}
+
+// A Codex log that is a link is not read either.
+func TestCodexSessionLogMustBeAPlainFile(t *testing.T) {
+	home := t.TempDir()
+	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	day := filepath.Join(home, ".codex", "sessions", "2026", "10", "09")
+	meta := func(id string) []string {
+		return []string{
+			`{"type":"session_meta","payload":{"id":"` + id + `","cwd":"/Users/me/api","thread_source":"user"}}`,
+			`{"type":"response_item","payload":{"role":"user","content":[{"text":"Add rate limits to the login route"}]}}`,
+		}
+	}
+	writeLog(t, filepath.Join(day, "rollout-real.jsonl"), now.Add(-time.Minute), meta("t-real")...)
+	outside := filepath.Join(t.TempDir(), "rollout-out.jsonl")
+	writeLog(t, outside, now.Add(-time.Minute), meta("t-out")...)
+	if err := os.Symlink(outside, filepath.Join(day, "rollout-linked.jsonl")); err != nil {
+		t.Fatal(err)
+	}
+	s := &Scanner{Home: func() (string, error) { return home, nil }}
+	sessions := s.Sessions([]Detection{{ID: "codex", Name: "Codex CLI", Running: []Process{{PID: 2}}}}, now)
+	if len(sessions) != 1 || sessions[0].ID != "codex:rollout-real" {
+		t.Fatalf("sessions = %+v, want only the plain file's", sessions)
+	}
+}

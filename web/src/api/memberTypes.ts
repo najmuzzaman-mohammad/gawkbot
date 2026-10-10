@@ -34,6 +34,16 @@ export interface MemberSession {
   last_said?: string;
   /** True while its terminal window is open. */
   live: boolean;
+  /**
+   * True only when a message from you would be delivered to the session
+   * right now. Absent on a broker that cannot message sessions.
+   */
+  can_message?: boolean;
+  /**
+   * Why not, when can_message is false: "open" (open in a terminal, and its
+   * tool takes no message there), "folder_gone", or "unknown".
+   */
+  message_block?: "open" | "folder_gone" | "unknown";
 }
 
 /** Where a bot's turns execute: here, or a gateway / Slack / cloud computer. */

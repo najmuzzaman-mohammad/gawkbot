@@ -138,6 +138,69 @@ Consequences:
   message to an open session can only arrive as a wake-up the model is told is
   not from the user, and it needs a hook that stays running in the background.
 
+### What gawkbot does with it
+
+Built on the table above (`internal/team/headless_session_turn.go`,
+`headless_session_runner.go`, and `broker_session_messaging.go`). Not yet run
+against a logged-in tool. Off unless `WUPHF_SESSION_MESSAGING=1` is set in the
+office's environment.
+
+- **Who may message.** Only a message the owner posted through the office's
+  own web UI, in that session member's own DM. The proof is the operator key
+  the web UI proxy stamps (`requestIsOperator`), noted by message id when the
+  message is posted, never the message's `from`. A bot, the system, a joined
+  human, and a mention anywhere else start nothing and get the fixed reply.
+  The whole decision is one function, `claimOwnerSessionMessage`.
+- **What each surface can do.**
+  - Web app: messages a session. It posts through the web UI proxy
+    (`web/src/api/client.ts`), which stamps the operator key.
+  - Notch: messages a session. Its page is served from the web UI origin and
+    posts through the same proxy (`web/src/notch/api.ts`). Read from the
+    code; not yet confirmed in the running app.
+  - iOS app: cannot message a session. It posts to the broker port with the
+    token and no operator key (`BrokerClient.swift`), so its message gets
+    the fixed reply. The app shows its composer disabled for sessions, which
+    is the honest state until the phone has a way to prove the owner.
+- **A session is never an office turn.** A message that is not delivered
+  gets the fixed reply and nothing else: no turn is queued for the session,
+  and neither the Chief of Staff nor any other bot is woken by it. A bot
+  writing to a session in a bot-to-bot DM gets no reply at all.
+- **Claude Code.** `claude --print --resume <id> --output-format stream-json
+  --verbose`, prompt on stdin, only when the session is known to be closed,
+  and checked again immediately before it starts. Closed is known when the
+  registry names at least one live interactive session and not this one, or
+  when no Claude Code process is running at all. Claude Code running with a
+  registry that names none of it is unknown, and nothing is resumed.
+- **Codex.** `codex exec --json resume <id> -`, prompt on stdin. When it
+  exits with an error and says "already has an active writer", the message
+  goes to `codex queue --thread <id> --message=<text>` and one note says it
+  was delivered to the window. The answer is not copied back: the next turn
+  to finish in that window need not be the answer to that message. Any other
+  failure is reported and never queued.
+- **How they run.** No shell. The folder the member was made in, which never
+  changes afterwards and must exist. The person's environment without any
+  `WUPHF_*` variable. No permission, sandbox, model, system prompt, settings,
+  or MCP flag, refused again at run time. Text only, at most 8000
+  characters. One turn per session at a time, three more may wait. Fifteen
+  minutes, then the process group is killed. Stop, removing the member, and
+  the office shutting down all end it.
+- **Who may read it.** A session's DM is served to the owner only; a joined
+  human is refused it on every route and on the event stream.
+
+Residuals that stay, and why each is accepted:
+
+- A process on the machine that posts through the web UI port is taken for
+  the owner (issue #1168). It already runs as the person and can run the
+  tool itself.
+- A process that can write under `~/.claude` or `~/.codex` can forge session
+  logs and Claude Code's list of open sessions, including deleting a real
+  entry so an open session reads as closed and a resume forks it. The same
+  write access already lets it add a hook to the person's `settings.json`
+  and run code at the next launch. Nothing more than that is claimed.
+- An office bot can read a session's DM, including what a resumed session
+  answered. Bots hold the same broker token as the phone and the notch and
+  cannot be told apart from them (issue #1168).
+
 ## Questions the tools ask the user
 
 - Claude Code's `AskUserQuestion` goes through `PermissionRequest` with the

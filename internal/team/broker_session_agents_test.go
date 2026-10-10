@@ -417,6 +417,8 @@ func TestSessionMemberWireShape(t *testing.T) {
 	want := map[string]any{
 		"tool": "claude-code", "project": "shop", "cwd": "/Users/me/shop", "state": "working",
 		"updated_at": "2026-10-10T09:00:00Z", "last_said": "Running the suite now.", "live": true,
+		// Messaging a session is off unless it is switched on.
+		"can_message": false, "message_block": "unknown",
 	}
 	session, _ := entry["session"].(map[string]any)
 	if len(session) != len(want) {

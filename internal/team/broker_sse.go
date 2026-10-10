@@ -101,11 +101,26 @@ func (b *Broker) handleEvents(w http.ResponseWriter, r *http.Request) {
 		case <-revoked:
 			return
 		case msg, ok := <-messages:
-			if !ok || writeEvent("message", map[string]any{"message": msg}) != nil {
+			if !ok {
+				return
+			}
+			// A session's conversation goes to the owner only, like the
+			// session member and its status below.
+			if b.sessionConversationHiddenFrom(actor, msg.Channel) {
+				continue
+			}
+			if writeEvent("message", map[string]any{"message": msg}) != nil {
 				return
 			}
 		case action, ok := <-actions:
-			if !ok || writeEvent("action", map[string]any{"action": action}) != nil {
+			if !ok {
+				return
+			}
+			// The action log carries the first words of each message.
+			if b.sessionActionHiddenFrom(actor, action) {
+				continue
+			}
+			if writeEvent("action", map[string]any{"action": action}) != nil {
 				return
 			}
 		case snapshot, ok := <-activity:

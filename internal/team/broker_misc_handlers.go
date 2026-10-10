@@ -343,11 +343,18 @@ func (b *Broker) handleActions(w http.ResponseWriter, r *http.Request) {
 		actions := make([]officeActionLog, len(b.actions))
 		copy(actions, b.actions)
 		b.mu.Unlock()
-		for i, action := range actions {
-			actions[i] = sanitizeOfficeActionLog(action)
+		// A session's conversation is the owner's: its entries are left out
+		// for a joined human, as its messages are.
+		actor, _ := requestActorFromContext(r.Context())
+		shown := make([]officeActionLog, 0, len(actions))
+		for _, action := range actions {
+			if b.sessionActionHiddenFrom(actor, action) {
+				continue
+			}
+			shown = append(shown, sanitizeOfficeActionLog(action))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"actions": actions})
+		_ = json.NewEncoder(w).Encode(map[string]any{"actions": shown})
 	case http.MethodPost:
 		var body struct {
 			Kind       string            `json:"kind"`

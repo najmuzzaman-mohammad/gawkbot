@@ -67,6 +67,9 @@ type notchAgent struct {
 	// or absent when the tool keeps no list to ask (see agentdetect.Session).
 	// It is what tells a closed session from a quiet one.
 	Open *bool `json:"open,omitempty"`
+	// CanMessage is true only when a message from the owner would be
+	// delivered to the session right now (broker_session_messaging.go).
+	CanMessage bool `json:"can_message,omitempty"`
 }
 
 const notchAgentSession = "session"
@@ -342,6 +345,7 @@ func (b *Broker) notchStateLocked(now time.Time, defaults runtimeDefaults, owner
 			agent.Kind = notchAgentSession
 			agent.Tool, agent.ToolName, agent.Project, agent.Cwd = sessionBindingFields(m)
 			agent.Open = b.sessionMemberOpenLocked(m.Slug)
+			agent.CanMessage, _ = b.sessionMessageabilityLocked(m)
 		}
 		if m.Avatar != nil {
 			avatar := *m.Avatar

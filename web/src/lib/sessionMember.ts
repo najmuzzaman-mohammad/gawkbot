@@ -11,12 +11,48 @@ export function isSessionMember(member: { origin?: MemberOrigin }): boolean {
 }
 
 /**
- * Why a session member cannot be messaged, in one sentence. Shown where the
- * composer would be; keep it equal in meaning to sessionNotMessageableReply
- * in internal/team/broker_session_agents.go.
+ * Why a session member cannot be messaged, in one sentence, when nothing
+ * more exact is known. Keep it equal in meaning to
+ * sessionNotMessageableReply in internal/team/broker_session_agents.go.
  */
 export const SESSION_NOT_MESSAGEABLE =
   "This session is open in your terminal on this Mac, so it cannot be messaged from here yet.";
+
+/** The session is open, and its tool takes no message while it is. */
+export const SESSION_OPEN_IN_TERMINAL =
+  "This session is open in your terminal. Message it there; you can message it from here once it is closed.";
+
+/** The folder the session worked in no longer exists. */
+export const SESSION_FOLDER_GONE =
+  "The folder this session worked in is gone, so it cannot be resumed.";
+
+/**
+ * Whether a message typed here would reach this member. Any bot the office
+ * runs: yes. A terminal session: only when the broker says a message would
+ * be delivered right now.
+ */
+export function canBeMessaged(
+  member: Pick<OfficeMember, "origin" | "session">,
+): boolean {
+  return !isSessionMember(member) || member.session?.can_message === true;
+}
+
+/**
+ * Why a session member cannot be messaged right now and what to do, in one
+ * sentence. Shown where the composer would be.
+ */
+export function sessionNotMessageableLine(
+  member: Pick<OfficeMember, "session">,
+): string {
+  switch (member.session?.message_block) {
+    case "open":
+      return SESSION_OPEN_IN_TERMINAL;
+    case "folder_gone":
+      return SESSION_FOLDER_GONE;
+    default:
+      return SESSION_NOT_MESSAGEABLE;
+  }
+}
 
 /** The folder a session works in, or "" when the broker did not say. */
 export function sessionProject(member: Pick<OfficeMember, "session">): string {
@@ -40,13 +76,15 @@ export function sessionStatusLabel(
 
 /**
  * The one line under the bot's face in an empty conversation. A terminal
- * session cannot be messaged from here, so it must not invite a hello.
+ * session that cannot take a message from here must not invite a hello; one
+ * that can says so, and says it is a session, not one of the office's bots.
  */
 export function emptyConversationLine(
-  member: Pick<OfficeMember, "slug" | "name" | "origin">,
+  member: Pick<OfficeMember, "slug" | "name" | "origin" | "session">,
 ): string {
   const name = member.name || member.slug;
-  return isSessionMember(member)
-    ? `${name} runs in your terminal.`
-    : `Say hi to ${name}.`;
+  if (!isSessionMember(member)) return `Say hi to ${name}.`;
+  return canBeMessaged(member)
+    ? `${name} runs in your terminal. You can message it from here.`
+    : `${name} runs in your terminal.`;
 }

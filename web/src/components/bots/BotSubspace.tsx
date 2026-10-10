@@ -26,7 +26,11 @@ import { Eye } from "lucide-react";
 import type { OfficeMember } from "../../api/client";
 import { humanizeActivity } from "../../lib/humanizeActivity";
 import { router } from "../../lib/router";
-import { isSessionMember, sessionStatusLabel } from "../../lib/sessionMember";
+import {
+  canBeMessaged,
+  isSessionMember,
+  sessionStatusLabel,
+} from "../../lib/sessionMember";
 import { BotKnowledgePanel } from "../knowledge/BotKnowledgePanel";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { EditableName } from "./BotProfilePanel";
@@ -173,11 +177,22 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
                 {humanizeActivity(agent.task)}
               </span>
             ) : null}
+            {/* A session that would take a message right now says so: its
+                status alone ("Closed") reads as if nothing can be done. */}
+            {isSessionMember(agent) && canBeMessaged(agent) ? (
+              <span
+                className="bot-subspace-task-chip"
+                data-testid="session-can-message"
+              >
+                Takes messages from here
+              </span>
+            ) : null}
           </div>
         </div>
 
         {/* Show it once. It will do it from now on. Not for a terminal
-            session: teaching ends in a message, and it cannot take one. */}
+            session: teaching ends in the office's own instructions, and a
+            session in your repository is only ever given your own words. */}
         {isSessionMember(agent) ? null : (
           <button
             type="button"

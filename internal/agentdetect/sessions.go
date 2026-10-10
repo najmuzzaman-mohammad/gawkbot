@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -173,8 +174,10 @@ func recentSessions(root string, depth int, now time.Time, read func(string, os.
 			if !strings.HasSuffix(e.Name(), ".jsonl") {
 				continue
 			}
+			// Info does not follow a link. Only a plain file is a log: a
+			// link could name any file on the machine as a session.
 			info, err := e.Info()
-			if err != nil || now.Sub(info.ModTime()) > sessionWindow {
+			if err != nil || !info.Mode().IsRegular() || now.Sub(info.ModTime()) > sessionWindow {
 				continue
 			}
 			found = append(found, candidate{path, info})
@@ -240,8 +243,14 @@ func baseSession(path string, info os.FileInfo, tool, toolName string) Session {
 // itself, else the human's last prompt, else the folder.
 func claudeSession(path string, info os.FileInfo, toolName string) (Session, bool) {
 	head, tail := headAndTail(path, info.Size())
-	sess := baseSession(path, info, "claude-code", toolName)
+	sess := baseSession(path, info, claudeCodeID, toolName)
 	entrypoint := ""
+	// Claude Code files a log under a folder named after the folder the
+	// session was started in. A folder a log claims is believed only when
+	// the log sits where a session of that folder would: a log dropped
+	// somewhere else cannot point a session at a folder of its choosing.
+	home := filepath.Base(filepath.Dir(path))
+	claimed := false
 	// read takes the folder and the entrypoint from the first records in
 	// lines that carry them. With judgeSidechain it also reports whether the
 	// record that gives the folder marks the log as a sub-agent's.
@@ -267,6 +276,10 @@ func claudeSession(path string, info os.FileInfo, toolName string) (Session, boo
 				if rec.IsSidechain && judgeSidechain {
 					return true
 				}
+				claimed = true
+				if claudeProjectDirName(rec.Cwd) != home {
+					continue
+				}
 				sess.Cwd = rec.Cwd
 			}
 			if sess.Cwd != "" && entrypoint != "" {
@@ -286,6 +299,10 @@ func claudeSession(path string, info os.FileInfo, toolName string) (Session, boo
 		// tail answers for it. The sub-agent mark is judged from the head
 		// alone: a session's own tail can end on a sub-agent's records.
 		read(tail, false)
+	}
+	if sess.Cwd == "" && claimed {
+		// Every folder it names belongs to some other project folder.
+		return Session{}, false
 	}
 	// Claude Code stamps how it was started on its records. Anything but the
 	// terminal ("sdk-py", "sdk-cli", ...) is a run some program started, not
@@ -662,7 +679,21 @@ func officeOwnDir(cwd string) bool {
 	return strings.Contains(slashed, "/.wuphf/") || strings.Contains(slashed, "/wuphf-agent-scratch/")
 }
 
+// claudeProjectDirRe matches what Claude Code replaces with a dash when it
+// names a project folder after a path.
+var claudeProjectDirRe = regexp.MustCompile(`[^A-Za-z0-9]`)
+
+// claudeProjectDirName is the name of the folder under <config dir>/projects
+// where Claude Code keeps the logs of sessions started in cwd: the path with
+// everything but letters and digits turned into dashes. Read off 179 real
+// logs on 2026-10-10 (claude 2.1.296), all of which agreed; undocumented.
+func claudeProjectDirName(cwd string) string {
+	return claudeProjectDirRe.ReplaceAllString(cwd, "-")
+}
+
 const (
+	// claudeCodeID is Claude Code's catalog id.
+	claudeCodeID       = "claude-code"
 	claudeConfigDirEnv = "CLAUDE_CONFIG_DIR"
 	// claudeTerminalEntrypoint is the "entrypoint" Claude Code writes for a
 	// session started by a person at a terminal.
@@ -698,15 +729,25 @@ type OpenSession struct {
 // running process under <config dir>/sessions, removed when it exits.
 //
 // The file is undocumented and may move or change shape with any release,
-// so the answer comes with whether it can be trusted. known is false, and
-// callers must fall back to judging by the logs, when the directory is
-// missing, holds no entry that parses, or the last Scan could not list
-// processes (a crashed process leaves its file behind, and without the
-// process list a stale entry cannot be told from a live one). Only then is
-// "not in the map" not the same as "closed".
+// so the answer comes with whether it can be trusted. It is known in exactly
+// two cases:
+//
+//   - the registry names at least one interactive session whose process is
+//     running: this build reads the registry correctly, so a session it does
+//     not name is closed;
+//   - the last Scan listed processes and found no Claude Code process at
+//     all: nothing can be open, whatever the registry holds.
+//
+// Otherwise known is false and "not in the map" is not "closed". That covers
+// a failed process listing (a crashed process leaves its file behind, and a
+// stale entry cannot then be told from a live one), and Claude Code processes
+// running with a registry that is missing, empty, or names none of them:
+// that is also what a release that moved the registry would look like while
+// windows are open.
 //
 // Call it after Scan: it checks each entry's pid against the processes that
-// scan saw, and never lists processes itself.
+// scan saw, and never lists processes itself. The office's own child
+// processes are not counted as Claude Code running.
 func (s *Scanner) OpenSessions() (open map[string]OpenSession, known bool) {
 	home := ""
 	if s.Home != nil {
@@ -715,18 +756,15 @@ func (s *Scanner) OpenSessions() (open map[string]OpenSession, known bool) {
 	if home == "" || s.alivePIDs == nil {
 		return nil, false
 	}
-	dir := filepath.Join(s.claudeConfigDir(home), "sessions")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, false
-	}
 	open = map[string]OpenSession{}
+	dir := filepath.Join(s.claudeConfigDir(home), "sessions")
+	entries, _ := os.ReadDir(dir)
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
 			continue
 		}
 		info, err := e.Info()
-		if err != nil || info.Size() > claudeRegistryFileMax {
+		if err != nil || !info.Mode().IsRegular() || info.Size() > claudeRegistryFileMax {
 			continue
 		}
 		raw, err := os.ReadFile(filepath.Join(dir, e.Name()))
@@ -743,14 +781,16 @@ func (s *Scanner) OpenSessions() (open map[string]OpenSession, known bool) {
 			// Malformed, or not the shape this build knows: skipped.
 			continue
 		}
-		known = true
 		if rec.Kind != claudeInteractiveKind || !s.alivePIDs[rec.PID] {
 			continue
 		}
-		open["claude-code:"+strings.TrimSpace(rec.SessionID)] = OpenSession{PID: rec.PID, Busy: rec.Status == "busy"}
+		open[claudeCodeID+":"+strings.TrimSpace(rec.SessionID)] = OpenSession{PID: rec.PID, Busy: rec.Status == "busy"}
 	}
-	if !known {
-		return nil, false
+	if len(open) > 0 {
+		return open, true
 	}
-	return open, true
+	if s.claudeProcsKnown && s.claudeProcs == 0 {
+		return open, true
+	}
+	return nil, false
 }

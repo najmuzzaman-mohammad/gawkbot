@@ -204,3 +204,57 @@ describe("<MessageBubble> data-author-self", () => {
     expect(selfAttr("system")).toBeNull();
   });
 });
+
+describe("<MessageBubble> session resumed note", () => {
+  const note: Message = {
+    id: "msg-77",
+    from: "system",
+    channel: "human__cc-1a2b3c4d",
+    kind: "session_resumed",
+    content:
+      "This session was resumed in the background to answer you. To open it in your terminal again, run: claude --resume 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    timestamp: "2026-10-10T09:00:00Z",
+  };
+
+  it("is a plain note with the command, not a message from anyone", () => {
+    const { container } = renderWithQueryClient(
+      <MessageBubble message={note} />,
+    );
+
+    const rendered = screen.getByTestId("session-resumed-note");
+    expect(rendered.textContent).toBe(note.content);
+    expect(rendered.textContent).toContain(
+      "claude --resume 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    );
+    // No bubble, so no author row and no avatar.
+    expect(container.querySelector("[data-author-kind]")).toBeNull();
+    expect(container.querySelector(".message-avatar")).toBeNull();
+  });
+
+  it("shows a message handed to an open window the same plain way", () => {
+    const { container } = renderWithQueryClient(
+      <MessageBubble
+        message={{
+          ...note,
+          kind: "session_delivered",
+          content:
+            "Delivered to this session's window. Its answer will appear there.",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("session-delivered-note").textContent).toBe(
+      "Delivered to this session's window. Its answer will appear there.",
+    );
+    expect(container.querySelector("[data-author-kind]")).toBeNull();
+  });
+
+  it("leaves an ordinary system line as a bubble", () => {
+    const { container } = renderWithQueryClient(
+      <MessageBubble message={{ ...note, kind: "error" }} />,
+    );
+
+    expect(screen.queryByTestId("session-resumed-note")).toBeNull();
+    expect(container.querySelector("[data-author-kind]")).not.toBeNull();
+  });
+});

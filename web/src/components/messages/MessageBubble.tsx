@@ -225,6 +225,10 @@ export function MessageBubble({
     );
   }
 
+  if (isSessionNoteKind(message.kind)) {
+    return <SessionNote message={message} />;
+  }
+
   // Issue #933: system-authored auth-failure card. Renders OUTSIDE the
   // standard message-bubble container so it's visually distinct from
   // bot chat — banner-style with a sign-in CTA rather than an avatar +
@@ -459,6 +463,33 @@ export function MessageBubble({
         onCopyLink={onCopyLink}
       />
     </div>
+  );
+}
+
+function isSessionNoteKind(kind: string | undefined): boolean {
+  return kind === "session_resumed" || kind === "session_delivered";
+}
+
+/**
+ * What the office did with a message to a terminal session: resumed the
+ * session in the background (the note carries the command that opens it in
+ * the terminal again), or handed the message to its open window. A plain
+ * note, not a bubble: nobody said it. Only the broker writes these kinds; it
+ * refuses them from anyone posting a message.
+ */
+function SessionNote({ message }: { message: Message }) {
+  return (
+    <p
+      className="session-resumed-note"
+      data-testid={
+        message.kind === "session_resumed"
+          ? "session-resumed-note"
+          : "session-delivered-note"
+      }
+      data-msg-id={message.id}
+    >
+      {message.content}
+    </p>
   );
 }
 

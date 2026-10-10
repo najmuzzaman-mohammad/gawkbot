@@ -228,6 +228,14 @@
   border-radius: 999px;
 }
 
+/* ─── Session resumed note ─── */
+.session-resumed-note {
+  margin: 4px 0;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
 /* ─── Markdown ─── */
 .msg-h1 {
   font-size: 18px;

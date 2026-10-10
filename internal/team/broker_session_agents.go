@@ -100,6 +100,9 @@ type sessionAgentState struct {
 	evictingAt string
 	// logged keeps "said once" log lines from repeating every tick.
 	logged map[string]bool
+	// messaging is what messaging a session needs remembered
+	// (broker_session_messaging.go). In memory only.
+	messaging sessionMessagingState
 }
 
 // sessionOpenness is what the tools themselves say about which sessions are
@@ -167,6 +170,13 @@ type memberSessionInfo struct {
 	// Live is true while the session's window is open. No omitempty: an
 	// ended session must say live:false, not leave the field out.
 	Live bool `json:"live"`
+	// CanMessage is true only when a message from the owner would be
+	// delivered to the session right now. No omitempty: false is an answer.
+	CanMessage bool `json:"can_message"`
+	// MessageBlock says why not, when CanMessage is false: "open" (open in a
+	// terminal, and its tool cannot take a message there), "folder_gone", or
+	// "unknown".
+	MessageBlock string `json:"message_block,omitempty"`
 }
 
 func isSessionMember(m officeMember) bool {
@@ -411,10 +421,10 @@ func sessionMemberDiff(m officeMember, sess agentdetect.Session) (sessionMemberU
 	if model := strings.TrimSpace(sess.Model); model != "" {
 		want.Model = model
 	}
-	if cwd := strings.TrimSpace(sess.Cwd); cwd != "" {
-		want.Cwd = cwd
-		want.Role = sessionMemberRole(sess)
-	}
+	// The folder, and the role that names it, are NOT followed. They are
+	// fixed when the member is made: a message to this member runs a tool in
+	// that folder, and any log that later carries the same session id (a
+	// second file, a forged one) must not be able to move it.
 	return want, want != have
 }
 
@@ -516,7 +526,11 @@ func (b *Broker) reconcileSessionMembersWith(ctx context.Context, sessions []age
 		}
 	}
 
+	// Whether each member's folder is still there: read off the lock.
+	folders := b.lookAtSessionFolders()
+
 	b.mu.Lock()
+	b.sessionAgents.messaging.folders = folders
 	b.applySessionActivityLocked(plan.Live, plan.StillOpen, open, now)
 	b.mu.Unlock()
 }
@@ -730,6 +744,19 @@ func (b *Broker) applySessionActivityLocked(live map[string]agentdetect.Session,
 		prev, known := b.sessionAgents.sightings[m.Slug]
 		var want botActivitySnapshot
 		switch {
+		case b.sessionResumingLocked(m.Slug):
+			// A background resume is the session's own activity: it is
+			// running and working, though its window is closed and its tool
+			// lists it as not open.
+			last := prev.Session
+			if isLive {
+				last = sess
+			} else if !known {
+				last.Tool, last.ToolName, last.Project, last.Cwd = sessionBindingFields(m)
+			}
+			last.State = agentdetect.SessionWorking
+			b.sessionAgents.sightings[m.Slug] = sessionSighting{Session: last, Live: true}
+			want.Status, want.Activity, want.Detail = sessionActivity(last)
 		case isLive:
 			b.sessionAgents.sightings[m.Slug] = sessionSighting{Session: sess, Live: true}
 			want.Status, want.Activity, want.Detail = sessionActivity(sess)
@@ -783,6 +810,7 @@ func (b *Broker) memberSessionInfoLocked(m officeMember) *memberSessionInfo {
 	if info.Cwd != "" {
 		info.Project = filepath.Base(info.Cwd)
 	}
+	info.CanMessage, info.MessageBlock = b.sessionMessageabilityLocked(m)
 	return &info
 }
 
@@ -839,6 +867,9 @@ func (b *Broker) dismissSessionMemberLocked(m officeMember) {
 	if !isSessionMember(m) {
 		return
 	}
+	// Whatever is running for it stops with it, and nothing waits behind.
+	b.dropSessionTurnsLocked(m.Slug)
+	delete(b.sessionAgents.messaging.running, m.Slug)
 	sighting, seen := b.sessionAgents.sightings[m.Slug]
 	delete(b.sessionAgents.sightings, m.Slug)
 	delete(b.activity, m.Slug)
@@ -924,13 +955,18 @@ func (b *Broker) claimNotchSessionRows(state notchState, sessions []agentdetect.
 		}
 		row := agents[i]
 		row.Kind = notchAgentSession
+		// The folder stays the member's own, fixed when it was made.
 		row.Tool, row.ToolName = sess.Tool, sess.ToolName
-		row.Project, row.Cwd = sess.Project, sess.Cwd
 		row.State, row.UpdatedAt, row.LastSaid = sess.State, sess.UpdatedAt, sess.LastSaid
 		row.Runtime = sessionRuntime(sess)
 		// This scan is at least as fresh as the registry's last look.
 		if flag := sessionOpenFlag(sess); flag != nil {
 			row.Open = flag
+			if *flag && sess.Tool == sessionToolClaude {
+				// Open by the newer look: a Claude Code session takes no
+				// message while it is open, whatever the registry last saw.
+				row.CanMessage = false
+			}
 		}
 		row.Mood, row.Detail = notchSessionMood(sess, now)
 		agents[i] = row
@@ -961,12 +997,14 @@ func (l *Launcher) replyLocalSessionNotMessageable(slug, notification string, ch
 	if l == nil || l.broker == nil {
 		return nil
 	}
-	// Its DM with the human, unless it was addressed in a bot-to-bot DM it
-	// is half of. It belongs to no shared channel, so it cannot answer there.
+	// Its DM with the human. It belongs to no shared channel, so it cannot
+	// answer there. Addressed in a bot-to-bot DM it is half of, it says
+	// nothing at all: a reply there would wake the bot across from it, and a
+	// bot is owed no explanation.
 	target := DMSlugFor(slug)
 	if len(channel) > 0 {
 		if asked := normalizeChannelSlug(channel[0]); strings.TrimSpace(channel[0]) != "" && IsDMSlug(asked) && DMTargetBot(asked) == "" {
-			target = asked
+			return nil
 		}
 	}
 	if l.broker.lastMessageInChannelIs(target, slug, sessionNotMessageableReply) {
@@ -976,6 +1014,21 @@ func (l *Launcher) replyLocalSessionNotMessageable(slug, notification string, ch
 		return fmt.Errorf("session member reply: %w", err)
 	}
 	return nil
+}
+
+// answerSessionMemberWithoutATurn is every way a turn could be started for a
+// member: when slug is a terminal session it posts the fixed reply (once
+// per conversation until someone writes again) and reports true, and the
+// caller starts nothing. It never touches the office's turn queue, so
+// nothing finishes, and nothing wakes the lead or any other bot.
+func (l *Launcher) answerSessionMemberWithoutATurn(slug, notification, channel string) bool {
+	if l == nil || l.broker == nil || !l.broker.isSessionMemberSlug(slug) {
+		return false
+	}
+	if err := l.replyLocalSessionNotMessageable(slug, notification, channel); err != nil {
+		appendHeadlessCodexLog(slug, "session-reply-error: "+err.Error())
+	}
+	return true
 }
 
 // lastMessageInChannelIs reports whether the newest message in channel is
