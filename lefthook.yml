@@ -171,6 +171,15 @@ pre-push:
       # robots.txt directives and README claim-table paths. Unscoped on
       # purpose: moving or deleting any cited file is what breaks it. <1s.
       run: bash scripts/check-site-claims.sh
+    shellcheck:
+      # The same command as CI's shellcheck job, which was the only place it
+      # ran: a script that failed it reached main with every hook green.
+      # A missing shellcheck is an error, not a skip.
+      files: bash scripts/changed-files-since-base.sh
+      glob: "{scripts,testdata/vhs}/*.sh"
+      run: |
+        command -v shellcheck >/dev/null 2>&1 || { echo "shellcheck is not installed (brew install shellcheck)" >&2; exit 1; }
+        shellcheck scripts/*.sh testdata/vhs/*.sh
     smoke:
       # internal/team's former test-isolation bugs (shared ~/.wuphf/wiki,
       # worktrees registered against the invoking repo, cross-test state

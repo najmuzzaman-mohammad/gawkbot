@@ -46,7 +46,10 @@ fi
 
 # Backticked tokens in table rows that look like repo paths: they contain a
 # slash and do not start with one (routes), a scheme, or ~ (home paths).
-paths="$(printf '%s\n' "$table" | grep '^|' | grep -o '`[^` ]*`' | tr -d '`' \
+# The backtick is built with printf so no quoted string contains one: a
+# literal backtick inside single quotes reads as a mistake to shellcheck.
+tick="$(printf '\140')"
+paths="$(printf '%s\n' "$table" | grep '^|' | grep -o "${tick}[^${tick} ]*${tick}" | tr -d "$tick" \
   | grep '/' | grep -v -E '^(/|~|[a-z]+://)' | sort -u || true)"
 count="$(printf '%s\n' "$paths" | grep -c . || true)"
 
