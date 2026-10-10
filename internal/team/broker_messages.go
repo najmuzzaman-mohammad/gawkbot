@@ -107,6 +107,9 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	if channel == "" {
 		home, err := b.homeChannelForLocked(body.From)
 		if err != nil {
+			// Unlock before answering: this return used to keep b.mu, and
+			// one such request froze every route in the office for good.
+			b.mu.Unlock()
 			http.Error(w, `channel is required: there is no default room to fall back to. Name a channel, or set a member slug so the message can go to that agent's DM.`, http.StatusBadRequest)
 			return
 		}
