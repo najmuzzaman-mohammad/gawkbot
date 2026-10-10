@@ -32,13 +32,18 @@ import (
 // on every read path (sessionConversationHiddenFromRequest). An office bot
 // is not, and cannot be: see the residuals on the gate.
 
-// sessionMessagingEnabledEnv turns messaging a session on. It is OFF unless
-// this is set to a true value: no message is delivered, can_message is false
-// everywhere, and every message gets the fixed reply, exactly as before.
+// sessionMessagingEnabledEnv turns messaging a session off. It is ON
+// unless this is set to a false value ("0", "false", "no", "off"); then no
+// message is delivered, can_message is false everywhere, and every message
+// gets the fixed reply.
 const sessionMessagingEnabledEnv = "WUPHF_SESSION_MESSAGING"
 
 func sessionMessagingEnabled() bool {
-	return envTruthy(os.Getenv(sessionMessagingEnabledEnv))
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(sessionMessagingEnabledEnv))) {
+	case "0", "false", "no", "off":
+		return false
+	}
+	return true
 }
 
 const (

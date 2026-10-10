@@ -142,8 +142,8 @@ Consequences:
 
 Built on the table above (`internal/team/headless_session_turn.go`,
 `headless_session_runner.go`, and `broker_session_messaging.go`). Not yet run
-against a logged-in tool. Off unless `WUPHF_SESSION_MESSAGING=1` is set in the
-office's environment.
+against a logged-in tool. On by default; `WUPHF_SESSION_MESSAGING=0` in the
+office's environment turns it off.
 
 - **Who may message.** Only a message the owner posted through the office's
   own web UI, in that session member's own DM. The proof is the operator key

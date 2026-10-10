@@ -22,12 +22,20 @@ import (
 	"github.com/nex-crm/wuphf/internal/agentdetect"
 )
 
-// Messaging is off unless it is switched on. Off, the owner's own message to
-// a closed session with its folder in place still starts nothing, no surface
-// says it could be messaged, and the registry looks at no folder.
-func TestSessionMessagingIsOffUnlessSwitchedOn(t *testing.T) {
+// Messaging is on unless it is switched off. Off, the owner's own message to
+// a closed session with its folder in place starts nothing, no surface says
+// it could be messaged, and the registry looks at no folder.
+func TestSessionMessagingIsOnUnlessSwitchedOff(t *testing.T) {
+	for _, value := range []string{"", "1", "true", "anything"} {
+		t.Run("on with "+sessionMessagingEnabledEnv+"="+value, func(t *testing.T) {
+			t.Setenv(sessionMessagingEnabledEnv, value)
+			if !sessionMessagingEnabled() {
+				t.Fatalf("%s=%q turned messaging off; only an explicit false value may", sessionMessagingEnabledEnv, value)
+			}
+		})
+	}
 	for _, tool := range []string{sessionToolClaude, sessionToolCodex} {
-		for _, value := range []string{"", "0", "false"} {
+		for _, value := range []string{"0", "false", "no", "off", " OFF "} {
 			t.Run(tool+" with "+sessionMessagingEnabledEnv+"="+value, func(t *testing.T) {
 				f := newSessionMsgFixture(t, tool)
 				f.closeSession()

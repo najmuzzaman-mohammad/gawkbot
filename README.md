@@ -317,7 +317,7 @@ Every claim in this README, grounded to the code that makes it true.
 | Every bot tagged with who made it and where it runs | ✅ shipped | `internal/team/broker_member_origin.go` |
 | Every avatar says what model its bot runs on | ✅ shipped on web, in the notch, and on iPhone | `internal/team/broker_member_runtime.go`, `web/src/components/ui/BotAvatar.tsx`, `apps/ios/Gawkbot/Views/ModelBadgeView.swift` |
 | Each Claude Code or Codex session open in a terminal is a bot of its own, in the app and the notch | ✅ shipped | `internal/agentdetect/sessions.go`, `internal/team/broker_session_agents.go` |
-| Message a terminal session from gawkbot | 🟡 partial: built and verified against both tools, off unless `WUPHF_SESSION_MESSAGING=1`. Codex sessions open or closed, Claude Code sessions once closed; from the web app and the notch, not yet from iPhone | `internal/team/broker_session_messaging.go`, `docs/specs/session-bots.md` |
+| Message a terminal session from gawkbot | 🟡 partial: on by default (`WUPHF_SESSION_MESSAGING=0` turns it off). Codex sessions open or closed; Claude Code sessions closed (resumed in the background) or open in Superset, Terminal, iTerm2, or tmux (typed into the window once it is waiting for input); from the web app and the notch, not yet from iPhone | `internal/team/broker_session_messaging.go`, `docs/specs/session-bots.md` |
 | Answer a terminal session's approval prompt from the notch or the phone | 🔜 planned: Claude Code only. Codex shows that it is waiting in its terminal | `docs/specs/session-bots.md` |
 | The notch: moods, peeks, sounds, keyboard, voice | ✅ shipped | `web/src/notch/`, `desktop/oswails/notch_darwin.m` |
 | iPhone inbox with voice replies | 🟡 partial: written, not yet built in CI | `apps/ios/` |
