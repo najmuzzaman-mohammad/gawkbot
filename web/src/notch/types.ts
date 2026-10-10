@@ -66,7 +66,15 @@ export interface NotchBrief {
   task?: { title: string; details?: string; status?: string };
   asker_role?: string;
   /** The last few lines of that room, oldest first. */
-  recent?: { from: string; name?: string; text: string; at?: string }[];
+  recent?: NotchBriefLine[];
+}
+
+/** One line of a conversation, as the notch quotes it. */
+export interface NotchBriefLine {
+  from: string;
+  name?: string;
+  text: string;
+  at?: string;
 }
 
 export interface NotchAttention {
@@ -90,6 +98,11 @@ export interface NotchState {
   lead?: string;
   lead_name?: string;
   lead_dm?: string;
+  /**
+   * The end of the owner's conversation with the lead, oldest first, for
+   * the lead's own chat box. Absent for anyone but the owner.
+   */
+  lead_recent?: NotchBriefLine[];
   mood: Mood;
   headline: string;
   agents: NotchAgent[];

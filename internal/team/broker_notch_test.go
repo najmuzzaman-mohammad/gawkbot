@@ -362,3 +362,46 @@ func TestNotchSessionMood(t *testing.T) {
 		t.Fatalf("open and quiet: %q", detail)
 	}
 }
+
+// The lead's chat box shows the end of the owner's conversation with it.
+// That conversation is the owner's: no one else's notch gets it.
+func TestNotchCarriesTheEndOfTheLeadConversationForTheOwnerOnly(t *testing.T) {
+	stubLocalSessions(t, nil)
+	b := newTestBroker(t)
+	b.token = "owner-token"
+	fetch := func(token string) notchState {
+		req := httptest.NewRequest(http.MethodGet, "/notch/state", nil)
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		rec := httptest.NewRecorder()
+		b.handleNotchState(rec, req)
+		var s notchState
+		if err := json.Unmarshal(rec.Body.Bytes(), &s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	dm := fetch("owner-token").LeadDM
+	if dm == "" {
+		t.Fatal("no lead DM")
+	}
+	lead := fetch("owner-token").Lead
+	b.mu.Lock()
+	b.messages = append(b.messages,
+		channelMessage{ID: "m1", From: "you", Channel: dm, Content: "First thing", Timestamp: "2026-10-10T08:00:00Z"},
+		channelMessage{ID: "m2", From: "system", Channel: dm, Content: "A system notice", Timestamp: "2026-10-10T08:00:30Z"},
+		channelMessage{ID: "m3", From: "you", Channel: dm, Content: "Get the release out", Timestamp: "2026-10-10T08:01:00Z"},
+		channelMessage{ID: "m4", From: "you", Channel: "some-other-room", Content: "Elsewhere", Timestamp: "2026-10-10T08:01:30Z"},
+		channelMessage{ID: "m5", From: lead, Channel: dm, Content: "On it.", Timestamp: "2026-10-10T08:02:00Z"},
+	)
+	b.mu.Unlock()
+
+	got := fetch("owner-token").LeadRecent
+	if len(got) != notchLeadRecentMax || got[0].Text != "Get the release out" || got[1].Text != "On it." || got[1].From != lead {
+		t.Fatalf("lead_recent = %+v, want the last two lines of the lead DM, oldest first", got)
+	}
+	if other := fetch("").LeadRecent; len(other) != 0 {
+		t.Fatalf("a caller without the owner token got the owner's conversation: %+v", other)
+	}
+}

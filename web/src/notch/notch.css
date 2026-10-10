@@ -851,6 +851,80 @@ kbd {
   text-overflow: ellipsis;
 }
 
+/* The lead's own chat box: always on the panel, under whatever needs the
+   human and outside the folded agent list. Who it is, the end of the
+   conversation with it, and where to type. */
+.nlead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+}
+.nlead-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nlead-name {
+  flex: none;
+  font-weight: 600;
+}
+.nlead-status {
+  flex: 1;
+  min-width: 0;
+  color: var(--notch-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nlead-open {
+  flex: none;
+  color: var(--notch-text-tertiary);
+  font-size: 13px;
+}
+.nlead-head:hover .nlead-open {
+  color: var(--notch-text);
+}
+.nlead-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0 2px;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--notch-text-secondary);
+}
+.nlead-recent li {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nlead-recent b {
+  font-weight: 600;
+  color: var(--notch-text);
+}
+.nlead .nask {
+  width: 100%;
+  background: var(--notch-control);
+}
+.nlead .ncompose {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .nask {
   display: flex;
   align-items: center;

@@ -101,6 +101,7 @@ const (
 	notchBriefDetailsMax = 600
 	notchBriefLineMax    = 280
 	notchBriefRecentMax  = 4
+	notchLeadRecentMax   = 2
 )
 
 // notchBrief is everything the human needs to answer without leaving the
@@ -156,13 +157,16 @@ type notchAttention struct {
 }
 
 type notchState struct {
-	Lead      string           `json:"lead,omitempty"`
-	LeadName  string           `json:"lead_name,omitempty"`
-	LeadDM    string           `json:"lead_dm,omitempty"`
-	Mood      string           `json:"mood"`
-	Headline  string           `json:"headline"`
-	Agents    []notchAgent     `json:"agents"`
-	Attention []notchAttention `json:"attention"`
+	Lead     string `json:"lead,omitempty"`
+	LeadName string `json:"lead_name,omitempty"`
+	LeadDM   string `json:"lead_dm,omitempty"`
+	// LeadRecent is the end of the owner's conversation with the lead,
+	// oldest first, for the lead's always-present chat box. Owner only.
+	LeadRecent []notchBriefLine `json:"lead_recent,omitempty"`
+	Mood       string           `json:"mood"`
+	Headline   string           `json:"headline"`
+	Agents     []notchAgent     `json:"agents"`
+	Attention  []notchAttention `json:"attention"`
 }
 
 func (b *Broker) handleNotchState(w http.ResponseWriter, r *http.Request) {
@@ -282,6 +286,10 @@ func (b *Broker) notchStateLocked(now time.Time, defaults runtimeDefaults, owner
 	}
 	if lead != "" {
 		state.LeadDM = channel.DirectSlug("human", lead)
+		if owner {
+			// The owner's own conversation with the lead: theirs alone.
+			state.LeadRecent = b.notchRecentLinesLocked(state.LeadDM, notchLeadRecentMax, names)
+		}
 	}
 
 	needsYou := map[string]bool{}
@@ -454,27 +462,7 @@ func (b *Broker) notchBriefLocked(req humanInterview, names map[string]string) *
 
 	// The last few lines of the room the question was asked in, so the
 	// human can see what led up to it.
-	if req.Channel != "" {
-		for i := len(b.messages) - 1; i >= 0 && len(brief.Recent) < notchBriefRecentMax; i-- {
-			msg := b.messages[i]
-			text := strings.TrimSpace(msg.Content)
-			// The system's own announcement of the request says nothing the
-			// card does not already say.
-			if msg.Channel != req.Channel || text == "" || msg.From == "system" {
-				continue
-			}
-			brief.Recent = append(brief.Recent, notchBriefLine{
-				From: msg.From,
-				Name: names[msg.From],
-				Text: truncate(text, notchBriefLineMax),
-				At:   msg.Timestamp,
-			})
-		}
-		// Collected newest first; the card reads oldest first.
-		for i, j := 0, len(brief.Recent)-1; i < j; i, j = i+1, j-1 {
-			brief.Recent[i], brief.Recent[j] = brief.Recent[j], brief.Recent[i]
-		}
-	}
+	brief.Recent = b.notchRecentLinesLocked(req.Channel, notchBriefRecentMax, names)
 
 	if brief.Context == "" && brief.Project == "" && brief.Task == nil && brief.AskerRole == "" && len(brief.Recent) == 0 {
 		return nil
@@ -519,4 +507,32 @@ func notchTitle(title string) string {
 		return ""
 	}
 	return t
+}
+
+// notchRecentLinesLocked returns the last max lines said in a room, oldest
+// first. The system's own announcements are left out: they say nothing the
+// card showing these lines does not already say.
+func (b *Broker) notchRecentLinesLocked(room string, max int, names map[string]string) []notchBriefLine {
+	if room == "" {
+		return nil
+	}
+	var lines []notchBriefLine
+	for i := len(b.messages) - 1; i >= 0 && len(lines) < max; i-- {
+		msg := b.messages[i]
+		text := strings.TrimSpace(msg.Content)
+		if msg.Channel != room || text == "" || msg.From == "system" {
+			continue
+		}
+		lines = append(lines, notchBriefLine{
+			From: msg.From,
+			Name: names[msg.From],
+			Text: truncate(text, notchBriefLineMax),
+			At:   msg.Timestamp,
+		})
+	}
+	// Collected newest first; the card reads oldest first.
+	for i, j := 0, len(lines)-1; i < j; i, j = i+1, j-1 {
+		lines[i], lines[j] = lines[j], lines[i]
+	}
+	return lines
 }

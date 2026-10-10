@@ -570,6 +570,30 @@ export function NotchPanel(props: PanelProps) {
     );
   }
   const leadName = state.lead_name || "Chief of Staff";
+  const leadSlug = state.lead ?? "cos";
+  const leadAgent = state.agents.find((a) => a.is_lead);
+  // The agents in the list: everyone but the lead, which has its own box.
+  const listed = state.agents.filter((a) => !a.is_lead);
+  const composingToLead =
+    composer?.target.kind === "message" &&
+    composer.target.channel === state.lead_dm;
+  const composerEl = composer ? (
+    <Composer
+      key={
+        composer.target.kind === "answer"
+          ? `a:${composer.target.requestId}`
+          : `m:${composer.target.channel}`
+      }
+      composer={composer}
+      sending={sending}
+      voiceAvailable={voiceAvailable}
+      onText={props.onComposerText}
+      onSubmit={props.onComposerSubmit}
+      onCancel={props.onComposerCancel}
+      onVoice={props.onVoice}
+      onKeyboard={props.onKeyboard}
+    />
+  ) : null;
   const bySlug = new Map(state.agents.map((a) => [a.slug, a]));
   const agentsOpen = props.agentsOpen;
   return (
@@ -633,7 +657,7 @@ export function NotchPanel(props: PanelProps) {
             onClick={() => props.onAgentsOpen(!agentsOpen)}
           >
             <span className="nteam-faces" aria-hidden="true">
-              {state.agents.slice(0, TEAM_FACES).map((a, i) => (
+              {listed.slice(0, TEAM_FACES).map((a, i) => (
                 <NotchBot
                   key={a.slug}
                   slug={a.slug}
@@ -648,9 +672,9 @@ export function NotchPanel(props: PanelProps) {
               ))}
             </span>
             <span className="nteam-title">
-              Agents <span className="nteam-count">{state.agents.length}</span>
+              Agents <span className="nteam-count">{listed.length}</span>
             </span>
-            <span className="nteam-sum">{agentsSummary(state.agents)}</span>
+            <span className="nteam-sum">{agentsSummary(listed)}</span>
             <span className="nteam-cta">
               {agentsOpen ? "Hide" : "Show all"}
             </span>
@@ -660,7 +684,7 @@ export function NotchPanel(props: PanelProps) {
           </button>
           {agentsOpen
             ? AGENT_GROUPS.map((group) => {
-                const members = state.agents.filter(
+                const members = listed.filter(
                   (a) => (a.kind === "session") === group.sessions,
                 );
                 if (members.length === 0) return null;
@@ -694,43 +718,69 @@ export function NotchPanel(props: PanelProps) {
         </div>
       ) : null}
 
-      {composer ? (
-        <Composer
-          key={
-            composer.target.kind === "answer"
-              ? `a:${composer.target.requestId}`
-              : `m:${composer.target.channel}`
-          }
-          composer={composer}
-          sending={sending}
-          voiceAvailable={voiceAvailable}
-          onText={props.onComposerText}
-          onSubmit={props.onComposerSubmit}
-          onCancel={props.onComposerCancel}
-          onVoice={props.onVoice}
-          onKeyboard={props.onKeyboard}
-        />
-      ) : (
+      {composer && !composingToLead ? composerEl : null}
+
+      {/* The lead is not one of the agents in the list above: it is who
+          the human talks to about all of them, so its chat box is always
+          here, whatever else is or is not on the panel. */}
+      <section className="nlead" aria-label={leadName}>
         <button
           type="button"
-          className="nask"
+          className="nlead-head"
+          aria-label={`Open ${leadName} in full view`}
+          title="Open in the full app"
           onClick={() =>
-            state.lead_dm &&
-            props.onReply({
-              kind: "message",
-              slug: state.lead ?? "cos",
-              name: leadName,
-              channel: state.lead_dm,
-            })
+            props.onOpen(`/agents/${encodeURIComponent(leadSlug)}`)
           }
         >
-          <span>Ask {leadName} to manage any agent…</span>
-          <span className="nask-keys">
-            <kbd>M</kbd>
-            {voiceAvailable ? <kbd>V</kbd> : null}
+          <NotchBot
+            slug={leadSlug}
+            avatar={leadAgent?.avatar}
+            mood={leadAgent?.mood ?? "idle"}
+            size={24}
+            label=""
+          />
+          <span className="nlead-name">{leadName}</span>
+          <span className="nlead-status">
+            {leadAgent?.detail || "Manages every agent for you"}
+          </span>
+          <span className="nlead-open" aria-hidden="true">
+            ↗
           </span>
         </button>
-      )}
+        {state.lead_recent && state.lead_recent.length > 0 ? (
+          <ul className="nlead-recent">
+            {state.lead_recent.map((line) => (
+              <li key={`${line.at ?? ""}:${line.from}:${line.text}`}>
+                <b>{line.from === leadSlug ? leadName : "You"}</b> {line.text}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {composer && composingToLead ? (
+          composerEl
+        ) : (
+          <button
+            type="button"
+            className="nask"
+            onClick={() =>
+              state.lead_dm &&
+              props.onReply({
+                kind: "message",
+                slug: leadSlug,
+                name: leadName,
+                channel: state.lead_dm,
+              })
+            }
+          >
+            <span>Ask {leadName} to manage any agent…</span>
+            <span className="nask-keys">
+              <kbd>M</kbd>
+              {voiceAvailable ? <kbd>V</kbd> : null}
+            </span>
+          </button>
+        )}
+      </section>
 
       <footer className="nkeys">
         {SHORTCUTS.map(([k, what]) => (

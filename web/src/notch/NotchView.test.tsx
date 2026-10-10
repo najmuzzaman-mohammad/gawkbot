@@ -391,7 +391,53 @@ describe("open notch", () => {
     renderNotch({ expanded: true });
     const toggle = screen.getByRole("button", { name: /Agents/ });
     expect(toggle).toHaveTextContent("Show all");
-    expect(toggle).toHaveTextContent(agentsSummary(BUSY_OFFICE.agents));
+    // The lead is not in the list: it has a box of its own.
+    expect(toggle).toHaveTextContent(
+      agentsSummary(BUSY_OFFICE.agents.filter((a) => !a.is_lead)),
+    );
+  });
+
+  it("always shows the lead's own chat box, outside the agent list", async () => {
+    const state: NotchState = {
+      ...QUIET_OFFICE,
+      attention: [],
+      lead_recent: [
+        { from: "you", text: "Get the checkout release out this week." },
+        {
+          from: QUIET_OFFICE.lead ?? "cos",
+          text: "On it. I split it into three tasks.",
+        },
+      ],
+    };
+    // Nothing needs the human and the agent list is folded: it is there.
+    const props = renderNotch({ expanded: true, state, agentsOpen: false });
+    const box = screen.getByRole("region", {
+      name: state.lead_name ?? "Chief of Staff",
+    });
+    expect(box).toHaveTextContent("Get the checkout release out this week.");
+    expect(box).toHaveTextContent("On it. I split it into three tasks.");
+    // It is not inside the agents block, and the lead is not listed there.
+    const agents = screen.getByRole("region", { name: "Agents" });
+    expect(agents.contains(box)).toBe(false);
+    expect(box.contains(agents)).toBe(false);
+    // Typing to it and opening it in the full app both start from the box.
+    await userEvent.click(
+      screen.getByRole("button", { name: /^Ask .* to manage any agent/ }),
+    );
+    expect(props.onReply).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "message", channel: state.lead_dm }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /^Open .* in full view$/ }),
+    );
+    expect(props.onOpen).toHaveBeenCalledWith(`/agents/${state.lead ?? "cos"}`);
+  });
+
+  it("does not list the lead among the agents", () => {
+    renderNotch({ expanded: true, agentsOpen: true });
+    const lead = BUSY_OFFICE.agents.find((a) => a.is_lead);
+    expect(lead).toBeDefined();
+    expect(screen.queryByTestId(`notch-agent-${lead?.slug}`)).toBeNull();
   });
 
   it("keeps the agent list folded away until asked for", async () => {
