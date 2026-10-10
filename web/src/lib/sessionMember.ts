@@ -18,9 +18,13 @@ export function isSessionMember(member: { origin?: MemberOrigin }): boolean {
 export const SESSION_NOT_MESSAGEABLE =
   "This session is open in your terminal on this Mac, so it cannot be messaged from here yet.";
 
-/** The session is open, and its tool takes no message while it is. */
+/**
+ * The session is held by something gawkbot cannot type into: a background
+ * run, not a terminal window. A session open in a window is messaged by
+ * typing into it, so it never shows this.
+ */
 export const SESSION_OPEN_IN_TERMINAL =
-  "This session is open in your terminal. Message it there; you can message it from here once it is closed.";
+  "This session is running in a background process, not a terminal window. You can message it from here once that run ends.";
 
 /** The folder the session worked in no longer exists. */
 export const SESSION_FOLDER_GONE =

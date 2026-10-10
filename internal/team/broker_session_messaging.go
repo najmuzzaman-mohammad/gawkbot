@@ -20,10 +20,13 @@ import (
 // that decision is one function, claimOwnerSessionMessage, and what it does
 // and does not stop is written on it.
 //
-// WHEN. sessionMessageabilityLocked: a Claude Code session only when its
-// tool says it is closed (a resume into an open one forks the conversation
-// in silence); a Codex session whenever its folder is there (it refuses a
-// second writer itself, and then takes the message through its queue).
+// WHEN. sessionMessageabilityLocked: a Claude Code session when its tool
+// says it is closed (it is resumed in the background), or when it is open in
+// a window a person sits at (the message is typed into that window once the
+// window is waiting for input; headless_session_typing.go). Never by a
+// resume while it is open: that forks the conversation in silence. A Codex
+// session whenever its folder is there (it refuses a second writer itself,
+// and then takes the message through its queue).
 //
 // WHO MAY READ. A session's DM is the owner's: a joined human is refused it
 // on every read path (sessionConversationHiddenFromRequest). An office bot
@@ -312,6 +315,11 @@ func (b *Broker) sessionMessageabilityLocked(m officeMember) (can bool, block st
 			return false, sessionBlockUnknown
 		}
 		if open {
+			// Open in a person's window: typed there. Open in anything else
+			// (a background or SDK run): nothing can reach it.
+			if b.sessionAgents.windows[m.Slug] {
+				return true, ""
+			}
 			return false, sessionBlockOpen
 		}
 		// Not listed as open is not enough: its log must also be still. A

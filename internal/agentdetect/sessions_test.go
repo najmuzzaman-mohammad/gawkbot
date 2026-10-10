@@ -406,10 +406,10 @@ func TestOpenSessionsReadsClaudeCodesRegistry(t *testing.T) {
 		t.Fatal("a registry whose every entry can be read must be known")
 	}
 	want := map[string]OpenSession{
-		"claude-code:aaa": {PID: 101, Busy: true, Interactive: true},
-		"claude-code:bbb": {PID: 102, Interactive: true},
-		"claude-code:ddd": {PID: 104, Busy: true},
-		"claude-code:eee": {PID: 105, Interactive: true},
+		"claude-code:aaa": {PID: 101, Busy: true, Interactive: true, Status: "busy"},
+		"claude-code:bbb": {PID: 102, Interactive: true, Status: "idle"},
+		"claude-code:ddd": {PID: 104, Busy: true, Status: "busy"},
+		"claude-code:eee": {PID: 105, Interactive: true, Status: "idle"},
 	}
 	if len(open) != len(want) {
 		t.Fatalf("open = %+v, want %+v", open, want)

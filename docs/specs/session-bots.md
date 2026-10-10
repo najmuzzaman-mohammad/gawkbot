@@ -171,6 +171,24 @@ office's environment.
   registry names at least one live interactive session and not this one, or
   when no Claude Code process is running at all. Claude Code running with a
   registry that names none of it is unknown, and nothing is resumed.
+- **Claude Code, open in a window.** The message is typed into that window
+  (`headless_session_typing.go`, through `internal/termsend`), only when the
+  window reads `status: "idle"` in its registry entry, read again right before
+  typing. Measured on Claude Code 2.1.296 with a real session in tmux on
+  2026-10-10: `idle` waiting for input, `busy` while working, `waiting` with
+  `waitingFor: "permission prompt"` while it shows "Do you want to proceed?",
+  absent before the first prompt, and no registry entry at all while the
+  folder-trust dialog is up. Anything but `idle` holds the message (one note
+  says so) until the window is free, Stop, or fifteen minutes; a window that
+  closes while it holds falls back to the resume above. The answer is read
+  back from the log: the text of the first assistant record ending in
+  `end_turn` after the point the message was typed, posted as the session's
+  reply. Typing works in tmux, Superset (its command-line tool, which must be
+  logged in once), Terminal.app, and iTerm2; anything else gets a plain
+  sentence naming the app. Not seen from here: text
+  the person has half-typed in that window (the message is appended to it).
+  A message is flattened to one line and refused if it starts with `/`, `!`,
+  or `#`, which the session would run as its own command.
 - **Codex.** `codex exec --json resume <id> -`, prompt on stdin. When it
   exits with an error and says "already has an active writer", the message
   goes to `codex queue --thread <id> --message=<text>` and one note says it

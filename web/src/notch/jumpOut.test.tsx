@@ -15,6 +15,12 @@ import type { NotchState } from "./types";
 // each case is proven twice: it happens when the setting is on (or was never
 // chosen), and it does not happen when the setting is off.
 
+// Each case walks the whole notch through up to a minute of its own time,
+// one second per step. Alone that takes about a second; inside the full
+// suite on a busy machine it has taken past the default ten, which is load,
+// not a hang.
+vi.setConfig({ testTimeout: 60_000 });
+
 let served: NotchState = QUIET_OFFICE;
 
 vi.mock("./api", async (original) => ({

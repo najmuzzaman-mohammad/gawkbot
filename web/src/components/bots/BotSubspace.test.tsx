@@ -479,7 +479,7 @@ describe("<BotSubspace> for a terminal session", () => {
     [
       "open in the terminal",
       { message_block: "open" },
-      "This session is open in your terminal. Message it there; you can message it from here once it is closed.",
+      "This session is running in a background process, not a terminal window. You can message it from here once that run ends.",
     ],
     [
       "its folder is gone",

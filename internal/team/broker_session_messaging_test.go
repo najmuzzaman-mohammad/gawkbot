@@ -771,9 +771,17 @@ func TestClaudeResumeIsCheckedAgainImmediatelyBeforeItStarts(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		last func(f *sessionMsgFixture) sessionOpenness
+		// told is how the person hears that nothing ran: the fixed reply,
+		// or, for a session now held by a process that is not a window
+		// (openness() makes no window), a plain note saying exactly that.
+		told func(f *sessionMsgFixture) bool
 	}{
-		{"reopened since", func(f *sessionMsgFixture) sessionOpenness { return openness(f.sess.ID) }},
-		{"no longer known", func(*sessionMsgFixture) sessionOpenness { return sessionOpenness{} }},
+		{"reopened since", func(f *sessionMsgFixture) sessionOpenness { return openness(f.sess.ID) },
+			func(f *sessionMsgFixture) bool {
+				return f.notesSaying("open in a background process, not a terminal window") == 1
+			}},
+		{"no longer known", func(*sessionMsgFixture) sessionOpenness { return sessionOpenness{} },
+			func(f *sessionMsgFixture) bool { return f.saidByMember(sessionNotMessageableReply) == 1 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newSessionMsgFixture(t, sessionToolClaude)
@@ -787,8 +795,8 @@ func TestClaudeResumeIsCheckedAgainImmediatelyBeforeItStarts(t *testing.T) {
 			if runs := f.started(); len(runs) != 0 {
 				t.Fatalf("a resume ran against a session that is not known closed: %q", runs)
 			}
-			if f.saidByMember(sessionNotMessageableReply) != 1 {
-				t.Fatalf("no fixed reply: %+v", f.b.ChannelMessages(f.dm))
+			if !tc.told(f) {
+				t.Fatalf("not told why nothing ran: %+v", f.b.ChannelMessages(f.dm))
 			}
 		})
 	}

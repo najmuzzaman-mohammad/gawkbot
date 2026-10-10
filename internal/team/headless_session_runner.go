@@ -357,8 +357,20 @@ func (l *Launcher) runSessionTurn(ctx context.Context, req sessionTurnRequest) {
 }
 
 func (l *Launcher) runClaudeSessionTurn(ctx context.Context, req sessionTurnRequest) {
-	// The last look before the resume. Open, or not known: nothing runs.
+	// The last look before the resume. Not known: nothing runs. Open in a
+	// person's window: the message is typed there instead, and only if that
+	// window closes while the message waits does it fall through to here.
 	open, known := sessionOpenNowFn(ctx)
+	if !known {
+		l.refuseSessionTurn(req)
+		return
+	}
+	if entry, isOpen := sessionRequestOpenEntry(req, open); isOpen {
+		if !l.typeIntoClaudeSession(ctx, req, entry) {
+			return
+		}
+		open, known = sessionOpenNowFn(ctx)
+	}
 	if !known || sessionRequestIsOpen(req, open) {
 		l.refuseSessionTurn(req)
 		return
@@ -520,12 +532,19 @@ func sessionErrorLine(text string) string {
 // sessionRequestIsOpen reports whether the session behind req, under its id
 // now or an earlier one, is in the tool's list of open sessions.
 func sessionRequestIsOpen(req sessionTurnRequest, open map[string]agentdetect.OpenSession) bool {
+	_, ok := sessionRequestOpenEntry(req, open)
+	return ok
+}
+
+// sessionRequestOpenEntry is what the tool says about the window holding the
+// session behind req, under its id now or an earlier one.
+func sessionRequestOpenEntry(req sessionTurnRequest, open map[string]agentdetect.OpenSession) (agentdetect.OpenSession, bool) {
 	for _, id := range append([]string{req.SessionID}, req.PriorIDs...) {
-		if _, ok := open[id]; ok && id != "" {
-			return true
+		if e, ok := open[id]; ok && id != "" {
+			return e, true
 		}
 	}
-	return false
+	return agentdetect.OpenSession{}, false
 }
 
 // refuseSessionTurn answers a message that turned out not to be deliverable

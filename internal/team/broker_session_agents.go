@@ -88,6 +88,10 @@ type sessionAgentState struct {
 	// open is, for each session member whose tool could be asked, whether its
 	// session is open as of the last look. A member not in the map: unknown.
 	open map[string]bool
+	// windows are the session members whose session is open in a window a
+	// person sits at, as of the last look: a message to one is typed into
+	// that window (headless_session_typing.go). Rebuilt with open.
+	windows map[string]bool
 	// evicted are sessions whose member was removed to make room at the cap,
 	// with the log's last-write time as of then. Such a session may be a
 	// member again only once it writes after that, which shows it is alive;
@@ -131,18 +135,22 @@ func (o sessionOpenness) knowsClosed(sess agentdetect.Session) bool {
 }
 
 func (o sessionOpenness) isOpen(m officeMember) bool {
+	_, ok := o.entry(m)
+	return ok
+}
+
+// entry is what the tool says about the window holding this member's
+// session, under its id now or an earlier one.
+func (o sessionOpenness) entry(m officeMember) (agentdetect.OpenSession, bool) {
 	if m.Provider.Session == nil {
-		return false
+		return agentdetect.OpenSession{}, false
 	}
-	if _, ok := o.open[m.Provider.Session.SessionID]; ok {
-		return true
-	}
-	for _, id := range m.Provider.Session.PriorSessionIDs {
-		if _, ok := o.open[id]; ok {
-			return true
+	for _, id := range append([]string{m.Provider.Session.SessionID}, m.Provider.Session.PriorSessionIDs...) {
+		if e, ok := o.open[id]; ok && id != "" {
+			return e, true
 		}
 	}
-	return false
+	return agentdetect.OpenSession{}, false
 }
 
 // sessionSighting is what the registry last saw of one session member. Live
@@ -735,12 +743,15 @@ func (b *Broker) applySessionActivityLocked(live map[string]agentdetect.Session,
 	}
 	stamp := now.UTC().Format(time.RFC3339)
 	b.sessionAgents.open = map[string]bool{}
+	b.sessionAgents.windows = map[string]bool{}
 	for _, m := range b.members {
 		if !isSessionMember(m) {
 			continue
 		}
 		if open.decides(m) {
-			b.sessionAgents.open[m.Slug] = open.isOpen(m)
+			e, isOpen := open.entry(m)
+			b.sessionAgents.open[m.Slug] = isOpen
+			b.sessionAgents.windows[m.Slug] = isOpen && e.Interactive && e.PID > 1
 		}
 		sess, isLive := live[m.Slug]
 		prev, known := b.sessionAgents.sightings[m.Slug]

@@ -725,6 +725,26 @@ type OpenSession struct {
 	// Interactive is true for a window a person sits at, false for any
 	// other process that holds the session (a background or SDK run).
 	Interactive bool
+	// Status is the tool's own word for what the window is doing, as it
+	// wrote it: "idle" waiting for input, "busy" mid-turn, "waiting" showing
+	// a question of its own (a permission prompt among them), or empty
+	// before its first prompt.
+	Status string
+}
+
+// ClaudeStatusIdle is the one status in which a Claude Code window is
+// waiting for a new prompt. Measured on 2.1.296: "busy" while it works,
+// "waiting" (waitingFor "permission prompt") while it asks for approval,
+// absent before the first prompt.
+const ClaudeStatusIdle = "idle"
+
+// TakesInput reports whether text typed into this window now would be read
+// as a new prompt: a person's window, waiting for input and nothing else.
+// Anything else (mid-turn, showing an approval question, not yet started,
+// a status this build has never seen) is not, because typed text there
+// could answer a question the person never saw.
+func (o OpenSession) TakesInput() bool {
+	return o.Interactive && o.PID > 1 && o.Status == ClaudeStatusIdle
 }
 
 // ClaudeLogLastWrite is when the log of the Claude Code session with this
@@ -735,37 +755,44 @@ type OpenSession struct {
 // whatever that list says. A caller about to resume a session reads this
 // last, because a resume against a live session forks its conversation.
 func (s *Scanner) ClaudeLogLastWrite(sessionID string) (time.Time, bool) {
+	_, last, found := s.ClaudeLogFile(sessionID)
+	return last, found
+}
+
+// ClaudeLogFile is the log of the Claude Code session with this id (a bare
+// uuid), the newest if more than one project folder holds one, and when it
+// was last written.
+func (s *Scanner) ClaudeLogFile(sessionID string) (path string, lastWrite time.Time, found bool) {
 	id := strings.ToLower(strings.TrimSpace(sessionID))
 	if !bareUUIDRe.MatchString(id) {
-		return time.Time{}, false
+		return "", time.Time{}, false
 	}
 	home := ""
 	if s.Home != nil {
 		home, _ = s.Home()
 	}
 	if home == "" {
-		return time.Time{}, false
+		return "", time.Time{}, false
 	}
 	root := filepath.Join(s.claudeConfigDir(home), "projects")
 	dirs, err := os.ReadDir(root)
 	if err != nil {
-		return time.Time{}, false
+		return "", time.Time{}, false
 	}
-	var last time.Time
-	found := false
 	for _, d := range dirs {
 		if !d.IsDir() {
 			continue
 		}
-		info, err := os.Lstat(filepath.Join(root, d.Name(), id+".jsonl"))
+		candidate := filepath.Join(root, d.Name(), id+".jsonl")
+		info, err := os.Lstat(candidate)
 		if err != nil || !info.Mode().IsRegular() {
 			continue
 		}
-		if !found || info.ModTime().After(last) {
-			last, found = info.ModTime(), true
+		if !found || info.ModTime().After(lastWrite) {
+			path, lastWrite, found = candidate, info.ModTime(), true
 		}
 	}
-	return last, found
+	return path, lastWrite, found
 }
 
 // bareUUIDRe is a whole uuid and nothing else, so an id can be used as a
@@ -845,7 +872,7 @@ func (s *Scanner) OpenSessions() (open map[string]OpenSession, known bool) {
 		if !s.alivePIDs[rec.PID] {
 			continue
 		}
-		open[claudeCodeID+":"+strings.TrimSpace(rec.SessionID)] = OpenSession{PID: rec.PID, Busy: rec.Status == "busy", Interactive: rec.Kind == claudeInteractiveKind}
+		open[claudeCodeID+":"+strings.TrimSpace(rec.SessionID)] = OpenSession{PID: rec.PID, Busy: rec.Status == "busy", Interactive: rec.Kind == claudeInteractiveKind, Status: strings.TrimSpace(rec.Status)}
 	}
 	if unread {
 		return nil, false
