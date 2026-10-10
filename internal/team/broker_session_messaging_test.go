@@ -306,27 +306,38 @@ func (f *sessionMsgFixture) sessionWire() map[string]any {
 	return session
 }
 
+// pollUntil asks cond every few milliseconds until it holds or within runs
+// out, and reports whether it held. It waits on a condition, never for a
+// fixed time, so a slow machine makes a test slower and not wrong.
+func pollUntil(within time.Duration, cond func() bool) bool {
+	deadline := time.NewTimer(within)
+	defer deadline.Stop()
+	tick := time.NewTicker(5 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		if cond() {
+			return true
+		}
+		select {
+		case <-deadline.C:
+			return cond()
+		case <-tick.C:
+		}
+	}
+}
+
 func waitForFile(t *testing.T, path string) {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
-	for time.Now().Before(deadline) {
-		if _, err := os.Stat(path); err == nil {
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
+	if !pollUntil(10*time.Second, func() bool {
+		_, err := os.Stat(path)
+		return err == nil
+	}) {
+		t.Fatalf("%s never appeared", path)
 	}
-	t.Fatalf("%s never appeared", path)
 }
 
 func processGone(pid int) bool {
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		if err := syscall.Kill(pid, 0); err != nil {
-			return true
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	return false
+	return pollUntil(5*time.Second, func() bool { return syscall.Kill(pid, 0) != nil })
 }
 
 // ── R1: who may message ─────────────────────────────────────────────────

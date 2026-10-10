@@ -171,6 +171,13 @@ pre-push:
       # robots.txt directives and README claim-table paths. Unscoped on
       # purpose: moving or deleting any cited file is what breaks it. <1s.
       run: bash scripts/check-site-claims.sh
+    no-new-sleeps:
+      # The same check as CI's lint job, which was the only place it ran: a
+      # commit that added time.Sleep to tests reached main with every hook
+      # green and turned CI red. Diffs against origin/main, so it is cheap.
+      files: bash scripts/changed-files-since-base.sh
+      glob: "**/*_test.go"
+      run: bash scripts/check-no-new-sleeps-in-tests.sh
     shellcheck:
       # The same command as CI's shellcheck job, which was the only place it
       # ran: a script that failed it reached main with every hook green.

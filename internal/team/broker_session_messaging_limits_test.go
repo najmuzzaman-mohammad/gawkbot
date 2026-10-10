@@ -66,8 +66,9 @@ func TestSessionMessagingIsOffUnlessSwitchedOn(t *testing.T) {
 func TestTwoQuickOwnerMessagesBothReachTheSession(t *testing.T) {
 	f := newSessionMsgFixture(t, sessionToolClaude)
 	f.closeSession()
+	// No pause between them: the cooldown this must not go through drops a
+	// second message for a whole second, so back to back is the hard case.
 	f.l.deliverMessageNotification(f.ownerPost("First."))
-	time.Sleep(100 * time.Millisecond)
 	f.l.deliverMessageNotification(f.ownerPost("Second."))
 	f.l.waitSessionTurns()
 	if runs := f.started(); len(runs) != 2 {
@@ -409,22 +410,36 @@ func TestTerminateHeadlessProcessKillsTheGroupOfAnAlreadyKilledLeader(t *testing
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	waitForFile(t, pidFile)
-	time.Sleep(50 * time.Millisecond)
-	raw, err := os.ReadFile(pidFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	child, err := strconv.Atoi(strings.TrimSpace(string(raw)))
-	if err != nil || child <= 0 {
-		t.Fatalf("child pid %q: %v", raw, err)
+	// The file exists before the shell has finished writing the pid into
+	// it, so wait for a whole pid, not for the file.
+	child := 0
+	if !pollUntil(10*time.Second, func() bool {
+		raw, err := os.ReadFile(pidFile)
+		if err != nil {
+			return false
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(string(raw)))
+		if err != nil || n <= 0 || syscall.Kill(n, 0) != nil {
+			return false
+		}
+		child = n
+		return true
+	}) {
+		t.Fatalf("the child's pid never appeared in %s", pidFile)
 	}
 	t.Cleanup(func() { _ = syscall.Kill(child, syscall.SIGKILL) })
 	// The leader alone, as exec's own context watcher would: now a zombie.
 	if err := cmd.Process.Kill(); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	// Wait for the kill to take: once it has, this system either stops
+	// answering for the dead leader's group (the case under test) or never
+	// will, which the skip below covers.
+	leader := cmd.Process.Pid
+	pollUntil(2*time.Second, func() bool {
+		_, err := syscall.Getpgid(leader)
+		return err != nil
+	})
 	if _, err := syscall.Getpgid(cmd.Process.Pid); err == nil && syscall.Kill(child, 0) != nil {
 		t.Skip("this system still answers for a killed leader's group; nothing to prove here")
 	}
@@ -716,8 +731,9 @@ func TestAnUndeliveredMessageToASessionStartsNoOfficeTurn(t *testing.T) {
 	if got := fixedReplies(); got != before {
 		t.Fatalf("the fixed reply was repeated with nothing new said: %d, was %d", got, before)
 	}
-	// Nothing may have been left to start late.
-	time.Sleep(300 * time.Millisecond)
+	// Nothing may have been left to start late: let every session lane run
+	// to its end, then look.
+	f.l.waitSessionTurns()
 	if runs := f.started(); len(runs) != 0 || lanes() != 0 {
 		t.Fatalf("something started late: runs %q, lanes %d", runs, lanes())
 	}
