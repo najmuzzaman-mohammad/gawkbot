@@ -21,6 +21,8 @@
 #import <WebKit/WebKit.h>
 
 #include "_cgo_export.h"
+#include <dlfcn.h>
+#include <unistd.h>
 
 // The strip's ears, either side of the notch, in the menu bar. With a notch
 // the strip is exactly the notch when nothing is going on; a thin band of
@@ -693,6 +695,24 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 
 #pragma mark Voice
 
+// Whether macOS holds gawkbot itself responsible for what it asks of the
+// privacy system. It does when gawkbot was opened as an app (Finder, the
+// Dock, `open`). Run from a shell, the terminal app that started it is
+// responsible instead, and macOS checks THAT app's usage strings: a terminal
+// with no speech-recognition string (Superset has none) gets gawkbot killed
+// on the spot, with no prompt and no crash report, the moment it asks for
+// speech recognition. Unknown (the lookup is missing) counts as yes, which
+// is how it behaved before this check.
+static BOOL gawkOwnsItsPrivacyPrompts(void) {
+	pid_t (*responsibleFor)(pid_t) =
+		(pid_t (*)(pid_t))dlsym(RTLD_DEFAULT, "responsibility_get_pid_responsible_for_pid");
+	if (responsibleFor == NULL) {
+		return YES;
+	}
+	pid_t responsible = responsibleFor(getpid());
+	return responsible <= 0 || responsible == getpid();
+}
+
 - (void)sendVoice:(NSString *)kind text:(NSString *)text message:(NSString *)message {
 	NSMutableDictionary *event = [NSMutableDictionary dictionaryWithObject:kind forKey:@"kind"];
 	if (text != nil) {
@@ -722,6 +742,10 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 		return;
 	}
 	self.voiceActive = YES;
+	if (!gawkOwnsItsPrivacyPrompts()) {
+		[self voiceFailed:@"Voice needs gawkbot opened as an app, from Finder, the Dock, or the open command. Started from a terminal, macOS asks that terminal for permission instead and stops gawkbot."];
+		return;
+	}
 	if (@available(macOS 10.15, *)) {
 		[SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
 			dispatch_async(dispatch_get_main_queue(), ^{
@@ -778,16 +802,31 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 		self.audioEngine = [[AVAudioEngine alloc] init];
 		AVAudioInputNode *input = self.audioEngine.inputNode;
 		AVAudioFormat *format = [input outputFormatForBus:0];
-		[input installTapOnBus:0
-		            bufferSize:1024
-		                format:format
-		                 block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
-			(void)when;
-			[request appendAudioPCMBuffer:buffer];
-		}];
-		[self.audioEngine prepare];
+		// With no usable input (none connected, or one switching, as AirPods
+		// do) the format is 0 Hz or 0 channels, and installing a tap with it
+		// throws an exception that would take the whole app down.
+		if (format == nil || format.sampleRate <= 0 || format.channelCount == 0) {
+			[self voiceFailed:@"No microphone is available. Check the input in System Settings, Sound."];
+			return;
+		}
 		NSError *startError = nil;
-		if (![self.audioEngine startAndReturnError:&startError]) {
+		BOOL started = NO;
+		@try {
+			[input removeTapOnBus:0];
+			[input installTapOnBus:0
+			            bufferSize:1024
+			                format:format
+			                 block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
+				(void)when;
+				[request appendAudioPCMBuffer:buffer];
+			}];
+			[self.audioEngine prepare];
+			started = [self.audioEngine startAndReturnError:&startError];
+		} @catch (NSException *exception) {
+			NSLog(@"gawkbot voice: the microphone would not start: %@", exception.reason);
+			started = NO;
+		}
+		if (!started) {
 			[self voiceFailed:@"Could not start the microphone."];
 			return;
 		}
