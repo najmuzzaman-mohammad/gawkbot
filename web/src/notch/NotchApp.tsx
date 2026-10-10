@@ -62,7 +62,7 @@ export function NotchApp({
   search?: string;
 }) {
   const queryClient = useQueryClient();
-  const [geometry] = useState(() => readGeometry(search));
+  const [measured] = useState(() => readGeometry(search));
   // ?peek=<seconds> makes peeks frequent (demos, screenshots).
   const peekEveryMs = useMemo(
     () =>
@@ -119,6 +119,18 @@ export function NotchApp({
   const arrival = useArrival(state, expanded);
   // Each answer that lands gets a clap from the lead in the open notch.
   const [cheer, setCheer] = useState(0);
+
+  // On a Mac with a notch the strip is exactly the notch, nothing beside
+  // it, until something needs the human: then the ears grow out to show
+  // who. Everything else (who is working, the sleeper) is in the panel.
+  const showEars = measured.notchWidth <= 0 || attention.length > 0;
+  const geometry = useMemo(
+    () => (showEars ? measured : { ...measured, earWidth: 0 }),
+    [measured, showEars],
+  );
+  useEffect(() => {
+    postNative({ type: "ears", show: showEars });
+  }, [showEars]);
 
   // Room below the notch for the current act.
   const stage = stageHeight({ line, peeker, arrival, expanded });

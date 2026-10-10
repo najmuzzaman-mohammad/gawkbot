@@ -23,9 +23,9 @@
 #include "_cgo_export.h"
 
 // The strip's ears, either side of the notch, in the menu bar. With a notch
-// they are compact, one face wide, hugging the notch's edges so they stay
-// clear of the menus and status items further out. Without one the strip is
-// a pill and its ears can be roomier.
+// the strip is exactly the notch until something needs the human; then
+// compact ears, a face or a few wide, grow out hugging its edges, clear of
+// the menus further out. Without a notch the strip is a pill with ears.
 static const CGFloat kEarWidth = 72.0;
 static const CGFloat kCompactEarWidth = 40.0;
 // The open panel. The page draws itself at exactly this size, so keep these
@@ -122,6 +122,9 @@ static const CGFloat kMaxStageHeight = 160.0;
 @property(nonatomic, strong) id outsideClickLocal;
 @property(nonatomic, strong) NSDate *peekUntil;
 @property(nonatomic) CGFloat stageHeight;
+// On a Mac with a notch, the ears only show while something needs the
+// human; the rest of the time the strip is exactly the notch.
+@property(nonatomic) BOOL earsShown;
 // Opened from the keyboard (the global hotkey): stays open until Esc or the
 // hotkey again, even with the pointer elsewhere.
 @property(nonatomic) BOOL pinned;
@@ -186,7 +189,10 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 }
 
 - (CGFloat)earWidth {
-	return self.notchWidth > 0 ? kCompactEarWidth : kEarWidth;
+	if (self.notchWidth <= 0) {
+		return kEarWidth;
+	}
+	return self.earsShown ? kCompactEarWidth : 0;
 }
 
 - (NSRect)frameExpanded:(BOOL)expanded {
@@ -205,7 +211,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	// glass=1 tells the page the sheet's material is drawn natively, so it
 	// paints a light tint instead of an opaque sheet.
 	NSString *s = [NSString stringWithFormat:@"%@/notch.html?nw=%.0f&nh=%.0f&ew=%.0f&glass=1",
-		base, self.notchWidth, self.notchHeight, [self earWidth]];
+		base, self.notchWidth, self.notchHeight, self.notchWidth > 0 ? kCompactEarWidth : kEarWidth];
 	return [NSURL URLWithString:s];
 }
 
@@ -634,6 +640,12 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 		self.keyboardActive = [body[@"active"] boolValue];
 		if (self.keyboardActive) {
 			[self.panel makeKeyWindow];
+		}
+	} else if ([type isEqualToString:@"ears"]) {
+		self.earsShown = [body[@"show"] boolValue];
+		if (!self.expanded) {
+			[self.panel setFrame:[self frameExpanded:NO] display:YES];
+			[self.content updateTrackingAreas];
 		}
 	} else if ([type isEqualToString:@"stage"]) {
 		CGFloat h = [body[@"height"] respondsToSelector:@selector(doubleValue)] ? [body[@"height"] doubleValue] : 0;

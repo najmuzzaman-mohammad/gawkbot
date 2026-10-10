@@ -100,6 +100,17 @@ export function NotchStrip({
   const crew = active.slice(0, cap - askers.length);
   const hidden = gang.length + active.length - askers.length - crew.length;
 
+  // No ears: the strip is the notch itself, a place to hover, nothing more.
+  if (geometry.earWidth === 0) {
+    return (
+      <div
+        className="notch-strip"
+        style={{ height: geometry.notchHeight }}
+        title={state?.headline}
+      />
+    );
+  }
+
   return (
     <div
       className={`notch-strip${compact ? " is-compact" : ""}`}

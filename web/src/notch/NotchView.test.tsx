@@ -63,6 +63,19 @@ describe("collapsed notch", () => {
     expect(shell.style.height).toBe("32px");
   });
 
+  it("is exactly the notch, nothing beside it, when it has no ears", () => {
+    renderNotchWith({
+      geometry: { ...MACBOOK_NOTCH, earWidth: 0 },
+      state: QUIET_OFFICE,
+      gang: [],
+    });
+    const shell = screen.getByTestId("notch-shell");
+    expect(shell.style.width).toBe("186px");
+    expect(shell.style.height).toBe("32px");
+    // Nothing is drawn: the notch itself has no pixels to draw in.
+    expect(document.querySelector(".notch-strip .notch-bot")).toBeNull();
+  });
+
   it("piles everyone who needs you onto the notch, with a count", () => {
     renderNotch();
     expect(screen.getByTestId("notch-gang").children).toHaveLength(2);
