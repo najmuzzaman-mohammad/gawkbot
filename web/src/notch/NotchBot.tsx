@@ -14,7 +14,7 @@ import type { Mood } from "./types";
 //
 //   working    gentle bob, spinning eyes
 //   idle       slow breathing, half-closed eyes, a "z" drifting up
-//   tucked     the same, under a blanket: the office is quiet, it is asleep
+//   tucked     the same, in a sleep mask: the office is quiet, it is asleep
 //   awake      woken by the human opening the notch: eyes open, a stretch
 //   needs_you  bouncy hop, a talking face, an "!" badge
 //   error      a shake, a frown, a sweat drop
@@ -54,7 +54,7 @@ interface NotchBotProps {
   /** The bot's chosen look (NotchAgent.avatar). */
   avatar?: MemberAvatar;
   /**
-   * Asleep under a blanket: nothing is going on, so it has turned in. For
+   * Asleep in a sleep mask: nothing is going on, so it has turned in. For
    * the lead in the notch when the office is quiet.
    */
   tucked?: boolean;
@@ -137,7 +137,6 @@ export function NotchBot({
           avatar={avatar}
         />
         {tucked ? <span className="nb-mask" aria-hidden="true" /> : null}
-        {tucked ? <span className="nb-blanket" aria-hidden="true" /> : null}
       </span>
       {shown ? <ModelBadge runtime={shown} avatarSize={size} /> : null}
       {tucked ? <span className="nb-prop nb-z">z</span> : null}

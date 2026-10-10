@@ -107,7 +107,7 @@ describe("collapsed notch", () => {
     ).toBeNull();
   });
 
-  it("tucks the lead in under a blanket when nothing is going on", () => {
+  it("puts the lead to sleep in a mask when nothing is going on", () => {
     const quiet = {
       ...QUIET_OFFICE,
       mood: "idle" as const,
@@ -118,17 +118,19 @@ describe("collapsed notch", () => {
     expect(
       screen.getByRole("img", { name: /asleep, nothing needs you/ }),
     ).toHaveClass("nb-tucked");
-    expect(document.querySelector(".nb-blanket")).not.toBeNull();
+    expect(document.querySelector(".nb-mask")).not.toBeNull();
+    // A mask is enough; there is no blanket.
+    expect(document.querySelector(".nb-blanket")).toBeNull();
     unmount();
     // The human opens the notch (hovering in opens it): it wakes up.
     const open = renderNotchWith({ state: quiet, gang: [], expanded: true });
-    expect(document.querySelector(".nb-blanket")).toBeNull();
+    expect(document.querySelector(".nb-mask")).toBeNull();
     expect(document.querySelector(".notch-strip .nb-awake")).not.toBeNull();
     expect(document.querySelector(".notch-strip .nb-tucked")).toBeNull();
     open.unmount();
     // Someone working, or anything waiting on the human: it is up.
     renderNotch();
-    expect(document.querySelector(".nb-blanket")).toBeNull();
+    expect(document.querySelector(".nb-mask")).toBeNull();
   });
 
   it("renders as a pill on Macs without a notch", () => {

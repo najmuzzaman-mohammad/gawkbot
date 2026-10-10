@@ -46,9 +46,6 @@
 
   /* Controls on the sheet: plain fills, the way the system draws them on
      its own glass. One step up on hover, one more when pressed. */
-  /* The lead's blanket when the office is quiet. */
-  --notch-blanket: #6f7fb3;
-  --notch-blanket-fold: #b9c4ea;
   --notch-mask: #1d2238;
   --notch-mask-sheen: rgba(255, 255, 255, 0.28);
   --notch-control: rgba(255, 255, 255, 0.1);
@@ -286,20 +283,6 @@ kbd {
   font: 800 10px / 1 var(--notch-font);
   color: #1c1400;
   background: var(--mood-needs-you);
-}
-/* The blanket: pulled up to the chin, with a turned-down fold along the
-   top. It sits inside the body so it rises and falls with the breathing. */
-.nb-blanket {
-  position: absolute;
-  left: -6%;
-  right: -6%;
-  bottom: -6%;
-  height: 54%;
-  border-radius: 46% 46% 34% 34% / 36% 36% 30% 30%;
-  background: var(--notch-blanket);
-  box-shadow:
-    inset 0 2.5px 0 var(--notch-blanket-fold),
-    0 1px 1.5px rgba(0, 0, 0, 0.45);
 }
 /* A sleep mask over the eyes, strap and all: at this size closed eyes do
    not read, a mask does. */
