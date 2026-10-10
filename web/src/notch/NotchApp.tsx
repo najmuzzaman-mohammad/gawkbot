@@ -25,7 +25,7 @@ import {
   useVoice,
 } from "./hooks";
 import type { ComposerState, ReplyTarget } from "./NotchPanel";
-import { earWidthFor, stageHeight } from "./NotchStrip";
+import { stageHeight, stripShapeFor } from "./NotchStrip";
 import { NotchView } from "./NotchView";
 import { play, setSoundEnabled, soundEnabled, unlock } from "./sounds";
 import { deliverNativeVoice, voiceAvailable } from "./voice";
@@ -120,18 +120,18 @@ export function NotchApp({
   // Each answer that lands gets a clap from the lead in the open notch.
   const [cheer, setCheer] = useState(0);
 
-  // On a Mac with a notch the strip is exactly the notch, nothing beside
-  // it, while nothing is going on. Agents at work show as small coloured
-  // dots and spinners in slim ears; something that needs the human grows
-  // the ears enough for faces. Everything else is in the panel.
-  const earWidth = earWidthFor(measured, attention.length, agents);
+  // On a Mac with a notch the strip is exactly the notch while nothing is
+  // going on. Agents at work show as a centred row of small coloured dots
+  // and spinners just under it; something that needs the human grows ears
+  // beside it, wide enough for faces. Everything else is in the panel.
+  const shape = stripShapeFor(measured, attention.length, agents);
   const geometry = useMemo(
-    () => ({ ...measured, earWidth }),
-    [measured, earWidth],
+    () => ({ ...measured, earWidth: shape.earWidth, band: shape.band }),
+    [measured, shape.earWidth, shape.band],
   );
   useEffect(() => {
-    postNative({ type: "ears", width: earWidth });
-  }, [earWidth]);
+    postNative({ type: "ears", width: shape.earWidth, band: shape.band });
+  }, [shape.earWidth, shape.band]);
 
   // Room below the notch for the current act.
   const stage = stageHeight({ line, peeker, arrival, expanded });

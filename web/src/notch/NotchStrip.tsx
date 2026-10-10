@@ -45,29 +45,41 @@ export const STRIP_CAP = 5;
 export const COMPACT_STRIP_CAP = 3;
 /** Ears narrower than this are compact. */
 const COMPACT_EAR = 60;
-/** Ears this narrow hold dots, not faces. */
-export const DOT_EAR = 14;
-/** The most dots a slim ear shows, stacked. */
-const MAX_DOTS = 3;
+/** The band of dots under the notch, at rest. */
+export const DOT_BAND = 10;
 
 /** A mood that shows as a dot at rest: someone is doing something. */
 function busy(a: NotchAgent): boolean {
   return a.mood === "working" || a.mood === "error" || a.mood === "done";
 }
 
+/** What the strip looks like now, and so how big a window it needs. */
+export interface StripShape {
+  /** Ears beside the notch, for faces. */
+  earWidth: number;
+  /** A band under the notch, for dots. */
+  band: number;
+}
+
 /**
- * How wide the ears are: on a Mac without a notch, always the pill's; with
- * one, faces when something needs the human, dots while anyone is at work,
- * and none at all when the office is still.
+ * On a Mac without a notch, always the pill. With one: faces in ears when
+ * something needs the human, a band of dots under the notch while anyone
+ * is at work, and nothing beyond the notch when the office is still.
  */
-export function earWidthFor(
+export function stripShapeFor(
   g: NotchGeometry,
   attention: number,
   agents: readonly NotchAgent[],
-): number {
-  if (g.notchWidth <= 0) return g.earWidth;
-  if (attention > 0) return g.earWidth;
-  return agents.some(busy) ? DOT_EAR : 0;
+): StripShape {
+  if (g.notchWidth <= 0 || attention > 0)
+    return { earWidth: g.earWidth, band: 0 };
+  return { earWidth: 0, band: agents.some(busy) ? DOT_BAND : 0 };
+}
+
+/** How many dots fit in a band as wide as the notch. */
+export function dotsThatFit(notchWidth: number): number {
+  // 6px a dot plus a 4px gap, with a little room at the ends.
+  return Math.max(1, Math.floor((notchWidth - 12) / 10));
 }
 
 /** One state at a glance: a spinner for work, a dot for anything else. */
@@ -136,26 +148,31 @@ export function NotchStrip({
   const crew = active.slice(0, cap - askers.length);
   const hidden = gang.length + active.length - askers.length - crew.length;
 
-  // Slim ears: the lead's state on the left, up to three others stacked on
-  // the right, each a coloured dot or a spinner. Small enough to stay out
-  // of the way, enough to say what is going on.
-  if (geometry.earWidth > 0 && geometry.earWidth <= DOT_EAR) {
-    const others = (state?.agents ?? [])
-      .filter((a) => !a.is_lead && busy(a))
-      .sort((a, c) => CREW_RANK[a.mood] - CREW_RANK[c.mood])
-      .slice(0, MAX_DOTS);
+  // At rest: the notch, and under it one centred row of dots and spinners,
+  // the lead first, then by how much each wants a look. As many as fit in
+  // the notch's own width.
+  if (geometry.band > 0) {
+    const dots = (state?.agents ?? [])
+      .filter(busy)
+      .sort(
+        (a, c) =>
+          Number(c.is_lead ?? false) - Number(a.is_lead ?? false) ||
+          CREW_RANK[a.mood] - CREW_RANK[c.mood],
+      )
+      .slice(0, dotsThatFit(geometry.notchWidth));
     return (
       <div
         className="notch-strip is-dots"
-        style={{ height: geometry.notchHeight }}
+        style={{ height: geometry.notchHeight + geometry.band }}
         title={state?.headline}
       >
-        <span className="ndots">
-          {lead && busy(lead) ? <StateDot agent={lead} /> : null}
-        </span>
-        <div style={{ width: geometry.notchWidth, flexShrink: 0 }} />
-        <span className="ndots" data-testid="notch-dots">
-          {others.map((a) => (
+        <div style={{ height: geometry.notchHeight, flexShrink: 0 }} />
+        <span
+          className="ndots"
+          data-testid="notch-dots"
+          style={{ height: geometry.band }}
+        >
+          {dots.map((a) => (
             <StateDot key={a.slug} agent={a} />
           ))}
         </span>

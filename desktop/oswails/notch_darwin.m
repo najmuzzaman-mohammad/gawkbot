@@ -23,14 +23,15 @@
 #include "_cgo_export.h"
 
 // The strip's ears, either side of the notch, in the menu bar. With a notch
-// the strip is exactly the notch when nothing is going on; slim ears with a
-// few coloured dots and spinners while agents work; and compact ears with
-// faces when something needs the human. All hug the notch's edges, clear of
+// the strip is exactly the notch when nothing is going on; a thin band of
+// coloured dots and spinners just under it while agents work; and compact
+// ears with faces when something needs the human. All hug the notch's edges, clear of
 // the menus further out. Without a notch the strip is a pill with ears.
 static const CGFloat kEarWidth = 72.0;
 static const CGFloat kCompactEarWidth = 40.0;
-// Narrower still at rest: room for a few small state dots and spinners.
-static const CGFloat kDotEarWidth = 14.0;
+// At rest, agents at work show as a row of small dots and spinners in a
+// thin band just under the notch, no wider than it. At most this tall.
+static const CGFloat kMaxBandHeight = 14.0;
 // The open panel. The page draws itself at exactly this size, so keep these
 // equal to EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx:
 // a smaller window clips the composer and the shortcut footer.
@@ -128,6 +129,8 @@ static const CGFloat kMaxStageHeight = 160.0;
 // On a Mac with a notch, how wide the ears are right now, as the page asks:
 // 0 (exactly the notch), dots at rest, or faces when something needs you.
 @property(nonatomic) CGFloat earsWidth;
+// The band of dots under the notch, as the page asks: 0 or a few points.
+@property(nonatomic) CGFloat bandHeight;
 // Opened from the keyboard (the global hotkey): stays open until Esc or the
 // hotkey again, even with the pointer elsewhere.
 @property(nonatomic) BOOL pinned;
@@ -202,7 +205,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	NSScreen *screen = [self notchScreen];
 	CGFloat collapsedWidth = self.notchWidth + 2 * [self earWidth];
 	CGFloat w = expanded ? MAX(kExpandedWidth, collapsedWidth) : collapsedWidth;
-	CGFloat h = expanded ? kExpandedHeight : self.notchHeight + self.stageHeight;
+	CGFloat h = expanded ? kExpandedHeight : self.notchHeight + self.bandHeight + self.stageHeight;
 	NSRect sf = screen.frame;
 	return NSMakeRect(round(NSMidX(sf) - w / 2), NSMaxY(sf) - h, w, h);
 }
@@ -271,7 +274,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	[self.content addSubview:self.glass];
 	[self.content addSubview:self.webView];
 	self.content.hoverOwner = self;
-	self.content.stripHeight = self.notchHeight;
+	self.content.stripHeight = self.notchHeight + self.bandHeight;
 	self.panel.contentView = self.content;
 
 	[[NSNotificationCenter defaultCenter] addObserver:self
@@ -358,7 +361,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 - (void)screensChanged:(NSNotification *)note {
 	(void)note;
 	[self measure];
-	self.content.stripHeight = self.notchHeight;
+	self.content.stripHeight = self.notchHeight + self.bandHeight;
 	[self applyExpanded:NO animatePage:NO];
 	[self.webView loadRequest:[NSURLRequest requestWithURL:[self pageURL]]];
 }
@@ -425,7 +428,8 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 - (NSRect)glassFrameCollapsed {
 	NSRect bounds = self.content.bounds;
 	CGFloat w = self.notchWidth + 2 * [self earWidth];
-	return NSMakeRect(round(NSMidX(bounds) - w / 2), NSMaxY(bounds) - self.notchHeight, w, self.notchHeight);
+	CGFloat h = self.notchHeight + self.bandHeight;
+	return NSMakeRect(round(NSMidX(bounds) - w / 2), NSMaxY(bounds) - h, w, h);
 }
 
 - (void)showGlass:(BOOL)show {
@@ -647,7 +651,10 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 	} else if ([type isEqualToString:@"ears"]) {
 		CGFloat w = [body[@"width"] respondsToSelector:@selector(doubleValue)] ? [body[@"width"] doubleValue] : 0;
 		// Only the sizes the strip is drawn for.
-		self.earsWidth = w >= kCompactEarWidth ? kCompactEarWidth : (w > 0 ? kDotEarWidth : 0);
+		self.earsWidth = w > 0 ? kCompactEarWidth : 0;
+		CGFloat band = [body[@"band"] respondsToSelector:@selector(doubleValue)] ? [body[@"band"] doubleValue] : 0;
+		self.bandHeight = MAX(0, MIN(kMaxBandHeight, band));
+		self.content.stripHeight = self.notchHeight + self.bandHeight;
 		if (!self.expanded) {
 			[self.panel setFrame:[self frameExpanded:NO] display:YES];
 			[self.content updateTrackingAreas];

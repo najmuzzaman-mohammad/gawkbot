@@ -156,17 +156,22 @@ kbd {
   padding: 0 12px;
   box-sizing: border-box;
 }
-/* Slim ears at rest: a dot or a spinner per agent, in its mood's colour. */
+/* At rest: the notch, and a centred row under it, a dot or a spinner per
+   agent in its mood's colour. */
 .notch-strip.is-dots {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   padding: 0;
 }
 .ndots {
   display: flex;
-  flex: 1;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
+  padding-bottom: 2px;
+  box-sizing: border-box;
 }
 .ndot {
   width: 6px;

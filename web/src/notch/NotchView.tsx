@@ -56,8 +56,10 @@ export function NotchView(props: NotchViewProps) {
       <div
         className={`notch-root${geometry.nativeGlass ? " has-native-glass" : ""}`}
         style={{
-          ["--notch-strip-h" as string]: `${geometry.notchHeight}px`,
-          height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight + stage,
+          ["--notch-strip-h" as string]: `${geometry.notchHeight + geometry.band}px`,
+          height: expanded
+            ? EXPANDED_HEIGHT
+            : geometry.notchHeight + geometry.band + stage,
         }}
       >
         <NotchStage
@@ -74,7 +76,9 @@ export function NotchView(props: NotchViewProps) {
           className={`notch-shell ${expanded ? "is-expanded" : "is-collapsed"}`}
           style={{
             width,
-            height: expanded ? EXPANDED_HEIGHT : geometry.notchHeight,
+            height: expanded
+              ? EXPANDED_HEIGHT
+              : geometry.notchHeight + geometry.band,
           }}
           data-testid="notch-shell"
           data-mood={state?.mood ?? "idle"}

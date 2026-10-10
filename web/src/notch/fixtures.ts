@@ -139,5 +139,15 @@ export const QUIET_OFFICE: NotchState = {
   attention: [],
 };
 
-export const MACBOOK_NOTCH = { notchWidth: 186, notchHeight: 32, earWidth: 40 };
-export const NO_NOTCH = { notchWidth: 0, notchHeight: 24, earWidth: 64 };
+export const MACBOOK_NOTCH = {
+  notchWidth: 186,
+  notchHeight: 32,
+  earWidth: 40,
+  band: 0,
+};
+export const NO_NOTCH = {
+  notchWidth: 0,
+  notchHeight: 24,
+  earWidth: 64,
+  band: 0,
+};

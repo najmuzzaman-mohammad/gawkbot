@@ -48,6 +48,7 @@ describe("notch bridge", () => {
       notchWidth: 186,
       notchHeight: 32,
       earWidth: 72,
+      band: 0,
       nativeGlass: false,
     });
     // The Mac app draws the sheet's glass itself and says so.
@@ -56,6 +57,7 @@ describe("notch bridge", () => {
       notchWidth: 0,
       notchHeight: 32,
       earWidth: 64,
+      band: 0,
       nativeGlass: false,
     });
   });

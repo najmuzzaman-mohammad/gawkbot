@@ -7,7 +7,7 @@ import { gang } from "./antics";
 import { BUSY_OFFICE, MACBOOK_NOTCH, NO_NOTCH, QUIET_OFFICE } from "./fixtures";
 import { NotchBot } from "./NotchBot";
 import { agentsSummary } from "./NotchPanel";
-import { DOT_EAR, earWidthFor } from "./NotchStrip";
+import { DOT_BAND, dotsThatFit, stripShapeFor } from "./NotchStrip";
 import { NotchView, type NotchViewProps } from "./NotchView";
 import type { NotchState } from "./types";
 
@@ -64,47 +64,81 @@ describe("collapsed notch", () => {
     expect(shell.style.height).toBe("32px");
   });
 
-  it("shows agents at work as small coloured dots and spinners at rest", () => {
+  it("shows agents at work as a centred row of dots under the notch", () => {
     const state: NotchState = {
       ...QUIET_OFFICE,
       attention: [],
       agents: [
-        { slug: "cos", name: "Chief of Staff", mood: "working", is_lead: true },
         { slug: "a", name: "A", mood: "working" },
         { slug: "b", name: "B", mood: "error" },
+        { slug: "cos", name: "Chief of Staff", mood: "working", is_lead: true },
         { slug: "c", name: "C", mood: "done" },
-        { slug: "d", name: "D", mood: "working" },
         { slug: "e", name: "E", mood: "idle" },
       ],
     };
-    const width = earWidthFor(MACBOOK_NOTCH, 0, state.agents);
-    expect(width).toBe(DOT_EAR);
+    const shape = stripShapeFor(MACBOOK_NOTCH, 0, state.agents);
+    expect(shape).toEqual({ earWidth: 0, band: DOT_BAND });
     renderNotchWith({
-      geometry: { ...MACBOOK_NOTCH, earWidth: width },
+      geometry: { ...MACBOOK_NOTCH, ...shape },
       state,
       gang: [],
     });
     const shell = screen.getByTestId("notch-shell");
-    expect(shell.style.width).toBe(`${186 + 2 * DOT_EAR}px`);
-    // No faces at rest, just dots: a snag first, then a finish, then work.
+    // No wider than the notch; a thin band under it.
+    expect(shell.style.width).toBe("186px");
+    expect(shell.style.height).toBe(`${32 + DOT_BAND}px`);
     expect(document.querySelector(".notch-strip .notch-bot")).toBeNull();
+    // The lead first, then a snag, a finish, then work; the idle one is not
+    // there.
     const dots = Array.from(
       screen.getByTestId("notch-dots").querySelectorAll("[data-mood]"),
-    ).map((el) => el.getAttribute("data-mood"));
-    expect(dots).toEqual(["error", "done", "working"]);
-    // The lead's own state on the left.
-    expect(
-      screen.getByRole("img", { name: "Chief of Staff: working" }),
-    ).toHaveClass("ndot-working");
+    ).map((el) => el.getAttribute("aria-label"));
+    expect(dots).toEqual([
+      "Chief of Staff: working",
+      "B: error",
+      "C: done",
+      "A: working",
+    ]);
   });
 
-  it("sizes the ears to what is going on", () => {
+  it("fits as many dots as the notch is wide", () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      slug: `b${i}`,
+      name: `B${i}`,
+      mood: "working" as const,
+    }));
+    const state: NotchState = { ...QUIET_OFFICE, attention: [], agents: many };
+    const shape = stripShapeFor(MACBOOK_NOTCH, 0, many);
+    renderNotchWith({
+      geometry: { ...MACBOOK_NOTCH, ...shape },
+      state,
+      gang: [],
+    });
+    expect(
+      screen.getByTestId("notch-dots").querySelectorAll("[data-mood]"),
+    ).toHaveLength(dotsThatFit(186));
+    expect(dotsThatFit(186)).toBe(17);
+  });
+
+  it("sizes the strip to what is going on", () => {
     const idle = [{ slug: "x", name: "X", mood: "idle" as const }];
     const working = [{ slug: "x", name: "X", mood: "working" as const }];
-    expect(earWidthFor(MACBOOK_NOTCH, 0, idle)).toBe(0);
-    expect(earWidthFor(MACBOOK_NOTCH, 0, working)).toBe(DOT_EAR);
-    expect(earWidthFor(MACBOOK_NOTCH, 2, idle)).toBe(MACBOOK_NOTCH.earWidth);
-    expect(earWidthFor(NO_NOTCH, 0, idle)).toBe(NO_NOTCH.earWidth);
+    expect(stripShapeFor(MACBOOK_NOTCH, 0, idle)).toEqual({
+      earWidth: 0,
+      band: 0,
+    });
+    expect(stripShapeFor(MACBOOK_NOTCH, 0, working)).toEqual({
+      earWidth: 0,
+      band: DOT_BAND,
+    });
+    expect(stripShapeFor(MACBOOK_NOTCH, 2, idle)).toEqual({
+      earWidth: MACBOOK_NOTCH.earWidth,
+      band: 0,
+    });
+    expect(stripShapeFor(NO_NOTCH, 0, working)).toEqual({
+      earWidth: NO_NOTCH.earWidth,
+      band: 0,
+    });
   });
 
   it("is exactly the notch, nothing beside it, when it has no ears", () => {

@@ -127,6 +127,11 @@ export interface NotchGeometry {
    */
   earWidth: number;
   /**
+   * A thin band under the notch for the row of dots at rest. 0 unless the
+   * page has decided to show them; never part of the shell's measurement.
+   */
+  band: number;
+  /**
    * The host draws the open sheet's material (real system glass behind
    * the page), so the page paints a tint instead of an opaque sheet.
    */
