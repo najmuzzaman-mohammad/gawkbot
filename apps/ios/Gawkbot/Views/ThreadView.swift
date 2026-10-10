@@ -11,11 +11,7 @@ import GawkbotKit
 struct ThreadView: View {
     @EnvironmentObject private var store: OfficeStore
     let channel: String
-    @State private var draft = ""
     @State private var pickingLook = false
-    @StateObject private var voice = VoiceRecorder()
-    /// Shown briefly after a tap on the mic that was too short to talk.
-    @State private var holdHint = false
     @FocusState private var composing: Bool
 
     private var bot: Bot? { store.bot(for: channel) }
@@ -100,7 +96,6 @@ struct ThreadView: View {
             }
             .onDisappear {
                 if store.openThread == channel { store.openThread = nil }
-                voice.cancel()
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -120,14 +115,6 @@ struct ThreadView: View {
                 .accessibilityLabel(store.runtimes.spokenName(name, slug: slug))
             }
         }
-        .onAppear {
-            let office = store
-            voice.onCue = { [weak office] cue in office?.feedback.play(cue) }
-        }
-        .onChange(of: voice.phase) { _, phase in
-            if phase == .confirming { takeTranscript() }
-        }
-        .voiceProblemAlert(voice)
         .sheet(isPresented: $pickingLook) {
             AvatarPickerSheet(slug: slug, name: name, current: avatar) { picked in
                 await store.updateAvatar(slug: slug, to: picked)
@@ -159,73 +146,13 @@ struct ThreadView: View {
     }
 
     private var composer: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if voice.isActive {
-                VoiceTranscriptStrip(voice: voice)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if holdHint {
-                Label("Hold the mic to talk, let go to finish.", systemImage: "mic.fill")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
-                    .transition(.opacity)
-            }
-            // One row in every voice phase, so the mic's press gesture
-            // survives the state changes it causes.
-            HStack(alignment: .bottom, spacing: 8) {
-                TextField("Message \(name)", text: $draft, axis: .vertical)
-                    .lineLimit(1...6)
-                    .focused($composing)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(Color.softCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.softHairline, lineWidth: 1))
-                    .onSubmit(send)
-                HoldToTalkButton(voice: voice) { showHoldHint() }
-                Button(action: send) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(canSend ? Color.accentColor : Color(.tertiaryLabel))
-                }
-                .disabled(!canSend)
-                .accessibilityLabel("Send")
-            }
+        MessageComposer(name: name, focused: $composing) { text in
+            guard !isSession else { return }
+            Task { await store.send(text, to: channel) }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.bar)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: voice.phase)
-        .animation(.easeInOut(duration: 0.2), value: holdHint)
-    }
-
-    /// The recorder finished: put what it heard in the message box, after
-    /// anything already typed. Sending stays a tap on Send.
-    private func takeTranscript() {
-        let heard = voice.transcript
-        voice.reset()
-        guard !heard.isEmpty else { return }
-        let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        draft = typed.isEmpty ? heard : typed + " " + heard
-    }
-
-    private func showHoldHint() {
-        holdHint = true
-        Task {
-            try? await Task.sleep(for: .seconds(2.5))
-            holdHint = false
-        }
-    }
-
-    private var canSend: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-
-    private func send() {
-        guard canSend, !isSession else { return }
-        let text = draft
-        draft = ""
-        #if os(iOS)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        #endif
-        Task { await store.send(text, to: channel) }
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {

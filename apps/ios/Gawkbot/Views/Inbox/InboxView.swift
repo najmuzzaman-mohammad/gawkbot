@@ -4,7 +4,8 @@ import GawkbotKit
 /// The mobile agent inbox: every pending question from every agent
 /// (blocking first), one tap to answer, swipe to approve or reply. Only
 /// what is waiting on you lives here; the agents themselves, and talking
-/// to them, are in the Agents tab. Polls `/notch/state` every 3 s while in
+/// to them, are in the Agents tab. The one exception is the Chief of Staff,
+/// whose message box is pinned under the list, always. Polls `/notch/state` every 3 s while in
 /// front (the store does it) and on pull-to-refresh.
 ///
 /// The app only answers questions and sends messages. Whatever an answer
@@ -15,6 +16,7 @@ struct InboxView: View {
 
     @State private var selectedID: String?
     @State private var replyTarget: ReplyTarget?
+    @FocusState private var messagingLead: Bool
 
     private var items: [NotchAttention] { store.inbox }
     private var selectedItem: NotchAttention? {
@@ -22,8 +24,9 @@ struct InboxView: View {
         return items.first { $0.id == selectedID }
     }
 
-    /// Bare-key shortcuts step aside while the reply sheet is typing.
-    private var shortcutsEnabled: Bool { replyTarget == nil }
+    /// Bare-key shortcuts step aside while the reply sheet, or the Chief of
+    /// Staff's message box, is typing.
+    private var shortcutsEnabled: Bool { replyTarget == nil && !messagingLead }
 
     var body: some View {
         NavigationStack {
@@ -35,11 +38,19 @@ struct InboxView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .background(SoftBackdrop())
+                .scrollDismissesKeyboard(.interactively)
                 .refreshable { await store.refreshNotch() }
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: items.map(\.id))
                 .onChange(of: selectedID) { _, id in
                     guard let id else { return }
                     withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(id, anchor: .center) }
+                }
+                // Outside the list on purpose: the questions scroll above
+                // it, and it rides up with the keyboard.
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if let lead = store.lead {
+                        ChiefOfStaffBox(lead: lead, focused: $messagingLead)
+                    }
                 }
             }
             .navigationTitle("Inbox")
@@ -62,6 +73,13 @@ struct InboxView: View {
             .onChange(of: items.map(\.id)) { old, new in
                 selectedID = InboxCursor.reconcile(selected: selectedID, previous: old, current: new)
             }
+            #if DEBUG
+            .task {
+                guard store.takeDebugCompose() else { return }
+                try? await Task.sleep(for: .milliseconds(800))
+                messagingLead = true
+            }
+            #endif
         }
     }
 
@@ -69,24 +87,9 @@ struct InboxView: View {
 
     @ViewBuilder
     private var headerSection: some View {
-        if let notch = store.notch {
-            HStack(spacing: 14) {
-                MoodAvatarView(slug: notch.lead ?? "cos", avatar: store.avatar(for: notch.lead ?? "cos"), mood: notch.mood, size: 56, halo: true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(notch.leadName ?? "Chief of Staff")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel(store.runtimes.spokenName(notch.leadName ?? "Chief of Staff", slug: notch.lead ?? "cos"))
-                    Text(verbatim: notch.headline)
-                        .font(.title3.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-            }
-            .softCard()
-            .cardRow()
-            .accessibilityElement(children: .combine)
-        } else {
+        // The Chief of Staff and its one-line read of the office are in its
+        // box under the list, so what needs you starts at the very top.
+        if store.notch == nil {
             HStack {
                 Spacer()
                 ProgressView("Checking in with your office…")

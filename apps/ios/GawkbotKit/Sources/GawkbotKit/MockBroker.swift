@@ -12,9 +12,12 @@ public actor MockBroker: BrokerAPI {
         /// Delay before the bot starts "typing" and before it replies.
         public var typingDelay: Duration
         public var replyDelay: Duration
-        public init(typingDelay: Duration = .milliseconds(600), replyDelay: Duration = .seconds(2)) {
+        /// False starts the office with nothing waiting on the person.
+        public var seedsQuestions: Bool
+        public init(typingDelay: Duration = .milliseconds(600), replyDelay: Duration = .seconds(2), seedsQuestions: Bool = true) {
             self.typingDelay = typingDelay
             self.replyDelay = replyDelay
+            self.seedsQuestions = seedsQuestions
         }
     }
 
@@ -39,7 +42,7 @@ public actor MockBroker: BrokerAPI {
         for bot in bots {
             store[bot.dmChannel] = MockBroker.seedThread(for: bot)
         }
-        pending = MockBroker.seedRequests(now: Date())
+        pending = config.seedsQuestions ? MockBroker.seedRequests(now: Date()) : []
     }
 
     /// What each mock member runs on. A spread on purpose: two Claude

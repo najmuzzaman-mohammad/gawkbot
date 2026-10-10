@@ -138,8 +138,7 @@ final class OfficeStore: ObservableObject {
         if url.scheme == Pairing.scheme, url.host == "pair" {
             propose(text: url.absoluteString)
         } else if url.scheme == Pairing.scheme, url.host == "thread", let slug = url.pathComponents.dropFirst().first {
-            tab = .agents
-            openThread = DMChannel.slug(for: slug)
+            openChat(in: DMChannel.slug(for: slug))
         } else if url.scheme == Pairing.scheme, url.host == "inbox" {
             tab = .inbox
         } else if url.scheme == Pairing.scheme, url.host == "agents" || url.host == "chats" {
@@ -154,7 +153,9 @@ final class OfficeStore: ObservableObject {
     /// `-pair-url <broker> -pair-token <token>` pairs immediately;
     /// `-tab inbox|agents|settings` starts on that tab;
     /// `-open <slug>` opens that bot's thread once the office is ready;
-    /// `-send <text>` sends that text into the opened thread after it loads.
+    /// `-send <text>` sends that text into the opened thread after it loads;
+    /// `-quiet` starts the canned office with no questions waiting;
+    /// `-compose` puts the cursor in the Chief of Staff's box on the inbox.
     func applyDebugLaunchArguments(_ args: [String]) {
         func value(after flag: String) -> String? {
             guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
@@ -172,10 +173,19 @@ final class OfficeStore: ObservableObject {
         debugOpenSlug = value(after: "-open")
         debugSendText = value(after: "-send")
         if let slug = debugOpenSlug {
-            tab = .agents
-            openThread = DMChannel.slug(for: slug)
+            openChat(in: DMChannel.slug(for: slug))
         }
+        if isMock, args.contains("-quiet") {
+            connect(MockBroker(config: MockBroker.Config(seedsQuestions: false)))
+        }
+        debugCompose = args.contains("-compose")
     }
+    /// Read once by the inbox, which then focuses the Chief of Staff's box.
+    func takeDebugCompose() -> Bool {
+        defer { debugCompose = false }
+        return debugCompose
+    }
+    private var debugCompose = false
     private var debugOpenSlug: String?
     private var debugSendText: String?
 
@@ -318,6 +328,12 @@ final class OfficeStore: ObservableObject {
         unread[channel] = nil
     }
 
+    /// Opens a DM's full thread, which lives in the Agents tab.
+    func openChat(in channel: String) {
+        tab = .agents
+        openThread = channel
+    }
+
     func send(_ text: String, to channel: String) async {
         let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty, let broker else { return }
@@ -350,6 +366,28 @@ final class OfficeStore: ObservableObject {
     }
 
     var agents: [NotchAgent] { notch?.agents ?? [] }
+
+    /// The Chief of Staff and where its DM lives.
+    struct Lead: Equatable {
+        let slug: String
+        let name: String
+        let channel: String
+    }
+
+    /// The office's lead agent: the one `/notch/state` names, else the agent
+    /// it marks as lead, else the roster's built-in. Nil only when the
+    /// office has none of them, so nothing is ever sent to a guessed DM.
+    var lead: Lead? {
+        let named = notch?.lead.flatMap { $0.isEmpty ? nil : $0 }
+        guard let slug = named ?? notch?.agents.first(where: \.isLead)?.slug ?? bots.first(where: { $0.builtIn == true })?.slug else { return nil }
+        let bot = bots.first { $0.slug == slug }
+        let leadName = notch?.leadName.flatMap { $0.isEmpty ? nil : $0 }
+        return Lead(
+            slug: slug,
+            name: leadName ?? notch?.agent(slug)?.name ?? bot?.name ?? "Chief of Staff",
+            channel: notch?.leadChannel ?? bot?.dmChannel ?? DMChannel.slug(for: slug)
+        )
+    }
 
     func agent(_ slug: String) -> NotchAgent? { notch?.agent(slug) }
 

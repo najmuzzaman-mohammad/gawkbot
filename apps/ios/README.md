@@ -31,6 +31,16 @@ Three tabs: **Inbox** (first), **Agents**, **Settings**.
 The inbox holds only what is waiting on you. The agents themselves are in
 the **Agents** tab.
 
+- **Chief of Staff box.** The one agent that is always on the inbox. Its
+  box is pinned under the list, outside it, whether or not anything is
+  waiting: avatar, name, the office in one line (the `/notch/state`
+  headline), the last two lines of your conversation, and a message box
+  with the mic and Send that posts into its DM (`lead_dm`) the same way its
+  thread does. Tap the top of the box to open the whole thread. Questions
+  scroll above it, and it rides up with the keyboard. The message box is
+  `Views/MessageComposer`, shared with the thread; the box is
+  `Views/Inbox/ChiefOfStaffBox`.
+
 ### Agents
 
 One row per agent, Chief of Staff first, with its last line and unread
@@ -241,7 +251,9 @@ turn, and closed). Replies
 arrive a couple of seconds after you send or answer, typing dots first, and
 the bot goes working → done (with its sound) → idle. Hermes starts with a
 picked shape (blob) and its automatic colour; **Change look** works against
-the mock too, with the office's validation. `scripts/screenshots.sh`
+the mock too, with the office's validation. In a debug build, `-quiet`
+starts the canned office with no questions waiting and `-compose` puts the
+cursor in the Chief of Staff's box. `scripts/screenshots.sh`
 boots a simulator in this mode and captures the inbox and the list (light
 and dark), a couple of threads, and two session threads. Deep links: `gawkbot://inbox`,
 `gawkbot://agents`, `gawkbot://settings`, `gawkbot://thread/<slug>`.
