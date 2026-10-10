@@ -456,25 +456,31 @@ export function isAllowedGetPath(path: string): boolean {
   );
 }
 
+/**
+ * Puts the app's network lockdown in force, whatever the app's HTML says.
+ *
+ * The policy is written as the very first thing in the document, ahead of
+ * every byte the app supplied. The browser's own parser then opens the head
+ * and places the policy in it before it has read any of the app's markup, so
+ * there is nothing the app can write that comes earlier or moves it. A later
+ * doctype, `<html>` or `<head>` in the app's markup is merged or ignored by
+ * the parser; a policy can only ever be tightened by a later one, never
+ * loosened.
+ *
+ * This used to find the app's `<head>` with a regular expression and insert
+ * the policy after it. A regular expression is not an HTML parser: `<header>`,
+ * or a literal `<head>` inside a `<title>`, a `<textarea>` or an attribute
+ * value, matched first, the policy landed where the browser treats it as text
+ * or ignores it, and the app ran with no lockdown at all. Do not go back to
+ * locating anything inside the app's markup.
+ *
+ * The leading doctype keeps the document in standards mode: without it the
+ * policy would precede the app's own doctype, which the parser would then
+ * ignore, and the page would fall into quirks mode.
+ */
 export function withAppCsp(html: string): string {
   const meta = `<meta http-equiv="Content-Security-Policy" content="${APP_CSP}">`;
-  // Strip HTML comments before locating the injection point: a crafted
-  // `<!-- <head> -->` must not shadow the real <head> and leave the document
-  // with no CSP (which would re-enable network exfiltration). Comments are
-  // inert, so a genuine app renders identically. Inject the meta as the FIRST
-  // child of <head> so the CSP precedes any in-head or in-body script in
-  // document order.
-  const doc = html.replace(/<!--[\s\S]*?-->/g, "");
-  if (/<head[^>]*>/i.test(doc)) {
-    return doc.replace(/<head[^>]*>/i, (match) => `${match}${meta}`);
-  }
-  if (/<html[^>]*>/i.test(doc)) {
-    return doc.replace(
-      /<html[^>]*>/i,
-      (match) => `${match}<head>${meta}</head>`,
-    );
-  }
-  return `<!doctype html><html><head>${meta}</head><body>${doc}</body></html>`;
+  return `<!doctype html>${meta}${html}`;
 }
 
 function errorMessage(err: unknown): string {

