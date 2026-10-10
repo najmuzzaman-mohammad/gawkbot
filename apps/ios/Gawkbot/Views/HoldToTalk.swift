@@ -8,8 +8,12 @@ struct HoldToTalkButton: View {
     /// The finger lifted before any listening began (a tap, not a hold).
     let onTap: () -> Void
 
-    /// True while a finger is down on the mic; keeps one start per press.
-    @State private var holding = false
+    /// True while a finger is down on the mic. A GestureState, not a State:
+    /// it resets when the system cancels the touch (the permission prompt
+    /// on first use, a call, Control Center), where `onEnded` never runs.
+    @GestureState private var pressing = false
+    /// This press already started the recorder; keeps one start per press.
+    @State private var started = false
 
     private let size: CGFloat = 34
 
@@ -25,23 +29,27 @@ struct HoldToTalkButton: View {
                 .foregroundStyle(live ? Color.white : Color.accentColor)
         }
         .frame(width: size, height: size)
-        .scaleEffect(holding ? 1.15 : 1)
-        .animation(.spring(response: 0.28, dampingFraction: 0.6), value: holding)
+        .scaleEffect(pressing ? 1.15 : 1)
+        .animation(.spring(response: 0.28, dampingFraction: 0.6), value: pressing)
         .contentShape(Circle().inset(by: -6))
         .gesture(
             DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !holding else { return }
-                    holding = true
-                    Task { await voice.start() }
-                }
-                .onEnded { _ in
-                    holding = false
-                    if voice.phase != .listening { onTap() }
-                    voice.stop()
-                }
+                .updating($pressing) { _, state, _ in state = true }
         )
+        .onChange(of: pressing) { _, down in
+            if down {
+                guard !started else { return }
+                started = true
+                Task { await voice.start() }
+            } else {
+                // Lifted, or the touch was cancelled: either way, stop.
+                started = false
+                if voice.phase != .listening { onTap() }
+                voice.stop()
+            }
+        }
         .accessibilityElement()
+        .accessibilityIdentifier("holdToTalk")
         .accessibilityLabel(live ? "Stop talking" : "Talk")
         .accessibilityHint("Hold to talk and let go to finish. With VoiceOver, double-tap to start and again to stop.")
         .accessibilityAddTraits(.isButton)

@@ -82,7 +82,18 @@ on the mic shows a reminder to hold it.
 
 Recognition is `SFSpeechRecognizer` fed by `AVAudioEngine`, on the phone
 when the device supports on-device recognition, otherwise Apple's speech
-service (the permission prompt says so). If microphone or speech permission
+service (the permission prompt says so). A phone can report on-device
+support without the model downloaded; that fails the moment recording
+starts, so the recorder restarts the same recording on Apple's service and
+uses it from then on. Log lines: `log stream --level debug --predicate
+'subsystem == "bot.gawk.ios" && category == "voice"'`.
+
+`scripts/voice-e2e.sh` is the end-to-end check: a UI test holds the mic in
+the Chief of Staff thread while the Mac says a sentence out loud, and passes
+when most of it lands in the message box. It needs a real iPhone (pass
+`DEVICE=` its name): on the iOS 26 simulator Speech fails with "Failed to
+initialize recognizer" before any audio counts, so there the test only
+proves the press cycle. If microphone or speech permission
 is refused an alert explains it and offers Settings; typing still works.
 
 ### Sounds and haptics

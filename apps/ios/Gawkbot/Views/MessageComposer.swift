@@ -18,16 +18,17 @@ struct MessageComposer: View {
 
     @State private var draft = ""
     @StateObject private var voice = VoiceRecorder()
-    /// Shown briefly after a tap on the mic that was too short to talk.
-    @State private var holdHint = false
+    /// A short line above the box: hold the mic (after a tap), or nothing
+    /// was heard. Clears itself.
+    @State private var voiceHint: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if voice.isActive {
                 VoiceTranscriptStrip(voice: voice)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if holdHint {
-                Label("Hold the mic to talk, let go to finish.", systemImage: "mic.fill")
+            } else if let voiceHint {
+                Label(voiceHint, systemImage: "mic.fill")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 4)
@@ -39,12 +40,13 @@ struct MessageComposer: View {
                 TextField("Message \(name)", text: $draft, axis: .vertical)
                     .lineLimit(1...6)
                     .focused(focused)
+                    .accessibilityIdentifier("composer")
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
                     .background(fieldFill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.softHairline, lineWidth: 1))
                     .onSubmit(send)
-                HoldToTalkButton(voice: voice) { showHoldHint() }
+                HoldToTalkButton(voice: voice) { showVoiceHint("Hold the mic to talk, let go to finish.") }
                 Button(action: send) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 32))
@@ -55,7 +57,7 @@ struct MessageComposer: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: voice.phase)
-        .animation(.easeInOut(duration: 0.2), value: holdHint)
+        .animation(.easeInOut(duration: 0.2), value: voiceHint)
         .onAppear {
             let office = store
             voice.onCue = { [weak office] cue in office?.feedback.play(cue) }
@@ -72,16 +74,19 @@ struct MessageComposer: View {
     private func takeTranscript() {
         let heard = voice.transcript
         voice.reset()
-        guard !heard.isEmpty else { return }
+        guard !heard.isEmpty else {
+            showVoiceHint("Didn't catch that. Hold the mic and try again.")
+            return
+        }
         let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         draft = typed.isEmpty ? heard : typed + " " + heard
     }
 
-    private func showHoldHint() {
-        holdHint = true
+    private func showVoiceHint(_ text: String) {
+        voiceHint = text
         Task {
             try? await Task.sleep(for: .seconds(2.5))
-            holdHint = false
+            if voiceHint == text { voiceHint = nil }
         }
     }
 

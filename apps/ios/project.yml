@@ -74,3 +74,24 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: bot.gawk.ios
         TARGETED_DEVICE_FAMILY: "1"
+  GawkbotUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: GawkbotUITests
+    dependencies:
+      - target: Gawkbot
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: bot.gawk.ios.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: Gawkbot
+schemes:
+  Gawkbot:
+    build:
+      targets:
+        Gawkbot: all
+        GawkbotUITests: [test]
+    test:
+      targets:
+        - GawkbotUITests

@@ -1,5 +1,6 @@
 import AVFoundation
 import Combine
+import os
 import Speech
 import GawkbotKit
 
@@ -30,7 +31,11 @@ final class VoiceRecorder: ObservableObject {
         var id: String { message }
     }
 
-    @Published private(set) var phase: Phase = .idle
+    @Published private(set) var phase: Phase = .idle {
+        didSet { if phase != oldValue { VoiceRecorder.log.debug("phase \(String(describing: oldValue)) -> \(String(describing: self.phase))") } }
+    }
+    /// `log stream --predicate 'subsystem == "bot.gawk.ios" && category == "voice"' --level debug`
+    static let log = Logger(subsystem: "bot.gawk.ios", category: "voice")
     /// Live while listening; final (trimmed) once confirming.
     @Published var transcript = ""
     @Published var problem: Problem? = nil
@@ -49,6 +54,17 @@ final class VoiceRecorder: ObservableObject {
     private var attempt = 0
     /// Only touch the input node's tap after we installed one.
     private var tapInstalled = false
+    /// The recognizer this recording uses, kept for the fallback below.
+    private var recognizer: SFSpeechRecognizer?
+    /// This recording asked for on-device recognition.
+    private var onDevice = false
+    /// On-device recognition failed to start on this phone (its model is
+    /// not downloaded, or the simulator has none). Apple's speech service
+    /// is used from then on, as the permission prompt says it may be.
+    private var onDeviceUnavailable = false
+    /// Bumped per recognition task, so a cancelled task's late callback
+    /// cannot end the recording that replaced it.
+    private var taskGeneration = 0
 
     init() {
         meter = VoiceMeter()
@@ -93,6 +109,7 @@ final class VoiceRecorder: ObservableObject {
             try begin(with: recognizer)
             phase = .listening
         } catch {
+            VoiceRecorder.log.error("mic start failed: \(error.localizedDescription, privacy: .public)")
             stopAudio()
             restoreSession()
             problem = Problem(message: "Couldn't start the microphone: \(error.localizedDescription)", offerSettings: false)
@@ -147,11 +164,13 @@ final class VoiceRecorder: ObservableObject {
         try session.setCategory(.record, mode: .measurement, options: .duckOthers)
         try session.setActive(true, options: .notifyOthersOnDeactivation)
 
+        self.recognizer = recognizer
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
-        if recognizer.supportsOnDeviceRecognition {
-            request.requiresOnDeviceRecognition = true
-        }
+        // `supportsOnDeviceRecognition` can be true while the model is not
+        // there; then the task fails at once and `handle` falls back.
+        onDevice = recognizer.supportsOnDeviceRecognition && !onDeviceUnavailable
+        request.requiresOnDeviceRecognition = onDevice
 
         let input = audioEngine.inputNode
         let format = input.outputFormat(forBus: 0)
@@ -163,12 +182,35 @@ final class VoiceRecorder: ObservableObject {
         try audioEngine.start()
 
         self.request = request
+        taskGeneration += 1
+        let generation = taskGeneration
         task = recognizer.recognitionTask(with: request, resultHandler: VoiceRecorder.makeResultHandler { [weak self] text, isFinal, failed in
-            self?.handle(text: text, isFinal: isFinal, failed: failed)
+            guard let self, generation == self.taskGeneration else { return }
+            self.handle(text: text, isFinal: isFinal, failed: failed)
         })
     }
 
     private func handle(text: String?, isFinal: Bool, failed: Bool) {
+        // On-device recognition could not start: restart this same
+        // recording on Apple's service rather than end it with nothing.
+        if failed, onDevice, phase == .listening, transcript.isEmpty, let recognizer {
+            VoiceRecorder.log.error("on-device recognition failed to start; using the speech service")
+            onDeviceUnavailable = true
+            task?.cancel()
+            task = nil
+            request = nil
+            stopAudio()
+            do {
+                try begin(with: recognizer)
+            } catch {
+                VoiceRecorder.log.error("mic restart failed: \(error.localizedDescription, privacy: .public)")
+                restoreSession()
+                problem = Problem(message: "Couldn't start the microphone: \(error.localizedDescription)", offerSettings: false)
+                phase = .idle
+            }
+            return
+        }
+        VoiceRecorder.log.debug("result chars=\(text?.count ?? -1) final=\(isFinal) failed=\(failed)")
         if let text, phase == .listening || phase == .finishing {
             transcript = text
         }
@@ -272,6 +314,7 @@ final class VoiceRecorder: ObservableObject {
             let text = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
             let failed = error != nil
+            if let error { VoiceRecorder.log.error("recognition error: \(error.localizedDescription, privacy: .public)") }
             Task { @MainActor in deliver(text, isFinal, failed) }
         }
     }
