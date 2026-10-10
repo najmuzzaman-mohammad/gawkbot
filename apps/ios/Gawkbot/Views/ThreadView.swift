@@ -26,7 +26,17 @@ struct ThreadView: View {
     private var messages: [ChatMessage] { store.messages[channel] ?? [] }
     private var typing: Bool { store.typing.contains(slug) }
     private var asks: [BotRequest] { store.requests(in: channel) }
-    private var heroMood: Mood { typing ? .working : (agent?.mood ?? .idle) }
+    /// A terminal session kept as a member. It cannot be messaged from here.
+    private var isSession: Bool { bot?.isSession ?? agent?.isSession ?? false }
+    /// For a session, only what its own log says; never the office's activity.
+    private var working: Bool { isSession ? bot?.sessionStatus == .working : typing }
+    private var heroMood: Mood {
+        if isSession { return working ? .working : .idle }
+        return typing ? .working : (agent?.mood ?? .idle)
+    }
+    private var emptyLine: String {
+        (bot ?? Bot(slug: slug, name: name, origin: isSession ? SessionMember.origin : nil)).emptyConversationLine
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -35,13 +45,14 @@ struct ThreadView: View {
                     ThreadHero(
                         slug: slug,
                         name: name,
+                        spokenName: store.runtimes.spokenName(name, slug: slug),
                         avatar: avatar,
                         mood: heroMood,
                         subtitle: heroSubtitle,
                         onChangeLook: { if !slug.isEmpty { pickingLook = true } }
                     )
                     if messages.isEmpty && asks.isEmpty && !typing {
-                        Text(verbatim: "Say hi. \(name) answers right here, like a person would.")
+                        Text(verbatim: emptyLine)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -92,16 +103,21 @@ struct ThreadView: View {
                 voice.cancel()
             }
         }
-        .safeAreaInset(edge: .bottom) { composer }
+        .safeAreaInset(edge: .bottom) {
+            // No message box and no mic for a session: one sentence instead.
+            if isSession { sessionNotice } else { composer }
+        }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                VStack(spacing: 2) {
-                    WorkingBlobAvatarView(slug: slug, avatar: avatar, size: 26, working: typing)
+                // Room under the avatar for the badge tucked into its corner.
+                VStack(spacing: 4) {
+                    WorkingBlobAvatarView(slug: slug, avatar: avatar, size: 26, working: working)
                     Text(verbatim: name).font(.caption2).foregroundStyle(.primary)
                 }
                 .accessibilityElement(children: .combine)
+                .accessibilityLabel(store.runtimes.spokenName(name, slug: slug))
             }
         }
         .onAppear {
@@ -120,10 +136,26 @@ struct ThreadView: View {
     }
 
     private var heroSubtitle: String? {
+        if isSession, let bot {
+            return [bot.sessionStatusLabel, bot.sessionProject].filter { !$0.isEmpty }.joined(separator: " · ")
+        }
         if typing { return "typing…" }
         if let detail = agent?.detail, !detail.isEmpty { return detail }
         if let role = bot?.role, !role.isEmpty { return role }
         return agent?.mood.label
+    }
+
+    /// Where the composer would be for a session member. A closed session
+    /// is not told it is open.
+    private var sessionNotice: some View {
+        Label(bot?.sessionNotMessageable ?? SessionMember.notMessageable, systemImage: "terminal")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.bar)
+            .accessibilityElement(children: .combine)
     }
 
     private var composer: some View {
@@ -187,7 +219,7 @@ struct ThreadView: View {
     private var canSend: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     private func send() {
-        guard canSend else { return }
+        guard canSend, !isSession else { return }
         let text = draft
         draft = ""
         #if os(iOS)
@@ -232,6 +264,8 @@ struct ThreadView: View {
 struct ThreadHero: View {
     let slug: String
     let name: String
+    /// The name as VoiceOver reads it, with what the agent runs on.
+    var spokenName: String? = nil
     let avatar: BotAvatar?
     let mood: Mood
     let subtitle: String?
@@ -244,6 +278,7 @@ struct ThreadHero: View {
             Text(verbatim: name)
                 .font(.title2.weight(.bold))
                 .multilineTextAlignment(.center)
+                .accessibilityLabel(spokenName ?? name)
             if let subtitle {
                 Text(verbatim: subtitle)
                     .font(.subheadline)

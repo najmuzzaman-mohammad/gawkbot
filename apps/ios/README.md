@@ -38,6 +38,30 @@ count. Tap one to open its thread. Agents that run elsewhere (OpenClaw or
 Hermes gateways, Slack, a cloud computer) are messaged exactly like local
 ones.
 
+Terminal sessions open on the Mac (a Claude Code or Codex window the office
+keeps as a member, `origin: "session"`) are listed below the agents under
+**Sessions on this Mac**, never mixed in; the section is absent when there
+are none. A session row shows its project folder and a status that comes
+only from the session: Working, Your turn, Quiet, or Closed. Its thread
+still opens and shows past messages, but a session cannot be messaged from
+the phone yet, so the message box and the mic are replaced by one sentence
+saying so.
+
+### Model badge
+
+Every agent avatar carries a small tag for what the agent runs on, read from
+`runtime` on `/office-members` and `/notch/state`. How much it says follows
+the avatar's size, the same rules as the web app: under 16 pt a dot, 16 to
+31 a two-character code ("Op", "So", "G6"), 32 to 43 the first word
+("Opus"), and 44 and up the full label ("Opus 5.5"). With no model known it
+shows the tool ("Gemini CLI", or "GC" at code size). VoiceOver reads it with
+the name: "Designer, runs on Sonnet 5.5 in Claude Code". The rules are
+`BotRuntime` in GawkbotKit; the avatar views in `Views/BlobAvatarView.swift`
+draw the tag themselves (`showsBadge: false` opts out for a mark that is not
+a running agent), fed once from `OfficeStore.runtimes` through the
+`botRuntimes` environment value. An office that sends no `runtime` gets no
+tag.
+
 ### Talk with your voice
 
 In an agent's thread, hold the mic beside the message box and speak; the
@@ -147,8 +171,9 @@ pill, loaf, shield, blob) still resolve to the orb each maps to.
   the inbox), `BrokerClient` (REST + server-sent events), `MockBroker` (a
   canned office for previews, screenshots, and tests), `Pairing`, the
   avatar ports (`BlobAvatar` for the look, `OrbAvatar` for the geometry), the
-  chosen look (`BotAvatar`, `BlobAvatar.resolve`), and the inbox's pure
-  logic: `InboxKeymap`, `InboxCursor`, `InboxEvents` (which
+  chosen look (`BotAvatar`, `BlobAvatar.resolve`), the model badge rules
+  (`BotRuntime`), session members (`BotSession`, `SessionMember`), and the
+  inbox's pure logic: `InboxKeymap`, `InboxCursor`, `InboxEvents` (which
   sound a poll deserves), `CartoonSynth`, `MoodMotion` (mood loops, tap
   squash, blink).
   Tests run on the Mac: `cd GawkbotKit && swift test`.
@@ -210,13 +235,15 @@ Tap **Look around a demo office** on the pairing screen, or launch with the
 `-mock` argument (or `GAWKBOT_MOCK=1`), to skip pairing and talk to
 `MockBroker`. The inbox opens on three questions (a blocking
 approval, a choice with a write-in option, and an approval from Hermes, a
-gateway agent running elsewhere); the Agents tab has a roster across every mood. Replies
+gateway agent running elsewhere); the Agents tab has a roster across every mood,
+each agent on a different model, and three terminal sessions (working, your
+turn, and closed). Replies
 arrive a couple of seconds after you send or answer, typing dots first, and
 the bot goes working → done (with its sound) → idle. Hermes starts with a
 picked shape (blob) and its automatic colour; **Change look** works against
 the mock too, with the office's validation. `scripts/screenshots.sh`
-boots a simulator in this mode and captures the inbox (light and dark), the
-list, and a couple of threads. Deep links: `gawkbot://inbox`,
+boots a simulator in this mode and captures the inbox and the list (light
+and dark), a couple of threads, and two session threads. Deep links: `gawkbot://inbox`,
 `gawkbot://agents`, `gawkbot://settings`, `gawkbot://thread/<slug>`.
 
 ## Pair with a real office
@@ -232,6 +259,7 @@ must be reachable at that address from the phone; `localhost` will not be.
 
 ## What is not here yet
 
+- Messaging or resuming a terminal session from the phone.
 - Push notifications. The inbox only updates while the app is open; a
   question arriving while it is closed waits until you open it. Needs a
   small relay on the broker to send APNs pushes.

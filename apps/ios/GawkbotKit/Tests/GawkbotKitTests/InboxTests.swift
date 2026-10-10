@@ -371,7 +371,7 @@ final class MockNotchTests: XCTestCase {
         XCTAssertEqual(state.agents.first?.slug, "cos")
         XCTAssertEqual(state.agent("hermes")?.primaryTag?.text, "elsewhere · Hermes gateway")
         XCTAssertEqual(state.agent("hermes")?.mood, .needsYou)
-        XCTAssertEqual(Set(state.agents.map(\.mood)), [.needsYou, .working, .done, .error], "several moods on show")
+        XCTAssertEqual(Set(state.agents.filter { !$0.isSession }.map(\.mood)), [.needsYou, .working, .done, .error], "several moods on show")
         XCTAssertEqual(state.headline, "3 things need you")
         XCTAssertTrue(state.attention.contains { $0.options.contains { $0.requiresText == true } })
     }

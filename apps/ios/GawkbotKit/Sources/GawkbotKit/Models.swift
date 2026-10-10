@@ -23,10 +23,16 @@ public struct Bot: Codable, Identifiable, Hashable, Sendable {
     /// The bot's chosen look, when someone picked one. Nil draws the
     /// slug-derived silhouette and colour.
     public var avatar: BotAvatar?
+    /// What it runs on (the tool and the model), when the office says.
+    public var runtime: BotRuntime?
+    /// Who made it. "session" is a terminal session kept as a member.
+    public var origin: String?
+    /// The terminal session behind a session member; nil for everyone else.
+    public var session: BotSession?
 
     public var id: String { slug }
 
-    public init(slug: String, name: String, role: String? = nil, status: String? = nil, task: String? = nil, builtIn: Bool? = nil, avatar: BotAvatar? = nil) {
+    public init(slug: String, name: String, role: String? = nil, status: String? = nil, task: String? = nil, builtIn: Bool? = nil, avatar: BotAvatar? = nil, runtime: BotRuntime? = nil, origin: String? = nil, session: BotSession? = nil) {
         self.slug = slug
         self.name = name
         self.role = role
@@ -34,10 +40,13 @@ public struct Bot: Codable, Identifiable, Hashable, Sendable {
         self.task = task
         self.builtIn = builtIn
         self.avatar = avatar
+        self.runtime = runtime
+        self.origin = origin
+        self.session = session
     }
 
     enum CodingKeys: String, CodingKey {
-        case slug, name, role, status, task, avatar
+        case slug, name, role, status, task, avatar, runtime, origin, session
         case builtIn = "built_in"
     }
 
@@ -51,6 +60,12 @@ public struct Bot: Codable, Identifiable, Hashable, Sendable {
         builtIn = try c.decodeIfPresent(Bool.self, forKey: .builtIn)
         // A malformed avatar must not cost the whole roster: read it as unset.
         avatar = try? c.decodeIfPresent(BotAvatar.self, forKey: .avatar)
+        // The same for what it runs on and its session: an office too old to
+        // send them, or one that sends a shape this app does not know, still
+        // gets its roster.
+        runtime = try? c.decodeIfPresent(BotRuntime.self, forKey: .runtime)
+        origin = try? c.decodeIfPresent(String.self, forKey: .origin)
+        session = try? c.decodeIfPresent(BotSession.self, forKey: .session)
     }
 
     /// The DM channel the human shares with this bot.

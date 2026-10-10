@@ -18,6 +18,7 @@ struct ReplySheet: View {
     let onSend: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.botRuntimes) private var runtimes
     @State private var text = ""
     @FocusState private var focused: Bool
 
@@ -30,6 +31,7 @@ struct ReplySheet: View {
                     BlobAvatarView(slug: target.attention.from, avatar: avatar, size: 32)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(target.attention.displayName).font(.subheadline.weight(.semibold))
+                            .accessibilityLabel(runtimes.spokenName(target.attention.displayName, slug: target.attention.from))
                         if let option = target.option {
                             Text(option.label).font(.caption).foregroundStyle(.secondary)
                         }

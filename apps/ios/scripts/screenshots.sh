@@ -46,8 +46,20 @@ sleep 1
 xcrun simctl io "$udid" screenshot "$OUT/00-inbox-dark.png" >/dev/null
 xcrun simctl ui "$udid" appearance light
 shot 01-agents -tab agents
+xcrun simctl ui "$udid" appearance dark
+sleep 1
+xcrun simctl io "$udid" screenshot "$OUT/01-agents-dark.png" >/dev/null
+xcrun simctl ui "$udid" appearance light
 shot 02-thread-cos -open cos
 shot 03-thread-designer-ask -open designer
 shot 04-settings -tab settings
+# Terminal sessions kept as members: one open (an empty thread, no composer)
+# and one closed with past messages. Slugs are MockBroker's.
+shot 05-thread-session -open cc-3f2a91c4
+shot 06-thread-session-closed -open cc-a41c6e02
+xcrun simctl ui "$udid" appearance dark
+sleep 1
+xcrun simctl io "$udid" screenshot "$OUT/06-thread-session-closed-dark.png" >/dev/null
+xcrun simctl ui "$udid" appearance light
 echo "screenshots in $OUT"
 ls -1 "$OUT"

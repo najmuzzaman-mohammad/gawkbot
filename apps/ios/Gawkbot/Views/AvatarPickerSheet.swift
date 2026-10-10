@@ -108,7 +108,7 @@ struct AvatarPickerSheet: View {
 
     private var preview: some View {
         VStack(spacing: 8) {
-            MoodAvatarView(slug: slug, avatar: draft, mood: .idle, size: 120, halo: true)
+            MoodAvatarView(slug: slug, avatar: draft, mood: .idle, size: 120, halo: true, showsBadge: false)
                 .animation(.spring(response: 0.35, dampingFraction: 0.55), value: draft)
             Text(verbatim: name).font(.title3.weight(.semibold))
             Text(draft.isAutomatic ? "Automatic" : "Picked for \(name)")
@@ -138,7 +138,7 @@ struct AvatarPickerSheet: View {
             Haptics.lightTap()
         } label: {
             VStack(spacing: 6) {
-                BlobAvatarView(slug: slug, avatar: BotAvatar(shape: id, color: look.color), size: 44)
+                BlobAvatarView(slug: slug, avatar: BotAvatar(shape: id, color: look.color), size: 44, showsBadge: false)
                     .scaleEffect(selected ? 1.08 : 1)
                 Text(label)
                     .font(.caption2.weight(selected ? .semibold : .regular))

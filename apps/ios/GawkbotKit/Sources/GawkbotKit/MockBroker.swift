@@ -42,24 +42,64 @@ public actor MockBroker: BrokerAPI {
         pending = MockBroker.seedRequests(now: Date())
     }
 
+    /// What each mock member runs on. A spread on purpose: two Claude
+    /// models, a Codex model, a local model, a CLI whose model nobody knows
+    /// (the badge falls back to the tool), and a gateway agent.
+    public static let runtimes: [String: BotRuntime] = [
+        "cos": BotRuntime(harness: "claude-code", harnessName: "Claude Code", model: "claude-opus-5-5", modelLabel: "Opus 5.5", family: "claude", source: "binding"),
+        "designer": BotRuntime(harness: "claude-code", harnessName: "Claude Code", model: "claude-sonnet-5-5", modelLabel: "Sonnet 5.5", family: "claude", source: "binding"),
+        "gtm-lead": BotRuntime(harness: "codex", harnessName: "Codex CLI", model: "gpt-6-astra", modelLabel: "GPT-6 Astra", family: "gpt", source: "binding"),
+        "founding-engineer": BotRuntime(harness: "claude-code", harnessName: "Claude Code", model: "claude-haiku-5-5", modelLabel: "Haiku 5.5", family: "claude", source: "default"),
+        "prospect-scout": BotRuntime(harness: "cli-agent", harnessName: "Gemini CLI", source: "default"),
+        "hermes": BotRuntime(harness: "hermes", harnessName: "Hermes gateway"),
+        sessionWorking: BotRuntime(harness: "claude-code", harnessName: "Claude Code", model: "claude-opus-5-5", modelLabel: "Opus 5.5", family: "claude", source: "observed"),
+        sessionYourTurn: BotRuntime(harness: "codex", harnessName: "Codex CLI", model: "gpt-6-astra", modelLabel: "GPT-6 Astra", family: "gpt", source: "observed"),
+        sessionClosed: BotRuntime(harness: "claude-code", harnessName: "Claude Code", model: "claude-sonnet-5-5", modelLabel: "Sonnet 5.5", family: "claude", source: "observed"),
+    ]
+
+    /// The three terminal sessions kept as members: a Claude Code window
+    /// mid-turn, a Codex window waiting on the person, and one that has
+    /// been closed. Slugs follow the broker's `cc-` and `cx-` prefixes.
+    public static let sessionWorking = "cc-3f2a91c4"
+    public static let sessionYourTurn = "cx-8be07d15"
+    public static let sessionClosed = "cc-a41c6e02"
+
     public static let roster: [Bot] = [
-        Bot(slug: "cos", name: "Chief of Staff", role: "Chief of Staff", status: "idle", builtIn: true),
-        Bot(slug: "designer", name: "Designer", role: "design", status: "active", task: "reviewing work packet"),
-        Bot(slug: "gtm-lead", name: "GTM Lead", role: "go-to-market", status: "idle"),
-        Bot(slug: "founding-engineer", name: "Founding Engineer", role: "engineering", status: "idle"),
-        Bot(slug: "prospect-scout", name: "Rita Scout", role: "Outbound Prospecting Analyst", status: "idle"),
-        Bot(slug: "hermes", name: "Hermes", role: "community", status: "idle"),
+        Bot(slug: "cos", name: "Chief of Staff", role: "Chief of Staff", status: "idle", builtIn: true, runtime: runtimes["cos"], origin: "built_in"),
+        Bot(slug: "designer", name: "Designer", role: "design", status: "active", task: "reviewing work packet", runtime: runtimes["designer"], origin: "user"),
+        Bot(slug: "gtm-lead", name: "GTM Lead", role: "go-to-market", status: "idle", runtime: runtimes["gtm-lead"], origin: "chief_of_staff"),
+        Bot(slug: "founding-engineer", name: "Founding Engineer", role: "engineering", status: "idle", runtime: runtimes["founding-engineer"], origin: "user"),
+        Bot(slug: "prospect-scout", name: "Rita Scout", role: "Outbound Prospecting Analyst", status: "idle", runtime: runtimes["prospect-scout"], origin: "adopted"),
+        Bot(slug: "hermes", name: "Hermes", role: "community", status: "idle", runtime: runtimes["hermes"], origin: "imported"),
+        Bot(
+            slug: sessionWorking, name: "Fix the flaky pairing test", role: "Claude Code session", status: "active",
+            runtime: runtimes[sessionWorking], origin: SessionMember.origin,
+            session: BotSession(tool: "claude-code", project: "gawkbot", cwd: "/Users/sam/code/gawkbot", state: "working", lastSaid: "Running the suite again with the retry removed.", live: true)
+        ),
+        Bot(
+            slug: sessionYourTurn, name: "Sponsor page copy", role: "Codex session", status: "idle",
+            runtime: runtimes[sessionYourTurn], origin: SessionMember.origin,
+            session: BotSession(tool: "codex", project: "newsletter-site", cwd: "/Users/sam/code/newsletter-site", state: "your_turn", lastSaid: "Two headline options are in the diff. Which one do you want?", live: true)
+        ),
+        Bot(
+            slug: sessionClosed, name: "Tidy the RSVP schema", role: "Claude Code session", status: "idle",
+            runtime: runtimes[sessionClosed], origin: SessionMember.origin,
+            session: BotSession(tool: "claude-code", project: "rsvp-app", cwd: "/Users/sam/code/rsvp-app", lastSaid: "Migration applied and the tests pass.", live: false)
+        ),
     ]
 
     /// Who made each bot, where it runs, and its resting mood. Spans every
     /// mood and the origins the inbox labels, plus one gateway agent.
     public static let notchAgents: [NotchAgent] = [
-        NotchAgent(slug: "cos", name: "Chief of Staff", mood: .idle, origin: "built_in", runsOn: "this_machine", runsOnDetail: "this machine", isLead: true),
-        NotchAgent(slug: "designer", name: "Designer", mood: .working, detail: "reviewing work packet", origin: "user", runsOn: "this_machine", runsOnDetail: "this machine"),
-        NotchAgent(slug: "gtm-lead", name: "GTM Lead", mood: .working, detail: "scoring sponsor prospects", origin: "chief_of_staff", runsOn: "this_machine", runsOnDetail: "this machine"),
-        NotchAgent(slug: "founding-engineer", name: "Founding Engineer", mood: .done, detail: "just finished", origin: "user", runsOn: "this_machine", runsOnDetail: "this machine"),
-        NotchAgent(slug: "prospect-scout", name: "Rita Scout", mood: .error, detail: "looks stuck", origin: "adopted", runsOn: "this_machine", runsOnDetail: "agent CLI on this machine"),
-        NotchAgent(slug: "hermes", name: "Hermes", mood: .idle, origin: "imported", runsOn: "elsewhere", runsOnDetail: "Hermes gateway"),
+        NotchAgent(slug: "cos", name: "Chief of Staff", mood: .idle, origin: "built_in", runsOn: "this_machine", runsOnDetail: "this machine", isLead: true, runtime: runtimes["cos"]),
+        NotchAgent(slug: "designer", name: "Designer", mood: .working, detail: "reviewing work packet", origin: "user", runsOn: "this_machine", runsOnDetail: "this machine", runtime: runtimes["designer"]),
+        NotchAgent(slug: "gtm-lead", name: "GTM Lead", mood: .working, detail: "scoring sponsor prospects", origin: "chief_of_staff", runsOn: "this_machine", runsOnDetail: "this machine", runtime: runtimes["gtm-lead"]),
+        NotchAgent(slug: "founding-engineer", name: "Founding Engineer", mood: .done, detail: "just finished", origin: "user", runsOn: "this_machine", runsOnDetail: "this machine", runtime: runtimes["founding-engineer"]),
+        NotchAgent(slug: "prospect-scout", name: "Rita Scout", mood: .error, detail: "looks stuck", origin: "adopted", runsOn: "this_machine", runsOnDetail: "agent CLI on this machine", runtime: runtimes["prospect-scout"]),
+        NotchAgent(slug: "hermes", name: "Hermes", mood: .idle, origin: "imported", runsOn: "elsewhere", runsOnDetail: "Hermes gateway", runtime: runtimes["hermes"]),
+        NotchAgent(slug: sessionWorking, name: "Fix the flaky pairing test", mood: .working, detail: "working", origin: SessionMember.origin, runsOn: "this_machine", runsOnDetail: "Claude Code on this machine", kind: "session", runtime: runtimes[sessionWorking], open: true),
+        NotchAgent(slug: sessionYourTurn, name: "Sponsor page copy", mood: .idle, detail: "your turn", origin: SessionMember.origin, runsOn: "this_machine", runsOnDetail: "Codex CLI on this machine", kind: "session", runtime: runtimes[sessionYourTurn], open: true),
+        NotchAgent(slug: sessionClosed, name: "Tidy the RSVP schema", mood: .idle, origin: SessionMember.origin, runsOn: "this_machine", runsOnDetail: "Claude Code on this machine", kind: "session", runtime: runtimes[sessionClosed], open: false),
     ]
 
     public static let seedRequest = BotRequest(
@@ -120,6 +160,10 @@ public actor MockBroker: BrokerAPI {
         return [designer, sponsor, recap]
     }
 
+    /// What a session member answers when it is written to
+    /// (sessionNotMessageableReply in internal/team/broker_session_agents.go).
+    public static let sessionReply = "This session is open in your terminal on this Mac. It cannot be messaged from here yet, so type into its terminal window to talk to it."
+
     static func seedThread(for bot: Bot) -> [ChatMessage] {
         let ch = bot.dmChannel
         let now = Date()
@@ -148,7 +192,15 @@ public actor MockBroker: BrokerAPI {
             return [
                 ChatMessage(id: "m9", from: "hermes", channel: ch, content: "Recap of Tuesday's community call is drafted. Waiting on you before it goes out.", timestamp: at(4)),
             ]
+        case sessionClosed:
+            // What a thread with a session looks like when someone wrote
+            // to it from the office: the broker's one-line answer.
+            return [
+                ChatMessage(id: "m10", from: "you", channel: ch, content: "Did the migration go through?", timestamp: at(200)),
+                ChatMessage(id: "m11", from: bot.slug, channel: ch, content: sessionReply, timestamp: at(200)),
+            ]
         default:
+            if bot.isSession { return [] }
             return [
                 ChatMessage(id: "m8", from: bot.slug, channel: ch, content: "Standing by.", timestamp: at(1440)),
             ]
@@ -180,7 +232,14 @@ public actor MockBroker: BrokerAPI {
         store[channel, default: []].append(msg)
         broadcast(.message(msg))
         if let bot = DMChannel.bot(in: channel) {
-            Task { await self.reply(to: content, from: bot, in: channel) }
+            if bots.first(where: { $0.slug == bot })?.isSession == true {
+                counter += 1
+                let answer = ChatMessage(id: "m\(counter)", from: bot, channel: channel, content: MockBroker.sessionReply, timestamp: ISO8601.format(Date()))
+                store[channel, default: []].append(answer)
+                broadcast(.message(answer))
+            } else {
+                Task { await self.reply(to: content, from: bot, in: channel) }
+            }
         }
         return msg
     }

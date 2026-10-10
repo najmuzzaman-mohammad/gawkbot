@@ -434,6 +434,12 @@ final class OfficeStore: ObservableObject {
         return bots.first { $0.slug == slug }?.avatar
     }
 
+    /// What each agent runs on, by slug, for the model badge. Rebuilt from
+    /// the roster and the inbox whenever either changes.
+    var runtimes: BotRuntimeLookup {
+        BotRuntimeLookup(bots: bots, agents: notch?.agents ?? [])
+    }
+
     /// Sets (or, with nil, resets) a bot's look on the office, then re-reads
     /// the roster and the inbox. Returns the office's refusal as text, or nil
     /// on success. The picker shows the error itself: an alert from the root

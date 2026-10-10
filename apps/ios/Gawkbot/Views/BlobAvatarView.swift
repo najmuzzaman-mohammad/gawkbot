@@ -7,12 +7,18 @@ import GawkbotKit
 /// chosen `avatar` where one is set, otherwise the slug-derived look
 /// (`BlobAvatar.resolve`). `face` is the still pose; `openness` closes the
 /// eyes (a blink: `blink = 1 - openness`).
+///
+/// Every avatar view here carries the model badge (`modelBadge`) when the
+/// office says what the slug runs on. `showsBadge: false` is for a mark that
+/// is not a running agent: the pairing screen, the connecting splash, and
+/// the look picker.
 struct BlobAvatarView: View {
     let slug: String
     var avatar: BotAvatar? = nil
     var size: CGFloat = 40
     var openness: Double = 1
     var face: OrbAvatar.Face = .calm
+    var showsBadge: Bool = true
 
     /// The face with the motion's blink folded in (whichever is more shut).
     private var pose: OrbAvatar.Face {
@@ -24,6 +30,7 @@ struct BlobAvatarView: View {
     var body: some View {
         OrbCanvas(mark: OrbAvatar.mark(slug: slug, avatar: avatar, face: pose))
             .frame(width: size, height: size)
+            .modelBadge(slug: slug, size: size, shows: showsBadge)
             .accessibilityHidden(true)
     }
 }
@@ -195,6 +202,7 @@ struct MoodAvatarView: View {
     var halo: Bool = false
     /// Off where a tap belongs to something else (a List row's link).
     var squishOnTap: Bool = true
+    var showsBadge: Bool = true
 
     /// From this size up an avatar is big enough for a blink to read.
     static let blinkSize: CGFloat = 56
@@ -210,12 +218,15 @@ struct MoodAvatarView: View {
         let look = BlobAvatar.resolve(slug: slug, avatar: avatar)
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: paused)) { context in
             let p = currentPose(at: context.date)
-            BlobAvatarView(slug: slug, avatar: avatar, size: size, openness: p.openness, face: mood?.face ?? .calm)
+            // The badge is drawn below, outside the motion, so it stays put
+            // and legible while the face hops and squashes.
+            BlobAvatarView(slug: slug, avatar: avatar, size: size, openness: p.openness, face: mood?.face ?? .calm, showsBadge: false)
                 .scaleEffect(x: CGFloat(p.scaleX), y: CGFloat(p.scaleY), anchor: .bottom)
                 .rotationEffect(.degrees(p.rotation), anchor: .bottom)
                 .offset(x: CGFloat(p.dx) * size, y: CGFloat(p.dy) * size)
         }
         .frame(width: size, height: size)
+        .modelBadge(slug: slug, size: size, shows: showsBadge)
         .padding(halo ? size * 0.14 : 0)
         .background {
             if halo {
@@ -267,9 +278,10 @@ struct WorkingBlobAvatarView: View {
     let working: Bool
     var halo: Bool = false
     var squishOnTap: Bool = false
+    var showsBadge: Bool = true
 
     var body: some View {
-        MoodAvatarView(slug: slug, avatar: avatar, mood: working ? .working : nil, size: size, halo: halo, squishOnTap: squishOnTap)
+        MoodAvatarView(slug: slug, avatar: avatar, mood: working ? .working : nil, size: size, halo: halo, squishOnTap: squishOnTap, showsBadge: showsBadge)
     }
 }
 

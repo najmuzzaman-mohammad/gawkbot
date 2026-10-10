@@ -12,6 +12,8 @@ struct AttentionCard: View {
     let onChoose: (InterviewOption) -> Void
     let onReply: () -> Void
 
+    @Environment(\.botRuntimes) private var runtimes
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
@@ -110,6 +112,7 @@ struct AttentionCard: View {
             MoodAvatarView(slug: item.from, avatar: agent?.avatar, mood: agent?.mood ?? .needsYou, size: 40, halo: true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.displayName).font(.subheadline.weight(.semibold)).lineLimit(1)
+                    .accessibilityLabel(runtimes.spokenName(item.displayName, slug: item.from))
                 HStack(spacing: 6) {
                     if let tag = agent?.primaryTag { TagChip(tag: tag) }
                     if let date = item.date {

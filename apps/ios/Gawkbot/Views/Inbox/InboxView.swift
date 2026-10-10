@@ -76,6 +76,7 @@ struct InboxView: View {
                     Text(notch.leadName ?? "Chief of Staff")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        .accessibilityLabel(store.runtimes.spokenName(notch.leadName ?? "Chief of Staff", slug: notch.lead ?? "cos"))
                     Text(verbatim: notch.headline)
                         .font(.title3.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)

@@ -11,14 +11,14 @@ struct RootView: View {
                 PairingView()
             case .connecting:
                 VStack(spacing: 12) {
-                    MoodAvatarView(slug: "cos", mood: .working, size: 72, halo: true)
+                    MoodAvatarView(slug: "cos", mood: .working, size: 72, halo: true, showsBadge: false)
                     Text("Reaching your office…").foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.softCanvas)
             case let .failed(reason):
                 VStack(spacing: 16) {
-                    MoodAvatarView(slug: "cos", mood: .error, size: 72, halo: true)
+                    MoodAvatarView(slug: "cos", mood: .error, size: 72, halo: true, showsBadge: false)
                     Text("Could not reach the office").font(.headline)
                     Text(reason).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal)
                     Button("Pair again") { store.unpair() }.buttonStyle(.borderedProminent)
@@ -43,6 +43,9 @@ struct RootView: View {
         } message: {
             Text(store.pairingError ?? "")
         }
+        // Outermost, so the sheets above read it too: what each agent runs
+        // on, for the model badge on every avatar.
+        .environment(\.botRuntimes, store.runtimes)
     }
 }
 

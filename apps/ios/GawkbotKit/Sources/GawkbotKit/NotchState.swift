@@ -79,11 +79,16 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
     /// latest reply: what it is waiting on.
     public var toolName: String?
     public var lastSaid: String?
+    /// What it runs on (the tool and the model), when the office says.
+    public var runtime: BotRuntime?
+    /// Whether the tool has a session open right now: true, false, or nil
+    /// when the tool could not be asked.
+    public var open: Bool?
 
     public var id: String { slug }
     public var isSession: Bool { kind == "session" }
 
-    public init(slug: String, name: String, mood: Mood, detail: String? = nil, origin: String? = nil, runsOn: String? = nil, runsOnDetail: String? = nil, isLead: Bool = false, avatar: BotAvatar? = nil) {
+    public init(slug: String, name: String, mood: Mood, detail: String? = nil, origin: String? = nil, runsOn: String? = nil, runsOnDetail: String? = nil, isLead: Bool = false, avatar: BotAvatar? = nil, kind: String? = nil, runtime: BotRuntime? = nil, open: Bool? = nil) {
         self.slug = slug
         self.name = name
         self.mood = mood
@@ -93,10 +98,13 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
         self.runsOnDetail = runsOnDetail
         self.isLead = isLead
         self.avatar = avatar
+        self.kind = kind
+        self.runtime = runtime
+        self.open = open
     }
 
     enum CodingKeys: String, CodingKey {
-        case slug, name, mood, detail, origin, avatar, kind
+        case slug, name, mood, detail, origin, avatar, kind, runtime, open
         case toolName = "tool_name"
         case lastSaid = "last_said"
         case runsOn = "runs_on"
@@ -118,6 +126,8 @@ public struct NotchAgent: Codable, Identifiable, Hashable, Sendable {
         kind = try c.decodeIfPresent(String.self, forKey: .kind)
         toolName = try c.decodeIfPresent(String.self, forKey: .toolName)
         lastSaid = try c.decodeIfPresent(String.self, forKey: .lastSaid)
+        runtime = try? c.decodeIfPresent(BotRuntime.self, forKey: .runtime)
+        open = try? c.decodeIfPresent(Bool.self, forKey: .open)
     }
 
     /// Cloud and gateway agents (OpenClaw, Hermes, Slack). They are answered
@@ -445,9 +455,11 @@ public struct NotchState: Codable, Hashable, Sendable {
                 name: bot.name,
                 mood: mood,
                 detail: mood == .needsYou ? "waiting on you" : bot.task,
-                origin: bot.builtIn == true ? "built_in" : nil,
+                origin: bot.builtIn == true ? "built_in" : bot.origin,
                 isLead: bot.slug == lead,
-                avatar: bot.avatar
+                avatar: bot.avatar,
+                kind: bot.isSession ? "session" : nil,
+                runtime: bot.runtime
             )
         }
         let attention = order(pending.map { NotchAttention(request: $0, fromName: names[$0.from]) })

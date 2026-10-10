@@ -315,7 +315,7 @@ Every claim in this README, grounded to the code that makes it true.
 | Finds the agent CLIs on your machine and adopts them as bots | ✅ shipped | `internal/agentdetect/`, `internal/team/broker_local_agents.go`, `web/src/components/apps/settings/LocalAgentsSection.tsx` |
 | Chief of Staff adopts agents behind an approval card | ✅ shipped | `internal/teammcp/server_local_agents.go` |
 | Every bot tagged with who made it and where it runs | ✅ shipped | `internal/team/broker_member_origin.go` |
-| Every avatar says what model its bot runs on | ✅ shipped on web and in the notch; 🔜 planned on iPhone | `internal/team/broker_member_runtime.go`, `web/src/components/ui/BotAvatar.tsx` |
+| Every avatar says what model its bot runs on | ✅ shipped on web, in the notch, and on iPhone | `internal/team/broker_member_runtime.go`, `web/src/components/ui/BotAvatar.tsx`, `apps/ios/Gawkbot/Views/ModelBadgeView.swift` |
 | Each Claude Code or Codex session open in a terminal is a bot of its own, in the app and the notch | ✅ shipped | `internal/agentdetect/sessions.go`, `internal/team/broker_session_agents.go` |
 | Message a terminal session from gawkbot | 🔜 planned: Codex sessions while open, Claude Code sessions after they close | `docs/specs/session-bots.md` |
 | Answer a terminal session's approval prompt from the notch or the phone | 🔜 planned: Claude Code only. Codex shows that it is waiting in its terminal | `docs/specs/session-bots.md` |
