@@ -156,6 +156,61 @@ kbd {
   padding: 0 12px;
   box-sizing: border-box;
 }
+/* Slim ears at rest: a dot or a spinner per agent, in its mood's colour. */
+.notch-strip.is-dots {
+  padding: 0;
+}
+.ndots {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.ndot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mood-idle);
+}
+.ndot-done {
+  background: var(--mood-done);
+}
+.ndot-error {
+  background: var(--mood-error);
+}
+.ndot-needs_you {
+  background: var(--mood-needs-you);
+}
+/* Work is a spinner: a ring with a gap, turning. */
+.ndot-working {
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
+  background: transparent;
+  border: 1.5px solid var(--mood-working);
+  border-right-color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ndot-working {
+    animation: ndot-spin 0.9s linear infinite;
+  }
+  .ndot-error {
+    animation: ndot-pulse 1.2s ease-in-out infinite;
+  }
+}
+@keyframes ndot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ndot-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
 /* Compact ears hug the notch, one or a few faces wide, so the menu bar's
    items further out stay uncovered. The faces overlap more and the count
    sits on them instead of beside them. */

@@ -45,6 +45,42 @@ export const STRIP_CAP = 5;
 export const COMPACT_STRIP_CAP = 3;
 /** Ears narrower than this are compact. */
 const COMPACT_EAR = 60;
+/** Ears this narrow hold dots, not faces. */
+export const DOT_EAR = 14;
+/** The most dots a slim ear shows, stacked. */
+const MAX_DOTS = 3;
+
+/** A mood that shows as a dot at rest: someone is doing something. */
+function busy(a: NotchAgent): boolean {
+  return a.mood === "working" || a.mood === "error" || a.mood === "done";
+}
+
+/**
+ * How wide the ears are: on a Mac without a notch, always the pill's; with
+ * one, faces when something needs the human, dots while anyone is at work,
+ * and none at all when the office is still.
+ */
+export function earWidthFor(
+  g: NotchGeometry,
+  attention: number,
+  agents: readonly NotchAgent[],
+): number {
+  if (g.notchWidth <= 0) return g.earWidth;
+  if (attention > 0) return g.earWidth;
+  return agents.some(busy) ? DOT_EAR : 0;
+}
+
+/** One state at a glance: a spinner for work, a dot for anything else. */
+function StateDot({ agent }: { agent: NotchAgent }) {
+  return (
+    <span
+      className={`ndot ndot-${agent.mood}`}
+      role="img"
+      aria-label={`${agent.name}: ${agent.mood.replace("_", " ")}`}
+      data-mood={agent.mood}
+    />
+  );
+}
 /** Among the ones not asking: a snag first, then a finish, then work. */
 const CREW_RANK: Record<Mood, number> = {
   needs_you: 0,
@@ -99,6 +135,33 @@ export function NotchStrip({
     .sort((a, c) => CREW_RANK[a.mood] - CREW_RANK[c.mood]);
   const crew = active.slice(0, cap - askers.length);
   const hidden = gang.length + active.length - askers.length - crew.length;
+
+  // Slim ears: the lead's state on the left, up to three others stacked on
+  // the right, each a coloured dot or a spinner. Small enough to stay out
+  // of the way, enough to say what is going on.
+  if (geometry.earWidth > 0 && geometry.earWidth <= DOT_EAR) {
+    const others = (state?.agents ?? [])
+      .filter((a) => !a.is_lead && busy(a))
+      .sort((a, c) => CREW_RANK[a.mood] - CREW_RANK[c.mood])
+      .slice(0, MAX_DOTS);
+    return (
+      <div
+        className="notch-strip is-dots"
+        style={{ height: geometry.notchHeight }}
+        title={state?.headline}
+      >
+        <span className="ndots">
+          {lead && busy(lead) ? <StateDot agent={lead} /> : null}
+        </span>
+        <div style={{ width: geometry.notchWidth, flexShrink: 0 }} />
+        <span className="ndots" data-testid="notch-dots">
+          {others.map((a) => (
+            <StateDot key={a.slug} agent={a} />
+          ))}
+        </span>
+      </div>
+    );
+  }
 
   // No ears: the strip is the notch itself, a place to hover, nothing more.
   if (geometry.earWidth === 0) {

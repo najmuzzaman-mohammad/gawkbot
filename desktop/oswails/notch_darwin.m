@@ -23,11 +23,14 @@
 #include "_cgo_export.h"
 
 // The strip's ears, either side of the notch, in the menu bar. With a notch
-// the strip is exactly the notch until something needs the human; then
-// compact ears, a face or a few wide, grow out hugging its edges, clear of
+// the strip is exactly the notch when nothing is going on; slim ears with a
+// few coloured dots and spinners while agents work; and compact ears with
+// faces when something needs the human. All hug the notch's edges, clear of
 // the menus further out. Without a notch the strip is a pill with ears.
 static const CGFloat kEarWidth = 72.0;
 static const CGFloat kCompactEarWidth = 40.0;
+// Narrower still at rest: room for a few small state dots and spinners.
+static const CGFloat kDotEarWidth = 14.0;
 // The open panel. The page draws itself at exactly this size, so keep these
 // equal to EXPANDED_WIDTH / EXPANDED_HEIGHT in web/src/notch/NotchView.tsx:
 // a smaller window clips the composer and the shortcut footer.
@@ -122,9 +125,9 @@ static const CGFloat kMaxStageHeight = 160.0;
 @property(nonatomic, strong) id outsideClickLocal;
 @property(nonatomic, strong) NSDate *peekUntil;
 @property(nonatomic) CGFloat stageHeight;
-// On a Mac with a notch, the ears only show while something needs the
-// human; the rest of the time the strip is exactly the notch.
-@property(nonatomic) BOOL earsShown;
+// On a Mac with a notch, how wide the ears are right now, as the page asks:
+// 0 (exactly the notch), dots at rest, or faces when something needs you.
+@property(nonatomic) CGFloat earsWidth;
 // Opened from the keyboard (the global hotkey): stays open until Esc or the
 // hotkey again, even with the pointer elsewhere.
 @property(nonatomic) BOOL pinned;
@@ -192,7 +195,7 @@ static OSStatus GawkHotKeyHandler(EventHandlerCallRef next, EventRef event, void
 	if (self.notchWidth <= 0) {
 		return kEarWidth;
 	}
-	return self.earsShown ? kCompactEarWidth : 0;
+	return self.earsWidth;
 }
 
 - (NSRect)frameExpanded:(BOOL)expanded {
@@ -642,7 +645,9 @@ static NSImage *GawkBottomRoundedMask(CGFloat radius) {
 			[self.panel makeKeyWindow];
 		}
 	} else if ([type isEqualToString:@"ears"]) {
-		self.earsShown = [body[@"show"] boolValue];
+		CGFloat w = [body[@"width"] respondsToSelector:@selector(doubleValue)] ? [body[@"width"] doubleValue] : 0;
+		// Only the sizes the strip is drawn for.
+		self.earsWidth = w >= kCompactEarWidth ? kCompactEarWidth : (w > 0 ? kDotEarWidth : 0);
 		if (!self.expanded) {
 			[self.panel setFrame:[self frameExpanded:NO] display:YES];
 			[self.content updateTrackingAreas];

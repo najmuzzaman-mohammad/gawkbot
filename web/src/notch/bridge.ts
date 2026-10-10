@@ -13,7 +13,7 @@ import type { NotchGeometry } from "./types";
 //   { type: "collapse" }                       close the panel
 //   { type: "voice", action: "start"|"stop" }  push-to-talk (SFSpeechRecognizer)
 //   { type: "stage", height }                  room the collapsed notch needs
-//   { type: "ears", show }                     whether the ears beside a notch show
+//   { type: "ears", width }                    how wide the ears beside a notch are
 //                                              below the strip (peeks, chat)
 //   { type: "sound", on }                      the sound toggle, so native
 //                                              can mirror it if it ever plays
@@ -35,7 +35,7 @@ export type NativeMessage =
   | { type: "voice"; action: "start" | "stop" }
   | { type: "sound"; on: boolean }
   | { type: "stage"; height: number }
-  | { type: "ears"; show: boolean };
+  | { type: "ears"; width: number };
 
 interface WebkitHandlers {
   webkit?: {

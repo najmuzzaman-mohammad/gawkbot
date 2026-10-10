@@ -25,7 +25,7 @@ import {
   useVoice,
 } from "./hooks";
 import type { ComposerState, ReplyTarget } from "./NotchPanel";
-import { stageHeight } from "./NotchStrip";
+import { earWidthFor, stageHeight } from "./NotchStrip";
 import { NotchView } from "./NotchView";
 import { play, setSoundEnabled, soundEnabled, unlock } from "./sounds";
 import { deliverNativeVoice, voiceAvailable } from "./voice";
@@ -121,16 +121,17 @@ export function NotchApp({
   const [cheer, setCheer] = useState(0);
 
   // On a Mac with a notch the strip is exactly the notch, nothing beside
-  // it, until something needs the human: then the ears grow out to show
-  // who. Everything else (who is working, the sleeper) is in the panel.
-  const showEars = measured.notchWidth <= 0 || attention.length > 0;
+  // it, while nothing is going on. Agents at work show as small coloured
+  // dots and spinners in slim ears; something that needs the human grows
+  // the ears enough for faces. Everything else is in the panel.
+  const earWidth = earWidthFor(measured, attention.length, agents);
   const geometry = useMemo(
-    () => (showEars ? measured : { ...measured, earWidth: 0 }),
-    [measured, showEars],
+    () => ({ ...measured, earWidth }),
+    [measured, earWidth],
   );
   useEffect(() => {
-    postNative({ type: "ears", show: showEars });
-  }, [showEars]);
+    postNative({ type: "ears", width: earWidth });
+  }, [earWidth]);
 
   // Room below the notch for the current act.
   const stage = stageHeight({ line, peeker, arrival, expanded });
