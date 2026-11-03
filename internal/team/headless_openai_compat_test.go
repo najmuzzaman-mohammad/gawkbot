@@ -19,6 +19,7 @@ import (
 // `wuphf --provider mlx-lm` keeps invoking claude.
 func TestIsOpenAICompatKind(t *testing.T) {
 	for _, kind := range []string{
+		provider.KindAtlasCloud,
 		provider.KindMLXLM,
 		provider.KindOllama,
 		provider.KindExo,

@@ -351,7 +351,7 @@ func looksUnparsedToolCall(text string) bool {
 // caller stay in sync without duplicating the list.
 func isOpenAICompatKind(kind string) bool {
 	switch kind {
-	case provider.KindMLXLM, provider.KindOllama, provider.KindExo, provider.KindHermesBot, provider.KindOpenclawHTTP:
+	case provider.KindAtlasCloud, provider.KindMLXLM, provider.KindOllama, provider.KindExo, provider.KindHermesBot, provider.KindOpenclawHTTP:
 		return true
 	default:
 		return false
