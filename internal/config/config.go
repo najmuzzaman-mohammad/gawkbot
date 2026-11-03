@@ -71,6 +71,9 @@ type Config struct {
 	// (speech-to-speech + screen vision). Empty falls back to the compiled
 	// default in ResolveRealtimeModel.
 	RealtimeModel string `json:"realtime_model,omitempty"`
+	// RealtimeVoice is the voice the notch answers in (one of OpenAI's
+	// Realtime voices); empty means the default in broker_realtime_notch.go.
+	RealtimeVoice string `json:"realtime_voice,omitempty"`
 	MinimaxAPIKey string `json:"minimax_api_key,omitempty"`
 	Blueprint     string `json:"blueprint,omitempty"`
 	// Pack is retained as a legacy alias for the active operation blueprint/template.
@@ -109,6 +112,23 @@ type Config struct {
 	// with omitempty could not. See docs/specs/product-analytics.md.
 	AnalyticsTelemetryEnabled        *bool `json:"analytics_telemetry_enabled,omitempty"`
 	AnalyticsSessionRecordingEnabled *bool `json:"analytics_session_recording_enabled,omitempty"`
+
+	// NotchJumpOutEnabled is the one switch for agents leaving the notch to
+	// get attention: the inbox dropping open by itself when someone asks,
+	// an agent peeking out, the banter, the fly-in. Default ON (nil). Off
+	// keeps the notch still; it still shows who needs you and how many.
+	NotchJumpOutEnabled *bool `json:"notch_jump_out,omitempty"`
+	// NotchAnnounceEnabled lets bots speak up out loud: one line when a
+	// new card needs you, one when a turn finishes. Default ON (nil).
+	NotchAnnounceEnabled *bool `json:"notch_announce,omitempty"`
+	// NotchIdeasEnabled is the daily look across connected integrations
+	// for bots worth having, shown as ideas in the notch. Default ON (nil).
+	// NotchIdeasHour is the local hour it runs at; 0 means the default (9).
+	NotchIdeasEnabled *bool `json:"notch_ideas,omitempty"`
+	NotchIdeasHour    int   `json:"notch_ideas_hour,omitempty"`
+	// MacComputerAlwaysAllow lets bots click and type on this Mac without
+	// asking first each turn. Off until the person says "always allow".
+	MacComputerAlwaysAllow *bool `json:"mac_computer_always_allow,omitempty"`
 
 	OpenclawBridges    []OpenclawBridgeBinding `json:"openclaw_bridges,omitempty"`
 	OpenclawGatewayURL string                  `json:"openclaw_gateway_url,omitempty"`
@@ -707,6 +727,41 @@ func (c Config) IsAnalyticsTelemetryEnabled() bool {
 	return c.AnalyticsTelemetryEnabled == nil || *c.AnalyticsTelemetryEnabled
 }
 
+// IsNotchJumpOutEnabled reports whether agents may leave the notch to get
+// attention. Default ON when never chosen (nil).
+func (c Config) IsNotchJumpOutEnabled() bool {
+	return c.NotchJumpOutEnabled == nil || *c.NotchJumpOutEnabled
+}
+
+// IsNotchAnnounceEnabled reports whether bots speak up out loud when they
+// need you or finish. Default ON when never chosen (nil).
+func (c Config) IsNotchAnnounceEnabled() bool {
+	return c.NotchAnnounceEnabled == nil || *c.NotchAnnounceEnabled
+}
+
+// DefaultNotchIdeasHour is the local hour the daily ideas scan runs at.
+const DefaultNotchIdeasHour = 9
+
+// IsNotchIdeasEnabled reports whether the office looks for new bots to
+// propose once a day. Default ON when never chosen (nil).
+func (c Config) IsNotchIdeasEnabled() bool {
+	return c.NotchIdeasEnabled == nil || *c.NotchIdeasEnabled
+}
+
+// NotchIdeasHourOrDefault is the local hour of the daily scan, 0 to 23.
+func (c Config) NotchIdeasHourOrDefault() int {
+	if c.NotchIdeasHour >= 1 && c.NotchIdeasHour <= 23 {
+		return c.NotchIdeasHour
+	}
+	return DefaultNotchIdeasHour
+}
+
+// IsMacComputerAlwaysAllowed reports whether bots on this Mac may act
+// without asking each turn. Default OFF: each turn asks with a card.
+func (c Config) IsMacComputerAlwaysAllowed() bool {
+	return c.MacComputerAlwaysAllow != nil && *c.MacComputerAlwaysAllow
+}
+
 // IsAnalyticsSessionRecordingEnabled reports whether session recordings
 // (with typed text masked) may be captured. Default ON when not explicitly
 // opted out (nil).
@@ -874,7 +929,7 @@ func ResolveOpenAIAPIKey() string {
 // DefaultRealtimeModel is the OpenAI Realtime model used by the demo call when
 // nothing is configured. The exact GA model string can drift, so it stays a
 // single override point (env/config) rather than being hardcoded at call sites.
-const DefaultRealtimeModel = "gpt-realtime-2"
+const DefaultRealtimeModel = "gpt-realtime-2.1"
 
 // ResolveRealtimeModel resolves the OpenAI Realtime model for the demo call.
 // Resolution: WUPHF_REALTIME_MODEL env > config file > DefaultRealtimeModel.

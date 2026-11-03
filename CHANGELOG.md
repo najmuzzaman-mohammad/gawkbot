@@ -13,6 +13,18 @@ All notable changes to WUPHF will be documented in this file.
 
 ### Added
 
+- **Agents on this machine.** gawkbot now scans for the agent CLIs installed
+  or running locally — Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI,
+  Qwen Code, Copilot CLI, Amp, Goose, Aider, Crush, Factory Droid, Ollama,
+  MLX-LM and Exo, plus OpenClaw/Hermes gateways and the Cursor/Windsurf IDEs —
+  and shows each one with its running sessions in Settings → Agents on this
+  machine. One click (or "Adopt all") turns an agent into an office bot
+  created by the Chief of Staff, who routes work to it. Native runtimes bind
+  to their existing provider; the rest run on a new `cli-agent` provider that
+  drives each CLI's non-interactive mode on the user's own sign-in. The Chief
+  of Staff can do the same through the `team_local_agents` tool, behind a
+  human approval card.
+
 - **Routines app — Calendar replaced.** The sidebar Calendar entry is now
   Routines, with a Paperclip-style List view (default) and a Google-style
   monthly Calendar view. Every routine has an owning agent picked from a

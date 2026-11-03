@@ -186,6 +186,7 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			// Integrations — secret fields as booleans
 			"openai_key_set":       config.ResolveOpenAIAPIKey() != "",
 			"realtime_model":       config.ResolveRealtimeModel(),
+			"realtime_voice":       realtimeVoice(),
 			"anthropic_key_set":    config.ResolveAnthropicAPIKey() != "",
 			"gemini_key_set":       config.ResolveGeminiAPIKey() != "",
 			"minimax_key_set":      config.ResolveMinimaxAPIKey() != "",
@@ -202,6 +203,15 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			"analytics_telemetry_enabled":         cfg.IsAnalyticsTelemetryEnabled(),
 			"analytics_session_recording_enabled": cfg.IsAnalyticsSessionRecordingEnabled(),
 			"analytics_configured":                config.ResolvePostHogKey() != "",
+			// Whether agents may leave the notch to get attention.
+			"notch_jump_out": cfg.IsNotchJumpOutEnabled(),
+			// Whether bots speak up out loud when they need you or finish.
+			"notch_announce": cfg.IsNotchAnnounceEnabled(),
+			// The daily look for bots worth having, and its local hour.
+			"notch_ideas":      cfg.IsNotchIdeasEnabled(),
+			"notch_ideas_hour": cfg.NotchIdeasHourOrDefault(),
+			// Whether bots on this Mac act without asking each turn.
+			"mac_computer_always_allow": cfg.IsMacComputerAlwaysAllowed(),
 			// Config file path (informational)
 			"config_path": config.ConfigPath(),
 		})
@@ -235,6 +245,7 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			// returned verbatim in the GET response), so it sits outside the
 			// secret block below.
 			RealtimeModel *string `json:"realtime_model,omitempty"`
+			RealtimeVoice *string `json:"realtime_voice,omitempty"`
 			// Secret fields
 			APIKey          *string `json:"api_key,omitempty"`
 			OpenAIAPIKey    *string `json:"openai_api_key,omitempty"`
@@ -251,6 +262,11 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			// sent, leave alone"; an explicit true/false round-trips.
 			AnalyticsTelemetry        *bool `json:"analytics_telemetry_enabled,omitempty"`
 			AnalyticsSessionRecording *bool `json:"analytics_session_recording_enabled,omitempty"`
+			NotchJumpOut              *bool `json:"notch_jump_out,omitempty"`
+			NotchAnnounce             *bool `json:"notch_announce,omitempty"`
+			NotchIdeas                *bool `json:"notch_ideas,omitempty"`
+			NotchIdeasHour            *int  `json:"notch_ideas_hour,omitempty"`
+			MacComputerAlwaysAllow    *bool `json:"mac_computer_always_allow,omitempty"`
 			// ProviderEndpoints is a partial-update map: keys present in
 			// the payload replace the corresponding entry; absent keys are
 			// preserved. Pass an empty value (`{"base_url":"","model":""}`)
@@ -454,6 +470,10 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 			cfg.RealtimeModel = strings.TrimSpace(*body.RealtimeModel)
 			changed = true
 		}
+		if body.RealtimeVoice != nil {
+			cfg.RealtimeVoice = strings.ToLower(strings.TrimSpace(*body.RealtimeVoice))
+			changed = true
+		}
 		if body.AnthropicAPIKey != nil {
 			cfg.AnthropicAPIKey = strings.TrimSpace(*body.AnthropicAPIKey)
 			changed = true
@@ -510,6 +530,30 @@ func (b *Broker) handleConfig(w http.ResponseWriter, r *http.Request) {
 		if body.AnalyticsSessionRecording != nil {
 			v := *body.AnalyticsSessionRecording
 			cfg.AnalyticsSessionRecordingEnabled = &v
+			changed = true
+		}
+		if body.NotchJumpOut != nil {
+			v := *body.NotchJumpOut
+			cfg.NotchJumpOutEnabled = &v
+			changed = true
+		}
+		if body.NotchAnnounce != nil {
+			v := *body.NotchAnnounce
+			cfg.NotchAnnounceEnabled = &v
+			changed = true
+		}
+		if body.NotchIdeas != nil {
+			v := *body.NotchIdeas
+			cfg.NotchIdeasEnabled = &v
+			changed = true
+		}
+		if body.NotchIdeasHour != nil && *body.NotchIdeasHour >= 0 && *body.NotchIdeasHour <= 23 {
+			cfg.NotchIdeasHour = *body.NotchIdeasHour
+			changed = true
+		}
+		if body.MacComputerAlwaysAllow != nil {
+			v := *body.MacComputerAlwaysAllow
+			cfg.MacComputerAlwaysAllow = &v
 			changed = true
 		}
 		if body.ProviderEndpoints != nil {

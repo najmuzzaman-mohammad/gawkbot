@@ -52,7 +52,7 @@ const VIEWER_DATA_URL = `data:text/html;charset=utf-8,${encodeURIComponent(VIEWE
 
 interface Scenario {
   state: string;
-  destination?: "off" | "sandbox" | "cloud";
+  destination?: "off" | "sandbox" | "cloud" | "mac";
   problem?: string | null;
   busy?: boolean;
   viewer?: boolean;

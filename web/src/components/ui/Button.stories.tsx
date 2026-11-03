@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Plus, Trash } from "iconoir-react";
+import { Plus, Trash2 } from "lucide-react";
 
 import { Button } from "./Button";
 
@@ -77,7 +77,7 @@ export const WithIcon: Story = {
         Add bot
       </Button>
       <Button variant="destructive">
-        <Trash className="h-4 w-4" />
+        <Trash2 className="h-4 w-4" />
         Delete
       </Button>
     </div>

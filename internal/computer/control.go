@@ -28,17 +28,34 @@ type Snapshot struct {
 	HelpReason  *string `json:"help_reason"`
 	HelpOpen    bool    `json:"help_open"`
 	HeldSinceMs int64   `json:"held_since_ms,omitempty"`
+	// ConsentOpen is a bot on the person's Mac waiting to be allowed its
+	// first action of the turn; ConsentSummary says what it wants.
+	ConsentOpen    bool    `json:"consent_open,omitempty"`
+	ConsentSummary *string `json:"consent_summary,omitempty"`
+	// ConsentDecision is the person's last answer: allow, allow_always,
+	// deny, or empty while nothing was asked or answered.
+	ConsentDecision string `json:"consent_decision,omitempty"`
 	// Revision increments on every change; the screen poller uses it to
 	// discard a frame captured across a takeover.
 	Revision int `json:"revision"`
 }
 
+// The person's answers to a consent request.
+const (
+	ConsentAllow       = "allow"
+	ConsentAllowAlways = "allow_always"
+	ConsentDeny        = "deny"
+)
+
 type controlRecord struct {
-	held          bool
-	heldSince     time.Time
-	helpReason    string
-	helpRequestID string
-	revision      int
+	held            bool
+	heldSince       time.Time
+	helpReason      string
+	helpRequestID   string
+	consentSummary  string
+	consentID       string
+	consentDecision string
+	revision        int
 }
 
 // Control is the registry of holds and help requests.
@@ -64,10 +81,14 @@ func (c *Control) record(slug string) *controlRecord {
 }
 
 func (r *controlRecord) snapshot() Snapshot {
-	s := Snapshot{Held: r.held, Revision: r.revision, HelpOpen: r.helpReason != ""}
+	s := Snapshot{Held: r.held, Revision: r.revision, HelpOpen: r.helpReason != "", ConsentOpen: r.consentSummary != "", ConsentDecision: r.consentDecision}
 	if r.helpReason != "" {
 		reason := r.helpReason
 		s.HelpReason = &reason
+	}
+	if r.consentSummary != "" {
+		summary := r.consentSummary
+		s.ConsentSummary = &summary
 	}
 	if r.held {
 		s.HeldSinceMs = r.heldSince.UnixMilli()
@@ -157,6 +178,49 @@ func (c *Control) ExpireHelp(slug, id string) Snapshot {
 		}
 		r.helpReason = ""
 		r.helpRequestID = ""
+		return true
+	})
+}
+
+// RequestConsent records that a bot on the Mac wants to act this turn and
+// returns the request's id. A second request replaces the first.
+func (c *Control) RequestConsent(slug, summary string) (string, Snapshot) {
+	id := randomID()
+	s := c.mutate(slug, func(r *controlRecord) bool {
+		r.consentSummary = firstNonEmpty(summary, "wants to use this Mac")
+		r.consentID = id
+		r.consentDecision = ""
+		return true
+	})
+	return id, s
+}
+
+// Decide is the person's answer to an open consent request. An answer with
+// nothing open still records the decision, so a bot that asks a moment
+// later reads it.
+func (c *Control) Decide(slug, decision string) Snapshot {
+	switch decision {
+	case ConsentAllow, ConsentAllowAlways, ConsentDeny:
+	default:
+		return c.Snapshot(slug)
+	}
+	return c.mutate(slug, func(r *controlRecord) bool {
+		r.consentSummary = ""
+		r.consentID = ""
+		r.consentDecision = decision
+		return true
+	})
+}
+
+// ExpireConsent closes the request only if it is still the one identified
+// by id, with no decision.
+func (c *Control) ExpireConsent(slug, id string) Snapshot {
+	return c.mutate(slug, func(r *controlRecord) bool {
+		if r.consentSummary == "" || r.consentID != id {
+			return false
+		}
+		r.consentSummary = ""
+		r.consentID = ""
 		return true
 	})
 }

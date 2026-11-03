@@ -294,12 +294,12 @@ func TestHandleUpgradeRun_UnknownInstallMethodReturns200WithGuidance(t *testing.
 	if body.InstallMethod != "unknown" {
 		t.Errorf("expected install_method=unknown, got %q", body.InstallMethod)
 	}
-	if !strings.Contains(body.Error, "npm install") {
+	if !strings.Contains(body.Error, upgradecheck.ReleasesLatestURL) {
 		// Lock the documented contract: the unknown-method response
-		// MUST include a copy-pasteable command in the error message
-		// so a user without an automated path still has the manual
-		// recipe one click away.
-		t.Errorf("unknown-method error should reference npm install, got %q", body.Error)
+		// MUST include the download link in the error message so a
+		// user without an automated path still has the manual recipe
+		// one click away.
+		t.Errorf("unknown-method error should link the latest release, got %q", body.Error)
 	}
 }
 

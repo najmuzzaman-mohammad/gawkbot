@@ -1,0 +1,519 @@
+/* Data section: per-attribute-type value layer.
+   Components: web/src/components/data/values/**.
+
+   Tokens only. Color appears where it carries meaning (option pills, the
+   checked toggle, links) and nowhere else. Mono is reserved for data that is
+   read character by character; ordinary values stay in the UI sans.
+   Nothing here animates: a grid of cells that moves is a grid nobody can scan.
+   The one exception is the pending spinner, which animates transform only. */
+
+/* ─── Cell ─── */
+
+.dv-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: var(--space-7);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.dv-cell[data-type="number"],
+.dv-cell[data-type="currency"] {
+  justify-content: flex-end;
+}
+
+.dv-cell[data-editable="true"] {
+  cursor: default;
+  box-shadow: inset 0 0 0 var(--border-width-sm) transparent;
+}
+
+.dv-cell[data-editable="true"]:hover {
+  box-shadow: inset 0 0 0 var(--border-width-sm) var(--border-strong);
+}
+
+.dv-cell[data-editable="true"]:active {
+  background: var(--bg-subtle);
+}
+
+.dv-cell[data-editable="true"][data-type="toggle"] {
+  cursor: pointer;
+}
+
+/* The ring sits inside the cell so neighbouring cells never clip it. */
+.dv-cell[data-editable="true"]:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+.dv-cell[data-pending="true"] {
+  cursor: progress;
+}
+
+.dv-cell[data-pending="true"] > :not(.dv-cell__spinner) {
+  opacity: 0.55;
+}
+
+.dv-cell[data-editing="true"] {
+  padding: 0;
+  align-items: stretch;
+}
+
+.dv-cell__spinner {
+  flex: 0 0 auto;
+  width: var(--space-3);
+  height: var(--space-3);
+  margin-left: auto;
+  border: var(--border-width-md) solid var(--border);
+  border-top-color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  animation: spin 0.7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-cell__spinner {
+    animation: none;
+    border-top-color: var(--accent);
+  }
+}
+
+/* ─── Display values ─── */
+
+.dv-empty {
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.dv-text,
+.dv-link,
+.dv-date,
+.dv-numeric,
+.dv-unknown {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A field type this bundle does not know: the value, plainly, and muted so
+   it never reads as a first-class cell. */
+.dv-unknown {
+  color: var(--text-tertiary);
+}
+
+.dv-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dv-date {
+  font-variant-numeric: tabular-nums;
+}
+
+.dv-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: var(--border-width-md);
+  border-radius: var(--radius-sm);
+}
+
+.dv-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.dv-link:active {
+  color: var(--text);
+}
+
+.dv-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-4);
+  height: var(--space-4);
+  border: var(--border-width-sm) solid var(--border-strong);
+  border-radius: calc(var(--radius-sm) / 2);
+  background: var(--bg-card);
+  color: var(--accent-fg);
+}
+
+.dv-toggle[data-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.dv-toggle__mark {
+  width: var(--space-3);
+  height: var(--space-3);
+  stroke-width: 2.5;
+}
+
+.dv-rating {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dv-rating__marks {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space-1) / 2);
+}
+
+.dv-rating__mark {
+  display: block;
+  width: var(--space-1-5);
+  height: var(--space-3);
+  border-radius: calc(var(--radius-sm) / 4);
+  background: var(--border-strong);
+}
+
+.dv-rating__mark[data-filled="true"],
+[data-filled="true"] > .dv-rating__mark {
+  background: var(--text);
+}
+
+.dv-type-icon {
+  flex: 0 0 auto;
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--text-secondary);
+}
+
+/* ─── Option pills ─── */
+
+.dv-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dv-pill {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  max-width: 100%;
+  padding: calc(var(--space-1) / 2) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.dv-pill__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dv-pill__dot {
+  flex: 0 0 auto;
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+/* `neutral` needs an edge: --bg-subtle is close to the card surface. */
+.dv-pill--neutral {
+  box-shadow: inset 0 0 0 var(--border-width-sm) var(--border);
+}
+
+.dv-pill--blue {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+.dv-pill--green {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.dv-pill--yellow {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+}
+
+.dv-pill--red {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+/* --purple / --purple-bg are declared by only two of the four themes, so a
+   bare var(--purple) is invalid in the others and the pill would lose its
+   color. Both themes that declare the pair alias it to this ramp, which every
+   theme defines, so the ramp is used directly. */
+.dv-pill--purple {
+  background: var(--tertiary-100);
+  color: var(--tertiary-400);
+}
+
+/* ─── Editors ─── */
+
+.dv-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+
+.dv-input-wrap,
+.dv-select__control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  width: 100%;
+  min-width: 0;
+  min-height: var(--space-7);
+  padding: 0 var(--space-2);
+  border: var(--border-width-sm) solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+.dv-input-wrap:hover,
+.dv-select__control:hover {
+  border-color: var(--border-strong);
+}
+
+.dv-input-wrap:focus-within,
+.dv-select__control:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 var(--border-width-sm) var(--accent);
+}
+
+.dv-select__control {
+  flex-wrap: wrap;
+  padding-block: var(--space-1);
+  cursor: text;
+}
+
+.dv-select__control[data-disabled="true"],
+.dv-input-wrap:has(.dv-input:disabled) {
+  background: var(--input-bg-disabled);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.dv-input,
+.dv-select__input {
+  flex: 1 1 var(--space-8);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* The wrapper draws the focus state; a second ring on the input is noise. */
+.dv-input:focus-visible,
+.dv-select__input:focus-visible {
+  outline: none;
+}
+
+.dv-input::placeholder,
+.dv-select__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.dv-input[data-numeric="true"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dv-input__adornment {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.dv-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--space-7);
+  padding: 0 var(--space-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.dv-checkbox__input {
+  width: var(--space-4);
+  height: var(--space-4);
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: inherit;
+}
+
+.dv-checkbox__input:disabled,
+.dv-checkbox:has(.dv-checkbox__input:disabled) {
+  cursor: not-allowed;
+}
+
+.dv-checkbox__label {
+  color: var(--text-secondary);
+}
+
+/* ─── Select listbox ─── */
+
+.dv-select {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.dv-listbox {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  z-index: var(--z-popover);
+  min-width: 100%;
+  width: max-content;
+  max-width: calc(var(--space-8) * 8);
+  max-height: calc(var(--space-8) * 6);
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-popover);
+}
+
+.dv-listbox__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--space-7);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: calc(var(--radius-sm) / 2);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dv-listbox__option:disabled {
+  cursor: not-allowed;
+}
+
+.dv-listbox__option[data-active="true"] {
+  background: var(--bg-subtle);
+  box-shadow: inset 0 0 0 var(--border-width-sm) var(--border-strong);
+}
+
+.dv-listbox__option:active {
+  background: var(--bg-warm);
+}
+
+.dv-listbox__check {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: var(--space-3-5);
+  height: var(--space-3-5);
+  color: var(--text);
+}
+
+.dv-listbox__check > svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 2.5;
+}
+
+.dv-listbox__clear,
+.dv-listbox__empty,
+.dv-listbox__hint {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.dv-listbox__empty,
+.dv-listbox__hint {
+  padding: var(--space-1-5) var(--space-2);
+}
+
+.dv-listbox__hint {
+  margin-top: var(--space-1);
+  border-top: var(--border-width-sm) solid var(--border-light);
+  font-size: var(--text-xs);
+}
+
+/* ─── Rating editor ─── */
+
+.dv-rating-field {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-7);
+  padding: 0 var(--space-1);
+}
+
+.dv-rating-field__step {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1-5) calc(var(--space-1) / 2);
+  border-radius: calc(var(--radius-sm) / 2);
+  cursor: pointer;
+}
+
+/* The native radio stays in the tree for keyboard and assistive tech; the
+   mark beside it is what is drawn. */
+.dv-rating-field__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.dv-rating-field__step > .dv-rating__mark {
+  width: var(--space-2);
+  height: var(--space-4);
+}
+
+.dv-rating-field__step:hover > .dv-rating__mark {
+  background: var(--text-secondary);
+}
+
+.dv-rating-field__step:active > .dv-rating__mark {
+  background: var(--accent);
+}
+
+.dv-rating-field__step:has(.dv-rating-field__input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: 0;
+}
+
+.dv-rating-field__step:has(.dv-rating-field__input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

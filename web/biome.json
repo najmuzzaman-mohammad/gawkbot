@@ -20,7 +20,8 @@
       "!**/*.gen.ts",
       "!**/*.gen.tsx",
       "!**/*.generated.ts",
-      "!**/*.generated.tsx"
+      "!**/*.generated.tsx",
+      "!src/vendor"
     ]
   },
   "formatter": {

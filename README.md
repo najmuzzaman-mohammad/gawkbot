@@ -10,7 +10,7 @@
   </a>
 </p>
 
-### open source grok bot. gawkbots use local VMs as computers (cloud option available) and build microapps to manage all your work.
+### open source grok bot. Every agent on your machine becomes a gawkbot your Chief of Staff manages, and they all ask you from the Mac notch or your iPhone.
 
 https://github.com/user-attachments/assets/84c4b8cf-fb5d-4e9b-b720-213648c2e20b
 
@@ -19,6 +19,11 @@ integrations in minutes. Describe the job in one sentence — or demo it once on
 a call — and your AI builds the bot that runs it: its own screen, its own
 schedule, its own tools, with a human approval gate on everything it sends.
 Runs local, on your machine, on your account.
+
+Already running Claude Code, Codex or Opencode? gawkbot finds them, adopts
+them, and hands them to your Chief of Staff. When any of them needs you, a
+little gawkbot pops out of your Mac's camera notch. Answer with one key,
+talk back with your voice, or reply from your iPhone.
 
 gawkbots automate your menial work via AI models and build you microapps to
 manage the outcome, so that you have a false sense of control.
@@ -40,8 +45,8 @@ an approval gate on every external action. The honest version, row by row:
 | Price | Bundled with SuperGrok and Cursor paid plans | Free. No account, no seats, no usage fees |
 | Source | Closed | Public, Sustainable Use License |
 | Runs on | xAI's cloud | Your machine, with your keys |
-| Models | Grok, chosen for you | Claude Code, Codex, Opencode, local models, Hermes, OpenClaw |
-| Bot computers | One per bot, in the cloud | Not yet. Per-bot directory and tool allowlist on your machine |
+| Models | Grok, chosen for you | Claude Code, Codex, Opencode, local models, Hermes, OpenClaw, plus any agent CLI it finds on your machine |
+| Bot computers | One per bot, in the cloud | Each bot gets a sandbox on your machine or a cloud computer, with its own directory and tool allowlist |
 | Approvals | Bots act on your accounts around the clock | Every send, commit, purchase, and delete waits for your click |
 
 Full comparison, where Grok Bot is better, and the other open source
@@ -55,18 +60,16 @@ Website: [gawk.bot](https://gawk.bot).
 by default, or [Codex CLI](https://github.com/openai/codex) / [Opencode](https://opencode.ai).
 The first-run screen verifies your runtime before anything else happens.
 
-```bash
-npx gawkbot
-```
+**Download for Mac:** [gawk.bot/download.html](https://gawk.bot/download.html)
+resolves the latest signed `.dmg`; every build is also on the
+[GitHub Releases page](https://github.com/najmuzzaman-mohammad/gawkbot/releases).
+Open it, drag gawkbot into Applications, and launch it. You verify your
+runtime, name your office, and hand off your first workflow — you land on your
+first bot being built, live.
 
-That's it. The browser opens, you verify your runtime, name your office, and
-hand off your first workflow — you land on your first bot being built, live.
-
-Prefer a global install?
-
-```bash
-npm install -g gawkbot && gawkbot
-```
+**On your iPhone:** the companion app lives in [`apps/ios`](apps/ios/README.md)
+and you build it with Xcode. Pair it once by scanning the code in Access &
+Health. See [On your iPhone](#on-your-iphone) below.
 
 Building from source (requires Go and Bun):
 
@@ -100,13 +103,72 @@ If your workflow names a system that is not connected yet ("audit our
 HubSpot"), gawkbot asks before building — build against live workspace data
 now, or hold while you connect. It never silently re-scopes your job.
 
+## Every agent you already run
+
+gawkbot looks for the agents already on your machine. It checks your `PATH`,
+the agents' config folders and the process list, and it never launches
+anything to look. It knows Claude Code, Codex, Opencode, Gemini CLI, Cursor
+CLI, Aider, Goose, Amp, Qwen Code, Copilot CLI, Crush, Droid, Ollama, MLX-LM,
+Exo, OpenClaw and Hermes gateways, and the Cursor and Windsurf IDEs.
+
+Adopt one from **Settings → Agents on this machine**, or ask the Chief of
+Staff to do it (it asks for your approval first). An adopted agent becomes a
+gawkbot on the team. It runs the agent's own CLI on your own sign-in, and
+gawkbot's keys are kept out of its environment.
+
+Every bot is tagged with who made it (**yours**, **hired by CoS**,
+**adopted**, **imported**) and where it runs (**this machine** or
+**elsewhere**), so you can always tell your bots apart from the ones
+reporting in from somewhere else.
+
+## The notch
+
+On a Mac, the Chief of Staff lives in the camera notch. You get no desktop
+widget and no dock badge.
+
+- **It moves to tell you what's going on.** Each bot shows a mood: working,
+  idle, needs you, error or done. Bots peek out now and then just for fun.
+  When several need you, they pile up on the notch, and if you keep them
+  waiting they start chatting with each other.
+- **It sounds like what happened.** Every kind of event has its own cartoon
+  cue: a slide whistle and a boing for a question, a bell for an approval,
+  a sad trombone for an error, a xylophone ta-da for a finished job. The
+  trackpad taps when you hover.
+- **You do it all from the keyboard.** <kbd>⌥Space</kbd> opens it from
+  anywhere (<kbd>⌃⌥Space</kbd> if another app already uses <kbd>⌥Space</kbd>),
+  and a short tour the first time shows you how. Then:
+
+  | Key | Does |
+  |---|---|
+  | <kbd>↑</kbd> / <kbd>↓</kbd> | Move through the replies on offer, card after card |
+  | <kbd>↵</kbd> | Send the reply you are on, or the recommended one |
+  | <kbd>1</kbd>–<kbd>9</kbd> | Send that reply on the selected card |
+  | <kbd>J</kbd> / <kbd>K</kbd> | Move between cards |
+  | <kbd>R</kbd> | Reply in your own words |
+  | <kbd>D</kbd> | Mark a finished turn done |
+  | <kbd>M</kbd> | Message the Chief of Staff |
+  | <kbd>V</kbd> (hold), <kbd>⌥V</kbd> while typing | Talk instead of typing |
+  | <kbd>O</kbd> | Open the full app; close its window to come back to the notch |
+  | <kbd>Esc</kbd> | Close |
+
+- **You can just talk.** Hold <kbd>V</kbd> and say it. Speech is turned into
+  text by macOS, and nothing is sent until you press send.
+
+## On your iPhone
+
+`apps/ios` has the same inbox for your phone: every bot's question in one
+list, hold-to-talk replies, the same sounds and haptics, and hardware-keyboard
+shortcuts. It reaches bots running in the cloud as well as the ones on your
+Mac. Build steps are in [apps/ios/README.md](apps/ios/README.md).
+
 ## Setup prompt (for AI bots)
 
 Paste this into Claude Code, Codex, or Cursor and let your bot drive the install:
 
 ```text
 Set up https://github.com/najmuzzaman-mohammad/gawkbot for me. Read `README.md`
-first, then run `npx gawkbot` — the web UI opens at http://localhost:7891.
+first, then build from source (`go build -o gawkbot ./cmd/wuphf`) and run
+`./gawkbot` — the web UI opens at http://localhost:7891.
 
 Walk the onboarding: verify the runtime, name the office, and start the first
 workflow. Confirm you land on a bot being built (a live build feed beside a
@@ -182,7 +244,7 @@ gawkbot share
 Cloudflare quick tunnel (`POST /api/share/tunnel/start`; the trycloudflare
 URL is paired with a 6-digit passcode, invites are one-use and expire in 24
 hours, and the join handler is rate-limited per source IP). `cloudflared`
-ships with the npm install (pinned SHA256 per platform). The one-click
+has to be on your PATH; the broker reports it as missing when it is not. The one-click
 button for this is being resurfaced in the operator shell — until then the
 endpoint is the path.
 
@@ -241,21 +303,28 @@ Every claim in this README, grounded to the code that makes it true.
 
 | Claim | Status | Where it lives |
 |---|---|---|
-| Describe a workflow → bot builds live with a streaming activity feed | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx`, `web/src/components/apps/AppActivity.tsx` |
-| Onboarding hands the first workflow straight into the build | ✅ shipped | `web/src/operator/firstWorkflowSeed.ts`, `web/src/operator/OperatorApp.tsx` |
-| New bots get a starter weekly routine from the described workflow | ✅ shipped | `web/src/operator/surfaces/AppBuilderChat.tsx` |
-| Routines: broker-owned cron, versioned prompts, per-run transcripts | ✅ shipped | `internal/team/scheduler_operator_routines.go`, `web/src/operator/routines/RoutinesTab.tsx` |
+| Describe a workflow → bot builds live with a streaming activity feed | ✅ shipped | `internal/team/app_builder_bot.go`, `web/src/components/apps/AppActivity.tsx` |
+| New bots get a starter weekly routine from the described workflow | ✅ shipped | `internal/team/broker_apps_starter_routine.go` |
+| Routines: broker-owned cron, versioned prompts, per-run transcripts | ✅ shipped | `internal/team/scheduler_operator_routines.go`, `web/src/components/apps/RoutinesApp.tsx` |
 | The broker spawns and supervises the routine runner | ✅ shipped | `internal/team/bot_service_supervisor.go` |
-| Ask-before-building when a referenced integration is not connected | ✅ shipped | `web/src/operator/builder/describedIntegrations.ts` |
-| Approval gate on external writes | ✅ shipped | `web/src/operator/components/ApprovalPrompt.tsx`, `internal/team/broker_action_grants.go` |
-| Knowledge pages with inline citations | ✅ shipped | `web/src/operator/surfaces/KnowledgeSurface.tsx` |
-| Usage readout — cost, tokens, runs | ✅ shipped | `web/src/operator/surfaces/SettingsSurface.tsx` (GET `/usage`) |
-| Operator is the only front door; legacy office routes redirect | ✅ shipped | `web/src/routes/RootRoute.tsx`, `web/e2e/tests/route-matrix.spec.ts` |
-| Per-bot typed tables (Data tab) | ✅ shipped | `web/src/operator/surfaces/AppDataTab.tsx` |
+| Ask-before-building when a referenced integration is not connected | ✅ shipped | `web/src/appdetail/builder/describedIntegrations.ts` |
+| Approval gate on external writes | ✅ shipped | `web/src/components/messages/ExternalActionApprovalCard.tsx`, `internal/team/broker_action_grants.go` |
+| Knowledge pages with inline citations | ✅ shipped | `web/src/components/wiki/CitedAnswer.tsx` |
+| Usage readout — cost, tokens, runs | ✅ shipped | `web/src/components/sidebar/UsagePanel.tsx` (GET `/usage`) |
+| Per-bot typed tables (Data tab) | ✅ shipped | `web/src/appdetail/surfaces/AppDataTab.tsx` |
 | Mix runtimes: Claude Code, Codex, Opencode, local models, Hermes, OpenClaw | ✅ shipped | `internal/provider/`, first-run pre-pick screen |
 | Multi-workspace, share, and public-tunnel invites | ✅ shipped | `cmd/wuphf/workspace.go`, `cmd/wuphf/tunnel.go`, `internal/workspaces/` |
-| Pixel-art bot portraits (every bot has a face) | ✅ shipped | `web/src/components/ui/PixelAvatar.tsx` |
-| Routine runner packaged into the npx/desktop installs | 🔜 planned | supervisor adopts it the moment it ships |
+| Smooth bot avatars, picked per bot (every bot has a face) | ✅ shipped | `web/src/components/ui/OrbAvatar.tsx`, `web/src/components/bots/AvatarPicker.tsx` |
+| Finds the agent CLIs on your machine and adopts them as bots | ✅ shipped | `internal/agentdetect/`, `internal/team/broker_local_agents.go`, `web/src/components/apps/settings/LocalAgentsSection.tsx` |
+| Chief of Staff adopts agents behind an approval card | ✅ shipped | `internal/teammcp/server_local_agents.go` |
+| Every bot tagged with who made it and where it runs | ✅ shipped | `internal/team/broker_member_origin.go` |
+| Every avatar says what model its bot runs on | ✅ shipped on web, in the notch, and on iPhone | `internal/team/broker_member_runtime.go`, `web/src/components/ui/BotAvatar.tsx`, `apps/ios/Gawkbot/Views/ModelBadgeView.swift` |
+| Each Claude Code or Codex session open in a terminal is a bot of its own, in the app and the notch | ✅ shipped | `internal/agentdetect/sessions.go`, `internal/team/broker_session_agents.go` |
+| Message a terminal session from gawkbot | 🟡 partial: on by default (`WUPHF_SESSION_MESSAGING=0` turns it off). Codex sessions open or closed; Claude Code sessions closed (resumed in the background) or open in Superset, Terminal, iTerm2, or tmux (typed into the window once it is waiting for input); from the web app and the notch, not yet from iPhone | `internal/team/broker_session_messaging.go`, `docs/specs/session-bots.md` |
+| Answer a terminal session's approval prompt from the notch or the phone | 🔜 planned: Claude Code only. Codex shows that it is waiting in its terminal | `docs/specs/session-bots.md` |
+| The notch: moods, peeks, sounds, keyboard, voice | ✅ shipped | `web/src/notch/`, `desktop/oswails/notch_darwin.m` |
+| iPhone inbox with voice replies | 🟡 partial: written, not yet built in CI | `apps/ios/` |
+| Routine runner packaged into the desktop install | 🔜 planned | supervisor adopts it the moment it ships |
 
 Legend: ✅ shipped · 🟡 partial · 🔜 planned. If a claim and a status disagree, the code wins — file an issue.
 

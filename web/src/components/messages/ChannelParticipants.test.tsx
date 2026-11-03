@@ -41,8 +41,14 @@ vi.mock("../ui/Toast", () => ({
 }));
 
 vi.mock("../ui/PixelAvatar", () => ({
-  PixelAvatar: ({ slug }: { slug: string }) => (
-    <span data-testid={`avatar-${slug}`} />
+  PixelAvatar: ({
+    slug,
+    avatar,
+  }: {
+    slug: string;
+    avatar?: { color?: string } | null;
+  }) => (
+    <span data-testid={`avatar-${slug}`} data-avatar-color={avatar?.color} />
   ),
 }));
 
@@ -117,6 +123,36 @@ describe("<ChannelParticipants>", () => {
     );
 
     expect(useAppStore.getState().activeBotSlug).toBe("planner");
+  });
+
+  it("draws each bot's chosen avatar, not the slug-derived one", () => {
+    // /members carries no avatar; the look lives on the office roster.
+    mocks.useChannelMembers.mockReturnValue({
+      data: [member({ slug: "planner", name: "Planner" })],
+      isLoading: false,
+    });
+    mocks.useOfficeMembers.mockReturnValue({
+      data: [
+        member({
+          slug: "planner",
+          name: "Planner",
+          avatar: { color: "#123456" },
+        }),
+        member({ slug: "scout", name: "Scout", avatar: { color: "#abcdef" } }),
+      ],
+    });
+
+    render(<ChannelParticipants channelSlug="strategy" />);
+    fireEvent.click(screen.getByTitle("Add participant"));
+
+    expect(screen.getByTestId("avatar-planner")).toHaveAttribute(
+      "data-avatar-color",
+      "#123456",
+    );
+    expect(screen.getByTestId("avatar-scout")).toHaveAttribute(
+      "data-avatar-color",
+      "#abcdef",
+    );
   });
 
   it("adds an available office member to the channel", async () => {

@@ -192,7 +192,7 @@ func (t *SlackTransport) recordOfficeMemberFacts(record func(slug, text string))
 			record(slug, fmt.Sprintf("AI bot %q — a foreign Slack bot bridged onto the team (Slack user id %s). It runs its own runtime outside WUPHF and is reached by @-mentioning it in the bridged channel.", m.Name, m.Provider.Slack.UserID))
 		default:
 			record(slug, fmt.Sprintf("AI bot %q — a team bot with the role: %s.", m.Name, role))
-			if kind := strings.TrimSpace(m.Provider.Kind); kind != "" {
+			if kind := memberRuntimeText(m); kind != "" {
 				record(slug, fmt.Sprintf("Runs on the %s runtime.", kind))
 			}
 		}

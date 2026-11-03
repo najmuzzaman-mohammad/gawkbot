@@ -131,6 +131,22 @@ func (g *GateClient) post(ctx context.Context, body any) (map[string]any, error)
 	return out, nil
 }
 
+// RequestConsent asks the person to allow a bot's actions on the Mac this
+// turn and returns the request's id.
+func (g *GateClient) RequestConsent(ctx context.Context, summary string) (string, error) {
+	out, err := g.post(ctx, map[string]any{"action": "request-consent", "summary": summary})
+	if err != nil {
+		return "", err
+	}
+	id, _ := out["request_id"].(string)
+	return id, nil
+}
+
+// ExpireConsent withdraws only the request this bridge opened.
+func (g *GateClient) ExpireConsent(ctx context.Context, id string) {
+	_, _ = g.post(ctx, map[string]any{"action": "expire-consent", "request_id": id})
+}
+
 // RequestHelp surfaces the bot's plea and returns its id.
 func (g *GateClient) RequestHelp(ctx context.Context, reason string) (string, error) {
 	out, err := g.post(ctx, map[string]any{"action": "request-help", "reason": reason})
@@ -151,9 +167,11 @@ type BridgeConfig struct {
 	Command string
 	Args    []string
 	Gate    *GateClient
-	Stdin   io.Reader
-	Stdout  io.Writer
-	Stderr  io.Writer
+	// Host, when set, is the person's own Mac: the policy in host.go.
+	Host   *HostPolicy
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // RunBridge spawns the far end and pumps frames until the bot closes
@@ -182,9 +200,9 @@ func RunBridge(ctx context.Context, cfg BridgeConfig) error {
 		defer outMu.Unlock()
 		_, _ = io.WriteString(cfg.Stdout, line+"\n")
 	}
-	interceptor := &gateInterceptor{gate: cfg.Gate, forward: func(line string) {
+	interceptor := &gateInterceptor{gate: cfg.Gate, host: cfg.Host, forward: func(line string) {
 		_, _ = io.WriteString(childIn, line+"\n")
-	}, emit: emit, listIDs: map[string]bool{}}
+	}, emit: emit, listIDs: map[string]bool{}, ended: make(chan struct{})}
 
 	// Child stdout → bot, at line granularity, so an injected refusal
 	// never lands inside a half-written frame.
@@ -214,6 +232,16 @@ func RunBridge(ctx context.Context, cfg BridgeConfig) error {
 				interceptor.fromBot(ctx, strings.TrimRight(line, "\r\n"))
 			}
 			if err != nil {
+				// The turn is over: take the bot's cursor off the person's
+				// screen before the pipe closes, waiting briefly for the
+				// driver to say so.
+				if interceptor.host != nil && interceptor.sessionStarted() {
+					interceptor.forward(interceptor.sessionEnd())
+					select {
+					case <-interceptor.ended:
+					case <-time.After(sessionEndWait):
+					}
+				}
 				return
 			}
 		}
@@ -231,13 +259,33 @@ type rpcFrame struct {
 	Result  json.RawMessage `json:"result,omitempty"`
 }
 
+// sessionEndWait bounds the wait for the driver to confirm end_session.
+var sessionEndWait = 1500 * time.Millisecond
+
 type gateInterceptor struct {
 	gate    *GateClient
+	host    *HostPolicy
 	forward func(line string)
 	emit    func(line string)
 
 	mu      sync.Mutex
 	listIDs map[string]bool
+	// initID is the bot's initialize request; its answer is when the
+	// bridge declares the bot's session on the Mac.
+	initID string
+	// started is set once the session was declared.
+	started bool
+	// ended is closed when the driver answered end_session.
+	ended chan struct{}
+	// Consent is asked once per turn (one bridge process is one turn).
+	consentDecided bool
+	consentAllowed bool
+}
+
+func (g *gateInterceptor) sessionStarted() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.started
 }
 
 func (g *gateInterceptor) fromBot(ctx context.Context, line string) {
@@ -247,6 +295,13 @@ func (g *gateInterceptor) fromBot(ctx context.Context, line string) {
 		return
 	}
 	switch frame.Method {
+	case "initialize":
+		if g.host != nil && len(frame.ID) > 0 {
+			g.mu.Lock()
+			g.initID = string(frame.ID)
+			g.mu.Unlock()
+		}
+		g.forward(line)
 	case "tools/list":
 		if len(frame.ID) > 0 {
 			g.mu.Lock()
@@ -268,6 +323,15 @@ func (g *gateInterceptor) fromBot(ctx context.Context, line string) {
 			g.emit(rpcResult(frame.ID, ControlRefusal, true))
 			return
 		}
+		if g.host != nil {
+			forward, refusal := g.hostCall(ctx, frame, params.Name, params.Arguments)
+			if refusal != "" {
+				g.emit(rpcResult(frame.ID, refusal, true))
+				return
+			}
+			g.forward(forward)
+			return
+		}
 		g.forward(line)
 	default:
 		g.forward(line)
@@ -276,7 +340,23 @@ func (g *gateInterceptor) fromBot(ctx context.Context, line string) {
 
 func (g *gateInterceptor) fromChild(line string) {
 	var frame rpcFrame
-	if err := json.Unmarshal([]byte(line), &frame); err != nil || len(frame.ID) == 0 || len(frame.Result) == 0 {
+	if err := json.Unmarshal([]byte(line), &frame); err != nil || len(frame.ID) == 0 {
+		g.emit(line)
+		return
+	}
+	// The bridge's own requests to the driver answer here and go no further.
+	if g.host != nil && isBridgeID(frame.ID) {
+		if string(frame.ID) == bridgeEndID {
+			g.mu.Lock()
+			if g.ended != nil {
+				close(g.ended)
+				g.ended = nil
+			}
+			g.mu.Unlock()
+		}
+		return
+	}
+	if len(frame.Result) == 0 {
 		g.emit(line)
 		return
 	}
@@ -285,7 +365,22 @@ func (g *gateInterceptor) fromChild(line string) {
 	if isList {
 		delete(g.listIDs, string(frame.ID))
 	}
+	isInit := g.host != nil && g.initID != "" && string(frame.ID) == g.initID
+	if isInit {
+		g.initID = ""
+		g.started = true
+	}
 	g.mu.Unlock()
+	if isInit {
+		// The driver is up: declare the bot's session before the bot's
+		// first tool call, so its cursor and colour are on screen from the
+		// start of the turn.
+		g.emit(line)
+		for _, req := range g.sessionStart() {
+			g.forward(req)
+		}
+		return
+	}
 	if !isList {
 		g.emit(line)
 		return
@@ -297,6 +392,9 @@ func (g *gateInterceptor) fromChild(line string) {
 	}
 	var tools []json.RawMessage
 	_ = json.Unmarshal(result["tools"], &tools)
+	if g.host != nil {
+		tools = hostToolsFilter(tools)
+	}
 	tools = append(tools, json.RawMessage(helpToolDefinition()))
 	toolsJSON, _ := json.Marshal(tools)
 	result["tools"] = toolsJSON

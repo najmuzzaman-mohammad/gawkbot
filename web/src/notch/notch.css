@@ -1,0 +1,2325 @@
+/* The Mac notch surface (notch.html).
+
+   Not themed like the app: the collapsed strip must be the exact black of
+   the camera housing it grows out of, so the notch scopes its own tokens
+   here instead of loading /themes/*.css. The open panel is a dark glass
+   sheet: near-black, a specular top edge, translucent cards with hairline
+   borders, spring easing everywhere. */
+
+:root {
+  --notch-bg: #000000;
+  --notch-sheet-top: #141418;
+  --notch-sheet-bottom: #0a0a0c;
+  --notch-glass: rgba(255, 255, 255, 0.06);
+  --notch-glass-hover: rgba(255, 255, 255, 0.1);
+  --notch-glass-strong: rgba(255, 255, 255, 0.14);
+  --notch-hairline: rgba(255, 255, 255, 0.09);
+  --notch-specular: rgba(255, 255, 255, 0.16);
+  --notch-text: rgba(255, 255, 255, 0.94);
+  --notch-text-secondary: rgba(235, 235, 245, 0.62);
+  --notch-text-tertiary: rgba(235, 235, 245, 0.38);
+  /* Monochrome: colour in the notch is kept for meaning (the moods, the
+     amber attention count, the blue listening state, red for refusals). */
+  --notch-accent: #f5f5f7;
+  --notch-accent-ink: #111113;
+  --notch-blue: #0a84ff;
+  --mood-working: #64d2ff;
+  --mood-idle: #8e8e93;
+  --mood-needs-you: #ffd60a;
+  --mood-error: #ff453a;
+  --mood-done: #30d158;
+  /* The dot for work under the notch: orange, pulsing. */
+  --dot-working: #ff9f0a;
+  --notch-radius: 22px;
+  /* How far each agent in the gang tucks behind the one before it. */
+  --nb-overlap: -7px;
+  --notch-card-radius: 16px;
+  --notch-spring: cubic-bezier(0.32, 1.25, 0.42, 1);
+  --notch-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --notch-font:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui,
+    sans-serif;
+  --notch-mono: "SF Mono", ui-monospace, Menlo, monospace;
+  /* Model badge (styles/model-badge.css) on the notch's black glass. */
+  --model-badge-bg: var(--notch-sheet-top);
+  --model-badge-border: var(--notch-glass-strong);
+  --model-badge-ink: var(--notch-text);
+  --model-badge-font: var(--notch-mono);
+
+  /* Controls on the sheet: plain fills, the way the system draws them on
+     its own glass. One step up on hover, one more when pressed. */
+  --notch-mask: #1d2238;
+  --notch-mask-sheen: rgba(255, 255, 255, 0.28);
+  --notch-control: rgba(255, 255, 255, 0.1);
+  --notch-control-hover: rgba(255, 255, 255, 0.16);
+  --notch-control-press: rgba(255, 255, 255, 0.22);
+  --notch-danger-ink: #ff9a90;
+  /* The tint the page lays over native glass (?glass=1), top to bottom:
+     enough to hold the light text over a bright desktop, not enough to
+     hide the material. */
+  --notch-tint-top: rgba(16, 16, 20, 0.34);
+  --notch-tint-bottom: rgba(8, 8, 10, 0.5);
+  /* The picked row, your own bubbles, the talk button: one soft blue. */
+  --notch-pick: #c9d7ff;
+  --notch-pick-ink: #0f1424;
+  --notch-pick-strong: #5b86ff;
+  --notch-side-w: 212px;
+}
+
+html,
+body,
+#notch-root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: transparent;
+  color: var(--notch-text);
+  font-family: var(--notch-font);
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-right: 5px;
+  border-radius: 5px;
+  font: 600 10px / 1 var(--notch-font);
+  color: var(--notch-text-secondary);
+  background: var(--notch-glass-strong);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────── */
+
+.notch-host,
+.notch-root {
+  position: absolute;
+  inset: 0 0 auto 0;
+}
+.notch-root {
+  pointer-events: none;
+}
+.notch-root > * {
+  pointer-events: auto;
+}
+
+.notch-shell {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--notch-bg);
+  border-radius: 0 0 14px 14px;
+}
+.notch-shell.is-expanded {
+  border-radius: 0 0 var(--notch-radius) var(--notch-radius);
+  background: linear-gradient(
+    180deg,
+    var(--notch-bg) 0,
+    var(--notch-sheet-top) 44px,
+    var(--notch-sheet-bottom) 100%
+  );
+  box-shadow:
+    0 0 0 0.5px var(--notch-hairline),
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* On the Mac the sheet's material is the system's own glass, drawn behind
+   this page by the app (notch_darwin.m). The page then paints only the
+   black strip and a tint, and leaves the shadow to the window. */
+.has-native-glass .notch-shell.is-expanded {
+  background: linear-gradient(
+    180deg,
+    var(--notch-bg) 0,
+    var(--notch-bg) var(--notch-strip-h, 32px),
+    var(--notch-tint-top) calc(var(--notch-strip-h, 32px) + 26px),
+    var(--notch-tint-bottom) 100%
+  );
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+}
+
+/* ── Strip ────────────────────────────────────────────────────────────── */
+
+.notch-strip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+/* At rest: the notch, and a centred row under it, one dot per agent: green
+   when it has finished, red when it is stuck, orange and pulsing while it
+   works. Never a spinner. */
+.notch-strip.is-dots {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+}
+.ndots {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding-bottom: 2px;
+  box-sizing: border-box;
+}
+.ndot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mood-idle);
+}
+.ndot-done {
+  background: var(--mood-done);
+}
+/* Stuck is red too, but a ring: something broke, not a question. */
+.ndot-error {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--mood-error);
+}
+/* A question only the human can answer is as red as a stuck bot. */
+.ndot-needs_you {
+  background: var(--mood-error);
+}
+.ndot-working {
+  background: var(--dot-working);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ndot-working {
+    animation: ndot-pulse 1.4s ease-in-out infinite;
+  }
+}
+@keyframes ndot-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+/* Compact ears hug the notch, one or a few faces wide, so the menu bar's
+   items further out stay uncovered. The faces overlap more and the count
+   sits on them instead of beside them. */
+.notch-strip.is-compact {
+  padding: 0 4px;
+  --nb-overlap: -11px;
+}
+.notch-strip.is-compact .notch-ear-right {
+  position: relative;
+}
+.notch-strip.is-compact .notch-badge {
+  position: absolute;
+  top: 2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  font-size: 9.5px;
+}
+.notch-ear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+.notch-ear-right {
+  justify-content: flex-end;
+}
+.notch-ear-text {
+  display: none;
+}
+.notch-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 11px / 1 var(--notch-font);
+  color: #1c1400;
+  background: var(--mood-needs-you);
+  box-shadow: 0 0 12px rgba(255, 214, 10, 0.45);
+}
+
+/* The gang: everyone who needs you, piled up and overlapping. */
+.notch-gang {
+  display: inline-flex;
+  align-items: center;
+}
+.notch-gang-member {
+  display: inline-flex;
+  margin-left: var(--nb-overlap);
+  filter: drop-shadow(-2px 0 0 var(--notch-bg));
+  z-index: calc(10 - var(--gang-i));
+}
+.notch-gang-member:first-child {
+  margin-left: 0;
+}
+/* The crew: the agents that are busy but not asking, each in its own mood.
+   No one past the cap is drawn; the count says how many more. */
+.notch-more {
+  font: 700 10.5px / 1 var(--notch-font);
+  color: var(--notch-text-secondary);
+}
+
+/* ── Bot ──────────────────────────────────────────────────────────────── */
+
+.notch-bot {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.notch-bot .nb-body {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
+}
+.notch-bot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.nb-prop {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--notch-font);
+}
+.nb-bang {
+  top: -6px;
+  right: -6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 10px / 1 var(--notch-font);
+  color: #1c1400;
+  background: var(--mood-needs-you);
+}
+/* A sleep mask over the eyes, strap and all: at this size closed eyes do
+   not read, a mask does. */
+.nb-mask {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: 25%;
+  height: 27%;
+  border-radius: 45% 45% 50% 50% / 40% 40% 60% 60%;
+  background: var(--notch-mask);
+  box-shadow: inset 0 1px 0 var(--notch-mask-sheen);
+}
+.nb-mask::before {
+  content: "";
+  position: absolute;
+  left: -18%;
+  right: -18%;
+  top: 38%;
+  height: 1.5px;
+  background: var(--notch-mask);
+  z-index: -1;
+}
+.nb-tucked .nb-z {
+  top: -9px;
+  right: -7px;
+}
+.nb-z {
+  top: -10px;
+  right: -6px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--notch-text-tertiary);
+  opacity: 0;
+}
+.nb-sweat {
+  top: 8%;
+  right: -2px;
+  width: 6px;
+  height: 8px;
+  border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+  background: var(--mood-working);
+  opacity: 0.85;
+}
+.nb-sparkles i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--mood-needs-you);
+  opacity: 0;
+}
+.nb-sparkles i:nth-child(1) {
+  left: -8px;
+  top: 0;
+}
+.nb-sparkles i:nth-child(2) {
+  left: calc(var(--nb-size) + 2px);
+  top: -2px;
+  background: var(--mood-working);
+}
+.nb-sparkles i:nth-child(3) {
+  left: calc(var(--nb-size) / 2);
+  top: -9px;
+  background: var(--mood-done);
+}
+
+/* ── Panel ────────────────────────────────────────────────────────────── */
+
+.npanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 16px 12px;
+  gap: 10px;
+}
+
+.nicon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+.nicon-wide {
+  width: auto;
+  padding: 0 12px;
+  font: 600 12px var(--notch-font);
+}
+
+.nscroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.nscroll::-webkit-scrollbar {
+  display: none;
+}
+.nsection {
+  margin: 4px 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--notch-text-tertiary);
+}
+
+.nq {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow:
+    inset 0 0 0 0.5px var(--notch-hairline),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.nq.is-selected {
+  background: var(--notch-glass-hover);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 214, 10, 0.45),
+    inset 0 1px 0 var(--notch-specular),
+    0 6px 20px rgba(0, 0, 0, 0.3);
+}
+.nq-body {
+  flex: 1;
+  min-width: 0;
+}
+.nq-from {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--notch-text-secondary);
+}
+.nq-from b {
+  color: var(--notch-text);
+  font-weight: 600;
+}
+.nq-text {
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.38;
+  overflow-wrap: anywhere;
+}
+/* The decision brief: what the asker knew, in a quieter voice. */
+.nq-context {
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--notch-hairline);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--notch-text-secondary);
+  overflow-wrap: anywhere;
+}
+/* Closed, a card shows two lines of the brief; open, all of it. */
+.nq:not([data-open]) .nq-context {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nq-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--notch-hairline);
+  font-size: 12.5px;
+  line-height: 1.42;
+  color: var(--notch-text-secondary);
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.nq-brief h4 {
+  margin: 0 0 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--notch-text-tertiary);
+}
+.nq-brief p,
+.nq-brief ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nq-brief li + li,
+.nq-brief p + p {
+  margin-top: 3px;
+}
+.nq-brief b {
+  font-weight: 600;
+  color: var(--notch-text);
+}
+.nq-brief .ntag {
+  margin-left: 6px;
+}
+
+/* The replies a card offers, one per row: the recommended one on top in
+   the solid accent, the rest a quiet fill. Reply, Done and Open sit
+   under them as quiet buttons. */
+.nchoices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.nchoice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 10px;
+  text-align: left;
+  font: 500 12.5px / 1.35 var(--notch-font);
+  color: var(--notch-text);
+  background: var(--notch-control);
+  cursor: pointer;
+}
+.nchoice:hover:not(:disabled) {
+  background: var(--notch-control-hover);
+}
+.nchoice:active:not(:disabled) {
+  background: var(--notch-control-press);
+}
+.nchoice:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.nchoice.is-recommended {
+  color: var(--notch-accent-ink);
+  background: var(--notch-accent);
+}
+.nchoice.is-recommended:hover:not(:disabled),
+.nchoice.is-recommended:active:not(:disabled) {
+  background: var(--notch-text);
+}
+.nchoice.is-danger {
+  color: var(--notch-danger-ink);
+}
+.nchoice.is-recommended kbd {
+  color: inherit;
+  background: rgba(0, 0, 0, 0.14);
+  box-shadow: none;
+}
+.nchoice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nchoice-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.nchoice-rec {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.nchoice-detail {
+  font-size: 11.5px;
+  opacity: 0.78;
+}
+.nchoices-pending {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: var(--notch-text-secondary);
+}
+
+.nq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* Answer buttons are plain: a quiet fill for an option, a solid light
+   one for the answer we recommend, red ink for a refusal. No gloss, no
+   bloom; the glass is the sheet, not each control. */
+.nbtn {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font: 600 12.5px / 1 var(--notch-font);
+}
+.nbtn,
+.nicon {
+  border: none;
+  color: var(--notch-text);
+  background: var(--notch-control);
+  cursor: pointer;
+}
+.nbtn:hover:not(:disabled),
+.nicon:hover {
+  background: var(--notch-control-hover);
+}
+.nbtn:active:not(:disabled),
+.nicon:active {
+  background: var(--notch-control-press);
+  transform: scale(0.97);
+}
+/* Where the arrow keys are: a clear ring, on every control in the panel. */
+.npanel button:focus-visible {
+  outline: 2px solid var(--notch-blue);
+  outline-offset: 2px;
+}
+.nbtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.nbtn.is-primary {
+  color: var(--notch-accent-ink);
+  background: var(--notch-accent);
+}
+.nbtn.is-primary:hover:not(:disabled),
+.nbtn.is-primary:active:not(:disabled) {
+  background: var(--notch-text);
+}
+.nbtn.is-danger {
+  color: var(--notch-danger-ink);
+}
+.nbtn.is-primary kbd {
+  color: inherit;
+  background: rgba(0, 0, 0, 0.14);
+  box-shadow: none;
+}
+.nbtn.is-quiet {
+  background: transparent;
+  color: var(--notch-text-secondary);
+}
+.nbtn.is-quiet:hover:not(:disabled) {
+  background: var(--notch-control);
+  color: var(--notch-text);
+}
+
+.ntag {
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--notch-text-secondary);
+  background: var(--notch-glass);
+}
+.ntag.is-elsewhere {
+  color: var(--mood-working);
+  background: rgba(100, 210, 255, 0.12);
+}
+.ntag.is-blocking {
+  color: var(--mood-needs-you);
+  background: rgba(255, 214, 10, 0.12);
+}
+
+.nagents {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+  overflow: hidden;
+}
+
+.nerror {
+  font-size: 12px;
+  color: var(--mood-error);
+  padding: 0 4px;
+}
+
+/* ── Motion (only for people who have not asked for less) ─────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .notch-shell {
+    transition:
+      width 0.42s var(--notch-spring),
+      height 0.42s var(--notch-spring),
+      border-radius 0.3s var(--notch-ease),
+      box-shadow 0.3s var(--notch-ease);
+  }
+  .npanel {
+    animation: n-fade-up 0.32s var(--notch-ease) both;
+  }
+  .nq,
+  .nbtn,
+  .nagent,
+  .nask {
+    transition:
+      background 0.18s var(--notch-ease),
+      box-shadow 0.18s var(--notch-ease),
+      transform 0.18s var(--notch-spring);
+  }
+
+  .nq-brief {
+    animation: n-brief-in 0.22s var(--notch-ease) both;
+  }
+  .nb-working .nb-body {
+    animation: nb-bob 1.4s ease-in-out infinite;
+  }
+  .nb-idle .nb-body {
+    animation: nb-breathe 4s ease-in-out infinite;
+  }
+  .nb-tucked .nb-body {
+    animation: nb-breathe 4s ease-in-out infinite;
+  }
+  .nb-tucked .nb-z {
+    animation: nb-z 4s ease-out infinite;
+  }
+  /* Woken up: one stretch, then it sits up and watches. */
+  .nb-awake .nb-body {
+    animation: nb-wake 0.5s var(--notch-spring) both;
+  }
+  .nb-idle .nb-z {
+    animation: nb-z 4s ease-out infinite;
+  }
+  .nb-needs_you .nb-body {
+    animation: nb-hop 1.1s var(--notch-spring) infinite;
+  }
+  .nb-needs_you .nb-bang {
+    animation: nb-pulse 1.1s ease-in-out infinite;
+  }
+  .nb-error .nb-body {
+    animation: nb-shake 0.9s ease-in-out infinite;
+  }
+  .nb-error .nb-sweat {
+    animation: nb-drip 1.8s ease-in infinite;
+  }
+  .nb-done .nb-body {
+    animation: nb-celebrate 1.4s var(--notch-spring) infinite;
+  }
+  .nb-done .nb-sparkles i {
+    animation: nb-sparkle 1.4s ease-out infinite;
+  }
+  .nb-done .nb-sparkles i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .nb-done .nb-sparkles i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  .nb-act-fidget .nb-body {
+    animation: nb-fidget 0.7s ease-in-out infinite;
+  }
+  .nb-act-talking .nb-body {
+    animation: nb-talk 0.32s ease-in-out infinite;
+  }
+  .nb-act-peeking {
+    animation: nb-peek 3.2s var(--notch-ease) both;
+  }
+  .nb-act-peeking .nb-body {
+    animation: nb-look 3.2s ease-in-out both;
+  }
+
+  /* Landing in the gang: a squash and a bounce (an arrival lands here). */
+  .notch-gang-member {
+    animation: gang-land 0.5s var(--notch-spring) both;
+  }
+  .gang-bored-1 .notch-gang-member {
+    animation: gang-jostle 0.9s ease-in-out infinite;
+    animation-delay: calc(var(--gang-i) * -0.23s);
+  }
+}
+
+@keyframes n-brief-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gang-land {
+  0% {
+    transform: translateY(-10px) scale(0.4, 1.3);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(1px) scale(1.25, 0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes n-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes n-bubble {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+@keyframes n-wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1.25);
+  }
+}
+/* Mood loops. Every body scales about the middle of its baseline
+   (.nb-body transform-origin), so a squash sits the blob onto the floor
+   and a stretch lifts it off it. Rising segments ease out and falling ones
+   ease in, so the motion reads as weight rather than as a metronome; each
+   landing overshoots and settles, which is what makes it read as soft. */
+
+/* Working: a busy little bounce in place, squishing on every landing. */
+@keyframes nb-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.05, 0.95);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  }
+  32% {
+    transform: translateY(-7%) scale(0.96, 1.05);
+    animation-timing-function: ease-in-out;
+  }
+  52% {
+    transform: translateY(-8%) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.8, 0.4);
+  }
+  78% {
+    transform: translateY(0) scale(1.07, 0.93);
+    animation-timing-function: ease-out;
+  }
+  90% {
+    transform: translateY(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
+  }
+}
+/* Idle: slow, heavy breathing. Sinks and spreads on the out-breath, then
+   rises a hair past round on the in-breath before settling. */
+@keyframes nb-wake {
+  0% {
+    transform: scale(1.08, 0.86);
+  }
+  55% {
+    transform: scale(0.94, 1.12) translateY(-1px);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes nb-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  42% {
+    transform: scale(1.065, 0.945);
+  }
+  58% {
+    transform: scale(1.05, 0.958);
+  }
+  80% {
+    transform: scale(0.988, 1.014);
+  }
+}
+@keyframes nb-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px) scale(0.7);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(5px, -8px) scale(1.1);
+  }
+}
+/* Needs you: crouch, spring up tall, land flat, jiggle to rest. */
+@keyframes nb-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+    animation-timing-function: ease-out;
+  }
+  10% {
+    transform: translateY(0) scale(1.18, 0.8);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  26% {
+    transform: translateY(-20%) scale(0.86, 1.16);
+    animation-timing-function: ease-out;
+  }
+  40% {
+    transform: translateY(-30%) scale(0.97, 1.04);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  54% {
+    transform: translateY(0) scale(1.2, 0.8);
+    animation-timing-function: ease-out;
+  }
+  64% {
+    transform: translateY(-3%) scale(0.93, 1.08);
+    animation-timing-function: ease-in-out;
+  }
+  74% {
+    transform: translateY(0) scale(1.04, 0.96);
+    animation-timing-function: ease-in-out;
+  }
+  84% {
+    transform: translateY(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
+  }
+}
+@keyframes nb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+}
+/* Error: a jelly shudder. Each swing leans, shears and squishes, and
+   each is smaller than the last, then a pause before the next fit. */
+@keyframes nb-shake {
+  0%,
+  64%,
+  100% {
+    transform: translateX(0) rotate(0) skewX(0) scale(1, 1);
+  }
+  6% {
+    transform: translateX(-1px) rotate(-9deg) skewX(5deg) scale(1.06, 0.94);
+  }
+  16% {
+    transform: translateX(1px) rotate(8deg) skewX(-4deg) scale(0.96, 1.04);
+  }
+  26% {
+    transform: translateX(-1px) rotate(-6deg) skewX(3deg) scale(1.04, 0.96);
+  }
+  36% {
+    transform: translateX(0.5px) rotate(4deg) skewX(-2deg) scale(0.98, 1.02);
+  }
+  46% {
+    transform: translateX(0) rotate(-2deg) skewX(1deg) scale(1.01, 0.99);
+  }
+  56% {
+    transform: translateX(0) rotate(1deg) skewX(0) scale(1, 1);
+  }
+}
+@keyframes nb-drip {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+/* Done: a deep crouch, a big twisting leap, a splat of a landing, and a
+   couple of happy jiggles. */
+@keyframes nb-celebrate {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0) scale(1, 1);
+    animation-timing-function: ease-out;
+  }
+  12% {
+    transform: translateY(0) rotate(0) scale(1.22, 0.78);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  28% {
+    transform: translateY(-26%) rotate(-6deg) scale(0.84, 1.18);
+    animation-timing-function: ease-out;
+  }
+  42% {
+    transform: translateY(-36%) rotate(-12deg) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  58% {
+    transform: translateY(0) rotate(5deg) scale(1.22, 0.8);
+    animation-timing-function: ease-out;
+  }
+  68% {
+    transform: translateY(-5%) rotate(-2deg) scale(0.92, 1.09);
+    animation-timing-function: ease-in-out;
+  }
+  78% {
+    transform: translateY(0) rotate(1deg) scale(1.05, 0.95);
+    animation-timing-function: ease-in-out;
+  }
+  88% {
+    transform: translateY(0) rotate(0) scale(0.99, 1.01);
+    animation-timing-function: ease-in-out;
+  }
+}
+@keyframes nb-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.4);
+  }
+}
+@keyframes nb-fidget {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes nb-talk {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.06, 0.94);
+  }
+}
+/* Slides out from under the camera housing, hangs there, ducks back. */
+@keyframes nb-peek {
+  0% {
+    transform: translateY(-110%);
+  }
+  18% {
+    transform: translateY(14px);
+  }
+  24% {
+    transform: translateY(10px);
+  }
+  80% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(-110%);
+  }
+}
+/* ...and looks around while it's out. */
+@keyframes nb-look {
+  0%,
+  25% {
+    transform: rotate(0) translateX(0);
+  }
+  38% {
+    transform: rotate(-10deg) translateX(-2px);
+  }
+  52% {
+    transform: rotate(10deg) translateX(2px);
+  }
+  64%,
+  100% {
+    transform: rotate(0) translateX(0);
+  }
+}
+@keyframes gang-jostle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* The permissions card: two grants, asked for only when a bot needs them. */
+.nperm-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.nperm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.nperm-name {
+  display: grid;
+  font-size: 13px;
+  font-weight: 600;
+}
+.nperm-name small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--notch-text-tertiary);
+}
+.nperm-ok {
+  color: var(--notch-accent);
+  font-weight: 700;
+}
+.nperm-row.is-granted .nperm-name {
+  color: var(--notch-text-tertiary);
+}
+
+/* The cards at the top right of the screen (notch.html?dock=1): one per
+   bot at work, on the same dark glass as the open notch. The page is
+   transparent around them; the Mac app sizes its window to .ndock-root. */
+.ndock-root {
+  width: 300px;
+  padding: 0;
+  font-family: var(--notch-font);
+  color: var(--notch-text);
+}
+.ndock {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ndock-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-sheet-top);
+  box-shadow:
+    inset 0 0.5px 0 var(--notch-specular),
+    inset 0 0 0 0.5px var(--notch-hairline),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.ndock-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ndock-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ndock-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ndock-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--notch-text-secondary);
+}
+.ndock-state i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--dot-working);
+}
+.is-needs_you .ndock-state i {
+  background: var(--mood-error);
+}
+.is-done .ndock-state i {
+  background: var(--mood-done);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .is-working .ndock-state i {
+    animation: ndock-pulse 1.4s ease-in-out infinite;
+  }
+}
+@keyframes ndock-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.ndock-x {
+  align-self: flex-start;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: var(--notch-control);
+  color: var(--notch-text-secondary);
+  font: 14px / 1 var(--notch-font);
+  cursor: pointer;
+}
+/* The whole line, wrapped. A very long one folds at six lines until
+   History opens it; nothing is ever cut mid-card. */
+.ndock-line {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ndock-line.is-open {
+  display: block;
+}
+.ndock-history {
+  margin: 0;
+  padding: 8px 10px;
+  list-style: none;
+  border-radius: 10px;
+  background: var(--notch-glass);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--notch-text-secondary);
+}
+.ndock-history li + li {
+  margin-top: 6px;
+}
+.ndock-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ndock-more {
+  margin-right: auto;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--notch-text-secondary);
+  font: 12px var(--notch-font);
+  cursor: pointer;
+}
+.ndock-actions .nbtn {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* The integration hint: one quiet line under the headline, with its logo,
+   Connect, and Not now. Never a card: nothing waits on it. */
+.nhint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+  font-size: 12px;
+  color: var(--notch-text-secondary);
+}
+.nhint-logo {
+  flex: none;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+.nhint-logo img,
+.nhint-logo svg {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+.nhint-line {
+  flex: 1;
+  min-width: 0;
+}
+.nhint-actions {
+  flex: none;
+  display: inline-flex;
+  gap: 6px;
+}
+.nhint-actions .nbtn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* Talking to the office: the state word with a small wave, what was heard
+   in quotes, what was said in full. Blue is the listening colour. */
+.nvoice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+  font-size: 12px;
+  color: var(--notch-text-secondary);
+}
+.nvoice-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--notch-text);
+}
+.nvoice.is-listening .nvoice-state {
+  color: var(--notch-blue);
+}
+.nvoice-wave {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+.nvoice-wave b {
+  width: 2px;
+  height: 4px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.nvoice.is-listening .nvoice-wave b,
+.nvoice.is-speaking .nvoice-wave b {
+  animation: nvoice-bar 0.9s ease-in-out infinite;
+}
+.nvoice-wave b:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.nvoice-wave b:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.nvoice.is-thinking .nvoice-wave b,
+.nvoice.is-connecting .nvoice-wave b {
+  opacity: 0.5;
+}
+@keyframes nvoice-bar {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nvoice-wave b {
+    animation: none !important;
+  }
+}
+.nvoice-heard {
+  color: var(--notch-text-tertiary);
+}
+.nvoice-said {
+  flex-basis: 100%;
+  color: var(--notch-text);
+}
+.nvoice-error {
+  color: var(--notch-danger-ink);
+}
+
+/* The notch's own settings: a few rows of switches on the dark glass. */
+.nset-group {
+  display: grid;
+  gap: 6px;
+}
+.nset-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass);
+  box-shadow: inset 0 0 0 0.5px var(--notch-hairline);
+  cursor: pointer;
+}
+.nset-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.nset-text b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.nset-text small {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--notch-text-tertiary);
+}
+.nset-switch {
+  appearance: none;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--notch-control-hover);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s var(--notch-ease);
+}
+.nset-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--notch-text);
+  transition: transform 0.2s var(--notch-spring);
+}
+.nset-switch:checked {
+  background: var(--mood-done);
+}
+.nset-switch:checked::after {
+  transform: translateX(14px);
+}
+.nset-select {
+  flex: none;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 8px;
+  background: var(--notch-control);
+  color: var(--notch-text);
+  font: inherit;
+  font-size: 12px;
+}
+.nset-select:disabled {
+  opacity: 0.5;
+}
+.nset-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.nset-note {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--notch-text-tertiary);
+}
+
+/* Suggested for you: one idea card at a time, a character and its promise. */
+.nideas {
+  display: grid;
+  gap: 6px;
+}
+
+/* ── Home ─────────────────────────────────────────────────────────────── */
+
+/* Open from the keyboard or a row: the sidebar, and one pane beside it. */
+.nhome {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.nhome-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 14px 12px;
+}
+
+.nside {
+  width: var(--notch-side-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 8px 10px 10px;
+  border-right: 0.5px solid var(--notch-hairline);
+}
+.nside-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 8px;
+}
+.nside-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 9px;
+  background: var(--notch-glass);
+}
+.nside-search svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: var(--notch-text-tertiary);
+  stroke-width: 1.6;
+}
+.nside-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--notch-text);
+  font: 12px var(--notch-font);
+}
+.nside-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nside-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--notch-hairline);
+}
+.nside-foot svg {
+  width: 15px;
+  height: 15px;
+  fill: var(--notch-text-secondary);
+}
+.nicon.is-on {
+  background: var(--notch-control-hover);
+}
+
+/* One row: face, name, time, one line. The picked one is the soft blue. */
+.nrow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--notch-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.nrow:hover {
+  background: var(--notch-glass);
+}
+.nrow.is-selected {
+  background: var(--notch-pick);
+  color: var(--notch-pick-ink);
+}
+.nrow-face {
+  position: relative;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+}
+.nrow-dot {
+  position: absolute;
+  top: -1px;
+  left: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--notch-pick-strong);
+}
+.nrow-dot.is-need {
+  background: var(--mood-error);
+}
+.nrow-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.nrow-top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.nrow-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.nrow-count {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+.nrow-time {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--notch-text-tertiary);
+}
+.nrow-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--notch-text-secondary);
+}
+.nrow.is-selected .nrow-time,
+.nrow.is-selected .nrow-line {
+  color: color-mix(in srgb, var(--notch-pick-ink) 70%, transparent);
+}
+.nrow-sparkle,
+.nrow-terminal {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.nrow-sparkle {
+  background: linear-gradient(135deg, #ff7ac6, #a77bff);
+}
+.nrow-sparkle svg {
+  width: 16px;
+  height: 16px;
+  fill: #ffffff;
+}
+.nrow-terminal {
+  background: var(--notch-glass-strong);
+}
+.nrow-terminal svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--notch-text);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── The hover list ───────────────────────────────────────────────────── */
+
+.npeek {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px 8px;
+}
+.npeek .nside-list {
+  overflow: visible;
+}
+.npeek-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 0 8px;
+  border-top: 0.5px solid var(--notch-hairline);
+  margin-top: 4px;
+}
+.npeek-headline {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--notch-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.npeek-foot svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: var(--notch-text);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* ── A pane's own heading ─────────────────────────────────────────────── */
+
+.npane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.npane-head {
+  position: relative;
+  padding: 2px 0 12px;
+}
+.npane-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+.npane-head p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--notch-text-secondary);
+}
+
+/* ── A bot's chat ─────────────────────────────────────────────────────── */
+
+.nchat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nchat-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0 0 8px;
+}
+.nchat-name {
+  border: none;
+  background: transparent;
+  color: var(--notch-text);
+  font: 600 12px var(--notch-font);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.nchat-name:hover {
+  background: var(--notch-glass);
+}
+.nchat-msgs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px 8px;
+}
+.nchat-empty {
+  margin: auto;
+  font-size: 12px;
+  color: var(--notch-text-tertiary);
+}
+.nmsg {
+  align-self: flex-start;
+  max-width: 86%;
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: var(--notch-glass-strong);
+}
+.nmsg.is-you {
+  align-self: flex-end;
+  background: var(--notch-pick);
+  color: var(--notch-pick-ink);
+}
+.nmsg-text {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.nchat-working {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 2px 0;
+}
+.nchat-working small {
+  font-size: 11px;
+  color: var(--notch-text-tertiary);
+}
+.nchat-dots {
+  display: inline-flex;
+  gap: 4px;
+  width: fit-content;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: var(--notch-glass-strong);
+}
+.nchat-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--notch-text-secondary);
+}
+.nchat-foot {
+  padding-top: 6px;
+}
+
+/* The box: a face on the talk button, the field with send, and Stop. */
+.ncompose {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ncompose-to {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--notch-text-secondary);
+}
+.ncompose-x {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--notch-text-tertiary);
+  font: 11px var(--notch-font);
+  cursor: pointer;
+}
+.ncompose-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nmic {
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: var(--notch-pick-strong);
+  cursor: pointer;
+}
+.nmic svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.nmic.is-on {
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--notch-pick-strong) 35%, transparent);
+}
+.nmic-face {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.ncompose-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 4px 0 12px;
+  border-radius: 18px;
+  border: 1.5px solid color-mix(in srgb, var(--notch-pick) 55%, transparent);
+  background: var(--notch-glass);
+}
+.ncompose-field textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 96px;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--notch-text);
+  font: 12.5px / 1.4 var(--notch-font);
+  padding: 8px 0;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.ncompose-field textarea::placeholder {
+  color: var(--notch-text-tertiary);
+}
+.nsend {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: var(--notch-pick-strong);
+  cursor: pointer;
+}
+.nsend:disabled {
+  background: var(--notch-control);
+  cursor: default;
+}
+.nsend svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nstop {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: var(--notch-accent);
+  cursor: pointer;
+}
+.nstop i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--notch-accent-ink);
+}
+.ncompose-hint {
+  margin: 0;
+  padding-left: 44px;
+  font-size: 10.5px;
+  color: var(--notch-text-tertiary);
+}
+.ncompose-idle {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  border: 1.5px solid var(--notch-hairline);
+  background: var(--notch-glass);
+  color: var(--notch-text-tertiary);
+  font: 12.5px var(--notch-font);
+  text-align: left;
+  cursor: text;
+}
+
+/* ── Suggested for you ────────────────────────────────────────────────── */
+
+.nidea-nav {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--notch-text-secondary);
+}
+.nidea-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.nidea-stage > .notch-bot {
+  margin: 0 0 -10px 14px;
+  z-index: 1;
+}
+.nidea {
+  padding: 16px 16px 14px;
+  border-radius: var(--notch-card-radius);
+  background: var(--notch-glass-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nidea-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.nidea-who {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.nidea-who b {
+  font-size: 11.5px;
+  color: var(--notch-text-secondary);
+}
+.nidea-who small {
+  font-size: 10.5px;
+  color: var(--notch-text-tertiary);
+}
+.nidea-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  background: var(--notch-glass);
+  color: var(--notch-text-secondary);
+}
+.nidea-promise {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.nidea-why,
+.nidea-when {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--notch-text-secondary);
+}
+.nidea-when {
+  font-size: 11px;
+  color: var(--notch-text-tertiary);
+}
+.nidea-source-toggle {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: 11px var(--notch-font);
+  color: var(--notch-text-tertiary);
+  cursor: pointer;
+  text-align: left;
+}
+.nidea-source ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--notch-text-secondary);
+}
+.nidea-ask {
+  margin: 12px 0 8px;
+  font-size: 12px;
+  color: var(--notch-text-secondary);
+}
+.nidea-error {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: var(--notch-danger-ink);
+}
+.nidea-actions {
+  display: flex;
+  gap: 8px;
+}
+.nidea-actions.is-empty {
+  padding-top: 4px;
+}
+.nidea-made b {
+  font-size: 14px;
+}
+
+/* ── Sessions ─────────────────────────────────────────────────────────── */
+
+.nsess-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nsess {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--notch-glass);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nsess-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.nsess-logo {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+}
+.nsess-logo svg {
+  width: 15px;
+  height: 15px;
+}
+.nsess-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+.nsess-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--notch-text-tertiary);
+}
+.nsess-meta {
+  font-size: 11px;
+  color: var(--notch-text-tertiary);
+}
+.nsess-said {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--notch-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nsess-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── New bot ──────────────────────────────────────────────────────────── */
+
+.nnew {
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+.nnew-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.nnew-bubbles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.nbubble {
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: #ffd9b8;
+  color: #3a2414;
+  font-size: 12px;
+  font-weight: 550;
+}
+.nnew-form {
+  display: flex;
+  gap: 8px;
+  width: min(420px, 100%);
+}
+.nnew-form input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  border: 1.5px solid var(--notch-hairline);
+  background: var(--notch-glass);
+  color: var(--notch-text);
+  font: 12.5px var(--notch-font);
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ── Settings, with its own nav ───────────────────────────────────────── */
+
+.nset-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 14px;
+}
+.nset-nav {
+  width: 150px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nset-nav-item {
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--notch-text-secondary);
+  font: 12.5px var(--notch-font);
+  cursor: pointer;
+}
+.nset-nav-item:hover {
+  background: var(--notch-glass);
+}
+.nset-nav-item.is-on {
+  background: var(--notch-glass-strong);
+  color: var(--notch-text);
+}
+.nset-keys {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+}
+.nset-keys div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--notch-text-secondary);
+}
+.nset-keys dt,
+.nset-keys dd {
+  margin: 0;
+}
+
+/* A question a bot is waiting on sits in its chat, under the last line. */
+.nchat-msgs .nq {
+  margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nchat-dots i {
+    animation: n-typing 1.2s ease-in-out infinite;
+  }
+  .nchat-dots i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .nchat-dots i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  .nrow {
+    transition: background 120ms var(--notch-ease);
+  }
+}
+@keyframes n-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.nset-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 12px;
+}
+.nset-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nset-title b {
+  font-size: 15px;
+  font-weight: 650;
+}
+.nset-title small {
+  font-size: 11.5px;
+  color: var(--notch-text-secondary);
+}
+.nrow.is-selected .nrow-terminal svg {
+  stroke: var(--notch-pick-ink);
+}

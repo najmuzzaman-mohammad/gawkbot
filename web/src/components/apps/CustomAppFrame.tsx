@@ -5,6 +5,14 @@ import { directChannelSlug } from "../../lib/channels";
 import { APP_BUILDER_SLUG } from "../../lib/constants";
 import { confirm } from "../ui/ConfirmDialog";
 import { showNotice } from "../ui/Toast";
+import {
+  type AppDataMessage,
+  BAD_DATA_CALL_ERROR,
+  dispatchDataCall,
+  NO_DATA_SPACE_ERROR,
+  parseDataArgs,
+  resolveAppDataSpace,
+} from "./appDataBridge";
 
 /**
  * CustomAppFrame renders a bot-generated internal tool inside a hardened
@@ -43,6 +51,12 @@ import { showNotice } from "../ui/Toast";
  *     card and returns {status:"needs_approval", request_id}. The app cannot
  *     smuggle a write: read-only classification is enforced server-side, not
  *     trusted from the app, and only a human click can execute a mutation.
+ *
+ *   - "data" → the DATA SPACE attached to this app (see ./appDataBridge). The
+ *     space id is resolved HOST-SIDE from the app's manifest and is the only
+ *     one that can appear in the URL, so an app cannot reach another bot's
+ *     space by naming it in the message. An app with no space attached is told
+ *     so rather than handed an empty result.
  *
  *   - "ai" → POST /apps/ai {prompt, input?, json?}. A bounded one-shot LLM
  *     completion over data the app ALREADY fetched through this bridge. It is
@@ -442,25 +456,31 @@ export function isAllowedGetPath(path: string): boolean {
   );
 }
 
+/**
+ * Puts the app's network lockdown in force, whatever the app's HTML says.
+ *
+ * The policy is written as the very first thing in the document, ahead of
+ * every byte the app supplied. The browser's own parser then opens the head
+ * and places the policy in it before it has read any of the app's markup, so
+ * there is nothing the app can write that comes earlier or moves it. A later
+ * doctype, `<html>` or `<head>` in the app's markup is merged or ignored by
+ * the parser; a policy can only ever be tightened by a later one, never
+ * loosened.
+ *
+ * This used to find the app's `<head>` with a regular expression and insert
+ * the policy after it. A regular expression is not an HTML parser: `<header>`,
+ * or a literal `<head>` inside a `<title>`, a `<textarea>` or an attribute
+ * value, matched first, the policy landed where the browser treats it as text
+ * or ignores it, and the app ran with no lockdown at all. Do not go back to
+ * locating anything inside the app's markup.
+ *
+ * The leading doctype keeps the document in standards mode: without it the
+ * policy would precede the app's own doctype, which the parser would then
+ * ignore, and the page would fall into quirks mode.
+ */
 export function withAppCsp(html: string): string {
   const meta = `<meta http-equiv="Content-Security-Policy" content="${APP_CSP}">`;
-  // Strip HTML comments before locating the injection point: a crafted
-  // `<!-- <head> -->` must not shadow the real <head> and leave the document
-  // with no CSP (which would re-enable network exfiltration). Comments are
-  // inert, so a genuine app renders identically. Inject the meta as the FIRST
-  // child of <head> so the CSP precedes any in-head or in-body script in
-  // document order.
-  const doc = html.replace(/<!--[\s\S]*?-->/g, "");
-  if (/<head[^>]*>/i.test(doc)) {
-    return doc.replace(/<head[^>]*>/i, (match) => `${match}${meta}`);
-  }
-  if (/<html[^>]*>/i.test(doc)) {
-    return doc.replace(
-      /<html[^>]*>/i,
-      (match) => `${match}<head>${meta}</head>`,
-    );
-  }
-  return `<!doctype html><html><head>${meta}</head><body>${doc}</body></html>`;
+  return `<!doctype html>${meta}${html}`;
 }
 
 function errorMessage(err: unknown): string {
@@ -924,6 +944,53 @@ async function serviceDBCall(
   }
 }
 
+/**
+ * Service a "data" call: the app reading/writing the DATA SPACE attached to it
+ * (object types, attributes, relationships, records — shared with the operator
+ * and with other bots, unlike the per-app `db`). Same envelope and same
+ * validation discipline as serviceDBCall, and the same scoping taken one step
+ * further: the space is resolved from the APP'S OWN MANIFEST by the host, so a
+ * message naming any other space cannot reach it — parseDataArgs has nowhere to
+ * put a space id. An app with no space attached is told so, explicitly; it
+ * never receives an empty result that reads as "there is no data".
+ */
+async function serviceDataCall(
+  message: AppDataMessage,
+  target: Window,
+  replyOrigin: string,
+  appId?: string,
+): Promise<void> {
+  const reply = (payload: {
+    ok: boolean;
+    data?: unknown;
+    error?: string;
+  }): void => {
+    target.postMessage(
+      { source: HOST_SOURCE, id: message.id, ...payload },
+      replyOrigin,
+    );
+  };
+  if (!appId) {
+    reply({ ok: false, error: NO_DATA_SPACE_ERROR });
+    return;
+  }
+  const args = parseDataArgs(message);
+  if (!args) {
+    reply({ ok: false, error: BAD_DATA_CALL_ERROR });
+    return;
+  }
+  try {
+    const spaceId = await resolveAppDataSpace(appId);
+    if (!spaceId) {
+      reply({ ok: false, error: NO_DATA_SPACE_ERROR });
+      return;
+    }
+    reply({ ok: true, data: await dispatchDataCall(spaceId, args) });
+  } catch (err) {
+    reply({ ok: false, error: errorMessage(err) });
+  }
+}
+
 type SelectHandlerRef = {
   current: ((sel: AppSelectPayload) => void) | undefined;
 };
@@ -1022,6 +1089,11 @@ function routeAppRequest(
     // Bridge v2: the app's own backing database (its persisted data model).
     case "db":
       void serviceDBCall(data as AppDBMessage, source, replyOrigin, appId);
+      return;
+    // The DATA SPACE attached to this app — shared office data, scoped to the
+    // one space the app's manifest names.
+    case "data":
+      void serviceDataCall(data as AppDataMessage, source, replyOrigin, appId);
       return;
     case "broker":
       void serviceBrokerGet(data as BrokerBridgeMessage, source, replyOrigin);

@@ -26,6 +26,10 @@ var legacyLeadSlugPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(^|[^A-Za-z0-9_-])ceo($|[^A-Za-z0-9_-])`),
 	regexp.MustCompile(`(^|[^A-Za-z0-9_-])ceo(__)`),
 	regexp.MustCompile(`(__)ceo($|[^A-Za-z0-9_-])`),
+	// Scheduler job keys encode the DM channel with "--" instead of "__"
+	// ("task-follow-up:ceo--human:task-skill-31").
+	regexp.MustCompile(`(:)ceo(--)`),
+	regexp.MustCompile(`(--)ceo(:|$)`),
 }
 
 // migrateLegacyLeadSlug rewrites every legacy lead slug in s to LeadSlug.

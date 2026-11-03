@@ -10,12 +10,9 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
-	wuphf "github.com/nex-crm/wuphf"
 	"github.com/nex-crm/wuphf/internal/brokeraddr"
 	"github.com/nex-crm/wuphf/internal/computer"
 	"github.com/nex-crm/wuphf/internal/config"
@@ -50,28 +47,25 @@ func (b *Broker) ServeWebUI(port int) error {
 		fmt.Sprintf("http://127.0.0.1:%d", port),
 	}
 
-	// Resolution order for the web UI assets:
-	//   1. filesystem web/dist/ (local dev after `bun run build`)
-	//   2. embedded FS (single-binary installs via curl | bash)
-	exePath, _ := os.Executable()
-	webDir := filepath.Join(filepath.Dir(exePath), "web")
-	if _, err := os.Stat(webDir); os.IsNotExist(err) {
-		webDir = "web"
-	}
+	// See ResolveWebAssets: the bundle compiled into the binary wins over any
+	// on-disk build, so a released binary run from inside a source checkout
+	// cannot serve that checkout's stale web/dist.
 	var fileServer http.Handler
-	distDir := filepath.Join(webDir, "dist")
-	distIndex := filepath.Join(distDir, "index.html")
-	if _, err := os.Stat(distIndex); err == nil {
-		// Real Vite build output on disk — use it.
-		fileServer = spaFileServer(os.DirFS(distDir))
-	} else if embeddedFS, ok := wuphf.WebFS(); ok {
-		// No on-disk build; use embedded assets.
-		fileServer = spaFileServer(embeddedFS)
-	} else {
+	assets := ResolveWebAssets()
+	switch assets.Kind {
+	case "embedded", "disk":
+		fileServer = spaFileServer(assets.FS)
+	default:
 		// Source checkout without web/dist. Do not serve raw Vite source files:
 		// browsers load /src/main.tsx as text/plain and the page stalls on
 		// "Loading WUPHF". Return an actionable setup page instead.
 		fileServer = missingWebAssetsHandler()
+	}
+	if assets.Kind == "disk" {
+		// Worth a line: an on-disk bundle overriding the binary's own is
+		// either the dev loop or a mistake, and the difference is invisible
+		// in the browser.
+		log.Printf("web UI: serving the on-disk build at %s, not the bundle in this binary", assets.Dir)
 	}
 	mux := http.NewServeMux()
 	brokerURL := brokeraddr.ResolveBaseURL()
@@ -280,6 +274,13 @@ func (b *Broker) webUIProxyHandler(brokerURL, stripPrefix string) http.Handler {
 		setProxyClientIPHeaders(proxyReq.Header, r.RemoteAddr)
 		proxyReq.Header.Set("Authorization", "Bearer "+b.token)
 		proxyReq.Header.Set("Content-Type", r.Header.Get("Content-Type"))
+		// This hop is the operator. The broker token says only "a process on
+		// this machine", which every bot also holds; the operator key says
+		// "came through this process's own web UI proxy", which no bot can
+		// say. /data reads it to tell the two apart — see the ACTOR RESOLUTION
+		// note in broker_data.go. proxyReq starts with no inbound headers, so
+		// a page in the browser cannot supply or override this value.
+		b.stampDataOperatorHeader(proxyReq.Header)
 		// The operator's own web UI sometimes acts on the App Builder writer
 		// path: removing a failed app build sends X-WUPHF-Bot: app-builder,
 		// which the app-writer gate (appWriterAllowed) honors. The proxy
@@ -297,7 +298,17 @@ func (b *Broker) webUIProxyHandler(brokerURL, stripPrefix string) http.Handler {
 		// the App Builder slug — the proxy never relays an arbitrary bot
 		// identity. Anything else is dropped (proxyReq starts with no inbound
 		// headers), leaving the broker to treat the caller as broker-kind.
-		if r.Header.Get("Sec-Fetch-Site") == "same-origin" &&
+		//
+		// NOT on /data. There the header is not an app-writer capability, it
+		// is an IDENTITY: it would make any same-origin script act as the bot
+		// @app-builder — creating spaces it owns, reading and writing every
+		// global space and every space shared with it — and would conversely
+		// downgrade the operator's own UI to that bot on any request that
+		// happened to carry it. Production app frames are opaque-origin, but
+		// the dev frame is allow-same-origin, so this is reachable. The
+		// app-writer path is unaffected: it does not live under /data.
+		if !isDataProxyPath(targetPath) &&
+			r.Header.Get("Sec-Fetch-Site") == "same-origin" &&
 			isAppBuilderSlug(r.Header.Get(botRateLimitHeader)) {
 			proxyReq.Header.Set(botRateLimitHeader, appBuilderSlug)
 		}
@@ -343,6 +354,17 @@ func (b *Broker) webUIProxyHandler(brokerURL, stripPrefix string) http.Handler {
 		}
 		_, _ = io.Copy(w, resp.Body)
 	})
+}
+
+// isDataProxyPath reports whether a proxied upstream path lands on the /data
+// surface, where the App Builder header exception must not apply. The path is
+// cleaned first so "/data/../data/spaces" and "/data//spaces" cannot slip past
+// a prefix test, and compared case-insensitively: a path that differs only in
+// case is not a real broker route, so treating it as /data can only ever drop
+// a header nothing needed.
+func isDataProxyPath(targetPath string) bool {
+	cleaned := strings.ToLower(path.Clean("/" + strings.TrimPrefix(targetPath, "/")))
+	return cleaned == "/data" || strings.HasPrefix(cleaned, "/data/")
 }
 
 func responseHeadersToSkip(header http.Header) map[string]struct{} {

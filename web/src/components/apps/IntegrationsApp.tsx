@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  OpenNewWindow,
-  Refresh,
+  ExternalLink,
+  RefreshCw,
   Search,
-  Trash,
-  WarningTriangle,
-} from "iconoir-react";
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 
 import { getConfig, getLocalProvidersStatus } from "../../api/client";
 import {
@@ -18,6 +18,9 @@ import {
   type IntegrationConnectResult,
   type IntegrationProviderStatus,
   type IntegrationsResponse,
+  integrationErrorRequestId,
+  isComposioSigninMissing,
+  isComposioSigninNeeded,
   listIntegrations,
   startIntegrationConnection,
   submitIntegrationCredentials,
@@ -29,6 +32,7 @@ import {
   IntegrationListRow,
 } from "./integrations/CardShell";
 import { ComposioOnboarding } from "./integrations/ComposioOnboarding";
+import { ComposioSigninExpired } from "./integrations/ComposioSigninExpired";
 import { ToolkitBrandLogo } from "./integrations/IntegrationLogos";
 import { INTEGRATIONS } from "./integrations/registry";
 import {
@@ -274,7 +278,7 @@ function CatalogPanel({
       </header>
       <div className="op-panel-toolbar">
         <label className="op-search">
-          <Search width={14} height={14} aria-hidden="true" />
+          <Search size={14} aria-hidden="true" />
           <input
             type="search"
             placeholder="Search integrations"
@@ -422,6 +426,20 @@ function IntegrationErrorState({
   isFetching: boolean;
   onRetry: () => void;
 }) {
+  // A dead Composio sign-in is not an outage and there is nothing to retry:
+  // show what happened and the one button that fixes it, never the 401.
+  if (isComposioSigninNeeded(error)) {
+    // Deliberately NOT auto-started: loading a page is not a request to sign
+    // in. The automatic start belongs to the connect attempt, where the user
+    // has already said what they want.
+    return (
+      <ComposioSigninExpired
+        requestId={integrationErrorRequestId(error)}
+        neverSignedIn={isComposioSigninMissing(error)}
+        onSignedIn={onRetry}
+      />
+    );
+  }
   return (
     <div className="op-runtime-note is-warn op-error-state">
       <span>{integrationErrorMessage(error)}</span>
@@ -431,7 +449,7 @@ function IntegrationErrorState({
         onClick={onRetry}
         disabled={isFetching}
       >
-        <Refresh width={14} height={14} aria-hidden="true" />
+        <RefreshCw size={14} aria-hidden="true" />
         Retry
       </button>
     </div>
@@ -573,9 +591,28 @@ function ToolkitDetail({
     void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
   }, [queryClient, statusQuery.data?.status]);
 
+  // A dead Composio sign-in is the one failure the user can fix, so it gets a
+  // panel with a button instead of an error toast. Captured once here and
+  // shared by every mutation on this screen.
+  const [signinExpired, setSigninExpired] = useState<{
+    requestId: string | null;
+    neverSignedIn: boolean;
+  } | null>(null);
+  const handleMutationError = (err: unknown, fallback: string) => {
+    if (isComposioSigninNeeded(err)) {
+      setSigninExpired({
+        requestId: integrationErrorRequestId(err),
+        neverSignedIn: isComposioSigninMissing(err),
+      });
+      return;
+    }
+    showNotice(err instanceof Error ? err.message : fallback, "error");
+  };
+
   const connectMutation = useMutation({
     mutationFn: () => startIntegrationConnection(item.provider, item.platform),
     onSuccess: (result) => {
+      setSigninExpired(null);
       setPending(result);
       setCredValues({});
       if (result.auth_url) {
@@ -590,12 +627,8 @@ function ToolkitDetail({
       }
       void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
     },
-    onError: (err) => {
-      showNotice(
-        err instanceof Error ? err.message : `Failed to connect ${item.name}`,
-        "error",
-      );
-    },
+    onError: (err) =>
+      handleMutationError(err, `Failed to connect ${item.name}`),
   });
   const credentialsMutation = useMutation({
     mutationFn: () =>
@@ -612,12 +645,8 @@ function ToolkitDetail({
       void queryClient.invalidateQueries({ queryKey: ["integrations"] });
       void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
     },
-    onError: (err) => {
-      showNotice(
-        err instanceof Error ? err.message : `Failed to connect ${item.name}`,
-        "error",
-      );
-    },
+    onError: (err) =>
+      handleMutationError(err, `Failed to connect ${item.name}`),
   });
   const disconnectMutation = useMutation({
     mutationFn: () =>
@@ -629,14 +658,8 @@ function ToolkitDetail({
       void queryClient.invalidateQueries({ queryKey: ["integrations-audit"] });
       onBack();
     },
-    onError: (err) => {
-      showNotice(
-        err instanceof Error
-          ? err.message
-          : `Failed to disconnect ${item.name}`,
-        "error",
-      );
-    },
+    onError: (err) =>
+      handleMutationError(err, `Failed to disconnect ${item.name}`),
   });
 
   const latestStatus = statusQuery.data?.status ?? pending?.status;
@@ -652,6 +675,20 @@ function ToolkitDetail({
         onBack={onBack}
       />
       <div className="op-detail-body">
+        {signinExpired ? (
+          // The connect attempt is what put this here, so the sign-in starts
+          // itself rather than waiting for a second click — and resumes the
+          // connect the user actually asked for the moment it lands.
+          <ComposioSigninExpired
+            requestId={signinExpired.requestId}
+            neverSignedIn={signinExpired.neverSignedIn}
+            autoStart={true}
+            onSignedIn={() => {
+              setSigninExpired(null);
+              connectMutation.mutate();
+            }}
+          />
+        ) : null}
         <section className="op-toolkit-panel">
           <div className="op-toolkit-panel-copy">
             <span className="op-eyebrow">Connection</span>
@@ -687,7 +724,7 @@ function ToolkitDetail({
               disabled={!item.can_connect || connectMutation.isPending}
               onClick={() => connectMutation.mutate()}
             >
-              <OpenNewWindow width={14} height={14} aria-hidden="true" />
+              <ExternalLink size={14} aria-hidden="true" />
               {connectionKey ? "Connect another account" : "Connect"}
             </button>
             <button
@@ -696,7 +733,7 @@ function ToolkitDetail({
               disabled={statusQuery.isFetching}
               onClick={() => void statusQuery.refetch()}
             >
-              <Refresh width={14} height={14} aria-hidden="true" />
+              <RefreshCw size={14} aria-hidden="true" />
               Check status
             </button>
             <button
@@ -705,7 +742,7 @@ function ToolkitDetail({
               disabled={!canDisconnect || disconnectMutation.isPending}
               onClick={() => setConfirmDisconnect(true)}
             >
-              <Trash width={14} height={14} aria-hidden="true" />
+              <Trash2 size={14} aria-hidden="true" />
               Disconnect
             </button>
           </div>
@@ -763,7 +800,7 @@ function ToolkitDetail({
               onClick={() => void auditQuery.refetch()}
               disabled={auditQuery.isFetching}
             >
-              <Refresh width={14} height={14} aria-hidden="true" />
+              <RefreshCw size={14} aria-hidden="true" />
               Refresh
             </button>
           </div>
@@ -815,9 +852,16 @@ function IntegrationsHome({
   onOpenRegistry: (id: string) => void;
   onRetry: () => void;
 }) {
+  const expiredProvider = providers.find((provider) => provider.needs_signin);
   return (
     <>
       <ConnectionStatus providers={providers} />
+      {expiredProvider ? (
+        // The catalog request succeeded but came back degraded: Composio
+        // rejected the office's credential. The provider row carries the human
+        // sentence; this renders it with the sign-in button attached.
+        <ComposioSigninExpired onSignedIn={onRetry} />
+      ) : null}
       <CatalogPanel
         items={toolkitItems}
         search={search}
@@ -850,7 +894,7 @@ function EmptyIntegrationsWarning({
   if (available.length > 0 || toolkitItems.length > 0) return null;
   return (
     <p className="op-empty-warning">
-      <WarningTriangle width={12} height={12} />
+      <TriangleAlert size={12} />
       No integrations are registered in this build.
     </p>
   );

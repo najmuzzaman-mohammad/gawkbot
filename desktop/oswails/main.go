@@ -13,10 +13,15 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"runtime"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/nex-crm/wuphf/internal/team"
 	"github.com/wailsapp/wails/v2"
@@ -54,11 +59,63 @@ func freePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
+// stopEveryAgent asks the office to stop every turn now (the ⌥Esc key),
+// through the web proxy, which signs loopback callers as the owner.
+func stopEveryAgent(officeURL string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(officeURL, "/")+"/api/governor", strings.NewReader(`{"action":"stop"}`))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if res, err := http.DefaultClient.Do(req); err == nil {
+		_ = res.Body.Close()
+	}
+}
+
+// waitForPort polls a loopback address until it accepts a connection or
+// the timeout passes.
+func waitForPort(addr string, timeout time.Duration) bool {
+	dialer := &net.Dialer{Timeout: 250 * time.Millisecond}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	for {
+		if conn, err := dialer.DialContext(ctx, "tcp", addr); err == nil {
+			_ = conn.Close()
+			return true
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+}
+
+// openInMainWindow brings the main window forward at an in-app path. The
+// URL is absolute on the office origin because the window may still be on
+// the wails:// bootstrap page, and it is JSON-encoded into the script so the
+// path is data, never code.
+func openInMainWindow(ctx context.Context, officeURL, path string) {
+	dest, err := json.Marshal(strings.TrimRight(officeURL, "/") + path)
+	if err != nil {
+		return
+	}
+	wailsruntime.WindowUnminimise(ctx)
+	wailsruntime.WindowShow(ctx)
+	wailsruntime.WindowExecJS(ctx, "window.location.assign("+string(dest)+")")
+}
+
 func main() {
 	// Resolve the office to show. The shell shares the user's active workspace
 	// (the same office an unqualified `wuphf` CLI uses) — WUPHF_RUNTIME_HOME is
 	// intentionally NOT overridden here.
 	target, attached := team.RunningOfficeURL()
+	// The person's Mac as a computer, started once the in-process broker
+	// answers (host_computer_darwin.go). Nil until then and off macOS.
+	var hostMu sync.Mutex
+	var host *macHost
 	if attached {
 		// A broker is already serving this workspace — attach the window to it
 		// instead of booting a second broker (which killStaleBroker would race).
@@ -73,33 +130,77 @@ func main() {
 			os.Exit(1)
 		}
 		target = fmt.Sprintf("http://127.0.0.1:%d", port)
+		launcher, err := team.NewLauncher("")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "launcher:", err)
+			os.Exit(1)
+		}
+		launcher.SetBrokerConfigurator(officeBrokerWiring(launcher))
 		go func() {
-			launcher, err := team.NewLauncher("")
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "launcher:", err)
-				os.Exit(1)
-			}
 			launcher.SetNoOpen(true)
 			if err := launcher.PreflightWeb(); err != nil {
 				fmt.Fprintln(os.Stderr, "preflight:", err)
 				os.Exit(1)
 			}
+			// LaunchWeb serves for the life of the process and never returns.
 			if err := launcher.LaunchWeb(port); err != nil {
 				fmt.Fprintln(os.Stderr, "launch:", err)
 				os.Exit(1)
 			}
+		}()
+		// The person's Mac joins once the office answers: the broker exists
+		// from then on, and the driver must be our child (not the CLI's).
+		go func() {
+			if !waitForPort(fmt.Sprintf("127.0.0.1:%d", port), 60*time.Second) {
+				fmt.Fprintln(os.Stderr, "host computer: the office never answered; not starting the driver")
+				return
+			}
+			h := startHostComputer(launcher.Broker(), os.Stderr)
+			hostMu.Lock()
+			host = h
+			hostMu.Unlock()
+		}()
+	}
+
+	// Attached to an office another process serves (the CLI's), the driver
+	// is still this app's to spawn, since macOS ties its grants to the
+	// spawning app; the running office is told where the socket is.
+	if attached {
+		go func() {
+			h := attachHostComputer(target, os.Stderr)
+			hostMu.Lock()
+			host = h
+			hostMu.Unlock()
 		}()
 	}
 
 	var appCtx context.Context
 
 	if err := wails.Run(&options.App{
-		Title:            "WUPHF",
+		Title:            "gawkbot",
 		Width:            1400,
 		Height:           900,
 		BackgroundColour: &options.RGBA{R: 11, G: 11, B: 13, A: 1},
-		OnStartup:        func(ctx context.Context) { appCtx = ctx },
+		// On the Mac the notch is the always-there surface, so closing the
+		// full view hides it and leaves the notch running ("back to just the
+		// widget"); the notch's "Full view" brings it back. Elsewhere there is
+		// no notch to return to, so closing still quits.
+		HideWindowOnClose: runtime.GOOS == "darwin",
+		OnStartup: func(ctx context.Context) {
+			appCtx = ctx
+			// The Chief of Staff in the camera notch (notch_darwin.m). It
+			// loads <office>/notch.html itself and retries until the broker
+			// answers, so it can start before the in-process boot finishes.
+			startNotch(target, func(path string) {
+				openInMainWindow(ctx, target, path)
+			})
+			setNotchStop(func() { stopEveryAgent(target) })
+		},
 		OnShutdown: func(context.Context) {
+			hostMu.Lock()
+			h := host
+			hostMu.Unlock()
+			h.Stop()
 			// If we booted the broker in-process (rather than attaching to a
 			// running peer), clear the office.json sidecar so the next launch
 			// doesn't probe a now-dead URL. The broker dies with the process.

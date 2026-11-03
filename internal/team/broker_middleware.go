@@ -360,17 +360,81 @@ func hostHeaderIsLoopback(r *http.Request) bool {
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
-// webUIRebindGuard wraps a handler with a DNS-rebinding / cross-origin gate.
-// It rejects any request whose RemoteAddr is not loopback or whose Host header
-// is not a recognized localhost form. Applied on the web UI mux because that
-// mux auto-attaches the broker's Bearer token on forwarded requests; without
-// this gate, a malicious website can use DNS rebinding to ride the token.
+// webUIRebindGuard gates every route on the web UI port. That port is special:
+// its proxy attaches the broker's Bearer token and the operator key to what it
+// forwards, so anything that can make a request arrive here acts as the owner.
+// Three things must hold.
+//
+//  1. The peer is on this machine (isLoopbackRemote).
+//  2. The Host header is a loopback name (hostHeaderIsLoopback). This is what
+//     stops DNS rebinding.
+//  3. The request was not made by another site's page (webUIRequestIsForged).
+//     This is what stops cross-site request forgery: a page on any origin, or
+//     a framed app whose network lockdown failed, can make the browser send a
+//     request to 127.0.0.1 from this machine with a loopback Host. Checks 1
+//     and 2 both pass for it. Without check 3 such a page could post a message
+//     as the owner, answer an approval, or restart the broker, blind.
 func webUIRebindGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !isLoopbackRemote(r) || !hostHeaderIsLoopback(r) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
+		if webUIRequestIsForged(r) {
+			http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// webUIRequestIsForged reports whether a browser made this request on behalf
+// of a page that is not the web UI itself, in a way that could change state
+// or open a readable channel.
+//
+// Whose page it was. Browsers say so in Sec-Fetch-Site, a header script
+// cannot set: "same-origin" is the web UI's own page, "none" is the person
+// typing a URL or using a bookmark, and "same-site" or "cross-site" is some
+// other page. "same-site" is not trusted: every http://localhost:<port> is
+// same-site with this one, including a dev server a bot started. A browser
+// too old to send Sec-Fetch-Site still sends Origin on anything that is not
+// a plain same-origin GET, so Origin is compared with this server's own
+// origin instead ("null", from a sandboxed frame, never matches). A request
+// with neither header was not made by a browser page; a local program that
+// can open a socket to this port could equally run the tools itself, so it
+// is let through as before.
+//
+// What it was doing. Another site's page may still GET: that is what a link
+// to the office, an OAuth provider returning the person to a callback, and
+// an app frame loading its own scripts all look like, and the reply to a
+// cross-site GET cannot be read by the page that caused it (the proxy sends
+// no CORS headers). Everything else from another site is refused: any method
+// that can carry a body or a change, and a WebSocket handshake, whose
+// messages the page COULD read.
+func webUIRequestIsForged(r *http.Request) bool {
+	if !webUIRequestIsCrossSite(r) {
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(r.Header.Get("Upgrade")), "websocket") {
+		return true
+	}
+	return r.Method != http.MethodGet && r.Method != http.MethodHead
+}
+
+// webUIRequestIsCrossSite reports whether a browser page other than the web
+// UI's own made this request. See webUIRequestIsForged for the reasoning.
+func webUIRequestIsCrossSite(r *http.Request) bool {
+	switch site := strings.ToLower(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site"))); site {
+	case "same-origin", "none":
+		return false
+	case "":
+		// No fetch metadata: fall through to Origin.
+	default:
+		return true
+	}
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin == "" {
+		return false
+	}
+	return !strings.EqualFold(origin, "http://"+r.Host)
 }

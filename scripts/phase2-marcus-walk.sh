@@ -46,7 +46,9 @@ if lsof -nP -iTCP:"$BROKER_PORT" -sTCP:LISTEN 2>/dev/null | grep -q LISTEN; then
 fi
 
 log "boot wuphf on broker=$BROKER_PORT runtime=$RUNTIME_HOME"
-WUPHF_RUNTIME_HOME="$RUNTIME_HOME" "$WUPHF_BINARY" \
+# WUPHF_SESSION_MEMBERS_DISABLED keeps this machine's own terminal sessions
+# out of the walk's roster.
+WUPHF_RUNTIME_HOME="$RUNTIME_HOME" WUPHF_SESSION_MEMBERS_DISABLED=1 "$WUPHF_BINARY" \
   --broker-port "$BROKER_PORT" --web-port "$WEB_PORT" --no-open \
   > "$WUPHF_LOG" 2>&1 &
 WUPHF_PID=$!

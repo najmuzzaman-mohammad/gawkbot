@@ -53,6 +53,7 @@ func (l *Launcher) Drain(ctx context.Context) error {
 	if l.schedulerWorker != nil {
 		l.schedulerWorker.Stop()
 	}
+	l.stopSessionTurns()
 
 	done := make(chan struct{})
 	go func() {

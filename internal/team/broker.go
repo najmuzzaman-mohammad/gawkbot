@@ -17,6 +17,7 @@ import (
 	"github.com/nex-crm/wuphf/internal/brokeraddr"
 	"github.com/nex-crm/wuphf/internal/channel"
 	"github.com/nex-crm/wuphf/internal/config"
+	"github.com/nex-crm/wuphf/internal/dataspace"
 	"github.com/nex-crm/wuphf/internal/gbrain"
 	"github.com/nex-crm/wuphf/internal/onboarding"
 	"github.com/nex-crm/wuphf/internal/workspace"
@@ -139,9 +140,20 @@ type Broker struct {
 	skillDescEmbeddings map[string][]float32         // slug → description embedding vector; guarded by mu
 	sharedMemory        map[string]map[string]string // namespace → key → value
 	lastTaggedAt        map[string]time.Time         // when each bot was last @mentioned
-	botDMWakes          map[string][]time.Time       // bot-pair DM slug → recent partner wakes (loop cap); guarded by mu
-	lastPaneSnapshot    map[string]string            // last captured pane content per bot (for change detection)
-	seenTelegramGroups  map[int64]string             // chat_id -> title, populated by transport
+	observedModels      map[string]string            // bot slug → model its last turn ran on; in-memory; guarded by mu
+	notchSeen           notchSeenStore               // finished turns the owner marked done in the notch; own lock, saved beside the state
+	notchSuggest        notchSuggestStore            // replies suggested for each notch card; own lock, in memory
+	notchHints          notchHintStore               // integration hints shown for what is in front; own lock, saved beside the state
+	notchRead           notchReadStore               // what the owner has read of each bot's thread; own lock, saved beside the state
+	notchIdeas          notchIdeasStore              // the daily ideas for new bots; own lock, saved beside the state
+	hostComputer        hostComputerState            // the person's own Mac, installed by the desktop shell; own lock
+	sessionAgents       sessionAgentState            // terminal sessions kept as members (broker_session_agents.go); guarded by mu
+	runtimeDefaultsMu   sync.Mutex                   // guards the three fields below; never held with mu
+	runtimeDefaultsVal  runtimeDefaults
+	runtimeDefaultsAt   time.Time
+	botDMWakes          map[string][]time.Time // bot-pair DM slug → recent partner wakes (loop cap); guarded by mu
+	lastPaneSnapshot    map[string]string      // last captured pane content per bot (for change detection)
+	seenTelegramGroups  map[int64]string       // chat_id -> title, populated by transport
 	counter             int
 	// idPrefix is the Linear-style prefix used for new Issue IDs (e.g.
 	// "NEX" → NEX-1, NEX-2). Derived from the workspace's company_name
@@ -172,16 +184,22 @@ type Broker struct {
 	wikiCategoriesSubscribers map[int]chan WikiCategoriesUpdatedEvent
 	governorSubscribers       map[int]chan governorStatus
 	// computerService is lazily built by b.computers() (broker_computer.go).
-	computerOnce        sync.Once
-	computerService     *computerService
-	governor            *governor
-	wikiWorker          *WikiWorker
+	computerOnce    sync.Once
+	computerService *computerService
+	governor        *governor
+	wikiWorker      *WikiWorker
+	// wikiDrainDone closes when the wiki worker this broker started on its
+	// lifecycle context has fully drained. Nil when the broker did not start
+	// one (tests that wire their own worker own its shutdown).
+	wikiDrainDone       <-chan struct{}
 	wikiInitMu          sync.Mutex
 	wikiInitErr         error
 	customApps          *customAppStore
 	customAppOnce       sync.Once
 	appDev              *appDevManager
 	appDevOnce          sync.Once
+	dataSpaces          dataspace.Store
+	dataSpacesMu        sync.Mutex // guards the lazy open; NOT a Once — see dataStore()
 	humanWikiWriter     *HumanWikiIntentWriter
 	obsidianWatcher     *ObsidianWatcher
 	wikiIndex           *WikiIndex
@@ -255,6 +273,7 @@ type Broker struct {
 	lifecycleCtx     context.Context
 	lifecycleCancel  context.CancelFunc
 	token            string   // shared secret for authenticating requests
+	dataOperatorKey  string   // per-process /data operator proof; see broker_data.go
 	addr             string   // actual listen address (useful when port=0)
 	webUIOrigins     []string // allowed CORS origins for web UI (set by ServeWebUI)
 	webShareStart    func() (WebShareStatus, error)
@@ -468,6 +487,7 @@ func NewBrokerAt(statePath string) *Broker {
 	b := &Broker{
 		channelStore:        channel.NewStore(),
 		token:               generateToken(),
+		dataOperatorKey:     generateToken(),
 		messageSubscribers:  make(map[int]chan channelMessage),
 		actionSubscribers:   make(map[int]chan officeActionLog),
 		activity:            make(map[string]botActivitySnapshot),
@@ -607,6 +627,7 @@ func (b *Broker) Start() error {
 		}
 	}()
 	b.startArchiveSweepLoop(ctx)
+	b.startNotchIdeasLoop(ctx)
 	b.startMemoryWorkflowReconcilerLoop(ctx)
 	// Lane D: reviewer convergence sweeper. Drives the timeout-skipped
 	// filler + the running→review→decision cascade for tasks whose
@@ -618,6 +639,10 @@ func (b *Broker) Start() error {
 	// Same ctx/stopCh lifecycle as runActivityWatchdog; disabled when the
 	// interval env resolves to 0.
 	b.startChatDigestLoop(ctx)
+	// Terminal sessions on this machine become office members. Started here
+	// and not in NewBrokerAt so a broker built by a test never scans the
+	// real machine.
+	b.startSessionMemberLoop(ctx)
 	// The operator bot service (routine fires, tool authoring) is the
 	// broker's child now — spawn/supervise it unless externally managed.
 	// See agent_service_supervisor.go and the 2026-08-14 QA findings.
@@ -645,6 +670,9 @@ func (b *Broker) WikiReadLog() *ReadLog {
 
 // StartOnPort launches the broker on the given port. Use 0 for an OS-assigned port.
 func (b *Broker) StartOnPort(port int) error {
+	// Every Composio request in the process can now recover from a revoked
+	// credential by re-minting through the CLI (broker_composio_remint.go).
+	b.registerComposioReauth()
 	mux := http.NewServeMux()
 	b.registerPlatformRoutes(mux)
 	b.registerTaskRoutes(mux)
@@ -674,6 +702,7 @@ func (b *Broker) StartOnPort(port int) error {
 	// route keeps working rather than starting to 404 silently.
 	mux.HandleFunc("/notifications/nex", b.requireAuth(b.handleAutomationNotifications))
 	mux.HandleFunc("/realtime/session", b.requireAuth(b.handleRealtimeSession))
+	mux.HandleFunc("/realtime/status", b.requireAuth(b.handleRealtimeStatus))
 	mux.HandleFunc("/execute/browser", b.requireAuth(b.handleExecuteBrowser))
 	mux.HandleFunc("/execute/replay", b.requireAuth(b.handleExecuteReplay))
 	mux.HandleFunc("/execute/approve", b.requireAuth(b.handleExecuteApprove))
@@ -686,6 +715,32 @@ func (b *Broker) StartOnPort(port int) error {
 	// home) reads this one endpoint so the numbers cannot drift.
 	mux.HandleFunc("/office/stats", b.requireAuth(b.handleOfficeStats))
 	mux.HandleFunc("/office-members/generate", b.requireAuth(b.handleGenerateMember))
+	// Agent CLIs found on this machine, adoptable as office bots
+	// (broker_local_agents.go). Owner-only: not on the human allowlist.
+	mux.HandleFunc("/agents/local", b.requireAuth(b.handleLocalAgents))
+	mux.HandleFunc("/agents/local/adopt", b.requireAuth(b.handleAdoptLocalAgents))
+	mux.HandleFunc("/agents/local/sessions", b.requireAuth(b.handleLocalSessions))
+	mux.HandleFunc("/agents/local/sessions/transcript", b.requireAuth(b.handleSessionTranscript))
+	mux.HandleFunc("/agents/local/sessions/show", b.requireAuth(b.handleSessionShow))
+	// One-poll snapshot for the Mac notch (broker_notch.go). Owner-only.
+	mux.HandleFunc("/notch/state", b.requireAuth(b.handleNotchState))
+	mux.HandleFunc("/notch/finished/seen", b.requireAuth(b.handleNotchFinishedSeen))
+	// The owner's screen, on request only (broker_host_computer.go).
+	mux.HandleFunc("/notch/screen/capture", b.requireAuth(b.handleNotchScreenCapture))
+	mux.HandleFunc("/notch/permissions/request", b.requireAuth(b.handleNotchPermissionRequest))
+	// The Mac app attached to this office registers its driver here.
+	mux.HandleFunc("/host-computer/attach", b.requireAuth(b.handleHostComputerAttach))
+	// Drawing on the owner's screen and pointing at controls (broker_notch_overlay.go).
+	mux.HandleFunc("/notch/overlay", b.requireAuth(b.handleNotchOverlay))
+	mux.HandleFunc("/notch/point", b.requireAuth(b.handleNotchPoint))
+	mux.HandleFunc("/notch/stop", b.requireAuth(b.handleNotchStop))
+	mux.HandleFunc("/notch/hint/seen", b.requireAuth(b.handleNotchHintSeen))
+	mux.HandleFunc("/notch/hint/dismiss", b.requireAuth(b.handleNotchHintDismiss))
+	mux.HandleFunc("/notch/read", b.requireAuth(b.handleNotchRead))
+	mux.HandleFunc("/notch/ideas/seen", b.requireAuth(b.handleNotchIdeaSeen))
+	mux.HandleFunc("/notch/ideas/dismiss", b.requireAuth(b.handleNotchIdeaDismiss))
+	mux.HandleFunc("/notch/ideas/accept", b.requireAuth(b.handleNotchIdeaAccept))
+	mux.HandleFunc("/notch/ideas/scan", b.requireAuth(b.handleNotchIdeasScan))
 	mux.HandleFunc("/channels", b.requireAuth(b.handleChannels))
 	mux.HandleFunc("/channels/dm", b.requireAuth(b.handleCreateDM))
 	mux.HandleFunc("/channels/generate", b.requireAuth(b.handleGenerateChannel))
@@ -762,6 +817,15 @@ func (b *Broker) StartOnPort(port int) error {
 	// product's wiki, attached to legacy Knowledge pages.
 	mux.HandleFunc(legacyArtifactURLPrefix, b.requireAuth(b.handleLegacyKnowledgeArtifact))
 	mux.HandleFunc("/apps/", b.requireAuth(b.handleAppByID))
+	// Data spaces: the structured store bots build for themselves. Same shape
+	// as the Apps block above — an exact pattern for the collection and a
+	// prefix pattern for everything below it. The bare "/data/" catch-all is
+	// last and least specific, so a mistyped route answers 404 here instead of
+	// falling through to the SPA. See broker_data.go for the actor-resolution
+	// contract these routes enforce.
+	mux.HandleFunc("/data/spaces", b.requireAuth(b.handleDataSpaces))
+	mux.HandleFunc("/data/spaces/", b.requireAuth(b.handleDataSpaceSubpath))
+	mux.HandleFunc("/data/", b.requireAuth(b.handleDataNotFound))
 	b.registerKnowledgeRoutes(mux)
 	mux.HandleFunc("/interview", b.requireAuth(b.handleInterview))
 	mux.HandleFunc("/interview/answer", b.requireAuth(b.handleInterviewAnswer))
@@ -790,6 +854,7 @@ func (b *Broker) StartOnPort(port int) error {
 	// user never copy/pastes an API key. See broker_composio_signin.go.
 	mux.HandleFunc("/integrations/composio/signin/start", b.requireAuth(b.handleComposioSigninStart))
 	mux.HandleFunc("/integrations/composio/signin/status", b.requireAuth(b.handleComposioSigninStatus))
+	mux.HandleFunc("/integrations/composio/signin/cancel", b.requireAuth(b.handleComposioSigninCancel))
 	mux.HandleFunc("/scheduler", b.requireAuth(b.handleScheduler))
 	mux.HandleFunc("/scheduler/", b.requireAuth(b.handleSchedulerSubpath))
 	mux.HandleFunc("/skills", b.requireAuth(b.handleSkills))
@@ -1001,6 +1066,21 @@ func (b *Broker) Stop() {
 	// lifecycleCancel so ctx-aware hooks (workflow precompile) abort their
 	// model calls promptly instead of holding Stop for their full timeout.
 	b.bgWG.Wait()
+
+	// Then the wiki worker: lifecycleCancel told its drain loop to exit, and
+	// the drain waits for its side goroutines (index reconcile, backup
+	// mirror, extractor). Waiting here means nothing is still committing
+	// into the wiki once Stop returns, so a caller can remove the directory.
+	b.mu.Lock()
+	wikiDrained := b.wikiDrainDone
+	b.mu.Unlock()
+	if wikiDrained != nil {
+		select {
+		case <-wikiDrained:
+		case <-time.After(10 * time.Second):
+			log.Printf("broker stop: wiki worker still draining after 10s; continuing")
+		}
+	}
 }
 
 // handleWebToken returns the broker token to localhost clients without requiring auth.

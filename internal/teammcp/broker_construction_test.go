@@ -79,18 +79,18 @@ func TestBrokerConstructionFreshHasZeroState(t *testing.T) {
 			if got := len(b.Requests("general", true)); got != 0 {
 				t.Fatalf("fresh broker should have zero requests in general, got %d", got)
 			}
-			// A fresh broker is not skill-empty: the two system skills
-			// (app building, wiki maintenance) always exist. Anything
-			// beyond them is state leakage.
+			// A fresh broker is not skill-empty: the system skills (app
+			// building, wiki maintenance, data modeling) always exist.
+			// Anything beyond them is state leakage.
 			skills := fetchSkillNames(t, b, "general")
-			systemOnly := map[string]bool{"app-building": true, "wiki-maintenance": true}
+			systemOnly := map[string]bool{"app-building": true, "wiki-maintenance": true, "data-modeling": true}
 			for _, name := range skills {
 				if !systemOnly[name] {
 					t.Fatalf("fresh broker should expose only system skills in general, got %v", skills)
 				}
 			}
-			if len(skills) != 2 {
-				t.Fatalf("fresh broker should expose both system skills, got %v", skills)
+			if len(skills) != len(systemOnly) {
+				t.Fatalf("fresh broker should expose every system skill, got %v", skills)
 			}
 		})
 	}

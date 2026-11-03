@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Plus, Refresh, Settings, Xmark } from "iconoir-react";
+import { Plus, RefreshCw, Settings, X } from "lucide-react";
 
 const meta: Meta = {
   title: "Design System/Atoms/IconButton",
@@ -16,13 +16,13 @@ export const Sizes: StoryObj = {
         className="icon-btn icon-btn--sm"
         aria-label="Close"
       >
-        <Xmark width={14} height={14} />
+        <X size={14} />
       </button>
       <button type="button" className="icon-btn" aria-label="Settings">
-        <Settings width={18} height={18} />
+        <Settings size={18} />
       </button>
       <button type="button" className="icon-btn icon-btn--lg" aria-label="Add">
-        <Plus width={22} height={22} />
+        <Plus size={22} />
       </button>
     </div>
   ),
@@ -32,7 +32,7 @@ export const States: StoryObj = {
   render: () => (
     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
       <button type="button" className="icon-btn" aria-label="Default">
-        <Refresh width={18} height={18} />
+        <RefreshCw size={18} />
       </button>
       <button
         type="button"
@@ -40,7 +40,7 @@ export const States: StoryObj = {
         aria-label="Disabled"
         disabled={true}
       >
-        <Refresh width={18} height={18} />
+        <RefreshCw size={18} />
       </button>
     </div>
   ),
@@ -71,13 +71,13 @@ export const InContext: StoryObj = {
       </div>
       <div style={{ display: "flex", gap: 4 }}>
         <button type="button" className="icon-btn" aria-label="Refresh">
-          <Refresh width={18} height={18} />
+          <RefreshCw size={18} />
         </button>
         <button type="button" className="icon-btn" aria-label="Settings">
-          <Settings width={18} height={18} />
+          <Settings size={18} />
         </button>
         <button type="button" className="icon-btn" aria-label="Close">
-          <Xmark width={18} height={18} />
+          <X size={18} />
         </button>
       </div>
     </header>

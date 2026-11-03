@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Tools } from "iconoir-react";
+import { Plus, Wrench } from "lucide-react";
 
 import { listApps } from "../../api/apps";
 import { navigateToSidebarApp } from "../../lib/sidebarNav";
@@ -99,7 +99,7 @@ export function AppsSection() {
               app.icon ? (
                 <span className="sidebar-item-emoji">{app.icon}</span>
               ) : (
-                <Tools className="sidebar-item-icon" />
+                <Wrench className="sidebar-item-icon" />
               )
             }
             label={app.name}

@@ -401,13 +401,17 @@ func (b *Broker) normalizeLoadedStateLocked() {
 		if strings.TrimSpace(b.channels[i].Description) == "" {
 			b.channels[i].Description = defaultTeamChannelDescription(b.channels[i].Slug, b.channels[i].Name)
 		}
-		if b.channels[i].Slug == "general" && len(b.channels[i].Members) < len(b.members) {
-			// Re-populate general channel with all office members.
-			// This fixes stale state where only CEO survived a previous normalization.
-			allSlugs := make([]string, 0, len(b.members))
-			for _, m := range b.members {
+		// Session members (terminal sessions) join no shared channel, so they
+		// are neither counted nor added here.
+		allSlugs := make([]string, 0, len(b.members))
+		for _, m := range b.members {
+			if !isSessionMember(m) {
 				allSlugs = append(allSlugs, m.Slug)
 			}
+		}
+		if b.channels[i].Slug == "general" && len(b.channels[i].Members) < len(allSlugs) {
+			// Re-populate general channel with all office members.
+			// This fixes stale state where only CEO survived a previous normalization.
 			b.channels[i].Members = allSlugs
 		}
 		// A DM's membership is its ACCESS CONTROL LIST, not a roster view.

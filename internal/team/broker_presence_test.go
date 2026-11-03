@@ -3,6 +3,7 @@ package team
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -242,7 +243,7 @@ func TestOfficeMembersListIncludesPresence(t *testing.T) {
 	}
 
 	rec := httptest.NewRecorder()
-	b.serveOfficeMemberList(rec)
+	b.serveOfficeMemberList(rec, httptest.NewRequest(http.MethodGet, "/office-members", nil))
 	if rec.Code != 200 {
 		t.Fatalf("status: got %d, want 200", rec.Code)
 	}
@@ -284,7 +285,7 @@ func TestOfficeMembersListSerializesOnlineFalseExplicitly(t *testing.T) {
 	b := newTestBroker(t)
 
 	rec := httptest.NewRecorder()
-	b.serveOfficeMemberList(rec)
+	b.serveOfficeMemberList(rec, httptest.NewRequest(http.MethodGet, "/office-members", nil))
 	if rec.Code != 200 {
 		t.Fatalf("status: got %d, want 200", rec.Code)
 	}

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { OpenNewWindow } from "iconoir-react";
+import { ExternalLink } from "lucide-react";
 
 import { type CustomApp, getApp, listApps } from "../../api/apps";
 import { APP_BUILDER_SLUG } from "../../lib/constants";
@@ -211,7 +211,7 @@ export function AppBuildPreview({
               })
             }
           >
-            <OpenNewWindow width={14} height={14} />
+            <ExternalLink size={14} />
           </button>
         </div>
         <div className="app-build-preview__frame">

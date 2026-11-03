@@ -170,6 +170,13 @@ func (g *governor) cancelInFlight(slug string) {
 	}
 }
 
+// controller returns whatever the launcher wired, nil when nothing is.
+func (g *governor) controller() headlessDispatchController {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.ctl
+}
+
 // headlessTurnEnqueuer is the optional capability to enqueue a fresh bot turn
 // directly (the Launcher implements it). The broker uses it to dispatch a single
 // bot for a specific job — e.g. an app edit straight to the App Builder —

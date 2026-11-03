@@ -167,3 +167,94 @@ describe("<MessageBubble> synthetic senders", () => {
     ).toBeGreaterThan(0);
   });
 });
+
+// Chat-layout themes put YOUR messages on the right. They read this one
+// attribute, so it must mark the person at this keyboard and nobody else:
+// another human team member, a bot, or a system line stays on the left.
+describe("<MessageBubble> data-author-self", () => {
+  const base: Message = {
+    id: "msg-self",
+    from: "human",
+    channel: "general",
+    content: "Morning.",
+    timestamp: "2026-10-08T09:00:00Z",
+  };
+
+  /** The bubble's data-author-self, or undefined when no bubble rendered. */
+  function selfAttr(from: string): string | null | undefined {
+    const { container, unmount } = renderWithQueryClient(
+      <MessageBubble message={{ ...base, id: `msg-${from}`, from }} />,
+    );
+    const bubble = container.querySelector("[data-author-kind]");
+    const value = bubble ? bubble.getAttribute("data-author-self") : undefined;
+    unmount();
+    return value;
+  }
+
+  it("marks the local human, whichever local slug the broker used", () => {
+    expect(selfAttr("human")).toBe("");
+    expect(selfAttr("you")).toBe("");
+  });
+
+  it("leaves other humans, bots and system lines unmarked", () => {
+    // toBeNull, not toBeFalsy: undefined would mean no bubble rendered at
+    // all, which must not pass as "unmarked".
+    expect(selfAttr("human:sam")).toBeNull();
+    expect(selfAttr("pm")).toBeNull();
+    expect(selfAttr("system")).toBeNull();
+  });
+});
+
+describe("<MessageBubble> session resumed note", () => {
+  const note: Message = {
+    id: "msg-77",
+    from: "system",
+    channel: "human__cc-1a2b3c4d",
+    kind: "session_resumed",
+    content:
+      "This session was resumed in the background to answer you. To open it in your terminal again, run: claude --resume 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    timestamp: "2026-10-10T09:00:00Z",
+  };
+
+  it("is a plain note with the command, not a message from anyone", () => {
+    const { container } = renderWithQueryClient(
+      <MessageBubble message={note} />,
+    );
+
+    const rendered = screen.getByTestId("session-resumed-note");
+    expect(rendered.textContent).toBe(note.content);
+    expect(rendered.textContent).toContain(
+      "claude --resume 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    );
+    // No bubble, so no author row and no avatar.
+    expect(container.querySelector("[data-author-kind]")).toBeNull();
+    expect(container.querySelector(".message-avatar")).toBeNull();
+  });
+
+  it("shows a message handed to an open window the same plain way", () => {
+    const { container } = renderWithQueryClient(
+      <MessageBubble
+        message={{
+          ...note,
+          kind: "session_delivered",
+          content:
+            "Delivered to this session's window. Its answer will appear there.",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("session-delivered-note").textContent).toBe(
+      "Delivered to this session's window. Its answer will appear there.",
+    );
+    expect(container.querySelector("[data-author-kind]")).toBeNull();
+  });
+
+  it("leaves an ordinary system line as a bubble", () => {
+    const { container } = renderWithQueryClient(
+      <MessageBubble message={{ ...note, kind: "error" }} />,
+    );
+
+    expect(screen.queryByTestId("session-resumed-note")).toBeNull();
+    expect(container.querySelector("[data-author-kind]")).not.toBeNull();
+  });
+});

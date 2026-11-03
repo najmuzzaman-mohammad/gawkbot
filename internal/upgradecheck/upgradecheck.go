@@ -1,13 +1,13 @@
 // Package upgradecheck compares the running wuphf version against the latest
-// published on npm and (optionally) summarises the diff via the GitHub
+// published release and (optionally) summarises the diff via the GitHub
 // compare API. It is consumed by the `wuphf upgrade` subcommand and by the
 // in-app web banner.
 //
-// Scope note: the npm shim (npm/bin/wuphf.js, PR #273) already self-heals
-// when the installed wuphf binary falls behind the latest published release,
-// printing its own one-line stderr hint. This package intentionally does
-// NOT add a second startup notice — it only powers explicit user-driven
-// surfaces (`wuphf upgrade`, the web banner).
+// Scope note: this package intentionally does NOT add a startup notice — it
+// only powers explicit user-driven surfaces (`wuphf upgrade`, the web
+// banner). The default upgrade instruction points at the latest Mac app on
+// GitHub Releases: the Mac app is the product, and the npm package is no
+// longer published.
 package upgradecheck
 
 import (
@@ -27,20 +27,36 @@ import (
 )
 
 const (
-	NPMPackage = "wuphf"
+	// GitHubRepo is the repo the compare API summarises changelogs from.
 	GitHubRepo = "nex-crm/wuphf"
+	// ReleasesRepo is the repo whose GitHub Releases carry the Mac app and
+	// the CLI binaries. The latest-version lookup reads its `latest` release.
+	ReleasesRepo = "najmuzzaman-mohammad/gawkbot"
+
+	// ReleasesLatestURL is where the Mac app ships. It is the default upgrade
+	// instruction for every surface (CLI, web banner, version modal) unless
+	// the broker detects a package-manager install it can drive itself.
+	ReleasesLatestURL = "https://github.com/" + ReleasesRepo + "/releases/latest"
+
+	// DefaultUpgradeCommand is the canonical "what we recommend" string. It is
+	// an instruction, not a shell command: people get gawkbot by downloading
+	// the Mac app, so the upgrade path is the same download.
+	DefaultUpgradeCommand = "Download the latest Mac app: " + ReleasesLatestURL
 )
 
-// npmRegistryURL is a var (not a const) so tests can swap in a httptest
-// server URL directly without the RoundTripper indirection the original
-// fixture used. Unexported so cross-package callers can't mutate it.
+// latestReleaseURL is the GitHub Releases API endpoint the version check
+// reads: `latest` excludes drafts and pre-releases, which is exactly what
+// users can download. It is a var (not a const) so tests can swap in a
+// httptest server URL directly without the RoundTripper indirection the
+// original fixture used. Unexported so cross-package callers can't mutate
+// it.
 //
 // Caveat: tests that swap this MUST NOT call t.Parallel() — concurrent
-// reads in fetchLatestVersion against a write in pinNPMRegistryURL trip
+// reads in fetchLatestVersion against a write in pinLatestReleaseURL trip
 // the race detector. The serial-by-default usage here is fine; if a
 // future test wants parallel execution, thread the URL through Check
 // instead of swapping the package var.
-var npmRegistryURL = "https://registry.npmjs.org/" + NPMPackage + "/latest"
+var latestReleaseURL = "https://api.github.com/repos/" + ReleasesRepo + "/releases/latest"
 
 // Result reports the comparison between the running version and the latest
 // published version.
@@ -51,14 +67,14 @@ type Result struct {
 	// IsDevBuild is true when Current is the buildinfo "dev" sentinel — i.e.
 	// the binary was compiled from source without a release ldflag. Callers
 	// MUST treat UpgradeAvailable as meaningless in that case (the comparison
-	// `dev < anything` is true but the user did not install via npm and the
+	// `dev < anything` is true but the user did not install from a release and the
 	// upgrade command is wrong for them).
 	IsDevBuild     bool   `json:"is_dev_build"`
 	CompareURL     string `json:"compare_url,omitempty"`
 	UpgradeCommand string `json:"upgrade_command"`
 }
 
-// Check fetches the latest version from npm and compares it to the running
+// Check fetches the latest release tag from GitHub and compares it to the running
 // build. It always returns a Result with Current populated; Latest is empty
 // when the registry call fails.
 func Check(ctx context.Context, client *http.Client) (Result, error) {
@@ -74,7 +90,7 @@ func Check(ctx context.Context, client *http.Client) (Result, error) {
 	res := Result{
 		Current:        current,
 		IsDevBuild:     IsDevVersion(current),
-		UpgradeCommand: "npm install -g " + NPMPackage + "@latest",
+		UpgradeCommand: DefaultUpgradeCommand,
 	}
 
 	latest, err := fetchLatestVersion(ctx, client)
@@ -83,9 +99,9 @@ func Check(ctx context.Context, client *http.Client) (Result, error) {
 	}
 	res.Latest = latest
 	// A dev build's "version" is the literal string "dev" — comparing it
-	// numerically against npm's `latest` would always say "upgrade
-	// available" and tell the user to `npm install -g`, which would
-	// blindly replace their source build. Bail out cleanly instead;
+	// numerically against the published `latest` would always say "upgrade
+	// available" and point the user at a download that would replace
+	// their source build. Bail out cleanly instead;
 	// callers render the dev-build branch off IsDevBuild.
 	if res.IsDevBuild {
 		return res, nil
@@ -110,7 +126,7 @@ func Check(ctx context.Context, client *http.Client) (Result, error) {
 //
 //  1. Anything that doesn't match VersionParamRE (garbage, partial
 //     sentinels) — a malformed `current` shouldn't be compared against
-//     npm `latest` as if it were semver.
+//     the latest release tag as if it were semver.
 //  2. Any version below 0.1.0 — a stale `internal/buildinfo/VERSION` of
 //     "0.0.7.1" parsed fine as semver and the banner told every
 //     contributor / source build to "upgrade" to an older release.
@@ -139,18 +155,23 @@ func IsDevVersion(v string) bool {
 // directly; tests overwrite this var via t.Cleanup-restored swaps.
 var currentVersion = func() string { return buildinfo.Current().Version }
 
-// ── npm registry ──────────────────────────────────────────────────────────
+// ── GitHub Releases ──────────────────────────────────────────────────────
 
-type npmManifest struct {
-	Version string `json:"version"`
+// githubRelease is the slice of the releases/latest payload we read. The
+// tag is the release's identity (`v1.2.3`); every other field is noise here.
+type githubRelease struct {
+	TagName string `json:"tag_name"`
 }
 
+// fetchLatestVersion reads the newest published (non-draft, non-prerelease)
+// release tag from GitHub and returns it without its leading `v`, so the
+// result compares directly against buildinfo's version string.
 func fetchLatestVersion(ctx context.Context, client *http.Client) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, npmRegistryURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, latestReleaseURL, nil)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("User-Agent", "wuphf-upgradecheck/1.0")
 	resp, err := client.Do(req)
 	if err != nil {
@@ -158,19 +179,19 @@ func fetchLatestVersion(ctx context.Context, client *http.Client) (string, error
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("npm registry status %d", resp.StatusCode)
+		return "", fmt.Errorf("github releases status %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return "", err
 	}
-	var m npmManifest
-	if err := json.Unmarshal(body, &m); err != nil {
+	var rel githubRelease
+	if err := json.Unmarshal(body, &rel); err != nil {
 		return "", err
 	}
-	v := strings.TrimSpace(m.Version)
+	v := strings.TrimPrefix(strings.TrimSpace(rel.TagName), "v")
 	if v == "" {
-		return "", errors.New("npm manifest missing version")
+		return "", errors.New("github release missing tag_name")
 	}
 	return v, nil
 }
@@ -207,7 +228,7 @@ type githubCompareResponse struct {
 func FetchChangelog(ctx context.Context, client *http.Client, from, to string) ([]CommitEntry, error) {
 	// Defense-in-depth: validate from/to here too, not just at the
 	// broker handler. Today both call sites are safe (broker validates
-	// via upgradeVersionParam, CLI feeds buildinfo + npm registry
+	// via upgradeVersionParam, CLI feeds buildinfo + GitHub Releases
 	// values), but a future caller reaching this package directly
 	// must NOT be able to ship `..` / `/` / `@host` segments to the
 	// upstream compare URL.
@@ -398,7 +419,7 @@ func FormatChangelog(entries []CommitEntry) string {
 //
 // Pre-release suffixes (e.g. "0.79.10-rc.1") are stripped before comparison
 // so "0.79.10-rc.1" sorts equal to "0.79.10". This is intentionally NOT a
-// full semver comparator — npm's `latest` dist-tag is conventionally a
+// full semver comparator — the latest release tag is conventionally a
 // stable release and we only need ordering within the stable line. If we
 // ever publish pre-releases under `latest`, swap in a real semver lib.
 func compareVersions(a, b string) int {

@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════════════════════
+   WUPHF Theme: Soft Dark
+   Near-black surfaces, soft white ink, barely-there hairlines, big round
+   corners and a bright friendly green. Your messages sit on the right in
+   the accent with dark ink; bots answer on the left in a soft charcoal
+   bubble beside their avatar.
+
+   Token values only. Where they go is decided once, for both flavours,
+   in soft-base.css; nex-soft-light.css is the sibling.
+
+   Contrast, measured with the WCAG formula on the opaque stops:
+     --text                 #f3f4f6 on --bg #0e0f11          17.4:1
+                                    on --soft-bubble-bot      14.3:1
+     --text-secondary       #a8acb3 on --soft-bubble-bot      6.9:1
+     --text-tertiary        #92979e on --soft-bubble-bot      5.3:1
+                                    on --nex-sidebar #131417  6.3:1
+     --accent               #34d17a on --bg-card #18191c      8.8:1
+     --soft-bubble-mine-ink #03240f on --soft-bubble-mine     8.4:1
+     --mention-fg           #6fe3a1 on its own tint           9.4:1
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url("./soft-base.css");
+
+html[data-theme="nex-soft-dark"] {
+  color-scheme: dark;
+
+  /* ── Neutral ramp, darkest first, so the workspace rail and anything else
+     that reaches for a ramp stop lands on this theme's blacks. ── */
+  --neutral-950: #08090a;
+  --neutral-900: #141518;
+
+  /* ── Overlays flipped for a dark surface ── */
+  --overlay-soft: rgba(255, 255, 255, 0.035);
+  --overlay: rgba(255, 255, 255, 0.07);
+  --overlay-strong: rgba(255, 255, 255, 0.13);
+  --scrim: rgba(0, 0, 0, 0.55);
+  --overlay-white-soft: rgba(255, 255, 255, 0.06);
+  --overlay-white: rgba(255, 255, 255, 0.12);
+  --overlay-white-strong: rgba(255, 255, 255, 0.32);
+
+  /* ── Surfaces, layered: subtle < bg < card < warm (bubbles, hover) ── */
+  --bg: #0e0f11;
+  --bg-subtle: #0a0b0c;
+  --bg-card: #18191c;
+  --bg-warm: #222327;
+  --bg-row-active: #2a2b30;
+
+  /* ── Ink ── */
+  --text: #f3f4f6;
+  --text-secondary: #a8acb3;
+  --text-tertiary: #92979e;
+  --text-disabled: #55595f;
+
+  /* ── Hairlines: white at very low alpha ── */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-light: rgba(255, 255, 255, 0.045);
+  --border-dark: rgba(255, 255, 255, 0.11);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  /* ── Accent: the brand green, bright on dark ── */
+  --accent: #34d17a;
+  --accent-warm: #2bb869;
+  --accent-bg: rgba(52, 209, 122, 0.13);
+  --accent-bg-strong: rgba(52, 209, 122, 0.28);
+  --accent-fg: #03240f;
+
+  /* ── Soft material ── */
+  --soft-bubble-bot: #222327;
+  --soft-bubble-bot-ink: #f3f4f6;
+  --soft-bubble-mine: #34d17a;
+  --soft-bubble-mine-ink: #03240f;
+  --soft-bubble-mine-chip: rgba(3, 36, 15, 0.14);
+  --soft-field: #18191c;
+  --soft-focus: rgba(52, 209, 122, 0.3);
+
+  /* ── Status: system-bright on dark, tints mixed toward transparent so
+     every -100/-200 chip stays dark on this ground. ── */
+  --success-500: #248a4d;
+  --success-400: #34d17a;
+  --success-300: #6fe3a1;
+  --error-500: #c9342b;
+  --error-400: #ff453a;
+  --error-300: #ff8a80;
+  --warning-500: #c27c0e;
+  --warning-400: #ff9f0a;
+  --warning-300: #ffc35c;
+  --success-100: rgba(52, 209, 122, 0.12);
+  --success-200: rgba(52, 209, 122, 0.24);
+  --error-100: rgba(255, 69, 58, 0.12);
+  --error-200: rgba(255, 69, 58, 0.24);
+  --warning-100: rgba(255, 159, 10, 0.12);
+  --warning-200: rgba(255, 159, 10, 0.24);
+  --cyan-100: rgba(100, 210, 255, 0.14);
+  --tertiary-100: rgba(52, 209, 122, 0.14);
+  --green: var(--success-400);
+  --green-dark: var(--success-300);
+  --green-bg: var(--success-100);
+  --red: var(--error-400);
+  --red-dark: var(--error-300);
+  --red-bg: var(--error-100);
+  --yellow: var(--warning-400);
+  --yellow-dark: var(--warning-300);
+  --yellow-bg: var(--warning-100);
+  --blue: #64d2ff;
+  --blue-bg: var(--cyan-100);
+  --purple: #bf5af2;
+  --purple-bg: rgba(191, 90, 242, 0.14);
+  --yellow-aa-500: #ffd60a;
+  --yellow-aa-200: rgba(255, 214, 10, 0.16);
+  --yellow-aa-on-pill: #1c1500;
+
+  /* ── Sidebar ── */
+  --nex-sidebar: #131417;
+  --nex-sidebar-hover: rgba(255, 255, 255, 0.05);
+  --nex-sidebar-active: rgba(52, 209, 122, 0.14);
+  --nex-sidebar-text: #a8acb3;
+  --nex-sidebar-text-active: #f3f4f6;
+  --nex-presence: #34d17a;
+
+  /* ── Elevation: a contact shadow plus a long soft fall-off ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.16);
+  --shadow-card-soft:
+    0 1px 2px rgba(0, 0, 0, 0.22), 0 8px 24px rgba(0, 0, 0, 0.14);
+  --shadow-popover:
+    0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 10px 28px -6px rgba(0, 0, 0, 0.5),
+    0 24px 56px -16px rgba(0, 0, 0, 0.5);
+  --shadow-modal:
+    0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3),
+    0 28px 72px -16px rgba(0, 0, 0, 0.7);
+  --shadow-overlay:
+    0 2px 6px rgba(0, 0, 0, 0.3), 0 32px 80px -16px rgba(0, 0, 0, 0.7);
+
+  /* ── Inline accents ── */
+  --mention-bg: #1b2a21;
+  --mention-fg: #6fe3a1;
+  --syntax-number: #64d2ff;
+  --syntax-bool: #ff9f0a;
+
+  /* ── Entity graph ── */
+  --graph-people-fill: rgba(52, 209, 122, 0.16);
+  --graph-people-stroke: #34d17a;
+  --graph-companies-fill: rgba(100, 210, 255, 0.16);
+  --graph-companies-stroke: #64d2ff;
+  --graph-customers-fill: rgba(255, 159, 10, 0.16);
+  --graph-customers-stroke: #ff9f0a;
+  --graph-other-fill: rgba(255, 255, 255, 0.06);
+  --graph-other-stroke: #92979e;
+
+  /* ── Wiki editor chrome (portals to body, so set at html scope) ── */
+  --wk-wikilink: #6fe3a1;
+  --wk-diff-add-bg: rgba(52, 209, 122, 0.16);
+  --wk-diff-add-ink: #6fe3a1;
+  --wk-diff-remove-bg: rgba(255, 69, 58, 0.16);
+  --wk-diff-remove-ink: #ff8a80;
+
+  /* ── shadcn/Tailwind primitives (HSL triplets). --accent and --border
+     are deliberately not restated; see nex-soft-light.css. ── */
+  --background: 220 10% 6%;
+  --foreground: 220 14% 96%;
+  --card: 225 7% 10%;
+  --card-foreground: 220 14% 96%;
+  --popover: 225 7% 10%;
+  --popover-foreground: 220 14% 96%;
+  --primary: 147 63% 51%;
+  --primary-foreground: 142 85% 8%;
+  --secondary: 230 6% 14%;
+  --secondary-foreground: 220 14% 96%;
+  --muted: 230 6% 14%;
+  --muted-foreground: 216 5% 60%;
+  --destructive: 3 100% 61%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 230 5% 18%;
+  --ring: 147 63% 51%;
+  --radius: 12px;
+}
+
+/* ── Notebook surface — base tokens assume cream paper. ── */
+html[data-theme="nex-soft-dark"] .notebook-surface {
+  --nb-paper: #141518;
+  --nb-paper-dark: #0e0f11;
+  --nb-rule: rgba(255, 255, 255, 0.03);
+  --nb-surface: #18191c;
+  --nb-text: #f3f4f6;
+  --nb-text-muted: #a8acb3;
+  --nb-text-tertiary: #92979e;
+  --nb-border: rgba(255, 255, 255, 0.11);
+  --nb-border-light: rgba(255, 255, 255, 0.07);
+  --nb-ink-blue: #64d2ff;
+  --nb-stamp-red: #ff453a;
+  --nb-amber: #ff9f0a;
+  --nb-amber-bg: rgba(255, 159, 10, 0.1);
+  --nb-amber-hover: #ffb340;
+  --nb-green-approve: #34d17a;
+  --nb-green-bg: rgba(52, 209, 122, 0.1);
+}
+html[data-theme="nex-soft-dark"] .notebook-surface {
+  background-color: var(--nb-paper);
+}
+
+/* ── Light pastel chips that hardcode their colours in the base sheets ── */
+html[data-theme="nex-soft-dark"] .task-detail-status-badge.status-done {
+  background: var(--success-100);
+  color: var(--success-300);
+  border-color: var(--success-200);
+}
+html[data-theme="nex-soft-dark"] .task-detail-status-badge.status-blocked {
+  background: var(--warning-100);
+  color: var(--warning-300);
+  border-color: var(--warning-200);
+}
+html[data-theme="nex-soft-dark"] .insight-badge-low {
+  color: var(--text);
+  background: var(--bg-warm);
+}
+html[data-theme="nex-soft-dark"] .wk-section-new {
+  background: var(--accent-bg);
+  color: var(--mention-fg);
+}

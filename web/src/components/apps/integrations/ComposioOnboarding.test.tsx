@@ -6,12 +6,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const updateConfig = vi.fn();
 const startComposioSignin = vi.fn();
 const getComposioSigninStatus = vi.fn();
+const cancelComposioSignin = vi.fn();
 vi.mock("../../../api/client", () => ({
   updateConfig: (patch: unknown) => updateConfig(patch),
 }));
 vi.mock("../../../api/integrations", () => ({
-  startComposioSignin: () => startComposioSignin(),
+  startComposioSignin: (options?: { auto?: boolean }) =>
+    startComposioSignin(options),
   getComposioSigninStatus: () => getComposioSigninStatus(),
+  cancelComposioSignin: () => cancelComposioSignin(),
 }));
 
 import { ComposioOnboarding } from "./ComposioOnboarding";
@@ -103,7 +106,7 @@ describe("<ComposioOnboarding>", () => {
       ).toBeInTheDocument(),
     );
     expect(
-      screen.getByRole("link", { name: /open the sign-in link/i }),
+      screen.getByRole("link", { name: /open the sign-in page/i }),
     ).toHaveAttribute("href", "https://platform.composio.dev/?cliKey=sess_1");
     expect(open).toHaveBeenCalledTimes(1);
     expect(open).toHaveBeenCalledWith(

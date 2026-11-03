@@ -1,0 +1,76 @@
+/* The model badge: what a bot runs on, on every bot avatar.
+
+   Its own sheet, imported by ModelBadge itself, because more than one bundle
+   draws it: the app, the Mac notch (not themed, loads no global.css), and
+   Storybook. A sheet imported only by an entry point is missing wherever
+   that entry point is not. Each surface sets the four --model-badge-* tokens:
+   global.css from the theme tokens, notch.css from the notch's. */
+
+.bot-avatar {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+  vertical-align: middle;
+}
+.model-badge {
+  position: absolute;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid var(--model-badge-border);
+  border-radius: 9999px;
+  background: var(--model-badge-bg);
+  color: var(--model-badge-ink);
+  font-family: var(--model-badge-font);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  pointer-events: auto;
+  user-select: none;
+}
+/* Small avatars: a two-character code tucked into the bottom-right corner. */
+.model-badge--dot {
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  background: var(--model-badge-ink);
+}
+.model-badge--code {
+  right: -5px;
+  bottom: -4px;
+  min-width: 14px;
+  height: 11px;
+  padding: 0 2px;
+  font-size: 8px;
+}
+/* Larger avatars: the word, then the whole label, centred under the face. */
+.model-badge--word,
+.model-badge--full {
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  /* A block, not a flex box, so a long raw model id ends in an ellipsis
+     and never grows wider than the row the avatar sits in. */
+  display: block;
+  max-width: calc(9ch + 12px);
+  height: 14px;
+  padding: 0 5px;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+.model-badge--full {
+  bottom: -7px;
+  max-width: calc(14ch + 14px);
+  height: 16px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 14px;
+}

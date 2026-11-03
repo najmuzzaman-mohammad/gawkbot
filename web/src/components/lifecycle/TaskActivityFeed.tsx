@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
-  ChatLines,
-  CheckCircle,
+  CircleCheck,
+  CircleQuestionMark,
   GitFork,
-  HelpCircle,
-  Refresh,
-  Xmark,
-} from "iconoir-react";
+  MessageSquare,
+  RefreshCw,
+  X,
+} from "lucide-react";
 
 import {
   getTaskActivity,
@@ -81,7 +81,7 @@ export function TaskActivityFeed({ taskId }: TaskActivityFeedProps) {
             className="issue-activity-feed-retry"
             onClick={() => void refetch()}
           >
-            <Refresh width={12} height={12} aria-hidden="true" /> Retry
+            <RefreshCw size={12} aria-hidden="true" /> Retry
           </button>
         </p>
       </div>
@@ -164,7 +164,7 @@ function ActivityRow({ event }: { event: TaskActivityEvent }) {
             <span className="issue-activity-feed-state">
               {humanizeLifecycleState(event.lifecycle.from ?? "") || "—"}
             </span>
-            <ArrowRight width={12} height={12} aria-hidden="true" />
+            <ArrowRight size={12} aria-hidden="true" />
             <span className="issue-activity-feed-state">
               {humanizeLifecycleState(event.lifecycle.to ?? "") || "—"}
             </span>
@@ -222,7 +222,7 @@ function RequestResolution({
       req.custom_text?.trim() || req.choice_text?.trim() || req.choice_id;
     return (
       <div className="issue-activity-feed-resolution issue-activity-feed-resolution--answered">
-        <CheckCircle width={12} height={12} aria-hidden="true" />
+        <CircleCheck size={12} aria-hidden="true" />
         <span>Answered: {answer || "—"}</span>
       </div>
     );
@@ -230,7 +230,7 @@ function RequestResolution({
   if (req.status === "canceled") {
     return (
       <div className="issue-activity-feed-resolution issue-activity-feed-resolution--canceled">
-        <Xmark width={12} height={12} aria-hidden="true" />
+        <X size={12} aria-hidden="true" />
         <span>Canceled</span>
       </div>
     );
@@ -238,7 +238,7 @@ function RequestResolution({
   // Open — clickable into the Tasks board (Needs human input lane).
   return (
     <div className="issue-activity-feed-resolution issue-activity-feed-resolution--open">
-      <HelpCircle width={12} height={12} aria-hidden="true" />
+      <CircleQuestionMark size={12} aria-hidden="true" />
       <span>Open — answer in Tasks →</span>
     </div>
   );
@@ -247,18 +247,18 @@ function RequestResolution({
 function iconForKind(kind: TaskActivityEventKind) {
   switch (kind) {
     case "lifecycle":
-      return <ArrowRight width={14} height={14} aria-hidden="true" />;
+      return <ArrowRight size={14} aria-hidden="true" />;
     case "comment":
-      return <ChatLines width={14} height={14} aria-hidden="true" />;
+      return <MessageSquare size={14} aria-hidden="true" />;
     case "request":
-      return <HelpCircle width={14} height={14} aria-hidden="true" />;
+      return <CircleQuestionMark size={14} aria-hidden="true" />;
     case "sub_issue":
-      return <GitFork width={14} height={14} aria-hidden="true" />;
+      return <GitFork size={14} aria-hidden="true" />;
     case "turn":
-      return <Refresh width={14} height={14} aria-hidden="true" />;
+      return <RefreshCw size={14} aria-hidden="true" />;
     default:
       // "action" and any future kinds.
-      return <CheckCircle width={14} height={14} aria-hidden="true" />;
+      return <CircleCheck size={14} aria-hidden="true" />;
   }
 }
 

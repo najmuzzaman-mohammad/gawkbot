@@ -20,6 +20,8 @@ func TestMigrateLegacyLeadSlug(t *testing.T) {
 		`"ceoMessagePayload"`:      `"ceoMessagePayload"`,
 		`"CEO"`:                    `"CEO"`,
 		`"the ceo's office"`:       `"the cos's office"`,
+		`"task-follow-up:ceo--human:task-skill-31"`:                   `"task-follow-up:cos--human:task-skill-31"`,
+		`"task-follow-up:human--ceo:task-1"`:                          `"task-follow-up:human--cos:task-1"`,
 		`{"from":"ceo","channel":"ceo__human","tagged":["ceo","pm"]}`: `{"from":"cos","channel":"cos__human","tagged":["cos","pm"]}`,
 	}
 	for in, want := range cases {

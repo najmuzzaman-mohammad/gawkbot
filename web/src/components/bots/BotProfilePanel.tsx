@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, Xmark } from "iconoir-react";
+import { Lock, X } from "lucide-react";
 
 import type {
   LLMRuntimeKind,
   LocalProviderStatus,
+  MemberAvatar,
   OfficeMember,
   ProviderBinding,
   Skill,
@@ -25,6 +26,8 @@ import {
   updateTaskStatus,
 } from "../../api/tasks";
 import { useDefaultHarness } from "../../hooks/useConfig";
+import { hasAvatarChoice, normalizeAvatarColor } from "../../lib/blobAvatar";
+import { botDot, botDotClass } from "../../lib/botDot";
 import type { HarnessKind } from "../../lib/harness";
 import { resolveHarness } from "../../lib/harness";
 import { humanizeActivity } from "../../lib/humanizeActivity";
@@ -36,11 +39,14 @@ import {
 } from "../../lib/modelCatalog";
 import { DEFAULT_LLM_KINDS } from "../../lib/providerBinding";
 import { router } from "../../lib/router";
+import { isSessionMember } from "../../lib/sessionMember";
 import { useAppStore } from "../../stores/app";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
+import { AvatarPicker } from "./AvatarPicker";
 import { BotInstructionsSection } from "./BotInstructionsSection";
+import { MemberProvenance } from "./MemberProvenance";
+import { SessionRuntimeSection } from "./SessionRuntimeSection";
 
 const PROVIDER_LABELS: Record<LLMRuntimeKind, string> = {
   "claude-code": "Claude Code",
@@ -603,7 +609,7 @@ function RuntimeSection({
           <span className="op-runtime-label">managed by</span>
           <span className="op-runtime-value">
             <span className="op-runtime-managed">
-              <Lock width={11} height={11} />
+              <Lock size={11} />
               {gatewayLabel} gateway
             </span>
           </span>
@@ -622,6 +628,42 @@ function RuntimeSection({
         <p className="op-runtime-note">
           This bot was imported through the {gatewayLabel} gateway. Change its
           runtime from the Integrations app.
+        </p>
+      </div>
+    );
+  }
+
+  if (binding.kind === "cli-agent") {
+    // Adopted from an agent CLI on this machine. Not editable here: the
+    // generic runtime picker has no cli-agent entry, so saving would silently
+    // reset the bot to the install default and orphan its agent.
+    const agentID = binding.cli_agent?.agent || "agent";
+    return (
+      <div className="bot-profile-section op-runtime">
+        <SectionTitle>runtime</SectionTitle>
+        <div className="op-runtime-grid">
+          <span className="op-runtime-label">runs on</span>
+          <span className="op-runtime-value">
+            <span className="op-runtime-managed">
+              <Lock size={11} />
+              {agentID} CLI on this machine
+            </span>
+          </span>
+          {!!binding.model && (
+            <>
+              <span className="op-runtime-label">model</span>
+              <span
+                className="op-runtime-value"
+                style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+              >
+                {binding.model}
+              </span>
+            </>
+          )}
+        </div>
+        <p className="op-runtime-note">
+          Adopted from Settings → Agents on this machine. It runs on that CLI's
+          own sign-in; the Chief of Staff delegates work to it.
         </p>
       </div>
     );
@@ -710,6 +752,95 @@ function RuntimeSection({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Comparable form of an avatar: "" for each unset field. */
+function avatarKey(avatar: MemberAvatar | undefined): string {
+  if (!hasAvatarChoice(avatar)) return "|";
+  return `${avatar?.shape ?? ""}|${normalizeAvatarColor(avatar?.color) ?? ""}`;
+}
+
+// The bot's look. Edited as a draft and saved explicitly, because the custom
+// colour input fires on every drag step and each step must not be a POST.
+// Saving "automatic" sends `avatar: {}`, which the broker reads as "clear it
+// back to the derived look"; omitting the field would leave it unchanged.
+function AvatarSection({ agent }: { agent: OfficeMember }) {
+  const queryClient = useQueryClient();
+  const saved = agent.avatar;
+  const savedShape = saved?.shape;
+  const savedColor = saved?.color;
+  const [draft, setDraft] = useState<MemberAvatar | undefined>(saved);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Re-sync when the saved look changes underneath (a refetch after save,
+  // another tab, or a different bot in the same mounted panel).
+  useEffect(() => {
+    setDraft(
+      savedShape || savedColor
+        ? { shape: savedShape, color: savedColor }
+        : undefined,
+    );
+    setSaveError(null);
+  }, [savedShape, savedColor]);
+
+  const mutation = useMutation({
+    mutationFn: async (next: MemberAvatar | undefined) => {
+      await post("/office-members", {
+        action: "update",
+        slug: agent.slug,
+        avatar: next ?? {},
+      });
+    },
+    onSuccess: () => {
+      setSaveError(null);
+      void queryClient.invalidateQueries({ queryKey: ["office-members"] });
+    },
+    onError: (err: unknown) => {
+      setSaveError(err instanceof Error ? err.message : "Failed to save");
+    },
+  });
+
+  const dirty = avatarKey(draft) !== avatarKey(saved);
+
+  return (
+    <div className="bot-profile-section">
+      <SectionTitle>avatar</SectionTitle>
+      <AvatarPicker
+        slug={agent.slug}
+        value={draft}
+        onChange={(next) => {
+          setDraft(next);
+          setSaveError(null);
+        }}
+        disabled={mutation.isPending}
+      />
+      {saveError ? (
+        <div className="bot-wizard-error" style={{ marginTop: 8 }} role="alert">
+          {saveError}
+        </div>
+      ) : null}
+      <div className="op-runtime-actions">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={!dirty || mutation.isPending}
+          onClick={() => {
+            setDraft(saved);
+            setSaveError(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={!dirty || mutation.isPending}
+          onClick={() => mutation.mutate(draft)}
+        >
+          {mutation.isPending ? "Saving..." : "Save avatar"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -899,7 +1030,7 @@ export function BotProfilePanel({
     refetchInterval: 30_000,
   });
 
-  const statusClass = agent.status === "active" ? "active pulse" : "lurking";
+  const statusClass = botDotClass(botDot(agent));
 
   return (
     <div className="bot-panel bot-profile-panel">
@@ -912,11 +1043,7 @@ export function BotProfilePanel({
                 slug={agent.slug}
                 size={36}
                 className="pixel-avatar-panel"
-              />
-              <HarnessBadge
-                kind={resolveHarness(agent.provider, defaultHarness)}
-                size={18}
-                className="harness-badge-on-avatar"
+                avatar={agent.avatar}
               />
             </div>
             <div
@@ -948,7 +1075,7 @@ export function BotProfilePanel({
             onClick={onClose}
             aria-label="Close bot profile"
           >
-            <Xmark width={20} height={20} />
+            <X size={20} />
           </button>
         </div>
       ) : null}
@@ -960,6 +1087,17 @@ export function BotProfilePanel({
           <div className="bot-profile-section">
             <SectionTitle>role</SectionTitle>
             <p className="bot-profile-role-text">{agent.role}</p>
+          </div>
+        ) : null}
+
+        {/* Avatar: shape + colour, or automatic */}
+        <AvatarSection agent={agent} />
+
+        {/* Provenance: who made it, where it runs, who manages it */}
+        {agent.origin || agent.runs_on ? (
+          <div className="bot-profile-section">
+            <SectionTitle>origin</SectionTitle>
+            <MemberProvenance member={agent} />
           </div>
         ) : null}
 
@@ -976,8 +1114,13 @@ export function BotProfilePanel({
         {/* Instruction files (SOUL / IDENTITY / OPERATIONS / TOOLS + office USER) */}
         <BotInstructionsSection agent={agent} />
 
-        {/* Per-bot runtime picker */}
-        <RuntimeSection agent={agent} defaultHarness={defaultHarness} />
+        {/* Per-bot runtime picker. A terminal session has nothing to pick:
+            what it runs on is read from its own log. */}
+        {isSessionMember(agent) ? (
+          <SessionRuntimeSection agent={agent} />
+        ) : (
+          <RuntimeSection agent={agent} defaultHarness={defaultHarness} />
+        )}
 
         {/* Skills */}
         <SkillsSection agentSlug={agent.slug} skills={skills} />

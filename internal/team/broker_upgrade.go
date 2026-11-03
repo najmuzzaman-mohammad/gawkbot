@@ -61,11 +61,11 @@ func (b *Broker) handleVersion(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(buildinfo.Current())
 }
 
-// handleUpgradeCheck proxies the npm-registry comparison through the broker
-// instead of letting the browser hit registry.npmjs.org directly. The web
+// handleUpgradeCheck proxies the GitHub Releases comparison through the
+// broker instead of letting the browser hit api.github.com directly. The web
 // banner uses this so that (a) we have one server-side place to cache the
 // result, (b) a corporate-NAT'd workstation doesn't burn every user's
-// anonymous npm/GitHub quota on every page load.
+// anonymous GitHub quota on every page load.
 func (b *Broker) handleUpgradeCheck(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", "GET")
@@ -502,7 +502,7 @@ func (b *Broker) handleUpgradeRun(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(upgradeRunResult{
 			OK:            false,
 			InstallMethod: plan.Method,
-			Error:         "Could not detect how wuphf was installed (no npm, or wuphf isn't under a global/local node_modules). Try `npm install -g wuphf@latest` from a terminal.",
+			Error:         "Could not detect a package-manager install to upgrade in place. Download the latest Mac app instead: " + upgradecheck.ReleasesLatestURL,
 		})
 		return
 	}
@@ -592,12 +592,12 @@ func withTruncationSentinel(s string) string {
 
 // ── Upgrade-check caching ─────────────────────────────────────────────────
 //
-// Memoise the npm registry result for 30 minutes and the GitHub compare
+// Memoise the latest-release result for 30 minutes and the GitHub compare
 // result for 1 hour so N tabs / page reloads / shell remounts on one
 // machine result in at most one upstream hit per TTL window. Coalesces
 // concurrent requests via singleflight so a parallel page-load burst still
 // only sends one upstream call. Without this, an office full of users on
-// the same NAT could exhaust npm/GitHub's anonymous quota in normal use.
+// the same NAT could exhaust GitHub's anonymous quota in normal use.
 
 const (
 	upgradeCheckTTL     = 30 * time.Minute
@@ -605,7 +605,7 @@ const (
 	upgradeUpstreamTime = 5 * time.Second
 	// Negative-cache window: pin upstream failures briefly so an outage
 	// doesn't bypass the cache and let every banner load hammer
-	// npm/GitHub. Short enough that recovery is observed quickly;
+	// GitHub. Short enough that recovery is observed quickly;
 	// singleflight only collapses concurrent bursts, not back-to-back
 	// retries.
 	upgradeFailureTTL = 60 * time.Second

@@ -34,6 +34,9 @@ type computerMount struct {
 	target computer.Target
 	Launch computer.MCPLaunch
 	poller *screenPoller
+	// mac is the person's own Mac (broker_computer_mac.go): no container,
+	// no viewer, the person's screen is the picture.
+	mac bool
 }
 
 // Env is the environment the bridge process needs, keyed by name, so both
@@ -57,6 +60,8 @@ func (s *computerService) mountForTurn(ctx context.Context, slug, turnID, taskID
 	switch dest {
 	case computerOff:
 		return nil, nil
+	case computerMac:
+		return s.mountMacForTurn(ctx, slug, turnID, taskID, controlURL, controlToken)
 	case computerCloud:
 		// Cloud mounts are wired by broker_computer_box.go; absent that,
 		// the bot runs without a computer this turn.
@@ -304,6 +309,8 @@ func computerPromptHint(dest string) string {
 		return "\nYOUR COMPUTER: You have your own isolated Linux desktop in a container reserved for you, reached through the `computer` tools (mcp__computer__*). Only " + computer.WorkspaceGuest + " is durable; save downloads, repositories, working files, and browser logins there because everything else inside the machine is disposable. No host folder is mounted. Inspect the desktop state before acting, prefer accessibility targets over raw coordinates, take a screenshot after each meaningful step, and act carefully. If you need a person to log in, solve a CAPTCHA, or make a call, use computer_request_help and wait.\n"
 	case computerCloud:
 		return "\nYOUR COMPUTER: You have your own cloud Linux desktop, reached through the `computer` tools (mcp__computer__*). Its disk persists between sessions. Take a screenshot before acting, act carefully, and use computer_request_help when a person must step in.\n"
+	case computerMac:
+		return "\nYOUR COMPUTER: You share the person's own Mac, reached through the `computer` tools (mcp__computer__*). You act through your own virtual cursor, which the person watches; your clicks and keys go straight to the app in the background, so you never move the person's pointer or take their focus, and they keep working while you do. Work the way a careful person would: read the window first (get_window_state, tree_format elements), prefer element targets and run_steps with checks over raw coordinates, and never touch windows you were not asked about. The person is asked before your first action each turn; if they say no, stop and explain. Use computer_request_help when they must step in.\n"
 	}
 	return ""
 }

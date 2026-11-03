@@ -2,43 +2,34 @@ import { useMemo, useRef } from "react";
 
 import type { OfficeMember } from "../../api/client";
 import { useBotEventPeek } from "../../hooks/useBotEventPeek";
-import { useDefaultHarness } from "../../hooks/useConfig";
 import { useFirstRunNudge } from "../../hooks/useFirstRunNudge";
 import { useOfficeMembers } from "../../hooks/useMembers";
 import { useOverflow } from "../../hooks/useOverflow";
-import { AVATAR_MODE } from "../../lib/avatarMode";
-import { type HarnessKind, resolveHarness } from "../../lib/harness";
+import { botDot, botDotClass } from "../../lib/botDot";
 import { router } from "../../lib/router";
+import {
+  isSessionMember,
+  sessionProject,
+  sessionStatusLabel,
+} from "../../lib/sessionMember";
 import { useCurrentRoute } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
 import { BotWizard, useBotWizard } from "../bots/BotWizard";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { BotEventPeek } from "./BotEventPeek";
 import { BotEventPill, BotEventTickProvider } from "./BotEventPill";
 
-function classifyActivity(member: OfficeMember | undefined) {
-  if (!member)
-    return { state: "lurking", label: "lurking", dotClass: "lurking" };
-  const status = (member.status || "").toLowerCase();
-  const activity = (member.task || "").toLowerCase();
-
+/** The word in a row's tooltip for what the bot is up to. */
+function activityLabel(member: OfficeMember | undefined): string {
+  if ((member?.status || "").toLowerCase() !== "active") return "lurking";
+  const activity = (member?.task || "").toLowerCase();
   if (
-    status === "active" &&
     /tool|code|write|edit|commit|build|deploy|ship|push|run|test/.test(activity)
   )
-    return { state: "shipping", label: "shipping", dotClass: "shipping" };
-  if (
-    status === "active" &&
-    /think|plan|queue|review|sync|debug|trace|investigat/.test(activity)
-  )
-    return { state: "plotting", label: "plotting", dotClass: "plotting" };
-  // No `pulse` here on purpose. The bot's EYES now animate while it works,
-  // and a pulsing dot beside animating eyes is two clocks for one fact. The
-  // dot stays categorical and still; the eyes carry the motion.
-  if (status === "active")
-    return { state: "talking", label: "talking", dotClass: "active" };
-  return { state: "lurking", label: "lurking", dotClass: "lurking" };
+    return "shipping";
+  if (/think|plan|queue|review|sync|debug|trace|investigat/.test(activity))
+    return "plotting";
+  return "talking";
 }
 
 /**
@@ -56,7 +47,6 @@ interface SidebarBotRowProps {
   isDMActive: boolean;
   isFirst: boolean;
   showNudge: boolean;
-  defaultHarness: HarnessKind;
   onSelect: (slug: string) => void;
 }
 
@@ -70,21 +60,27 @@ function SidebarBotRow({
   isDMActive,
   isFirst,
   showNudge,
-  defaultHarness,
   onSelect,
 }: SidebarBotRowProps) {
   const peek = useBotEventPeek(agent.slug);
   const anchorRef = useRef<HTMLDivElement>(null);
-  const ac = classifyActivity(agent);
   const working = isWorking(agent);
+  const dot = botDot(agent);
   // "On its computer": the desktop is up AND the bot is mid-turn. Both
   // facts are required so an idle bot with a sleeping VM shows nothing.
   const computerReady = useAppStore(
     (s) => s.computerStates[agent.slug]?.state === "ready",
   );
   const onComputer = working && computerReady;
-  const harness = resolveHarness(agent.provider, defaultHarness);
   const displayName = agent.name || agent.slug;
+  // A session row also says which folder it is working in: four sessions of
+  // the same tool are otherwise told apart by their titles alone.
+  const isSession = isSessionMember(agent);
+  const project = isSession ? sessionProject(agent) : "";
+  // Its status comes from the session alone. The event pill falls back to
+  // the office's idle copy ("clearing something small"), which would invent
+  // an activity for a session that is waiting or closed.
+  const sessionStatus = isSession ? sessionStatusLabel(agent) : "";
 
   return (
     <div
@@ -96,7 +92,7 @@ function SidebarBotRow({
       <button
         type="button"
         className={`sidebar-agent${isDMActive ? " active" : ""}`}
-        title={`${displayName} — ${ac.label}`}
+        title={`${displayName} — ${activityLabel(agent)}`}
         onClick={() => {
           // Tier 3 escalation: "quick activation always wins" per the plan.
           // Close any open Tier 2 peek so the workspace is the only surface
@@ -112,39 +108,33 @@ function SidebarBotRow({
             size={24}
             className="pixel-avatar-sidebar"
             working={working}
+            avatar={agent.avatar}
           />
-          {/* The harness badge is dropped in blob mode. On the old character
-              sprite it sat over the body; a blob has no body to spare, so it
-              lands on the mark itself and competes with the one status signal
-              that has to survive at 24px -- the working dot. In sprite mode it
-              behaves exactly as before. */}
-          {AVATAR_MODE !== "blob" && (
-            <HarnessBadge
-              kind={harness}
-              size={10}
-              className="harness-badge-on-avatar"
-            />
-          )}
           {/* Top-right of the avatar carries exactly ONE dot, and which one
               depends on the more important fact being true.
 
-              Green means WORKING: the bot is processing right now. That is
+              Pulsing orange means WORKING: the bot is processing now. That is
               the state a human actually wants to spot in a rail of a dozen
               teammates, so it gets the loud treatment and the position the
               eye lands on.
 
               The transport-presence dot is the fallback, shown only when the
               bot is reachable but idle. It is deliberately smaller and
-              muted rather than green — two green dots on one row would put
-              the old ambiguity straight back.
+              muted, so being reachable never reads as working.
 
               Both are decorative: the peek card states presence textually
               ("Online" / "Last seen Xm ago") and the row's status dot carries
               activity, so announcing either here would just repeat it. */}
-          {working ? (
+          {dot === "working" ? (
             <span
               className="working-badge"
               data-testid={`working-badge-${agent.slug}`}
+              aria-hidden="true"
+            />
+          ) : dot === "finished" ? (
+            <span
+              className="finished-badge"
+              data-testid={`finished-badge-${agent.slug}`}
               aria-hidden="true"
             />
           ) : agent.online ? (
@@ -156,14 +146,38 @@ function SidebarBotRow({
           ) : null}
         </span>
         <div className="sidebar-bot-wrap">
-          <span className="sidebar-bot-name">{displayName}</span>
-          <BotEventPill
-            slug={agent.slug}
-            agentRole={agent.role}
-            fallbackTask={agent.task}
-          />
+          <span className="sidebar-bot-title">
+            <span className="sidebar-bot-name">{displayName}</span>
+            {isSession ? <SessionMark agent={agent} /> : null}
+          </span>
+          {project ? (
+            <span
+              className="sidebar-bot-task"
+              data-testid={`session-project-${agent.slug}`}
+            >
+              {project}
+            </span>
+          ) : null}
+          {isSession ? (
+            <span
+              className="sidebar-bot-pill"
+              data-state={sessionStatus === "Working" ? "holding" : "dim"}
+              data-testid={`session-status-${agent.slug}`}
+            >
+              {sessionStatus}
+            </span>
+          ) : (
+            <BotEventPill
+              slug={agent.slug}
+              agentRole={agent.role}
+              fallbackTask={agent.task}
+            />
+          )}
         </div>
-        <span className={`status-dot ${ac.dotClass}`} />
+        <span
+          className={`status-dot ${botDotClass(dot)}`}
+          data-testid={`status-dot-${agent.slug}`}
+        />
       </button>
       {onComputer ? (
         <span
@@ -237,6 +251,31 @@ function SidebarBotRow({
   );
 }
 
+const SESSION_TOOL: Record<string, string> = {
+  "claude-code": "Claude Code",
+  codex: "Codex",
+};
+
+/** A terminal mark: this bot is a session found on this Mac. */
+function SessionMark({ agent }: { agent: OfficeMember }) {
+  const tool = agent.session?.tool ?? "";
+  const what = `${SESSION_TOOL[tool] ?? "Terminal"} session on this Mac`;
+  return (
+    <span
+      className="sidebar-session-mark"
+      role="img"
+      aria-label={what}
+      title={what}
+      data-testid={`session-mark-${agent.slug}`}
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+        <path d="M4.5 6.5 6.5 8l-2 1.5M8 10h3.5" />
+      </svg>
+    </span>
+  );
+}
+
 export function BotList() {
   const { data: members = [] } = useOfficeMembers();
   const route = useCurrentRoute();
@@ -245,10 +284,11 @@ export function BotList() {
   const activeBotSlug = route.kind === "bot-detail" ? route.agentSlug : null;
   const wizard = useBotWizard();
   const overflowRef = useOverflow<HTMLDivElement>();
-  const defaultHarness = useDefaultHarness();
   const { showNudge } = useFirstRunNudge();
   const isReconnecting = useAppStore((s) => s.isReconnecting);
 
+  // Terminal sessions are bots like any other: listed with the office's
+  // own, told apart only by the terminal mark on their row.
   const agents = members.filter((m) => m.slug && m.slug !== "human");
   // v3 MVP — split CEO out of the flat bot list so the sidebar can
   // render it as the orchestrator with specialists listed beneath. The
@@ -300,7 +340,6 @@ export function BotList() {
                     isDMActive={activeBotSlug === cos.slug}
                     isFirst={cos.slug === firstBotSlug}
                     showNudge={showNudge}
-                    defaultHarness={defaultHarness}
                     onSelect={handleSelect}
                   />
                 </div>
@@ -325,7 +364,6 @@ export function BotList() {
                           isDMActive={activeBotSlug === agent.slug}
                           isFirst={agent.slug === firstBotSlug}
                           showNudge={showNudge}
-                          defaultHarness={defaultHarness}
                           onSelect={handleSelect}
                         />
                       </div>

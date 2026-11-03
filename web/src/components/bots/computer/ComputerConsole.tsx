@@ -2,7 +2,7 @@
 // for the gawker who wants to peek at a file, not a terminal replacement.
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Terminal } from "iconoir-react";
+import { Terminal } from "lucide-react";
 
 import { type ComputerExecResult, computerExec } from "../../../api/computer";
 
@@ -34,7 +34,7 @@ export function ComputerConsole({ slug }: ComputerConsoleProps) {
   return (
     <details className="computer-console" data-testid="computer-console">
       <summary className="computer-console-summary">
-        <Terminal width={14} height={14} aria-hidden="true" />
+        <Terminal size={14} aria-hidden="true" />
         Console
       </summary>
       <form

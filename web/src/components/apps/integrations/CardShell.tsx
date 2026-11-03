@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { NavArrowLeft, NavArrowRight } from "iconoir-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { IntegrationStatus, IntegrationStatusTone } from "./types";
 
@@ -70,10 +70,9 @@ export function IntegrationListRow({
       <div className="op-list-row-status">
         <StatusPill status={status} />
       </div>
-      <NavArrowRight
+      <ChevronRight
         className="op-list-row-chevron"
-        width={18}
-        height={18}
+        size={18}
         aria-hidden="true"
       />
     </button>
@@ -103,7 +102,7 @@ export function IntegrationDetailHeader({
         onClick={onBack}
         aria-label="Back to integrations list"
       >
-        <NavArrowLeft width={16} height={16} aria-hidden="true" />
+        <ChevronLeft size={16} aria-hidden="true" />
         <span>All integrations</span>
       </button>
       <div className="op-detail-id">

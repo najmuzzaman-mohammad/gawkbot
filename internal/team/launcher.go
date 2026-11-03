@@ -124,6 +124,10 @@ type Launcher struct {
 	// just as fast as a string lookup.
 	notifyLastDelivered map[notifyDedupKey]time.Time
 
+	// sessionTurns runs the owner's messages to terminal sessions, one per
+	// session at a time (headless_session_runner.go). Zero value is ready.
+	sessionTurns sessionTurnPool
+
 	// notebookBookend* dedupe the per-(bot, task) pre-task notebook
 	// bookend (task_notebook_bookends.go) so only the FIRST headless-turn
 	// enqueue for a pair queues the research-note write. Lazily allocated

@@ -161,9 +161,19 @@ describe("integrations api client", () => {
       status: "done",
     });
 
+    // The start body carries whether this sign-in was clicked for or started
+    // by a connect attempt. The broker reads it to decide two things: whether
+    // it may install software, and whether it may start one at all.
     expect(postSpy).toHaveBeenCalledWith(
       "/integrations/composio/signin/start",
-      {},
+      {
+        auto: false,
+      },
+    );
+    await startComposioSignin({ auto: true });
+    expect(postSpy).toHaveBeenLastCalledWith(
+      "/integrations/composio/signin/start",
+      { auto: true },
     );
     expect(getSpy).toHaveBeenCalledWith("/integrations/composio/signin/status");
   });

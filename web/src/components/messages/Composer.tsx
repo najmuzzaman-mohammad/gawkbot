@@ -10,11 +10,14 @@ import {
   cancelRequest,
   getConfig,
   type Message,
+  type OfficeMember,
   postMessage,
 } from "../../api/client";
 import { useCommands } from "../../hooks/useCommands";
 import { useOfficeMembers } from "../../hooks/useMembers";
 import { useRequests } from "../../hooks/useRequests";
+import { formatBotName } from "../../lib/botName";
+import { directChannelPeer } from "../../lib/channels";
 import {
   extractTaggedMentions,
   parseMentions,
@@ -117,6 +120,21 @@ function emptyMessagesQueryData(
 ): MessagesQueryData | undefined {
   if (!data?.messages) return data;
   return { ...data, messages: [] };
+}
+
+/**
+ * The empty composer's prompt. A DM names the bot on the other side
+ * ("Message Chief of Staff"), never its `cos__human` slug; a named channel
+ * keeps "Message #name". The slug-derived name covers a roster still loading.
+ */
+function composerPlaceholder(
+  channel: string,
+  members: readonly Pick<OfficeMember, "slug" | "name">[],
+): string {
+  const peer = directChannelPeer(channel);
+  if (!peer) return `Message #${channel}`;
+  const name = members.find((m) => m.slug === peer)?.name?.trim();
+  return `Message ${name || formatBotName(peer)}`;
 }
 
 interface OutboundMessage {
@@ -587,7 +605,7 @@ function ChannelComposer({ channel }: { channel: string }) {
           <textarea
             ref={textareaRef}
             className="composer-input"
-            placeholder={`Message #${currentChannel}`}
+            placeholder={composerPlaceholder(currentChannel, members)}
             value={text}
             onChange={(e) => {
               setText(e.target.value);
@@ -644,6 +662,7 @@ export const __test__ = {
   handleSlashCommand,
   resolveLeadSlug,
   askPrefix,
+  composerPlaceholder,
   latestMessageIdFromQueryData,
   emptyMessagesQueryData,
   COMPOSER_HISTORY_LIMIT,

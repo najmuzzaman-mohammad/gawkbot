@@ -150,6 +150,7 @@ func (b *Broker) loadState() error {
 	b.sessionMode = state.SessionMode
 	b.oneOnOneBot = state.OneOnOneBot
 	b.focusMode = state.FocusMode
+	b.sessionAgents.dismissed = state.DismissedSessions
 	b.tasks = state.Tasks
 	if b.tasks == nil {
 		b.tasks = []teamTask{}
@@ -316,6 +317,7 @@ func (b *Broker) prepareBrokerStateWriteLocked() (brokerStateWrite, error) {
 		SessionMode:        b.sessionMode,
 		OneOnOneBot:        b.oneOnOneBot,
 		FocusMode:          b.focusMode,
+		DismissedSessions:  append([]string(nil), b.sessionAgents.dismissed...),
 		Tasks:              tasks,
 		Requests:           requests,
 		ApprovalAudit:      approvalAudit,

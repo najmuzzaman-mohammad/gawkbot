@@ -7,6 +7,7 @@ import {
   getComposioSigninStatus,
   getIntegrationConnectStatus,
   type IntegrationConnectResult,
+  isComposioSigninNeeded,
   startComposioSignin,
   startIntegrationConnection,
 } from "../../api/integrations";
@@ -119,6 +120,13 @@ export function ConnectIntegrationCard({
       }
     },
     onError: (err: unknown) => {
+      // Composio revoked this office's credential and the broker could not
+      // re-mint one. The user does not need to read about that — they need the
+      // sign-in flow, which then chains straight back into this connection.
+      if (isComposioSigninNeeded(err)) {
+        signinMutation.mutate({ auto: true });
+        return;
+      }
       showNotice(
         err instanceof Error ? err.message : `Failed to connect ${name}`,
         "error",
@@ -184,7 +192,12 @@ export function ConnectIntegrationCard({
   }, [authUrl]);
 
   const signinMutation = useMutation({
-    mutationFn: startComposioSignin,
+    // `auto: true` marks a sign-in the user did not click for: they clicked
+    // Connect. The broker then refuses to install software without asking
+    // (install_required, handled below) and refuses to start another one after
+    // a cancel or a failure, which is what stops a broken setup from launching
+    // a login on every click.
+    mutationFn: (options: { auto: boolean }) => startComposioSignin(options),
     // Don't open the popup here — the effect above is the single opener so the
     // auto-install path (auth_url arrives later, via the poll) works the same.
     onSuccess: (state) => setSignin(state),
@@ -213,6 +226,15 @@ export function ConnectIntegrationCard({
     signinStatus === "awaiting_login" ||
     signinStatus === "provisioning";
   const cliMissing = signinStatus === "cli_missing";
+  // The broker stopped short of installing anything because nobody asked it
+  // to. Connecting an app does not authorise putting software on this
+  // computer, so this one gets a yes or a no.
+  const installRequired = signinStatus === "install_required";
+  // The broker answered a connect-triggered sign-in with `idle`: an earlier one
+  // was cancelled or failed, so it will not start another on its own. The
+  // button takes over from here, which is the point — a broken setup must not
+  // launch a login attempt on every click.
+  const autoDeclined = signin !== null && signinStatus === "idle";
   const signinFailed = signinStatus === "error";
 
   // Connect entry point: gate on Composio sign-in, then initiate the connection.
@@ -222,7 +244,7 @@ export function ConnectIntegrationCard({
     // the config fetch hadn't landed on the first click.
     if (!configReady) return;
     if (!composioSignedIn) {
-      signinMutation.mutate();
+      signinMutation.mutate({ auto: !autoDeclined });
       return;
     }
     connectMutation.mutate();
@@ -278,24 +300,34 @@ export function ConnectIntegrationCard({
           </span>
         </div>
       ) : null}
+      {installRequired ? (
+        <div className="eac-connect-status" role="status">
+          <span>
+            Connecting apps needs a small helper installed on this computer. It
+            takes about a minute and nothing else on this computer changes.
+          </span>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            onClick={() => signinMutation.mutate({ auto: false })}
+            disabled={signinMutation.isPending}
+          >
+            Set it up
+          </button>
+        </div>
+      ) : null}
       {cliMissing ? (
         <div className="eac-connect-status eac-connect-failed" role="status">
-          The Composio CLI isn't installed.{" "}
-          {signinInfo?.install_command ? (
-            <>
-              Run <code>{signinInfo.install_command}</code> in a terminal, then
-              try again.
-            </>
-          ) : (
-            "Install it, then try again."
-          )}
+          The one-time setup for integrations could not finish on this computer.
+          Pass this step to whoever set it up, then try again.
         </div>
       ) : null}
       {signinFailed ? (
         <div className="eac-connect-status eac-connect-failed" role="status">
-          Composio sign-in didn't complete
-          {signinInfo?.reason ? `: ${signinInfo.reason}` : "."} You can try
-          again.
+          {signinInfo?.reason
+            ? signinInfo.reason
+            : "The Composio sign-in did not complete."}{" "}
+          You can try again.
         </div>
       ) : null}
       {connecting ? (

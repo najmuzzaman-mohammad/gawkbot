@@ -79,6 +79,21 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	if actor, ok := requestActorFromContext(r.Context()); ok && actor.Kind == requestActorKindHuman {
 		body.From = humanMessageSender(actor.Slug)
 	}
+	// What the request itself proves about who is posting, taken before
+	// anything in the body is read for it (broker_session_messaging.go).
+	ownerPost := b.requestIsOwnerPost(r)
+	// Some notes are the broker's alone to write: one of them tells the
+	// person a command to run, so nobody may post a look-alike.
+	if isBrokerOnlyMessageKind(body.Kind) {
+		http.Error(w, "that message kind is written by the office itself", http.StatusBadRequest)
+		return
+	}
+	// A session's conversation is the owner's; a joined human may not write
+	// into it either.
+	if actor, ok := requestActorFromContext(r.Context()); ok && b.sessionConversationHiddenFrom(actor, body.Channel) {
+		http.Error(w, "channel access denied", http.StatusForbidden)
+		return
+	}
 
 	b.mu.Lock()
 	// The blocking-request chat gate is CHANNEL-scoped: a pending approval
@@ -107,6 +122,9 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	if channel == "" {
 		home, err := b.homeChannelForLocked(body.From)
 		if err != nil {
+			// Unlock before answering: this return used to keep b.mu, and
+			// one such request froze every route in the office for good.
+			b.mu.Unlock()
 			http.Error(w, `channel is required: there is no default room to fall back to. Name a channel, or set a member slug so the message can go to that agent's DM.`, http.StatusBadRequest)
 			return
 		}
@@ -239,12 +257,14 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	if !isHuman && sender != "" && sender != "system" && sender != "nex" {
 		if b.isDuplicateBotBroadcastLocked(sender, channel, replyTo, body.Content) {
 			b.counter--
+			// Read under the lock: the encoder below runs after it is gone.
+			dedupedTotal := len(b.messages)
 			b.mu.Unlock()
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":         "",
 				"deduped":    true,
-				"total":      len(b.messages),
+				"total":      dedupedTotal,
 				"suppressed": "duplicate broadcast from the same bot in the same thread within the dedup window",
 			})
 			return
@@ -261,6 +281,11 @@ func (b *Broker) handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		Tagged:    tagged,
 		ReplyTo:   replyTo,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}
+	if ownerPost {
+		// Noted before the message is published: the dispatcher asks about
+		// it the moment it hears of it.
+		b.noteOwnerSessionPostLocked(msg)
 	}
 	msg = b.appendMessageLocked(msg)
 	total := len(b.messages)

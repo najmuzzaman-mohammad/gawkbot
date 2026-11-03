@@ -29,7 +29,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Eye, Send } from "iconoir-react";
+import { Eye, Send } from "lucide-react";
 
 import { postMessage } from "../../api/client";
 import { describeCapture } from "../../appdetail/apps/demoSeed";
@@ -287,7 +287,7 @@ function CaptureFlow({
             disabled={!goal.trim()}
             onClick={onStart}
           >
-            <Eye width={14} height={14} aria-hidden="true" />
+            <Eye size={14} aria-hidden="true" />
             Start screenshare
           </button>
         </div>
@@ -332,7 +332,7 @@ function CaptureFlow({
               disabled={!goal.trim() || phase === "sending"}
               onClick={onSend}
             >
-              <Send width={14} height={14} aria-hidden="true" />
+              <Send size={14} aria-hidden="true" />
               {phase === "sending" ? "Sending…" : `Send to ${who}`}
             </button>
             <button

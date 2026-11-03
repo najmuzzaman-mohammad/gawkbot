@@ -92,6 +92,37 @@ describe("connectBroker", () => {
       retryAfter: "1",
     } satisfies Partial<ApiError>);
   });
+
+  // The broker's richer envelope puts the machine code in `error` and the human
+  // sentence in `message`, plus a request id for support. Reading `error` first
+  // would render "composio_signin_expired" at a user; keeping the old
+  // extra-keys guard would render the raw JSON instead. Both are regressions
+  // this pins.
+  it("prefers the human message over a code-shaped error, and keeps the request id out of it", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "composio_signin_expired",
+          message:
+            "Your Composio sign-in has expired. Sign in again to reconnect your apps.",
+          request_id: "9466302c-0000-0000-0000-000000000000",
+        }),
+        {
+          status: 401,
+          statusText: "Unauthorized",
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(post("/integrations/connect", {})).rejects.toMatchObject({
+      status: 401,
+      errorCode: "composio_signin_expired",
+      requestId: "9466302c-0000-0000-0000-000000000000",
+      message:
+        "Your Composio sign-in has expired. Sign in again to reconnect your apps.",
+    } satisfies Partial<ApiError>);
+  });
 });
 
 // C3/C4 regression: a wedged broker must never leave a read surface on
@@ -239,5 +270,32 @@ describe("error body humanization", () => {
     )) as ApiError;
     expect(err.bodyText).toContain("wiki backend is not active");
     expect(err.status).toBe(503);
+  });
+});
+
+// The iOS app scans a link with the broker address the PHONE can reach:
+// the page's own hostname (LAN / Tailscale) plus the broker port, never
+// localhost unless that is all this page knows.
+describe("phone pairing link", () => {
+  it("uses the page hostname with the broker port when not on localhost", async () => {
+    vi.resetModules();
+    Object.defineProperty(window, "location", {
+      value: new URL("http://100.64.0.5:7891/"),
+      writable: true,
+    });
+    const mod = await import("./client");
+    expect(mod.phoneReachableBrokerURL()).toBe("http://100.64.0.5:7890");
+    expect(mod.pairingLinkIsLocalOnly()).toBe(false);
+  });
+
+  it("flags localhost as local-only", async () => {
+    vi.resetModules();
+    Object.defineProperty(window, "location", {
+      value: new URL("http://localhost:7891/"),
+      writable: true,
+    });
+    const mod = await import("./client");
+    expect(mod.pairingLinkIsLocalOnly()).toBe(true);
+    expect(mod.phoneReachableBrokerURL()).toBe("http://localhost:7890");
   });
 });

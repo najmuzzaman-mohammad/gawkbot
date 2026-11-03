@@ -37,6 +37,17 @@ func (b *Broker) SetHeadlessDispatchController(c headlessDispatchController) {
 	b.governor.setController(c)
 }
 
+// GovernorCanCancelTurns says whether a stop can end a turn already
+// running, which needs the launcher wired through
+// SetHeadlessDispatchController. The surfaces that stop one bot ask this
+// so they can say "nothing is running turns" instead of pausing silently.
+func (b *Broker) GovernorCanCancelTurns() bool {
+	if b == nil || b.governor == nil {
+		return false
+	}
+	return b.governor.controller() != nil
+}
+
 // dispatchBotTurn enqueues a single bot turn directly — one bot, one job,
 // no CEO/lead orchestration hop. Returns false when no enqueuer is wired (unit
 // tests, or before the launcher attaches). This is the pi-skeleton dispatch the

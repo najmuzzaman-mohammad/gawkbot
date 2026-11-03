@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import { restartBroker } from "../../api/client";
 import {
+  canRunUpgrade,
+  DOWNLOAD_LATEST_INSTRUCTION,
   getUpgradeCheck,
+  LATEST_RELEASE_URL,
   runUpgrade,
   UPGRADE_CHECK_QUERY_KEY,
   type UpgradeCheckResponse,
@@ -61,19 +64,15 @@ export function deriveStatus(
 }
 
 function deriveInstallCommand(check: UpgradeCheckResponse | undefined): string {
-  // Match UpgradeBanner's guard exactly — install_method must be present AND
-  // not "unknown" before we trust install_command. Older brokers omit
-  // install_method, in which case we fall back to upgrade_command (or the
-  // canonical npm command) so a malformed broker response can't spoof the
-  // chip's command.
-  if (
-    check?.install_command &&
-    check.install_method &&
-    check.install_method !== "unknown"
-  ) {
+  // Match UpgradeBanner's guard exactly (canRunUpgrade): install_method must
+  // be present AND not "unknown" before we trust install_command. Otherwise
+  // we fall back to upgrade_command, which the broker fills with the Mac app
+  // download link, or to the same link locally for an older broker that
+  // omits it, so a malformed broker response can't spoof the chip's command.
+  if (canRunUpgrade(check) && check?.install_command) {
     return check.install_command;
   }
-  return check?.upgrade_command ?? "npm install -g gawkbot@latest";
+  return check?.upgrade_command ?? DOWNLOAD_LATEST_INSTRUCTION;
 }
 
 // Modal opened by clicking the version chip in the StatusBar. Mirrors the
@@ -215,6 +214,7 @@ export function VersionModal({ open, onClose }: VersionModalProps) {
   );
   const status = deriveStatus(check, isFetching);
   const installCommand = deriveInstallCommand(check);
+  const runnable = canRunUpgrade(check);
 
   return (
     <div className="help-overlay">
@@ -261,7 +261,8 @@ export function VersionModal({ open, onClose }: VersionModalProps) {
 
           <ActionsSection
             installCommand={installCommand}
-            latestForCopy={formatVersion(check?.latest, "gawkbot@latest")}
+            runnable={runnable}
+            latestForCopy={formatVersion(check?.latest, "the latest build")}
             running={run.phase === "running"}
             restarting={restarting}
             onForceUpdate={onForceUpdateClick}
@@ -333,6 +334,7 @@ function BuildSection({
 
 function ActionsSection({
   installCommand,
+  runnable,
   latestForCopy,
   running,
   restarting,
@@ -340,6 +342,10 @@ function ActionsSection({
   onRestart,
 }: {
   installCommand: string;
+  // runnable: the broker detected a package-manager install it can upgrade
+  // in place, so Force update is a real action. Otherwise the upgrade path
+  // is the Mac app download and the button would only ever fail.
+  runnable: boolean;
   latestForCopy: string;
   running: boolean;
   restarting: boolean;
@@ -350,21 +356,42 @@ function ActionsSection({
     <section className="version-modal-section">
       <h3 className="help-section-title">Actions</h3>
       <p className="version-modal-help">
-        Force-update reinstalls <code>{latestForCopy}</code> via your package
-        manager. Restart asks the broker to exit so a new binary comes up —
-        usually only needed after an install.
+        {runnable ? (
+          <>
+            Force update reinstalls <code>{latestForCopy}</code> with the
+            package manager that installed this build.
+          </>
+        ) : (
+          <>
+            Download the latest Mac app to get <code>{latestForCopy}</code>.
+            Opening it replaces this build.
+          </>
+        )}{" "}
+        Restart asks the broker to exit so a new binary comes up, usually only
+        needed after an install.
       </p>
       <div className="version-modal-actions">
-        <button
-          type="button"
-          className="version-modal-btn version-modal-btn--primary"
-          onClick={onForceUpdate}
-          disabled={running || restarting}
-          aria-busy={running || restarting}
-          title={`Runs ${installCommand}`}
-        >
-          {running ? "Installing…" : "Force update"}
-        </button>
+        {runnable ? (
+          <button
+            type="button"
+            className="version-modal-btn version-modal-btn--primary"
+            onClick={onForceUpdate}
+            disabled={running || restarting}
+            aria-busy={running || restarting}
+            title={`Runs ${installCommand}`}
+          >
+            {running ? "Installing…" : "Force update"}
+          </button>
+        ) : (
+          <a
+            className="version-modal-btn version-modal-btn--primary"
+            href={LATEST_RELEASE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Download the latest Mac app
+          </a>
+        )}
         <button
           type="button"
           className="version-modal-btn"
@@ -453,7 +480,7 @@ function RunOutcomeOk({
 function errorHeadline(result: UpgradeRunResult): string {
   if (result.timed_out) return "Install timed out.";
   if (result.install_method === "unknown") {
-    return "Couldn't detect how wuphf was installed — run the command below from a terminal:";
+    return "No package-manager install was detected, so nothing was changed. Download the latest Mac app instead:";
   }
   return "Install failed. You can retry, or run the command below from a terminal:";
 }

@@ -1,0 +1,999 @@
+/* Data section: records table screen.
+   Components: web/src/components/data/records/**.
+
+   Tokens only. The table owns its region: 1px rows, no cards inside the
+   grid. Cells never animate. Sticky cells use OPAQUE surfaces (--bg,
+   --bg-subtle, or a color-mix over --bg) because --accent-bg is translucent
+   in the dark themes and scrolled content would show through it.
+   Hover reveals are gated on (hover: hover) and always paired with
+   :focus-within, so nothing is reachable by pointer only. */
+
+.dr-region {
+  --dr-select-width: var(--space-8);
+  --dr-name-width: 17rem;
+  --dr-row-selected: color-mix(in srgb, var(--accent) 10%, var(--bg));
+
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ─── Shared small controls ─── */
+
+.dr-icon-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.dr-icon-button svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.dr-icon-button:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+.dr-icon-button:active {
+  background: var(--border);
+}
+.dr-icon-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+.dr-icon-button:disabled,
+.dr-icon-button[data-disabled] {
+  color: var(--text-disabled);
+  cursor: default;
+  background: transparent;
+}
+.dr-icon-button--danger:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.dr-count,
+.dr-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-4);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  box-shadow: inset 0 0 0 var(--border-width-sm) var(--border);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.dr-count-badge {
+  background: var(--accent-bg);
+  box-shadow: none;
+  color: var(--text);
+}
+
+.dr-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+/* ─── Toolbar ─── */
+
+.dr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dr-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  height: var(--space-7);
+  padding: 0 var(--space-3);
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  cursor: pointer;
+}
+.dr-toolbar-button svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.dr-toolbar-button:hover,
+.dr-toolbar-button[data-popup-open] {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.dr-toolbar-button:active {
+  background: var(--bg-subtle);
+}
+.dr-toolbar-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+.dr-toolbar-button[data-active="true"] {
+  color: var(--text);
+}
+
+.dr-sort-readout {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.dr-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  width: min(100%, 18rem);
+  height: var(--space-7);
+  margin-left: auto;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  border: var(--border-width-sm) solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+}
+.dr-search:hover {
+  border-color: var(--border-strong);
+}
+.dr-search:focus-within {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+.dr-search-icon {
+  flex: 0 0 auto;
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--text-tertiary);
+}
+.dr-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+.dr-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ─── Popovers and menus (portalled) ─── */
+
+.dr-popover-positioner {
+  z-index: var(--z-popover);
+}
+
+.dr-popover,
+.dr-menu {
+  box-sizing: border-box;
+  max-width: calc(100vw - var(--space-6));
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-popover);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+.dr-popover {
+  width: 18rem;
+  padding: var(--space-2);
+}
+.dr-popover--wide {
+  width: 34rem;
+  padding: var(--space-3);
+}
+.dr-popover:focus-visible,
+.dr-menu:focus-visible {
+  outline: 0;
+}
+
+.dr-menu {
+  min-width: 11rem;
+  padding: var(--space-1);
+}
+.dr-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  outline: 0;
+}
+.dr-menu-item[data-highlighted] {
+  background: var(--bg-subtle);
+}
+.dr-menu-item:active {
+  background: var(--border);
+}
+.dr-menu-item[data-disabled] {
+  color: var(--text-disabled);
+  cursor: default;
+}
+.dr-menu-label,
+.dr-menu-note {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+.dr-menu-separator {
+  height: var(--border-width-sm);
+  margin: var(--space-1) 0;
+  background: var(--border);
+}
+
+/* ─── Filter panel ─── */
+
+.dr-filter-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.dr-filter-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--space-7);
+}
+.dr-filter-panel-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+.dr-filter-panel-empty {
+  margin: 0;
+  color: var(--text-secondary);
+}
+.dr-filter-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dr-filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+.dr-filter-control {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: var(--space-7);
+  padding: 0 var(--space-2);
+  border: var(--border-width-sm) solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+.dr-filter-control:hover {
+  border-color: var(--border-strong);
+}
+.dr-filter-control:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+/* The panel is portalled out of the data-section container, so this one
+   responds to the viewport instead. */
+@media (max-width: 640px) {
+  .dr-filter-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .dr-filter-row > .dr-filter-control,
+  .dr-filter-row > .dr-filter-novalue {
+    grid-column: 1;
+  }
+  .dr-filter-row > .dr-icon-button {
+    grid-row: 1;
+    grid-column: 2;
+  }
+}
+
+/* ─── Selection bar ─── */
+
+.dr-selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-3);
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+}
+.dr-selection-count {
+  margin-right: auto;
+  color: var(--text);
+  font-size: var(--text-base);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Table ─── */
+
+.dr-table-scroll {
+  flex: 1 1 0;
+  min-height: 14rem;
+  /* Room below the last row: the select editor's listbox is positioned
+     inside its cell, not portalled, and must stay scrollable into view. */
+  padding-bottom: var(--space-8);
+  overflow: auto;
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.dr-table {
+  width: 100%;
+  /* `separate` keeps 1px borders attached to sticky cells while scrolling. */
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.dr-th,
+.dr-td {
+  box-sizing: border-box;
+  height: var(--space-8);
+  padding: 0 var(--space-1);
+  border-bottom: var(--border-width-sm) solid var(--border);
+  background: var(--bg);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.dr-th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-width: 9rem;
+  max-width: 22rem;
+  padding: 0 var(--space-2);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.dr-td {
+  max-width: 22rem;
+}
+
+/* The editing cell rises above later rows so its listbox is not covered. */
+.dr-td--value:has([data-editing="true"]) {
+  position: relative;
+  z-index: 1;
+}
+
+.dr-th--select,
+.dr-td--select {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  width: var(--dr-select-width);
+  min-width: var(--dr-select-width);
+  max-width: var(--dr-select-width);
+  padding: 0;
+  text-align: center;
+}
+.dr-th--name,
+.dr-td--name {
+  position: sticky;
+  left: var(--dr-select-width);
+  z-index: 3;
+  width: var(--dr-name-width);
+  min-width: var(--dr-name-width);
+  max-width: var(--dr-name-width);
+  border-right: var(--border-width-sm) solid var(--border);
+}
+.dr-th--actions,
+.dr-td--actions {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  width: 1%;
+  min-width: 0;
+  border-left: var(--border-width-sm) solid var(--border);
+}
+.dr-th--select,
+.dr-th--name,
+.dr-th--actions {
+  z-index: 4;
+}
+.dr-th--updated,
+.dr-td--updated {
+  min-width: 7rem;
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.dr-tr:hover > .dr-td,
+.dr-tr:focus-within > .dr-td {
+  background: var(--bg-subtle);
+}
+.dr-tr[data-selected="true"] > .dr-td {
+  background: var(--dr-row-selected);
+}
+
+/* On a narrow container the name column stops sticking: two pinned columns
+   would leave no room for the data. */
+@container data-section (max-width: 640px) {
+  .dr-th--name,
+  .dr-td--name {
+    position: static;
+    width: auto;
+    min-width: 12rem;
+  }
+  .dr-th.dr-th--name {
+    position: sticky;
+    left: auto;
+  }
+}
+
+.dr-checkbox {
+  width: var(--space-4);
+  height: var(--space-4);
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.dr-checkbox:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.dr-col-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+.dr-col-head-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dr-col-head-sort {
+  display: inline-flex;
+  color: var(--text);
+}
+.dr-col-head-sort svg {
+  width: var(--space-3-5);
+  height: var(--space-3-5);
+}
+.dr-col-head-menu {
+  margin-left: auto;
+}
+.dr-th-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ─── Name cell ─── */
+
+.dr-name-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--space-7);
+  padding: 0 var(--space-1);
+}
+.dr-name-cell[data-editing="true"] {
+  padding: 0;
+}
+.dr-name-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+  text-overflow: ellipsis;
+}
+.dr-name-link:hover {
+  text-decoration: underline;
+}
+.dr-name-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+.dr-name-cell[data-pending="true"] .dr-name-link {
+  opacity: 0.55;
+}
+.dr-name-tools {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-1);
+}
+.dr-preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--space-6);
+  padding: 0 var(--space-2);
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.dr-preview-chip svg {
+  width: var(--space-3-5);
+  height: var(--space-3-5);
+}
+.dr-preview-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.dr-preview-chip:active {
+  background: var(--bg-subtle);
+}
+.dr-preview-chip:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+/* The name tools are a convenience on top of the always-visible row actions.
+   With a hovering pointer they wait for row hover or keyboard focus; on
+   touch they are simply always there. */
+@media (hover: hover) {
+  .dr-name-tools {
+    visibility: hidden;
+  }
+  .dr-tr:hover .dr-name-tools,
+  .dr-tr:focus-within .dr-name-tools {
+    visibility: visible;
+  }
+}
+
+.dr-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+}
+
+/* ─── Relationship cell, chips, picker ─── */
+
+.dr-rel-cell,
+.dr-chip-list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--space-7);
+  padding: 0 var(--space-1);
+}
+.dr-chip-list {
+  flex-wrap: wrap;
+  padding: 0;
+}
+.dr-rel-cell[data-pending="true"] > * {
+  opacity: 0.55;
+}
+
+.dr-chip {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 14rem;
+  border: var(--border-width-sm) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.dr-chip-link {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: var(--space-6);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dr-chip-link:hover {
+  text-decoration: underline;
+}
+.dr-chip-link:focus-visible,
+.dr-chip-remove:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+.dr-chip-remove {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-5);
+  height: var(--space-6);
+  padding: 0;
+  border: 0;
+  border-left: var(--border-width-sm) solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.dr-chip-remove svg {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+.dr-chip-remove:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.dr-chip-remove:active {
+  background: var(--border);
+}
+.dr-chip-remove:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+  background: transparent;
+}
+.dr-chip-overflow {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.dr-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.dr-picker-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--space-7);
+  padding: 0 var(--space-2);
+  border: var(--border-width-sm) solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+.dr-picker-input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+.dr-picker-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+.dr-picker-list[aria-busy="true"] {
+  opacity: 0.7;
+}
+.dr-picker-option {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  padding: var(--space-1-5) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dr-picker-option[aria-selected="true"] {
+  background: var(--bg-subtle);
+  box-shadow: inset 0 0 0 var(--border-width-sm) var(--border);
+}
+.dr-picker-option:active {
+  background: var(--border);
+}
+.dr-picker-option:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+.dr-picker-empty {
+  margin: 0;
+  padding: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+/* A neutral surface with a --yellow edge: --yellow-bg is near-white in the
+   dark themes, so theme text on it would not be readable. */
+.dr-picker-conflict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-left: var(--border-width-md) solid var(--yellow);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+.dr-picker-conflict p {
+  margin: 0;
+}
+.dr-picker-conflict-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ─── Pagination ─── */
+
+.dr-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.dr-pagination-range {
+  margin-right: auto;
+}
+.dr-pagination-size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.dr-pagination-size .dr-filter-control {
+  width: auto;
+}
+.dr-pagination-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ─── Skeleton ─── */
+
+.dr-skeleton {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+.dr-skeleton-row {
+  display: grid;
+  grid-template-columns: 2fr repeat(4, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--space-8);
+  padding: 0 var(--space-3);
+  border-bottom: var(--border-width-sm) solid var(--border);
+}
+.dr-skeleton-row--head {
+  background: var(--bg-subtle);
+}
+.dr-skeleton-bar {
+  display: block;
+  width: 80%;
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--border);
+}
+.dr-skeleton-bar[data-short="true"] {
+  width: 45%;
+}
+
+/* ─── New record dialog ─── */
+
+.dr-dialog {
+  max-height: calc(100dvh - var(--space-8));
+  overflow-y: auto;
+}
+.dr-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.dr-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.dr-form-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.dr-form-required {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+.dr-form-error {
+  margin: 0;
+  color: var(--red);
+  font-size: var(--text-sm);
+}
+.dr-form-optional > summary {
+  width: fit-content;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.dr-form-optional > summary:hover {
+  color: var(--text);
+}
+.dr-form-optional > summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+.dr-form-optional-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* ─── Peek drawer ─── */
+
+/* Width, surface, and padding come from the Sheet primitive's own utility
+   classes (merged in PeekDrawer.tsx), so nothing here competes with them. */
+.dr-peek {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+.dr-peek-header {
+  gap: var(--space-2);
+  padding-right: var(--space-7);
+}
+.dr-peek-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dr-peek-title svg {
+  flex: 0 0 auto;
+  width: var(--space-5);
+  height: var(--space-5);
+  color: var(--text-secondary);
+}
+.dr-peek-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.dr-peek-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.dr-peek-attributes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-top: var(--border-width-sm) solid var(--border);
+}
+.dr-peek-attribute {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--space-7);
+  padding: var(--space-1) 0;
+  border-bottom: var(--border-width-sm) solid var(--border);
+}
+.dr-peek-attribute dt {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.dr-peek-attribute dd {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-base);
+}
+.dr-peek-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+.dr-peek-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.dr-peek-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.dr-peek-open {
+  align-self: flex-start;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-base);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+.dr-peek-open:hover {
+  color: var(--accent);
+}
+.dr-peek-open:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}

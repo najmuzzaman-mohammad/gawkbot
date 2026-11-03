@@ -5,12 +5,18 @@
 
 import type { InjectedAnalyticsConfig } from "../lib/analytics";
 import { trackOn } from "../lib/analytics";
+import type { BotRuntime } from "../lib/botRuntime";
 
 const apiBase = "/api";
 let brokerDirect = "http://localhost:7890";
 let useProxy = true;
 let token: string | null = null;
 const brokerHandshakeTimeoutMs = 8000;
+
+import type { MemberAvatar, MemberOrigin, MemberRunsOn } from "./memberTypes";
+
+// memberTypes.ts holds only wire types; re-export them all from here.
+export type * from "./memberTypes";
 
 // The analytics config the broker injects via /api-token. Captured at boot so
 // RootRoute can configure PostHog without a second round trip. Null until
@@ -203,12 +209,22 @@ export function humanizeApiErrorBody(bodyText: string): string | null {
   // Envelopes that carry payload beyond the message (e.g. the wiki 409
   // conflict shape with current_sha/current_content) are data, not prose —
   // callers parse them out of the message text, so leave those intact.
-  if (Object.keys(rec).some((k) => k !== "error" && k !== "message")) {
+  // `request_id` is the exception: it is a support handle, not payload, and an
+  // envelope that carries one still has prose worth rendering.
+  if (
+    Object.keys(rec).some(
+      (k) => k !== "error" && k !== "message" && k !== "request_id",
+    )
+  ) {
     return null;
   }
-  const candidate = [rec.error, rec.message].find(
-    (v): v is string => typeof v === "string" && v.trim().length > 0,
-  );
+  // Prefer a sentence-shaped `message` over a code-shaped `error`. The broker's
+  // richer envelopes put the machine code in `error` and the human sentence in
+  // `message`; reading `error` first would render "composio_signin_expired" at
+  // a user, or fall through and render the raw JSON.
+  const candidate = [rec.error, rec.message]
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .sort((a, b) => Number(/\s/.test(b)) - Number(/\s/.test(a)))[0];
   if (!candidate) return null;
   const text = candidate.trim();
   // A code-like token (no whitespace) is not a sentence — leave it alone.
@@ -223,6 +239,12 @@ export class ApiError extends Error {
   readonly bodyText: string;
   readonly errorCode: string | null;
   readonly retryAfter: string | null;
+  /**
+   * The upstream request id, when the broker included one. It is deliberately
+   * absent from `message`: support can quote it from a details affordance, but
+   * it has no business in a sentence shown to a user.
+   */
+  readonly requestId: string | null;
 
   constructor(args: {
     readonly status: number;
@@ -230,6 +252,7 @@ export class ApiError extends Error {
     readonly bodyText: string;
     readonly errorCode?: string | null;
     readonly retryAfter?: string | null;
+    readonly requestId?: string | null;
   }) {
     super(
       humanizeApiErrorBody(args.bodyText) ??
@@ -241,6 +264,7 @@ export class ApiError extends Error {
     this.bodyText = args.bodyText;
     this.errorCode = args.errorCode ?? null;
     this.retryAfter = args.retryAfter ?? null;
+    this.requestId = args.requestId ?? null;
   }
 }
 
@@ -452,7 +476,30 @@ async function apiErrorFromResponse(response: Response): Promise<ApiError> {
     bodyText,
     errorCode: errorCodeFromBodyText(bodyText),
     retryAfter: response.headers.get("Retry-After"),
+    requestId: requestIdFromBodyText(bodyText),
   });
+}
+
+function requestIdFromBodyText(bodyText: string): string | null {
+  if (bodyText.length === 0) return null;
+  try {
+    const parsed = JSON.parse(bodyText) as unknown;
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return null;
+    }
+    const { request_id: requestId } = parsed as Readonly<
+      Record<string, unknown>
+    >;
+    return typeof requestId === "string" && requestId.trim().length > 0
+      ? requestId.trim()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function errorCodeFromBodyText(bodyText: string): string | null {
@@ -471,6 +518,47 @@ function errorCodeFromBodyText(bodyText: string): string | null {
   } catch {
     return null;
   }
+}
+
+// ── Phone pairing ──
+
+/**
+ * The link the iOS app scans: `gawkbot://pair?url=<broker>&token=<token>`.
+ *
+ * The broker URL must be reachable FROM THE PHONE. When this page was opened
+ * over a LAN or Tailscale address, that hostname with the broker's port is
+ * the address to encode; `localhost` only works from this machine. Returns
+ * null before the token has been fetched.
+ */
+export function pairingLink(): string | null {
+  if (!token) return null;
+  const broker = phoneReachableBrokerURL();
+  const params = new URLSearchParams({ url: broker, token });
+  return `gawkbot://pair?${params.toString()}`;
+}
+
+export function phoneReachableBrokerURL(): string {
+  let brokerPort = "7890";
+  let brokerProtocol = "http:";
+  try {
+    const direct = new URL(brokerDirect);
+    brokerPort = direct.port || (direct.protocol === "https:" ? "443" : "80");
+    brokerProtocol = direct.protocol;
+  } catch {
+    // keep defaults
+  }
+  if (typeof window === "undefined") return brokerDirect;
+  const host = window.location.hostname;
+  if (!host || host === "localhost" || host === "127.0.0.1")
+    return brokerDirect;
+  return `${brokerProtocol}//${host}:${brokerPort}`;
+}
+
+/** True when the page is being viewed on this machine, so the QR would carry localhost. */
+export function pairingLinkIsLocalOnly(): boolean {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname;
+  return !host || host === "localhost" || host === "127.0.0.1";
 }
 
 // ── SSE ──
@@ -664,7 +752,7 @@ export interface ProviderBinding {
   // "inherit from global default". Use IsGatewayKind on a Kind to decide
   // whether to render the runtime picker (LLM kinds) or a "Managed by
   // <Gateway>" badge (gateway kinds) in the bot profile.
-  kind?: LLMProvider | "";
+  kind?: LLMProvider | "cli-agent" | "local-session" | "";
   // model is the runtime-specific model identifier. Free-form on the wire —
   // validated by each provider implementation, not at the schema layer.
   // Common shapes: "claude-3-5-sonnet-latest", "gpt-4o", "llama3.1:8b".
@@ -675,6 +763,12 @@ export interface ProviderBinding {
   openclaw?: {
     session_key?: string;
     agent_id?: string;
+  };
+  // cli_agent is populated only when kind === "cli-agent": a third-party
+  // agent CLI adopted from this machine (Settings → Agents on this machine).
+  // agent is an internal/agentdetect catalog id ("gemini", "aider", ...).
+  cli_agent?: {
+    agent?: string;
   };
 }
 
@@ -727,9 +821,21 @@ export interface OfficeMember {
    * Where this bot's computer runs. "" (or absent) means auto: sandbox when
    * a container runtime exists, else off. See docs/specs/gawkbot-bot-computers.md.
    */
-  computer?: "" | "off" | "sandbox" | "cloud";
+  computer?: "" | "off" | "sandbox" | "cloud" | "mac";
   /** Cloud provider for `computer: "cloud"`. "" means box. */
   cloud_backend?: "" | "box";
+  /** Who made this bot (memberTypes.ts). */
+  origin?: MemberOrigin;
+  adopted_from?: string;
+  runs_on?: MemberRunsOn;
+  runs_on_detail?: string;
+  /** The Chief of Staff slug; absent on the lead itself. */
+  managed_by?: string;
+  /** Chosen look (memberTypes.ts); absent means the slug-derived one. */
+  avatar?: MemberAvatar;
+  /** What the bot runs on, resolved by the broker (lib/botRuntime.ts). */
+  runtime?: BotRuntime;
+  session?: import("./memberTypes").MemberSession; // origin "session" only
 }
 
 /**
@@ -1180,12 +1286,11 @@ export interface ConfigSnapshot {
   openclaw_gateway_url?: string;
   // ascii.dev Box key for cloud bot computers.
   box_key_set?: boolean;
-  // Product-analytics consent (PostHog). Both default true. `analytics_configured`
-  // reports whether the broker injects a key; the frontend ORs it with its own
-  // build-time key to decide whether the toggles are meaningful to show.
+  // Analytics consent, both default true; `analytics_configured` = a key exists.
   analytics_telemetry_enabled?: boolean;
   analytics_session_recording_enabled?: boolean;
   analytics_configured?: boolean;
+  notch_jump_out?: boolean; // bots leave the notch to get attention; default true
   config_path?: string;
 }
 
@@ -1227,6 +1332,7 @@ export type ConfigUpdate = Partial<{
   // Product-analytics consent toggles.
   analytics_telemetry_enabled: boolean;
   analytics_session_recording_enabled: boolean;
+  notch_jump_out: boolean;
 }>;
 
 // The narrow slice of GET /config the operator surfaces read to decide whether

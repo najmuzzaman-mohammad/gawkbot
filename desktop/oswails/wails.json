@@ -1,7 +1,7 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "WUPHF",
-  "outputfilename": "WUPHF",
+  "name": "gawkbot",
+  "outputfilename": "gawkbot",
   "frontend:install": "",
   "frontend:build": "",
   "author": {
@@ -10,8 +10,8 @@
   },
   "info": {
     "companyName": "Nex",
-    "productName": "WUPHF",
+    "productName": "gawkbot",
     "productVersion": "0.0.0",
-    "comments": "WUPHF desktop shell (Wails) — in-process broker spike"
+    "comments": "gawkbot desktop app: the office and the notch"
   }
 }

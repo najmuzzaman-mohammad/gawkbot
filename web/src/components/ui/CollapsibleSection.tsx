@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
-import { NavArrowDown, NavArrowRight } from "iconoir-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface CollapsibleSectionProps {
   title: ReactNode;
@@ -48,11 +48,7 @@ export function CollapsibleSection({
         aria-controls={bodyId}
       >
         <span className="collapsible-section-chevron" aria-hidden="true">
-          {open ? (
-            <NavArrowDown width={14} height={14} />
-          ) : (
-            <NavArrowRight width={14} height={14} />
-          )}
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
         <span className="collapsible-section-title">{title}</span>
         {meta ? <span className="collapsible-section-meta">{meta}</span> : null}

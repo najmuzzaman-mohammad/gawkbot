@@ -228,6 +228,14 @@
   border-radius: 999px;
 }
 
+/* ─── Session resumed note ─── */
+.session-resumed-note {
+  margin: 4px 0;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
 /* ─── Markdown ─── */
 .msg-h1 {
   font-size: 18px;
@@ -904,6 +912,14 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+/* The asking bot stands on the bar's top edge as a character
+   (BotCharacter), half in, half out, so the question visibly comes from
+   someone. */
+.interview-bar-asker {
+  position: relative;
+  flex-shrink: 0;
+  margin: -34px 2px 0 -6px;
 }
 .interview-bar-from {
   font-size: var(--text-sm);
@@ -1666,6 +1682,13 @@ html[data-theme] .interview-bar-actions .btn-primary:hover {
   color: var(--text-tertiary);
   font-style: italic;
   margin-top: 8px;
+}
+
+/* ─── Empty-state hero (components/layout/EmptyHero.tsx) ───
+   Off unless the active theme opts in by setting --empty-hero-display;
+   the theme also owns the hero's layout. */
+.empty-hero {
+  display: var(--empty-hero-display, none);
 }
 
 /* ─── Thread toggle ─── */

@@ -13,6 +13,14 @@ import * as api from "../../api/wiki";
 import { requestOpenInEdit } from "./openInEditTarget";
 import WikiArticle from "./WikiArticle";
 
+// Wiki avatars read each author's chosen look from the office roster
+// (useMemberAvatar), a polling query that never settles under fake timers.
+// Stub that one read; the rest of the module stays real.
+vi.mock("../../hooks/useMembers", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../hooks/useMembers")>()),
+  useMemberAvatar: () => undefined,
+}));
+
 // WikiArticle now reads the wiki-tree React Query (the article delete control
 // invalidates it so a deleted page leaves the sidebar index), so renders need
 // a QueryClient in context. Wrap via the `wrapper` option so `rerender` keeps

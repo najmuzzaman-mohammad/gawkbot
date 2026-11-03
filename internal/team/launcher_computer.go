@@ -77,6 +77,9 @@ func (m *computerMount) destination() string {
 	if m == nil {
 		return computerOff
 	}
+	if m.mac {
+		return computerMac
+	}
 	if m.target.ContainerName == "" {
 		return computerCloud
 	}

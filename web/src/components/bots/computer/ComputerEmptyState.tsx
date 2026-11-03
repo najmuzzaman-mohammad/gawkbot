@@ -7,7 +7,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Cloud, Computer, Laptop, OpenNewWindow } from "iconoir-react";
+import { Cloud, ExternalLink, Laptop, Monitor } from "lucide-react";
 
 import { getConfig, updateConfig } from "../../../api/client";
 import {
@@ -84,7 +84,7 @@ export function ComputerEmptyState({
         ) : phase === "off" ? (
           <PowerGlyph />
         ) : (
-          <Computer width={22} height={22} aria-hidden="true" />
+          <Monitor size={22} aria-hidden="true" />
         )}
       </div>
       <div className="computer-empty-title">{copy.title}</div>
@@ -194,7 +194,7 @@ export function RuntimeMissingPaths({
     <div className="computer-paths" data-testid="computer-runtime-paths">
       <div className="computer-path">
         <div className="computer-path-title">
-          <Laptop width={16} height={16} aria-hidden="true" />
+          <Laptop size={16} aria-hidden="true" />
           Run it here
         </div>
         <p className="computer-path-body">
@@ -211,7 +211,7 @@ export function RuntimeMissingPaths({
             rel="noreferrer"
           >
             Install OrbStack
-            <OpenNewWindow width={12} height={12} aria-hidden="true" />
+            <ExternalLink size={12} aria-hidden="true" />
           </a>
           <a
             className="btn btn-secondary btn-sm"
@@ -220,7 +220,7 @@ export function RuntimeMissingPaths({
             rel="noreferrer"
           >
             Docker Desktop
-            <OpenNewWindow width={12} height={12} aria-hidden="true" />
+            <ExternalLink size={12} aria-hidden="true" />
           </a>
           <button
             type="button"
@@ -241,7 +241,7 @@ export function RuntimeMissingPaths({
       </div>
       <div className="computer-path">
         <div className="computer-path-title">
-          <Cloud width={16} height={16} aria-hidden="true" />
+          <Cloud size={16} aria-hidden="true" />
           Use a cloud computer
         </div>
         <p className="computer-path-body">

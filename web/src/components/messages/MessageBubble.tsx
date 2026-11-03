@@ -3,11 +3,9 @@ import ReactMarkdown from "react-markdown";
 
 import type { Message } from "../../api/client";
 import { toggleReaction } from "../../api/client";
-import { useDefaultHarness } from "../../hooks/useConfig";
 import { useOfficeMembers } from "../../hooks/useMembers";
 import { useMessages } from "../../hooks/useMessages";
 import { formatTime } from "../../lib/format";
-import { resolveHarness } from "../../lib/harness";
 import { renderMentions } from "../../lib/mentions";
 import {
   messageMarkdownComponents,
@@ -19,7 +17,6 @@ import {
 } from "../../lib/richArtifactReferences";
 import { useChannelSlug, useCurrentTaskId } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
 import {
@@ -140,10 +137,6 @@ export function MessageBubble({
   // unknown slug.
   const isSyntheticSender = !(isHuman || agent);
   const isRosterBot = !isHuman && Boolean(agent);
-  const defaultHarness = useDefaultHarness();
-  const harness = isRosterBot
-    ? resolveHarness(agent?.provider, defaultHarness)
-    : null;
 
   const reactions = message.reactions
     ? Array.isArray(message.reactions)
@@ -232,6 +225,10 @@ export function MessageBubble({
     );
   }
 
+  if (isSessionNoteKind(message.kind)) {
+    return <SessionNote message={message} />;
+  }
+
   // Issue #933: system-authored auth-failure card. Renders OUTSIDE the
   // standard message-bubble container so it's visually distinct from
   // bot chat — banner-style with a sign-in CTA rather than an avatar +
@@ -311,6 +308,10 @@ export function MessageBubble({
         isHuman ? "human" : isSyntheticSender ? "system" : "agent"
       }
       data-author-slug={message.from}
+      // Present only on the person at this keyboard ("you" / bare "human"),
+      // not on other human team members. Themes that lay a conversation out
+      // left/right (Soft) read it; no other theme styles it.
+      data-author-self={isLocalUser ? "" : undefined}
     >
       {/* Avatar */}
       {isRosterBot ? (
@@ -321,14 +322,7 @@ export function MessageBubble({
           aria-label={`Open bot panel for ${agent?.name || message.from}`}
           onClick={() => setActiveBotSlug(message.from)}
         >
-          <PixelAvatar slug={message.from} size={24} />
-          {harness ? (
-            <HarnessBadge
-              kind={harness}
-              size={14}
-              className="harness-badge-on-avatar"
-            />
-          ) : null}
+          <PixelAvatar slug={message.from} size={24} avatar={agent?.avatar} />
         </button>
       ) : (
         <div
@@ -469,6 +463,33 @@ export function MessageBubble({
         onCopyLink={onCopyLink}
       />
     </div>
+  );
+}
+
+function isSessionNoteKind(kind: string | undefined): boolean {
+  return kind === "session_resumed" || kind === "session_delivered";
+}
+
+/**
+ * What the office did with a message to a terminal session: resumed the
+ * session in the background (the note carries the command that opens it in
+ * the terminal again), or handed the message to its open window. A plain
+ * note, not a bubble: nobody said it. Only the broker writes these kinds; it
+ * refuses them from anyone posting a message.
+ */
+function SessionNote({ message }: { message: Message }) {
+  return (
+    <p
+      className="session-resumed-note"
+      data-testid={
+        message.kind === "session_resumed"
+          ? "session-resumed-note"
+          : "session-delivered-note"
+      }
+      data-msg-id={message.id}
+    >
+      {message.content}
+    </p>
   );
 }
 

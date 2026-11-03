@@ -75,9 +75,9 @@ export const Intro: StoryObj = {
           desc="Durations + reduced-motion guidance"
         />
         <Item
-          href="?path=/story/design-system-foundations-iconography--iconoir-set"
+          href="?path=/story/design-system-foundations-iconography--lucide-set"
           label="Iconography"
-          desc="Iconoir set + custom marks (Lightning, Harness, PixelAvatar)"
+          desc="Lucide set + custom marks (Lightning, Harness, PixelAvatar)"
         />
       </Section>
 

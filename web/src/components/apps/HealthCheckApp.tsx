@@ -1,6 +1,8 @@
-import { type CSSProperties, type ReactNode, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import QRCode from "qrcode";
 
+import { pairingLink, pairingLinkIsLocalOnly } from "../../api/client";
 import {
   getHealth,
   getHumanMe,
@@ -188,6 +190,7 @@ function AccessCards({
         onStartShareInvite={onStartShareInvite}
         onStopShareInvite={onStopShareInvite}
       />
+      <PairPhoneCard isHost={isHost} />
       <TunnelInviteCard
         inviteCopied={tunnelInviteCopied}
         isHost={isHost}
@@ -234,6 +237,85 @@ function SelfAccessCard({
       <div className="app-card-meta" style={{ marginTop: 8 }}>
         {selfAccess.footer}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Pair your phone: a QR code the gawkbot iOS app scans. Host-only, because
+ * the code carries the office's full-access token.
+ */
+export function PairPhoneCard({ isHost }: { isHost: boolean }) {
+  const [dataURL, setDataURL] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const link = isHost ? pairingLink() : null;
+  const localOnly = pairingLinkIsLocalOnly();
+  useEffect(() => {
+    let cancelled = false;
+    if (!link) {
+      setDataURL(null);
+      return;
+    }
+    QRCode.toDataURL(link, { margin: 1, width: 168 })
+      .then((url) => {
+        if (!cancelled) setDataURL(url);
+      })
+      .catch(() => {
+        if (!cancelled) setDataURL(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [link]);
+  return (
+    <div className="app-card" style={{ minHeight: 126 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>
+        Pair your phone
+      </div>
+      {!isHost ? (
+        <div className="app-card-meta">Phone pairing is host-only.</div>
+      ) : (
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          {dataURL ? (
+            <img
+              src={dataURL}
+              alt="Pairing code for the gawkbot iOS app"
+              width={120}
+              height={120}
+              style={{ borderRadius: 6, background: "#fff", flex: "0 0 auto" }}
+            />
+          ) : (
+            <div className="app-card-meta">Preparing code…</div>
+          )}
+          <div className="app-card-meta" style={{ lineHeight: 1.4 }}>
+            Open gawkbot on your iPhone and scan this. The phone must reach this
+            office over Wi‑Fi, Tailscale, or a share link.
+            {localOnly ? (
+              <div style={{ marginTop: 6 }}>
+                This page is open on <code>localhost</code>, so the code points
+                at this machine only. Open the office by its Tailscale or LAN
+                address first, then scan.
+              </div>
+            ) : null}
+            {link ? (
+              <div style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(link).then(() => {
+                      setCopied(true);
+                      window.setTimeout(() => setCopied(false), 1500);
+                    });
+                  }}
+                >
+                  {copied ? "Copied" : "Copy pairing link"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

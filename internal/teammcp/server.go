@@ -276,6 +276,9 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 		registerSharedMemoryTools(server)
 		registerRoutineTools(server)
 		registerAppTools(server, slug)
+		// Data spaces: the builder models the structured data its app reads and
+		// writes, so it needs the same data_* surface every other bot has.
+		registerDataTools(server)
 		if hasActionProvider() {
 			registerActionTools(server)
 		}
@@ -389,6 +392,10 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 	// Apps: every bot can discover (list_apps) and propose (propose_app); the
 	// build/publish tools (get_app, register_app) are gated to the App Builder.
 	registerAppTools(server, slug)
+	// Data spaces: every bot can define object types, attributes and
+	// relationships and fill them with records. The data-modeling system skill
+	// switches the surface off per bot; the broker enforces per-space access.
+	registerDataTools(server)
 
 	// Gate external-action tools behind a configured provider. Registering 14
 	// empty action tools inflates the MCP tool schema and pushes the total
@@ -420,6 +427,10 @@ func configureServerTools(server *mcp.Server, slug string, channel string, oneOn
 			"team_channel_member",
 			"Add, remove, disable, or enable a bot in a specific office channel.",
 		), handleTeamChannelMember)
+		mcp.AddTool(server, officeWriteTool(
+			"team_local_agents",
+			"List the agent CLIs installed or running on the human's machine (Claude Code, Codex, Opencode, Gemini CLI, Cursor CLI, Aider, Goose, Amp, ...) and adopt them as office bots you manage. Adopting ALWAYS requires explicit human approval: it raises an approval request and blocks until the human decides.",
+		), handleTeamLocalAgents)
 		mcp.AddTool(server, officeWriteTool(
 			"team_member",
 			"Propose creating (or remove) a team-wide member. Reuse an existing teammate whenever one can cover the work. Creating a NEW member ALWAYS requires explicit human approval: this tool raises an approval request and blocks until the human decides, then returns an error if they decline so you assign the work to an existing specialist instead.",

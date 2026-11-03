@@ -110,6 +110,7 @@ export function destinationLabel(
 ): string {
   if (destination === "sandbox") return "Local VM";
   if (destination === "cloud") return "cloud";
+  if (destination === "mac") return "this Mac";
   return "";
 }
 
@@ -178,9 +179,10 @@ export function phaseCopy(phase: ComputerPhase, name: string): PhaseCopy {
 
 /** Human label for the segmented "Runs on" picker. */
 export const RUNS_ON_OPTIONS: ReadonlyArray<{
-  value: "cloud" | "sandbox" | "off";
+  value: "mac" | "cloud" | "sandbox" | "off";
   label: string;
 }> = [
+  { value: "mac", label: "This Mac" },
   { value: "cloud", label: "Cloud" },
   { value: "sandbox", label: "Local VM" },
   { value: "off", label: "Off" },

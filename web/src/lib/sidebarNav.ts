@@ -27,6 +27,10 @@ export function navigateToSidebarApp(appId: string): void {
     void router.navigate({ to: "/agents" });
     return;
   }
+  if (appId === "data") {
+    void router.navigate({ to: "/data" });
+    return;
+  }
   void router.navigate({
     to: "/apps/$appId",
     params: { appId },

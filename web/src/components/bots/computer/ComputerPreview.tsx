@@ -15,7 +15,7 @@ import {
 interface ComputerPreviewProps {
   name: string;
   phase: ComputerPhase;
-  destination: "off" | "sandbox" | "cloud" | undefined;
+  destination: "off" | "sandbox" | "cloud" | "mac" | undefined;
   /** Signed viewer page. Control-policy URL wins while the person drives. */
   viewerUrl: string | null;
   frameDataUrl: string | null;

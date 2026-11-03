@@ -228,13 +228,148 @@ loudly — apps are read-mostly by design. Don't try to work around this.
 
 ## The app's database — own your data model
 
-Every WUPHF App has a small, real, PERSISTED database of its own (per app,
-server-side, via `db` in `wuphf-bridge.ts`). This is how an app OWNS the model it
-manages instead of recomputing it from scratch on every mount — and it is exactly
-what the **Data tab** shows. Reach for it the moment your app DERIVES or CURATES
-something from a source read: an urgency score, a one-line summary, a group + its
-count, an action item, a normalized row. The pattern is **derive ONCE, persist,
-render from the DB**:
+An app OWNS the model it manages instead of recomputing it from scratch on every
+mount. There are TWO places that model can live, and which one you get is decided
+before you write a line of code — by whether a **data space** is attached to this
+app, which is recorded on the app itself and is not something the app chooses.
+
+Find out by asking, once, on first load:
+
+```tsx
+import { data } from "./wuphf-bridge";
+
+// Resolves with the schema when a space is attached. Rejects with
+// "This app has no data space attached." when there is none — an honest
+// refusal, never an empty result you could mistake for "no records".
+const schema = await data.schema();
+```
+
+- **`data.schema()` resolves** → a data space is attached. That space is the
+  model. Read Case A and use it.
+- **It rejects with "no data space attached"** → the app's own per-app database
+  is the model. Skip to Case B, and do not call `data.*` again.
+
+Do not mix them for the same records. Pick the case your app is actually in.
+
+### Case A — a data space is attached (the model the operator shares)
+
+A data space is the office's structured store for one use case: object types,
+attributes, relationships and records, defined by a bot and browsed and edited by
+the operator under **Data**. It is not app-private. The operator can change a
+record while your app is open, another bot can add one, and your app is one more
+reader and writer of the same rows. That is the point: the pipeline board and the
+Data table are two views of the SAME investors.
+
+What this changes about how you write the app:
+
+1. **Read the schema first, and render from it.** Object types, attribute slugs,
+   select options and relationship attributes all come from the space — you do
+   not define them and you must not invent them. Key every read and write by the
+   attribute SLUG the schema returned. A select or status value is one of the
+   options the schema lists; anything else is rejected with the valid ones named.
+2. **Do not duplicate the space into local tables.** Query it on demand and
+   render the result. Persisting your own copy means two sources of truth and an
+   app that shows stale rows the moment the operator edits one.
+3. **Write back through the same surface.** A drag that changes a card's column
+   is an update of that record's `stage` attribute, addressed by the record id
+   exactly as it was returned (ids are strings — never renumber or reformat
+   them). The Data table shows the new value because there is only one value.
+4. **Relationships are attributes, and they are linked, not assigned.** An
+   investor's firm is a link between two records, not a text field you overwrite.
+5. **You cannot change the schema from the app.** Defining an object type, adding
+   an attribute, or adding a select option is the bot's job through its `data_*`
+   tools. If the app needs a field that does not exist, say so in the UI (and to
+   the operator) rather than stuffing the value somewhere it does not belong.
+6. **Every call can reject** — bad slug, invalid option, read-only access to the
+   space — exactly like the other bridge helpers. Await in try/catch and render a
+   designed error state with a Retry, never a blank screen.
+7. **You cannot pick the space.** There is no space argument anywhere in this
+   API, because there is nothing to pick: every call reaches the one space this
+   app is attached to. Passing a space id in a call does nothing at all.
+8. **Check `caller_level` before you render a write control.** The schema
+   carries `schema.space.caller_level`: `"write"` or `"read"`. On a read-only
+   space, render the data and HIDE the edit affordances rather than showing
+   buttons whose every click returns a refusal. A control that cannot work is
+   worse than no control.
+
+The whole API, as `src/wuphf-bridge.ts` ships it. **That file is the contract —
+read it for the exact types before you rely on them:**
+
+```ts
+data.schema(): Promise<DataSchema>
+data.query(objectType, { filters?, sort?, query?, limit?, offset? }?): Promise<DataPage>
+data.create(objectType, values): Promise<DataResult>
+data.upsert(objectType, matchingAttribute, rows): Promise<DataResult>
+data.update(recordId, values): Promise<{ record: DataRecord }>
+data.link(recordId, attribute, targetId, replace?): Promise<DataResult>
+data.unlink(recordId, attribute, targetId): Promise<DataResult>
+```
+
+Two shapes to know. The schema is snake_case, exactly as the store stores it:
+`schema.space`, `schema.object_types[].attributes[].slug`, and `.options` on a
+select or status attribute. And every batch write (`create`, `upsert`, `link`,
+`unlink`) answers a `DataResult` envelope — `{ succeeded, failed, summary,
+entries }` — so a RESOLVED promise does not mean every row landed. Read `failed`
+and show the failing `entries` rather than assuming success.
+
+```tsx
+import { data } from "./wuphf-bridge";
+
+async function loadPipeline() {
+  try {
+    // The schema is the source of the slugs and the stage options — the board's
+    // columns come from the attribute, not from a hardcoded list in the app.
+    const schema = await data.schema();
+    const investor = schema.object_types.find((t) => t.slug === "investor");
+    const stage = investor?.attributes.find((a) => a.slug === "stage");
+    const { records, total } = await data.query("investor", {
+      sort: { attribute: "stage" },
+      limit: 100,
+    });
+    return {
+      state: "ready",
+      columns: stage?.options ?? [],
+      records,
+      total,
+    } as const;
+  } catch (err) {
+    // Includes "This app has no data space attached." — say THAT, do not
+    // render an empty board as if the space were simply empty.
+    return { state: "error", message: String(err) } as const;
+  }
+}
+
+// Moving a card writes the shared record, so the Data table shows it too. A
+// status value is matched by option NAME (or by option id) — both work.
+async function moveCard(recordId: string, optionName: string) {
+  const { record } = await data.update(recordId, { stage: optionName });
+  return record; // render from the reply; it is the row as it now stands
+}
+
+// A firm is a LINK, not a text field. `replace` moves an investor between
+// firms instead of failing on the existing to-one link.
+async function setFirm(investorId: string, firmId: string) {
+  const result = await data.link(investorId, "firm", firmId, true);
+  if (result.failed > 0) throw new Error(result.entries[0]?.error ?? "link failed");
+}
+
+// Re-importing is idempotent when you upsert on a UNIQUE attribute.
+async function importInvestors(rows: { email: string; name: string }[]) {
+  const result = await data.upsert("investor", "email", rows);
+  return { added: result.succeeded, rejected: result.entries.filter((e) => e.status === "failed") };
+}
+```
+
+### Case B — no space attached: the app's own database
+
+Every WUPHF App also has a small, real, PERSISTED database of its own (per app,
+server-side, via `db` in `wuphf-bridge.ts`). Use it when no data space is
+attached, and use it even when one IS attached for values that are purely the
+app's own working state — a derived score, a cached summary, a "last refreshed"
+marker — that nobody outside this app should have to look at. Reach for it the
+moment your app DERIVES or CURATES something from a source read: an urgency
+score, a one-line summary, a group + its count, an action item, a normalized row.
+The pattern is **derive ONCE, persist, render from the DB**:
 
 1. **Define your tables** — the entities the app manages and their typed columns,
    INCLUDING the computed fields, not just the raw source fields.
@@ -318,6 +453,10 @@ async function ensureModel() {
 - A pure pass-through app with NO derived data (it lists a live source verbatim)
   does not need the DB — read the source and render. Use the DB the moment you
   COMPUTE or CURATE something worth keeping and showing in the Data tab.
+- The app's **Data tab** shows the attached data space when there is one, and the
+  per-app tables when there is not. So anything the operator is meant to browse,
+  sort and edit belongs in the space (Case A); the per-app DB is for the values
+  only this app derives and renders.
 
 ## Hard rules
 

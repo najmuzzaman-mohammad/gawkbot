@@ -63,6 +63,9 @@ func (l *Launcher) Kill() error {
 	if l.headless.cancel != nil {
 		l.headless.cancel()
 	}
+	// Background resumes of terminal sessions: killed and reaped, and the
+	// messages that will now never run answered, before the broker goes.
+	l.stopSessionTurns()
 	l.stopHeadlessWorkers()
 	if l.broker != nil {
 		l.broker.Stop()

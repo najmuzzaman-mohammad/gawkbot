@@ -124,18 +124,34 @@
   --yellow-bg: var(--warning-100);
   --blue: var(--cyan-500);
   --blue-bg: var(--cyan-100);
+  /* The platform's own UI face first (San Francisco on a Mac, where the app
+     lives), then the self-hosted Geist for everywhere else. */
   --font-sans:
-    "Geist Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Geist Sans", "Segoe UI",
+    system-ui, sans-serif;
   --font-serif: "Newsreader", "Georgia", "Times New Roman", serif;
   --font-logo: "Newsreader", "Georgia", "Times New Roman", serif;
   --font-mono:
     "Geist Mono", "SFMono-Regular", "Menlo", "Monaco", "Consolas", monospace;
   --font-pixel: "Geist Pixel", "Geist Mono", monospace;
+  --radius-xs: 6px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-full: 9999px;
+  /* Model badge (styles/model-badge.css). The notch sets its own. */
+  --model-badge-bg: var(--bg-card);
+  --model-badge-border: var(--border);
+  --model-badge-ink: var(--text-secondary);
+  --model-badge-font: var(--font-mono);
+
+  /* ─── Control heights ─── macOS sizes: regular 32px for buttons, fields
+     and pop-ups; small 24px for rows and toolbars; large 44px only for the
+     one hero action on a page (onboarding, the empty composer). */
+  --control-h: 32px;
+  --control-h-sm: 24px;
+  --control-h-lg: 44px;
 
   /* Agent event bubble — state colors. Used by .sidebar-bot-pill states. */
   --bubble-shipping: #2a8f4c; /* shipping events — green */
@@ -171,6 +187,21 @@
   --input-bg: var(--bg-card);
   --input-bg-disabled: var(--bg-warm);
   --input-border: var(--border);
+
+  /* Workspace rail — the far-left switcher (WorkspaceRail.tsx). Dark chrome
+     with light ink by default: --neutral-950 is the darkest stop of each
+     theme's own ramp. A theme that wants a light rail (Glass Light) sets
+     these as a set; reassigning --neutral-950 instead would turn every other
+     surface that reaches for the darkest ramp stop light as well. */
+  --workspace-rail-bg: var(--neutral-950);
+  --workspace-rail-border: var(--overlay-white-soft);
+  --workspace-rail-ink: var(--neutral-100);
+  --workspace-rail-ink-muted: var(--neutral-300);
+  --workspace-rail-tint: var(--overlay-white-soft);
+  --workspace-rail-dash: var(--neutral-500);
+  --workspace-rail-hover: rgba(255, 255, 255, 0.06);
+  --workspace-rail-press: rgba(255, 255, 255, 0.1);
+  --workspace-rail-dot-ring: var(--neutral-900);
 
   /* ─── Phase 2 onboarding preview-state tokens ─── */
   /* Visual language: dashed border + lavender bg = "this thing is staged,
@@ -237,7 +268,14 @@
   --text-md: 14px;
   --text-lg: 15px;
   --text-xl: 17px;
-  --text-2xl: 20px;
+  --text-2xl: 22px;
+  --text-3xl: 26px;
+  /* macOS text styles, named: Large Title 26, Title 1 22, Title 2 17,
+     Title 3 15, Headline 13/600, Body 13, Callout 12, Subheadline 11,
+     Footnote 10. The scale above carries the sizes; headings get the
+     tight tracking of display type. */
+  --tracking-title: -0.02em;
+  --tracking-body: -0.006em;
 
   /* ─── Transition durations ─── */
   --duration-fast: 0.12s;
@@ -251,7 +289,21 @@
 
 html {
   font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.45;
+  letter-spacing: var(--tracking-body);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+h1,
+h2,
+h3 {
+  letter-spacing: var(--tracking-title);
+}
+/* Lucide draws at stroke 2 by default; the app's icons are 1.75, the
+   weight of a regular SF Symbol next to 13px text. */
+svg.lucide {
+  stroke-width: 1.75;
 }
 body {
   background: var(--bg);
@@ -386,10 +438,12 @@ body {
     transform var(--duration-slow),
     box-shadow var(--duration-slow);
   text-decoration: none;
-  min-height: 44px;
+  min-height: var(--control-h);
+  font-size: var(--text-base);
+  line-height: 1.2;
 }
-.btn:not(.btn-sm):not(:disabled):hover {
-  transform: translateY(-1px);
+.btn:not(:disabled):active {
+  filter: brightness(0.94);
 }
 .btn:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
@@ -401,10 +455,9 @@ body {
 }
 .btn-primary {
   background: var(--accent);
-  color: #ffffff;
-  padding: var(--space-3) var(--space-6);
+  color: var(--accent-fg);
+  padding: var(--space-1-5) var(--space-4);
   border-radius: var(--btn-radius);
-  font-size: var(--text-md);
   box-shadow: var(--btn-primary-shadow);
 }
 .btn-primary:has(.btn-label) {
@@ -422,9 +475,8 @@ body {
   background: var(--bg-card);
   color: var(--text);
   border: 1px solid var(--border-dark);
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-1-5) var(--space-4);
   border-radius: var(--btn-radius);
-  font-size: var(--text-md);
 }
 .btn-ghost:hover,
 .btn-secondary:hover {
@@ -434,17 +486,17 @@ body {
 .btn-danger {
   background: var(--red);
   color: #ffffff;
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-1-5) var(--space-4);
   border-radius: var(--btn-radius);
-  font-size: var(--text-md);
   box-shadow: var(--btn-danger-shadow);
 }
 .btn-danger:hover {
   filter: brightness(0.95);
 }
 .btn-lg {
-  padding: var(--space-4) calc(var(--space-6) + var(--space-4));
-  font-size: var(--text-xl);
+  min-height: var(--control-h-lg);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-lg);
 }
 .btn-text {
   background: transparent;
@@ -477,9 +529,9 @@ body {
   color: var(--red);
 }
 .btn-sm {
-  padding: var(--space-1) var(--space-3);
+  padding: 0 var(--space-2-5);
   font-size: var(--text-sm);
-  min-height: 32px;
+  min-height: var(--control-h-sm);
 }
 
 /* ─── Cards ─── */
@@ -607,10 +659,10 @@ body {
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   color: var(--text);
-  border-radius: var(--radius-md);
-  height: 44px;
-  font-size: var(--text-lg);
-  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  height: var(--control-h);
+  font-size: var(--text-base);
+  padding: 0 var(--space-2-5);
   width: 100%;
   font-family: var(--font-sans);
   transition:
@@ -638,6 +690,122 @@ body {
 }
 .input.has-error:focus-visible {
   outline-color: var(--red);
+}
+
+/* ─── macOS controls ─── */
+/* Toggle switch: `<input type="checkbox" class="switch">`. A 26x15 pill
+   with a 13px knob, the accent when on. The native checkbox stays in the
+   DOM so forms, labels and tests keep working; only its paint changes. */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 26px;
+  height: 15px;
+  margin: 0;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+  border: none;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background var(--duration-base);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  transition: transform var(--duration-base);
+}
+.switch:checked {
+  background: var(--accent);
+}
+.switch:checked::after {
+  transform: translateX(11px);
+}
+.switch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.switch:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Segmented control: a group of equal buttons in one recessed track, the
+   selected one raised as a white (or card-coloured) tile. Markup:
+   <div class="segmented" role="radiogroup">
+     <button class="segmented-item" aria-checked="true" role="radio">…
+   The selected tile follows aria-checked, so the state is the semantics. */
+.segmented {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 2px;
+  height: var(--control-h-sm);
+  border-radius: var(--radius-xs);
+  background: var(--overlay);
+}
+.segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 0 var(--space-2-5);
+  border: none;
+  border-radius: calc(var(--radius-xs) - 1px);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast),
+    color var(--duration-fast),
+    box-shadow var(--duration-fast);
+}
+.segmented-item:hover {
+  color: var(--text);
+}
+.segmented-item[aria-checked="true"],
+.segmented-item[aria-selected="true"],
+.segmented-item.is-active {
+  background: var(--bg-card);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.segmented-item:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: 0;
+}
+
+/* Toolbar group: a capsule that gathers the icon buttons of a toolbar,
+   the way a unified toolbar groups its controls. The icon buttons inside
+   are 28px squares; under Glass the capsule is the material. */
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card-soft);
+}
+.toolbar-group > .sidebar-btn,
+.toolbar-group > .theme-switcher > .sidebar-btn {
+  border-radius: var(--radius-full);
 }
 
 /* ─── Badges ─── */
@@ -1583,6 +1751,51 @@ body {
 .composio-onb-fallback-toggle:hover {
   color: var(--text);
 }
+
+/* Sign-in-expired recovery panel: the honest replacement for a raw 401.
+   Tokens only — it renders inside the integrations catalog, a toolkit detail,
+   and the first-run hero, so it has to sit correctly on every surface. */
+.composio-expired {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-card);
+}
+.composio-expired-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.composio-expired-details {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.composio-expired-details summary {
+  cursor: pointer;
+}
+/* The install command, addressed to whoever can actually run it. It is kept
+   out of the sentence above and collapsed by default: an operator reading a
+   "one-time setup" prompt has no use for a shell command, and showing one is
+   how honest copy turns back into protocol debris. */
+.composio-onb-install-details {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.composio-onb-install-details summary {
+  cursor: pointer;
+}
+.composio-expired-request-id {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary, var(--text-secondary));
+  overflow-wrap: anywhere;
+}
 .badge-muted {
   background: var(--bg-warm);
   color: var(--text-tertiary);
@@ -1607,6 +1820,14 @@ body {
 .pixel-avatar-panel {
   width: 56px;
   height: 56px;
+}
+
+/* ─── Bot avatars (components/ui/OrbAvatar.tsx) ───
+   The character is an SVG the orb core draws into; the working loop is the
+   orb's own, so nothing here animates. */
+.pixel-avatar--smooth {
+  image-rendering: auto;
+  flex-shrink: 0;
 }
 
 /* ─── Harness badge (overlaid on agent avatars) ─── */
@@ -1635,7 +1856,9 @@ body {
 /* Top-right of the agent avatar. Exactly one of these renders at a time, and
    they are deliberately NOT the same weight.
 
-   .working-badge  the agent is processing right now. Green, full size.
+   .working-badge  the agent is processing right now. Orange, pulsing, full
+                   size.
+   .finished-badge it finished its turn and waits on you. Green.
    .online-badge   the adapter is merely reachable. Smaller and muted.
 
    These used to be one badge: `online` rendered in green, which meant the
@@ -1644,6 +1867,7 @@ body {
    ambiguity, so it is a neutral outline instead. The peek card still states
    presence textually via "Online" / "Last seen Xm ago". */
 .working-badge,
+.finished-badge,
 .online-badge {
   position: absolute;
   top: -2px;
@@ -1652,7 +1876,21 @@ body {
   pointer-events: none;
 }
 
+/* Working is orange and pulsing everywhere a bot shows, the notch included. */
 .working-badge {
+  width: 7px;
+  height: 7px;
+  background: var(--warning-400, #ff9f0a);
+  box-shadow: 0 0 0 1.5px var(--bg-card, #fff);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .working-badge {
+    animation: pulse-dot 1.4s ease-in-out infinite;
+  }
+}
+
+/* Finished its turn and waiting on you: green, still. */
+.finished-badge {
   width: 7px;
   height: 7px;
   background: var(--green, #03a04c);
@@ -1679,6 +1917,22 @@ body {
 }
 .status-dot.pulse {
   animation: pulse-dot 2s ease-in-out infinite;
+}
+/* A bot's state (lib/botDot.ts): orange and pulsing while it works, green
+   once it has finished its turn, red when it is stuck. Never a spinner. */
+.status-dot.working {
+  background: var(--warning-400, #ff9f0a);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .status-dot.working {
+    animation: pulse-dot 1.4s ease-in-out infinite;
+  }
+}
+.status-dot.finished {
+  background: var(--green);
+}
+.status-dot.stuck {
+  background: var(--red);
 }
 .status-dot.shipping {
   background: var(--blue);

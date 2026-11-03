@@ -1,0 +1,97 @@
+# XcodeGen spec for the gawkbot iOS app. Regenerate the project with
+# `xcodegen generate` from this directory; the .xcodeproj is not committed.
+name: Gawkbot
+options:
+  bundleIdPrefix: bot.gawk
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "26.0"
+  createIntermediateGroups: true
+packages:
+  GawkbotKit:
+    path: GawkbotKit
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGNING_ALLOWED: "NO"
+    # Simulator builds are signed ad hoc ("Sign to Run Locally"). An unsigned
+    # app has no keychain access group, so the Keychain refuses the broker
+    # token and the pairing is lost on the next launch.
+    "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": "YES"
+    "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+    GENERATE_INFOPLIST_FILE: "YES"
+    INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+    INFOPLIST_KEY_NSCameraUsageDescription: "Scan the pairing code shown in your office's Access & Health page."
+    INFOPLIST_KEY_NSMicrophoneUsageDescription: "gawkbot listens only while you hold the mic button, so you can answer your agents or message them by voice. Nothing is sent until you tap Send."
+    INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Your words are turned into text so you can answer or message your agents. When this iPhone can transcribe on its own it does; otherwise Apple's speech recognition service does it. Nothing reaches your office until you tap Send."
+    INFOPLIST_KEY_CFBundleDisplayName: gawkbot
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+targets:
+  Gawkbot:
+    type: application
+    platform: iOS
+    sources:
+      - path: Gawkbot
+    dependencies:
+      - package: GawkbotKit
+    info:
+      path: Gawkbot/Info.plist
+      properties:
+        CFBundleDisplayName: gawkbot
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Only HTTPS and the system's own crypto: exempt, so App Store
+        # Connect does not ask the export question on every build.
+        ITSAppUsesNonExemptEncryption: false
+        # Shown the first time the app reaches an office on the LAN.
+        NSLocalNetworkUsageDescription: "gawkbot connects to your office on your Wi-Fi or Tailscale network to show what your agents need and to send your answers."
+        CFBundleURLTypes:
+          - CFBundleURLName: bot.gawk.pair
+            CFBundleURLSchemes: [gawkbot]
+        NSCameraUsageDescription: "Scan the pairing code shown in your office's Access & Health page."
+        # Hold-to-talk in an agent thread (Speech + AVAudioEngine, system
+        # frameworks that auto-link from their imports).
+        NSMicrophoneUsageDescription: "gawkbot listens only while you hold the mic button, so you can answer your agents or message them by voice. Nothing is sent until you tap Send."
+        NSSpeechRecognitionUsageDescription: "Your words are turned into text so you can answer or message your agents. When this iPhone can transcribe on its own it does; otherwise Apple's speech recognition service does it. Nothing reaches your office until you tap Send."
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          # Offices run over http on a LAN or a Tailscale address; anything
+          # public must be https (Pairing.make refuses cleartext otherwise).
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            ts.net:
+              NSIncludesSubdomains: true
+              NSExceptionAllowsInsecureHTTPLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: bot.gawk.ios
+        TARGETED_DEVICE_FAMILY: "1"
+  GawkbotUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: GawkbotUITests
+    dependencies:
+      - target: Gawkbot
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: bot.gawk.ios.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: Gawkbot
+schemes:
+  Gawkbot:
+    build:
+      targets:
+        Gawkbot: all
+        GawkbotUITests: [test]
+    test:
+      targets:
+        - GawkbotUITests

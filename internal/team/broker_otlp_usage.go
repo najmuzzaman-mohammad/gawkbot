@@ -207,7 +207,7 @@ func (b *Broker) attachUsageToRecentMessagesLocked(event usageEvent) {
 // the model name without a future per-model attribution change rippling
 // through every headless launcher's call site.
 func (b *Broker) RecordBotUsage(slug, model string, usage provider.ClaudeUsage) {
-	_ = model
+	b.RecordObservedModel(slug, model)
 	event := usageEvent{
 		BotSlug:             slug,
 		InputTokens:         usage.InputTokens,

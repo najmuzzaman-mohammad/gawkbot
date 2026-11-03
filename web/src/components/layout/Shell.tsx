@@ -29,27 +29,31 @@ export function Shell({ children }: ShellProps) {
   const activeChannelSlug = useActiveChannelSlug();
   return (
     <div className="office">
-      <WorkspaceRail />
-      <Sidebar />
-      <main className="main">
-        <DisconnectBanner />
-        <GovernorBanner />
-        <TeamMemberWelcome />
-        <ChannelHeader />
-        <RuntimeStrip />
-        {children}
-        {/* One mount here keeps the bar in a consistent spot above the status
-            bar across the home composer, channel, and task chat. It is scoped
-            to the chat the human is currently viewing (useActiveChannelSlug),
-            so a bot's question only surfaces in the channel it was asked
-            in instead of blocking the composer on every surface. On non-chat
-            surfaces the slug is null and the bar stays silent; office-wide
-            triage still lives in the Inbox. */}
-        <InterviewBar channelSlug={activeChannelSlug} />
-        <StatusBar />
-      </main>
-      <ThreadPanel />
-      <BotPanel />
+      <div className="office-body">
+        <WorkspaceRail />
+        <Sidebar />
+        <main className="main">
+          <DisconnectBanner />
+          <GovernorBanner />
+          <TeamMemberWelcome />
+          <ChannelHeader />
+          <RuntimeStrip />
+          {children}
+          {/* One mount here keeps the bar in a consistent spot above the
+              footer across the home composer, channel, and task chat. It is
+              scoped to the chat the human is currently viewing
+              (useActiveChannelSlug), so a bot's question only surfaces in the
+              channel it was asked in instead of blocking the composer on
+              every surface. On non-chat surfaces the slug is null and the bar
+              stays silent; office-wide triage still lives in the Inbox. */}
+          <InterviewBar channelSlug={activeChannelSlug} />
+        </main>
+        <ThreadPanel />
+        <BotPanel />
+      </div>
+      {/* The footer spans the window, under the sidebar and the content
+          alike, the way a Mac window carries a status bar. */}
+      <StatusBar />
       <CommandPaletteHost />
       <SearchModal />
       <HelpModalHost />

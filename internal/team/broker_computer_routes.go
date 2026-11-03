@@ -176,6 +176,12 @@ func (b *Broker) handleComputerBot(w http.ResponseWriter, r *http.Request) {
 		}
 		var snap computer.Snapshot
 		switch body.Action {
+		case computer.ConsentAllow, computer.ConsentAllowAlways, computer.ConsentDeny:
+			var err error
+			if snap, err = b.decideConsent(slug, body.Action); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
 		case "take":
 			snap = svc.control.Take(slug)
 		case "release":
@@ -214,6 +220,7 @@ func (b *Broker) handleComputerControl(w http.ResponseWriter, r *http.Request) {
 			Action    string `json:"action"`
 			Reason    string `json:"reason"`
 			RequestID string `json:"request_id"`
+			Summary   string `json:"summary"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request"})
@@ -226,8 +233,14 @@ func (b *Broker) handleComputerControl(w http.ResponseWriter, r *http.Request) {
 		case "expire-help":
 			snap := svc.control.ExpireHelp(slug, body.RequestID)
 			writeJSON(w, http.StatusOK, snap)
+		case "request-consent":
+			id, snap := svc.control.RequestConsent(slug, truncate(body.Summary, 240))
+			writeJSON(w, http.StatusOK, map[string]any{"request_id": id, "consent_open": snap.ConsentOpen})
+		case "expire-consent":
+			snap := svc.control.ExpireConsent(slug, body.RequestID)
+			writeJSON(w, http.StatusOK, snap)
 		default:
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "action must be request-help or expire-help"})
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "action must be request-help, expire-help, request-consent, or expire-consent"})
 		}
 	default:
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})

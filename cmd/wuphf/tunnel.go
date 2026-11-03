@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nex-crm/wuphf/internal/upgradecheck"
+
 	"github.com/nex-crm/wuphf/internal/brokeraddr"
 	"github.com/nex-crm/wuphf/internal/team"
 )
@@ -80,12 +82,11 @@ func isTransientQuickTunnelFailure(tail []string) bool {
 }
 
 // cloudflaredMissingMessage is the user-facing error when the binary is not
-// next to the gawkbot executable AND not on PATH. The npm postinstall ships
-// cloudflared into the same directory as the gawkbot binary so this path
-// almost never fires for npm users; it shows up for `go install` users and
-// for npm users whose corp proxy blocked the github.com download. The
-// recovery hint covers both: reinstall from npm (refreshes the bundle), or
-// install cloudflared via the platform package manager.
+// next to the gawkbot executable AND not on PATH. The Mac app ships
+// cloudflared next to the gawkbot binary so this path almost never fires for
+// app users; it shows up for `go install` and source builds. The recovery
+// hint covers both: download the latest Mac app (which carries the bundle),
+// or install cloudflared via the platform package manager.
 func cloudflaredMissingMessage() string {
 	var manual string
 	switch runtime.GOOS {
@@ -97,11 +98,12 @@ func cloudflaredMissingMessage() string {
 		manual = "  See https://github.com/cloudflare/cloudflared#installing-cloudflared"
 	}
 	return "cloudflared is not installed.\n\n" +
-		"gawkbot normally bundles cloudflared with the npm install. If you see this,\n" +
+		"gawkbot normally bundles cloudflared with the Mac app. If you see this,\n" +
 		"either the bundle download was blocked (corp proxy / offline install) or\n" +
-		"you installed gawkbot via `go install` and we did not stage it.\n\n" +
-		"Fix: reinstall gawkbot with `npm install -g gawkbot@latest`, or install\n" +
-		"cloudflared manually:\n\n" +
+		"you built gawkbot from source and we did not stage it.\n\n" +
+		"Fix: download the latest Mac app from\n" +
+		"  " + upgradecheck.ReleasesLatestURL + "\n" +
+		"or install cloudflared manually:\n\n" +
 		manual + "\n\n" +
 		"Then click \"Start public tunnel\" again."
 }

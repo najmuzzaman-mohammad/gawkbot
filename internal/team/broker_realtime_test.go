@@ -87,7 +87,7 @@ func TestMintRealtimeEphemeralKey_AcceptsPreviewShape(t *testing.T) {
 	stub := &rtStub{status: 200, body: `{"client_secret":{"value":"ek_pre","expires_at":5}}`}
 	withRealtimeStub(t, stub)
 
-	ek, exp, err := mintRealtimeEphemeralKey(t.Context(), "sk-x", "gpt-realtime")
+	ek, exp, err := mintRealtimeEphemeralKey(t.Context(), "sk-x", map[string]any{"type": "realtime", "model": "gpt-realtime"})
 	if err != nil {
 		t.Fatalf("mint: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestMintRealtimeEphemeralKey_AcceptsPreviewShape(t *testing.T) {
 
 func TestMintRealtimeEphemeralKey_ErrorsOnNon2xx(t *testing.T) {
 	withRealtimeStub(t, &rtStub{status: 401, body: `{"error":"bad key"}`})
-	if _, _, err := mintRealtimeEphemeralKey(t.Context(), "sk-x", "gpt-realtime"); err == nil {
+	if _, _, err := mintRealtimeEphemeralKey(t.Context(), "sk-x", map[string]any{"type": "realtime", "model": "gpt-realtime"}); err == nil {
 		t.Fatal("expected error on 401")
 	}
 }

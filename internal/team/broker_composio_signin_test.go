@@ -490,14 +490,12 @@ esac`)
 		t.Fatal(err)
 	}
 	// Stub the project-resolve network call.
-	origResolve := composioResolveProjectID
-	composioResolveProjectID = func(baseURL, userAPIKey, orgID string) string {
+	t.Cleanup(setComposioResolveProjectID(func(_, userAPIKey, orgID string) string {
 		if userAPIKey != "uak_session_xyz" || orgID != "ok_test123" {
 			t.Errorf("resolve got unexpected creds: key=%q org=%q", userAPIKey, orgID)
 		}
 		return "pr_resolved789"
-	}
-	t.Cleanup(func() { composioResolveProjectID = origResolve })
+	}))
 
 	_, state, _ := composioSigninRequest(t, b, http.MethodPost, "/integrations/composio/signin/start")
 	if state.Status != composioSigninStatusProvisioning {

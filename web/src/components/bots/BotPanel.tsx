@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Xmark } from "iconoir-react";
+import { X } from "lucide-react";
 
 import type { OfficeMember } from "../../api/client";
 import { post } from "../../api/client";
 import { listBotLogTasks, type TaskLogSummary } from "../../api/tasks";
 import { useBotStream } from "../../hooks/useBotStream";
-import { useDefaultHarness } from "../../hooks/useConfig";
 import { useChannelMembers, useOfficeMembers } from "../../hooks/useMembers";
-import { resolveHarness } from "../../lib/harness";
+import { botDot, botDotClass } from "../../lib/botDot";
 import { humanizeActivity } from "../../lib/humanizeActivity";
 import { router } from "../../lib/router";
 import {
@@ -19,7 +18,6 @@ import {
 import { useAppStore } from "../../stores/app";
 import { StreamLineView } from "../messages/StreamLineView";
 import { confirm } from "../ui/ConfirmDialog";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { showNotice } from "../ui/Toast";
 import { BotProfilePanel } from "./BotProfilePanel";
@@ -57,6 +55,16 @@ function routeIdentityKey(route: CurrentRoute): string {
       return "task-new";
     case "agents":
       return "agents";
+    case "data-index":
+      return "data-index";
+    case "data-space":
+      return `data-space:${route.spaceId}`;
+    case "data-type":
+      return `data-type:${route.spaceId}:${route.typeSlug}`;
+    case "data-type-settings":
+      return `data-type-settings:${route.spaceId}:${route.typeSlug}`;
+    case "data-record":
+      return `data-record:${route.spaceId}:${route.recordId}`;
     case "bot-detail":
       return `bot-detail:${route.agentSlug}:${route.tab ?? ""}`;
     case "skill-detail":
@@ -201,7 +209,6 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
   const [toggling, setToggling] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const defaultHarness = useDefaultHarness();
 
   // Derive the per-channel enabled state. A bot is "enabled" in the
   // current channel when it appears in /members and is not flagged
@@ -308,7 +315,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
     });
   }
 
-  const statusClass = agent.status === "active" ? "active pulse" : "lurking";
+  const statusClass = botDotClass(botDot(agent));
 
   return (
     <div className="bot-panel">
@@ -320,11 +327,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
               slug={agent.slug}
               size={36}
               className="pixel-avatar-panel"
-            />
-            <HarnessBadge
-              kind={resolveHarness(agent.provider, defaultHarness)}
-              size={18}
-              className="harness-badge-on-avatar"
+              avatar={agent.avatar}
             />
           </div>
           <div
@@ -356,7 +359,7 @@ function BotPanelView({ agent, onClose }: BotPanelViewProps) {
           onClick={onClose}
           aria-label="Close bot panel"
         >
-          <Xmark width={20} height={20} />
+          <X size={20} />
         </button>
       </div>
 

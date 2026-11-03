@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import type { Message } from "../../api/client";
+import { useOfficeMembers } from "../../hooks/useMembers";
 import { useMessages } from "../../hooks/useMessages";
 import { formatDateLabel } from "../../lib/format";
 import { OFFICE_LOADING_PHRASES } from "../../lib/officeLoadingPhrases";
+import {
+  emptyConversationLine,
+  isSessionMember,
+} from "../../lib/sessionMember";
+import {
+  isTerminalMessage,
+  mergeTranscript,
+  useSessionTranscript,
+} from "../../lib/sessionTranscript";
 import { useChannelSlug } from "../../routes/useCurrentRoute";
 import { useAppStore } from "../../stores/app";
+import { dmBotForChannel, EmptyHero } from "../layout/EmptyHero";
 import { ThinkingLoader } from "../ui/ThinkingLoader";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
@@ -119,8 +130,19 @@ function ChannelMessageFeed({
   };
 
   const { data: rawMessages = [], isLoading } = useMessages(currentChannel);
+  // Whose DM this is, for the empty state's hero. Undefined off a bot's DM.
+  const { data: members = [] } = useOfficeMembers();
+  const dmBot = dmBotForChannel(currentChannel, members);
+  // A terminal session's page also shows what was said in its terminal.
+  const sessionSlug = dmBot && isSessionMember(dmBot) ? dmBot.slug : null;
+  const { data: turns } = useSessionTranscript(sessionSlug);
   const messages = useMemo(() => {
-    const visible = messagesAfterClearMarker(rawMessages, clearMarkerId);
+    const visible = messagesAfterClearMarker(
+      sessionSlug && turns
+        ? mergeTranscript(rawMessages, turns, sessionSlug, currentChannel)
+        : rawMessages,
+      clearMarkerId,
+    );
     if (!readOnly) return visible;
     // Read-only: drop reactions from the DATA rather than hiding the pills
     // with CSS. The pill IS the toggle — there is no separate add-reaction
@@ -130,7 +152,14 @@ function ChannelMessageFeed({
     return visible.map((m) =>
       m.reactions ? { ...m, reactions: undefined } : m,
     );
-  }, [rawMessages, clearMarkerId, readOnly]);
+  }, [
+    rawMessages,
+    turns,
+    sessionSlug,
+    currentChannel,
+    clearMarkerId,
+    readOnly,
+  ]);
 
   // Auto-scroll when new messages arrive
   useEffect(() => {
@@ -164,6 +193,9 @@ function ChannelMessageFeed({
     return (
       <div className="messages">
         <div className="channel-empty-state">
+          {dmBot ? (
+            <EmptyHero slug={dmBot.slug} line={emptyConversationLine(dmBot)} />
+          ) : null}
           <span className="eyebrow">quiet before the standup</span>
           <span className="title">#{currentChannel} is empty. For now.</span>
           <span className="body">
@@ -285,8 +317,11 @@ function ChannelMessageFeed({
               message={el.parent.message}
               grouped={el.parent.grouped}
               replyCount={el.replies.length}
-              onOpenThread={(id) =>
-                setActiveThread({ id, channelSlug: currentChannel })
+              onOpenThread={
+                // A message from the terminal's log has no thread here.
+                isTerminalMessage(el.parent.message)
+                  ? undefined
+                  : (id) => setActiveThread({ id, channelSlug: currentChannel })
               }
               onCopyLink={copyMessageLink}
               channel={currentChannel}

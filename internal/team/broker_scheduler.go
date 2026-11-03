@@ -411,6 +411,12 @@ func (s systemCronSpec) resolvedDefaultInterval() int {
 func systemCronSpecs() []systemCronSpec {
 	return []systemCronSpec{
 		{
+			Slug:            notchIdeasCronSlug,
+			Label:           notchIdeasCronLabel,
+			DefaultInterval: func() int { return int(notchIdeasTick / time.Minute) },
+			MinFloor:        15,
+		},
+		{
 			Slug:            "one-relay-events",
 			Label:           "One relay events",
 			DefaultInterval: func() int { return 1 },

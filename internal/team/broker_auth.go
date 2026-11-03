@@ -70,6 +70,16 @@ func (b *Broker) withAuth(next http.HandlerFunc) http.HandlerFunc {
 				_, _ = io.WriteString(w, `{"error":"host_only"}`)
 				return
 			}
+			// A terminal session's conversation is the owner's, like the
+			// session member itself. Refused here, for every route a joined
+			// human may call that names a channel, so a route added later
+			// is covered without remembering to ask.
+			if b.sessionConversationHiddenFrom(actor, r.URL.Query().Get("channel")) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				_, _ = io.WriteString(w, `{"error":"host_only"}`)
+				return
+			}
 			next(w, requestWithActor(r, actor))
 			return
 		}

@@ -1,6 +1,7 @@
+import { botDot, botDotClass } from "../../lib/botDot";
 /**
- * BotSubspace — tabbed per-bot view with 8 tabs:
- *   Chat · Computer · Tasks · Skills · Knowledge · Policies · Live Stream · Config
+ * BotSubspace — tabbed per-bot view with 9 tabs:
+ *   Chat · Computer · Tasks · Skills · Knowledge · Data · Policies · Live Stream · Config
  *
  * The shell header (avatar + editable name + role + status + current-task chip
  * + "Teach a workflow") is persistent across all tabs. Tab content is
@@ -21,21 +22,24 @@
  */
 
 import { useCallback, useState } from "react";
-import { Eye } from "iconoir-react";
+import { Eye } from "lucide-react";
 
 import type { OfficeMember } from "../../api/client";
-import { useDefaultHarness } from "../../hooks/useConfig";
-import { resolveHarness } from "../../lib/harness";
 import { humanizeActivity } from "../../lib/humanizeActivity";
 import { router } from "../../lib/router";
+import {
+  canBeMessaged,
+  isSessionMember,
+  sessionStatusLabel,
+} from "../../lib/sessionMember";
 import { BotKnowledgePanel } from "../knowledge/BotKnowledgePanel";
-import { HarnessBadge } from "../ui/HarnessBadge";
 import { PixelAvatar } from "../ui/PixelAvatar";
 import { EditableName } from "./BotProfilePanel";
 import { TeachWorkflowModal } from "./TeachWorkflowModal";
 import { ChatTab } from "./tabs/ChatTab";
 import { ComputerTab } from "./tabs/ComputerTab";
 import { ConfigTab } from "./tabs/ConfigTab";
+import { DataTab } from "./tabs/DataTab";
 import { LiveStreamTab } from "./tabs/LiveStreamTab";
 import { PoliciesTab } from "./tabs/PoliciesTab";
 import { SkillsTab } from "./tabs/SkillsTab";
@@ -49,6 +53,7 @@ export type BotTab =
   | "tasks"
   | "skills"
   | "knowledge"
+  | "data"
   | "policies"
   | "live-stream"
   | "config";
@@ -61,6 +66,9 @@ export const AGENT_TABS: Array<{ id: BotTab; label: string }> = [
   { id: "tasks", label: "Tasks" },
   { id: "skills", label: "Skills" },
   { id: "knowledge", label: "Knowledge" },
+  // Next to Knowledge: both answer "what does this bot hold". Knowledge is
+  // what it wrote down, Data is the records its apps read and write.
+  { id: "data", label: "Data" },
   { id: "policies", label: "Policies" },
   { id: "live-stream", label: "Live Stream" },
   { id: "config", label: "Config" },
@@ -71,6 +79,19 @@ export const AGENT_TABS: Array<{ id: BotTab; label: string }> = [
 interface BotSubspaceProps {
   agent: OfficeMember;
   tab: string;
+}
+
+type BotTabDef = (typeof AGENT_TABS)[number];
+
+/**
+ * The tabs this member has. A terminal session runs in your own terminal on
+ * this Mac, so it has no computer for the office to show: the tab is left
+ * out of the list, not hidden.
+ */
+function tabsForMember(agent: OfficeMember): BotTabDef[] {
+  return isSessionMember(agent)
+    ? AGENT_TABS.filter((t) => t.id !== "computer")
+    : AGENT_TABS;
 }
 
 function isBotTab(value: string): value is BotTab {
@@ -95,11 +116,16 @@ const TAB_ALIASES: Record<string, BotTab> = {
   wiki: "knowledge",
   notes: "knowledge",
   notebook: "knowledge",
+  // The store behind a bot's apps; people reach for all three words.
+  records: "data",
+  database: "data",
+  db: "data",
 };
 
-function resolveTab(raw: string): BotTab {
-  if (isBotTab(raw)) return raw;
-  return TAB_ALIASES[raw.toLowerCase()] ?? "chat";
+function resolveTab(raw: string, tabs: BotTabDef[]): BotTab {
+  const wanted = isBotTab(raw) ? raw : TAB_ALIASES[raw.toLowerCase()];
+  // A tab this member does not have (a typed or stale URL) lands on Chat.
+  return wanted && tabs.some((t) => t.id === wanted) ? wanted : "chat";
 }
 
 // ── Shell header ─────────────────────────────────────────────────
@@ -109,22 +135,22 @@ interface ShellHeaderProps {
   onTeachWorkflow: () => void;
 }
 
+const DOT_TITLE = {
+  working: "Working",
+  finished: "Finished its turn",
+  stuck: "Stuck",
+  idle: "Idle",
+} as const;
+
 function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
-  const defaultHarness = useDefaultHarness();
-  const harness = resolveHarness(agent.provider, defaultHarness);
-  const statusClass = agent.status === "active" ? "active pulse" : "lurking";
+  const statusClass = botDotClass(botDot(agent));
 
   return (
     <div className="bot-subspace-header">
       <div className="bot-subspace-header-identity">
-        {/* Large pixel avatar with harness badge */}
+        {/* Large avatar; BotAvatar adds the model badge */}
         <div className="bot-subspace-header-avatar avatar-with-harness">
-          <PixelAvatar slug={agent.slug} size={48} />
-          <HarnessBadge
-            kind={harness}
-            size={16}
-            className="harness-badge-on-avatar"
-          />
+          <PixelAvatar slug={agent.slug} size={48} avatar={agent.avatar} />
         </div>
 
         {/* Name + role + status */}
@@ -133,7 +159,7 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
             <EditableName agent={agent} />
             <span
               className={`status-dot ${statusClass}`}
-              title={agent.status === "active" ? "Active" : "Idle"}
+              title={DOT_TITLE[botDot(agent)]}
               aria-hidden="true"
             />
           </div>
@@ -147,7 +173,8 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
               </span>
             ) : (
               <span className="bot-subspace-status-badge bot-subspace-status-badge--idle">
-                Idle
+                {/* A session says what its log says: your turn, quiet, closed. */}
+                {isSessionMember(agent) ? sessionStatusLabel(agent) : "Idle"}
               </span>
             )}
             {agent.task && agent.status === "active" ? (
@@ -158,20 +185,34 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
                 {humanizeActivity(agent.task)}
               </span>
             ) : null}
+            {/* A session that would take a message right now says so: its
+                status alone ("Closed") reads as if nothing can be done. */}
+            {isSessionMember(agent) && canBeMessaged(agent) ? (
+              <span
+                className="bot-subspace-task-chip"
+                data-testid="session-can-message"
+              >
+                Takes messages from here
+              </span>
+            ) : null}
           </div>
         </div>
 
-        {/* Show it once. It will do it from now on. */}
-        <button
-          type="button"
-          className="btn bot-subspace-teach-btn"
-          onClick={onTeachWorkflow}
-          data-testid="teach-workflow-btn"
-          title={`Show ${agent.name || agent.slug} a workflow on a screenshare`}
-        >
-          <Eye width={14} height={14} aria-hidden="true" />
-          Teach a workflow
-        </button>
+        {/* Show it once. It will do it from now on. Not for a terminal
+            session: teaching ends in the office's own instructions, and a
+            session in your repository is only ever given your own words. */}
+        {isSessionMember(agent) ? null : (
+          <button
+            type="button"
+            className="btn bot-subspace-teach-btn"
+            onClick={onTeachWorkflow}
+            data-testid="teach-workflow-btn"
+            title={`Show ${agent.name || agent.slug} a workflow on a screenshare`}
+          >
+            <Eye size={14} aria-hidden="true" />
+            Teach a workflow
+          </button>
+        )}
       </div>
     </div>
   );
@@ -182,9 +223,10 @@ function ShellHeader({ agent, onTeachWorkflow }: ShellHeaderProps) {
 interface TabBarProps {
   agentSlug: string;
   activeTab: BotTab;
+  tabs: BotTabDef[];
 }
 
-function TabBar({ agentSlug, activeTab }: TabBarProps) {
+function TabBar({ agentSlug, activeTab, tabs }: TabBarProps) {
   const navigate = useCallback(
     (tab: BotTab) => {
       void router.navigate({
@@ -201,7 +243,7 @@ function TabBar({ agentSlug, activeTab }: TabBarProps) {
       role="tablist"
       aria-label="Bot sections"
     >
-      {AGENT_TABS.map((t) => {
+      {tabs.map((t) => {
         const isActive = t.id === activeTab;
         return (
           <button
@@ -286,6 +328,17 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
           />
         </div>
       );
+    case "data":
+      return (
+        <div
+          role="tabpanel"
+          id="bot-tabpanel-data"
+          aria-labelledby="bot-tab-data"
+          className="bot-subspace-panel"
+        >
+          <DataTab key={`data-${agent.slug}`} agentSlug={agent.slug} />
+        </div>
+      );
     case "policies":
       return (
         <div
@@ -333,7 +386,8 @@ function TabContent({ agent, tab }: { agent: OfficeMember; tab: BotTab }) {
 // ── Main export ──────────────────────────────────────────────────
 
 export function BotSubspace({ agent, tab }: BotSubspaceProps) {
-  const activeTab = resolveTab(tab);
+  const tabs = tabsForMember(agent);
+  const activeTab = resolveTab(tab, tabs);
   const [teaching, setTeaching] = useState(false);
 
   return (
@@ -343,7 +397,7 @@ export function BotSubspace({ agent, tab }: BotSubspaceProps) {
       data-bot-slug={agent.slug}
     >
       <ShellHeader agent={agent} onTeachWorkflow={() => setTeaching(true)} />
-      <TabBar agentSlug={agent.slug} activeTab={activeTab} />
+      <TabBar agentSlug={agent.slug} activeTab={activeTab} tabs={tabs} />
       <TabContent agent={agent} tab={activeTab} />
       <TeachWorkflowModal
         agentSlug={agent.slug}

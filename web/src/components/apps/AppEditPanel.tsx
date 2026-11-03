@@ -1,4 +1,4 @@
-import { Xmark } from "iconoir-react";
+import { X } from "lucide-react";
 
 import { Composer } from "../messages/Composer";
 import { MessageFeed } from "../messages/MessageFeed";
@@ -48,7 +48,7 @@ export function AppEditPanel({ appName, channel, onClose }: AppEditPanelProps) {
           aria-label="Close edit chat"
           onClick={onClose}
         >
-          <Xmark width={16} height={16} />
+          <X size={16} />
         </button>
       </header>
       <MessageFeed channel={channel} />

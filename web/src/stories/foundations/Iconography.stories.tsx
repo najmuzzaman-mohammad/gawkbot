@@ -1,21 +1,21 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
-  ChatBubble,
-  CheckCircle,
-  MailIn,
-  NavArrowDown,
-  NavArrowLeft,
-  NavArrowRight,
-  NavArrowUp,
-  PlaySolid,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  CircleCheck,
+  Inbox,
+  MessageCircle,
+  PanelLeftClose,
+  Play,
   Plus,
-  Refresh,
+  RefreshCw,
   Settings,
-  SidebarCollapse,
   Terminal,
-  WarningTriangle,
-  Xmark,
-} from "iconoir-react";
+  TriangleAlert,
+  X,
+} from "lucide-react";
 
 import { HarnessBadge } from "../../components/ui/HarnessBadge";
 import { LightningIcon } from "../../components/ui/LightningIcon";
@@ -29,22 +29,22 @@ const meta: Meta = {
 
 export default meta;
 
-const ICONOIR_USED = [
-  { Icon: ChatBubble, name: "ChatBubble" },
-  { Icon: CheckCircle, name: "CheckCircle" },
-  { Icon: MailIn, name: "MailIn" },
-  { Icon: NavArrowDown, name: "NavArrowDown" },
-  { Icon: NavArrowLeft, name: "NavArrowLeft" },
-  { Icon: NavArrowRight, name: "NavArrowRight" },
-  { Icon: NavArrowUp, name: "NavArrowUp" },
-  { Icon: PlaySolid, name: "PlaySolid" },
+const LUCIDE_USED = [
+  { Icon: MessageCircle, name: "MessageCircle" },
+  { Icon: CircleCheck, name: "CircleCheck" },
+  { Icon: Inbox, name: "Inbox" },
+  { Icon: ChevronDown, name: "ChevronDown" },
+  { Icon: ChevronLeft, name: "ChevronLeft" },
+  { Icon: ChevronRight, name: "ChevronRight" },
+  { Icon: ChevronUp, name: "ChevronUp" },
+  { Icon: Play, name: "Play" },
   { Icon: Plus, name: "Plus" },
-  { Icon: Refresh, name: "Refresh" },
+  { Icon: RefreshCw, name: "RefreshCw" },
   { Icon: Settings, name: "Settings" },
-  { Icon: SidebarCollapse, name: "SidebarCollapse" },
+  { Icon: PanelLeftClose, name: "PanelLeftClose" },
   { Icon: Terminal, name: "Terminal" },
-  { Icon: WarningTriangle, name: "WarningTriangle" },
-  { Icon: Xmark, name: "Xmark" },
+  { Icon: TriangleAlert, name: "TriangleAlert" },
+  { Icon: X, name: "X" },
 ];
 
 function IconCell({
@@ -77,17 +77,17 @@ function IconCell({
   );
 }
 
-export const Iconoir: StoryObj = {
-  name: "Iconoir set",
+export const Lucide: StoryObj = {
+  name: "Lucide set",
   render: () => (
     <Section
-      title="Iconoir (currently used)"
-      description="Icon library is `iconoir-react` — pulled by name. Stroke-only, 1.5px width by default; pair with `currentColor` to inherit text color."
+      title="Lucide (currently used)"
+      description="Icon library is `lucide-react` — pulled by name. Stroke-only, 1.75px width via the global `svg.lucide` rule; pair with `currentColor` to inherit text color."
     >
       <Grid cols={6}>
-        {ICONOIR_USED.map(({ Icon, name }) => (
+        {LUCIDE_USED.map(({ Icon, name }) => (
           <IconCell key={name} name={name}>
-            <Icon width={24} height={24} />
+            <Icon size={24} />
           </IconCell>
         ))}
       </Grid>

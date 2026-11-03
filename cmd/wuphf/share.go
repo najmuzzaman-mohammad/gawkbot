@@ -13,12 +13,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	wuphf "github.com/nex-crm/wuphf"
 	"github.com/nex-crm/wuphf/internal/brokeraddr"
 	"github.com/nex-crm/wuphf/internal/team"
 )
@@ -873,17 +871,12 @@ func shareProxyPathAllowed(path string) bool {
 }
 
 func shareStaticHandler() http.Handler {
-	exePath, _ := os.Executable()
-	webDir := filepath.Join(filepath.Dir(exePath), "web")
-	if _, err := os.Stat(webDir); os.IsNotExist(err) {
-		webDir = "web"
+	// Same resolution as the office itself (see team.ResolveWebAssets): the
+	// bundle compiled into this binary wins over any on-disk build, so a
+	// shared link cannot serve a stale checkout's web/dist.
+	assets := team.ResolveWebAssets()
+	if assets.FS != nil {
+		return http.FileServer(http.FS(assets.FS))
 	}
-	distDir := filepath.Join(webDir, "dist")
-	if _, err := os.Stat(filepath.Join(distDir, "index.html")); err == nil {
-		return http.FileServer(http.Dir(distDir))
-	}
-	if embeddedFS, ok := wuphf.WebFS(); ok {
-		return http.FileServer(http.FS(embeddedFS))
-	}
-	return http.FileServer(http.Dir(webDir))
+	return http.NotFoundHandler()
 }

@@ -7,7 +7,7 @@ interface ComputerRunsOnProps {
   /** The member's saved setting; "" means auto. */
   setting: ComputerMemberSetting;
   /** What auto resolved to, from the status. Highlights the auto choice. */
-  effective: "off" | "sandbox" | "cloud" | undefined;
+  effective: "off" | "sandbox" | "cloud" | "mac" | undefined;
   pending: boolean;
   onChange: (next: ComputerMemberSetting) => void;
 }
@@ -29,7 +29,9 @@ export function ComputerRunsOn({
         Pick where this bot's computer lives. <b>Local VM</b> is a
         Cua-controlled Linux desktop in a container on this machine, free and
         separate from your own desktop. <b>Cloud</b> rents a desktop from
-        ascii.dev Box with your key.
+        ascii.dev Box with your key. <b>This Mac</b> is your own screen: the bot
+        works in the foreground with its own cursor, asks you before its first
+        action each turn, and ⌥Esc stops it.
       </p>
       <fieldset className="computer-segmented" disabled={pending}>
         <legend className="sr-only">Where this bot's computer runs</legend>

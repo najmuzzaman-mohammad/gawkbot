@@ -3,6 +3,7 @@ package team
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -117,9 +118,14 @@ func (b *Broker) resolveExternalAction(ctx context.Context, req integrationResol
 			Platform: platform,
 		})
 		if err != nil {
-			// The probe CALL failed (provider unreachable): leave probeOK false
-			// so Resolve serves last-known-good rather than a false connect.
+			// The probe CALL failed: leave probeOK false so Resolve serves
+			// last-known-good rather than a false connect. Name the cause
+			// honestly — a revoked credential is not an outage, and only one of
+			// the two is something the user can fix.
 			resp.Detail = "Composio is unreachable; using last-known connection state."
+			if errors.Is(err, action.ErrComposioCredentialRevoked) {
+				resp.Detail = composioSignInExpiredMessage
+			}
 		} else {
 			probeOK = true
 			probed = action.MapConnectionState(status.Status)

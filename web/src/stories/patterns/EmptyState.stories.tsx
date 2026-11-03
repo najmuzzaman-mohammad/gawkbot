@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { MailIn } from "iconoir-react";
+import { Inbox } from "lucide-react";
 
 const meta: Meta = {
   title: "Design System/Molecules/Empty state",
@@ -27,7 +27,7 @@ export const WithIcon: StoryObj = {
         textAlign: "center",
       }}
     >
-      <MailIn width={32} height={32} />
+      <Inbox size={32} />
       <div>
         <div
           style={{

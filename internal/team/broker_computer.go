@@ -403,7 +403,7 @@ func (s *computerService) botBusy(slug string) bool {
 // sandbox when a runtime daemon is up, else off.
 func (s *computerService) destinationFor(ctx context.Context, m officeMember) string {
 	switch strings.TrimSpace(m.Computer) {
-	case computerOff, computerSandbox, computerCloud:
+	case computerOff, computerSandbox, computerCloud, computerMac:
 		return strings.TrimSpace(m.Computer)
 	}
 	if s.runtimeStatus(ctx, false).DaemonUp {
@@ -446,6 +446,13 @@ func (s *computerService) statusFor(ctx context.Context, slug string) (computerS
 	switch dest {
 	case computerOff:
 		p.State = "off"
+	case computerMac:
+		if problem := s.b.macComputerProblem(ctx); problem != "" {
+			p.State = "unavailable"
+			setProblem(problem)
+		} else {
+			p.State = firstNonEmpty(s.lastState(slug), "ready")
+		}
 	case computerCloud:
 		if s.boxStatusFor == nil {
 			p.State = "unconfigured"

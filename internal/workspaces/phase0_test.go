@@ -37,6 +37,9 @@ var allowedFiles = map[string]string{
 	// Opencode — real HOME needed for base config read (auth.json) + HOME env passthrough.
 	"internal/team/headless_opencode.go": "opencode HOME env passthrough + base config path read from real user HOME",
 
+	// Adopted CLI agents — real HOME so the agent CLI finds its own sign-in.
+	"internal/team/headless_cli_agent.go": "cli-agent HOME env passthrough (user-global; the agent CLI's own auth)",
+
 	// gbrain — user-global MCP subprocess, real HOME for subprocess auth.
 	"internal/team/memory_backend.go": "gbrainMCPEnv + gbrainMCPEnvVars — gbrain is user-global",
 

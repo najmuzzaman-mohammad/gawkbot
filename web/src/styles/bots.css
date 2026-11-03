@@ -1602,7 +1602,9 @@
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  overflow: hidden;
+  /* Visible, not hidden: the model badge hangs just below the face, and a
+     clipping box cut it in half. The orb has no square tile to clip. */
+  overflow: visible;
   background: transparent;
   display: flex;
   align-items: center;

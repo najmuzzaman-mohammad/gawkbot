@@ -54,6 +54,7 @@ vi.mock("../../api/integrations", () => ({
   disconnectIntegration: vi.fn(),
   startComposioSignin: vi.fn(async () => ({ status: "idle" })),
   getComposioSigninStatus: vi.fn(async () => ({ status: "idle" })),
+  cancelComposioSignin: vi.fn(async () => ({ status: "idle" })),
 }));
 
 function wrap(ui: ReactNode) {

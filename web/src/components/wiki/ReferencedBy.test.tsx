@@ -3,6 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import ReferencedBy from "./ReferencedBy";
 
+// Wiki avatars read each author's chosen look from the office roster
+// (useMemberAvatar). These tests are about the wiki surface, so stub that
+// read rather than mounting a QueryClient for it.
+vi.mock("../../hooks/useMembers", () => ({
+  useMemberAvatar: () => undefined,
+}));
+
 const BACKLINKS = [
   { path: "playbooks/churn", title: "Churn prevention", author_slug: "cmo" },
   { path: "projects/q1", title: "Q1 retrospective", author_slug: "pm" },

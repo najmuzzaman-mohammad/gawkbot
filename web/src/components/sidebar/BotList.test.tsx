@@ -3,6 +3,7 @@ import { fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OfficeMember } from "../../api/client";
+import { idleCopyLines } from "../../lib/officeIdleDictionary";
 import { useAppStore } from "../../stores/app";
 
 // Mock the data hooks BEFORE importing BotList so the module under test
@@ -537,16 +538,20 @@ describe("<BotList> presence and activity", () => {
     }
   });
 
-  it("leaves the row status dot unanimated so the eyes carry the motion", () => {
+  it("dots a bot orange while it works, red when stuck, never green", () => {
     setMembers([
       { slug: "tess", name: "Tess", role: "engineer", status: "active" },
+      { slug: "sam", name: "Sam", role: "engineer", status: "error" },
+      { slug: "ida", name: "Ida", role: "engineer", status: "idle" },
     ]);
 
-    const { container } = renderList();
-    const dot = container.querySelector(".status-dot");
-    expect(dot?.className).toContain("active");
-    // A pulsing dot beside animating eyes is two clocks for one fact.
-    expect(dot?.className).not.toContain("pulse");
+    const { getByTestId, queryByTestId } = renderList();
+    expect(getByTestId("status-dot-tess").className).toBe("status-dot working");
+    expect(getByTestId("status-dot-sam").className).toBe("status-dot stuck");
+    expect(getByTestId("status-dot-ida").className).toBe("status-dot lurking");
+    // Green is for a finished turn only, so a working bot carries no green.
+    expect(getByTestId("working-badge-tess")).toBeTruthy();
+    expect(queryByTestId("finished-badge-tess")).toBeNull();
   });
 });
 
@@ -580,5 +585,187 @@ describe("<BotList> on-its-computer glyph", () => {
     ]);
     const { queryByTestId } = renderList();
     expect(queryByTestId("computer-glyph-growth")).toBeNull();
+  });
+});
+
+describe("<BotList> sessions on this Mac", () => {
+  const officeBots: OfficeMember[] = [
+    { slug: "cos", name: "Chief of Staff", role: "lead", origin: "built_in" },
+    { slug: "tess", name: "Tess", role: "engineer", origin: "user" },
+  ];
+  const sessions: OfficeMember[] = [
+    {
+      slug: "cc-1a2b3c4d",
+      name: "Fix the flaky checkout test",
+      role: "Claude Code session in shop",
+      origin: "session",
+      status: "active",
+      task: "Working",
+      session: { tool: "claude-code", project: "shop", live: true },
+    },
+    {
+      slug: "cx-0199f3aa",
+      name: "Tidy the migration scripts",
+      role: "Codex CLI session in api",
+      origin: "session",
+      status: "idle",
+      session: { tool: "codex", project: "api", live: false },
+    },
+  ];
+
+  function slugsIn(root: Element | null): string[] {
+    if (!root) return [];
+    return Array.from(root.querySelectorAll("button[data-bot-slug]")).map(
+      (el) => el.getAttribute("data-bot-slug") ?? "",
+    );
+  }
+
+  it("lists sessions with the office's bots, under the lead, with a terminal mark", () => {
+    setMembers([sessions[0], officeBots[0], sessions[1], officeBots[1]]);
+    const { container, queryByTestId } = renderList();
+
+    expect(queryByTestId("sidebar-sessions-group")).toBeNull();
+    expect(container.textContent).not.toContain("Sessions on this Mac");
+    expect(slugsIn(container.querySelector(".sidebar-bot-group--ceo"))).toEqual(
+      ["cos"],
+    );
+    expect(
+      slugsIn(
+        container.querySelector(".sidebar-bot-group--specialists"),
+      ).sort(),
+    ).toEqual(["cc-1a2b3c4d", "cx-0199f3aa", "tess"]);
+    // Every member is drawn exactly once across the whole list.
+    expect(slugsIn(container)).toHaveLength(4);
+    // The mark is the one difference, and only sessions carry it.
+    expect(
+      container.querySelector(
+        '[data-testid="session-mark-cc-1a2b3c4d"][aria-label="Claude Code session on this Mac"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(
+        '[data-testid="session-mark-cx-0199f3aa"][aria-label="Codex session on this Mac"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="session-mark-tess"]'),
+    ).toBeNull();
+  });
+
+  it("shows what a bot row shows, plus the folder the session works in", () => {
+    setMembers([...officeBots, ...sessions]);
+    const { getByTestId, queryByTestId } = renderList();
+
+    expect(getByTestId("session-project-cc-1a2b3c4d").textContent).toBe("shop");
+    expect(getByTestId("session-project-cx-0199f3aa").textContent).toBe("api");
+    expect(getByTestId("avatar-cc-1a2b3c4d")).toHaveAttribute(
+      "data-working",
+      "true",
+    );
+    expect(getByTestId("working-badge-cc-1a2b3c4d")).toBeInTheDocument();
+    expect(queryByTestId("working-badge-cx-0199f3aa")).toBeNull();
+    // An office bot has no folder line.
+    expect(queryByTestId("session-project-tess")).toBeNull();
+  });
+
+  it("takes a session row's status from the session alone, never the idle dictionary", () => {
+    const row = (
+      slug: string,
+      session: OfficeMember["session"],
+    ): OfficeMember => ({
+      slug,
+      name: slug,
+      // Roles and a slug the idle dictionary has lines for.
+      role: "engineer",
+      origin: "session",
+      status: session?.state === "working" ? "active" : "idle",
+      session,
+    });
+    setMembers([
+      ...officeBots,
+      row("cc-working", { tool: "claude-code", state: "working", live: true }),
+      row("cc-turn", { tool: "claude-code", state: "your_turn", live: true }),
+      row("cc-quiet", { tool: "claude-code", state: "quiet", live: true }),
+      row("cc-closed", { tool: "claude-code", live: false }),
+      // Closed wins over a stale state left on the entry.
+      row("cc-stale", { tool: "claude-code", state: "working", live: false }),
+    ]);
+    const { getByTestId, container } = renderList();
+
+    const shown = {
+      working: getByTestId("session-status-cc-working").textContent,
+      turn: getByTestId("session-status-cc-turn").textContent,
+      quiet: getByTestId("session-status-cc-quiet").textContent,
+      closed: getByTestId("session-status-cc-closed").textContent,
+      stale: getByTestId("session-status-cc-stale").textContent,
+    };
+    expect(shown).toEqual({
+      working: "Working",
+      turn: "Your turn",
+      quiet: "Quiet",
+      closed: "Closed",
+      stale: "Closed",
+    });
+
+    // Green when it has finished its turn and waits on you, orange while it
+    // works, grey otherwise. A closed session is never shown as working.
+    const dots = Object.fromEntries(
+      ["cc-working", "cc-turn", "cc-quiet", "cc-closed", "cc-stale"].map(
+        (slug) => [slug, getByTestId(`status-dot-${slug}`).className],
+      ),
+    );
+    expect(dots).toEqual({
+      "cc-working": "status-dot working",
+      "cc-turn": "status-dot finished",
+      "cc-quiet": "status-dot lurking",
+      "cc-closed": "status-dot lurking",
+      "cc-stale": "status-dot lurking",
+    });
+    expect(getByTestId("finished-badge-cc-turn")).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="working-badge-cc-stale"]'),
+    ).toBeNull();
+
+    // The dictionary is real and not empty, an office bot does show one of
+    // its lines, and no session row shows any of them.
+    const idle = idleCopyLines();
+    expect(idle.length).toBeGreaterThan(10);
+    const pillOf = (slug: string) =>
+      container
+        .querySelector(`button[data-bot-slug="${slug}"]`)
+        ?.querySelector(".sidebar-bot-pill")?.textContent ?? "";
+    expect(idle).toContain(pillOf("tess"));
+    for (const slug of [
+      "cc-working",
+      "cc-turn",
+      "cc-quiet",
+      "cc-closed",
+      "cc-stale",
+    ]) {
+      expect(pillOf(slug)).not.toBe("");
+      expect(idle).not.toContain(pillOf(slug));
+    }
+  });
+
+  it("lists sessions even when the office has no bots of its own", () => {
+    setMembers(sessions);
+    const { container } = renderList();
+
+    expect(slugsIn(container).length).toBe(2);
+    expect(container.textContent).not.toContain("No bots online");
+  });
+
+  it("opens a session's page like any bot's", () => {
+    setMembers([...officeBots, ...sessions]);
+    const { container } = renderList();
+    const row = container.querySelector<HTMLButtonElement>(
+      'button[data-bot-slug="cc-1a2b3c4d"]',
+    );
+    if (!row) throw new Error("no row for the session member");
+    fireEvent.click(row);
+    expect(vi.mocked(router.navigate)).toHaveBeenCalledWith({
+      to: "/agents/$agentSlug",
+      params: { agentSlug: "cc-1a2b3c4d" },
+    });
   });
 });

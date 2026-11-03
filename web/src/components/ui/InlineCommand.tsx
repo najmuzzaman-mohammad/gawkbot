@@ -1,5 +1,5 @@
 import { type CSSProperties, type ReactNode, useState } from "react";
-import { PlaySolid } from "iconoir-react";
+import { Play } from "lucide-react";
 
 import { WipeModal, type WipeSeverity } from "./WipeModal";
 
@@ -124,9 +124,9 @@ export function InlineCommand({
           ...style,
         }}
       >
-        <PlaySolid
-          width={11}
-          height={11}
+        <Play
+          fill="currentColor"
+          size={11}
           style={{ flexShrink: 0, opacity: 0.85 }}
         />
         <span>{command}</span>

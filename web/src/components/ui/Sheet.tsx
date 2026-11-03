@@ -6,7 +6,7 @@ import {
 } from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Xmark } from "iconoir-react";
+import { X } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 
@@ -66,7 +66,7 @@ export const SheetContent = forwardRef<
     >
       {children}
       <SheetPrimitive.Close className="dialog-close-button">
-        <Xmark width={16} height={16} />
+        <X size={16} />
         <span className="sr-only">Close</span>
       </SheetPrimitive.Close>
     </SheetPrimitive.Content>

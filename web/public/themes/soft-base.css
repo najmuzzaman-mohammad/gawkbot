@@ -1,0 +1,701 @@
+/* ═══════════════════════════════════════════════════════════════
+   WUPHF Theme base: Soft
+   Shared layer for the two Soft flavours (nex-soft-light.css and
+   nex-soft-dark.css). Not a theme on its own — it has no entry in
+   web/src/lib/themes.ts — so it carries only what both flavours share:
+   the system type stack, a large radius scale, generous spacing, and the
+   selector rules that turn the existing DOM into a chat-app layout:
+
+     - your messages on the right, in an accent bubble;
+     - bot messages on the left, in a soft neutral bubble, with the bot's
+       avatar beside the first message of each run;
+     - the bot's avatar as the hero of its header, its profile panel and
+       every empty state that knows which bot it belongs to;
+     - a pill composer with a round accent send button.
+
+   Every colour here is a token. The flavour files set the values; this
+   file only says WHERE they go. If you find yourself writing a literal
+   colour below, it belongs in a flavour file as a token instead.
+
+   Structural rules live in nex.css (scoped [data-theme^="nex"]) and are
+   inherited — both Soft ids start with "nex-soft", so they match. As with
+   the Glass base, a block of what follows exists because nex.css hardcodes
+   white-on-purple rail inks, and Soft has no purple rail.
+
+   Bubble side is read from attributes MessageBubble already renders for
+   every theme: data-author-kind ("human" | "agent" | "system") and
+   data-author-self (present only on the person at this keyboard). Nothing
+   here needs JSX that differs per theme.
+
+   Avatar sizing: PixelAvatar sets its width and height inline, so a CSS
+   width cannot enlarge it. Where Soft wants a bigger mark it uses `zoom`
+   on the avatar's wrapper, which scales the vector crisply and moves the
+   layout box with it.
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url("./nex.css");
+
+html[data-theme^="nex-soft"] {
+  /* ── Type: the platform's own UI face for everything, display and pixel
+     tokens included, so nothing falls back to pixel type under Soft. ── */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter,
+    system-ui, Roboto, sans-serif;
+  --font-logo:
+    -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Display",
+    "Segoe UI", Inter, system-ui, sans-serif;
+  --font-pixel: var(--font-sans);
+  --font-serif: ui-serif, "New York", "Newsreader", Georgia, serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "SFMono-Regular", "Geist Mono", Menlo, Consolas,
+    monospace;
+
+  /* ── Radii: big and friendly. Controls 12px, cards 18px, sheets 26px. ── */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+  --radius-full: 9999px;
+
+  /* ── Bubbles ── */
+  --soft-bubble-radius: 20px;
+  /* The corner nearest the speaker on the first bubble of a run. */
+  --soft-bubble-tail: 6px;
+  --soft-bubble-max: min(620px, 78%);
+
+  /* ── Controls ── */
+  --btn-radius: var(--radius-full);
+  --btn-font-weight: 600;
+  --btn-primary-shadow: none;
+  --btn-danger-shadow: none;
+  --input-bg: var(--soft-field);
+  --input-border: var(--border);
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 1px;
+  --focus-ring-color: var(--soft-focus);
+
+  /* ── Motion: gentle. ── */
+  --duration-fast: 0.14s;
+  --duration-base: 0.2s;
+  --duration-slow: 0.3s;
+
+  /* ── Empty-state hero: hidden by default in messages.css, shown here. ── */
+  --empty-hero-display: flex;
+}
+
+/* ═══ BASE ═══ */
+html[data-theme^="nex-soft"] body {
+  background: var(--bg);
+  font-family: var(--font-sans);
+  letter-spacing: -0.003em;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-theme^="nex-soft"] ::selection {
+  background: var(--accent-bg-strong);
+  color: var(--text);
+}
+
+html[data-theme^="nex-soft"] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+/* ═══ SIDEBAR — a clean list on a soft neutral pane ═══ */
+html[data-theme^="nex-soft"] .sidebar {
+  background: var(--nex-sidebar);
+  border-right: 1px solid var(--border-light);
+  /* nex.css remaps these to white-on-purple for its rail. Soft has no rail
+     colour, so hand the theme's own inks back (captured on <html> by
+     nex.css as --text-*-root). */
+  --text: var(--text-root);
+  --text-secondary: var(--text-secondary-root);
+  --text-tertiary: var(--text-tertiary-root);
+  --text-disabled: var(--text-disabled-root);
+  --sidebar-fade-color: var(--nex-sidebar);
+}
+html[data-theme^="nex-soft"] .sidebar-header,
+html[data-theme^="nex-soft"] .sidebar-bottom {
+  background: var(--nex-sidebar);
+  border-bottom-color: transparent;
+  border-top-color: transparent;
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-header,
+html[data-theme^="nex-soft"] .sidebar .sidebar-scroll-wrap.is-agents,
+html[data-theme^="nex-soft"] .sidebar .sidebar-section + .sidebar-section {
+  border-color: transparent;
+}
+html[data-theme^="nex-soft"] .sidebar-rail-top,
+html[data-theme^="nex-soft"] .sidebar-rail-middle {
+  border-bottom-color: var(--border-light);
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-logo {
+  color: var(--text);
+  font-family: var(--font-logo);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-section-title,
+html[data-theme^="nex-soft"] .sidebar .sidebar-add-btn,
+html[data-theme^="nex-soft"] .sidebar .sidebar-summary,
+html[data-theme^="nex-soft"] .sidebar .sidebar-hint,
+html[data-theme^="nex-soft"] .sidebar .sidebar-bot-task,
+html[data-theme^="nex-soft"] .sidebar .sidebar-bot-activity {
+  color: var(--text-tertiary);
+}
+/* Section titles in sentence case: quieter than shouty caps. */
+html[data-theme^="nex-soft"] .sidebar .sidebar-section-title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-section-title:hover,
+html[data-theme^="nex-soft"] .sidebar .sidebar-section-toggle:hover,
+html[data-theme^="nex-soft"] .sidebar .sidebar-add-btn:hover {
+  color: var(--text);
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-icon-btn {
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-icon-btn:hover {
+  background: var(--nex-sidebar-hover);
+  color: var(--text);
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-icon-btn.active,
+html[data-theme^="nex-soft"] .sidebar .sidebar-icon-btn.active:hover {
+  background: var(--nex-sidebar-active);
+  color: var(--nex-sidebar-text-active);
+}
+html[data-theme^="nex-soft"] .sidebar .usage-toggle,
+html[data-theme^="nex-soft"] .sidebar .sidebar-section-title-bar {
+  background: var(--nex-sidebar);
+}
+html[data-theme^="nex-soft"]
+  .sidebar
+  .sidebar-section-title-bar[data-stuck="true"] {
+  box-shadow: 0 1px 0 var(--border-light);
+}
+html[data-theme^="nex-soft"] .sidebar .usage-toggle {
+  color: var(--text-secondary);
+  border-top-color: var(--border-light);
+}
+html[data-theme^="nex-soft"] .sidebar .usage-toggle:hover {
+  background: var(--nex-sidebar-hover);
+  color: var(--text);
+}
+html[data-theme^="nex-soft"] .sidebar .usage-toggle.open,
+html[data-theme^="nex-soft"] .sidebar .usage-panel.open {
+  background: var(--accent-bg);
+  color: var(--text);
+  border-top-color: var(--border-light);
+}
+html[data-theme^="nex-soft"] .sidebar .usage-panel,
+html[data-theme^="nex-soft"] .sidebar .usage-table td {
+  color: var(--text-secondary);
+}
+html[data-theme^="nex-soft"] .sidebar .usage-toggle > span,
+html[data-theme^="nex-soft"] .sidebar .usage-toggle.open > span,
+html[data-theme^="nex-soft"] .sidebar .usage-toggle.open > svg,
+html[data-theme^="nex-soft"] .sidebar .usage-total,
+html[data-theme^="nex-soft"] .sidebar .usage-total-cost,
+html[data-theme^="nex-soft"] .sidebar .usage-panel.open .usage-total,
+html[data-theme^="nex-soft"] .sidebar .usage-panel.open .usage-total-cost,
+html[data-theme^="nex-soft"] .sidebar .usage-panel.open .usage-table td {
+  color: var(--text);
+  stroke: currentColor;
+}
+html[data-theme^="nex-soft"] .sidebar .usage-table th,
+html[data-theme^="nex-soft"] .sidebar .usage-panel.open .usage-table th {
+  color: var(--text-tertiary);
+  border-bottom-color: var(--border);
+}
+html[data-theme^="nex-soft"] .sidebar .usage-total,
+html[data-theme^="nex-soft"] .sidebar .usage-panel.open .usage-total {
+  border-top-color: var(--border);
+}
+
+/* Rows: big rounded pills, a little more air between them. */
+html[data-theme^="nex-soft"] .sidebar-item,
+html[data-theme^="nex-soft"] .sidebar-agent {
+  border-radius: var(--radius-md);
+  transition:
+    background var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+html[data-theme^="nex-soft"] .sidebar-agent {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  margin-bottom: 2px;
+  gap: 12px;
+}
+html[data-theme^="nex-soft"] .sidebar-item.active,
+html[data-theme^="nex-soft"] .sidebar-agent.active {
+  background: var(--nex-sidebar-active);
+  color: var(--nex-sidebar-text-active);
+  font-weight: 600;
+  box-shadow: none;
+}
+/* The lead's row is marked by its "Orchestrator" label, not a tinted box. */
+html[data-theme^="nex-soft"] .sidebar-bot-group--ceo .sidebar-agent {
+  background: transparent;
+  border-color: transparent;
+}
+html[data-theme^="nex-soft"] .sidebar-bot-group--ceo .sidebar-agent:hover {
+  background: var(--nex-sidebar-hover);
+}
+html[data-theme^="nex-soft"] .sidebar-bot-group--ceo .sidebar-agent.active {
+  background: var(--nex-sidebar-active);
+}
+html[data-theme^="nex-soft"] .sidebar .sidebar-bot-rank-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 500;
+}
+html[data-theme^="nex-soft"] .sidebar-agent .sidebar-bot-name {
+  font-weight: 600;
+  color: var(--text);
+}
+/* Each bot's face leads its row: 24px marks at 32px. */
+html[data-theme^="nex-soft"] .sidebar-agent .sidebar-bot-avatar {
+  zoom: 1.3333;
+}
+html[data-theme^="nex-soft"] .sidebar-agent .status-dot,
+html[data-theme^="nex-soft"] .sidebar-agent .status-dot.lurking {
+  background: var(--text-disabled);
+}
+html[data-theme^="nex-soft"] .sidebar-agent .status-dot.active,
+html[data-theme^="nex-soft"] .sidebar-agent .status-dot.shipping,
+html[data-theme^="nex-soft"] .sidebar-agent .status-dot.plotting {
+  background: var(--nex-presence);
+}
+html[data-theme^="nex-soft"] .thought-bubble {
+  color: var(--text-tertiary);
+}
+
+/* ═══ MAIN ═══ */
+html[data-theme^="nex-soft"] .main {
+  background: var(--bg);
+}
+html[data-theme^="nex-soft"] .channel-header {
+  background: var(--bg);
+  border-bottom-color: var(--border-light);
+}
+html[data-theme^="nex-soft"] .channel-title {
+  font-family: var(--font-logo);
+  letter-spacing: -0.015em;
+}
+
+/* nex.css hardcodes a light-theme body ink (#3b3b3e) here, which would put
+   near-black text on the dark flavour. */
+html[data-theme^="nex-soft"] .message-text {
+  color: var(--text);
+}
+
+/* ═══ CONVERSATION — chat bubbles on the existing message DOM ═══ */
+html[data-theme^="nex-soft"] .messages {
+  background: var(--bg);
+  padding: 12px 28px 20px;
+  gap: 2px;
+}
+html[data-theme^="nex-soft"] .message {
+  padding: 8px 0 2px;
+  margin: 0;
+  gap: 10px;
+  border-radius: 0;
+  align-items: flex-start;
+}
+html[data-theme^="nex-soft"] .message:hover {
+  background: transparent;
+}
+/* A run from one sender sits tight: 2px between bubbles. */
+html[data-theme^="nex-soft"] .message.message-grouped {
+  padding-top: 2px;
+  padding-bottom: 0;
+}
+
+/* Avatar: the mark itself, round, no tile behind it. 24px marks at 36px. */
+html[data-theme^="nex-soft"] .message .message-avatar {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border-radius: var(--radius-full);
+}
+html[data-theme^="nex-soft"] .message .message-avatar.message-avatar-btn,
+html[data-theme^="nex-soft"] .typing-message .typing-message-avatar {
+  zoom: 1.5;
+  width: 24px;
+  height: 24px;
+}
+/* The runtime badge stays on the bot's header and profile; at bubble scale
+   it competes with the face. */
+html[data-theme^="nex-soft"] .message .harness-badge-on-avatar {
+  display: none;
+}
+/* Typing: the same bare mark as a message, not a tile. */
+html[data-theme^="nex-soft"] .typing-message .typing-avatar-stack-item {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border-radius: var(--radius-full);
+}
+/* Grouped follow-ons keep the avatar's column (so bubbles line up) but
+   not its height. */
+html[data-theme^="nex-soft"] .message.message-grouped .message-avatar {
+  height: 0;
+}
+
+html[data-theme^="nex-soft"] .message .message-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Byline: name only, small; time quiet. */
+html[data-theme^="nex-soft"] .message .message-header {
+  gap: 6px;
+  margin: 0 0 0 4px;
+  align-items: baseline;
+}
+html[data-theme^="nex-soft"] .message .message-author,
+html[data-theme^="nex-soft"] .message .message-author-btn {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+html[data-theme^="nex-soft"] .message .message-header .badge {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+html[data-theme^="nex-soft"] .message .message-time {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+/* The bubble. */
+html[data-theme^="nex-soft"] .message .message-text {
+  box-sizing: border-box;
+  max-width: var(--soft-bubble-max);
+  padding: 9px 14px;
+  border-radius: var(--soft-bubble-radius);
+  background: var(--soft-bubble-bot);
+  color: var(--soft-bubble-bot-ink);
+  font-size: 15px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+html[data-theme^="nex-soft"] .message:not(.message-grouped) .message-text {
+  border-top-left-radius: var(--soft-bubble-tail);
+}
+html[data-theme^="nex-soft"] .message .message-text > :first-child {
+  margin-top: 0;
+}
+html[data-theme^="nex-soft"] .message .message-text > :last-child {
+  margin-bottom: 0;
+}
+html[data-theme^="nex-soft"] .message .message-text strong {
+  color: inherit;
+}
+html[data-theme^="nex-soft"] .message .message-text code {
+  background: var(--overlay);
+  border-color: transparent;
+  color: inherit;
+}
+html[data-theme^="nex-soft"] .message .message-text .msg-codeblock {
+  background: var(--overlay);
+  border-color: transparent;
+  border-radius: var(--radius-md);
+}
+html[data-theme^="nex-soft"] .message .message-text .msg-ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+html[data-theme^="nex-soft"] .message .message-text .msg-ol {
+  list-style: decimal;
+  padding-left: 22px;
+}
+/* Everything that is not text (artifact cards, reactions, thread toggle)
+   lines up with the bubble edge rather than stretching the row. */
+html[data-theme^="nex-soft"] .message .message-artifact-references {
+  align-self: stretch;
+  max-width: var(--soft-bubble-max);
+}
+html[data-theme^="nex-soft"] .message .reaction-pill,
+html[data-theme^="nex-soft"] .message .inline-thread-toggle {
+  border-radius: var(--radius-full);
+}
+
+/* ── Yours: right-hand side, accent bubble, no avatar or name ── */
+html[data-theme^="nex-soft"] .message[data-author-self] {
+  flex-direction: row-reverse;
+}
+html[data-theme^="nex-soft"] .message[data-author-self] .message-avatar,
+html[data-theme^="nex-soft"] .message[data-author-self] .message-author,
+html[data-theme^="nex-soft"] .message[data-author-self] .message-header .badge {
+  display: none;
+}
+html[data-theme^="nex-soft"] .message[data-author-self] .message-content {
+  align-items: flex-end;
+}
+html[data-theme^="nex-soft"] .message[data-author-self] .message-header {
+  margin: 0 4px 0 0;
+}
+html[data-theme^="nex-soft"] .message[data-author-self] .message-text {
+  background: var(--soft-bubble-mine);
+  color: var(--soft-bubble-mine-ink);
+}
+html[data-theme^="nex-soft"]
+  .message[data-author-self]:not(.message-grouped)
+  .message-text {
+  border-top-left-radius: var(--soft-bubble-radius);
+  border-top-right-radius: var(--soft-bubble-tail);
+}
+html[data-theme^="nex-soft"] .message[data-author-self] .message-text a,
+html[data-theme^="nex-soft"] .message[data-author-self] .message-text .mention,
+html[data-theme^="nex-soft"] .message[data-author-self] .message-text code {
+  background: var(--soft-bubble-mine-chip);
+  color: inherit;
+}
+html[data-theme^="nex-soft"] .message[data-author-self] .message-text a {
+  background: transparent;
+  text-decoration: underline;
+}
+
+/* ── Office/system lines: centred, quiet, no bubble ── */
+html[data-theme^="nex-soft"] .message[data-author-kind="system"] .message-text {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0 4px;
+}
+
+/* Thread replies keep their rail; their bubbles are a size down. */
+html[data-theme^="nex-soft"] .message-reply .message-text {
+  font-size: 14px;
+  padding: 7px 12px;
+}
+
+/* Date separator: a quiet label in the flow. Not sticky: pinned over a
+   column of bubbles it lands on top of their text. */
+html[data-theme^="nex-soft"] .date-separator {
+  position: static;
+  background: transparent;
+  margin: 6px 0;
+  padding: 6px 0;
+}
+html[data-theme^="nex-soft"] .date-separator-text {
+  background: var(--bg);
+  color: var(--text-tertiary);
+  font-weight: 500;
+  padding: 2px 10px;
+}
+
+/* Typing indicator: the same left bubble. */
+html[data-theme^="nex-soft"] .typing-message .message-content > :last-child {
+  border-radius: var(--soft-bubble-radius);
+  border-top-left-radius: var(--soft-bubble-tail);
+  background: var(--soft-bubble-bot);
+}
+
+/* ═══ COMPOSER — a rounded pill with a round accent send button ═══ */
+html[data-theme^="nex-soft"] .composer {
+  background: var(--bg);
+  border-top: none;
+  padding: 8px 28px 22px;
+}
+html[data-theme^="nex-soft"] .composer-inner {
+  background: var(--soft-field);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: 6px 6px 6px 18px;
+  min-height: 48px;
+  box-shadow: none;
+  transition:
+    border-color var(--duration-base) ease,
+    box-shadow var(--duration-base) ease;
+}
+html[data-theme^="nex-soft"] .composer-inner:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--soft-focus);
+}
+html[data-theme^="nex-soft"] .composer-send,
+html[data-theme^="nex-soft"] .composer-send:hover:not(:disabled),
+html[data-theme^="nex-soft"] .composer-send:disabled {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-fg);
+  align-self: flex-end;
+}
+html[data-theme^="nex-soft"] .composer-send:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+html[data-theme^="nex-soft"] .composer-send:disabled {
+  opacity: 0.38;
+}
+
+/* ═══ AVATAR AS HERO ═══ */
+
+/* The bot's own header (its DM): a 48px mark shown at 68px. */
+html[data-theme^="nex-soft"] .bot-subspace-header {
+  background: var(--bg);
+  border-bottom-color: var(--border-light);
+  padding: 22px 28px 18px;
+}
+html[data-theme^="nex-soft"] .bot-subspace-header-identity {
+  gap: 18px;
+}
+html[data-theme^="nex-soft"] .bot-subspace-header-avatar {
+  zoom: 1.4167;
+  border-radius: var(--radius-full);
+  overflow: visible;
+}
+html[data-theme^="nex-soft"] .bot-subspace-header-name-row .bot-panel-name,
+html[data-theme^="nex-soft"] .bot-subspace-header-name-row input.input {
+  font-family: var(--font-logo);
+  font-size: 22px;
+  letter-spacing: -0.015em;
+}
+html[data-theme^="nex-soft"] .bot-subspace-status-badge {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  padding: 2px 8px;
+  text-transform: none;
+}
+html[data-theme^="nex-soft"] .bot-subspace-task-chip {
+  padding: 2px 10px;
+}
+
+/* The profile panel: avatar centred above name and status, 36px at 64px. */
+html[data-theme^="nex-soft"] .bot-panel-header {
+  position: relative;
+  padding: 24px 20px 12px;
+}
+html[data-theme^="nex-soft"] .bot-panel-identity {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+html[data-theme^="nex-soft"]
+  .bot-panel-header
+  .bot-panel-identity
+  > :last-child {
+  align-items: center;
+}
+html[data-theme^="nex-soft"] .bot-panel-avatar {
+  zoom: 1.7778;
+  border-radius: var(--radius-full);
+}
+html[data-theme^="nex-soft"] .bot-panel-header .bot-panel-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border-radius: var(--radius-full);
+}
+
+/* Empty states: a big friendly face and one short line. The surrounding
+   copy (eyebrow, body, hints, foot) stays in the DOM for other themes and
+   steps aside here whenever a hero is present. */
+html[data-theme^="nex-soft"] .empty-hero {
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 8px 0;
+}
+html[data-theme^="nex-soft"] .empty-hero-avatar {
+  display: flex;
+}
+html[data-theme^="nex-soft"] .empty-hero-line {
+  font-family: var(--font-logo);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+html[data-theme^="nex-soft"]
+  .channel-empty-state:has(.empty-hero)
+  > :not(.empty-hero),
+html[data-theme^="nex-soft"] .bot-tasks-tab:has(.empty-hero) > .bot-tasks-empty,
+html[data-theme^="nex-soft"]
+  .dm-chat-preview-empty:has(.empty-hero)
+  > .dm-chat-preview-empty-text {
+  display: none;
+}
+html[data-theme^="nex-soft"] .dm-chat-preview-empty:has(.empty-hero) {
+  max-height: none;
+  font-style: normal;
+  padding-bottom: 12px;
+}
+html[data-theme^="nex-soft"] .bot-tasks-tab:has(.empty-hero) {
+  display: flex;
+  justify-content: center;
+  padding-top: 48px;
+}
+
+/* ═══ FLOATING SURFACES — popovers, menus and dialogs ═══ */
+html[data-theme^="nex-soft"] .theme-switcher-menu,
+html[data-theme^="nex-soft"] .theme-dropdown,
+html[data-theme^="nex-soft"] .workspace-dropdown,
+html[data-theme^="nex-soft"] .sidebar-rail-popover,
+html[data-theme^="nex-soft"] .sidebar-bot-peek,
+html[data-theme^="nex-soft"] .autocomplete,
+html[data-theme^="nex-soft"] .message-actions,
+html[data-theme^="nex-soft"] .message-hover-actions,
+html[data-theme^="nex-soft"] .dr-menu,
+html[data-theme^="nex-soft"] .wk-bubble-menu,
+html[data-theme^="nex-soft"] .wk-insert-menu,
+html[data-theme^="nex-soft"] .pam-menu {
+  background: var(--bg-card);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+}
+html[data-theme^="nex-soft"] .modal-shell,
+html[data-theme^="nex-soft"] .confirm-card,
+html[data-theme^="nex-soft"] .interview-card,
+html[data-theme^="nex-soft"] .cmd-palette,
+html[data-theme^="nex-soft"] .search-modal,
+html[data-theme^="nex-soft"] .help-modal,
+html[data-theme^="nex-soft"] .version-modal,
+html[data-theme^="nex-soft"] .bot-wizard-modal,
+html[data-theme^="nex-soft"] .channel-wizard-modal {
+  background: var(--bg-card);
+  border-color: var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+}
+html[data-theme^="nex-soft"] .cmd-palette-overlay,
+html[data-theme^="nex-soft"] .confirm-overlay,
+html[data-theme^="nex-soft"] .interview-overlay {
+  background: var(--scrim);
+}
+
+/* Your bubbles hug the right edge, so their hover toolbar opens on the left.
+   Kept after the floating-surface block above, which also styles it. */
+html[data-theme^="nex-soft"] .message[data-author-self] .message-hover-actions {
+  left: 0;
+  right: auto;
+}
+
+/* ═══ CARDS ═══ */
+html[data-theme^="nex-soft"] .card,
+html[data-theme^="nex-soft"] .task-card {
+  border-color: var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card-soft);
+}

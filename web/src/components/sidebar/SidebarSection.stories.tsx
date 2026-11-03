@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { BookStack, HomeSimple, ShareAndroid } from "iconoir-react";
+import { House, Library, Share2 } from "lucide-react";
 
 import { Kbd, MOD_KEY } from "../ui/Kbd";
 import { SidebarItem } from "./SidebarItem";
@@ -83,17 +83,17 @@ function ToolsBody() {
   return (
     <div className="sidebar-apps">
       <SidebarItem
-        icon={<HomeSimple className="sidebar-item-icon" />}
+        icon={<House className="sidebar-item-icon" />}
         label="Overview"
         active={true}
       />
       <SidebarItem
-        icon={<BookStack className="sidebar-item-icon" />}
+        icon={<Library className="sidebar-item-icon" />}
         label="Wiki"
         badge={badge(2)}
       />
       <SidebarItem
-        icon={<ShareAndroid className="sidebar-item-icon" />}
+        icon={<Share2 className="sidebar-item-icon" />}
         label="Graph"
       />
     </div>

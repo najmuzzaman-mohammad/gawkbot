@@ -1,0 +1,279 @@
+/* ═══════════════════════════════════════════════════════════════
+   WUPHF Theme: Glass Dark
+   Near-black layered surfaces, soft white ink, a monochrome (white)
+   accent, hairline borders and translucent glass panes. Colour is kept
+   for meaning only: green for success and presence, red for errors and
+   destructive actions, amber for attention, blue for info and links. What a fresh install gets when
+   the system appearance is dark (DEFAULT_DARK_THEME in
+   web/src/lib/themes.ts); nex-glass-light.css is the light default.
+
+   Token values only. Where the glass goes is decided once, for both
+   flavours, in glass-base.css; nex-glass-light.css is the sibling.
+
+   Contrast, measured with the WCAG formula on the opaque stops:
+     --text            #f5f5f7 on --bg #111113        17.3:1
+     --text-secondary  #aeaeb2 on --bg-warm #26262a    6.8:1
+     --text-tertiary   #98989d on --bg-warm #26262a    5.3:1
+     --accent          #f5f5f7 on --bg-card #1c1c1f   15.6:1
+     --accent-fg       #111113 on --accent #f5f5f7    17.3:1
+     --glass-btn-tint-ink #111113 on the primary glass (white at 0.70,
+       its faintest stop, over --bg)                   9.5:1
+     --wk-wikilink     #4da3ff on --bg #111113         7.2:1
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url("./glass-base.css");
+
+html[data-theme="nex-glass-dark"] {
+  color-scheme: dark;
+
+  /* ── Neutral ramp, darkest first, so the workspace rail and anything else
+     that reaches for a ramp stop lands on this theme's blacks. ── */
+  --neutral-950: #0a0a0b;
+  --neutral-900: #141416;
+
+  /* ── Overlays flipped for a dark surface ── */
+  --overlay-soft: rgba(255, 255, 255, 0.04);
+  --overlay: rgba(255, 255, 255, 0.08);
+  --overlay-strong: rgba(255, 255, 255, 0.14);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --overlay-white-soft: rgba(255, 255, 255, 0.06);
+  --overlay-white: rgba(255, 255, 255, 0.12);
+  --overlay-white-strong: rgba(255, 255, 255, 0.32);
+
+  /* ── Surfaces. The ground is opaque; everything on it is the glass
+     material in glass-base.css (--bg-card, --bg-warm, --bg-row-active and
+     --bg-subtle are mixed from --glass-tint there). These are the solid
+     stops they resolve to under reduced transparency and more contrast,
+     and the values the contrast table above is measured on. ── */
+  --bg: #111113;
+  --glass-solid-subtle: #0b0b0c;
+  --glass-solid-card: #1c1c1f;
+  --glass-solid-warm: #26262a;
+  --glass-solid-active: #2c2c31;
+  --glass-solid-field: #202023;
+
+  /* ── Ink ── */
+  --text: #f5f5f7;
+  --text-secondary: #aeaeb2;
+  --text-tertiary: #98989d;
+  --text-disabled: #545458;
+
+  /* ── Hairlines: white at low alpha so they sit on any layer ── */
+  --border: rgba(255, 255, 255, 0.09);
+  --border-light: rgba(255, 255, 255, 0.06);
+  --border-dark: rgba(255, 255, 255, 0.13);
+  --border-strong: rgba(255, 255, 255, 0.22);
+
+  /* ── Accent: monochrome. The primary is the theme's own white ink, so
+     colour is left to the things that mean something (status, presence,
+     destructive actions). ── */
+  --accent: #f5f5f7;
+  --accent-warm: #d1d1d6;
+  --accent-bg: rgba(255, 255, 255, 0.1);
+  --accent-bg-strong: rgba(255, 255, 255, 0.22);
+  --accent-fg: #111113;
+  --glass-focus: rgba(255, 255, 255, 0.35);
+
+  /* ── Status: system-bright on dark, tints mixed toward transparent so
+     every -100/-200 chip stays dark on this ground (the light ramp's
+     pastels would render as near-white slabs). ── */
+  --success-500: #248a3d;
+  --success-400: #30d158;
+  --success-300: #63e38a;
+  --error-500: #c9342b;
+  --error-400: #ff453a;
+  --error-300: #ff8a80;
+  --warning-500: #c27c0e;
+  --warning-400: #ff9f0a;
+  --warning-300: #ffc35c;
+  --success-100: rgba(48, 209, 88, 0.12);
+  --success-200: rgba(48, 209, 88, 0.24);
+  --error-100: rgba(255, 69, 58, 0.12);
+  --error-200: rgba(255, 69, 58, 0.24);
+  --warning-100: rgba(255, 159, 10, 0.12);
+  --warning-200: rgba(255, 159, 10, 0.24);
+  --cyan-100: rgba(100, 210, 255, 0.14);
+  --tertiary-100: var(--accent-bg);
+  --green: var(--success-400);
+  --green-dark: var(--success-300);
+  --green-bg: var(--success-100);
+  --red: var(--error-400);
+  --red-dark: var(--error-300);
+  --red-bg: var(--error-100);
+  --yellow: var(--warning-400);
+  --yellow-dark: var(--warning-300);
+  --yellow-bg: var(--warning-100);
+  --blue: #64d2ff;
+  --blue-bg: var(--cyan-100);
+  --purple: #bf5af2;
+  --purple-bg: rgba(191, 90, 242, 0.14);
+  --yellow-aa-500: #ffd60a;
+  --yellow-aa-200: rgba(255, 214, 10, 0.16);
+  --yellow-aa-on-pill: #1c1500;
+
+  /* ── Sidebar: translucent pane + its opaque stand-in for sticky chrome ── */
+  --nex-sidebar: #18181b;
+  --nex-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --nex-sidebar-active: rgba(255, 255, 255, 0.1);
+  --nex-sidebar-active-ring: rgba(255, 255, 255, 0.08);
+  --nex-sidebar-text: #aeaeb2;
+  --nex-sidebar-text-active: #f5f5f7;
+  --nex-presence: #30d158;
+
+  /* ── Glass material: the tint every pane is mixed from, and the light
+     on its edges. The washes are what the glass has to show. ── */
+  /* ── Glass buttons (glass-base.css, CONTROLS): rgb triples and alphas,
+     so the base can mix them at any opacity. ── */
+  --glass-btn-white: 255 255 255;
+  --glass-btn-shade: 0 0 0;
+  --glass-btn-hair: 255 255 255;
+  --glass-btn-hair-a: 0.22;
+  --glass-btn-a1: 0.16;
+  --glass-btn-a2: 0.05;
+  --glass-btn-a1-hover: 0.24;
+  --glass-btn-a2-hover: 0.1;
+  --glass-btn-vig: 255 255 255;
+  --glass-btn-vig-a: 0.06;
+  --glass-btn-gloss: 0.38;
+  --glass-btn-rim-in: 0.85;
+  --glass-btn-rim-out: 0.4;
+  --glass-btn-caustic: 0.55;
+  --glass-btn-edge-a: 0.22;
+  --glass-btn-bloom: 0.35;
+  --glass-btn-ink: var(--text);
+  --glass-btn-ink-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
+  --glass-btn-filter: blur(10px) saturate(200%) brightness(1.1);
+  /* The primary action is white glass with near-black ink: bright enough
+     to read as the one filled pill on the surface without a hue. */
+  --glass-btn-accent: 255 255 255;
+  --glass-btn-accent-light: 255 255 255;
+  --glass-btn-accent-edge: 0 0 0;
+  --glass-btn-tint-a1: 0.86;
+  --glass-btn-tint-a2: 0.7;
+  --glass-btn-tint-a1-hover: 0.94;
+  --glass-btn-tint-a2-hover: 0.8;
+  --glass-btn-tint-bloom: 0.3;
+  --glass-btn-tint-ink: #111113;
+  --glass-btn-tint-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  /* A destructive action stays red glass with white ink, at its own
+     (lower) opacity so the white ink keeps its contrast. */
+  --glass-btn-danger: 255 69 58;
+  --glass-btn-danger-light: 255 140 130;
+  --glass-btn-danger-edge: 90 0 0;
+  --glass-btn-danger-a1: 0.62;
+  --glass-btn-danger-a2: 0.34;
+  --glass-btn-danger-bloom: 0.6;
+  --glass-btn-danger-ink: #ffffff;
+  --glass-btn-danger-ink-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.3);
+
+  --glass-tint: #202024;
+  --glass-pane-border: rgba(255, 255, 255, 0.12);
+  --glass-sheen: rgba(255, 255, 255, 0.22);
+  --glass-sheen-soft: rgba(255, 255, 255, 0.1);
+  --glass-shade: rgba(0, 0, 0, 0.35);
+  --glass-glow: rgba(255, 255, 255, 0.03);
+  /* Neutral washes: something for the glass to blur, nothing with a hue. */
+  --glass-wash-1: rgba(255, 255, 255, 0.07);
+  --glass-wash-2: rgba(200, 210, 230, 0.05);
+  --glass-wash-3: rgba(255, 255, 255, 0.06);
+
+  /* ── Elevation: a contact shadow plus a long soft fall-off ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.18);
+  --shadow-card-soft:
+    0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.16);
+  --shadow-popover:
+    0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 8px 24px -6px rgba(0, 0, 0, 0.5),
+    0 24px 56px -16px rgba(0, 0, 0, 0.5);
+  --shadow-modal:
+    0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3),
+    0 28px 72px -16px rgba(0, 0, 0, 0.7);
+  --shadow-overlay:
+    0 2px 6px rgba(0, 0, 0, 0.3), 0 32px 80px -16px rgba(0, 0, 0, 0.7);
+
+  /* ── Inline accents ── */
+  --mention-bg: rgba(255, 255, 255, 0.12);
+  --mention-fg: #ffffff;
+  --syntax-number: #64d2ff;
+  --syntax-bool: #ff9f0a;
+
+  /* ── Entity graph ── */
+  --graph-people-fill: rgba(48, 209, 88, 0.16);
+  --graph-people-stroke: #30d158;
+  --graph-companies-fill: rgba(100, 210, 255, 0.16);
+  --graph-companies-stroke: #64d2ff;
+  --graph-customers-fill: rgba(255, 159, 10, 0.16);
+  --graph-customers-stroke: #ff9f0a;
+  --graph-other-fill: rgba(255, 255, 255, 0.06);
+  --graph-other-stroke: #98989d;
+
+  /* ── Wiki editor chrome (portals to body, so set at html scope) ── */
+  --wk-wikilink: #4da3ff;
+  --wk-diff-add-bg: rgba(48, 209, 88, 0.16);
+  --wk-diff-add-ink: #63e38a;
+  --wk-diff-remove-bg: rgba(255, 69, 58, 0.16);
+  --wk-diff-remove-ink: #ff8a80;
+
+  /* ── shadcn/Tailwind primitives (HSL triplets). --accent and --border
+     are deliberately not restated: those names belong to the app's own
+     tokens above, and an HSL triplet there would clobber them. ── */
+  --background: 240 6% 7%;
+  --foreground: 240 11% 96%;
+  --card: 240 5% 12%;
+  --card-foreground: 240 11% 96%;
+  --popover: 240 5% 15%;
+  --popover-foreground: 240 11% 96%;
+  --primary: 240 11% 96%;
+  --primary-foreground: 240 6% 7%;
+  --secondary: 240 5% 16%;
+  --secondary-foreground: 240 11% 96%;
+  --muted: 240 5% 16%;
+  --muted-foreground: 240 2% 60%;
+  --destructive: 3 100% 61%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 240 4% 20%;
+  --ring: 240 11% 96%;
+  --radius: 11px;
+}
+
+/* ── Notebook surface — base tokens assume cream paper. ── */
+html[data-theme="nex-glass-dark"] .notebook-surface {
+  --nb-paper: #161618;
+  --nb-paper-dark: #111113;
+  --nb-rule: rgba(255, 255, 255, 0.03);
+  --nb-surface: #1c1c1f;
+  --nb-text: #f5f5f7;
+  --nb-text-muted: #aeaeb2;
+  --nb-text-tertiary: #98989d;
+  --nb-border: rgba(255, 255, 255, 0.12);
+  --nb-border-light: rgba(255, 255, 255, 0.07);
+  --nb-ink-blue: #64d2ff;
+  --nb-stamp-red: #ff453a;
+  --nb-amber: #ff9f0a;
+  --nb-amber-bg: rgba(255, 159, 10, 0.1);
+  --nb-amber-hover: #ffb340;
+  --nb-green-approve: #30d158;
+  --nb-green-bg: rgba(48, 209, 88, 0.1);
+}
+html[data-theme="nex-glass-dark"] .notebook-surface {
+  background-color: var(--nb-paper);
+}
+
+/* ── Light pastel chips that hardcode their colours in the base sheets ── */
+html[data-theme="nex-glass-dark"] .task-detail-status-badge.status-done {
+  background: var(--success-100);
+  color: var(--success-300);
+  border-color: var(--success-200);
+}
+html[data-theme="nex-glass-dark"] .task-detail-status-badge.status-blocked {
+  background: var(--warning-100);
+  color: var(--warning-300);
+  border-color: var(--warning-200);
+}
+html[data-theme="nex-glass-dark"] .insight-badge-low {
+  color: var(--text);
+  background: var(--bg-warm);
+}
+html[data-theme="nex-glass-dark"] .wk-section-new {
+  background: var(--accent-bg);
+  color: var(--mention-fg);
+}

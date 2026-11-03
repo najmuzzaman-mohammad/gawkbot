@@ -1,4 +1,4 @@
-import { get, post } from "./client";
+import { ApiError, get, post } from "./client";
 
 export type IntegrationProvider = "composio" | "one" | string;
 
@@ -9,6 +9,12 @@ export interface IntegrationProviderStatus {
   supports_connect: boolean;
   supports_disconnect: boolean;
   detail?: string;
+  /**
+   * The stored Composio credential is dead and the broker could not re-mint
+   * one, so the only fix is a fresh browser sign-in. `detail` already carries
+   * the human sentence; this flag tells the UI to offer the button.
+   */
+  needs_signin?: boolean;
 }
 
 export interface IntegrationConnection {
@@ -181,6 +187,7 @@ export async function getIntegrationAudit(
 export type ComposioSigninStatus =
   | "idle"
   | "cli_missing"
+  | "install_required"
   | "installing"
   | "awaiting_login"
   | "provisioning"
@@ -194,10 +201,79 @@ export interface ComposioSigninState {
   reason?: string;
 }
 
-export async function startComposioSignin(): Promise<ComposioSigninState> {
-  return post<ComposioSigninState>("/integrations/composio/signin/start", {});
+/**
+ * Start (or re-join) the Composio sign-in flow.
+ *
+ * `auto` marks a sign-in the user did not click for: the one a connect attempt
+ * starts on their behalf. The broker treats it differently in two ways — it
+ * will not install software without being asked, and it refuses to start
+ * another one after the user cancelled or a flow failed, handing back `idle` so
+ * this surface falls back to the explicit button.
+ */
+export async function startComposioSignin(
+  options: { auto?: boolean } = {},
+): Promise<ComposioSigninState> {
+  return post<ComposioSigninState>("/integrations/composio/signin/start", {
+    auto: options.auto === true,
+  });
 }
 
 export async function getComposioSigninStatus(): Promise<ComposioSigninState> {
   return get<ComposioSigninState>("/integrations/composio/signin/status");
+}
+
+/** Abandon the current sign-in flow and return the broker to idle. */
+export async function cancelComposioSignin(): Promise<ComposioSigninState> {
+  return post<ComposioSigninState>("/integrations/composio/signin/cancel", {});
+}
+
+/**
+ * The broker's machine-readable code for "Composio revoked this office's
+ * credential and the silent re-mint could not replace it". Mirrors
+ * composioSignInExpiredCode in internal/team/broker_integrations.go.
+ */
+export const COMPOSIO_SIGNIN_EXPIRED = "composio_signin_expired";
+
+/**
+ * True when a failed integration call was a dead Composio sign-in rather than
+ * an outage. The UI branches on this to show the sign-in panel instead of an
+ * error toast, so no surface has to recognise a 401 by its text.
+ */
+export function isComposioSigninExpired(error: unknown): boolean {
+  return (
+    error instanceof ApiError && error.errorCode === COMPOSIO_SIGNIN_EXPIRED
+  );
+}
+
+/**
+ * The broker's code for "this office has no Composio credential at all" — a
+ * first run, rather than a credential that went stale. Mirrors
+ * composioSignInRequiredCode in internal/team/broker_composio_autologin.go.
+ */
+export const COMPOSIO_SIGNIN_REQUIRED = "composio_signin_required";
+
+/**
+ * True when an integration call failed for want of a Composio sign-in, whether
+ * the credential expired or was never there. Both are fixed by the same browser
+ * sign-in, so every surface branches on this one predicate and only the
+ * sentence above the panel differs.
+ */
+export function isComposioSigninNeeded(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.errorCode === COMPOSIO_SIGNIN_EXPIRED ||
+      error.errorCode === COMPOSIO_SIGNIN_REQUIRED)
+  );
+}
+
+/** True when the failure was "never signed in", not "sign-in expired". */
+export function isComposioSigninMissing(error: unknown): boolean {
+  return (
+    error instanceof ApiError && error.errorCode === COMPOSIO_SIGNIN_REQUIRED
+  );
+}
+
+/** The upstream request id for a failed call, for a support-details affordance. */
+export function integrationErrorRequestId(error: unknown): string | null {
+  return error instanceof ApiError ? error.requestId : null;
 }

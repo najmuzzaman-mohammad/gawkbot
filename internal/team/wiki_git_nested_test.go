@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/nex-crm/wuphf/internal/gitexec"
 )
 
 // TestRepoInit_InsideParentGitRepo pins the fresh-install breaker found in
@@ -16,7 +18,10 @@ func TestRepoInit_InsideParentGitRepo(t *testing.T) {
 	parent := t.TempDir()
 	for _, args := range [][]string{{"init", "-q", "-b", "main", parent}} {
 		cmd := exec.Command("git", args...)
-		cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_SYSTEM=/dev/null")
+		// CleanEnv, not os.Environ: under a pre-push hook git exports GIT_DIR,
+		// and an unscrubbed `git init` then re-initialises the real
+		// repository (it flipped core.bare on the shared config).
+		cmd.Env = append(gitexec.CleanEnv(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_SYSTEM=/dev/null")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v: %s", args, err, out)
 		}

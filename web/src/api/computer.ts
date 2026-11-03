@@ -7,9 +7,9 @@ import { get, post } from "./client";
 // ── Member-level setting ────────────────────────────────────────
 
 /** `officeMember.computer` on the wire. "" means auto. */
-export type ComputerMemberSetting = "" | "off" | "sandbox" | "cloud";
+export type ComputerMemberSetting = "" | "off" | "sandbox" | "cloud" | "mac";
 /** Effective destination reported by `GET /computer/{slug}`. */
-export type ComputerDestination = "off" | "sandbox" | "cloud";
+export type ComputerDestination = "off" | "sandbox" | "cloud" | "mac";
 export type ComputerCloudBackend = "box";
 
 export const COMPUTER_STATES = [

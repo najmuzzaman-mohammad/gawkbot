@@ -56,8 +56,14 @@ jobs:
           cd desktop/oswails
           wails build -s -skipbindings -tags "${{ matrix.tags }}"
 
+      # The pinned driver must still download, verify and run (macOS only).
+      - name: Bundle the computer-use driver
+        if: matrix.os == 'macos-14'
+        run: bash scripts/fetch-cua-driver-host.sh desktop/oswails/build/bin/gawkbot.app
+
       # The attach lifecycle (office.json) is shared with the CLI — keep it green.
       - name: Vet + office tests
         run: |
           go vet -tags desktop ./desktop/oswails
-          go test ./internal/team/ -run 'OfficeInfo|RunningOfficeURL' -count=1
+          go test ./internal/team/ -run 'OfficeInfo|RunningOfficeURL|HostComputer|NotchState' -count=1
+          go test ./internal/hostcomputer/ -count=1

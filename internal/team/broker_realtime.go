@@ -70,7 +70,7 @@ func (b *Broker) handleRealtimeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	model := config.ResolveRealtimeModel()
-	ek, expiresAt, err := mintRealtimeEphemeralKey(r.Context(), key, model)
+	ek, expiresAt, err := mintRealtimeEphemeralKey(r.Context(), key, b.realtimeSessionConfig(model))
 	if err != nil {
 		// Never log the response body or key — it can carry sensitive detail.
 		log.Printf("realtime: ephemeral mint failed: %v", err)
@@ -88,12 +88,11 @@ func (b *Broker) handleRealtimeSession(w http.ResponseWriter, r *http.Request) {
 }
 
 // mintRealtimeEphemeralKey exchanges the long-lived OpenAI key for a short-lived
-// ephemeral token usable for one WebRTC handshake. Accepts both the GA response
-// shape ({"value":...}) and the preview shape ({"client_secret":{"value":...}}).
-func mintRealtimeEphemeralKey(ctx context.Context, apiKey, model string) (string, int64, error) {
-	payload, err := json.Marshal(map[string]any{
-		"session": map[string]any{"type": "realtime", "model": model},
-	})
+// ephemeral token usable for one WebRTC handshake, minted with session set
+// (broker_realtime_notch.go builds it). Accepts both the GA response shape
+// ({"value":...}) and the preview shape ({"client_secret":{"value":...}}).
+func mintRealtimeEphemeralKey(ctx context.Context, apiKey string, session map[string]any) (string, int64, error) {
+	payload, err := json.Marshal(map[string]any{"session": session})
 	if err != nil {
 		return "", 0, err
 	}

@@ -50,7 +50,7 @@ func TestIsDevVersion(t *testing.T) {
 		"v0.79.10": false,
 		// Sub-0.1.0 versions are sentinel-classified — see #350. The stale
 		// VERSION file shipped "0.0.7.1" and the banner treated it as a
-		// real semver "current" against npm latest.
+		// real semver "current" against the latest release.
 		"0.0.7.1": true,
 		"0.0.0":   true,
 		"v0.0.1":  true,
@@ -75,7 +75,7 @@ func TestIsDevVersion(t *testing.T) {
 // this path now classifies as a dev build and short-circuits.
 func TestCheckShortCircuitsForStaleVersionFile(t *testing.T) {
 	pinCurrentVersion(t, "0.0.7.1")
-	mockNPMRegistry(t, "0.79.2")
+	mockLatestRelease(t, "0.79.2")
 	res, err := Check(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("Check: %v", err)
@@ -178,7 +178,7 @@ func TestCheckHitsRegistry(t *testing.T) {
 	// VERSION file now `dev` (#350), an unpinned test would short-circuit
 	// at IsDevBuild and never assert UpgradeAvailable.
 	pinCurrentVersion(t, "1.2.3")
-	mockNPMRegistry(t, "99.0.0")
+	mockLatestRelease(t, "99.0.0")
 	res, err := Check(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("Check: %v", err)
@@ -204,41 +204,42 @@ func pinCurrentVersion(t *testing.T, v string) {
 	t.Cleanup(func() { currentVersion = prev })
 }
 
-// pinNPMRegistryURL swaps npmRegistryURL for the test duration so callers
+// pinLatestReleaseURL swaps latestReleaseURL for the test duration so callers
 // can point it at a httptest server without injecting a custom RoundTripper
 // on every Check call. Restores on cleanup.
-func pinNPMRegistryURL(t *testing.T, url string) {
+func pinLatestReleaseURL(t *testing.T, url string) {
 	t.Helper()
-	prev := npmRegistryURL
-	npmRegistryURL = url
-	t.Cleanup(func() { npmRegistryURL = prev })
+	prev := latestReleaseURL
+	latestReleaseURL = url
+	t.Cleanup(func() { latestReleaseURL = prev })
 }
 
-// mockNPMRegistry stands up a httptest server that always responds with the
-// given version and points npmRegistryURL at it for the duration of the
-// test. Callers can then call Check(ctx, nil) and the default client will
-// hit the fake.
+// mockLatestRelease stands up a httptest server that answers like the GitHub
+// releases/latest endpoint with the given version (tagged `v<latest>`, the
+// way goreleaser tags it) and points latestReleaseURL at it for the duration
+// of the test. Callers can then call Check(ctx, nil) and the default client
+// will hit the fake.
 //
 // t.Cleanup ordering matters here: srv.Close is registered BEFORE
-// pinNPMRegistryURL, and t.Cleanup runs LIFO — so the URL pin restores
+// pinLatestReleaseURL, and t.Cleanup runs LIFO — so the URL pin restores
 // first, THEN the server closes. Reordering would leave a window where
-// npmRegistryURL points at a closed server.
-func mockNPMRegistry(t *testing.T, latest string) {
+// latestReleaseURL points at a closed server.
+func mockLatestRelease(t *testing.T, latest string) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]string{"version": latest})
+		_ = json.NewEncoder(w).Encode(map[string]string{"tag_name": "v" + latest})
 	}))
 	t.Cleanup(srv.Close)
-	pinNPMRegistryURL(t, srv.URL)
+	pinLatestReleaseURL(t, srv.URL)
 }
 
 func TestCheckShortCircuitsForDevBuild(t *testing.T) {
 	// On a dev binary, Check must NOT compute UpgradeAvailable or
-	// CompareURL regardless of what npm `latest` says — otherwise
-	// `dev < anything` would always tell the user to npm-install over
+	// CompareURL regardless of what the latest release says — otherwise
+	// `dev < anything` would always tell the user to download over
 	// their source build.
 	pinCurrentVersion(t, "dev")
-	mockNPMRegistry(t, "99.0.0")
+	mockLatestRelease(t, "99.0.0")
 	res, err := Check(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("Check: %v", err)
@@ -259,7 +260,7 @@ func TestCheckOmitsCompareURLWhenVersionsEqual(t *testing.T) {
 	// must be empty so JSON consumers don't surface a degenerate
 	// `compare/vX...vX` link.
 	pinCurrentVersion(t, "1.2.3")
-	mockNPMRegistry(t, "1.2.3")
+	mockLatestRelease(t, "1.2.3")
 	res, err := Check(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("Check: %v", err)

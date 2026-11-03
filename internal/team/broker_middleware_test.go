@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -703,5 +704,114 @@ func TestSetProxyClientIPHeaders(t *testing.T) {
 	}
 	if got := headers.Get("X-Real-IP"); got != "203.0.113.44" {
 		t.Fatalf("expected X-Real-IP to preserve remote IP, got %q", got)
+	}
+}
+
+// A page on another origin can make the browser send a request to the web
+// UI port from this machine with a loopback Host, so the loopback checks pass
+// for it. The proxy behind this guard attaches the owner's credentials. The
+// guard must refuse anything such a page could use to change state or to open
+// a channel it can read, and must not get in the way of the web UI itself, a
+// person following a link, or a local program.
+func TestWebUIRebindGuardRefusesCrossSiteRequests(t *testing.T) {
+	guarded := webUIRebindGuard(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	const host = "127.0.0.1:7891"
+	type hdr map[string]string
+	cases := []struct {
+		name    string
+		method  string
+		headers hdr
+		want    int
+	}{
+		// The web UI's own page.
+		{"own page posts", http.MethodPost, hdr{"Sec-Fetch-Site": "same-origin", "Origin": "http://" + host}, http.StatusOK},
+		{"own page reads", http.MethodGet, hdr{"Sec-Fetch-Site": "same-origin"}, http.StatusOK},
+		{"own page deletes", http.MethodDelete, hdr{"Sec-Fetch-Site": "same-origin"}, http.StatusOK},
+		{"own page opens a websocket", http.MethodGet, hdr{"Sec-Fetch-Site": "same-origin", "Upgrade": "websocket", "Origin": "http://" + host}, http.StatusOK},
+		// The person typing the address or using a bookmark.
+		{"typed address", http.MethodGet, hdr{"Sec-Fetch-Site": "none"}, http.StatusOK},
+		// Another site's page. The text/plain POST is the one that needs no
+		// preflight and so reaches the server.
+		{"another site posts", http.MethodPost, hdr{"Sec-Fetch-Site": "cross-site", "Origin": "https://evil.example", "Content-Type": "text/plain"}, http.StatusForbidden},
+		{"another site puts", http.MethodPut, hdr{"Sec-Fetch-Site": "cross-site", "Origin": "https://evil.example"}, http.StatusForbidden},
+		{"another site deletes", http.MethodDelete, hdr{"Sec-Fetch-Site": "cross-site"}, http.StatusForbidden},
+		{"another site preflights", http.MethodOptions, hdr{"Sec-Fetch-Site": "cross-site", "Origin": "https://evil.example"}, http.StatusForbidden},
+		{"another site opens a websocket", http.MethodGet, hdr{"Sec-Fetch-Site": "cross-site", "Upgrade": "WebSocket", "Origin": "https://evil.example"}, http.StatusForbidden},
+		// Another port on this machine is another site: a dev server a bot
+		// started is same-site with the office, and must not be trusted.
+		{"another local port posts", http.MethodPost, hdr{"Sec-Fetch-Site": "same-site", "Origin": "http://localhost:3000"}, http.StatusForbidden},
+		// A sandboxed frame (a bot-built app) has the origin "null".
+		{"sandboxed frame posts", http.MethodPost, hdr{"Sec-Fetch-Site": "cross-site", "Origin": "null"}, http.StatusForbidden},
+		// Another site may still cause a GET: a link, an OAuth return, a
+		// frame loading its own files. It cannot read the reply.
+		{"another site links here", http.MethodGet, hdr{"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate"}, http.StatusOK},
+		{"sandboxed frame loads a file", http.MethodGet, hdr{"Sec-Fetch-Site": "cross-site", "Origin": "null"}, http.StatusOK},
+		// A browser too old for fetch metadata still sends Origin.
+		{"old browser, own page posts", http.MethodPost, hdr{"Origin": "http://" + host}, http.StatusOK},
+		{"old browser, own page posts, other case", http.MethodPost, hdr{"Origin": "HTTP://" + host}, http.StatusOK},
+		{"old browser, another site posts", http.MethodPost, hdr{"Origin": "https://evil.example"}, http.StatusForbidden},
+		{"old browser, sandboxed frame posts", http.MethodPost, hdr{"Origin": "null"}, http.StatusForbidden},
+		{"old browser, another local port posts", http.MethodPost, hdr{"Origin": "http://127.0.0.1:3000"}, http.StatusForbidden},
+		{"old browser, https lookalike posts", http.MethodPost, hdr{"Origin": "https://" + host}, http.StatusForbidden},
+		// Not a browser page at all: a local program.
+		{"local program posts", http.MethodPost, hdr{}, http.StatusOK},
+		// An unknown value is not trusted.
+		{"unknown fetch site posts", http.MethodPost, hdr{"Sec-Fetch-Site": "something-new"}, http.StatusForbidden},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, "/api/messages", nil)
+			req.RemoteAddr = "127.0.0.1:5000"
+			req.Host = host
+			for k, v := range tc.headers {
+				req.Header.Set(k, v)
+			}
+			rec := httptest.NewRecorder()
+			guarded.ServeHTTP(rec, req)
+			if rec.Code != tc.want {
+				t.Fatalf("status=%d, want %d", rec.Code, tc.want)
+			}
+		})
+	}
+}
+
+// The end the guard exists for: a forged post must never reach the broker
+// carrying the owner's token and the operator key.
+func TestForgedPostNeverReachesTheBrokerWithTheOwnersCredentials(t *testing.T) {
+	b := newTestBroker(t)
+	b.token = "owner-token"
+	var reached []string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reached = append(reached, r.Method+" "+r.URL.Path+" auth="+r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+	handler := webUIRebindGuard(b.webUIProxyHandler(upstream.URL, "/api"))
+
+	send := func(headers map[string]string) int {
+		req := httptest.NewRequest(http.MethodPost, "/api/messages", strings.NewReader(`{"from":"you","channel":"general","content":"hi"}`))
+		req.RemoteAddr = "127.0.0.1:5000"
+		req.Host = "127.0.0.1:7891"
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		return rec.Code
+	}
+
+	if code := send(map[string]string{"Sec-Fetch-Site": "cross-site", "Origin": "https://evil.example", "Content-Type": "text/plain"}); code != http.StatusForbidden {
+		t.Fatalf("forged post status=%d, want 403", code)
+	}
+	if len(reached) != 0 {
+		t.Fatalf("a forged post reached the broker: %v", reached)
+	}
+	if code := send(map[string]string{"Sec-Fetch-Site": "same-origin", "Content-Type": "application/json"}); code != http.StatusOK {
+		t.Fatalf("the web UI's own post status=%d, want 200", code)
+	}
+	if len(reached) != 1 || reached[0] != "POST /messages auth=Bearer owner-token" {
+		t.Fatalf("the web UI's own post did not reach the broker as the owner: %v", reached)
 	}
 }

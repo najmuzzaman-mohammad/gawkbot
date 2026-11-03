@@ -61,6 +61,16 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    // Two pages: the app (index.html) and the Mac notch surface
+    // (notch.html, hosted by desktop/oswails over the camera notch).
+    rollupOptions: {
+      input: {
+        // The key names the entry chunk: scripts/check-bundle-size.sh
+        // budgets `index-*.js`, so the app entry must stay "index".
+        index: path.resolve(__dirname, "index.html"),
+        notch: path.resolve(__dirname, "notch.html"),
+      },
+    },
   },
   test: {
     environment: "happy-dom",

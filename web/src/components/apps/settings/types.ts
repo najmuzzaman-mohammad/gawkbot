@@ -8,6 +8,8 @@ import type { ConfigSnapshot, ConfigUpdate } from "../../../api/client";
 
 export type SectionId =
   | "general"
+  | "agents"
+  | "notch"
   | "local-llms"
   | "image-gen"
   | "company"

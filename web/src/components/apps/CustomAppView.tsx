@@ -1,12 +1,6 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ClockRotateRight,
-  CursorPointer,
-  EditPencil,
-  MoreHoriz,
-  Xmark,
-} from "iconoir-react";
+import { Ellipsis, History, MousePointer, Pencil, X } from "lucide-react";
 
 import {
   type CustomApp,
@@ -398,7 +392,7 @@ function AppViewHeader({
           onClick={onToggleSelect}
           title="Click an element in the preview to edit it"
         >
-          <CursorPointer width={15} height={15} />
+          <MousePointer size={15} />
           <span>Select to edit</span>
         </button>
       ) : null}
@@ -408,7 +402,7 @@ function AppViewHeader({
         aria-pressed={historyOpen}
         onClick={onToggleHistory}
       >
-        <ClockRotateRight width={15} height={15} />
+        <History size={15} />
         <span>History</span>
       </button>
       <button
@@ -418,7 +412,7 @@ function AppViewHeader({
         disabled={editPending}
         onClick={onToggleEdit}
       >
-        <EditPencil width={15} height={15} />
+        <Pencil size={15} />
         <span>{editPending ? "Opening…" : "Edit"}</span>
       </button>
       <div className="custom-app-view__menu-wrap" ref={menuRef}>
@@ -430,7 +424,7 @@ function AppViewHeader({
           aria-expanded={menuOpen}
           onClick={onToggleMenu}
         >
-          <MoreHoriz width={16} height={16} />
+          <Ellipsis size={16} />
         </button>
         {menuOpen ? (
           <div className="custom-app-view__menu" role="menu">
@@ -533,7 +527,7 @@ function AppViewBody({
               aria-label="Dismiss error"
               onClick={onDismissError}
             >
-              <Xmark width={14} height={14} />
+              <X size={14} />
             </button>
           </div>
         ) : null}

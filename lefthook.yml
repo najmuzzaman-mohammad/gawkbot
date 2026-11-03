@@ -21,8 +21,11 @@ pre-commit:
       # into web/ so {staged_files} arrives as paths relative to web/;
       # stage_fixed=true re-stages formatter + safe-autofix changes so the
       # commit includes them.
+      # The glob is repo-relative and must name web/: lefthook matches the
+      # root by prefix, so a bare "**" also catches website/ and hands biome
+      # a path it ignores ("site/style.css"), failing the commit.
       root: web
-      glob: "**/*.{js,ts,jsx,tsx,json,css}"
+      glob: "web/**/*.{js,ts,jsx,tsx,json,css}"
       run: bunx --bun biome check --write --max-diagnostics=500 {staged_files}
       stage_fixed: true
       exclude:
@@ -164,6 +167,26 @@ pre-push:
       files: bash scripts/changed-files-since-base.sh
       glob: "web/{public/themes/**/*.css,src/**/*.{css,ts,tsx}}"
       run: bash scripts/check-css-phantom-tokens.sh
+    site-claims:
+      # robots.txt directives and README claim-table paths. Unscoped on
+      # purpose: moving or deleting any cited file is what breaks it. <1s.
+      run: bash scripts/check-site-claims.sh
+    no-new-sleeps:
+      # The same check as CI's lint job, which was the only place it ran: a
+      # commit that added time.Sleep to tests reached main with every hook
+      # green and turned CI red. Diffs against origin/main, so it is cheap.
+      files: bash scripts/changed-files-since-base.sh
+      glob: "**/*_test.go"
+      run: bash scripts/check-no-new-sleeps-in-tests.sh
+    shellcheck:
+      # The same command as CI's shellcheck job, which was the only place it
+      # ran: a script that failed it reached main with every hook green.
+      # A missing shellcheck is an error, not a skip.
+      files: bash scripts/changed-files-since-base.sh
+      glob: "{scripts,testdata/vhs}/*.sh"
+      run: |
+        command -v shellcheck >/dev/null 2>&1 || { echo "shellcheck is not installed (brew install shellcheck)" >&2; exit 1; }
+        shellcheck scripts/*.sh testdata/vhs/*.sh
     smoke:
       # internal/team's former test-isolation bugs (shared ~/.wuphf/wiki,
       # worktrees registered against the invoking repo, cross-test state
